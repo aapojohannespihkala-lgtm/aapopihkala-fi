@@ -7,6 +7,7 @@ const sourceRoleLabels: Record<string, string> = {
   documented_measurement_and_limits: 'Kirjattu mitta ja tulkintarajat',
   documented_user_measurements_and_component_provenance: 'Kirjatut käyttäjämitat ja mallilähde',
   qa_and_partial_review: 'QA ja rajattu katselmus',
+  owner_visual_proportion_and_function_review: 'Omistajan valinta ja toiminnon vahvistus',
 };
 
 const element = <K extends keyof HTMLElementTagNameMap>(tag: K, value: string, className?: string) => {

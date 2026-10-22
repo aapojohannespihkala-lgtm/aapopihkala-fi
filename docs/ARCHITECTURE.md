@@ -106,6 +106,8 @@ Objektien lähdekortit palvellaan Access-tarkistetusta `/private-model/source-ca
 
 D2F:n varmennetut versiosidonnat ovat erillinen aineisto alkuperäisen korttikoosteen rinnalla. Sidonta nimeää version oman solmun ja root-polun sekä tarkistaa alkuperäisen kortin pysyvän lähdeavaimen, lähdetekstin ja linkkien roolit. Lähde-GLB ja julkaisupoiminta varmennetaan kumpikin erikseen. Uuden sidonnan auditointi edellyttää alkuperäisiä GLB-tavuja sekä kohteiden geometrian ja maailmamuunnosten vertailua. Mallitavuja ei tallenneta Git-repositoryyn.
 
+KPH:n kytkin- ja peilikaappikorttien versiosidonnat varmentavat lisäksi valitun osan oman ryhmäjuuren lähde- ja donor-tiedot. Uudemman kytkinversion himmennystoiminto perustuu kirjattuun omistajahavaintoon, kun taas kehyksen fyysiset mitat, tuote ja tarkka asennuspaikka pysyvät avoimina. Alkuperäinen korttimoduuli säilyttää oman versionsa tiedot. KPH-auditointiskripti vertaa 22 kohteen geometriaa, maailmamuunnoksia ja metatietomuutoksia alkuperäiseen SHARED302:een sekä testaa oikeiden GLB:ien ajonaikaisen korttikohdistuksen. Ennakkoon varmennettu poimintasidonta ei rekisteröi tai julkaise mallia.
+
 ## Animation Lab
 
 Animation Lab sijaitsee `src/pages/lab/`-reitissä. Uusien interaktiivisten animaatiotutkielmien pariteettisääntö on määritelty `AGENTS.md`-tiedostossa.

@@ -13,6 +13,7 @@ import { getPrivateWorkTestCandidateById } from '../../worker/privateWorkTest';
 const fixtures = {
   ...JSON.parse(readFileSync(new URL('../fixtures/private-model-source-cards.json', import.meta.url), 'utf8')),
   ...JSON.parse(readFileSync(new URL('../fixtures/private-model-d2f-source-card-versions.json', import.meta.url), 'utf8')),
+  ...JSON.parse(readFileSync(new URL('../fixtures/private-model-kph-source-card-versions.json', import.meta.url), 'utf8')),
 };
 const bundle = () => structuredClone(privateModelSourceCards);
 const model = (name = 'shared302') => {
@@ -33,7 +34,7 @@ const model = (name = 'shared302') => {
 
 test('T01 original module bytes, 18 cards, 38 unique bindings and 35 source roles are preserved', () => {
   const data = bundle();
-  const entries = indexSourceCardBundle({ ...data, versionBindings: undefined });
+  const entries = indexSourceCardBundle({ ...data, versionBindings: undefined, kphVersionBindings: undefined });
   expect(entries).toHaveLength(38);
   expect(new Set(entries.map(entry => entry.id)).size).toBe(18);
   expect(new Set(entries.map(entry => entry.module.model.sha256)).size).toBe(2);
@@ -48,7 +49,7 @@ test('T01 original module bytes, 18 cards, 38 unique bindings and 35 source role
 
 test('D2F source and published versions add 32 audited bindings without adding cards or changing original handoff counts', () => {
   const data = bundle();
-  const entries = indexSourceCardBundle(data);
+  const entries = indexSourceCardBundle({ ...data, kphVersionBindings: undefined });
   expect(entries).toHaveLength(70);
   expect(new Set(entries.map(entry => entry.id)).size).toBe(18);
   expect(new Set(entries.map(entry => entry.module.model.sha256)).size).toBe(4);
@@ -124,6 +125,97 @@ for (const failure of ['duplicate-version', 'original-sha', 'stable-key', 'missi
     if (failure === 'led-extra-source') version.bindings[15].selector.sourceLinkGuards.push(binding.selector.sourceLinkGuards[1]);
     if (failure === 'audit') version.audit.geometryAndTransformsUnchanged = false;
     if (failure === 'root-path') binding.selector.nodePath[1] = 398;
+    expect(() => indexSourceCardBundle(data)).toThrow('versiosidontaa');
+  });
+}
+
+test('KPH IV1 and latest photo-slot source/extract versions add 88 bindings for two existing cards', () => {
+  const data = bundle(), entries = indexSourceCardBundle(data);
+  expect(entries).toHaveLength(158);
+  expect(new Set(entries.map(entry => entry.id)).size).toBe(18);
+  expect(new Set(entries.map(entry => entry.module.model.sha256)).size).toBe(8);
+  expect(data.kphVersionBindings.totals).toEqual({ modelVersions: 4, targetBindings: 88 });
+  expect(data.kphVersionBindings.versions.map(version => version.audit.sourceRoleRecords)).toEqual([46, 46, 46, 46]);
+  expect(new Set(data.kphVersionBindings.versions.map(version => version.audit.geometryProofSha256)).size).toBe(1);
+  const registered = data.kphVersionBindings.versions[1].model;
+  expect(getPrivateWorkTestCandidateById(registered.candidateId!)?.expectedSha256).toBe(registered.sha256);
+  expect(getPrivateWorkTestCandidateById(registered.candidateId!)?.expectedSize).toBe(registered.byteLength);
+  // Prepared bindings do not register or publish the newest model.
+  expect(data.kphVersionBindings.versions[3].model.candidateId).toBeUndefined();
+});
+
+test('all 88 KPH version bindings preserve measurements and distinguish owner-confirmed dimming from open product and host', async () => {
+  const data = bundle(), before = JSON.stringify(data);
+  for (const name of ['kph-iv1-source', 'kph-iv1-published', 'kph-latest-source', 'kph-latest-extract']) {
+    const source = model(name), original = JSON.stringify(source.gltf.parser.json);
+    const profile = data.kphVersionBindings.versions.find(version => version.model.sha256 === source.sha256)!;
+    const resolve = createSourceCardResolver(await sourceCardIdentity(source.gltf), source.sha256, data);
+    for (const group of profile.groups) for (const binding of group.bindings) {
+      const result = resolve(source.objects[binding.nodeIndex]);
+      expect(result.state, `${name}:${binding.nodeIndex}`).toBe('matched');
+      const card = result.cards[0];
+      expect(card.id).toBe(group.integrationCardId);
+      if (group.moduleId === 'KPH09_SWITCH') {
+        expect(card.facts.find(fact => fact.label === 'Himmennys')).toMatchObject({ kind: 'observation', value: 'Valohimmennin, omistaja vahvistanut 20.10.2026' });
+        expect(card.facts.find(fact => fact.value === '1,020 m')?.kind).toBe('measurement');
+        expect(card.facts.find(fact => fact.value === '92 x 148 mm')?.kind).toBe('assumption');
+        expect(card.facts.find(fact => fact.label === 'Tarkka asennuspaikka ja seinäkiinnitys')?.kind).toBe('unverified');
+        expect(card.conflicts[0]).toContain('tässä versiossa korjattu');
+        expect(card.sources[0].limits).toContain('Himmennystoiminto');
+        expect(card.sources[1].supports.join(' ')).toContain('Osioon 28');
+        expect(card.sources[2].limits.join(' ')).toContain('tuotekoodi');
+      } else {
+        expect(card.facts.find(fact => fact.value.startsWith('2130 mm'))?.kind).toBe('derived');
+        expect(card.facts.find(fact => fact.label === 'Tarkka sijoitus mallin seinäpintaan')?.kind).toBe('unverified');
+      }
+    }
+    if (name.includes('published') || name.includes('extract')) {
+      expect(source.objects[263].name).not.toBe(data.modules.KPH09_SWITCH.cards[0].targetBindings[0].nodeName);
+      expect(resolve(source.objects[263]).cards).toEqual([]);
+      expect(profile.groups.map(group => group.rootNodeIndex)).toEqual([268, 226]);
+    }
+    expect(JSON.stringify(source.gltf.parser.json)).toBe(original);
+  }
+  expect(JSON.stringify(data)).toBe(before);
+});
+
+for (const failure of ['sha', 'scene', 'old-index', 'root-name', 'source', 'source-role', 'missing-source', 'dimming', 'frame', 'donor']) {
+  test(`KPH published binding rejects ${failure}, including changes on a selected child's group root`, () => {
+    const source = model('kph-latest-extract');
+    const selected = source.objects[failure === 'donor' ? 227 : 269];
+    if (failure === 'sha') source.sha256 = '0'.repeat(64);
+    if (failure === 'scene') source.gltf.scenes.unshift({ name: 'wrong scene', parent: null });
+    if (failure === 'old-index') source.gltf.parser.associations.set(selected, { nodes: 264 });
+    if (failure === 'root-name') source.gltf.parser.json.nodes[268].name = 'wrong root';
+    if (failure === 'source') selected.userData.referenceDriveId = 'wrong photo';
+    if (failure === 'source-role') selected.userData.sourceLinks[0].role = 'primary';
+    if (failure === 'missing-source') selected.userData.sourceLinks.pop();
+    if (failure === 'dimming') source.objects[268].userData.rotaryDimmingFunction = 'UNVERIFIED';
+    if (failure === 'frame') source.objects[268].userData.unmeasuredFrameWidthM_WORK_ASSUMPTION = 0.11;
+    if (failure === 'donor') source.gltf.parser.json.nodes[226].extras.donorGLBSha256 = 'wrong donor';
+    const result = createSourceCardResolver(source.gltf, source.sha256, bundle())(selected);
+    expect(result.state).toBe('mismatch');
+    expect(result.cards).toEqual([]);
+  });
+}
+
+for (const failure of ['duplicate-version', 'original-sha', 'missing-group', 'missing-binding', 'source-role', 'root-path', 'donor', 'revision', 'revision-measurement', 'revision-function', 'revision-source', 'dimming', 'audit']) {
+  test(`KPH version handoff rejects ${failure}`, () => {
+    const data: SourceCardBundle = bundle();
+    const version = data.kphVersionBindings!.versions[3], group = version.groups[0];
+    if (failure === 'duplicate-version') version.model.sha256 = data.kphVersionBindings!.versions[0].model.sha256;
+    if (failure === 'original-sha') version.sourceModelSha256 = '0'.repeat(64);
+    if (failure === 'missing-group') version.groups.pop();
+    if (failure === 'missing-binding') group.bindings.pop();
+    if (failure === 'source-role') group.bindings[1].sourceLinkGuards[0].role = 'primary';
+    if (failure === 'root-path') group.bindings[1].nodePath[1] = 263;
+    if (failure === 'donor') version.groups[1].rootExtraGuards.donorGLBSha256 = 'wrong donor';
+    if (failure === 'revision') group.cardRevision = 'unreviewed';
+    if (failure === 'revision-measurement') data.kphVersionBindings!.switchCardRevision.card.facts[2].kind = 'observation';
+    if (failure === 'revision-function') data.kphVersionBindings!.switchCardRevision.card.facts[4].kind = 'measurement';
+    if (failure === 'revision-source') data.kphVersionBindings!.switchCardRevision.card.sources[2].url = 'https://example.test/wrong-source';
+    if (failure === 'dimming') group.rootExtraGuards.rotaryDimmingFunction = 'UNVERIFIED';
+    if (failure === 'audit') version.audit.geometryAndTransformsUnchanged = false;
     expect(() => indexSourceCardBundle(data)).toThrow('versiosidontaa');
   });
 }
@@ -247,16 +339,17 @@ test('T05 source-card route requires Access and keeps authenticated GET/HEAD pri
 
 // A small, explicitly test-only GLB exercises the real loader, SHA calculation,
 // raycast, selection controller and DOM. It is not production-model UI evidence.
-const switchGlb = (offset = 0) => {
+const switchGlb = (offset = 0, name = 'shared302') => {
   const positions = Buffer.alloc(36);
   [-1 + offset, -1, 0, 1, -1, 0, 0, 1, 0].forEach((value, index) => positions.writeFloatLE(value, index * 4));
-  const source = fixtures.shared302.nodes;
-  const nodes = Array.from({ length: 265 }, () => ({} as any));
-  for (const id of [119, 263, 264]) nodes[id] = structuredClone(source[id]);
-  nodes[119].children = [263]; nodes[263].children = [264];
-  nodes[264].extras.sourceLinks = [{ link: 'https://docs.google.com/document/d/raw-source/edit', role: 'support', supports: 'fixture source reference' }];
+  const source = fixtures[name].nodes;
+  const root = name === 'shared302' ? 263 : 268, frame = root + 1;
+  const nodes = Array.from({ length: frame + 1 }, () => ({} as any));
+  for (const id of [119, root, frame]) nodes[id] = structuredClone(source[id]);
+  nodes[119].children = [root]; nodes[root].children = [frame];
+  if (name === 'shared302') nodes[frame].extras.sourceLinks = [{ link: 'https://docs.google.com/document/d/raw-source/edit', role: 'support', supports: 'fixture source reference' }];
   const json = { asset: { version: '2.0' }, scene: 0, scenes: [{ nodes: [119] }], nodes,
-    meshes: Array.from({ length: 230 }, () => ({ primitives: [{ attributes: { POSITION: 0 } }] })),
+    meshes: Array.from({ length: nodes[frame].mesh + 1 }, () => ({ primitives: [{ attributes: { POSITION: 0 } }] })),
     buffers: [{ byteLength: positions.length }], bufferViews: [{ buffer: 0, byteOffset: 0, byteLength: positions.length }],
     accessors: [{ bufferView: 0, componentType: 5126, count: 3, type: 'VEC3', min: [-1, -1, 0], max: [1, 1, 0] }] };
   const raw = Buffer.from(JSON.stringify(json));
@@ -267,10 +360,10 @@ const switchGlb = (offset = 0) => {
   return Buffer.concat([header, chunk, bin, positions]);
 };
 
-const browserFixture = async (page: Page, denied = false) => {
-  const glb = switchGlb();
+const browserFixture = async (page: Page, denied = false, name = 'shared302') => {
+  const glb = switchGlb(0, name);
   const sha = createHash('sha256').update(glb).digest('hex');
-  const testBundle = JSON.parse(JSON.stringify(bundle()).replaceAll(fixtures.shared302.sha256, sha));
+  const testBundle = JSON.parse(JSON.stringify(bundle()).replaceAll(fixtures[name].sha256, sha));
   await page.route('**/private-model/source-cards.json', route => route.fulfill({ status: denied ? 403 : 200, contentType: 'application/json', body: JSON.stringify(testBundle) }));
   await page.route('**/private-model/model.glb', route => route.fulfill({ contentType: 'model/gltf-binary', body: glb }));
   return sha;
@@ -308,6 +401,25 @@ for (const width of [1280, 390]) {
     await page.locator('#clear-selection-button').click();
     await expect(section).toBeHidden();
     await expect(section.locator('a')).toHaveCount(0);
+  });
+  test(`browser KPH ${width}px: new-version frame shows confirmed dimming and keeps physical dimensions open`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    const sha = await browserFixture(page, false, 'kph-latest-extract');
+    await page.goto('/private-model/');
+    await selectCenter(page);
+    const section = page.locator('#selection-source-evidence');
+    await expect(section).toHaveAttribute('data-state', 'matched');
+    await expect(section.locator('[data-evidence-kind="observation"]')).toContainText(['Saunan valo', 'Kylpyhuoneen valohimmennin', 'Valohimmennin, omistaja vahvistanut 20.10.2026']);
+    await expect(section.locator('[data-evidence-kind="measurement"]')).toContainText('1,020 m');
+    await expect(section.locator('[data-evidence-kind="assumption"]')).toContainText('92 x 148 mm');
+    await expect(section.locator('[data-evidence-kind="unverified"]')).toContainText('Ei varmennettu');
+    await expect(section.locator('.source-evidence-conflict')).toContainText('tässä versiossa korjattu');
+    await expect(section.locator('[data-source-role="owner_visual_proportion_and_function_review"]')).toContainText('Omistajan valinta ja toiminnon vahvistus');
+    await expect(section).toContainText('Fyysisiä tuotemittoja, tuotekoodia');
+    await section.getByText('Malliversio ja kohdistus', { exact: true }).click();
+    await expect(section).toContainText(sha);
+    await page.locator('#clear-selection-button').click();
+    await expect(section).toBeHidden();
   });
 }
 

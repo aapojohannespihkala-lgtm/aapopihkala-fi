@@ -1,0 +1,3683 @@
+{
+  "schema": "ylisrinne-kph-source-card-version-bindings-v1",
+  "createdDate": "2026-10-22",
+  "switchCardRevision": {
+    "reviewSourceDriveId": "1VKZNrkGd87QtwChV5ygs_E_k1Gi2e6iCPQbePpinzJY",
+    "card": {
+      "id": "KPH09_SWITCH::KPH09_SWITCH_GROUP_SHARED302",
+      "title": "Saunan ja kylpyhuoneen valokatkaisimet",
+      "status": "WORK_TEST - ulkonäkö kuvasta, toiminto omistajan vahvistama",
+      "facts": [
+        {
+          "label": "Yläpainike",
+          "value": "Saunan valo",
+          "evidence": "USER_CONFIRMED_IN_MODEL_METADATA",
+          "kind": "observation"
+        },
+        {
+          "label": "Alempi kiertosäädin",
+          "value": "Kylpyhuoneen valohimmennin",
+          "evidence": "USER_CONFIRMED_IN_MODEL_METADATA",
+          "kind": "observation"
+        },
+        {
+          "label": "Kehyksen yläreuna valmiista kylpyhuoneen lattiasta",
+          "value": "1,020 m",
+          "evidence": "USER_REPORTED_MEASUREMENT",
+          "kind": "measurement"
+        },
+        {
+          "label": "Kehyskoko mallissa",
+          "value": "92 x 148 mm",
+          "evidence": "WORK_ASSUMPTION",
+          "kind": "assumption"
+        },
+        {
+          "label": "Himmennys",
+          "value": "Valohimmennin, omistaja vahvistanut 20.10.2026",
+          "evidence": "USER_CONFIRMED_FUNCTION_COVERAGE_SECTION_28",
+          "kind": "observation"
+        },
+        {
+          "label": "Tarkka asennuspaikka ja seinäkiinnitys",
+          "value": "Ei varmennettu",
+          "evidence": "UNVERIFIED",
+          "kind": "unverified"
+        }
+      ],
+      "sources": [
+        {
+          "title": "2026-10-19 - D1F KPH - saunan ja kylpyhuoneen valokatkaisija - yläreuna 102 cm lattiasta.png",
+          "url": "https://drive.google.com/file/d/1QbBQAeCfIHyqRefVITEr3jLuBdq6E4kZ/view",
+          "role": "photo_relative_appearance",
+          "supports": [
+            "Ulkonäkö ja suhteelliset muodot"
+          ],
+          "limits": [
+            "Kehyksen fyysiset ulkomitat",
+            "Tarkka asennuksen XY/XYZ",
+            "Himmennystoiminto"
+          ]
+        },
+        {
+          "title": "3D-kattavuus, osiot 11 ja 28",
+          "url": "https://docs.google.com/document/d/1yOrdsreXGVS_WPWS4ZdfXRDEPpPXt6DMU4KInKi3btI/edit",
+          "role": "documented_measurement_and_limits",
+          "supports": [
+            "QA-asiakirjaan kirjattu käyttäjän 1,020 m yläreunamitta ja tulkintarajat",
+            "Osioon 28 kirjattu omistajan vahvistus: alanuppi säätää valojen kirkkautta."
+          ],
+          "limits": [
+            "Uusi riippumaton mittaus",
+            "Kuvan pikseleistä mitattu korkeus",
+            "Ei alkuperäinen mittaustallenne tai riippumaton uusi mittaus."
+          ]
+        },
+        {
+          "title": "KPH09-katselmushistoria, kohdat 2, 17 ja 18",
+          "url": "https://docs.google.com/document/d/1VKZNrkGd87QtwChV5ygs_E_k1Gi2e6iCPQbePpinzJY/edit",
+          "role": "owner_visual_proportion_and_function_review",
+          "supports": [
+            "Omistajan valitsema 92:148-työmittasuhde ja kirjattu himmennystoiminto."
+          ],
+          "limits": [
+            "Fyysisiä tuotemittoja, tuotekoodia, sähköarvoja, johdotusta tai tarkkaa asennuspaikkaa. Koko KPH09:n katselmus on avoin."
+          ]
+        }
+      ],
+      "conflicts": [
+        "Vanhan SHARED302-version 110 x 222 mm metadata on tässä versiossa korjattu 92 x 148 mm työoletukseksi. Fyysisiä kehysmittoja ei ole varmennettu."
+      ],
+      "notes": [
+        "WORK_TEST. Lähdeviite tai rajattu katselmus ei vahvista nykyistä sijaintia tai toteumaa."
+      ]
+    }
+  },
+  "totals": {
+    "modelVersions": 4,
+    "targetBindings": 88
+  },
+  "versions": [
+    {
+      "sourceModelSha256": "94ce14fe308a1591db31a72a0db01f5fdcb125865c95d117377fd9f7d1f4d6dd",
+      "model": {
+        "sha256": "e51d0986e1b043177429546b424133a6b89ad5d4c9b56280b0b5ae0e041a3b15",
+        "byteLength": 2017584,
+        "sceneIndex": 0,
+        "kind": "drive-source",
+        "driveId": "1DjaesisGH_brRucGyoDxTrV9pEmbnnK5"
+      },
+      "audit": {
+        "geometryAndTransformsUnchanged": true,
+        "semanticFieldsReviewed": true,
+        "cardCount": 2,
+        "bindingCount": 22,
+        "sourceRoleRecords": 46,
+        "geometryProofSha256": "9a7cba9df6d3c1bf2782502b8d53e47532b3487961cb641d0d6d48fcebc7db76"
+      },
+      "groups": [
+        {
+          "moduleId": "KPH09_SWITCH",
+          "integrationCardId": "KPH09_SWITCH::KPH09_SWITCH_GROUP_SHARED302",
+          "cardRevision": "owner-dimmer-and-frame-20261022",
+          "roomNodeIndex": 119,
+          "roomNodeName": "D1F_ROOM_KPH09_PHOTO_PROPORTIONED_FLAT_ROCKER_AND_FLAT_DIAL_WORK_TEST",
+          "rootNodeIndex": 263,
+          "rootNodeName": "KPH09_20261020_PHOTO_PROPORTIONED_ROCKER_FLAT_ROTARY_FLAT_WORK_TEST",
+          "rootExtraGuards": {
+            "sourcePhotoDriveId": "1QbBQAeCfIHyqRefVITEr3jLuBdq6E4kZ",
+            "userMeasuredCoverTopM": 1.02,
+            "userMeasuredCoverTopAboveFinishedBathroomFloorM": 1.02,
+            "userConfirmedUpperControl": "SAUNA_LIGHT_LARGE_ROCKER",
+            "userConfirmedLowerControl": "BATHROOM_LIGHT_ROTARY_DIMMER",
+            "rotaryDimmingFunction": "OWNER_CONFIRMED_LIGHT_BRIGHTNESS_DIMMER_20261020",
+            "ownerConfirmedDimmer20261020": {
+              "finding": "lower rotary knob adjusts brightness of lights; physical dimming function confirmed by owner",
+              "evidenceType": "USER_REPORTED_FUNCTION_RECORDED_IN_3D_COVERAGE_SECTION_28",
+              "reviewState": "FUNCTION_CONFIRMED_ONLY_NOT_PRODUCT_OR_INSTALLATION_APPROVAL",
+              "sourceDocument": "https://docs.google.com/document/d/1yOrdsreXGVS_WPWS4ZdfXRDEPpPXt6DMU4KInKi3btI/edit",
+              "notProven": [
+                "dimmer model/product code",
+                "electrical ratings",
+                "wiring",
+                "frame manufacturer",
+                "exact mounted XYZ"
+              ],
+              "geometryChanged": false,
+              "CURRENT": false,
+              "asBuilt": false
+            },
+            "unmeasuredFrameWidthM_WORK_ASSUMPTION": 0.092,
+            "unmeasuredFrameHeightM_WORK_ASSUMPTION": 0.148,
+            "frameWidthMmWorkAssumption": 92,
+            "frameHeightMmWorkAssumption": 148,
+            "exactPhysicalFrameDimensionsVerified": false,
+            "absoluteHostXYVerified": false,
+            "presentationOnly": true,
+            "asBuilt": false,
+            "Canonical": false,
+            "publishToCURRENT": false,
+            "HUMAN_REVIEW": "NOT_RUN"
+          },
+          "rootSourceLinkGuards": [
+            {
+              "docId": "DOC:1QbBQAeCfIHyqRefVITEr3jLuBdq6E4kZ",
+              "link": "https://drive.google.com/file/d/1QbBQAeCfIHyqRefVITEr3jLuBdq6E4kZ/view",
+              "role": "support"
+            },
+            {
+              "docId": "DOC:1yOrdsreXGVS_WPWS4ZdfXRDEPpPXt6DMU4KInKi3btI",
+              "link": "https://docs.google.com/document/d/1yOrdsreXGVS_WPWS4ZdfXRDEPpPXt6DMU4KInKi3btI/edit",
+              "role": "support"
+            },
+            {
+              "docId": "DOC:1VKZNrkGd87QtwChV5ygs_E_k1Gi2e6iCPQbePpinzJY",
+              "link": "https://docs.google.com/document/d/1VKZNrkGd87QtwChV5ygs_E_k1Gi2e6iCPQbePpinzJY/edit",
+              "role": "support"
+            }
+          ],
+          "bindings": [
+            {
+              "nodeIndex": 263,
+              "nodeName": "KPH09_20261020_PHOTO_PROPORTIONED_ROCKER_FLAT_ROTARY_FLAT_WORK_TEST",
+              "meshIndex": null,
+              "sourceField": "sourcePhotoDriveId",
+              "sourceFieldValue": "1QbBQAeCfIHyqRefVITEr3jLuBdq6E4kZ",
+              "nodePath": [
+                119,
+                263
+              ],
+              "nodePathNames": [
+                "D1F_ROOM_KPH09_PHOTO_PROPORTIONED_FLAT_ROCKER_AND_FLAT_DIAL_WORK_TEST",
+                "KPH09_20261020_PHOTO_PROPORTIONED_ROCKER_FLAT_ROTARY_FLAT_WORK_TEST"
+              ],
+              "extraGuards": {},
+              "sourceLinkGuards": [
+                {
+                  "docId": "DOC:1QbBQAeCfIHyqRefVITEr3jLuBdq6E4kZ",
+                  "link": "https://drive.google.com/file/d/1QbBQAeCfIHyqRefVITEr3jLuBdq6E4kZ/view",
+                  "role": "support"
+                },
+                {
+                  "docId": "DOC:1yOrdsreXGVS_WPWS4ZdfXRDEPpPXt6DMU4KInKi3btI",
+                  "link": "https://docs.google.com/document/d/1yOrdsreXGVS_WPWS4ZdfXRDEPpPXt6DMU4KInKi3btI/edit",
+                  "role": "support"
+                },
+                {
+                  "docId": "DOC:1VKZNrkGd87QtwChV5ygs_E_k1Gi2e6iCPQbePpinzJY",
+                  "link": "https://docs.google.com/document/d/1VKZNrkGd87QtwChV5ygs_E_k1Gi2e6iCPQbePpinzJY/edit",
+                  "role": "support"
+                }
+              ]
+            },
+            {
+              "nodeIndex": 264,
+              "nodeName": "KPH09_PHOTO_FRAME_092x148_WORK_ASSUMPTION",
+              "meshIndex": 229,
+              "sourceField": "referenceDriveId",
+              "sourceFieldValue": "1QbBQAeCfIHyqRefVITEr3jLuBdq6E4kZ",
+              "nodePath": [
+                119,
+                263,
+                264
+              ],
+              "nodePathNames": [
+                "D1F_ROOM_KPH09_PHOTO_PROPORTIONED_FLAT_ROCKER_AND_FLAT_DIAL_WORK_TEST",
+                "KPH09_20261020_PHOTO_PROPORTIONED_ROCKER_FLAT_ROTARY_FLAT_WORK_TEST",
+                "KPH09_PHOTO_FRAME_092x148_WORK_ASSUMPTION"
+              ],
+              "extraGuards": {
+                "referenceDriveId": "1QbBQAeCfIHyqRefVITEr3jLuBdq6E4kZ",
+                "status": "PHOTO_PROPORTIONED_WORK_ASSUMPTION",
+                "frameProductNotVerified": true,
+                "workWidthMm": 92,
+                "workHeightMm": 148
+              },
+              "sourceLinkGuards": [
+                {
+                  "docId": "DOC:1QbBQAeCfIHyqRefVITEr3jLuBdq6E4kZ",
+                  "link": "https://drive.google.com/file/d/1QbBQAeCfIHyqRefVITEr3jLuBdq6E4kZ/view",
+                  "role": "support"
+                },
+                {
+                  "docId": "DOC:1yOrdsreXGVS_WPWS4ZdfXRDEPpPXt6DMU4KInKi3btI",
+                  "link": "https://docs.google.com/document/d/1yOrdsreXGVS_WPWS4ZdfXRDEPpPXt6DMU4KInKi3btI/edit",
+                  "role": "support"
+                }
+              ]
+            },
+            {
+              "nodeIndex": 265,
+              "nodeName": "KPH09_PHOTO_SAUNA_FLAT_ROCKER_TOP",
+              "meshIndex": 230,
+              "sourceField": "referenceDriveId",
+              "sourceFieldValue": "1QbBQAeCfIHyqRefVITEr3jLuBdq6E4kZ",
+              "nodePath": [
+                119,
+                263,
+                265
+              ],
+              "nodePathNames": [
+                "D1F_ROOM_KPH09_PHOTO_PROPORTIONED_FLAT_ROCKER_AND_FLAT_DIAL_WORK_TEST",
+                "KPH09_20261020_PHOTO_PROPORTIONED_ROCKER_FLAT_ROTARY_FLAT_WORK_TEST",
+                "KPH09_PHOTO_SAUNA_FLAT_ROCKER_TOP"
+              ],
+              "extraGuards": {
+                "referenceDriveId": "1QbBQAeCfIHyqRefVITEr3jLuBdq6E4kZ",
+                "status": "PHOTO_PROPORTIONED_WORK_ASSUMPTION"
+              },
+              "sourceLinkGuards": [
+                {
+                  "docId": "DOC:1QbBQAeCfIHyqRefVITEr3jLuBdq6E4kZ",
+                  "link": "https://drive.google.com/file/d/1QbBQAeCfIHyqRefVITEr3jLuBdq6E4kZ/view",
+                  "role": "support"
+                },
+                {
+                  "docId": "DOC:1yOrdsreXGVS_WPWS4ZdfXRDEPpPXt6DMU4KInKi3btI",
+                  "link": "https://docs.google.com/document/d/1yOrdsreXGVS_WPWS4ZdfXRDEPpPXt6DMU4KInKi3btI/edit",
+                  "role": "support"
+                }
+              ]
+            },
+            {
+              "nodeIndex": 266,
+              "nodeName": "KPH09_PHOTO_SPACER_BAR",
+              "meshIndex": 231,
+              "sourceField": "referenceDriveId",
+              "sourceFieldValue": "1QbBQAeCfIHyqRefVITEr3jLuBdq6E4kZ",
+              "nodePath": [
+                119,
+                263,
+                266
+              ],
+              "nodePathNames": [
+                "D1F_ROOM_KPH09_PHOTO_PROPORTIONED_FLAT_ROCKER_AND_FLAT_DIAL_WORK_TEST",
+                "KPH09_20261020_PHOTO_PROPORTIONED_ROCKER_FLAT_ROTARY_FLAT_WORK_TEST",
+                "KPH09_PHOTO_SPACER_BAR"
+              ],
+              "extraGuards": {
+                "referenceDriveId": "1QbBQAeCfIHyqRefVITEr3jLuBdq6E4kZ",
+                "status": "PHOTO_PROPORTIONED_WORK_ASSUMPTION"
+              },
+              "sourceLinkGuards": [
+                {
+                  "docId": "DOC:1QbBQAeCfIHyqRefVITEr3jLuBdq6E4kZ",
+                  "link": "https://drive.google.com/file/d/1QbBQAeCfIHyqRefVITEr3jLuBdq6E4kZ/view",
+                  "role": "support"
+                },
+                {
+                  "docId": "DOC:1yOrdsreXGVS_WPWS4ZdfXRDEPpPXt6DMU4KInKi3btI",
+                  "link": "https://docs.google.com/document/d/1yOrdsreXGVS_WPWS4ZdfXRDEPpPXt6DMU4KInKi3btI/edit",
+                  "role": "support"
+                }
+              ]
+            },
+            {
+              "nodeIndex": 267,
+              "nodeName": "KPH09_PHOTO_LOWER_ROTARY_SQUARE_PANEL",
+              "meshIndex": 232,
+              "sourceField": "referenceDriveId",
+              "sourceFieldValue": "1QbBQAeCfIHyqRefVITEr3jLuBdq6E4kZ",
+              "nodePath": [
+                119,
+                263,
+                267
+              ],
+              "nodePathNames": [
+                "D1F_ROOM_KPH09_PHOTO_PROPORTIONED_FLAT_ROCKER_AND_FLAT_DIAL_WORK_TEST",
+                "KPH09_20261020_PHOTO_PROPORTIONED_ROCKER_FLAT_ROTARY_FLAT_WORK_TEST",
+                "KPH09_PHOTO_LOWER_ROTARY_SQUARE_PANEL"
+              ],
+              "extraGuards": {
+                "referenceDriveId": "1QbBQAeCfIHyqRefVITEr3jLuBdq6E4kZ",
+                "status": "PHOTO_PROPORTIONED_WORK_ASSUMPTION"
+              },
+              "sourceLinkGuards": [
+                {
+                  "docId": "DOC:1QbBQAeCfIHyqRefVITEr3jLuBdq6E4kZ",
+                  "link": "https://drive.google.com/file/d/1QbBQAeCfIHyqRefVITEr3jLuBdq6E4kZ/view",
+                  "role": "support"
+                },
+                {
+                  "docId": "DOC:1yOrdsreXGVS_WPWS4ZdfXRDEPpPXt6DMU4KInKi3btI",
+                  "link": "https://docs.google.com/document/d/1yOrdsreXGVS_WPWS4ZdfXRDEPpPXt6DMU4KInKi3btI/edit",
+                  "role": "support"
+                }
+              ]
+            },
+            {
+              "nodeIndex": 268,
+              "nodeName": "KPH09_PHOTO_ROTARY_BEZEL",
+              "meshIndex": 233,
+              "sourceField": "referenceDriveId",
+              "sourceFieldValue": "1QbBQAeCfIHyqRefVITEr3jLuBdq6E4kZ",
+              "nodePath": [
+                119,
+                263,
+                268
+              ],
+              "nodePathNames": [
+                "D1F_ROOM_KPH09_PHOTO_PROPORTIONED_FLAT_ROCKER_AND_FLAT_DIAL_WORK_TEST",
+                "KPH09_20261020_PHOTO_PROPORTIONED_ROCKER_FLAT_ROTARY_FLAT_WORK_TEST",
+                "KPH09_PHOTO_ROTARY_BEZEL"
+              ],
+              "extraGuards": {
+                "referenceDriveId": "1QbBQAeCfIHyqRefVITEr3jLuBdq6E4kZ",
+                "status": "PHOTO_PROPORTIONED_WORK_ASSUMPTION"
+              },
+              "sourceLinkGuards": [
+                {
+                  "docId": "DOC:1QbBQAeCfIHyqRefVITEr3jLuBdq6E4kZ",
+                  "link": "https://drive.google.com/file/d/1QbBQAeCfIHyqRefVITEr3jLuBdq6E4kZ/view",
+                  "role": "support"
+                },
+                {
+                  "docId": "DOC:1yOrdsreXGVS_WPWS4ZdfXRDEPpPXt6DMU4KInKi3btI",
+                  "link": "https://docs.google.com/document/d/1yOrdsreXGVS_WPWS4ZdfXRDEPpPXt6DMU4KInKi3btI/edit",
+                  "role": "support"
+                }
+              ]
+            },
+            {
+              "nodeIndex": 269,
+              "nodeName": "KPH09_PHOTO_ROTARY_FLAT_FACE_CYLINDER",
+              "meshIndex": 234,
+              "sourceField": "referenceDriveId",
+              "sourceFieldValue": "1QbBQAeCfIHyqRefVITEr3jLuBdq6E4kZ",
+              "nodePath": [
+                119,
+                263,
+                269
+              ],
+              "nodePathNames": [
+                "D1F_ROOM_KPH09_PHOTO_PROPORTIONED_FLAT_ROCKER_AND_FLAT_DIAL_WORK_TEST",
+                "KPH09_20261020_PHOTO_PROPORTIONED_ROCKER_FLAT_ROTARY_FLAT_WORK_TEST",
+                "KPH09_PHOTO_ROTARY_FLAT_FACE_CYLINDER"
+              ],
+              "extraGuards": {
+                "referenceDriveId": "1QbBQAeCfIHyqRefVITEr3jLuBdq6E4kZ",
+                "status": "PHOTO_PROPORTIONED_WORK_ASSUMPTION",
+                "functionalRoleUserConfirmed": "LIGHT_BRIGHTNESS_DIMMER_LOWER_KNOB_20261020",
+                "functionalRoleEvidence": "OWNER_REPORT_ARCHIVED_3D_COVERAGE_SECTION_28; NOT_PHOTO_DERIVED",
+                "installedModelAndElectricalSpec": "UNKNOWN",
+                "physicalXYOrZVerified": false,
+                "asBuilt": false,
+                "CURRENT": false
+              },
+              "sourceLinkGuards": [
+                {
+                  "docId": "DOC:1QbBQAeCfIHyqRefVITEr3jLuBdq6E4kZ",
+                  "link": "https://drive.google.com/file/d/1QbBQAeCfIHyqRefVITEr3jLuBdq6E4kZ/view",
+                  "role": "support"
+                },
+                {
+                  "docId": "DOC:1yOrdsreXGVS_WPWS4ZdfXRDEPpPXt6DMU4KInKi3btI",
+                  "link": "https://docs.google.com/document/d/1yOrdsreXGVS_WPWS4ZdfXRDEPpPXt6DMU4KInKi3btI/edit",
+                  "role": "support"
+                },
+                {
+                  "docId": "DOC:1VKZNrkGd87QtwChV5ygs_E_k1Gi2e6iCPQbePpinzJY",
+                  "link": "https://docs.google.com/document/d/1VKZNrkGd87QtwChV5ygs_E_k1Gi2e6iCPQbePpinzJY/edit",
+                  "role": "support"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "moduleId": "KPH_MIRROR",
+          "integrationCardId": "KPH_MIRROR::KPH_MIRROR_SHARED302",
+          "cardRevision": "original",
+          "roomNodeIndex": 119,
+          "roomNodeName": "D1F_ROOM_KPH09_PHOTO_PROPORTIONED_FLAT_ROCKER_AND_FLAT_DIAL_WORK_TEST",
+          "rootNodeIndex": 221,
+          "rootNodeName": "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2959_PRESENTATION_CLONE_2854_D1F_MIRROR_305MM_SAUNA_EDGE_CONDITIONAL_Y_PLUS_10MM_WORK_TEST",
+          "rootExtraGuards": {
+            "donorMeasuredZipDriveId": "1ccXRhfkU06NVCI-al2-KYXuKcSqMTRsw",
+            "donorGLBSha256": "e7c25a164a2a8f1ce8c7b060651f7adeb23b43044f6100377f8cc7dba3052ad1",
+            "saunaFinishedWallFaceCoordinateVerified": false,
+            "presentationOnly": true,
+            "asBuilt": false,
+            "current": false,
+            "CURRENT": false,
+            "Canonical": false,
+            "publishToCURRENT": false,
+            "HUMAN_REVIEW": "NOT_RUN"
+          },
+          "rootSourceLinkGuards": [
+            {
+              "docId": "DOC:1ccXRhfkU06NVCI-al2-KYXuKcSqMTRsw",
+              "link": "https://drive.google.com/file/d/1ccXRhfkU06NVCI-al2-KYXuKcSqMTRsw/view",
+              "role": "support"
+            },
+            {
+              "docId": "DOC:1672zwWbYnU41NbKBaLz3Jze6NacbA1qcN4KOFqHc3Gk",
+              "link": "https://docs.google.com/document/d/1672zwWbYnU41NbKBaLz3Jze6NacbA1qcN4KOFqHc3Gk/edit",
+              "role": "support"
+            }
+          ],
+          "bindings": [
+            {
+              "nodeIndex": 221,
+              "nodeName": "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2959_PRESENTATION_CLONE_2854_D1F_MIRROR_305MM_SAUNA_EDGE_CONDITIONAL_Y_PLUS_10MM_WORK_TEST",
+              "meshIndex": null,
+              "sourceField": "donorMeasuredZipDriveId",
+              "sourceFieldValue": "1ccXRhfkU06NVCI-al2-KYXuKcSqMTRsw",
+              "nodePath": [
+                119,
+                221
+              ],
+              "nodePathNames": [
+                "D1F_ROOM_KPH09_PHOTO_PROPORTIONED_FLAT_ROCKER_AND_FLAT_DIAL_WORK_TEST",
+                "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2959_PRESENTATION_CLONE_2854_D1F_MIRROR_305MM_SAUNA_EDGE_CONDITIONAL_Y_PLUS_10MM_WORK_TEST"
+              ],
+              "extraGuards": {},
+              "sourceLinkGuards": [
+                {
+                  "docId": "DOC:1ccXRhfkU06NVCI-al2-KYXuKcSqMTRsw",
+                  "link": "https://drive.google.com/file/d/1ccXRhfkU06NVCI-al2-KYXuKcSqMTRsw/view",
+                  "role": "support"
+                },
+                {
+                  "docId": "DOC:1672zwWbYnU41NbKBaLz3Jze6NacbA1qcN4KOFqHc3Gk",
+                  "link": "https://docs.google.com/document/d/1672zwWbYnU41NbKBaLz3Jze6NacbA1qcN4KOFqHc3Gk/edit",
+                  "role": "support"
+                }
+              ]
+            },
+            {
+              "nodeIndex": 222,
+              "nodeName": "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2960_PRESENTATION_CLONE_2583_KPH_MIRROR_BODY_1405x960x140mm_USER_MEASURED_ENVELOPE",
+              "meshIndex": 196,
+              "sourceDonorNode": 1,
+              "nodePath": [
+                119,
+                221,
+                222
+              ],
+              "nodePathNames": [
+                "D1F_ROOM_KPH09_PHOTO_PROPORTIONED_FLAT_ROCKER_AND_FLAT_DIAL_WORK_TEST",
+                "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2959_PRESENTATION_CLONE_2854_D1F_MIRROR_305MM_SAUNA_EDGE_CONDITIONAL_Y_PLUS_10MM_WORK_TEST",
+                "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2960_PRESENTATION_CLONE_2583_KPH_MIRROR_BODY_1405x960x140mm_USER_MEASURED_ENVELOPE"
+              ],
+              "extraGuards": {
+                "sourceDonorNode": 1,
+                "asBuilt": false,
+                "current": false,
+                "CURRENT": false,
+                "canonical": false,
+                "HUMAN_REVIEW": "NOT_RUN"
+              },
+              "sourceLinkGuards": [
+                {
+                  "docId": "DOC:1ccXRhfkU06NVCI-al2-KYXuKcSqMTRsw",
+                  "link": "https://drive.google.com/file/d/1ccXRhfkU06NVCI-al2-KYXuKcSqMTRsw/view",
+                  "role": "support"
+                },
+                {
+                  "docId": "DOC:1672zwWbYnU41NbKBaLz3Jze6NacbA1qcN4KOFqHc3Gk",
+                  "link": "https://docs.google.com/document/d/1672zwWbYnU41NbKBaLz3Jze6NacbA1qcN4KOFqHc3Gk/edit",
+                  "role": "support"
+                }
+              ]
+            },
+            {
+              "nodeIndex": 223,
+              "nodeName": "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2961_PRESENTATION_CLONE_2584_KPH_MIRROR_FRONT_PUU_LEFT",
+              "meshIndex": 197,
+              "sourceDonorNode": 2,
+              "nodePath": [
+                119,
+                221,
+                223
+              ],
+              "nodePathNames": [
+                "D1F_ROOM_KPH09_PHOTO_PROPORTIONED_FLAT_ROCKER_AND_FLAT_DIAL_WORK_TEST",
+                "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2959_PRESENTATION_CLONE_2854_D1F_MIRROR_305MM_SAUNA_EDGE_CONDITIONAL_Y_PLUS_10MM_WORK_TEST",
+                "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2961_PRESENTATION_CLONE_2584_KPH_MIRROR_FRONT_PUU_LEFT"
+              ],
+              "extraGuards": {
+                "sourceDonorNode": 2,
+                "asBuilt": false,
+                "current": false,
+                "CURRENT": false,
+                "canonical": false,
+                "HUMAN_REVIEW": "NOT_RUN"
+              },
+              "sourceLinkGuards": [
+                {
+                  "docId": "DOC:1ccXRhfkU06NVCI-al2-KYXuKcSqMTRsw",
+                  "link": "https://drive.google.com/file/d/1ccXRhfkU06NVCI-al2-KYXuKcSqMTRsw/view",
+                  "role": "support"
+                },
+                {
+                  "docId": "DOC:1672zwWbYnU41NbKBaLz3Jze6NacbA1qcN4KOFqHc3Gk",
+                  "link": "https://docs.google.com/document/d/1672zwWbYnU41NbKBaLz3Jze6NacbA1qcN4KOFqHc3Gk/edit",
+                  "role": "support"
+                }
+              ]
+            },
+            {
+              "nodeIndex": 224,
+              "nodeName": "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2962_PRESENTATION_CLONE_2585_KPH_MIRROR_FRONT_PEILI_1",
+              "meshIndex": 198,
+              "sourceDonorNode": 3,
+              "nodePath": [
+                119,
+                221,
+                224
+              ],
+              "nodePathNames": [
+                "D1F_ROOM_KPH09_PHOTO_PROPORTIONED_FLAT_ROCKER_AND_FLAT_DIAL_WORK_TEST",
+                "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2959_PRESENTATION_CLONE_2854_D1F_MIRROR_305MM_SAUNA_EDGE_CONDITIONAL_Y_PLUS_10MM_WORK_TEST",
+                "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2962_PRESENTATION_CLONE_2585_KPH_MIRROR_FRONT_PEILI_1"
+              ],
+              "extraGuards": {
+                "sourceDonorNode": 3,
+                "asBuilt": false,
+                "current": false,
+                "CURRENT": false,
+                "canonical": false,
+                "HUMAN_REVIEW": "NOT_RUN"
+              },
+              "sourceLinkGuards": [
+                {
+                  "docId": "DOC:1ccXRhfkU06NVCI-al2-KYXuKcSqMTRsw",
+                  "link": "https://drive.google.com/file/d/1ccXRhfkU06NVCI-al2-KYXuKcSqMTRsw/view",
+                  "role": "support"
+                },
+                {
+                  "docId": "DOC:1672zwWbYnU41NbKBaLz3Jze6NacbA1qcN4KOFqHc3Gk",
+                  "link": "https://docs.google.com/document/d/1672zwWbYnU41NbKBaLz3Jze6NacbA1qcN4KOFqHc3Gk/edit",
+                  "role": "support"
+                }
+              ]
+            },
+            {
+              "nodeIndex": 225,
+              "nodeName": "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2963_PRESENTATION_CLONE_2586_KPH_MIRROR_FRONT_PEILI_2",
+              "meshIndex": 199,
+              "sourceDonorNode": 4,
+              "nodePath": [
+                119,
+                221,
+                225
+              ],
+              "nodePathNames": [
+                "D1F_ROOM_KPH09_PHOTO_PROPORTIONED_FLAT_ROCKER_AND_FLAT_DIAL_WORK_TEST",
+                "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2959_PRESENTATION_CLONE_2854_D1F_MIRROR_305MM_SAUNA_EDGE_CONDITIONAL_Y_PLUS_10MM_WORK_TEST",
+                "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2963_PRESENTATION_CLONE_2586_KPH_MIRROR_FRONT_PEILI_2"
+              ],
+              "extraGuards": {
+                "sourceDonorNode": 4,
+                "asBuilt": false,
+                "current": false,
+                "CURRENT": false,
+                "canonical": false,
+                "HUMAN_REVIEW": "NOT_RUN"
+              },
+              "sourceLinkGuards": [
+                {
+                  "docId": "DOC:1ccXRhfkU06NVCI-al2-KYXuKcSqMTRsw",
+                  "link": "https://drive.google.com/file/d/1ccXRhfkU06NVCI-al2-KYXuKcSqMTRsw/view",
+                  "role": "support"
+                },
+                {
+                  "docId": "DOC:1672zwWbYnU41NbKBaLz3Jze6NacbA1qcN4KOFqHc3Gk",
+                  "link": "https://docs.google.com/document/d/1672zwWbYnU41NbKBaLz3Jze6NacbA1qcN4KOFqHc3Gk/edit",
+                  "role": "support"
+                }
+              ]
+            },
+            {
+              "nodeIndex": 226,
+              "nodeName": "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2964_PRESENTATION_CLONE_2587_KPH_MIRROR_FRONT_PEILI_3",
+              "meshIndex": 200,
+              "sourceDonorNode": 5,
+              "nodePath": [
+                119,
+                221,
+                226
+              ],
+              "nodePathNames": [
+                "D1F_ROOM_KPH09_PHOTO_PROPORTIONED_FLAT_ROCKER_AND_FLAT_DIAL_WORK_TEST",
+                "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2959_PRESENTATION_CLONE_2854_D1F_MIRROR_305MM_SAUNA_EDGE_CONDITIONAL_Y_PLUS_10MM_WORK_TEST",
+                "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2964_PRESENTATION_CLONE_2587_KPH_MIRROR_FRONT_PEILI_3"
+              ],
+              "extraGuards": {
+                "sourceDonorNode": 5,
+                "asBuilt": false,
+                "current": false,
+                "CURRENT": false,
+                "canonical": false,
+                "HUMAN_REVIEW": "NOT_RUN"
+              },
+              "sourceLinkGuards": [
+                {
+                  "docId": "DOC:1ccXRhfkU06NVCI-al2-KYXuKcSqMTRsw",
+                  "link": "https://drive.google.com/file/d/1ccXRhfkU06NVCI-al2-KYXuKcSqMTRsw/view",
+                  "role": "support"
+                },
+                {
+                  "docId": "DOC:1672zwWbYnU41NbKBaLz3Jze6NacbA1qcN4KOFqHc3Gk",
+                  "link": "https://docs.google.com/document/d/1672zwWbYnU41NbKBaLz3Jze6NacbA1qcN4KOFqHc3Gk/edit",
+                  "role": "support"
+                }
+              ]
+            },
+            {
+              "nodeIndex": 227,
+              "nodeName": "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2965_PRESENTATION_CLONE_2588_KPH_WORK_ASSUMPTION_5mm_TRIM_GAP_0",
+              "meshIndex": 201,
+              "sourceDonorNode": 6,
+              "nodePath": [
+                119,
+                221,
+                227
+              ],
+              "nodePathNames": [
+                "D1F_ROOM_KPH09_PHOTO_PROPORTIONED_FLAT_ROCKER_AND_FLAT_DIAL_WORK_TEST",
+                "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2959_PRESENTATION_CLONE_2854_D1F_MIRROR_305MM_SAUNA_EDGE_CONDITIONAL_Y_PLUS_10MM_WORK_TEST",
+                "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2965_PRESENTATION_CLONE_2588_KPH_WORK_ASSUMPTION_5mm_TRIM_GAP_0"
+              ],
+              "extraGuards": {
+                "sourceDonorNode": 6,
+                "asBuilt": false,
+                "current": false,
+                "CURRENT": false,
+                "canonical": false,
+                "HUMAN_REVIEW": "NOT_RUN"
+              },
+              "sourceLinkGuards": [
+                {
+                  "docId": "DOC:1ccXRhfkU06NVCI-al2-KYXuKcSqMTRsw",
+                  "link": "https://drive.google.com/file/d/1ccXRhfkU06NVCI-al2-KYXuKcSqMTRsw/view",
+                  "role": "support"
+                },
+                {
+                  "docId": "DOC:1672zwWbYnU41NbKBaLz3Jze6NacbA1qcN4KOFqHc3Gk",
+                  "link": "https://docs.google.com/document/d/1672zwWbYnU41NbKBaLz3Jze6NacbA1qcN4KOFqHc3Gk/edit",
+                  "role": "support"
+                }
+              ]
+            },
+            {
+              "nodeIndex": 228,
+              "nodeName": "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2966_PRESENTATION_CLONE_2589_KPH_WORK_ASSUMPTION_5mm_TRIM_GAP_1",
+              "meshIndex": 202,
+              "sourceDonorNode": 7,
+              "nodePath": [
+                119,
+                221,
+                228
+              ],
+              "nodePathNames": [
+                "D1F_ROOM_KPH09_PHOTO_PROPORTIONED_FLAT_ROCKER_AND_FLAT_DIAL_WORK_TEST",
+                "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2959_PRESENTATION_CLONE_2854_D1F_MIRROR_305MM_SAUNA_EDGE_CONDITIONAL_Y_PLUS_10MM_WORK_TEST",
+                "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2966_PRESENTATION_CLONE_2589_KPH_WORK_ASSUMPTION_5mm_TRIM_GAP_1"
+              ],
+              "extraGuards": {
+                "sourceDonorNode": 7,
+                "asBuilt": false,
+                "current": false,
+                "CURRENT": false,
+                "canonical": false,
+                "HUMAN_REVIEW": "NOT_RUN"
+              },
+              "sourceLinkGuards": [
+                {
+                  "docId": "DOC:1ccXRhfkU06NVCI-al2-KYXuKcSqMTRsw",
+                  "link": "https://drive.google.com/file/d/1ccXRhfkU06NVCI-al2-KYXuKcSqMTRsw/view",
+                  "role": "support"
+                },
+                {
+                  "docId": "DOC:1672zwWbYnU41NbKBaLz3Jze6NacbA1qcN4KOFqHc3Gk",
+                  "link": "https://docs.google.com/document/d/1672zwWbYnU41NbKBaLz3Jze6NacbA1qcN4KOFqHc3Gk/edit",
+                  "role": "support"
+                }
+              ]
+            },
+            {
+              "nodeIndex": 229,
+              "nodeName": "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2967_PRESENTATION_CLONE_2590_KPH_WORK_ASSUMPTION_5mm_TRIM_GAP_2",
+              "meshIndex": 203,
+              "sourceDonorNode": 8,
+              "nodePath": [
+                119,
+                221,
+                229
+              ],
+              "nodePathNames": [
+                "D1F_ROOM_KPH09_PHOTO_PROPORTIONED_FLAT_ROCKER_AND_FLAT_DIAL_WORK_TEST",
+                "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2959_PRESENTATION_CLONE_2854_D1F_MIRROR_305MM_SAUNA_EDGE_CONDITIONAL_Y_PLUS_10MM_WORK_TEST",
+                "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2967_PRESENTATION_CLONE_2590_KPH_WORK_ASSUMPTION_5mm_TRIM_GAP_2"
+              ],
+              "extraGuards": {
+                "sourceDonorNode": 8,
+                "asBuilt": false,
+                "current": false,
+                "CURRENT": false,
+                "canonical": false,
+                "HUMAN_REVIEW": "NOT_RUN"
+              },
+              "sourceLinkGuards": [
+                {
+                  "docId": "DOC:1ccXRhfkU06NVCI-al2-KYXuKcSqMTRsw",
+                  "link": "https://drive.google.com/file/d/1ccXRhfkU06NVCI-al2-KYXuKcSqMTRsw/view",
+                  "role": "support"
+                },
+                {
+                  "docId": "DOC:1672zwWbYnU41NbKBaLz3Jze6NacbA1qcN4KOFqHc3Gk",
+                  "link": "https://docs.google.com/document/d/1672zwWbYnU41NbKBaLz3Jze6NacbA1qcN4KOFqHc3Gk/edit",
+                  "role": "support"
+                }
+              ]
+            },
+            {
+              "nodeIndex": 230,
+              "nodeName": "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2968_PRESENTATION_CLONE_2591_KPH_WORK_ASSUMPTION_5mm_TRIM_GAP_3",
+              "meshIndex": 204,
+              "sourceDonorNode": 9,
+              "nodePath": [
+                119,
+                221,
+                230
+              ],
+              "nodePathNames": [
+                "D1F_ROOM_KPH09_PHOTO_PROPORTIONED_FLAT_ROCKER_AND_FLAT_DIAL_WORK_TEST",
+                "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2959_PRESENTATION_CLONE_2854_D1F_MIRROR_305MM_SAUNA_EDGE_CONDITIONAL_Y_PLUS_10MM_WORK_TEST",
+                "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2968_PRESENTATION_CLONE_2591_KPH_WORK_ASSUMPTION_5mm_TRIM_GAP_3"
+              ],
+              "extraGuards": {
+                "sourceDonorNode": 9,
+                "asBuilt": false,
+                "current": false,
+                "CURRENT": false,
+                "canonical": false,
+                "HUMAN_REVIEW": "NOT_RUN"
+              },
+              "sourceLinkGuards": [
+                {
+                  "docId": "DOC:1ccXRhfkU06NVCI-al2-KYXuKcSqMTRsw",
+                  "link": "https://drive.google.com/file/d/1ccXRhfkU06NVCI-al2-KYXuKcSqMTRsw/view",
+                  "role": "support"
+                },
+                {
+                  "docId": "DOC:1672zwWbYnU41NbKBaLz3Jze6NacbA1qcN4KOFqHc3Gk",
+                  "link": "https://docs.google.com/document/d/1672zwWbYnU41NbKBaLz3Jze6NacbA1qcN4KOFqHc3Gk/edit",
+                  "role": "support"
+                }
+              ]
+            },
+            {
+              "nodeIndex": 231,
+              "nodeName": "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2969_PRESENTATION_CLONE_2592_KPH_WORK_ASSUMPTION_5mm_TRIM_GAP_4",
+              "meshIndex": 205,
+              "sourceDonorNode": 10,
+              "nodePath": [
+                119,
+                221,
+                231
+              ],
+              "nodePathNames": [
+                "D1F_ROOM_KPH09_PHOTO_PROPORTIONED_FLAT_ROCKER_AND_FLAT_DIAL_WORK_TEST",
+                "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2959_PRESENTATION_CLONE_2854_D1F_MIRROR_305MM_SAUNA_EDGE_CONDITIONAL_Y_PLUS_10MM_WORK_TEST",
+                "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2969_PRESENTATION_CLONE_2592_KPH_WORK_ASSUMPTION_5mm_TRIM_GAP_4"
+              ],
+              "extraGuards": {
+                "sourceDonorNode": 10,
+                "asBuilt": false,
+                "current": false,
+                "CURRENT": false,
+                "canonical": false,
+                "HUMAN_REVIEW": "NOT_RUN"
+              },
+              "sourceLinkGuards": [
+                {
+                  "docId": "DOC:1ccXRhfkU06NVCI-al2-KYXuKcSqMTRsw",
+                  "link": "https://drive.google.com/file/d/1ccXRhfkU06NVCI-al2-KYXuKcSqMTRsw/view",
+                  "role": "support"
+                },
+                {
+                  "docId": "DOC:1672zwWbYnU41NbKBaLz3Jze6NacbA1qcN4KOFqHc3Gk",
+                  "link": "https://docs.google.com/document/d/1672zwWbYnU41NbKBaLz3Jze6NacbA1qcN4KOFqHc3Gk/edit",
+                  "role": "support"
+                }
+              ]
+            },
+            {
+              "nodeIndex": 232,
+              "nodeName": "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2970_PRESENTATION_CLONE_2593_KPH_MIRROR_RIGHT_END_SIDE_USER_CONFIRMED",
+              "meshIndex": 206,
+              "sourceDonorNode": 11,
+              "nodePath": [
+                119,
+                221,
+                232
+              ],
+              "nodePathNames": [
+                "D1F_ROOM_KPH09_PHOTO_PROPORTIONED_FLAT_ROCKER_AND_FLAT_DIAL_WORK_TEST",
+                "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2959_PRESENTATION_CLONE_2854_D1F_MIRROR_305MM_SAUNA_EDGE_CONDITIONAL_Y_PLUS_10MM_WORK_TEST",
+                "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2970_PRESENTATION_CLONE_2593_KPH_MIRROR_RIGHT_END_SIDE_USER_CONFIRMED"
+              ],
+              "extraGuards": {
+                "sourceDonorNode": 11,
+                "asBuilt": false,
+                "current": false,
+                "CURRENT": false,
+                "canonical": false,
+                "HUMAN_REVIEW": "NOT_RUN"
+              },
+              "sourceLinkGuards": [
+                {
+                  "docId": "DOC:1ccXRhfkU06NVCI-al2-KYXuKcSqMTRsw",
+                  "link": "https://drive.google.com/file/d/1ccXRhfkU06NVCI-al2-KYXuKcSqMTRsw/view",
+                  "role": "support"
+                },
+                {
+                  "docId": "DOC:1672zwWbYnU41NbKBaLz3Jze6NacbA1qcN4KOFqHc3Gk",
+                  "link": "https://docs.google.com/document/d/1672zwWbYnU41NbKBaLz3Jze6NacbA1qcN4KOFqHc3Gk/edit",
+                  "role": "support"
+                }
+              ]
+            },
+            {
+              "nodeIndex": 233,
+              "nodeName": "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2971_PRESENTATION_CLONE_2594_KPH_MIRROR_FRONT_LOWER_EDGE_PEILI_1",
+              "meshIndex": 207,
+              "sourceDonorNode": 12,
+              "nodePath": [
+                119,
+                221,
+                233
+              ],
+              "nodePathNames": [
+                "D1F_ROOM_KPH09_PHOTO_PROPORTIONED_FLAT_ROCKER_AND_FLAT_DIAL_WORK_TEST",
+                "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2959_PRESENTATION_CLONE_2854_D1F_MIRROR_305MM_SAUNA_EDGE_CONDITIONAL_Y_PLUS_10MM_WORK_TEST",
+                "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2971_PRESENTATION_CLONE_2594_KPH_MIRROR_FRONT_LOWER_EDGE_PEILI_1"
+              ],
+              "extraGuards": {
+                "sourceDonorNode": 12,
+                "asBuilt": false,
+                "current": false,
+                "CURRENT": false,
+                "canonical": false,
+                "HUMAN_REVIEW": "NOT_RUN"
+              },
+              "sourceLinkGuards": [
+                {
+                  "docId": "DOC:1ccXRhfkU06NVCI-al2-KYXuKcSqMTRsw",
+                  "link": "https://drive.google.com/file/d/1ccXRhfkU06NVCI-al2-KYXuKcSqMTRsw/view",
+                  "role": "support"
+                },
+                {
+                  "docId": "DOC:1672zwWbYnU41NbKBaLz3Jze6NacbA1qcN4KOFqHc3Gk",
+                  "link": "https://docs.google.com/document/d/1672zwWbYnU41NbKBaLz3Jze6NacbA1qcN4KOFqHc3Gk/edit",
+                  "role": "support"
+                }
+              ]
+            },
+            {
+              "nodeIndex": 234,
+              "nodeName": "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2972_PRESENTATION_CLONE_2595_KPH_MIRROR_FRONT_LOWER_EDGE_PEILI_2",
+              "meshIndex": 208,
+              "sourceDonorNode": 13,
+              "nodePath": [
+                119,
+                221,
+                234
+              ],
+              "nodePathNames": [
+                "D1F_ROOM_KPH09_PHOTO_PROPORTIONED_FLAT_ROCKER_AND_FLAT_DIAL_WORK_TEST",
+                "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2959_PRESENTATION_CLONE_2854_D1F_MIRROR_305MM_SAUNA_EDGE_CONDITIONAL_Y_PLUS_10MM_WORK_TEST",
+                "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2972_PRESENTATION_CLONE_2595_KPH_MIRROR_FRONT_LOWER_EDGE_PEILI_2"
+              ],
+              "extraGuards": {
+                "sourceDonorNode": 13,
+                "asBuilt": false,
+                "current": false,
+                "CURRENT": false,
+                "canonical": false,
+                "HUMAN_REVIEW": "NOT_RUN"
+              },
+              "sourceLinkGuards": [
+                {
+                  "docId": "DOC:1ccXRhfkU06NVCI-al2-KYXuKcSqMTRsw",
+                  "link": "https://drive.google.com/file/d/1ccXRhfkU06NVCI-al2-KYXuKcSqMTRsw/view",
+                  "role": "support"
+                },
+                {
+                  "docId": "DOC:1672zwWbYnU41NbKBaLz3Jze6NacbA1qcN4KOFqHc3Gk",
+                  "link": "https://docs.google.com/document/d/1672zwWbYnU41NbKBaLz3Jze6NacbA1qcN4KOFqHc3Gk/edit",
+                  "role": "support"
+                }
+              ]
+            },
+            {
+              "nodeIndex": 235,
+              "nodeName": "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2973_PRESENTATION_CLONE_2596_KPH_MIRROR_FRONT_LOWER_EDGE_PEILI_3",
+              "meshIndex": 209,
+              "sourceDonorNode": 14,
+              "nodePath": [
+                119,
+                221,
+                235
+              ],
+              "nodePathNames": [
+                "D1F_ROOM_KPH09_PHOTO_PROPORTIONED_FLAT_ROCKER_AND_FLAT_DIAL_WORK_TEST",
+                "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2959_PRESENTATION_CLONE_2854_D1F_MIRROR_305MM_SAUNA_EDGE_CONDITIONAL_Y_PLUS_10MM_WORK_TEST",
+                "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2973_PRESENTATION_CLONE_2596_KPH_MIRROR_FRONT_LOWER_EDGE_PEILI_3"
+              ],
+              "extraGuards": {
+                "sourceDonorNode": 14,
+                "asBuilt": false,
+                "current": false,
+                "CURRENT": false,
+                "canonical": false,
+                "HUMAN_REVIEW": "NOT_RUN"
+              },
+              "sourceLinkGuards": [
+                {
+                  "docId": "DOC:1ccXRhfkU06NVCI-al2-KYXuKcSqMTRsw",
+                  "link": "https://drive.google.com/file/d/1ccXRhfkU06NVCI-al2-KYXuKcSqMTRsw/view",
+                  "role": "support"
+                },
+                {
+                  "docId": "DOC:1672zwWbYnU41NbKBaLz3Jze6NacbA1qcN4KOFqHc3Gk",
+                  "link": "https://docs.google.com/document/d/1672zwWbYnU41NbKBaLz3Jze6NacbA1qcN4KOFqHc3Gk/edit",
+                  "role": "support"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sourceModelSha256": "94ce14fe308a1591db31a72a0db01f5fdcb125865c95d117377fd9f7d1f4d6dd",
+      "model": {
+        "sha256": "4f8fb2ecf3fde8470c1d1260773fda47109b34d17bc8847b783975220153a20a",
+        "byteLength": 1946584,
+        "sceneIndex": 0,
+        "kind": "published-scene",
+        "driveId": "1DjaesisGH_brRucGyoDxTrV9pEmbnnK5",
+        "candidateId": "auto-ylisrinne-shared302-kph09-iv1-sourcedocid-v2-work-test-20261022-1djaesis"
+      },
+      "audit": {
+        "geometryAndTransformsUnchanged": true,
+        "semanticFieldsReviewed": true,
+        "cardCount": 2,
+        "bindingCount": 22,
+        "sourceRoleRecords": 46,
+        "geometryProofSha256": "9a7cba9df6d3c1bf2782502b8d53e47532b3487961cb641d0d6d48fcebc7db76"
+      },
+      "groups": [
+        {
+          "moduleId": "KPH09_SWITCH",
+          "integrationCardId": "KPH09_SWITCH::KPH09_SWITCH_GROUP_SHARED302",
+          "cardRevision": "owner-dimmer-and-frame-20261022",
+          "roomNodeIndex": 119,
+          "roomNodeName": "D1F_ROOM_KPH09_PHOTO_PROPORTIONED_FLAT_ROCKER_AND_FLAT_DIAL_WORK_TEST",
+          "rootNodeIndex": 268,
+          "rootNodeName": "KPH09_20261020_PHOTO_PROPORTIONED_ROCKER_FLAT_ROTARY_FLAT_WORK_TEST",
+          "rootExtraGuards": {
+            "sourcePhotoDriveId": "1QbBQAeCfIHyqRefVITEr3jLuBdq6E4kZ",
+            "userMeasuredCoverTopM": 1.02,
+            "userMeasuredCoverTopAboveFinishedBathroomFloorM": 1.02,
+            "userConfirmedUpperControl": "SAUNA_LIGHT_LARGE_ROCKER",
+            "userConfirmedLowerControl": "BATHROOM_LIGHT_ROTARY_DIMMER",
+            "rotaryDimmingFunction": "OWNER_CONFIRMED_LIGHT_BRIGHTNESS_DIMMER_20261020",
+            "ownerConfirmedDimmer20261020": {
+              "finding": "lower rotary knob adjusts brightness of lights; physical dimming function confirmed by owner",
+              "evidenceType": "USER_REPORTED_FUNCTION_RECORDED_IN_3D_COVERAGE_SECTION_28",
+              "reviewState": "FUNCTION_CONFIRMED_ONLY_NOT_PRODUCT_OR_INSTALLATION_APPROVAL",
+              "sourceDocument": "https://docs.google.com/document/d/1yOrdsreXGVS_WPWS4ZdfXRDEPpPXt6DMU4KInKi3btI/edit",
+              "notProven": [
+                "dimmer model/product code",
+                "electrical ratings",
+                "wiring",
+                "frame manufacturer",
+                "exact mounted XYZ"
+              ],
+              "geometryChanged": false,
+              "CURRENT": false,
+              "asBuilt": false
+            },
+            "unmeasuredFrameWidthM_WORK_ASSUMPTION": 0.092,
+            "unmeasuredFrameHeightM_WORK_ASSUMPTION": 0.148,
+            "frameWidthMmWorkAssumption": 92,
+            "frameHeightMmWorkAssumption": 148,
+            "exactPhysicalFrameDimensionsVerified": false,
+            "absoluteHostXYVerified": false,
+            "presentationOnly": true,
+            "asBuilt": false,
+            "Canonical": false,
+            "publishToCURRENT": false,
+            "HUMAN_REVIEW": "NOT_RUN"
+          },
+          "rootSourceLinkGuards": [
+            {
+              "docId": "DOC:1QbBQAeCfIHyqRefVITEr3jLuBdq6E4kZ",
+              "link": "https://drive.google.com/file/d/1QbBQAeCfIHyqRefVITEr3jLuBdq6E4kZ/view",
+              "role": "support"
+            },
+            {
+              "docId": "DOC:1yOrdsreXGVS_WPWS4ZdfXRDEPpPXt6DMU4KInKi3btI",
+              "link": "https://docs.google.com/document/d/1yOrdsreXGVS_WPWS4ZdfXRDEPpPXt6DMU4KInKi3btI/edit",
+              "role": "support"
+            },
+            {
+              "docId": "DOC:1VKZNrkGd87QtwChV5ygs_E_k1Gi2e6iCPQbePpinzJY",
+              "link": "https://docs.google.com/document/d/1VKZNrkGd87QtwChV5ygs_E_k1Gi2e6iCPQbePpinzJY/edit",
+              "role": "support"
+            }
+          ],
+          "bindings": [
+            {
+              "nodeIndex": 268,
+              "nodeName": "KPH09_20261020_PHOTO_PROPORTIONED_ROCKER_FLAT_ROTARY_FLAT_WORK_TEST",
+              "meshIndex": null,
+              "sourceField": "sourcePhotoDriveId",
+              "sourceFieldValue": "1QbBQAeCfIHyqRefVITEr3jLuBdq6E4kZ",
+              "nodePath": [
+                119,
+                268
+              ],
+              "nodePathNames": [
+                "D1F_ROOM_KPH09_PHOTO_PROPORTIONED_FLAT_ROCKER_AND_FLAT_DIAL_WORK_TEST",
+                "KPH09_20261020_PHOTO_PROPORTIONED_ROCKER_FLAT_ROTARY_FLAT_WORK_TEST"
+              ],
+              "extraGuards": {},
+              "sourceLinkGuards": [
+                {
+                  "docId": "DOC:1QbBQAeCfIHyqRefVITEr3jLuBdq6E4kZ",
+                  "link": "https://drive.google.com/file/d/1QbBQAeCfIHyqRefVITEr3jLuBdq6E4kZ/view",
+                  "role": "support"
+                },
+                {
+                  "docId": "DOC:1yOrdsreXGVS_WPWS4ZdfXRDEPpPXt6DMU4KInKi3btI",
+                  "link": "https://docs.google.com/document/d/1yOrdsreXGVS_WPWS4ZdfXRDEPpPXt6DMU4KInKi3btI/edit",
+                  "role": "support"
+                },
+                {
+                  "docId": "DOC:1VKZNrkGd87QtwChV5ygs_E_k1Gi2e6iCPQbePpinzJY",
+                  "link": "https://docs.google.com/document/d/1VKZNrkGd87QtwChV5ygs_E_k1Gi2e6iCPQbePpinzJY/edit",
+                  "role": "support"
+                }
+              ]
+            },
+            {
+              "nodeIndex": 269,
+              "nodeName": "KPH09_PHOTO_FRAME_092x148_WORK_ASSUMPTION",
+              "meshIndex": 234,
+              "sourceField": "referenceDriveId",
+              "sourceFieldValue": "1QbBQAeCfIHyqRefVITEr3jLuBdq6E4kZ",
+              "nodePath": [
+                119,
+                268,
+                269
+              ],
+              "nodePathNames": [
+                "D1F_ROOM_KPH09_PHOTO_PROPORTIONED_FLAT_ROCKER_AND_FLAT_DIAL_WORK_TEST",
+                "KPH09_20261020_PHOTO_PROPORTIONED_ROCKER_FLAT_ROTARY_FLAT_WORK_TEST",
+                "KPH09_PHOTO_FRAME_092x148_WORK_ASSUMPTION"
+              ],
+              "extraGuards": {
+                "referenceDriveId": "1QbBQAeCfIHyqRefVITEr3jLuBdq6E4kZ",
+                "status": "PHOTO_PROPORTIONED_WORK_ASSUMPTION",
+                "frameProductNotVerified": true,
+                "workWidthMm": 92,
+                "workHeightMm": 148
+              },
+              "sourceLinkGuards": [
+                {
+                  "docId": "DOC:1QbBQAeCfIHyqRefVITEr3jLuBdq6E4kZ",
+                  "link": "https://drive.google.com/file/d/1QbBQAeCfIHyqRefVITEr3jLuBdq6E4kZ/view",
+                  "role": "support"
+                },
+                {
+                  "docId": "DOC:1yOrdsreXGVS_WPWS4ZdfXRDEPpPXt6DMU4KInKi3btI",
+                  "link": "https://docs.google.com/document/d/1yOrdsreXGVS_WPWS4ZdfXRDEPpPXt6DMU4KInKi3btI/edit",
+                  "role": "support"
+                }
+              ]
+            },
+            {
+              "nodeIndex": 270,
+              "nodeName": "KPH09_PHOTO_SAUNA_FLAT_ROCKER_TOP",
+              "meshIndex": 235,
+              "sourceField": "referenceDriveId",
+              "sourceFieldValue": "1QbBQAeCfIHyqRefVITEr3jLuBdq6E4kZ",
+              "nodePath": [
+                119,
+                268,
+                270
+              ],
+              "nodePathNames": [
+                "D1F_ROOM_KPH09_PHOTO_PROPORTIONED_FLAT_ROCKER_AND_FLAT_DIAL_WORK_TEST",
+                "KPH09_20261020_PHOTO_PROPORTIONED_ROCKER_FLAT_ROTARY_FLAT_WORK_TEST",
+                "KPH09_PHOTO_SAUNA_FLAT_ROCKER_TOP"
+              ],
+              "extraGuards": {
+                "referenceDriveId": "1QbBQAeCfIHyqRefVITEr3jLuBdq6E4kZ",
+                "status": "PHOTO_PROPORTIONED_WORK_ASSUMPTION"
+              },
+              "sourceLinkGuards": [
+                {
+                  "docId": "DOC:1QbBQAeCfIHyqRefVITEr3jLuBdq6E4kZ",
+                  "link": "https://drive.google.com/file/d/1QbBQAeCfIHyqRefVITEr3jLuBdq6E4kZ/view",
+                  "role": "support"
+                },
+                {
+                  "docId": "DOC:1yOrdsreXGVS_WPWS4ZdfXRDEPpPXt6DMU4KInKi3btI",
+                  "link": "https://docs.google.com/document/d/1yOrdsreXGVS_WPWS4ZdfXRDEPpPXt6DMU4KInKi3btI/edit",
+                  "role": "support"
+                }
+              ]
+            },
+            {
+              "nodeIndex": 271,
+              "nodeName": "KPH09_PHOTO_SPACER_BAR",
+              "meshIndex": 236,
+              "sourceField": "referenceDriveId",
+              "sourceFieldValue": "1QbBQAeCfIHyqRefVITEr3jLuBdq6E4kZ",
+              "nodePath": [
+                119,
+                268,
+                271
+              ],
+              "nodePathNames": [
+                "D1F_ROOM_KPH09_PHOTO_PROPORTIONED_FLAT_ROCKER_AND_FLAT_DIAL_WORK_TEST",
+                "KPH09_20261020_PHOTO_PROPORTIONED_ROCKER_FLAT_ROTARY_FLAT_WORK_TEST",
+                "KPH09_PHOTO_SPACER_BAR"
+              ],
+              "extraGuards": {
+                "referenceDriveId": "1QbBQAeCfIHyqRefVITEr3jLuBdq6E4kZ",
+                "status": "PHOTO_PROPORTIONED_WORK_ASSUMPTION"
+              },
+              "sourceLinkGuards": [
+                {
+                  "docId": "DOC:1QbBQAeCfIHyqRefVITEr3jLuBdq6E4kZ",
+                  "link": "https://drive.google.com/file/d/1QbBQAeCfIHyqRefVITEr3jLuBdq6E4kZ/view",
+                  "role": "support"
+                },
+                {
+                  "docId": "DOC:1yOrdsreXGVS_WPWS4ZdfXRDEPpPXt6DMU4KInKi3btI",
+                  "link": "https://docs.google.com/document/d/1yOrdsreXGVS_WPWS4ZdfXRDEPpPXt6DMU4KInKi3btI/edit",
+                  "role": "support"
+                }
+              ]
+            },
+            {
+              "nodeIndex": 272,
+              "nodeName": "KPH09_PHOTO_LOWER_ROTARY_SQUARE_PANEL",
+              "meshIndex": 237,
+              "sourceField": "referenceDriveId",
+              "sourceFieldValue": "1QbBQAeCfIHyqRefVITEr3jLuBdq6E4kZ",
+              "nodePath": [
+                119,
+                268,
+                272
+              ],
+              "nodePathNames": [
+                "D1F_ROOM_KPH09_PHOTO_PROPORTIONED_FLAT_ROCKER_AND_FLAT_DIAL_WORK_TEST",
+                "KPH09_20261020_PHOTO_PROPORTIONED_ROCKER_FLAT_ROTARY_FLAT_WORK_TEST",
+                "KPH09_PHOTO_LOWER_ROTARY_SQUARE_PANEL"
+              ],
+              "extraGuards": {
+                "referenceDriveId": "1QbBQAeCfIHyqRefVITEr3jLuBdq6E4kZ",
+                "status": "PHOTO_PROPORTIONED_WORK_ASSUMPTION"
+              },
+              "sourceLinkGuards": [
+                {
+                  "docId": "DOC:1QbBQAeCfIHyqRefVITEr3jLuBdq6E4kZ",
+                  "link": "https://drive.google.com/file/d/1QbBQAeCfIHyqRefVITEr3jLuBdq6E4kZ/view",
+                  "role": "support"
+                },
+                {
+                  "docId": "DOC:1yOrdsreXGVS_WPWS4ZdfXRDEPpPXt6DMU4KInKi3btI",
+                  "link": "https://docs.google.com/document/d/1yOrdsreXGVS_WPWS4ZdfXRDEPpPXt6DMU4KInKi3btI/edit",
+                  "role": "support"
+                }
+              ]
+            },
+            {
+              "nodeIndex": 273,
+              "nodeName": "KPH09_PHOTO_ROTARY_BEZEL",
+              "meshIndex": 238,
+              "sourceField": "referenceDriveId",
+              "sourceFieldValue": "1QbBQAeCfIHyqRefVITEr3jLuBdq6E4kZ",
+              "nodePath": [
+                119,
+                268,
+                273
+              ],
+              "nodePathNames": [
+                "D1F_ROOM_KPH09_PHOTO_PROPORTIONED_FLAT_ROCKER_AND_FLAT_DIAL_WORK_TEST",
+                "KPH09_20261020_PHOTO_PROPORTIONED_ROCKER_FLAT_ROTARY_FLAT_WORK_TEST",
+                "KPH09_PHOTO_ROTARY_BEZEL"
+              ],
+              "extraGuards": {
+                "referenceDriveId": "1QbBQAeCfIHyqRefVITEr3jLuBdq6E4kZ",
+                "status": "PHOTO_PROPORTIONED_WORK_ASSUMPTION"
+              },
+              "sourceLinkGuards": [
+                {
+                  "docId": "DOC:1QbBQAeCfIHyqRefVITEr3jLuBdq6E4kZ",
+                  "link": "https://drive.google.com/file/d/1QbBQAeCfIHyqRefVITEr3jLuBdq6E4kZ/view",
+                  "role": "support"
+                },
+                {
+                  "docId": "DOC:1yOrdsreXGVS_WPWS4ZdfXRDEPpPXt6DMU4KInKi3btI",
+                  "link": "https://docs.google.com/document/d/1yOrdsreXGVS_WPWS4ZdfXRDEPpPXt6DMU4KInKi3btI/edit",
+                  "role": "support"
+                }
+              ]
+            },
+            {
+              "nodeIndex": 274,
+              "nodeName": "KPH09_PHOTO_ROTARY_FLAT_FACE_CYLINDER",
+              "meshIndex": 239,
+              "sourceField": "referenceDriveId",
+              "sourceFieldValue": "1QbBQAeCfIHyqRefVITEr3jLuBdq6E4kZ",
+              "nodePath": [
+                119,
+                268,
+                274
+              ],
+              "nodePathNames": [
+                "D1F_ROOM_KPH09_PHOTO_PROPORTIONED_FLAT_ROCKER_AND_FLAT_DIAL_WORK_TEST",
+                "KPH09_20261020_PHOTO_PROPORTIONED_ROCKER_FLAT_ROTARY_FLAT_WORK_TEST",
+                "KPH09_PHOTO_ROTARY_FLAT_FACE_CYLINDER"
+              ],
+              "extraGuards": {
+                "referenceDriveId": "1QbBQAeCfIHyqRefVITEr3jLuBdq6E4kZ",
+                "status": "PHOTO_PROPORTIONED_WORK_ASSUMPTION",
+                "functionalRoleUserConfirmed": "LIGHT_BRIGHTNESS_DIMMER_LOWER_KNOB_20261020",
+                "functionalRoleEvidence": "OWNER_REPORT_ARCHIVED_3D_COVERAGE_SECTION_28; NOT_PHOTO_DERIVED",
+                "installedModelAndElectricalSpec": "UNKNOWN",
+                "physicalXYOrZVerified": false,
+                "asBuilt": false,
+                "CURRENT": false
+              },
+              "sourceLinkGuards": [
+                {
+                  "docId": "DOC:1QbBQAeCfIHyqRefVITEr3jLuBdq6E4kZ",
+                  "link": "https://drive.google.com/file/d/1QbBQAeCfIHyqRefVITEr3jLuBdq6E4kZ/view",
+                  "role": "support"
+                },
+                {
+                  "docId": "DOC:1yOrdsreXGVS_WPWS4ZdfXRDEPpPXt6DMU4KInKi3btI",
+                  "link": "https://docs.google.com/document/d/1yOrdsreXGVS_WPWS4ZdfXRDEPpPXt6DMU4KInKi3btI/edit",
+                  "role": "support"
+                },
+                {
+                  "docId": "DOC:1VKZNrkGd87QtwChV5ygs_E_k1Gi2e6iCPQbePpinzJY",
+                  "link": "https://docs.google.com/document/d/1VKZNrkGd87QtwChV5ygs_E_k1Gi2e6iCPQbePpinzJY/edit",
+                  "role": "support"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "moduleId": "KPH_MIRROR",
+          "integrationCardId": "KPH_MIRROR::KPH_MIRROR_SHARED302",
+          "cardRevision": "original",
+          "roomNodeIndex": 119,
+          "roomNodeName": "D1F_ROOM_KPH09_PHOTO_PROPORTIONED_FLAT_ROCKER_AND_FLAT_DIAL_WORK_TEST",
+          "rootNodeIndex": 226,
+          "rootNodeName": "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2959_PRESENTATION_CLONE_2854_D1F_MIRROR_305MM_SAUNA_EDGE_CONDITIONAL_Y_PLUS_10MM_WORK_TEST",
+          "rootExtraGuards": {
+            "donorMeasuredZipDriveId": "1ccXRhfkU06NVCI-al2-KYXuKcSqMTRsw",
+            "donorGLBSha256": "e7c25a164a2a8f1ce8c7b060651f7adeb23b43044f6100377f8cc7dba3052ad1",
+            "saunaFinishedWallFaceCoordinateVerified": false,
+            "presentationOnly": true,
+            "asBuilt": false,
+            "current": false,
+            "CURRENT": false,
+            "Canonical": false,
+            "publishToCURRENT": false,
+            "HUMAN_REVIEW": "NOT_RUN"
+          },
+          "rootSourceLinkGuards": [
+            {
+              "docId": "DOC:1ccXRhfkU06NVCI-al2-KYXuKcSqMTRsw",
+              "link": "https://drive.google.com/file/d/1ccXRhfkU06NVCI-al2-KYXuKcSqMTRsw/view",
+              "role": "support"
+            },
+            {
+              "docId": "DOC:1672zwWbYnU41NbKBaLz3Jze6NacbA1qcN4KOFqHc3Gk",
+              "link": "https://docs.google.com/document/d/1672zwWbYnU41NbKBaLz3Jze6NacbA1qcN4KOFqHc3Gk/edit",
+              "role": "support"
+            }
+          ],
+          "bindings": [
+            {
+              "nodeIndex": 226,
+              "nodeName": "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2959_PRESENTATION_CLONE_2854_D1F_MIRROR_305MM_SAUNA_EDGE_CONDITIONAL_Y_PLUS_10MM_WORK_TEST",
+              "meshIndex": null,
+              "sourceField": "donorMeasuredZipDriveId",
+              "sourceFieldValue": "1ccXRhfkU06NVCI-al2-KYXuKcSqMTRsw",
+              "nodePath": [
+                119,
+                226
+              ],
+              "nodePathNames": [
+                "D1F_ROOM_KPH09_PHOTO_PROPORTIONED_FLAT_ROCKER_AND_FLAT_DIAL_WORK_TEST",
+                "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2959_PRESENTATION_CLONE_2854_D1F_MIRROR_305MM_SAUNA_EDGE_CONDITIONAL_Y_PLUS_10MM_WORK_TEST"
+              ],
+              "extraGuards": {},
+              "sourceLinkGuards": [
+                {
+                  "docId": "DOC:1ccXRhfkU06NVCI-al2-KYXuKcSqMTRsw",
+                  "link": "https://drive.google.com/file/d/1ccXRhfkU06NVCI-al2-KYXuKcSqMTRsw/view",
+                  "role": "support"
+                },
+                {
+                  "docId": "DOC:1672zwWbYnU41NbKBaLz3Jze6NacbA1qcN4KOFqHc3Gk",
+                  "link": "https://docs.google.com/document/d/1672zwWbYnU41NbKBaLz3Jze6NacbA1qcN4KOFqHc3Gk/edit",
+                  "role": "support"
+                }
+              ]
+            },
+            {
+              "nodeIndex": 227,
+              "nodeName": "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2960_PRESENTATION_CLONE_2583_KPH_MIRROR_BODY_1405x960x140mm_USER_MEASURED_ENVELOPE",
+              "meshIndex": 201,
+              "sourceDonorNode": 1,
+              "nodePath": [
+                119,
+                226,
+                227
+              ],
+              "nodePathNames": [
+                "D1F_ROOM_KPH09_PHOTO_PROPORTIONED_FLAT_ROCKER_AND_FLAT_DIAL_WORK_TEST",
+                "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2959_PRESENTATION_CLONE_2854_D1F_MIRROR_305MM_SAUNA_EDGE_CONDITIONAL_Y_PLUS_10MM_WORK_TEST",
+                "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2960_PRESENTATION_CLONE_2583_KPH_MIRROR_BODY_1405x960x140mm_USER_MEASURED_ENVELOPE"
+              ],
+              "extraGuards": {
+                "sourceDonorNode": 1,
+                "asBuilt": false,
+                "current": false,
+                "CURRENT": false,
+                "canonical": false,
+                "HUMAN_REVIEW": "NOT_RUN"
+              },
+              "sourceLinkGuards": [
+                {
+                  "docId": "DOC:1ccXRhfkU06NVCI-al2-KYXuKcSqMTRsw",
+                  "link": "https://drive.google.com/file/d/1ccXRhfkU06NVCI-al2-KYXuKcSqMTRsw/view",
+                  "role": "support"
+                },
+                {
+                  "docId": "DOC:1672zwWbYnU41NbKBaLz3Jze6NacbA1qcN4KOFqHc3Gk",
+                  "link": "https://docs.google.com/document/d/1672zwWbYnU41NbKBaLz3Jze6NacbA1qcN4KOFqHc3Gk/edit",
+                  "role": "support"
+                }
+              ]
+            },
+            {
+              "nodeIndex": 228,
+              "nodeName": "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2961_PRESENTATION_CLONE_2584_KPH_MIRROR_FRONT_PUU_LEFT",
+              "meshIndex": 202,
+              "sourceDonorNode": 2,
+              "nodePath": [
+                119,
+                226,
+                228
+              ],
+              "nodePathNames": [
+                "D1F_ROOM_KPH09_PHOTO_PROPORTIONED_FLAT_ROCKER_AND_FLAT_DIAL_WORK_TEST",
+                "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2959_PRESENTATION_CLONE_2854_D1F_MIRROR_305MM_SAUNA_EDGE_CONDITIONAL_Y_PLUS_10MM_WORK_TEST",
+                "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2961_PRESENTATION_CLONE_2584_KPH_MIRROR_FRONT_PUU_LEFT"
+              ],
+              "extraGuards": {
+                "sourceDonorNode": 2,
+                "asBuilt": false,
+                "current": false,
+                "CURRENT": false,
+                "canonical": false,
+                "HUMAN_REVIEW": "NOT_RUN"
+              },
+              "sourceLinkGuards": [
+                {
+                  "docId": "DOC:1ccXRhfkU06NVCI-al2-KYXuKcSqMTRsw",
+                  "link": "https://drive.google.com/file/d/1ccXRhfkU06NVCI-al2-KYXuKcSqMTRsw/view",
+                  "role": "support"
+                },
+                {
+                  "docId": "DOC:1672zwWbYnU41NbKBaLz3Jze6NacbA1qcN4KOFqHc3Gk",
+                  "link": "https://docs.google.com/document/d/1672zwWbYnU41NbKBaLz3Jze6NacbA1qcN4KOFqHc3Gk/edit",
+                  "role": "support"
+                }
+              ]
+            },
+            {
+              "nodeIndex": 229,
+              "nodeName": "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2962_PRESENTATION_CLONE_2585_KPH_MIRROR_FRONT_PEILI_1",
+              "meshIndex": 203,
+              "sourceDonorNode": 3,
+              "nodePath": [
+                119,
+                226,
+                229
+              ],
+              "nodePathNames": [
+                "D1F_ROOM_KPH09_PHOTO_PROPORTIONED_FLAT_ROCKER_AND_FLAT_DIAL_WORK_TEST",
+                "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2959_PRESENTATION_CLONE_2854_D1F_MIRROR_305MM_SAUNA_EDGE_CONDITIONAL_Y_PLUS_10MM_WORK_TEST",
+                "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2962_PRESENTATION_CLONE_2585_KPH_MIRROR_FRONT_PEILI_1"
+              ],
+              "extraGuards": {
+                "sourceDonorNode": 3,
+                "asBuilt": false,
+                "current": false,
+                "CURRENT": false,
+                "canonical": false,
+                "HUMAN_REVIEW": "NOT_RUN"
+              },
+              "sourceLinkGuards": [
+                {
+                  "docId": "DOC:1ccXRhfkU06NVCI-al2-KYXuKcSqMTRsw",
+                  "link": "https://drive.google.com/file/d/1ccXRhfkU06NVCI-al2-KYXuKcSqMTRsw/view",
+                  "role": "support"
+                },
+                {
+                  "docId": "DOC:1672zwWbYnU41NbKBaLz3Jze6NacbA1qcN4KOFqHc3Gk",
+                  "link": "https://docs.google.com/document/d/1672zwWbYnU41NbKBaLz3Jze6NacbA1qcN4KOFqHc3Gk/edit",
+                  "role": "support"
+                }
+              ]
+            },
+            {
+              "nodeIndex": 230,
+              "nodeName": "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2963_PRESENTATION_CLONE_2586_KPH_MIRROR_FRONT_PEILI_2",
+              "meshIndex": 204,
+              "sourceDonorNode": 4,
+              "nodePath": [
+                119,
+                226,
+                230
+              ],
+              "nodePathNames": [
+                "D1F_ROOM_KPH09_PHOTO_PROPORTIONED_FLAT_ROCKER_AND_FLAT_DIAL_WORK_TEST",
+                "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2959_PRESENTATION_CLONE_2854_D1F_MIRROR_305MM_SAUNA_EDGE_CONDITIONAL_Y_PLUS_10MM_WORK_TEST",
+                "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2963_PRESENTATION_CLONE_2586_KPH_MIRROR_FRONT_PEILI_2"
+              ],
+              "extraGuards": {
+                "sourceDonorNode": 4,
+                "asBuilt": false,
+                "current": false,
+                "CURRENT": false,
+                "canonical": false,
+                "HUMAN_REVIEW": "NOT_RUN"
+              },
+              "sourceLinkGuards": [
+                {
+                  "docId": "DOC:1ccXRhfkU06NVCI-al2-KYXuKcSqMTRsw",
+                  "link": "https://drive.google.com/file/d/1ccXRhfkU06NVCI-al2-KYXuKcSqMTRsw/view",
+                  "role": "support"
+                },
+                {
+                  "docId": "DOC:1672zwWbYnU41NbKBaLz3Jze6NacbA1qcN4KOFqHc3Gk",
+                  "link": "https://docs.google.com/document/d/1672zwWbYnU41NbKBaLz3Jze6NacbA1qcN4KOFqHc3Gk/edit",
+                  "role": "support"
+                }
+              ]
+            },
+            {
+              "nodeIndex": 231,
+              "nodeName": "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2964_PRESENTATION_CLONE_2587_KPH_MIRROR_FRONT_PEILI_3",
+              "meshIndex": 205,
+              "sourceDonorNode": 5,
+              "nodePath": [
+                119,
+                226,
+                231
+              ],
+              "nodePathNames": [
+                "D1F_ROOM_KPH09_PHOTO_PROPORTIONED_FLAT_ROCKER_AND_FLAT_DIAL_WORK_TEST",
+                "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2959_PRESENTATION_CLONE_2854_D1F_MIRROR_305MM_SAUNA_EDGE_CONDITIONAL_Y_PLUS_10MM_WORK_TEST",
+                "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2964_PRESENTATION_CLONE_2587_KPH_MIRROR_FRONT_PEILI_3"
+              ],
+              "extraGuards": {
+                "sourceDonorNode": 5,
+                "asBuilt": false,
+                "current": false,
+                "CURRENT": false,
+                "canonical": false,
+                "HUMAN_REVIEW": "NOT_RUN"
+              },
+              "sourceLinkGuards": [
+                {
+                  "docId": "DOC:1ccXRhfkU06NVCI-al2-KYXuKcSqMTRsw",
+                  "link": "https://drive.google.com/file/d/1ccXRhfkU06NVCI-al2-KYXuKcSqMTRsw/view",
+                  "role": "support"
+                },
+                {
+                  "docId": "DOC:1672zwWbYnU41NbKBaLz3Jze6NacbA1qcN4KOFqHc3Gk",
+                  "link": "https://docs.google.com/document/d/1672zwWbYnU41NbKBaLz3Jze6NacbA1qcN4KOFqHc3Gk/edit",
+                  "role": "support"
+                }
+              ]
+            },
+            {
+              "nodeIndex": 232,
+              "nodeName": "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2965_PRESENTATION_CLONE_2588_KPH_WORK_ASSUMPTION_5mm_TRIM_GAP_0",
+              "meshIndex": 206,
+              "sourceDonorNode": 6,
+              "nodePath": [
+                119,
+                226,
+                232
+              ],
+              "nodePathNames": [
+                "D1F_ROOM_KPH09_PHOTO_PROPORTIONED_FLAT_ROCKER_AND_FLAT_DIAL_WORK_TEST",
+                "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2959_PRESENTATION_CLONE_2854_D1F_MIRROR_305MM_SAUNA_EDGE_CONDITIONAL_Y_PLUS_10MM_WORK_TEST",
+                "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2965_PRESENTATION_CLONE_2588_KPH_WORK_ASSUMPTION_5mm_TRIM_GAP_0"
+              ],
+              "extraGuards": {
+                "sourceDonorNode": 6,
+                "asBuilt": false,
+                "current": false,
+                "CURRENT": false,
+                "canonical": false,
+                "HUMAN_REVIEW": "NOT_RUN"
+              },
+              "sourceLinkGuards": [
+                {
+                  "docId": "DOC:1ccXRhfkU06NVCI-al2-KYXuKcSqMTRsw",
+                  "link": "https://drive.google.com/file/d/1ccXRhfkU06NVCI-al2-KYXuKcSqMTRsw/view",
+                  "role": "support"
+                },
+                {
+                  "docId": "DOC:1672zwWbYnU41NbKBaLz3Jze6NacbA1qcN4KOFqHc3Gk",
+                  "link": "https://docs.google.com/document/d/1672zwWbYnU41NbKBaLz3Jze6NacbA1qcN4KOFqHc3Gk/edit",
+                  "role": "support"
+                }
+              ]
+            },
+            {
+              "nodeIndex": 233,
+              "nodeName": "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2966_PRESENTATION_CLONE_2589_KPH_WORK_ASSUMPTION_5mm_TRIM_GAP_1",
+              "meshIndex": 207,
+              "sourceDonorNode": 7,
+              "nodePath": [
+                119,
+                226,
+                233
+              ],
+              "nodePathNames": [
+                "D1F_ROOM_KPH09_PHOTO_PROPORTIONED_FLAT_ROCKER_AND_FLAT_DIAL_WORK_TEST",
+                "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2959_PRESENTATION_CLONE_2854_D1F_MIRROR_305MM_SAUNA_EDGE_CONDITIONAL_Y_PLUS_10MM_WORK_TEST",
+                "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2966_PRESENTATION_CLONE_2589_KPH_WORK_ASSUMPTION_5mm_TRIM_GAP_1"
+              ],
+              "extraGuards": {
+                "sourceDonorNode": 7,
+                "asBuilt": false,
+                "current": false,
+                "CURRENT": false,
+                "canonical": false,
+                "HUMAN_REVIEW": "NOT_RUN"
+              },
+              "sourceLinkGuards": [
+                {
+                  "docId": "DOC:1ccXRhfkU06NVCI-al2-KYXuKcSqMTRsw",
+                  "link": "https://drive.google.com/file/d/1ccXRhfkU06NVCI-al2-KYXuKcSqMTRsw/view",
+                  "role": "support"
+                },
+                {
+                  "docId": "DOC:1672zwWbYnU41NbKBaLz3Jze6NacbA1qcN4KOFqHc3Gk",
+                  "link": "https://docs.google.com/document/d/1672zwWbYnU41NbKBaLz3Jze6NacbA1qcN4KOFqHc3Gk/edit",
+                  "role": "support"
+                }
+              ]
+            },
+            {
+              "nodeIndex": 234,
+              "nodeName": "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2967_PRESENTATION_CLONE_2590_KPH_WORK_ASSUMPTION_5mm_TRIM_GAP_2",
+              "meshIndex": 208,
+              "sourceDonorNode": 8,
+              "nodePath": [
+                119,
+                226,
+                234
+              ],
+              "nodePathNames": [
+                "D1F_ROOM_KPH09_PHOTO_PROPORTIONED_FLAT_ROCKER_AND_FLAT_DIAL_WORK_TEST",
+                "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2959_PRESENTATION_CLONE_2854_D1F_MIRROR_305MM_SAUNA_EDGE_CONDITIONAL_Y_PLUS_10MM_WORK_TEST",
+                "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2967_PRESENTATION_CLONE_2590_KPH_WORK_ASSUMPTION_5mm_TRIM_GAP_2"
+              ],
+              "extraGuards": {
+                "sourceDonorNode": 8,
+                "asBuilt": false,
+                "current": false,
+                "CURRENT": false,
+                "canonical": false,
+                "HUMAN_REVIEW": "NOT_RUN"
+              },
+              "sourceLinkGuards": [
+                {
+                  "docId": "DOC:1ccXRhfkU06NVCI-al2-KYXuKcSqMTRsw",
+                  "link": "https://drive.google.com/file/d/1ccXRhfkU06NVCI-al2-KYXuKcSqMTRsw/view",
+                  "role": "support"
+                },
+                {
+                  "docId": "DOC:1672zwWbYnU41NbKBaLz3Jze6NacbA1qcN4KOFqHc3Gk",
+                  "link": "https://docs.google.com/document/d/1672zwWbYnU41NbKBaLz3Jze6NacbA1qcN4KOFqHc3Gk/edit",
+                  "role": "support"
+                }
+              ]
+            },
+            {
+              "nodeIndex": 235,
+              "nodeName": "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2968_PRESENTATION_CLONE_2591_KPH_WORK_ASSUMPTION_5mm_TRIM_GAP_3",
+              "meshIndex": 209,
+              "sourceDonorNode": 9,
+              "nodePath": [
+                119,
+                226,
+                235
+              ],
+              "nodePathNames": [
+                "D1F_ROOM_KPH09_PHOTO_PROPORTIONED_FLAT_ROCKER_AND_FLAT_DIAL_WORK_TEST",
+                "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2959_PRESENTATION_CLONE_2854_D1F_MIRROR_305MM_SAUNA_EDGE_CONDITIONAL_Y_PLUS_10MM_WORK_TEST",
+                "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2968_PRESENTATION_CLONE_2591_KPH_WORK_ASSUMPTION_5mm_TRIM_GAP_3"
+              ],
+              "extraGuards": {
+                "sourceDonorNode": 9,
+                "asBuilt": false,
+                "current": false,
+                "CURRENT": false,
+                "canonical": false,
+                "HUMAN_REVIEW": "NOT_RUN"
+              },
+              "sourceLinkGuards": [
+                {
+                  "docId": "DOC:1ccXRhfkU06NVCI-al2-KYXuKcSqMTRsw",
+                  "link": "https://drive.google.com/file/d/1ccXRhfkU06NVCI-al2-KYXuKcSqMTRsw/view",
+                  "role": "support"
+                },
+                {
+                  "docId": "DOC:1672zwWbYnU41NbKBaLz3Jze6NacbA1qcN4KOFqHc3Gk",
+                  "link": "https://docs.google.com/document/d/1672zwWbYnU41NbKBaLz3Jze6NacbA1qcN4KOFqHc3Gk/edit",
+                  "role": "support"
+                }
+              ]
+            },
+            {
+              "nodeIndex": 236,
+              "nodeName": "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2969_PRESENTATION_CLONE_2592_KPH_WORK_ASSUMPTION_5mm_TRIM_GAP_4",
+              "meshIndex": 210,
+              "sourceDonorNode": 10,
+              "nodePath": [
+                119,
+                226,
+                236
+              ],
+              "nodePathNames": [
+                "D1F_ROOM_KPH09_PHOTO_PROPORTIONED_FLAT_ROCKER_AND_FLAT_DIAL_WORK_TEST",
+                "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2959_PRESENTATION_CLONE_2854_D1F_MIRROR_305MM_SAUNA_EDGE_CONDITIONAL_Y_PLUS_10MM_WORK_TEST",
+                "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2969_PRESENTATION_CLONE_2592_KPH_WORK_ASSUMPTION_5mm_TRIM_GAP_4"
+              ],
+              "extraGuards": {
+                "sourceDonorNode": 10,
+                "asBuilt": false,
+                "current": false,
+                "CURRENT": false,
+                "canonical": false,
+                "HUMAN_REVIEW": "NOT_RUN"
+              },
+              "sourceLinkGuards": [
+                {
+                  "docId": "DOC:1ccXRhfkU06NVCI-al2-KYXuKcSqMTRsw",
+                  "link": "https://drive.google.com/file/d/1ccXRhfkU06NVCI-al2-KYXuKcSqMTRsw/view",
+                  "role": "support"
+                },
+                {
+                  "docId": "DOC:1672zwWbYnU41NbKBaLz3Jze6NacbA1qcN4KOFqHc3Gk",
+                  "link": "https://docs.google.com/document/d/1672zwWbYnU41NbKBaLz3Jze6NacbA1qcN4KOFqHc3Gk/edit",
+                  "role": "support"
+                }
+              ]
+            },
+            {
+              "nodeIndex": 237,
+              "nodeName": "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2970_PRESENTATION_CLONE_2593_KPH_MIRROR_RIGHT_END_SIDE_USER_CONFIRMED",
+              "meshIndex": 211,
+              "sourceDonorNode": 11,
+              "nodePath": [
+                119,
+                226,
+                237
+              ],
+              "nodePathNames": [
+                "D1F_ROOM_KPH09_PHOTO_PROPORTIONED_FLAT_ROCKER_AND_FLAT_DIAL_WORK_TEST",
+                "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2959_PRESENTATION_CLONE_2854_D1F_MIRROR_305MM_SAUNA_EDGE_CONDITIONAL_Y_PLUS_10MM_WORK_TEST",
+                "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2970_PRESENTATION_CLONE_2593_KPH_MIRROR_RIGHT_END_SIDE_USER_CONFIRMED"
+              ],
+              "extraGuards": {
+                "sourceDonorNode": 11,
+                "asBuilt": false,
+                "current": false,
+                "CURRENT": false,
+                "canonical": false,
+                "HUMAN_REVIEW": "NOT_RUN"
+              },
+              "sourceLinkGuards": [
+                {
+                  "docId": "DOC:1ccXRhfkU06NVCI-al2-KYXuKcSqMTRsw",
+                  "link": "https://drive.google.com/file/d/1ccXRhfkU06NVCI-al2-KYXuKcSqMTRsw/view",
+                  "role": "support"
+                },
+                {
+                  "docId": "DOC:1672zwWbYnU41NbKBaLz3Jze6NacbA1qcN4KOFqHc3Gk",
+                  "link": "https://docs.google.com/document/d/1672zwWbYnU41NbKBaLz3Jze6NacbA1qcN4KOFqHc3Gk/edit",
+                  "role": "support"
+                }
+              ]
+            },
+            {
+              "nodeIndex": 238,
+              "nodeName": "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2971_PRESENTATION_CLONE_2594_KPH_MIRROR_FRONT_LOWER_EDGE_PEILI_1",
+              "meshIndex": 212,
+              "sourceDonorNode": 12,
+              "nodePath": [
+                119,
+                226,
+                238
+              ],
+              "nodePathNames": [
+                "D1F_ROOM_KPH09_PHOTO_PROPORTIONED_FLAT_ROCKER_AND_FLAT_DIAL_WORK_TEST",
+                "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2959_PRESENTATION_CLONE_2854_D1F_MIRROR_305MM_SAUNA_EDGE_CONDITIONAL_Y_PLUS_10MM_WORK_TEST",
+                "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2971_PRESENTATION_CLONE_2594_KPH_MIRROR_FRONT_LOWER_EDGE_PEILI_1"
+              ],
+              "extraGuards": {
+                "sourceDonorNode": 12,
+                "asBuilt": false,
+                "current": false,
+                "CURRENT": false,
+                "canonical": false,
+                "HUMAN_REVIEW": "NOT_RUN"
+              },
+              "sourceLinkGuards": [
+                {
+                  "docId": "DOC:1ccXRhfkU06NVCI-al2-KYXuKcSqMTRsw",
+                  "link": "https://drive.google.com/file/d/1ccXRhfkU06NVCI-al2-KYXuKcSqMTRsw/view",
+                  "role": "support"
+                },
+                {
+                  "docId": "DOC:1672zwWbYnU41NbKBaLz3Jze6NacbA1qcN4KOFqHc3Gk",
+                  "link": "https://docs.google.com/document/d/1672zwWbYnU41NbKBaLz3Jze6NacbA1qcN4KOFqHc3Gk/edit",
+                  "role": "support"
+                }
+              ]
+            },
+            {
+              "nodeIndex": 239,
+              "nodeName": "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2972_PRESENTATION_CLONE_2595_KPH_MIRROR_FRONT_LOWER_EDGE_PEILI_2",
+              "meshIndex": 213,
+              "sourceDonorNode": 13,
+              "nodePath": [
+                119,
+                226,
+                239
+              ],
+              "nodePathNames": [
+                "D1F_ROOM_KPH09_PHOTO_PROPORTIONED_FLAT_ROCKER_AND_FLAT_DIAL_WORK_TEST",
+                "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2959_PRESENTATION_CLONE_2854_D1F_MIRROR_305MM_SAUNA_EDGE_CONDITIONAL_Y_PLUS_10MM_WORK_TEST",
+                "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2972_PRESENTATION_CLONE_2595_KPH_MIRROR_FRONT_LOWER_EDGE_PEILI_2"
+              ],
+              "extraGuards": {
+                "sourceDonorNode": 13,
+                "asBuilt": false,
+                "current": false,
+                "CURRENT": false,
+                "canonical": false,
+                "HUMAN_REVIEW": "NOT_RUN"
+              },
+              "sourceLinkGuards": [
+                {
+                  "docId": "DOC:1ccXRhfkU06NVCI-al2-KYXuKcSqMTRsw",
+                  "link": "https://drive.google.com/file/d/1ccXRhfkU06NVCI-al2-KYXuKcSqMTRsw/view",
+                  "role": "support"
+                },
+                {
+                  "docId": "DOC:1672zwWbYnU41NbKBaLz3Jze6NacbA1qcN4KOFqHc3Gk",
+                  "link": "https://docs.google.com/document/d/1672zwWbYnU41NbKBaLz3Jze6NacbA1qcN4KOFqHc3Gk/edit",
+                  "role": "support"
+                }
+              ]
+            },
+            {
+              "nodeIndex": 240,
+              "nodeName": "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2973_PRESENTATION_CLONE_2596_KPH_MIRROR_FRONT_LOWER_EDGE_PEILI_3",
+              "meshIndex": 214,
+              "sourceDonorNode": 14,
+              "nodePath": [
+                119,
+                226,
+                240
+              ],
+              "nodePathNames": [
+                "D1F_ROOM_KPH09_PHOTO_PROPORTIONED_FLAT_ROCKER_AND_FLAT_DIAL_WORK_TEST",
+                "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2959_PRESENTATION_CLONE_2854_D1F_MIRROR_305MM_SAUNA_EDGE_CONDITIONAL_Y_PLUS_10MM_WORK_TEST",
+                "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2973_PRESENTATION_CLONE_2596_KPH_MIRROR_FRONT_LOWER_EDGE_PEILI_3"
+              ],
+              "extraGuards": {
+                "sourceDonorNode": 14,
+                "asBuilt": false,
+                "current": false,
+                "CURRENT": false,
+                "canonical": false,
+                "HUMAN_REVIEW": "NOT_RUN"
+              },
+              "sourceLinkGuards": [
+                {
+                  "docId": "DOC:1ccXRhfkU06NVCI-al2-KYXuKcSqMTRsw",
+                  "link": "https://drive.google.com/file/d/1ccXRhfkU06NVCI-al2-KYXuKcSqMTRsw/view",
+                  "role": "support"
+                },
+                {
+                  "docId": "DOC:1672zwWbYnU41NbKBaLz3Jze6NacbA1qcN4KOFqHc3Gk",
+                  "link": "https://docs.google.com/document/d/1672zwWbYnU41NbKBaLz3Jze6NacbA1qcN4KOFqHc3Gk/edit",
+                  "role": "support"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sourceModelSha256": "94ce14fe308a1591db31a72a0db01f5fdcb125865c95d117377fd9f7d1f4d6dd",
+      "model": {
+        "sha256": "b3e4d05ed0c76bf2c89fcb4c32b8d5eda46950487934b90453cea990cc226199",
+        "byteLength": 2075900,
+        "sceneIndex": 0,
+        "kind": "drive-source",
+        "driveId": "1YRn2dLK0ZMxdVmCf2Qpxuct6F-GXwNPs"
+      },
+      "audit": {
+        "geometryAndTransformsUnchanged": true,
+        "semanticFieldsReviewed": true,
+        "cardCount": 2,
+        "bindingCount": 22,
+        "sourceRoleRecords": 46,
+        "geometryProofSha256": "9a7cba9df6d3c1bf2782502b8d53e47532b3487961cb641d0d6d48fcebc7db76"
+      },
+      "groups": [
+        {
+          "moduleId": "KPH09_SWITCH",
+          "integrationCardId": "KPH09_SWITCH::KPH09_SWITCH_GROUP_SHARED302",
+          "cardRevision": "owner-dimmer-and-frame-20261022",
+          "roomNodeIndex": 119,
+          "roomNodeName": "D1F_ROOM_KPH09_PHOTO_PROPORTIONED_FLAT_ROCKER_AND_FLAT_DIAL_WORK_TEST",
+          "rootNodeIndex": 263,
+          "rootNodeName": "KPH09_20261020_PHOTO_PROPORTIONED_ROCKER_FLAT_ROTARY_FLAT_WORK_TEST",
+          "rootExtraGuards": {
+            "sourcePhotoDriveId": "1QbBQAeCfIHyqRefVITEr3jLuBdq6E4kZ",
+            "userMeasuredCoverTopM": 1.02,
+            "userMeasuredCoverTopAboveFinishedBathroomFloorM": 1.02,
+            "userConfirmedUpperControl": "SAUNA_LIGHT_LARGE_ROCKER",
+            "userConfirmedLowerControl": "BATHROOM_LIGHT_ROTARY_DIMMER",
+            "rotaryDimmingFunction": "OWNER_CONFIRMED_LIGHT_BRIGHTNESS_DIMMER_20261020",
+            "ownerConfirmedDimmer20261020": {
+              "finding": "lower rotary knob adjusts brightness of lights; physical dimming function confirmed by owner",
+              "evidenceType": "USER_REPORTED_FUNCTION_RECORDED_IN_3D_COVERAGE_SECTION_28",
+              "reviewState": "FUNCTION_CONFIRMED_ONLY_NOT_PRODUCT_OR_INSTALLATION_APPROVAL",
+              "sourceDocument": "https://docs.google.com/document/d/1yOrdsreXGVS_WPWS4ZdfXRDEPpPXt6DMU4KInKi3btI/edit",
+              "notProven": [
+                "dimmer model/product code",
+                "electrical ratings",
+                "wiring",
+                "frame manufacturer",
+                "exact mounted XYZ"
+              ],
+              "geometryChanged": false,
+              "CURRENT": false,
+              "asBuilt": false
+            },
+            "unmeasuredFrameWidthM_WORK_ASSUMPTION": 0.092,
+            "unmeasuredFrameHeightM_WORK_ASSUMPTION": 0.148,
+            "frameWidthMmWorkAssumption": 92,
+            "frameHeightMmWorkAssumption": 148,
+            "exactPhysicalFrameDimensionsVerified": false,
+            "absoluteHostXYVerified": false,
+            "presentationOnly": true,
+            "asBuilt": false,
+            "Canonical": false,
+            "publishToCURRENT": false,
+            "HUMAN_REVIEW": "NOT_RUN"
+          },
+          "rootSourceLinkGuards": [
+            {
+              "docId": "DOC:1QbBQAeCfIHyqRefVITEr3jLuBdq6E4kZ",
+              "link": "https://drive.google.com/file/d/1QbBQAeCfIHyqRefVITEr3jLuBdq6E4kZ/view",
+              "role": "support"
+            },
+            {
+              "docId": "DOC:1yOrdsreXGVS_WPWS4ZdfXRDEPpPXt6DMU4KInKi3btI",
+              "link": "https://docs.google.com/document/d/1yOrdsreXGVS_WPWS4ZdfXRDEPpPXt6DMU4KInKi3btI/edit",
+              "role": "support"
+            },
+            {
+              "docId": "DOC:1VKZNrkGd87QtwChV5ygs_E_k1Gi2e6iCPQbePpinzJY",
+              "link": "https://docs.google.com/document/d/1VKZNrkGd87QtwChV5ygs_E_k1Gi2e6iCPQbePpinzJY/edit",
+              "role": "support"
+            }
+          ],
+          "bindings": [
+            {
+              "nodeIndex": 263,
+              "nodeName": "KPH09_20261020_PHOTO_PROPORTIONED_ROCKER_FLAT_ROTARY_FLAT_WORK_TEST",
+              "meshIndex": null,
+              "sourceField": "sourcePhotoDriveId",
+              "sourceFieldValue": "1QbBQAeCfIHyqRefVITEr3jLuBdq6E4kZ",
+              "nodePath": [
+                119,
+                263
+              ],
+              "nodePathNames": [
+                "D1F_ROOM_KPH09_PHOTO_PROPORTIONED_FLAT_ROCKER_AND_FLAT_DIAL_WORK_TEST",
+                "KPH09_20261020_PHOTO_PROPORTIONED_ROCKER_FLAT_ROTARY_FLAT_WORK_TEST"
+              ],
+              "extraGuards": {},
+              "sourceLinkGuards": [
+                {
+                  "docId": "DOC:1QbBQAeCfIHyqRefVITEr3jLuBdq6E4kZ",
+                  "link": "https://drive.google.com/file/d/1QbBQAeCfIHyqRefVITEr3jLuBdq6E4kZ/view",
+                  "role": "support"
+                },
+                {
+                  "docId": "DOC:1yOrdsreXGVS_WPWS4ZdfXRDEPpPXt6DMU4KInKi3btI",
+                  "link": "https://docs.google.com/document/d/1yOrdsreXGVS_WPWS4ZdfXRDEPpPXt6DMU4KInKi3btI/edit",
+                  "role": "support"
+                },
+                {
+                  "docId": "DOC:1VKZNrkGd87QtwChV5ygs_E_k1Gi2e6iCPQbePpinzJY",
+                  "link": "https://docs.google.com/document/d/1VKZNrkGd87QtwChV5ygs_E_k1Gi2e6iCPQbePpinzJY/edit",
+                  "role": "support"
+                }
+              ]
+            },
+            {
+              "nodeIndex": 264,
+              "nodeName": "KPH09_PHOTO_FRAME_092x148_WORK_ASSUMPTION",
+              "meshIndex": 229,
+              "sourceField": "referenceDriveId",
+              "sourceFieldValue": "1QbBQAeCfIHyqRefVITEr3jLuBdq6E4kZ",
+              "nodePath": [
+                119,
+                263,
+                264
+              ],
+              "nodePathNames": [
+                "D1F_ROOM_KPH09_PHOTO_PROPORTIONED_FLAT_ROCKER_AND_FLAT_DIAL_WORK_TEST",
+                "KPH09_20261020_PHOTO_PROPORTIONED_ROCKER_FLAT_ROTARY_FLAT_WORK_TEST",
+                "KPH09_PHOTO_FRAME_092x148_WORK_ASSUMPTION"
+              ],
+              "extraGuards": {
+                "referenceDriveId": "1QbBQAeCfIHyqRefVITEr3jLuBdq6E4kZ",
+                "status": "PHOTO_PROPORTIONED_WORK_ASSUMPTION",
+                "frameProductNotVerified": true,
+                "workWidthMm": 92,
+                "workHeightMm": 148
+              },
+              "sourceLinkGuards": [
+                {
+                  "docId": "DOC:1QbBQAeCfIHyqRefVITEr3jLuBdq6E4kZ",
+                  "link": "https://drive.google.com/file/d/1QbBQAeCfIHyqRefVITEr3jLuBdq6E4kZ/view",
+                  "role": "support"
+                },
+                {
+                  "docId": "DOC:1yOrdsreXGVS_WPWS4ZdfXRDEPpPXt6DMU4KInKi3btI",
+                  "link": "https://docs.google.com/document/d/1yOrdsreXGVS_WPWS4ZdfXRDEPpPXt6DMU4KInKi3btI/edit",
+                  "role": "support"
+                }
+              ]
+            },
+            {
+              "nodeIndex": 265,
+              "nodeName": "KPH09_PHOTO_SAUNA_FLAT_ROCKER_TOP",
+              "meshIndex": 230,
+              "sourceField": "referenceDriveId",
+              "sourceFieldValue": "1QbBQAeCfIHyqRefVITEr3jLuBdq6E4kZ",
+              "nodePath": [
+                119,
+                263,
+                265
+              ],
+              "nodePathNames": [
+                "D1F_ROOM_KPH09_PHOTO_PROPORTIONED_FLAT_ROCKER_AND_FLAT_DIAL_WORK_TEST",
+                "KPH09_20261020_PHOTO_PROPORTIONED_ROCKER_FLAT_ROTARY_FLAT_WORK_TEST",
+                "KPH09_PHOTO_SAUNA_FLAT_ROCKER_TOP"
+              ],
+              "extraGuards": {
+                "referenceDriveId": "1QbBQAeCfIHyqRefVITEr3jLuBdq6E4kZ",
+                "status": "PHOTO_PROPORTIONED_WORK_ASSUMPTION"
+              },
+              "sourceLinkGuards": [
+                {
+                  "docId": "DOC:1QbBQAeCfIHyqRefVITEr3jLuBdq6E4kZ",
+                  "link": "https://drive.google.com/file/d/1QbBQAeCfIHyqRefVITEr3jLuBdq6E4kZ/view",
+                  "role": "support"
+                },
+                {
+                  "docId": "DOC:1yOrdsreXGVS_WPWS4ZdfXRDEPpPXt6DMU4KInKi3btI",
+                  "link": "https://docs.google.com/document/d/1yOrdsreXGVS_WPWS4ZdfXRDEPpPXt6DMU4KInKi3btI/edit",
+                  "role": "support"
+                }
+              ]
+            },
+            {
+              "nodeIndex": 266,
+              "nodeName": "KPH09_PHOTO_SPACER_BAR",
+              "meshIndex": 231,
+              "sourceField": "referenceDriveId",
+              "sourceFieldValue": "1QbBQAeCfIHyqRefVITEr3jLuBdq6E4kZ",
+              "nodePath": [
+                119,
+                263,
+                266
+              ],
+              "nodePathNames": [
+                "D1F_ROOM_KPH09_PHOTO_PROPORTIONED_FLAT_ROCKER_AND_FLAT_DIAL_WORK_TEST",
+                "KPH09_20261020_PHOTO_PROPORTIONED_ROCKER_FLAT_ROTARY_FLAT_WORK_TEST",
+                "KPH09_PHOTO_SPACER_BAR"
+              ],
+              "extraGuards": {
+                "referenceDriveId": "1QbBQAeCfIHyqRefVITEr3jLuBdq6E4kZ",
+                "status": "PHOTO_PROPORTIONED_WORK_ASSUMPTION"
+              },
+              "sourceLinkGuards": [
+                {
+                  "docId": "DOC:1QbBQAeCfIHyqRefVITEr3jLuBdq6E4kZ",
+                  "link": "https://drive.google.com/file/d/1QbBQAeCfIHyqRefVITEr3jLuBdq6E4kZ/view",
+                  "role": "support"
+                },
+                {
+                  "docId": "DOC:1yOrdsreXGVS_WPWS4ZdfXRDEPpPXt6DMU4KInKi3btI",
+                  "link": "https://docs.google.com/document/d/1yOrdsreXGVS_WPWS4ZdfXRDEPpPXt6DMU4KInKi3btI/edit",
+                  "role": "support"
+                }
+              ]
+            },
+            {
+              "nodeIndex": 267,
+              "nodeName": "KPH09_PHOTO_LOWER_ROTARY_SQUARE_PANEL",
+              "meshIndex": 232,
+              "sourceField": "referenceDriveId",
+              "sourceFieldValue": "1QbBQAeCfIHyqRefVITEr3jLuBdq6E4kZ",
+              "nodePath": [
+                119,
+                263,
+                267
+              ],
+              "nodePathNames": [
+                "D1F_ROOM_KPH09_PHOTO_PROPORTIONED_FLAT_ROCKER_AND_FLAT_DIAL_WORK_TEST",
+                "KPH09_20261020_PHOTO_PROPORTIONED_ROCKER_FLAT_ROTARY_FLAT_WORK_TEST",
+                "KPH09_PHOTO_LOWER_ROTARY_SQUARE_PANEL"
+              ],
+              "extraGuards": {
+                "referenceDriveId": "1QbBQAeCfIHyqRefVITEr3jLuBdq6E4kZ",
+                "status": "PHOTO_PROPORTIONED_WORK_ASSUMPTION"
+              },
+              "sourceLinkGuards": [
+                {
+                  "docId": "DOC:1QbBQAeCfIHyqRefVITEr3jLuBdq6E4kZ",
+                  "link": "https://drive.google.com/file/d/1QbBQAeCfIHyqRefVITEr3jLuBdq6E4kZ/view",
+                  "role": "support"
+                },
+                {
+                  "docId": "DOC:1yOrdsreXGVS_WPWS4ZdfXRDEPpPXt6DMU4KInKi3btI",
+                  "link": "https://docs.google.com/document/d/1yOrdsreXGVS_WPWS4ZdfXRDEPpPXt6DMU4KInKi3btI/edit",
+                  "role": "support"
+                }
+              ]
+            },
+            {
+              "nodeIndex": 268,
+              "nodeName": "KPH09_PHOTO_ROTARY_BEZEL",
+              "meshIndex": 233,
+              "sourceField": "referenceDriveId",
+              "sourceFieldValue": "1QbBQAeCfIHyqRefVITEr3jLuBdq6E4kZ",
+              "nodePath": [
+                119,
+                263,
+                268
+              ],
+              "nodePathNames": [
+                "D1F_ROOM_KPH09_PHOTO_PROPORTIONED_FLAT_ROCKER_AND_FLAT_DIAL_WORK_TEST",
+                "KPH09_20261020_PHOTO_PROPORTIONED_ROCKER_FLAT_ROTARY_FLAT_WORK_TEST",
+                "KPH09_PHOTO_ROTARY_BEZEL"
+              ],
+              "extraGuards": {
+                "referenceDriveId": "1QbBQAeCfIHyqRefVITEr3jLuBdq6E4kZ",
+                "status": "PHOTO_PROPORTIONED_WORK_ASSUMPTION"
+              },
+              "sourceLinkGuards": [
+                {
+                  "docId": "DOC:1QbBQAeCfIHyqRefVITEr3jLuBdq6E4kZ",
+                  "link": "https://drive.google.com/file/d/1QbBQAeCfIHyqRefVITEr3jLuBdq6E4kZ/view",
+                  "role": "support"
+                },
+                {
+                  "docId": "DOC:1yOrdsreXGVS_WPWS4ZdfXRDEPpPXt6DMU4KInKi3btI",
+                  "link": "https://docs.google.com/document/d/1yOrdsreXGVS_WPWS4ZdfXRDEPpPXt6DMU4KInKi3btI/edit",
+                  "role": "support"
+                }
+              ]
+            },
+            {
+              "nodeIndex": 269,
+              "nodeName": "KPH09_PHOTO_ROTARY_FLAT_FACE_CYLINDER",
+              "meshIndex": 234,
+              "sourceField": "referenceDriveId",
+              "sourceFieldValue": "1QbBQAeCfIHyqRefVITEr3jLuBdq6E4kZ",
+              "nodePath": [
+                119,
+                263,
+                269
+              ],
+              "nodePathNames": [
+                "D1F_ROOM_KPH09_PHOTO_PROPORTIONED_FLAT_ROCKER_AND_FLAT_DIAL_WORK_TEST",
+                "KPH09_20261020_PHOTO_PROPORTIONED_ROCKER_FLAT_ROTARY_FLAT_WORK_TEST",
+                "KPH09_PHOTO_ROTARY_FLAT_FACE_CYLINDER"
+              ],
+              "extraGuards": {
+                "referenceDriveId": "1QbBQAeCfIHyqRefVITEr3jLuBdq6E4kZ",
+                "status": "PHOTO_PROPORTIONED_WORK_ASSUMPTION",
+                "functionalRoleUserConfirmed": "LIGHT_BRIGHTNESS_DIMMER_LOWER_KNOB_20261020",
+                "functionalRoleEvidence": "OWNER_REPORT_ARCHIVED_3D_COVERAGE_SECTION_28; NOT_PHOTO_DERIVED",
+                "installedModelAndElectricalSpec": "UNKNOWN",
+                "physicalXYOrZVerified": false,
+                "asBuilt": false,
+                "CURRENT": false
+              },
+              "sourceLinkGuards": [
+                {
+                  "docId": "DOC:1QbBQAeCfIHyqRefVITEr3jLuBdq6E4kZ",
+                  "link": "https://drive.google.com/file/d/1QbBQAeCfIHyqRefVITEr3jLuBdq6E4kZ/view",
+                  "role": "support"
+                },
+                {
+                  "docId": "DOC:1yOrdsreXGVS_WPWS4ZdfXRDEPpPXt6DMU4KInKi3btI",
+                  "link": "https://docs.google.com/document/d/1yOrdsreXGVS_WPWS4ZdfXRDEPpPXt6DMU4KInKi3btI/edit",
+                  "role": "support"
+                },
+                {
+                  "docId": "DOC:1VKZNrkGd87QtwChV5ygs_E_k1Gi2e6iCPQbePpinzJY",
+                  "link": "https://docs.google.com/document/d/1VKZNrkGd87QtwChV5ygs_E_k1Gi2e6iCPQbePpinzJY/edit",
+                  "role": "support"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "moduleId": "KPH_MIRROR",
+          "integrationCardId": "KPH_MIRROR::KPH_MIRROR_SHARED302",
+          "cardRevision": "original",
+          "roomNodeIndex": 119,
+          "roomNodeName": "D1F_ROOM_KPH09_PHOTO_PROPORTIONED_FLAT_ROCKER_AND_FLAT_DIAL_WORK_TEST",
+          "rootNodeIndex": 221,
+          "rootNodeName": "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2959_PRESENTATION_CLONE_2854_D1F_MIRROR_305MM_SAUNA_EDGE_CONDITIONAL_Y_PLUS_10MM_WORK_TEST",
+          "rootExtraGuards": {
+            "donorMeasuredZipDriveId": "1ccXRhfkU06NVCI-al2-KYXuKcSqMTRsw",
+            "donorGLBSha256": "e7c25a164a2a8f1ce8c7b060651f7adeb23b43044f6100377f8cc7dba3052ad1",
+            "saunaFinishedWallFaceCoordinateVerified": false,
+            "presentationOnly": true,
+            "asBuilt": false,
+            "current": false,
+            "CURRENT": false,
+            "Canonical": false,
+            "publishToCURRENT": false,
+            "HUMAN_REVIEW": "NOT_RUN"
+          },
+          "rootSourceLinkGuards": [
+            {
+              "docId": "DOC:1ccXRhfkU06NVCI-al2-KYXuKcSqMTRsw",
+              "link": "https://drive.google.com/file/d/1ccXRhfkU06NVCI-al2-KYXuKcSqMTRsw/view",
+              "role": "support"
+            },
+            {
+              "docId": "DOC:1672zwWbYnU41NbKBaLz3Jze6NacbA1qcN4KOFqHc3Gk",
+              "link": "https://docs.google.com/document/d/1672zwWbYnU41NbKBaLz3Jze6NacbA1qcN4KOFqHc3Gk/edit",
+              "role": "support"
+            }
+          ],
+          "bindings": [
+            {
+              "nodeIndex": 221,
+              "nodeName": "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2959_PRESENTATION_CLONE_2854_D1F_MIRROR_305MM_SAUNA_EDGE_CONDITIONAL_Y_PLUS_10MM_WORK_TEST",
+              "meshIndex": null,
+              "sourceField": "donorMeasuredZipDriveId",
+              "sourceFieldValue": "1ccXRhfkU06NVCI-al2-KYXuKcSqMTRsw",
+              "nodePath": [
+                119,
+                221
+              ],
+              "nodePathNames": [
+                "D1F_ROOM_KPH09_PHOTO_PROPORTIONED_FLAT_ROCKER_AND_FLAT_DIAL_WORK_TEST",
+                "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2959_PRESENTATION_CLONE_2854_D1F_MIRROR_305MM_SAUNA_EDGE_CONDITIONAL_Y_PLUS_10MM_WORK_TEST"
+              ],
+              "extraGuards": {},
+              "sourceLinkGuards": [
+                {
+                  "docId": "DOC:1ccXRhfkU06NVCI-al2-KYXuKcSqMTRsw",
+                  "link": "https://drive.google.com/file/d/1ccXRhfkU06NVCI-al2-KYXuKcSqMTRsw/view",
+                  "role": "support"
+                },
+                {
+                  "docId": "DOC:1672zwWbYnU41NbKBaLz3Jze6NacbA1qcN4KOFqHc3Gk",
+                  "link": "https://docs.google.com/document/d/1672zwWbYnU41NbKBaLz3Jze6NacbA1qcN4KOFqHc3Gk/edit",
+                  "role": "support"
+                }
+              ]
+            },
+            {
+              "nodeIndex": 222,
+              "nodeName": "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2960_PRESENTATION_CLONE_2583_KPH_MIRROR_BODY_1405x960x140mm_USER_MEASURED_ENVELOPE",
+              "meshIndex": 196,
+              "sourceDonorNode": 1,
+              "nodePath": [
+                119,
+                221,
+                222
+              ],
+              "nodePathNames": [
+                "D1F_ROOM_KPH09_PHOTO_PROPORTIONED_FLAT_ROCKER_AND_FLAT_DIAL_WORK_TEST",
+                "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2959_PRESENTATION_CLONE_2854_D1F_MIRROR_305MM_SAUNA_EDGE_CONDITIONAL_Y_PLUS_10MM_WORK_TEST",
+                "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2960_PRESENTATION_CLONE_2583_KPH_MIRROR_BODY_1405x960x140mm_USER_MEASURED_ENVELOPE"
+              ],
+              "extraGuards": {
+                "sourceDonorNode": 1,
+                "asBuilt": false,
+                "current": false,
+                "CURRENT": false,
+                "canonical": false,
+                "HUMAN_REVIEW": "NOT_RUN"
+              },
+              "sourceLinkGuards": [
+                {
+                  "docId": "DOC:1ccXRhfkU06NVCI-al2-KYXuKcSqMTRsw",
+                  "link": "https://drive.google.com/file/d/1ccXRhfkU06NVCI-al2-KYXuKcSqMTRsw/view",
+                  "role": "support"
+                },
+                {
+                  "docId": "DOC:1672zwWbYnU41NbKBaLz3Jze6NacbA1qcN4KOFqHc3Gk",
+                  "link": "https://docs.google.com/document/d/1672zwWbYnU41NbKBaLz3Jze6NacbA1qcN4KOFqHc3Gk/edit",
+                  "role": "support"
+                }
+              ]
+            },
+            {
+              "nodeIndex": 223,
+              "nodeName": "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2961_PRESENTATION_CLONE_2584_KPH_MIRROR_FRONT_PUU_LEFT",
+              "meshIndex": 197,
+              "sourceDonorNode": 2,
+              "nodePath": [
+                119,
+                221,
+                223
+              ],
+              "nodePathNames": [
+                "D1F_ROOM_KPH09_PHOTO_PROPORTIONED_FLAT_ROCKER_AND_FLAT_DIAL_WORK_TEST",
+                "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2959_PRESENTATION_CLONE_2854_D1F_MIRROR_305MM_SAUNA_EDGE_CONDITIONAL_Y_PLUS_10MM_WORK_TEST",
+                "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2961_PRESENTATION_CLONE_2584_KPH_MIRROR_FRONT_PUU_LEFT"
+              ],
+              "extraGuards": {
+                "sourceDonorNode": 2,
+                "asBuilt": false,
+                "current": false,
+                "CURRENT": false,
+                "canonical": false,
+                "HUMAN_REVIEW": "NOT_RUN"
+              },
+              "sourceLinkGuards": [
+                {
+                  "docId": "DOC:1ccXRhfkU06NVCI-al2-KYXuKcSqMTRsw",
+                  "link": "https://drive.google.com/file/d/1ccXRhfkU06NVCI-al2-KYXuKcSqMTRsw/view",
+                  "role": "support"
+                },
+                {
+                  "docId": "DOC:1672zwWbYnU41NbKBaLz3Jze6NacbA1qcN4KOFqHc3Gk",
+                  "link": "https://docs.google.com/document/d/1672zwWbYnU41NbKBaLz3Jze6NacbA1qcN4KOFqHc3Gk/edit",
+                  "role": "support"
+                }
+              ]
+            },
+            {
+              "nodeIndex": 224,
+              "nodeName": "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2962_PRESENTATION_CLONE_2585_KPH_MIRROR_FRONT_PEILI_1",
+              "meshIndex": 198,
+              "sourceDonorNode": 3,
+              "nodePath": [
+                119,
+                221,
+                224
+              ],
+              "nodePathNames": [
+                "D1F_ROOM_KPH09_PHOTO_PROPORTIONED_FLAT_ROCKER_AND_FLAT_DIAL_WORK_TEST",
+                "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2959_PRESENTATION_CLONE_2854_D1F_MIRROR_305MM_SAUNA_EDGE_CONDITIONAL_Y_PLUS_10MM_WORK_TEST",
+                "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2962_PRESENTATION_CLONE_2585_KPH_MIRROR_FRONT_PEILI_1"
+              ],
+              "extraGuards": {
+                "sourceDonorNode": 3,
+                "asBuilt": false,
+                "current": false,
+                "CURRENT": false,
+                "canonical": false,
+                "HUMAN_REVIEW": "NOT_RUN"
+              },
+              "sourceLinkGuards": [
+                {
+                  "docId": "DOC:1ccXRhfkU06NVCI-al2-KYXuKcSqMTRsw",
+                  "link": "https://drive.google.com/file/d/1ccXRhfkU06NVCI-al2-KYXuKcSqMTRsw/view",
+                  "role": "support"
+                },
+                {
+                  "docId": "DOC:1672zwWbYnU41NbKBaLz3Jze6NacbA1qcN4KOFqHc3Gk",
+                  "link": "https://docs.google.com/document/d/1672zwWbYnU41NbKBaLz3Jze6NacbA1qcN4KOFqHc3Gk/edit",
+                  "role": "support"
+                }
+              ]
+            },
+            {
+              "nodeIndex": 225,
+              "nodeName": "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2963_PRESENTATION_CLONE_2586_KPH_MIRROR_FRONT_PEILI_2",
+              "meshIndex": 199,
+              "sourceDonorNode": 4,
+              "nodePath": [
+                119,
+                221,
+                225
+              ],
+              "nodePathNames": [
+                "D1F_ROOM_KPH09_PHOTO_PROPORTIONED_FLAT_ROCKER_AND_FLAT_DIAL_WORK_TEST",
+                "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2959_PRESENTATION_CLONE_2854_D1F_MIRROR_305MM_SAUNA_EDGE_CONDITIONAL_Y_PLUS_10MM_WORK_TEST",
+                "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2963_PRESENTATION_CLONE_2586_KPH_MIRROR_FRONT_PEILI_2"
+              ],
+              "extraGuards": {
+                "sourceDonorNode": 4,
+                "asBuilt": false,
+                "current": false,
+                "CURRENT": false,
+                "canonical": false,
+                "HUMAN_REVIEW": "NOT_RUN"
+              },
+              "sourceLinkGuards": [
+                {
+                  "docId": "DOC:1ccXRhfkU06NVCI-al2-KYXuKcSqMTRsw",
+                  "link": "https://drive.google.com/file/d/1ccXRhfkU06NVCI-al2-KYXuKcSqMTRsw/view",
+                  "role": "support"
+                },
+                {
+                  "docId": "DOC:1672zwWbYnU41NbKBaLz3Jze6NacbA1qcN4KOFqHc3Gk",
+                  "link": "https://docs.google.com/document/d/1672zwWbYnU41NbKBaLz3Jze6NacbA1qcN4KOFqHc3Gk/edit",
+                  "role": "support"
+                }
+              ]
+            },
+            {
+              "nodeIndex": 226,
+              "nodeName": "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2964_PRESENTATION_CLONE_2587_KPH_MIRROR_FRONT_PEILI_3",
+              "meshIndex": 200,
+              "sourceDonorNode": 5,
+              "nodePath": [
+                119,
+                221,
+                226
+              ],
+              "nodePathNames": [
+                "D1F_ROOM_KPH09_PHOTO_PROPORTIONED_FLAT_ROCKER_AND_FLAT_DIAL_WORK_TEST",
+                "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2959_PRESENTATION_CLONE_2854_D1F_MIRROR_305MM_SAUNA_EDGE_CONDITIONAL_Y_PLUS_10MM_WORK_TEST",
+                "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2964_PRESENTATION_CLONE_2587_KPH_MIRROR_FRONT_PEILI_3"
+              ],
+              "extraGuards": {
+                "sourceDonorNode": 5,
+                "asBuilt": false,
+                "current": false,
+                "CURRENT": false,
+                "canonical": false,
+                "HUMAN_REVIEW": "NOT_RUN"
+              },
+              "sourceLinkGuards": [
+                {
+                  "docId": "DOC:1ccXRhfkU06NVCI-al2-KYXuKcSqMTRsw",
+                  "link": "https://drive.google.com/file/d/1ccXRhfkU06NVCI-al2-KYXuKcSqMTRsw/view",
+                  "role": "support"
+                },
+                {
+                  "docId": "DOC:1672zwWbYnU41NbKBaLz3Jze6NacbA1qcN4KOFqHc3Gk",
+                  "link": "https://docs.google.com/document/d/1672zwWbYnU41NbKBaLz3Jze6NacbA1qcN4KOFqHc3Gk/edit",
+                  "role": "support"
+                }
+              ]
+            },
+            {
+              "nodeIndex": 227,
+              "nodeName": "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2965_PRESENTATION_CLONE_2588_KPH_WORK_ASSUMPTION_5mm_TRIM_GAP_0",
+              "meshIndex": 201,
+              "sourceDonorNode": 6,
+              "nodePath": [
+                119,
+                221,
+                227
+              ],
+              "nodePathNames": [
+                "D1F_ROOM_KPH09_PHOTO_PROPORTIONED_FLAT_ROCKER_AND_FLAT_DIAL_WORK_TEST",
+                "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2959_PRESENTATION_CLONE_2854_D1F_MIRROR_305MM_SAUNA_EDGE_CONDITIONAL_Y_PLUS_10MM_WORK_TEST",
+                "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2965_PRESENTATION_CLONE_2588_KPH_WORK_ASSUMPTION_5mm_TRIM_GAP_0"
+              ],
+              "extraGuards": {
+                "sourceDonorNode": 6,
+                "asBuilt": false,
+                "current": false,
+                "CURRENT": false,
+                "canonical": false,
+                "HUMAN_REVIEW": "NOT_RUN"
+              },
+              "sourceLinkGuards": [
+                {
+                  "docId": "DOC:1ccXRhfkU06NVCI-al2-KYXuKcSqMTRsw",
+                  "link": "https://drive.google.com/file/d/1ccXRhfkU06NVCI-al2-KYXuKcSqMTRsw/view",
+                  "role": "support"
+                },
+                {
+                  "docId": "DOC:1672zwWbYnU41NbKBaLz3Jze6NacbA1qcN4KOFqHc3Gk",
+                  "link": "https://docs.google.com/document/d/1672zwWbYnU41NbKBaLz3Jze6NacbA1qcN4KOFqHc3Gk/edit",
+                  "role": "support"
+                }
+              ]
+            },
+            {
+              "nodeIndex": 228,
+              "nodeName": "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2966_PRESENTATION_CLONE_2589_KPH_WORK_ASSUMPTION_5mm_TRIM_GAP_1",
+              "meshIndex": 202,
+              "sourceDonorNode": 7,
+              "nodePath": [
+                119,
+                221,
+                228
+              ],
+              "nodePathNames": [
+                "D1F_ROOM_KPH09_PHOTO_PROPORTIONED_FLAT_ROCKER_AND_FLAT_DIAL_WORK_TEST",
+                "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2959_PRESENTATION_CLONE_2854_D1F_MIRROR_305MM_SAUNA_EDGE_CONDITIONAL_Y_PLUS_10MM_WORK_TEST",
+                "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2966_PRESENTATION_CLONE_2589_KPH_WORK_ASSUMPTION_5mm_TRIM_GAP_1"
+              ],
+              "extraGuards": {
+                "sourceDonorNode": 7,
+                "asBuilt": false,
+                "current": false,
+                "CURRENT": false,
+                "canonical": false,
+                "HUMAN_REVIEW": "NOT_RUN"
+              },
+              "sourceLinkGuards": [
+                {
+                  "docId": "DOC:1ccXRhfkU06NVCI-al2-KYXuKcSqMTRsw",
+                  "link": "https://drive.google.com/file/d/1ccXRhfkU06NVCI-al2-KYXuKcSqMTRsw/view",
+                  "role": "support"
+                },
+                {
+                  "docId": "DOC:1672zwWbYnU41NbKBaLz3Jze6NacbA1qcN4KOFqHc3Gk",
+                  "link": "https://docs.google.com/document/d/1672zwWbYnU41NbKBaLz3Jze6NacbA1qcN4KOFqHc3Gk/edit",
+                  "role": "support"
+                }
+              ]
+            },
+            {
+              "nodeIndex": 229,
+              "nodeName": "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2967_PRESENTATION_CLONE_2590_KPH_WORK_ASSUMPTION_5mm_TRIM_GAP_2",
+              "meshIndex": 203,
+              "sourceDonorNode": 8,
+              "nodePath": [
+                119,
+                221,
+                229
+              ],
+              "nodePathNames": [
+                "D1F_ROOM_KPH09_PHOTO_PROPORTIONED_FLAT_ROCKER_AND_FLAT_DIAL_WORK_TEST",
+                "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2959_PRESENTATION_CLONE_2854_D1F_MIRROR_305MM_SAUNA_EDGE_CONDITIONAL_Y_PLUS_10MM_WORK_TEST",
+                "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2967_PRESENTATION_CLONE_2590_KPH_WORK_ASSUMPTION_5mm_TRIM_GAP_2"
+              ],
+              "extraGuards": {
+                "sourceDonorNode": 8,
+                "asBuilt": false,
+                "current": false,
+                "CURRENT": false,
+                "canonical": false,
+                "HUMAN_REVIEW": "NOT_RUN"
+              },
+              "sourceLinkGuards": [
+                {
+                  "docId": "DOC:1ccXRhfkU06NVCI-al2-KYXuKcSqMTRsw",
+                  "link": "https://drive.google.com/file/d/1ccXRhfkU06NVCI-al2-KYXuKcSqMTRsw/view",
+                  "role": "support"
+                },
+                {
+                  "docId": "DOC:1672zwWbYnU41NbKBaLz3Jze6NacbA1qcN4KOFqHc3Gk",
+                  "link": "https://docs.google.com/document/d/1672zwWbYnU41NbKBaLz3Jze6NacbA1qcN4KOFqHc3Gk/edit",
+                  "role": "support"
+                }
+              ]
+            },
+            {
+              "nodeIndex": 230,
+              "nodeName": "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2968_PRESENTATION_CLONE_2591_KPH_WORK_ASSUMPTION_5mm_TRIM_GAP_3",
+              "meshIndex": 204,
+              "sourceDonorNode": 9,
+              "nodePath": [
+                119,
+                221,
+                230
+              ],
+              "nodePathNames": [
+                "D1F_ROOM_KPH09_PHOTO_PROPORTIONED_FLAT_ROCKER_AND_FLAT_DIAL_WORK_TEST",
+                "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2959_PRESENTATION_CLONE_2854_D1F_MIRROR_305MM_SAUNA_EDGE_CONDITIONAL_Y_PLUS_10MM_WORK_TEST",
+                "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2968_PRESENTATION_CLONE_2591_KPH_WORK_ASSUMPTION_5mm_TRIM_GAP_3"
+              ],
+              "extraGuards": {
+                "sourceDonorNode": 9,
+                "asBuilt": false,
+                "current": false,
+                "CURRENT": false,
+                "canonical": false,
+                "HUMAN_REVIEW": "NOT_RUN"
+              },
+              "sourceLinkGuards": [
+                {
+                  "docId": "DOC:1ccXRhfkU06NVCI-al2-KYXuKcSqMTRsw",
+                  "link": "https://drive.google.com/file/d/1ccXRhfkU06NVCI-al2-KYXuKcSqMTRsw/view",
+                  "role": "support"
+                },
+                {
+                  "docId": "DOC:1672zwWbYnU41NbKBaLz3Jze6NacbA1qcN4KOFqHc3Gk",
+                  "link": "https://docs.google.com/document/d/1672zwWbYnU41NbKBaLz3Jze6NacbA1qcN4KOFqHc3Gk/edit",
+                  "role": "support"
+                }
+              ]
+            },
+            {
+              "nodeIndex": 231,
+              "nodeName": "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2969_PRESENTATION_CLONE_2592_KPH_WORK_ASSUMPTION_5mm_TRIM_GAP_4",
+              "meshIndex": 205,
+              "sourceDonorNode": 10,
+              "nodePath": [
+                119,
+                221,
+                231
+              ],
+              "nodePathNames": [
+                "D1F_ROOM_KPH09_PHOTO_PROPORTIONED_FLAT_ROCKER_AND_FLAT_DIAL_WORK_TEST",
+                "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2959_PRESENTATION_CLONE_2854_D1F_MIRROR_305MM_SAUNA_EDGE_CONDITIONAL_Y_PLUS_10MM_WORK_TEST",
+                "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2969_PRESENTATION_CLONE_2592_KPH_WORK_ASSUMPTION_5mm_TRIM_GAP_4"
+              ],
+              "extraGuards": {
+                "sourceDonorNode": 10,
+                "asBuilt": false,
+                "current": false,
+                "CURRENT": false,
+                "canonical": false,
+                "HUMAN_REVIEW": "NOT_RUN"
+              },
+              "sourceLinkGuards": [
+                {
+                  "docId": "DOC:1ccXRhfkU06NVCI-al2-KYXuKcSqMTRsw",
+                  "link": "https://drive.google.com/file/d/1ccXRhfkU06NVCI-al2-KYXuKcSqMTRsw/view",
+                  "role": "support"
+                },
+                {
+                  "docId": "DOC:1672zwWbYnU41NbKBaLz3Jze6NacbA1qcN4KOFqHc3Gk",
+                  "link": "https://docs.google.com/document/d/1672zwWbYnU41NbKBaLz3Jze6NacbA1qcN4KOFqHc3Gk/edit",
+                  "role": "support"
+                }
+              ]
+            },
+            {
+              "nodeIndex": 232,
+              "nodeName": "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2970_PRESENTATION_CLONE_2593_KPH_MIRROR_RIGHT_END_SIDE_USER_CONFIRMED",
+              "meshIndex": 206,
+              "sourceDonorNode": 11,
+              "nodePath": [
+                119,
+                221,
+                232
+              ],
+              "nodePathNames": [
+                "D1F_ROOM_KPH09_PHOTO_PROPORTIONED_FLAT_ROCKER_AND_FLAT_DIAL_WORK_TEST",
+                "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2959_PRESENTATION_CLONE_2854_D1F_MIRROR_305MM_SAUNA_EDGE_CONDITIONAL_Y_PLUS_10MM_WORK_TEST",
+                "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2970_PRESENTATION_CLONE_2593_KPH_MIRROR_RIGHT_END_SIDE_USER_CONFIRMED"
+              ],
+              "extraGuards": {
+                "sourceDonorNode": 11,
+                "asBuilt": false,
+                "current": false,
+                "CURRENT": false,
+                "canonical": false,
+                "HUMAN_REVIEW": "NOT_RUN"
+              },
+              "sourceLinkGuards": [
+                {
+                  "docId": "DOC:1ccXRhfkU06NVCI-al2-KYXuKcSqMTRsw",
+                  "link": "https://drive.google.com/file/d/1ccXRhfkU06NVCI-al2-KYXuKcSqMTRsw/view",
+                  "role": "support"
+                },
+                {
+                  "docId": "DOC:1672zwWbYnU41NbKBaLz3Jze6NacbA1qcN4KOFqHc3Gk",
+                  "link": "https://docs.google.com/document/d/1672zwWbYnU41NbKBaLz3Jze6NacbA1qcN4KOFqHc3Gk/edit",
+                  "role": "support"
+                }
+              ]
+            },
+            {
+              "nodeIndex": 233,
+              "nodeName": "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2971_PRESENTATION_CLONE_2594_KPH_MIRROR_FRONT_LOWER_EDGE_PEILI_1",
+              "meshIndex": 207,
+              "sourceDonorNode": 12,
+              "nodePath": [
+                119,
+                221,
+                233
+              ],
+              "nodePathNames": [
+                "D1F_ROOM_KPH09_PHOTO_PROPORTIONED_FLAT_ROCKER_AND_FLAT_DIAL_WORK_TEST",
+                "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2959_PRESENTATION_CLONE_2854_D1F_MIRROR_305MM_SAUNA_EDGE_CONDITIONAL_Y_PLUS_10MM_WORK_TEST",
+                "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2971_PRESENTATION_CLONE_2594_KPH_MIRROR_FRONT_LOWER_EDGE_PEILI_1"
+              ],
+              "extraGuards": {
+                "sourceDonorNode": 12,
+                "asBuilt": false,
+                "current": false,
+                "CURRENT": false,
+                "canonical": false,
+                "HUMAN_REVIEW": "NOT_RUN"
+              },
+              "sourceLinkGuards": [
+                {
+                  "docId": "DOC:1ccXRhfkU06NVCI-al2-KYXuKcSqMTRsw",
+                  "link": "https://drive.google.com/file/d/1ccXRhfkU06NVCI-al2-KYXuKcSqMTRsw/view",
+                  "role": "support"
+                },
+                {
+                  "docId": "DOC:1672zwWbYnU41NbKBaLz3Jze6NacbA1qcN4KOFqHc3Gk",
+                  "link": "https://docs.google.com/document/d/1672zwWbYnU41NbKBaLz3Jze6NacbA1qcN4KOFqHc3Gk/edit",
+                  "role": "support"
+                }
+              ]
+            },
+            {
+              "nodeIndex": 234,
+              "nodeName": "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2972_PRESENTATION_CLONE_2595_KPH_MIRROR_FRONT_LOWER_EDGE_PEILI_2",
+              "meshIndex": 208,
+              "sourceDonorNode": 13,
+              "nodePath": [
+                119,
+                221,
+                234
+              ],
+              "nodePathNames": [
+                "D1F_ROOM_KPH09_PHOTO_PROPORTIONED_FLAT_ROCKER_AND_FLAT_DIAL_WORK_TEST",
+                "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2959_PRESENTATION_CLONE_2854_D1F_MIRROR_305MM_SAUNA_EDGE_CONDITIONAL_Y_PLUS_10MM_WORK_TEST",
+                "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2972_PRESENTATION_CLONE_2595_KPH_MIRROR_FRONT_LOWER_EDGE_PEILI_2"
+              ],
+              "extraGuards": {
+                "sourceDonorNode": 13,
+                "asBuilt": false,
+                "current": false,
+                "CURRENT": false,
+                "canonical": false,
+                "HUMAN_REVIEW": "NOT_RUN"
+              },
+              "sourceLinkGuards": [
+                {
+                  "docId": "DOC:1ccXRhfkU06NVCI-al2-KYXuKcSqMTRsw",
+                  "link": "https://drive.google.com/file/d/1ccXRhfkU06NVCI-al2-KYXuKcSqMTRsw/view",
+                  "role": "support"
+                },
+                {
+                  "docId": "DOC:1672zwWbYnU41NbKBaLz3Jze6NacbA1qcN4KOFqHc3Gk",
+                  "link": "https://docs.google.com/document/d/1672zwWbYnU41NbKBaLz3Jze6NacbA1qcN4KOFqHc3Gk/edit",
+                  "role": "support"
+                }
+              ]
+            },
+            {
+              "nodeIndex": 235,
+              "nodeName": "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2973_PRESENTATION_CLONE_2596_KPH_MIRROR_FRONT_LOWER_EDGE_PEILI_3",
+              "meshIndex": 209,
+              "sourceDonorNode": 14,
+              "nodePath": [
+                119,
+                221,
+                235
+              ],
+              "nodePathNames": [
+                "D1F_ROOM_KPH09_PHOTO_PROPORTIONED_FLAT_ROCKER_AND_FLAT_DIAL_WORK_TEST",
+                "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2959_PRESENTATION_CLONE_2854_D1F_MIRROR_305MM_SAUNA_EDGE_CONDITIONAL_Y_PLUS_10MM_WORK_TEST",
+                "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2973_PRESENTATION_CLONE_2596_KPH_MIRROR_FRONT_LOWER_EDGE_PEILI_3"
+              ],
+              "extraGuards": {
+                "sourceDonorNode": 14,
+                "asBuilt": false,
+                "current": false,
+                "CURRENT": false,
+                "canonical": false,
+                "HUMAN_REVIEW": "NOT_RUN"
+              },
+              "sourceLinkGuards": [
+                {
+                  "docId": "DOC:1ccXRhfkU06NVCI-al2-KYXuKcSqMTRsw",
+                  "link": "https://drive.google.com/file/d/1ccXRhfkU06NVCI-al2-KYXuKcSqMTRsw/view",
+                  "role": "support"
+                },
+                {
+                  "docId": "DOC:1672zwWbYnU41NbKBaLz3Jze6NacbA1qcN4KOFqHc3Gk",
+                  "link": "https://docs.google.com/document/d/1672zwWbYnU41NbKBaLz3Jze6NacbA1qcN4KOFqHc3Gk/edit",
+                  "role": "support"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sourceModelSha256": "94ce14fe308a1591db31a72a0db01f5fdcb125865c95d117377fd9f7d1f4d6dd",
+      "model": {
+        "sha256": "db67604823671b701fb4822688d66da98362eb19068301496cac1eef53c0e73e",
+        "byteLength": 2002112,
+        "sceneIndex": 0,
+        "kind": "published-scene",
+        "driveId": "1YRn2dLK0ZMxdVmCf2Qpxuct6F-GXwNPs"
+      },
+      "audit": {
+        "geometryAndTransformsUnchanged": true,
+        "semanticFieldsReviewed": true,
+        "cardCount": 2,
+        "bindingCount": 22,
+        "sourceRoleRecords": 46,
+        "geometryProofSha256": "9a7cba9df6d3c1bf2782502b8d53e47532b3487961cb641d0d6d48fcebc7db76"
+      },
+      "groups": [
+        {
+          "moduleId": "KPH09_SWITCH",
+          "integrationCardId": "KPH09_SWITCH::KPH09_SWITCH_GROUP_SHARED302",
+          "cardRevision": "owner-dimmer-and-frame-20261022",
+          "roomNodeIndex": 119,
+          "roomNodeName": "D1F_ROOM_KPH09_PHOTO_PROPORTIONED_FLAT_ROCKER_AND_FLAT_DIAL_WORK_TEST",
+          "rootNodeIndex": 268,
+          "rootNodeName": "KPH09_20261020_PHOTO_PROPORTIONED_ROCKER_FLAT_ROTARY_FLAT_WORK_TEST",
+          "rootExtraGuards": {
+            "sourcePhotoDriveId": "1QbBQAeCfIHyqRefVITEr3jLuBdq6E4kZ",
+            "userMeasuredCoverTopM": 1.02,
+            "userMeasuredCoverTopAboveFinishedBathroomFloorM": 1.02,
+            "userConfirmedUpperControl": "SAUNA_LIGHT_LARGE_ROCKER",
+            "userConfirmedLowerControl": "BATHROOM_LIGHT_ROTARY_DIMMER",
+            "rotaryDimmingFunction": "OWNER_CONFIRMED_LIGHT_BRIGHTNESS_DIMMER_20261020",
+            "ownerConfirmedDimmer20261020": {
+              "finding": "lower rotary knob adjusts brightness of lights; physical dimming function confirmed by owner",
+              "evidenceType": "USER_REPORTED_FUNCTION_RECORDED_IN_3D_COVERAGE_SECTION_28",
+              "reviewState": "FUNCTION_CONFIRMED_ONLY_NOT_PRODUCT_OR_INSTALLATION_APPROVAL",
+              "sourceDocument": "https://docs.google.com/document/d/1yOrdsreXGVS_WPWS4ZdfXRDEPpPXt6DMU4KInKi3btI/edit",
+              "notProven": [
+                "dimmer model/product code",
+                "electrical ratings",
+                "wiring",
+                "frame manufacturer",
+                "exact mounted XYZ"
+              ],
+              "geometryChanged": false,
+              "CURRENT": false,
+              "asBuilt": false
+            },
+            "unmeasuredFrameWidthM_WORK_ASSUMPTION": 0.092,
+            "unmeasuredFrameHeightM_WORK_ASSUMPTION": 0.148,
+            "frameWidthMmWorkAssumption": 92,
+            "frameHeightMmWorkAssumption": 148,
+            "exactPhysicalFrameDimensionsVerified": false,
+            "absoluteHostXYVerified": false,
+            "presentationOnly": true,
+            "asBuilt": false,
+            "Canonical": false,
+            "publishToCURRENT": false,
+            "HUMAN_REVIEW": "NOT_RUN"
+          },
+          "rootSourceLinkGuards": [
+            {
+              "docId": "DOC:1QbBQAeCfIHyqRefVITEr3jLuBdq6E4kZ",
+              "link": "https://drive.google.com/file/d/1QbBQAeCfIHyqRefVITEr3jLuBdq6E4kZ/view",
+              "role": "support"
+            },
+            {
+              "docId": "DOC:1yOrdsreXGVS_WPWS4ZdfXRDEPpPXt6DMU4KInKi3btI",
+              "link": "https://docs.google.com/document/d/1yOrdsreXGVS_WPWS4ZdfXRDEPpPXt6DMU4KInKi3btI/edit",
+              "role": "support"
+            },
+            {
+              "docId": "DOC:1VKZNrkGd87QtwChV5ygs_E_k1Gi2e6iCPQbePpinzJY",
+              "link": "https://docs.google.com/document/d/1VKZNrkGd87QtwChV5ygs_E_k1Gi2e6iCPQbePpinzJY/edit",
+              "role": "support"
+            }
+          ],
+          "bindings": [
+            {
+              "nodeIndex": 268,
+              "nodeName": "KPH09_20261020_PHOTO_PROPORTIONED_ROCKER_FLAT_ROTARY_FLAT_WORK_TEST",
+              "meshIndex": null,
+              "sourceField": "sourcePhotoDriveId",
+              "sourceFieldValue": "1QbBQAeCfIHyqRefVITEr3jLuBdq6E4kZ",
+              "nodePath": [
+                119,
+                268
+              ],
+              "nodePathNames": [
+                "D1F_ROOM_KPH09_PHOTO_PROPORTIONED_FLAT_ROCKER_AND_FLAT_DIAL_WORK_TEST",
+                "KPH09_20261020_PHOTO_PROPORTIONED_ROCKER_FLAT_ROTARY_FLAT_WORK_TEST"
+              ],
+              "extraGuards": {},
+              "sourceLinkGuards": [
+                {
+                  "docId": "DOC:1QbBQAeCfIHyqRefVITEr3jLuBdq6E4kZ",
+                  "link": "https://drive.google.com/file/d/1QbBQAeCfIHyqRefVITEr3jLuBdq6E4kZ/view",
+                  "role": "support"
+                },
+                {
+                  "docId": "DOC:1yOrdsreXGVS_WPWS4ZdfXRDEPpPXt6DMU4KInKi3btI",
+                  "link": "https://docs.google.com/document/d/1yOrdsreXGVS_WPWS4ZdfXRDEPpPXt6DMU4KInKi3btI/edit",
+                  "role": "support"
+                },
+                {
+                  "docId": "DOC:1VKZNrkGd87QtwChV5ygs_E_k1Gi2e6iCPQbePpinzJY",
+                  "link": "https://docs.google.com/document/d/1VKZNrkGd87QtwChV5ygs_E_k1Gi2e6iCPQbePpinzJY/edit",
+                  "role": "support"
+                }
+              ]
+            },
+            {
+              "nodeIndex": 269,
+              "nodeName": "KPH09_PHOTO_FRAME_092x148_WORK_ASSUMPTION",
+              "meshIndex": 234,
+              "sourceField": "referenceDriveId",
+              "sourceFieldValue": "1QbBQAeCfIHyqRefVITEr3jLuBdq6E4kZ",
+              "nodePath": [
+                119,
+                268,
+                269
+              ],
+              "nodePathNames": [
+                "D1F_ROOM_KPH09_PHOTO_PROPORTIONED_FLAT_ROCKER_AND_FLAT_DIAL_WORK_TEST",
+                "KPH09_20261020_PHOTO_PROPORTIONED_ROCKER_FLAT_ROTARY_FLAT_WORK_TEST",
+                "KPH09_PHOTO_FRAME_092x148_WORK_ASSUMPTION"
+              ],
+              "extraGuards": {
+                "referenceDriveId": "1QbBQAeCfIHyqRefVITEr3jLuBdq6E4kZ",
+                "status": "PHOTO_PROPORTIONED_WORK_ASSUMPTION",
+                "frameProductNotVerified": true,
+                "workWidthMm": 92,
+                "workHeightMm": 148
+              },
+              "sourceLinkGuards": [
+                {
+                  "docId": "DOC:1QbBQAeCfIHyqRefVITEr3jLuBdq6E4kZ",
+                  "link": "https://drive.google.com/file/d/1QbBQAeCfIHyqRefVITEr3jLuBdq6E4kZ/view",
+                  "role": "support"
+                },
+                {
+                  "docId": "DOC:1yOrdsreXGVS_WPWS4ZdfXRDEPpPXt6DMU4KInKi3btI",
+                  "link": "https://docs.google.com/document/d/1yOrdsreXGVS_WPWS4ZdfXRDEPpPXt6DMU4KInKi3btI/edit",
+                  "role": "support"
+                }
+              ]
+            },
+            {
+              "nodeIndex": 270,
+              "nodeName": "KPH09_PHOTO_SAUNA_FLAT_ROCKER_TOP",
+              "meshIndex": 235,
+              "sourceField": "referenceDriveId",
+              "sourceFieldValue": "1QbBQAeCfIHyqRefVITEr3jLuBdq6E4kZ",
+              "nodePath": [
+                119,
+                268,
+                270
+              ],
+              "nodePathNames": [
+                "D1F_ROOM_KPH09_PHOTO_PROPORTIONED_FLAT_ROCKER_AND_FLAT_DIAL_WORK_TEST",
+                "KPH09_20261020_PHOTO_PROPORTIONED_ROCKER_FLAT_ROTARY_FLAT_WORK_TEST",
+                "KPH09_PHOTO_SAUNA_FLAT_ROCKER_TOP"
+              ],
+              "extraGuards": {
+                "referenceDriveId": "1QbBQAeCfIHyqRefVITEr3jLuBdq6E4kZ",
+                "status": "PHOTO_PROPORTIONED_WORK_ASSUMPTION"
+              },
+              "sourceLinkGuards": [
+                {
+                  "docId": "DOC:1QbBQAeCfIHyqRefVITEr3jLuBdq6E4kZ",
+                  "link": "https://drive.google.com/file/d/1QbBQAeCfIHyqRefVITEr3jLuBdq6E4kZ/view",
+                  "role": "support"
+                },
+                {
+                  "docId": "DOC:1yOrdsreXGVS_WPWS4ZdfXRDEPpPXt6DMU4KInKi3btI",
+                  "link": "https://docs.google.com/document/d/1yOrdsreXGVS_WPWS4ZdfXRDEPpPXt6DMU4KInKi3btI/edit",
+                  "role": "support"
+                }
+              ]
+            },
+            {
+              "nodeIndex": 271,
+              "nodeName": "KPH09_PHOTO_SPACER_BAR",
+              "meshIndex": 236,
+              "sourceField": "referenceDriveId",
+              "sourceFieldValue": "1QbBQAeCfIHyqRefVITEr3jLuBdq6E4kZ",
+              "nodePath": [
+                119,
+                268,
+                271
+              ],
+              "nodePathNames": [
+                "D1F_ROOM_KPH09_PHOTO_PROPORTIONED_FLAT_ROCKER_AND_FLAT_DIAL_WORK_TEST",
+                "KPH09_20261020_PHOTO_PROPORTIONED_ROCKER_FLAT_ROTARY_FLAT_WORK_TEST",
+                "KPH09_PHOTO_SPACER_BAR"
+              ],
+              "extraGuards": {
+                "referenceDriveId": "1QbBQAeCfIHyqRefVITEr3jLuBdq6E4kZ",
+                "status": "PHOTO_PROPORTIONED_WORK_ASSUMPTION"
+              },
+              "sourceLinkGuards": [
+                {
+                  "docId": "DOC:1QbBQAeCfIHyqRefVITEr3jLuBdq6E4kZ",
+                  "link": "https://drive.google.com/file/d/1QbBQAeCfIHyqRefVITEr3jLuBdq6E4kZ/view",
+                  "role": "support"
+                },
+                {
+                  "docId": "DOC:1yOrdsreXGVS_WPWS4ZdfXRDEPpPXt6DMU4KInKi3btI",
+                  "link": "https://docs.google.com/document/d/1yOrdsreXGVS_WPWS4ZdfXRDEPpPXt6DMU4KInKi3btI/edit",
+                  "role": "support"
+                }
+              ]
+            },
+            {
+              "nodeIndex": 272,
+              "nodeName": "KPH09_PHOTO_LOWER_ROTARY_SQUARE_PANEL",
+              "meshIndex": 237,
+              "sourceField": "referenceDriveId",
+              "sourceFieldValue": "1QbBQAeCfIHyqRefVITEr3jLuBdq6E4kZ",
+              "nodePath": [
+                119,
+                268,
+                272
+              ],
+              "nodePathNames": [
+                "D1F_ROOM_KPH09_PHOTO_PROPORTIONED_FLAT_ROCKER_AND_FLAT_DIAL_WORK_TEST",
+                "KPH09_20261020_PHOTO_PROPORTIONED_ROCKER_FLAT_ROTARY_FLAT_WORK_TEST",
+                "KPH09_PHOTO_LOWER_ROTARY_SQUARE_PANEL"
+              ],
+              "extraGuards": {
+                "referenceDriveId": "1QbBQAeCfIHyqRefVITEr3jLuBdq6E4kZ",
+                "status": "PHOTO_PROPORTIONED_WORK_ASSUMPTION"
+              },
+              "sourceLinkGuards": [
+                {
+                  "docId": "DOC:1QbBQAeCfIHyqRefVITEr3jLuBdq6E4kZ",
+                  "link": "https://drive.google.com/file/d/1QbBQAeCfIHyqRefVITEr3jLuBdq6E4kZ/view",
+                  "role": "support"
+                },
+                {
+                  "docId": "DOC:1yOrdsreXGVS_WPWS4ZdfXRDEPpPXt6DMU4KInKi3btI",
+                  "link": "https://docs.google.com/document/d/1yOrdsreXGVS_WPWS4ZdfXRDEPpPXt6DMU4KInKi3btI/edit",
+                  "role": "support"
+                }
+              ]
+            },
+            {
+              "nodeIndex": 273,
+              "nodeName": "KPH09_PHOTO_ROTARY_BEZEL",
+              "meshIndex": 238,
+              "sourceField": "referenceDriveId",
+              "sourceFieldValue": "1QbBQAeCfIHyqRefVITEr3jLuBdq6E4kZ",
+              "nodePath": [
+                119,
+                268,
+                273
+              ],
+              "nodePathNames": [
+                "D1F_ROOM_KPH09_PHOTO_PROPORTIONED_FLAT_ROCKER_AND_FLAT_DIAL_WORK_TEST",
+                "KPH09_20261020_PHOTO_PROPORTIONED_ROCKER_FLAT_ROTARY_FLAT_WORK_TEST",
+                "KPH09_PHOTO_ROTARY_BEZEL"
+              ],
+              "extraGuards": {
+                "referenceDriveId": "1QbBQAeCfIHyqRefVITEr3jLuBdq6E4kZ",
+                "status": "PHOTO_PROPORTIONED_WORK_ASSUMPTION"
+              },
+              "sourceLinkGuards": [
+                {
+                  "docId": "DOC:1QbBQAeCfIHyqRefVITEr3jLuBdq6E4kZ",
+                  "link": "https://drive.google.com/file/d/1QbBQAeCfIHyqRefVITEr3jLuBdq6E4kZ/view",
+                  "role": "support"
+                },
+                {
+                  "docId": "DOC:1yOrdsreXGVS_WPWS4ZdfXRDEPpPXt6DMU4KInKi3btI",
+                  "link": "https://docs.google.com/document/d/1yOrdsreXGVS_WPWS4ZdfXRDEPpPXt6DMU4KInKi3btI/edit",
+                  "role": "support"
+                }
+              ]
+            },
+            {
+              "nodeIndex": 274,
+              "nodeName": "KPH09_PHOTO_ROTARY_FLAT_FACE_CYLINDER",
+              "meshIndex": 239,
+              "sourceField": "referenceDriveId",
+              "sourceFieldValue": "1QbBQAeCfIHyqRefVITEr3jLuBdq6E4kZ",
+              "nodePath": [
+                119,
+                268,
+                274
+              ],
+              "nodePathNames": [
+                "D1F_ROOM_KPH09_PHOTO_PROPORTIONED_FLAT_ROCKER_AND_FLAT_DIAL_WORK_TEST",
+                "KPH09_20261020_PHOTO_PROPORTIONED_ROCKER_FLAT_ROTARY_FLAT_WORK_TEST",
+                "KPH09_PHOTO_ROTARY_FLAT_FACE_CYLINDER"
+              ],
+              "extraGuards": {
+                "referenceDriveId": "1QbBQAeCfIHyqRefVITEr3jLuBdq6E4kZ",
+                "status": "PHOTO_PROPORTIONED_WORK_ASSUMPTION",
+                "functionalRoleUserConfirmed": "LIGHT_BRIGHTNESS_DIMMER_LOWER_KNOB_20261020",
+                "functionalRoleEvidence": "OWNER_REPORT_ARCHIVED_3D_COVERAGE_SECTION_28; NOT_PHOTO_DERIVED",
+                "installedModelAndElectricalSpec": "UNKNOWN",
+                "physicalXYOrZVerified": false,
+                "asBuilt": false,
+                "CURRENT": false
+              },
+              "sourceLinkGuards": [
+                {
+                  "docId": "DOC:1QbBQAeCfIHyqRefVITEr3jLuBdq6E4kZ",
+                  "link": "https://drive.google.com/file/d/1QbBQAeCfIHyqRefVITEr3jLuBdq6E4kZ/view",
+                  "role": "support"
+                },
+                {
+                  "docId": "DOC:1yOrdsreXGVS_WPWS4ZdfXRDEPpPXt6DMU4KInKi3btI",
+                  "link": "https://docs.google.com/document/d/1yOrdsreXGVS_WPWS4ZdfXRDEPpPXt6DMU4KInKi3btI/edit",
+                  "role": "support"
+                },
+                {
+                  "docId": "DOC:1VKZNrkGd87QtwChV5ygs_E_k1Gi2e6iCPQbePpinzJY",
+                  "link": "https://docs.google.com/document/d/1VKZNrkGd87QtwChV5ygs_E_k1Gi2e6iCPQbePpinzJY/edit",
+                  "role": "support"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "moduleId": "KPH_MIRROR",
+          "integrationCardId": "KPH_MIRROR::KPH_MIRROR_SHARED302",
+          "cardRevision": "original",
+          "roomNodeIndex": 119,
+          "roomNodeName": "D1F_ROOM_KPH09_PHOTO_PROPORTIONED_FLAT_ROCKER_AND_FLAT_DIAL_WORK_TEST",
+          "rootNodeIndex": 226,
+          "rootNodeName": "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2959_PRESENTATION_CLONE_2854_D1F_MIRROR_305MM_SAUNA_EDGE_CONDITIONAL_Y_PLUS_10MM_WORK_TEST",
+          "rootExtraGuards": {
+            "donorMeasuredZipDriveId": "1ccXRhfkU06NVCI-al2-KYXuKcSqMTRsw",
+            "donorGLBSha256": "e7c25a164a2a8f1ce8c7b060651f7adeb23b43044f6100377f8cc7dba3052ad1",
+            "saunaFinishedWallFaceCoordinateVerified": false,
+            "presentationOnly": true,
+            "asBuilt": false,
+            "current": false,
+            "CURRENT": false,
+            "Canonical": false,
+            "publishToCURRENT": false,
+            "HUMAN_REVIEW": "NOT_RUN"
+          },
+          "rootSourceLinkGuards": [
+            {
+              "docId": "DOC:1ccXRhfkU06NVCI-al2-KYXuKcSqMTRsw",
+              "link": "https://drive.google.com/file/d/1ccXRhfkU06NVCI-al2-KYXuKcSqMTRsw/view",
+              "role": "support"
+            },
+            {
+              "docId": "DOC:1672zwWbYnU41NbKBaLz3Jze6NacbA1qcN4KOFqHc3Gk",
+              "link": "https://docs.google.com/document/d/1672zwWbYnU41NbKBaLz3Jze6NacbA1qcN4KOFqHc3Gk/edit",
+              "role": "support"
+            }
+          ],
+          "bindings": [
+            {
+              "nodeIndex": 226,
+              "nodeName": "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2959_PRESENTATION_CLONE_2854_D1F_MIRROR_305MM_SAUNA_EDGE_CONDITIONAL_Y_PLUS_10MM_WORK_TEST",
+              "meshIndex": null,
+              "sourceField": "donorMeasuredZipDriveId",
+              "sourceFieldValue": "1ccXRhfkU06NVCI-al2-KYXuKcSqMTRsw",
+              "nodePath": [
+                119,
+                226
+              ],
+              "nodePathNames": [
+                "D1F_ROOM_KPH09_PHOTO_PROPORTIONED_FLAT_ROCKER_AND_FLAT_DIAL_WORK_TEST",
+                "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2959_PRESENTATION_CLONE_2854_D1F_MIRROR_305MM_SAUNA_EDGE_CONDITIONAL_Y_PLUS_10MM_WORK_TEST"
+              ],
+              "extraGuards": {},
+              "sourceLinkGuards": [
+                {
+                  "docId": "DOC:1ccXRhfkU06NVCI-al2-KYXuKcSqMTRsw",
+                  "link": "https://drive.google.com/file/d/1ccXRhfkU06NVCI-al2-KYXuKcSqMTRsw/view",
+                  "role": "support"
+                },
+                {
+                  "docId": "DOC:1672zwWbYnU41NbKBaLz3Jze6NacbA1qcN4KOFqHc3Gk",
+                  "link": "https://docs.google.com/document/d/1672zwWbYnU41NbKBaLz3Jze6NacbA1qcN4KOFqHc3Gk/edit",
+                  "role": "support"
+                }
+              ]
+            },
+            {
+              "nodeIndex": 227,
+              "nodeName": "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2960_PRESENTATION_CLONE_2583_KPH_MIRROR_BODY_1405x960x140mm_USER_MEASURED_ENVELOPE",
+              "meshIndex": 201,
+              "sourceDonorNode": 1,
+              "nodePath": [
+                119,
+                226,
+                227
+              ],
+              "nodePathNames": [
+                "D1F_ROOM_KPH09_PHOTO_PROPORTIONED_FLAT_ROCKER_AND_FLAT_DIAL_WORK_TEST",
+                "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2959_PRESENTATION_CLONE_2854_D1F_MIRROR_305MM_SAUNA_EDGE_CONDITIONAL_Y_PLUS_10MM_WORK_TEST",
+                "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2960_PRESENTATION_CLONE_2583_KPH_MIRROR_BODY_1405x960x140mm_USER_MEASURED_ENVELOPE"
+              ],
+              "extraGuards": {
+                "sourceDonorNode": 1,
+                "asBuilt": false,
+                "current": false,
+                "CURRENT": false,
+                "canonical": false,
+                "HUMAN_REVIEW": "NOT_RUN"
+              },
+              "sourceLinkGuards": [
+                {
+                  "docId": "DOC:1ccXRhfkU06NVCI-al2-KYXuKcSqMTRsw",
+                  "link": "https://drive.google.com/file/d/1ccXRhfkU06NVCI-al2-KYXuKcSqMTRsw/view",
+                  "role": "support"
+                },
+                {
+                  "docId": "DOC:1672zwWbYnU41NbKBaLz3Jze6NacbA1qcN4KOFqHc3Gk",
+                  "link": "https://docs.google.com/document/d/1672zwWbYnU41NbKBaLz3Jze6NacbA1qcN4KOFqHc3Gk/edit",
+                  "role": "support"
+                }
+              ]
+            },
+            {
+              "nodeIndex": 228,
+              "nodeName": "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2961_PRESENTATION_CLONE_2584_KPH_MIRROR_FRONT_PUU_LEFT",
+              "meshIndex": 202,
+              "sourceDonorNode": 2,
+              "nodePath": [
+                119,
+                226,
+                228
+              ],
+              "nodePathNames": [
+                "D1F_ROOM_KPH09_PHOTO_PROPORTIONED_FLAT_ROCKER_AND_FLAT_DIAL_WORK_TEST",
+                "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2959_PRESENTATION_CLONE_2854_D1F_MIRROR_305MM_SAUNA_EDGE_CONDITIONAL_Y_PLUS_10MM_WORK_TEST",
+                "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2961_PRESENTATION_CLONE_2584_KPH_MIRROR_FRONT_PUU_LEFT"
+              ],
+              "extraGuards": {
+                "sourceDonorNode": 2,
+                "asBuilt": false,
+                "current": false,
+                "CURRENT": false,
+                "canonical": false,
+                "HUMAN_REVIEW": "NOT_RUN"
+              },
+              "sourceLinkGuards": [
+                {
+                  "docId": "DOC:1ccXRhfkU06NVCI-al2-KYXuKcSqMTRsw",
+                  "link": "https://drive.google.com/file/d/1ccXRhfkU06NVCI-al2-KYXuKcSqMTRsw/view",
+                  "role": "support"
+                },
+                {
+                  "docId": "DOC:1672zwWbYnU41NbKBaLz3Jze6NacbA1qcN4KOFqHc3Gk",
+                  "link": "https://docs.google.com/document/d/1672zwWbYnU41NbKBaLz3Jze6NacbA1qcN4KOFqHc3Gk/edit",
+                  "role": "support"
+                }
+              ]
+            },
+            {
+              "nodeIndex": 229,
+              "nodeName": "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2962_PRESENTATION_CLONE_2585_KPH_MIRROR_FRONT_PEILI_1",
+              "meshIndex": 203,
+              "sourceDonorNode": 3,
+              "nodePath": [
+                119,
+                226,
+                229
+              ],
+              "nodePathNames": [
+                "D1F_ROOM_KPH09_PHOTO_PROPORTIONED_FLAT_ROCKER_AND_FLAT_DIAL_WORK_TEST",
+                "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2959_PRESENTATION_CLONE_2854_D1F_MIRROR_305MM_SAUNA_EDGE_CONDITIONAL_Y_PLUS_10MM_WORK_TEST",
+                "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2962_PRESENTATION_CLONE_2585_KPH_MIRROR_FRONT_PEILI_1"
+              ],
+              "extraGuards": {
+                "sourceDonorNode": 3,
+                "asBuilt": false,
+                "current": false,
+                "CURRENT": false,
+                "canonical": false,
+                "HUMAN_REVIEW": "NOT_RUN"
+              },
+              "sourceLinkGuards": [
+                {
+                  "docId": "DOC:1ccXRhfkU06NVCI-al2-KYXuKcSqMTRsw",
+                  "link": "https://drive.google.com/file/d/1ccXRhfkU06NVCI-al2-KYXuKcSqMTRsw/view",
+                  "role": "support"
+                },
+                {
+                  "docId": "DOC:1672zwWbYnU41NbKBaLz3Jze6NacbA1qcN4KOFqHc3Gk",
+                  "link": "https://docs.google.com/document/d/1672zwWbYnU41NbKBaLz3Jze6NacbA1qcN4KOFqHc3Gk/edit",
+                  "role": "support"
+                }
+              ]
+            },
+            {
+              "nodeIndex": 230,
+              "nodeName": "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2963_PRESENTATION_CLONE_2586_KPH_MIRROR_FRONT_PEILI_2",
+              "meshIndex": 204,
+              "sourceDonorNode": 4,
+              "nodePath": [
+                119,
+                226,
+                230
+              ],
+              "nodePathNames": [
+                "D1F_ROOM_KPH09_PHOTO_PROPORTIONED_FLAT_ROCKER_AND_FLAT_DIAL_WORK_TEST",
+                "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2959_PRESENTATION_CLONE_2854_D1F_MIRROR_305MM_SAUNA_EDGE_CONDITIONAL_Y_PLUS_10MM_WORK_TEST",
+                "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2963_PRESENTATION_CLONE_2586_KPH_MIRROR_FRONT_PEILI_2"
+              ],
+              "extraGuards": {
+                "sourceDonorNode": 4,
+                "asBuilt": false,
+                "current": false,
+                "CURRENT": false,
+                "canonical": false,
+                "HUMAN_REVIEW": "NOT_RUN"
+              },
+              "sourceLinkGuards": [
+                {
+                  "docId": "DOC:1ccXRhfkU06NVCI-al2-KYXuKcSqMTRsw",
+                  "link": "https://drive.google.com/file/d/1ccXRhfkU06NVCI-al2-KYXuKcSqMTRsw/view",
+                  "role": "support"
+                },
+                {
+                  "docId": "DOC:1672zwWbYnU41NbKBaLz3Jze6NacbA1qcN4KOFqHc3Gk",
+                  "link": "https://docs.google.com/document/d/1672zwWbYnU41NbKBaLz3Jze6NacbA1qcN4KOFqHc3Gk/edit",
+                  "role": "support"
+                }
+              ]
+            },
+            {
+              "nodeIndex": 231,
+              "nodeName": "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2964_PRESENTATION_CLONE_2587_KPH_MIRROR_FRONT_PEILI_3",
+              "meshIndex": 205,
+              "sourceDonorNode": 5,
+              "nodePath": [
+                119,
+                226,
+                231
+              ],
+              "nodePathNames": [
+                "D1F_ROOM_KPH09_PHOTO_PROPORTIONED_FLAT_ROCKER_AND_FLAT_DIAL_WORK_TEST",
+                "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2959_PRESENTATION_CLONE_2854_D1F_MIRROR_305MM_SAUNA_EDGE_CONDITIONAL_Y_PLUS_10MM_WORK_TEST",
+                "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2964_PRESENTATION_CLONE_2587_KPH_MIRROR_FRONT_PEILI_3"
+              ],
+              "extraGuards": {
+                "sourceDonorNode": 5,
+                "asBuilt": false,
+                "current": false,
+                "CURRENT": false,
+                "canonical": false,
+                "HUMAN_REVIEW": "NOT_RUN"
+              },
+              "sourceLinkGuards": [
+                {
+                  "docId": "DOC:1ccXRhfkU06NVCI-al2-KYXuKcSqMTRsw",
+                  "link": "https://drive.google.com/file/d/1ccXRhfkU06NVCI-al2-KYXuKcSqMTRsw/view",
+                  "role": "support"
+                },
+                {
+                  "docId": "DOC:1672zwWbYnU41NbKBaLz3Jze6NacbA1qcN4KOFqHc3Gk",
+                  "link": "https://docs.google.com/document/d/1672zwWbYnU41NbKBaLz3Jze6NacbA1qcN4KOFqHc3Gk/edit",
+                  "role": "support"
+                }
+              ]
+            },
+            {
+              "nodeIndex": 232,
+              "nodeName": "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2965_PRESENTATION_CLONE_2588_KPH_WORK_ASSUMPTION_5mm_TRIM_GAP_0",
+              "meshIndex": 206,
+              "sourceDonorNode": 6,
+              "nodePath": [
+                119,
+                226,
+                232
+              ],
+              "nodePathNames": [
+                "D1F_ROOM_KPH09_PHOTO_PROPORTIONED_FLAT_ROCKER_AND_FLAT_DIAL_WORK_TEST",
+                "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2959_PRESENTATION_CLONE_2854_D1F_MIRROR_305MM_SAUNA_EDGE_CONDITIONAL_Y_PLUS_10MM_WORK_TEST",
+                "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2965_PRESENTATION_CLONE_2588_KPH_WORK_ASSUMPTION_5mm_TRIM_GAP_0"
+              ],
+              "extraGuards": {
+                "sourceDonorNode": 6,
+                "asBuilt": false,
+                "current": false,
+                "CURRENT": false,
+                "canonical": false,
+                "HUMAN_REVIEW": "NOT_RUN"
+              },
+              "sourceLinkGuards": [
+                {
+                  "docId": "DOC:1ccXRhfkU06NVCI-al2-KYXuKcSqMTRsw",
+                  "link": "https://drive.google.com/file/d/1ccXRhfkU06NVCI-al2-KYXuKcSqMTRsw/view",
+                  "role": "support"
+                },
+                {
+                  "docId": "DOC:1672zwWbYnU41NbKBaLz3Jze6NacbA1qcN4KOFqHc3Gk",
+                  "link": "https://docs.google.com/document/d/1672zwWbYnU41NbKBaLz3Jze6NacbA1qcN4KOFqHc3Gk/edit",
+                  "role": "support"
+                }
+              ]
+            },
+            {
+              "nodeIndex": 233,
+              "nodeName": "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2966_PRESENTATION_CLONE_2589_KPH_WORK_ASSUMPTION_5mm_TRIM_GAP_1",
+              "meshIndex": 207,
+              "sourceDonorNode": 7,
+              "nodePath": [
+                119,
+                226,
+                233
+              ],
+              "nodePathNames": [
+                "D1F_ROOM_KPH09_PHOTO_PROPORTIONED_FLAT_ROCKER_AND_FLAT_DIAL_WORK_TEST",
+                "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2959_PRESENTATION_CLONE_2854_D1F_MIRROR_305MM_SAUNA_EDGE_CONDITIONAL_Y_PLUS_10MM_WORK_TEST",
+                "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2966_PRESENTATION_CLONE_2589_KPH_WORK_ASSUMPTION_5mm_TRIM_GAP_1"
+              ],
+              "extraGuards": {
+                "sourceDonorNode": 7,
+                "asBuilt": false,
+                "current": false,
+                "CURRENT": false,
+                "canonical": false,
+                "HUMAN_REVIEW": "NOT_RUN"
+              },
+              "sourceLinkGuards": [
+                {
+                  "docId": "DOC:1ccXRhfkU06NVCI-al2-KYXuKcSqMTRsw",
+                  "link": "https://drive.google.com/file/d/1ccXRhfkU06NVCI-al2-KYXuKcSqMTRsw/view",
+                  "role": "support"
+                },
+                {
+                  "docId": "DOC:1672zwWbYnU41NbKBaLz3Jze6NacbA1qcN4KOFqHc3Gk",
+                  "link": "https://docs.google.com/document/d/1672zwWbYnU41NbKBaLz3Jze6NacbA1qcN4KOFqHc3Gk/edit",
+                  "role": "support"
+                }
+              ]
+            },
+            {
+              "nodeIndex": 234,
+              "nodeName": "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2967_PRESENTATION_CLONE_2590_KPH_WORK_ASSUMPTION_5mm_TRIM_GAP_2",
+              "meshIndex": 208,
+              "sourceDonorNode": 8,
+              "nodePath": [
+                119,
+                226,
+                234
+              ],
+              "nodePathNames": [
+                "D1F_ROOM_KPH09_PHOTO_PROPORTIONED_FLAT_ROCKER_AND_FLAT_DIAL_WORK_TEST",
+                "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2959_PRESENTATION_CLONE_2854_D1F_MIRROR_305MM_SAUNA_EDGE_CONDITIONAL_Y_PLUS_10MM_WORK_TEST",
+                "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2967_PRESENTATION_CLONE_2590_KPH_WORK_ASSUMPTION_5mm_TRIM_GAP_2"
+              ],
+              "extraGuards": {
+                "sourceDonorNode": 8,
+                "asBuilt": false,
+                "current": false,
+                "CURRENT": false,
+                "canonical": false,
+                "HUMAN_REVIEW": "NOT_RUN"
+              },
+              "sourceLinkGuards": [
+                {
+                  "docId": "DOC:1ccXRhfkU06NVCI-al2-KYXuKcSqMTRsw",
+                  "link": "https://drive.google.com/file/d/1ccXRhfkU06NVCI-al2-KYXuKcSqMTRsw/view",
+                  "role": "support"
+                },
+                {
+                  "docId": "DOC:1672zwWbYnU41NbKBaLz3Jze6NacbA1qcN4KOFqHc3Gk",
+                  "link": "https://docs.google.com/document/d/1672zwWbYnU41NbKBaLz3Jze6NacbA1qcN4KOFqHc3Gk/edit",
+                  "role": "support"
+                }
+              ]
+            },
+            {
+              "nodeIndex": 235,
+              "nodeName": "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2968_PRESENTATION_CLONE_2591_KPH_WORK_ASSUMPTION_5mm_TRIM_GAP_3",
+              "meshIndex": 209,
+              "sourceDonorNode": 9,
+              "nodePath": [
+                119,
+                226,
+                235
+              ],
+              "nodePathNames": [
+                "D1F_ROOM_KPH09_PHOTO_PROPORTIONED_FLAT_ROCKER_AND_FLAT_DIAL_WORK_TEST",
+                "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2959_PRESENTATION_CLONE_2854_D1F_MIRROR_305MM_SAUNA_EDGE_CONDITIONAL_Y_PLUS_10MM_WORK_TEST",
+                "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2968_PRESENTATION_CLONE_2591_KPH_WORK_ASSUMPTION_5mm_TRIM_GAP_3"
+              ],
+              "extraGuards": {
+                "sourceDonorNode": 9,
+                "asBuilt": false,
+                "current": false,
+                "CURRENT": false,
+                "canonical": false,
+                "HUMAN_REVIEW": "NOT_RUN"
+              },
+              "sourceLinkGuards": [
+                {
+                  "docId": "DOC:1ccXRhfkU06NVCI-al2-KYXuKcSqMTRsw",
+                  "link": "https://drive.google.com/file/d/1ccXRhfkU06NVCI-al2-KYXuKcSqMTRsw/view",
+                  "role": "support"
+                },
+                {
+                  "docId": "DOC:1672zwWbYnU41NbKBaLz3Jze6NacbA1qcN4KOFqHc3Gk",
+                  "link": "https://docs.google.com/document/d/1672zwWbYnU41NbKBaLz3Jze6NacbA1qcN4KOFqHc3Gk/edit",
+                  "role": "support"
+                }
+              ]
+            },
+            {
+              "nodeIndex": 236,
+              "nodeName": "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2969_PRESENTATION_CLONE_2592_KPH_WORK_ASSUMPTION_5mm_TRIM_GAP_4",
+              "meshIndex": 210,
+              "sourceDonorNode": 10,
+              "nodePath": [
+                119,
+                226,
+                236
+              ],
+              "nodePathNames": [
+                "D1F_ROOM_KPH09_PHOTO_PROPORTIONED_FLAT_ROCKER_AND_FLAT_DIAL_WORK_TEST",
+                "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2959_PRESENTATION_CLONE_2854_D1F_MIRROR_305MM_SAUNA_EDGE_CONDITIONAL_Y_PLUS_10MM_WORK_TEST",
+                "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2969_PRESENTATION_CLONE_2592_KPH_WORK_ASSUMPTION_5mm_TRIM_GAP_4"
+              ],
+              "extraGuards": {
+                "sourceDonorNode": 10,
+                "asBuilt": false,
+                "current": false,
+                "CURRENT": false,
+                "canonical": false,
+                "HUMAN_REVIEW": "NOT_RUN"
+              },
+              "sourceLinkGuards": [
+                {
+                  "docId": "DOC:1ccXRhfkU06NVCI-al2-KYXuKcSqMTRsw",
+                  "link": "https://drive.google.com/file/d/1ccXRhfkU06NVCI-al2-KYXuKcSqMTRsw/view",
+                  "role": "support"
+                },
+                {
+                  "docId": "DOC:1672zwWbYnU41NbKBaLz3Jze6NacbA1qcN4KOFqHc3Gk",
+                  "link": "https://docs.google.com/document/d/1672zwWbYnU41NbKBaLz3Jze6NacbA1qcN4KOFqHc3Gk/edit",
+                  "role": "support"
+                }
+              ]
+            },
+            {
+              "nodeIndex": 237,
+              "nodeName": "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2970_PRESENTATION_CLONE_2593_KPH_MIRROR_RIGHT_END_SIDE_USER_CONFIRMED",
+              "meshIndex": 211,
+              "sourceDonorNode": 11,
+              "nodePath": [
+                119,
+                226,
+                237
+              ],
+              "nodePathNames": [
+                "D1F_ROOM_KPH09_PHOTO_PROPORTIONED_FLAT_ROCKER_AND_FLAT_DIAL_WORK_TEST",
+                "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2959_PRESENTATION_CLONE_2854_D1F_MIRROR_305MM_SAUNA_EDGE_CONDITIONAL_Y_PLUS_10MM_WORK_TEST",
+                "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2970_PRESENTATION_CLONE_2593_KPH_MIRROR_RIGHT_END_SIDE_USER_CONFIRMED"
+              ],
+              "extraGuards": {
+                "sourceDonorNode": 11,
+                "asBuilt": false,
+                "current": false,
+                "CURRENT": false,
+                "canonical": false,
+                "HUMAN_REVIEW": "NOT_RUN"
+              },
+              "sourceLinkGuards": [
+                {
+                  "docId": "DOC:1ccXRhfkU06NVCI-al2-KYXuKcSqMTRsw",
+                  "link": "https://drive.google.com/file/d/1ccXRhfkU06NVCI-al2-KYXuKcSqMTRsw/view",
+                  "role": "support"
+                },
+                {
+                  "docId": "DOC:1672zwWbYnU41NbKBaLz3Jze6NacbA1qcN4KOFqHc3Gk",
+                  "link": "https://docs.google.com/document/d/1672zwWbYnU41NbKBaLz3Jze6NacbA1qcN4KOFqHc3Gk/edit",
+                  "role": "support"
+                }
+              ]
+            },
+            {
+              "nodeIndex": 238,
+              "nodeName": "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2971_PRESENTATION_CLONE_2594_KPH_MIRROR_FRONT_LOWER_EDGE_PEILI_1",
+              "meshIndex": 212,
+              "sourceDonorNode": 12,
+              "nodePath": [
+                119,
+                226,
+                238
+              ],
+              "nodePathNames": [
+                "D1F_ROOM_KPH09_PHOTO_PROPORTIONED_FLAT_ROCKER_AND_FLAT_DIAL_WORK_TEST",
+                "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2959_PRESENTATION_CLONE_2854_D1F_MIRROR_305MM_SAUNA_EDGE_CONDITIONAL_Y_PLUS_10MM_WORK_TEST",
+                "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2971_PRESENTATION_CLONE_2594_KPH_MIRROR_FRONT_LOWER_EDGE_PEILI_1"
+              ],
+              "extraGuards": {
+                "sourceDonorNode": 12,
+                "asBuilt": false,
+                "current": false,
+                "CURRENT": false,
+                "canonical": false,
+                "HUMAN_REVIEW": "NOT_RUN"
+              },
+              "sourceLinkGuards": [
+                {
+                  "docId": "DOC:1ccXRhfkU06NVCI-al2-KYXuKcSqMTRsw",
+                  "link": "https://drive.google.com/file/d/1ccXRhfkU06NVCI-al2-KYXuKcSqMTRsw/view",
+                  "role": "support"
+                },
+                {
+                  "docId": "DOC:1672zwWbYnU41NbKBaLz3Jze6NacbA1qcN4KOFqHc3Gk",
+                  "link": "https://docs.google.com/document/d/1672zwWbYnU41NbKBaLz3Jze6NacbA1qcN4KOFqHc3Gk/edit",
+                  "role": "support"
+                }
+              ]
+            },
+            {
+              "nodeIndex": 239,
+              "nodeName": "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2972_PRESENTATION_CLONE_2595_KPH_MIRROR_FRONT_LOWER_EDGE_PEILI_2",
+              "meshIndex": 213,
+              "sourceDonorNode": 13,
+              "nodePath": [
+                119,
+                226,
+                239
+              ],
+              "nodePathNames": [
+                "D1F_ROOM_KPH09_PHOTO_PROPORTIONED_FLAT_ROCKER_AND_FLAT_DIAL_WORK_TEST",
+                "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2959_PRESENTATION_CLONE_2854_D1F_MIRROR_305MM_SAUNA_EDGE_CONDITIONAL_Y_PLUS_10MM_WORK_TEST",
+                "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2972_PRESENTATION_CLONE_2595_KPH_MIRROR_FRONT_LOWER_EDGE_PEILI_2"
+              ],
+              "extraGuards": {
+                "sourceDonorNode": 13,
+                "asBuilt": false,
+                "current": false,
+                "CURRENT": false,
+                "canonical": false,
+                "HUMAN_REVIEW": "NOT_RUN"
+              },
+              "sourceLinkGuards": [
+                {
+                  "docId": "DOC:1ccXRhfkU06NVCI-al2-KYXuKcSqMTRsw",
+                  "link": "https://drive.google.com/file/d/1ccXRhfkU06NVCI-al2-KYXuKcSqMTRsw/view",
+                  "role": "support"
+                },
+                {
+                  "docId": "DOC:1672zwWbYnU41NbKBaLz3Jze6NacbA1qcN4KOFqHc3Gk",
+                  "link": "https://docs.google.com/document/d/1672zwWbYnU41NbKBaLz3Jze6NacbA1qcN4KOFqHc3Gk/edit",
+                  "role": "support"
+                }
+              ]
+            },
+            {
+              "nodeIndex": 240,
+              "nodeName": "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2973_PRESENTATION_CLONE_2596_KPH_MIRROR_FRONT_LOWER_EDGE_PEILI_3",
+              "meshIndex": 214,
+              "sourceDonorNode": 14,
+              "nodePath": [
+                119,
+                226,
+                240
+              ],
+              "nodePathNames": [
+                "D1F_ROOM_KPH09_PHOTO_PROPORTIONED_FLAT_ROCKER_AND_FLAT_DIAL_WORK_TEST",
+                "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2959_PRESENTATION_CLONE_2854_D1F_MIRROR_305MM_SAUNA_EDGE_CONDITIONAL_Y_PLUS_10MM_WORK_TEST",
+                "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2973_PRESENTATION_CLONE_2596_KPH_MIRROR_FRONT_LOWER_EDGE_PEILI_3"
+              ],
+              "extraGuards": {
+                "sourceDonorNode": 14,
+                "asBuilt": false,
+                "current": false,
+                "CURRENT": false,
+                "canonical": false,
+                "HUMAN_REVIEW": "NOT_RUN"
+              },
+              "sourceLinkGuards": [
+                {
+                  "docId": "DOC:1ccXRhfkU06NVCI-al2-KYXuKcSqMTRsw",
+                  "link": "https://drive.google.com/file/d/1ccXRhfkU06NVCI-al2-KYXuKcSqMTRsw/view",
+                  "role": "support"
+                },
+                {
+                  "docId": "DOC:1672zwWbYnU41NbKBaLz3Jze6NacbA1qcN4KOFqHc3Gk",
+                  "link": "https://docs.google.com/document/d/1672zwWbYnU41NbKBaLz3Jze6NacbA1qcN4KOFqHc3Gk/edit",
+                  "role": "support"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
