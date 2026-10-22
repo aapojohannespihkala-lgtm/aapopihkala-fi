@@ -101,7 +101,8 @@ test('viewer source uses verified bytes only for exact scene67 and keeps other l
   expect(branch).toContain('candidate.id === p137eScene67CandidateId');
   expect(branch).toContain('isP137EScene67ReviewRequested()');
   expect(branch).toContain('loader.parseAsync');
-  expect(branch).toContain('loader.loadAsync(candidate.path)');
+  expect(branch).toContain('fetchP137EScene67VerifiedGlb(candidate.path)');
+  expect(branch).toContain('await loadModelWithSourceCards(loader, candidate.path)');
   expect(branch).not.toContain('publishToCURRENT: true');
   expect(branch).not.toContain('humanReview: \'PASS\'');
 });
