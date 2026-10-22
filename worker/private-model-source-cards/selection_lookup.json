@@ -1,0 +1,531 @@
+{
+  "schema": "ylisrinne-source-card-selection-index-v1",
+  "cards": [
+    {
+      "integrationCardId": "D2015::G1",
+      "module": "D2015",
+      "sourceFile": "modules/D2015/source_cards.json",
+      "jsonPointer": "/cards/0",
+      "title": "Ryhmä 11.2 - Ulko PR parveke",
+      "sourceRoleRecordCount": 2
+    },
+    {
+      "integrationCardId": "D2015::G2",
+      "module": "D2015",
+      "sourceFile": "modules/D2015/source_cards.json",
+      "jsonPointer": "/cards/1",
+      "title": "Ryhmä 12.2 - MH yläkerta isompi",
+      "sourceRoleRecordCount": 2
+    },
+    {
+      "integrationCardId": "D2015::G3",
+      "module": "D2015",
+      "sourceFile": "modules/D2015/source_cards.json",
+      "jsonPointer": "/cards/2",
+      "title": "Ryhmä 12.3 - MH yläkerta pienempi",
+      "sourceRoleRecordCount": 2
+    },
+    {
+      "integrationCardId": "D2015::G4",
+      "module": "D2015",
+      "sourceFile": "modules/D2015/source_cards.json",
+      "jsonPointer": "/cards/3",
+      "title": "Ryhmä 13.1 - PR keittiö",
+      "sourceRoleRecordCount": 2
+    },
+    {
+      "integrationCardId": "D2015::G5",
+      "module": "D2015",
+      "sourceFile": "modules/D2015/source_cards.json",
+      "jsonPointer": "/cards/4",
+      "title": "Ryhmä 13.1 - PR keittiö",
+      "sourceRoleRecordCount": 2
+    },
+    {
+      "integrationCardId": "D2015::G6",
+      "module": "D2015",
+      "sourceFile": "modules/D2015/source_cards.json",
+      "jsonPointer": "/cards/5",
+      "title": "Ryhmä 13.2 - APK",
+      "sourceRoleRecordCount": 2
+    },
+    {
+      "integrationCardId": "D2015::G7",
+      "module": "D2015",
+      "sourceFile": "modules/D2015/source_cards.json",
+      "jsonPointer": "/cards/6",
+      "title": "Ryhmä 13.3 - Uuni",
+      "sourceRoleRecordCount": 2
+    },
+    {
+      "integrationCardId": "D2015::G8",
+      "module": "D2015",
+      "sourceFile": "modules/D2015/source_cards.json",
+      "jsonPointer": "/cards/7",
+      "title": "Ryhmä 14.1 - Olohuone",
+      "sourceRoleRecordCount": 2
+    },
+    {
+      "integrationCardId": "D2015::G9",
+      "module": "D2015",
+      "sourceFile": "modules/D2015/source_cards.json",
+      "jsonPointer": "/cards/8",
+      "title": "Ryhmä 14.2 - Viinikaappi",
+      "sourceRoleRecordCount": 2
+    },
+    {
+      "integrationCardId": "D2015::G10",
+      "module": "D2015",
+      "sourceFile": "modules/D2015/source_cards.json",
+      "jsonPointer": "/cards/9",
+      "title": "Ryhmä 14.3 - Liesituuletin",
+      "sourceRoleRecordCount": 2
+    },
+    {
+      "integrationCardId": "D2015::G11",
+      "module": "D2015",
+      "sourceFile": "modules/D2015/source_cards.json",
+      "jsonPointer": "/cards/10",
+      "title": "Ryhmä 15.1 - PR aula/wc",
+      "sourceRoleRecordCount": 2
+    },
+    {
+      "integrationCardId": "D2015::G12",
+      "module": "D2015",
+      "sourceFile": "modules/D2015/source_cards.json",
+      "jsonPointer": "/cards/11",
+      "title": "Ryhmä 4.3 - Valaistus keittiö",
+      "sourceRoleRecordCount": 2
+    },
+    {
+      "integrationCardId": "D2015::G13",
+      "module": "D2015",
+      "sourceFile": "modules/D2015/source_cards.json",
+      "jsonPointer": "/cards/12",
+      "title": "Ryhmä 5.1 - Jääkaappi",
+      "sourceRoleRecordCount": 2
+    },
+    {
+      "integrationCardId": "D2015::G14",
+      "module": "D2015",
+      "sourceFile": "modules/D2015/source_cards.json",
+      "jsonPointer": "/cards/13",
+      "title": "Ryhmä 5.2 - Pakastin",
+      "sourceRoleRecordCount": 2
+    },
+    {
+      "integrationCardId": "D2015::G15",
+      "module": "D2015",
+      "sourceFile": "modules/D2015/source_cards.json",
+      "jsonPointer": "/cards/14",
+      "title": "Ryhmä 5.3 - Palovaroittimet",
+      "sourceRoleRecordCount": 2
+    },
+    {
+      "integrationCardId": "D2015::S1",
+      "module": "D2015",
+      "sourceFile": "modules/D2015/source_cards.json",
+      "jsonPointer": "/cards/15",
+      "title": "Kattoikkunan LED-nauha 9,6 W/m",
+      "sourceRoleRecordCount": 1
+    },
+    {
+      "integrationCardId": "KPH09_SWITCH::KPH09_SWITCH_GROUP_SHARED302",
+      "module": "KPH09_SWITCH",
+      "sourceFile": "modules/KPH09_SWITCH/source_cards.json",
+      "jsonPointer": "/cards/0",
+      "title": "Saunan ja kylpyhuoneen valokatkaisimet",
+      "sourceRoleRecordCount": 2
+    },
+    {
+      "integrationCardId": "KPH_MIRROR::KPH_MIRROR_SHARED302",
+      "module": "KPH_MIRROR",
+      "sourceFile": "modules/KPH_MIRROR/source_cards.json",
+      "jsonPointer": "/cards/0",
+      "title": "Kylpyhuoneen peilikaappi",
+      "sourceRoleRecordCount": 2
+    }
+  ],
+  "bindings": [
+    {
+      "modelSha256": "a92cecbdb419048ca985bbc91663f7c511929924bf889cabc8cc3847602dacb5",
+      "sceneIndex": 64,
+      "nodeIndex": 1117,
+      "nodeName": "P186E_X1_GROUP_LABEL_D_2F_11_2_001",
+      "integrationCardId": "D2015::G1",
+      "sourceFile": "modules/D2015/source_cards.json",
+      "cardJsonPointer": "/cards/0",
+      "module": "D2015"
+    },
+    {
+      "modelSha256": "a92cecbdb419048ca985bbc91663f7c511929924bf889cabc8cc3847602dacb5",
+      "sceneIndex": 64,
+      "nodeIndex": 1118,
+      "nodeName": "P186E_X1_GROUP_LABEL_D_2F_12_2_001",
+      "integrationCardId": "D2015::G2",
+      "sourceFile": "modules/D2015/source_cards.json",
+      "cardJsonPointer": "/cards/1",
+      "module": "D2015"
+    },
+    {
+      "modelSha256": "a92cecbdb419048ca985bbc91663f7c511929924bf889cabc8cc3847602dacb5",
+      "sceneIndex": 64,
+      "nodeIndex": 1119,
+      "nodeName": "P186E_X1_GROUP_LABEL_D_2F_12_3_001",
+      "integrationCardId": "D2015::G3",
+      "sourceFile": "modules/D2015/source_cards.json",
+      "cardJsonPointer": "/cards/2",
+      "module": "D2015"
+    },
+    {
+      "modelSha256": "a92cecbdb419048ca985bbc91663f7c511929924bf889cabc8cc3847602dacb5",
+      "sceneIndex": 64,
+      "nodeIndex": 1120,
+      "nodeName": "P186E_X1_GROUP_LABEL_D_2F_13_1_001",
+      "integrationCardId": "D2015::G4",
+      "sourceFile": "modules/D2015/source_cards.json",
+      "cardJsonPointer": "/cards/3",
+      "module": "D2015"
+    },
+    {
+      "modelSha256": "a92cecbdb419048ca985bbc91663f7c511929924bf889cabc8cc3847602dacb5",
+      "sceneIndex": 64,
+      "nodeIndex": 1121,
+      "nodeName": "P186E_X1_GROUP_LABEL_D_2F_13_1_002",
+      "integrationCardId": "D2015::G5",
+      "sourceFile": "modules/D2015/source_cards.json",
+      "cardJsonPointer": "/cards/4",
+      "module": "D2015"
+    },
+    {
+      "modelSha256": "a92cecbdb419048ca985bbc91663f7c511929924bf889cabc8cc3847602dacb5",
+      "sceneIndex": 64,
+      "nodeIndex": 1122,
+      "nodeName": "P186E_X1_GROUP_LABEL_D_2F_13_2_001",
+      "integrationCardId": "D2015::G6",
+      "sourceFile": "modules/D2015/source_cards.json",
+      "cardJsonPointer": "/cards/5",
+      "module": "D2015"
+    },
+    {
+      "modelSha256": "a92cecbdb419048ca985bbc91663f7c511929924bf889cabc8cc3847602dacb5",
+      "sceneIndex": 64,
+      "nodeIndex": 1123,
+      "nodeName": "P186E_X1_GROUP_LABEL_D_2F_13_3_001",
+      "integrationCardId": "D2015::G7",
+      "sourceFile": "modules/D2015/source_cards.json",
+      "cardJsonPointer": "/cards/6",
+      "module": "D2015"
+    },
+    {
+      "modelSha256": "a92cecbdb419048ca985bbc91663f7c511929924bf889cabc8cc3847602dacb5",
+      "sceneIndex": 64,
+      "nodeIndex": 1124,
+      "nodeName": "P186E_X1_GROUP_LABEL_D_2F_14_1_001",
+      "integrationCardId": "D2015::G8",
+      "sourceFile": "modules/D2015/source_cards.json",
+      "cardJsonPointer": "/cards/7",
+      "module": "D2015"
+    },
+    {
+      "modelSha256": "a92cecbdb419048ca985bbc91663f7c511929924bf889cabc8cc3847602dacb5",
+      "sceneIndex": 64,
+      "nodeIndex": 1125,
+      "nodeName": "P186E_X1_GROUP_LABEL_D_2F_14_2_001",
+      "integrationCardId": "D2015::G9",
+      "sourceFile": "modules/D2015/source_cards.json",
+      "cardJsonPointer": "/cards/8",
+      "module": "D2015"
+    },
+    {
+      "modelSha256": "a92cecbdb419048ca985bbc91663f7c511929924bf889cabc8cc3847602dacb5",
+      "sceneIndex": 64,
+      "nodeIndex": 1126,
+      "nodeName": "P186E_X1_GROUP_LABEL_D_2F_14_3_001",
+      "integrationCardId": "D2015::G10",
+      "sourceFile": "modules/D2015/source_cards.json",
+      "cardJsonPointer": "/cards/9",
+      "module": "D2015"
+    },
+    {
+      "modelSha256": "a92cecbdb419048ca985bbc91663f7c511929924bf889cabc8cc3847602dacb5",
+      "sceneIndex": 64,
+      "nodeIndex": 1127,
+      "nodeName": "P186E_X1_GROUP_LABEL_D_2F_15_1_001",
+      "integrationCardId": "D2015::G11",
+      "sourceFile": "modules/D2015/source_cards.json",
+      "cardJsonPointer": "/cards/10",
+      "module": "D2015"
+    },
+    {
+      "modelSha256": "a92cecbdb419048ca985bbc91663f7c511929924bf889cabc8cc3847602dacb5",
+      "sceneIndex": 64,
+      "nodeIndex": 1128,
+      "nodeName": "P186E_X1_GROUP_LABEL_D_2F_4_3_001",
+      "integrationCardId": "D2015::G12",
+      "sourceFile": "modules/D2015/source_cards.json",
+      "cardJsonPointer": "/cards/11",
+      "module": "D2015"
+    },
+    {
+      "modelSha256": "a92cecbdb419048ca985bbc91663f7c511929924bf889cabc8cc3847602dacb5",
+      "sceneIndex": 64,
+      "nodeIndex": 1129,
+      "nodeName": "P186E_X1_GROUP_LABEL_D_2F_5_1_001",
+      "integrationCardId": "D2015::G13",
+      "sourceFile": "modules/D2015/source_cards.json",
+      "cardJsonPointer": "/cards/12",
+      "module": "D2015"
+    },
+    {
+      "modelSha256": "a92cecbdb419048ca985bbc91663f7c511929924bf889cabc8cc3847602dacb5",
+      "sceneIndex": 64,
+      "nodeIndex": 1130,
+      "nodeName": "P186E_X1_GROUP_LABEL_D_2F_5_2_001",
+      "integrationCardId": "D2015::G14",
+      "sourceFile": "modules/D2015/source_cards.json",
+      "cardJsonPointer": "/cards/13",
+      "module": "D2015"
+    },
+    {
+      "modelSha256": "a92cecbdb419048ca985bbc91663f7c511929924bf889cabc8cc3847602dacb5",
+      "sceneIndex": 64,
+      "nodeIndex": 1131,
+      "nodeName": "P186E_X1_GROUP_LABEL_D_2F_5_3_001",
+      "integrationCardId": "D2015::G15",
+      "sourceFile": "modules/D2015/source_cards.json",
+      "cardJsonPointer": "/cards/14",
+      "module": "D2015"
+    },
+    {
+      "modelSha256": "a92cecbdb419048ca985bbc91663f7c511929924bf889cabc8cc3847602dacb5",
+      "sceneIndex": 64,
+      "nodeIndex": 1138,
+      "nodeName": "P186E_X1_SPECIAL_LABEL_D2F_SKYLIGHT_LED_STRIP_01",
+      "integrationCardId": "D2015::S1",
+      "sourceFile": "modules/D2015/source_cards.json",
+      "cardJsonPointer": "/cards/15",
+      "module": "D2015"
+    },
+    {
+      "modelSha256": "94ce14fe308a1591db31a72a0db01f5fdcb125865c95d117377fd9f7d1f4d6dd",
+      "sceneIndex": 0,
+      "nodeIndex": 263,
+      "nodeName": "KPH09_20261020_PHOTO_PROPORTIONED_ROCKER_FLAT_ROTARY_FLAT_WORK_TEST",
+      "integrationCardId": "KPH09_SWITCH::KPH09_SWITCH_GROUP_SHARED302",
+      "sourceFile": "modules/KPH09_SWITCH/source_cards.json",
+      "cardJsonPointer": "/cards/0",
+      "module": "KPH09_SWITCH"
+    },
+    {
+      "modelSha256": "94ce14fe308a1591db31a72a0db01f5fdcb125865c95d117377fd9f7d1f4d6dd",
+      "sceneIndex": 0,
+      "nodeIndex": 264,
+      "nodeName": "KPH09_PHOTO_FRAME_092x148_WORK_ASSUMPTION",
+      "integrationCardId": "KPH09_SWITCH::KPH09_SWITCH_GROUP_SHARED302",
+      "sourceFile": "modules/KPH09_SWITCH/source_cards.json",
+      "cardJsonPointer": "/cards/0",
+      "module": "KPH09_SWITCH"
+    },
+    {
+      "modelSha256": "94ce14fe308a1591db31a72a0db01f5fdcb125865c95d117377fd9f7d1f4d6dd",
+      "sceneIndex": 0,
+      "nodeIndex": 265,
+      "nodeName": "KPH09_PHOTO_SAUNA_FLAT_ROCKER_TOP",
+      "integrationCardId": "KPH09_SWITCH::KPH09_SWITCH_GROUP_SHARED302",
+      "sourceFile": "modules/KPH09_SWITCH/source_cards.json",
+      "cardJsonPointer": "/cards/0",
+      "module": "KPH09_SWITCH"
+    },
+    {
+      "modelSha256": "94ce14fe308a1591db31a72a0db01f5fdcb125865c95d117377fd9f7d1f4d6dd",
+      "sceneIndex": 0,
+      "nodeIndex": 266,
+      "nodeName": "KPH09_PHOTO_SPACER_BAR",
+      "integrationCardId": "KPH09_SWITCH::KPH09_SWITCH_GROUP_SHARED302",
+      "sourceFile": "modules/KPH09_SWITCH/source_cards.json",
+      "cardJsonPointer": "/cards/0",
+      "module": "KPH09_SWITCH"
+    },
+    {
+      "modelSha256": "94ce14fe308a1591db31a72a0db01f5fdcb125865c95d117377fd9f7d1f4d6dd",
+      "sceneIndex": 0,
+      "nodeIndex": 267,
+      "nodeName": "KPH09_PHOTO_LOWER_ROTARY_SQUARE_PANEL",
+      "integrationCardId": "KPH09_SWITCH::KPH09_SWITCH_GROUP_SHARED302",
+      "sourceFile": "modules/KPH09_SWITCH/source_cards.json",
+      "cardJsonPointer": "/cards/0",
+      "module": "KPH09_SWITCH"
+    },
+    {
+      "modelSha256": "94ce14fe308a1591db31a72a0db01f5fdcb125865c95d117377fd9f7d1f4d6dd",
+      "sceneIndex": 0,
+      "nodeIndex": 268,
+      "nodeName": "KPH09_PHOTO_ROTARY_BEZEL",
+      "integrationCardId": "KPH09_SWITCH::KPH09_SWITCH_GROUP_SHARED302",
+      "sourceFile": "modules/KPH09_SWITCH/source_cards.json",
+      "cardJsonPointer": "/cards/0",
+      "module": "KPH09_SWITCH"
+    },
+    {
+      "modelSha256": "94ce14fe308a1591db31a72a0db01f5fdcb125865c95d117377fd9f7d1f4d6dd",
+      "sceneIndex": 0,
+      "nodeIndex": 269,
+      "nodeName": "KPH09_PHOTO_ROTARY_FLAT_FACE_CYLINDER",
+      "integrationCardId": "KPH09_SWITCH::KPH09_SWITCH_GROUP_SHARED302",
+      "sourceFile": "modules/KPH09_SWITCH/source_cards.json",
+      "cardJsonPointer": "/cards/0",
+      "module": "KPH09_SWITCH"
+    },
+    {
+      "modelSha256": "94ce14fe308a1591db31a72a0db01f5fdcb125865c95d117377fd9f7d1f4d6dd",
+      "sceneIndex": 0,
+      "nodeIndex": 221,
+      "nodeName": "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2959_PRESENTATION_CLONE_2854_D1F_MIRROR_305MM_SAUNA_EDGE_CONDITIONAL_Y_PLUS_10MM_WORK_TEST",
+      "integrationCardId": "KPH_MIRROR::KPH_MIRROR_SHARED302",
+      "sourceFile": "modules/KPH_MIRROR/source_cards.json",
+      "cardJsonPointer": "/cards/0",
+      "module": "KPH_MIRROR"
+    },
+    {
+      "modelSha256": "94ce14fe308a1591db31a72a0db01f5fdcb125865c95d117377fd9f7d1f4d6dd",
+      "sceneIndex": 0,
+      "nodeIndex": 222,
+      "nodeName": "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2960_PRESENTATION_CLONE_2583_KPH_MIRROR_BODY_1405x960x140mm_USER_MEASURED_ENVELOPE",
+      "integrationCardId": "KPH_MIRROR::KPH_MIRROR_SHARED302",
+      "sourceFile": "modules/KPH_MIRROR/source_cards.json",
+      "cardJsonPointer": "/cards/0",
+      "module": "KPH_MIRROR"
+    },
+    {
+      "modelSha256": "94ce14fe308a1591db31a72a0db01f5fdcb125865c95d117377fd9f7d1f4d6dd",
+      "sceneIndex": 0,
+      "nodeIndex": 223,
+      "nodeName": "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2961_PRESENTATION_CLONE_2584_KPH_MIRROR_FRONT_PUU_LEFT",
+      "integrationCardId": "KPH_MIRROR::KPH_MIRROR_SHARED302",
+      "sourceFile": "modules/KPH_MIRROR/source_cards.json",
+      "cardJsonPointer": "/cards/0",
+      "module": "KPH_MIRROR"
+    },
+    {
+      "modelSha256": "94ce14fe308a1591db31a72a0db01f5fdcb125865c95d117377fd9f7d1f4d6dd",
+      "sceneIndex": 0,
+      "nodeIndex": 224,
+      "nodeName": "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2962_PRESENTATION_CLONE_2585_KPH_MIRROR_FRONT_PEILI_1",
+      "integrationCardId": "KPH_MIRROR::KPH_MIRROR_SHARED302",
+      "sourceFile": "modules/KPH_MIRROR/source_cards.json",
+      "cardJsonPointer": "/cards/0",
+      "module": "KPH_MIRROR"
+    },
+    {
+      "modelSha256": "94ce14fe308a1591db31a72a0db01f5fdcb125865c95d117377fd9f7d1f4d6dd",
+      "sceneIndex": 0,
+      "nodeIndex": 225,
+      "nodeName": "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2963_PRESENTATION_CLONE_2586_KPH_MIRROR_FRONT_PEILI_2",
+      "integrationCardId": "KPH_MIRROR::KPH_MIRROR_SHARED302",
+      "sourceFile": "modules/KPH_MIRROR/source_cards.json",
+      "cardJsonPointer": "/cards/0",
+      "module": "KPH_MIRROR"
+    },
+    {
+      "modelSha256": "94ce14fe308a1591db31a72a0db01f5fdcb125865c95d117377fd9f7d1f4d6dd",
+      "sceneIndex": 0,
+      "nodeIndex": 226,
+      "nodeName": "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2964_PRESENTATION_CLONE_2587_KPH_MIRROR_FRONT_PEILI_3",
+      "integrationCardId": "KPH_MIRROR::KPH_MIRROR_SHARED302",
+      "sourceFile": "modules/KPH_MIRROR/source_cards.json",
+      "cardJsonPointer": "/cards/0",
+      "module": "KPH_MIRROR"
+    },
+    {
+      "modelSha256": "94ce14fe308a1591db31a72a0db01f5fdcb125865c95d117377fd9f7d1f4d6dd",
+      "sceneIndex": 0,
+      "nodeIndex": 227,
+      "nodeName": "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2965_PRESENTATION_CLONE_2588_KPH_WORK_ASSUMPTION_5mm_TRIM_GAP_0",
+      "integrationCardId": "KPH_MIRROR::KPH_MIRROR_SHARED302",
+      "sourceFile": "modules/KPH_MIRROR/source_cards.json",
+      "cardJsonPointer": "/cards/0",
+      "module": "KPH_MIRROR"
+    },
+    {
+      "modelSha256": "94ce14fe308a1591db31a72a0db01f5fdcb125865c95d117377fd9f7d1f4d6dd",
+      "sceneIndex": 0,
+      "nodeIndex": 228,
+      "nodeName": "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2966_PRESENTATION_CLONE_2589_KPH_WORK_ASSUMPTION_5mm_TRIM_GAP_1",
+      "integrationCardId": "KPH_MIRROR::KPH_MIRROR_SHARED302",
+      "sourceFile": "modules/KPH_MIRROR/source_cards.json",
+      "cardJsonPointer": "/cards/0",
+      "module": "KPH_MIRROR"
+    },
+    {
+      "modelSha256": "94ce14fe308a1591db31a72a0db01f5fdcb125865c95d117377fd9f7d1f4d6dd",
+      "sceneIndex": 0,
+      "nodeIndex": 229,
+      "nodeName": "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2967_PRESENTATION_CLONE_2590_KPH_WORK_ASSUMPTION_5mm_TRIM_GAP_2",
+      "integrationCardId": "KPH_MIRROR::KPH_MIRROR_SHARED302",
+      "sourceFile": "modules/KPH_MIRROR/source_cards.json",
+      "cardJsonPointer": "/cards/0",
+      "module": "KPH_MIRROR"
+    },
+    {
+      "modelSha256": "94ce14fe308a1591db31a72a0db01f5fdcb125865c95d117377fd9f7d1f4d6dd",
+      "sceneIndex": 0,
+      "nodeIndex": 230,
+      "nodeName": "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2968_PRESENTATION_CLONE_2591_KPH_WORK_ASSUMPTION_5mm_TRIM_GAP_3",
+      "integrationCardId": "KPH_MIRROR::KPH_MIRROR_SHARED302",
+      "sourceFile": "modules/KPH_MIRROR/source_cards.json",
+      "cardJsonPointer": "/cards/0",
+      "module": "KPH_MIRROR"
+    },
+    {
+      "modelSha256": "94ce14fe308a1591db31a72a0db01f5fdcb125865c95d117377fd9f7d1f4d6dd",
+      "sceneIndex": 0,
+      "nodeIndex": 231,
+      "nodeName": "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2969_PRESENTATION_CLONE_2592_KPH_WORK_ASSUMPTION_5mm_TRIM_GAP_4",
+      "integrationCardId": "KPH_MIRROR::KPH_MIRROR_SHARED302",
+      "sourceFile": "modules/KPH_MIRROR/source_cards.json",
+      "cardJsonPointer": "/cards/0",
+      "module": "KPH_MIRROR"
+    },
+    {
+      "modelSha256": "94ce14fe308a1591db31a72a0db01f5fdcb125865c95d117377fd9f7d1f4d6dd",
+      "sceneIndex": 0,
+      "nodeIndex": 232,
+      "nodeName": "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2970_PRESENTATION_CLONE_2593_KPH_MIRROR_RIGHT_END_SIDE_USER_CONFIRMED",
+      "integrationCardId": "KPH_MIRROR::KPH_MIRROR_SHARED302",
+      "sourceFile": "modules/KPH_MIRROR/source_cards.json",
+      "cardJsonPointer": "/cards/0",
+      "module": "KPH_MIRROR"
+    },
+    {
+      "modelSha256": "94ce14fe308a1591db31a72a0db01f5fdcb125865c95d117377fd9f7d1f4d6dd",
+      "sceneIndex": 0,
+      "nodeIndex": 233,
+      "nodeName": "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2971_PRESENTATION_CLONE_2594_KPH_MIRROR_FRONT_LOWER_EDGE_PEILI_1",
+      "integrationCardId": "KPH_MIRROR::KPH_MIRROR_SHARED302",
+      "sourceFile": "modules/KPH_MIRROR/source_cards.json",
+      "cardJsonPointer": "/cards/0",
+      "module": "KPH_MIRROR"
+    },
+    {
+      "modelSha256": "94ce14fe308a1591db31a72a0db01f5fdcb125865c95d117377fd9f7d1f4d6dd",
+      "sceneIndex": 0,
+      "nodeIndex": 234,
+      "nodeName": "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2972_PRESENTATION_CLONE_2595_KPH_MIRROR_FRONT_LOWER_EDGE_PEILI_2",
+      "integrationCardId": "KPH_MIRROR::KPH_MIRROR_SHARED302",
+      "sourceFile": "modules/KPH_MIRROR/source_cards.json",
+      "cardJsonPointer": "/cards/0",
+      "module": "KPH_MIRROR"
+    },
+    {
+      "modelSha256": "94ce14fe308a1591db31a72a0db01f5fdcb125865c95d117377fd9f7d1f4d6dd",
+      "sceneIndex": 0,
+      "nodeIndex": 235,
+      "nodeName": "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2973_PRESENTATION_CLONE_2596_KPH_MIRROR_FRONT_LOWER_EDGE_PEILI_3",
+      "integrationCardId": "KPH_MIRROR::KPH_MIRROR_SHARED302",
+      "sourceFile": "modules/KPH_MIRROR/source_cards.json",
+      "cardJsonPointer": "/cards/0",
+      "module": "KPH_MIRROR"
+    }
+  ]
+}

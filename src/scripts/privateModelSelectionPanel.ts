@@ -4,6 +4,8 @@ import {
   type SelectionSourceLink,
 } from './privateModelSelectionMetadata';
 import { viewerBoundsToYlis, type CartesianLike } from './privateModelAiNavigator';
+import type { SelectionSourceEvidence } from './privateModelSourceCards';
+import { renderSelectionSourceEvidence } from './privateModelSourceEvidencePanel';
 
 const formatMetersFi = (value: number) => (Math.abs(value) < 0.005 ? 0 : value).toFixed(2).replace('.', ',');
 
@@ -34,6 +36,7 @@ type SelectionPanelElements = {
   metadataEmpty: HTMLElement;
   sourceLinksSection?: HTMLElement | null;
   sourceLinksList?: HTMLElement | null;
+  sourceEvidenceSection?: HTMLElement | null;
 };
 
 export type SelectionPanelContent = {
@@ -46,6 +49,7 @@ export type SelectionPanelContent = {
   dimensions?: string;
   metadataEntries: SelectionMetadataEntry[];
   sourceLinks?: SelectionSourceLink[];
+  sourceEvidence?: SelectionSourceEvidence;
 };
 
 const ensureSelectionTool = (canvas: HTMLElement) => {
@@ -121,6 +125,7 @@ export const createSelectionPanelController = ({
   metadataEmpty,
   sourceLinksSection,
   sourceLinksList,
+  sourceEvidenceSection,
 }: SelectionPanelElements) => {
   ensureSelectionTool(canvas);
 
@@ -154,6 +159,7 @@ export const createSelectionPanelController = ({
     delete canvas.dataset.selectionMetadataCount;
     delete canvas.dataset.selectionMetadataSource;
     clearSourceLinks();
+    renderSelectionSourceEvidence(sourceEvidenceSection, undefined, 0);
   };
 
   const clear = () => {
@@ -179,6 +185,7 @@ export const createSelectionPanelController = ({
     dimensions: dimensionsText,
     metadataEntries,
     sourceLinks = [],
+    sourceEvidence,
   }: SelectionPanelContent) => {
     mesh.textContent = meshText;
     group.textContent = groupText;
@@ -204,6 +211,7 @@ export const createSelectionPanelController = ({
     }
 
     renderSourceLinks(sourceLinks);
+    renderSelectionSourceEvidence(sourceEvidenceSection, sourceEvidence, sourceLinks.length);
 
     panel.hidden = false;
   };

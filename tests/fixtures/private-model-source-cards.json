@@ -1,0 +1,346 @@
+{
+  "shared302": {
+    "sha256": "94ce14fe308a1591db31a72a0db01f5fdcb125865c95d117377fd9f7d1f4d6dd",
+    "sceneIndex": 0,
+    "nodes": {
+      "119": {
+        "name": "D1F_ROOM_KPH09_PHOTO_PROPORTIONED_FLAT_ROCKER_AND_FLAT_DIAL_WORK_TEST",
+        "extras": {},
+        "children": [
+          221,
+          263
+        ]
+      },
+      "221": {
+        "name": "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2959_PRESENTATION_CLONE_2854_D1F_MIRROR_305MM_SAUNA_EDGE_CONDITIONAL_Y_PLUS_10MM_WORK_TEST",
+        "extras": {
+          "donorMeasuredZipDriveId": "1ccXRhfkU06NVCI-al2-KYXuKcSqMTRsw",
+          "donorGLBSha256": "e7c25a164a2a8f1ce8c7b060651f7adeb23b43044f6100377f8cc7dba3052ad1"
+        },
+        "children": [
+          222,
+          223,
+          224,
+          225,
+          226,
+          227,
+          228,
+          229,
+          230,
+          231,
+          232,
+          233,
+          234,
+          235
+        ]
+      },
+      "222": {
+        "name": "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2960_PRESENTATION_CLONE_2583_KPH_MIRROR_BODY_1405x960x140mm_USER_MEASURED_ENVELOPE",
+        "mesh": 196,
+        "extras": {
+          "sourceDonorNode": 1
+        }
+      },
+      "223": {
+        "name": "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2961_PRESENTATION_CLONE_2584_KPH_MIRROR_FRONT_PUU_LEFT",
+        "mesh": 197,
+        "extras": {
+          "sourceDonorNode": 2
+        }
+      },
+      "224": {
+        "name": "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2962_PRESENTATION_CLONE_2585_KPH_MIRROR_FRONT_PEILI_1",
+        "mesh": 198,
+        "extras": {
+          "sourceDonorNode": 3
+        }
+      },
+      "225": {
+        "name": "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2963_PRESENTATION_CLONE_2586_KPH_MIRROR_FRONT_PEILI_2",
+        "mesh": 199,
+        "extras": {
+          "sourceDonorNode": 4
+        }
+      },
+      "226": {
+        "name": "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2964_PRESENTATION_CLONE_2587_KPH_MIRROR_FRONT_PEILI_3",
+        "mesh": 200,
+        "extras": {
+          "sourceDonorNode": 5
+        }
+      },
+      "227": {
+        "name": "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2965_PRESENTATION_CLONE_2588_KPH_WORK_ASSUMPTION_5mm_TRIM_GAP_0",
+        "mesh": 201,
+        "extras": {
+          "sourceDonorNode": 6
+        }
+      },
+      "228": {
+        "name": "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2966_PRESENTATION_CLONE_2589_KPH_WORK_ASSUMPTION_5mm_TRIM_GAP_1",
+        "mesh": 202,
+        "extras": {
+          "sourceDonorNode": 7
+        }
+      },
+      "229": {
+        "name": "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2967_PRESENTATION_CLONE_2590_KPH_WORK_ASSUMPTION_5mm_TRIM_GAP_2",
+        "mesh": 203,
+        "extras": {
+          "sourceDonorNode": 8
+        }
+      },
+      "230": {
+        "name": "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2968_PRESENTATION_CLONE_2591_KPH_WORK_ASSUMPTION_5mm_TRIM_GAP_3",
+        "mesh": 204,
+        "extras": {
+          "sourceDonorNode": 9
+        }
+      },
+      "231": {
+        "name": "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2969_PRESENTATION_CLONE_2592_KPH_WORK_ASSUMPTION_5mm_TRIM_GAP_4",
+        "mesh": 205,
+        "extras": {
+          "sourceDonorNode": 10
+        }
+      },
+      "232": {
+        "name": "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2970_PRESENTATION_CLONE_2593_KPH_MIRROR_RIGHT_END_SIDE_USER_CONFIRMED",
+        "mesh": 206,
+        "extras": {
+          "sourceDonorNode": 11
+        }
+      },
+      "233": {
+        "name": "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2971_PRESENTATION_CLONE_2594_KPH_MIRROR_FRONT_LOWER_EDGE_PEILI_1",
+        "mesh": 207,
+        "extras": {
+          "sourceDonorNode": 12
+        }
+      },
+      "234": {
+        "name": "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2972_PRESENTATION_CLONE_2595_KPH_MIRROR_FRONT_LOWER_EDGE_PEILI_2",
+        "mesh": 208,
+        "extras": {
+          "sourceDonorNode": 13
+        }
+      },
+      "235": {
+        "name": "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2973_PRESENTATION_CLONE_2596_KPH_MIRROR_FRONT_LOWER_EDGE_PEILI_3",
+        "mesh": 209,
+        "extras": {
+          "sourceDonorNode": 14
+        }
+      },
+      "263": {
+        "name": "KPH09_20261020_PHOTO_PROPORTIONED_ROCKER_FLAT_ROTARY_FLAT_WORK_TEST",
+        "extras": {
+          "sourcePhotoDriveId": "1QbBQAeCfIHyqRefVITEr3jLuBdq6E4kZ"
+        },
+        "children": [
+          264,
+          265,
+          266,
+          267,
+          268,
+          269
+        ]
+      },
+      "264": {
+        "name": "KPH09_PHOTO_FRAME_092x148_WORK_ASSUMPTION",
+        "mesh": 229,
+        "extras": {
+          "referenceDriveId": "1QbBQAeCfIHyqRefVITEr3jLuBdq6E4kZ"
+        }
+      },
+      "265": {
+        "name": "KPH09_PHOTO_SAUNA_FLAT_ROCKER_TOP",
+        "mesh": 230,
+        "extras": {
+          "referenceDriveId": "1QbBQAeCfIHyqRefVITEr3jLuBdq6E4kZ"
+        }
+      },
+      "266": {
+        "name": "KPH09_PHOTO_SPACER_BAR",
+        "mesh": 231,
+        "extras": {
+          "referenceDriveId": "1QbBQAeCfIHyqRefVITEr3jLuBdq6E4kZ"
+        }
+      },
+      "267": {
+        "name": "KPH09_PHOTO_LOWER_ROTARY_SQUARE_PANEL",
+        "mesh": 232,
+        "extras": {
+          "referenceDriveId": "1QbBQAeCfIHyqRefVITEr3jLuBdq6E4kZ"
+        }
+      },
+      "268": {
+        "name": "KPH09_PHOTO_ROTARY_BEZEL",
+        "mesh": 233,
+        "extras": {
+          "referenceDriveId": "1QbBQAeCfIHyqRefVITEr3jLuBdq6E4kZ"
+        }
+      },
+      "269": {
+        "name": "KPH09_PHOTO_ROTARY_FLAT_FACE_CYLINDER",
+        "mesh": 234,
+        "extras": {
+          "referenceDriveId": "1QbBQAeCfIHyqRefVITEr3jLuBdq6E4kZ"
+        }
+      }
+    },
+    "roots": [
+      119
+    ]
+  },
+  "d2015": {
+    "sha256": "a92cecbdb419048ca985bbc91663f7c511929924bf889cabc8cc3847602dacb5",
+    "sceneIndex": 64,
+    "nodes": {
+      "1117": {
+        "name": "P186E_X1_GROUP_LABEL_D_2F_11_2_001",
+        "mesh": 535,
+        "extras": {
+          "annotationStableKey": "D2015_GROUP_LABEL::D_2F::11.2::001"
+        }
+      },
+      "1118": {
+        "name": "P186E_X1_GROUP_LABEL_D_2F_12_2_001",
+        "mesh": 535,
+        "extras": {
+          "annotationStableKey": "D2015_GROUP_LABEL::D_2F::12.2::001"
+        }
+      },
+      "1119": {
+        "name": "P186E_X1_GROUP_LABEL_D_2F_12_3_001",
+        "mesh": 535,
+        "extras": {
+          "annotationStableKey": "D2015_GROUP_LABEL::D_2F::12.3::001"
+        }
+      },
+      "1120": {
+        "name": "P186E_X1_GROUP_LABEL_D_2F_13_1_001",
+        "mesh": 535,
+        "extras": {
+          "annotationStableKey": "D2015_GROUP_LABEL::D_2F::13.1::001"
+        }
+      },
+      "1121": {
+        "name": "P186E_X1_GROUP_LABEL_D_2F_13_1_002",
+        "mesh": 535,
+        "extras": {
+          "annotationStableKey": "D2015_GROUP_LABEL::D_2F::13.1::002"
+        }
+      },
+      "1122": {
+        "name": "P186E_X1_GROUP_LABEL_D_2F_13_2_001",
+        "mesh": 535,
+        "extras": {
+          "annotationStableKey": "D2015_GROUP_LABEL::D_2F::13.2::001"
+        }
+      },
+      "1123": {
+        "name": "P186E_X1_GROUP_LABEL_D_2F_13_3_001",
+        "mesh": 535,
+        "extras": {
+          "annotationStableKey": "D2015_GROUP_LABEL::D_2F::13.3::001"
+        }
+      },
+      "1124": {
+        "name": "P186E_X1_GROUP_LABEL_D_2F_14_1_001",
+        "mesh": 535,
+        "extras": {
+          "annotationStableKey": "D2015_GROUP_LABEL::D_2F::14.1::001"
+        }
+      },
+      "1125": {
+        "name": "P186E_X1_GROUP_LABEL_D_2F_14_2_001",
+        "mesh": 535,
+        "extras": {
+          "annotationStableKey": "D2015_GROUP_LABEL::D_2F::14.2::001"
+        }
+      },
+      "1126": {
+        "name": "P186E_X1_GROUP_LABEL_D_2F_14_3_001",
+        "mesh": 535,
+        "extras": {
+          "annotationStableKey": "D2015_GROUP_LABEL::D_2F::14.3::001"
+        }
+      },
+      "1127": {
+        "name": "P186E_X1_GROUP_LABEL_D_2F_15_1_001",
+        "mesh": 535,
+        "extras": {
+          "annotationStableKey": "D2015_GROUP_LABEL::D_2F::15.1::001"
+        }
+      },
+      "1128": {
+        "name": "P186E_X1_GROUP_LABEL_D_2F_4_3_001",
+        "mesh": 535,
+        "extras": {
+          "annotationStableKey": "D2015_GROUP_LABEL::D_2F::4.3::001"
+        }
+      },
+      "1129": {
+        "name": "P186E_X1_GROUP_LABEL_D_2F_5_1_001",
+        "mesh": 535,
+        "extras": {
+          "annotationStableKey": "D2015_GROUP_LABEL::D_2F::5.1::001"
+        }
+      },
+      "1130": {
+        "name": "P186E_X1_GROUP_LABEL_D_2F_5_2_001",
+        "mesh": 535,
+        "extras": {
+          "annotationStableKey": "D2015_GROUP_LABEL::D_2F::5.2::001"
+        }
+      },
+      "1131": {
+        "name": "P186E_X1_GROUP_LABEL_D_2F_5_3_001",
+        "mesh": 535,
+        "extras": {
+          "annotationStableKey": "D2015_GROUP_LABEL::D_2F::5.3::001"
+        }
+      },
+      "1133": {
+        "name": "P186E_X1_D2015_GROUP_LABEL_ANCHORS_ROOT_BABYLON_Y_UP",
+        "extras": {},
+        "children": [
+          1117,
+          1118,
+          1119,
+          1120,
+          1121,
+          1122,
+          1123,
+          1124,
+          1125,
+          1126,
+          1127,
+          1128,
+          1129,
+          1130,
+          1131
+        ]
+      },
+      "1138": {
+        "name": "P186E_X1_SPECIAL_LABEL_D2F_SKYLIGHT_LED_STRIP_01",
+        "mesh": 535,
+        "extras": {
+          "sourceLabelId": "D2015_SPECIAL_LABEL_D2F_SKYLIGHT_LED_STRIP_01"
+        }
+      },
+      "1140": {
+        "name": "P186E_X1_D2015_SPECIAL_LABEL_ANCHORS_ROOT_BABYLON_Y_UP",
+        "extras": {},
+        "children": [
+          1138
+        ]
+      }
+    },
+    "roots": [
+      1133,
+      1140
+    ]
+  }
+}

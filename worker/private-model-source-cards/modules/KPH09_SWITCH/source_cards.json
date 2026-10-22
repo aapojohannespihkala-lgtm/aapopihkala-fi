@@ -1,0 +1,267 @@
+{
+  "schema": "ylisrinne-source-card-group-sidecar-v1",
+  "createdDate": "2026-10-20",
+  "status": "WORK_TEST_DATA_READY_UI_INTEGRATION_PENDING",
+  "model": {
+    "driveId": "1ZkL55zvoJl0mHXtD-oZdWRMRAvSPryyG",
+    "fileName": "Ylisrinne_PERUSMALLI_SHARED302_WORK_TEST_20261020.glb",
+    "sha256": "94ce14fe308a1591db31a72a0db01f5fdcb125865c95d117377fd9f7d1f4d6dd",
+    "byteLength": 1792816,
+    "sceneIndex": 0
+  },
+  "bindingPolicy": {
+    "exactModelSha256Required": true,
+    "nodeIndexesPortable": false,
+    "matchFields": [
+      "nodeIndex",
+      "nodeName",
+      "meshIndex",
+      "sourceField",
+      "sourceFieldValue"
+    ],
+    "doNotInventAnnotationStableKey": true,
+    "selectedChildResolvesToGroupCard": true,
+    "modelHierarchyDoesNotProvePhysicalHost": true
+  },
+  "scope": "Yksi kytkinryhmä seitsemän mallisolmun kautta. Ei seitsemää fyysistä laitetta.",
+  "viewerSchemaCompatibility": "Ei testattu. Erillinen tietosisältöehdotus, ei valmis sourceLinks-mutaatio.",
+  "cards": [
+    {
+      "cardId": "KPH09_SWITCH_GROUP_SHARED302",
+      "display": {
+        "title": "Saunan ja kylpyhuoneen valokatkaisimet",
+        "status": "WORK_TEST - kuvasta johdettu ulkonäkö",
+        "facts": [
+          {
+            "label": "Yläpainike",
+            "value": "Saunan valo",
+            "evidence": "USER_CONFIRMED_IN_MODEL_METADATA"
+          },
+          {
+            "label": "Alempi kiertosäädin",
+            "value": "Kylpyhuoneen valo",
+            "evidence": "USER_CONFIRMED_IN_MODEL_METADATA"
+          },
+          {
+            "label": "Kehyksen yläreuna valmiista kylpyhuoneen lattiasta",
+            "value": "1,020 m",
+            "evidence": "USER_REPORTED_MEASUREMENT",
+            "isPixelMeasurement": false
+          },
+          {
+            "label": "Kehyskoko mallissa",
+            "value": "92 x 148 mm",
+            "evidence": "WORK_ASSUMPTION",
+            "isPhysicalMeasurement": false
+          },
+          {
+            "label": "Himmennys",
+            "value": "Ei varmennettu",
+            "evidence": "UNVERIFIED"
+          },
+          {
+            "label": "Tarkka asennuspaikka ja seinäkiinnitys",
+            "value": "Ei varmennettu",
+            "evidence": "UNVERIFIED"
+          }
+        ]
+      },
+      "sources": [
+        {
+          "role": "photo_relative_appearance",
+          "driveId": "1QbBQAeCfIHyqRefVITEr3jLuBdq6E4kZ",
+          "url": "https://drive.google.com/file/d/1QbBQAeCfIHyqRefVITEr3jLuBdq6E4kZ/view",
+          "title": "2026-10-19 - D1F KPH - saunan ja kylpyhuoneen valokatkaisija - yläreuna 102 cm lattiasta.png",
+          "supports": [
+            "Ulkonäkö ja suhteelliset muodot"
+          ],
+          "doesNotEstablish": [
+            "Kehyksen fyysiset ulkomitat",
+            "Tarkka asennuksen XY/XYZ",
+            "Himmennystoiminto"
+          ]
+        },
+        {
+          "role": "documented_measurement_and_limits",
+          "driveId": "1yOrdsreXGVS_WPWS4ZdfXRDEPpPXt6DMU4KInKi3btI",
+          "url": "https://docs.google.com/document/d/1yOrdsreXGVS_WPWS4ZdfXRDEPpPXt6DMU4KInKi3btI/edit",
+          "section": "11. KPH09-valokatkaisimen lähdekytkentä",
+          "isPrimaryMeasurementRecord": false,
+          "supports": [
+            "QA-asiakirjaan kirjattu käyttäjän 1,020 m yläreunamitta ja tulkintarajat"
+          ],
+          "doesNotEstablish": [
+            "Uusi riippumaton mittaus",
+            "Kuvan pikseleistä mitattu korkeus"
+          ]
+        }
+      ],
+      "limits": {
+        "presentationOnly": true,
+        "asBuilt": false,
+        "physicalFrameDimensionsVerified": false,
+        "absoluteHostXYVerified": false,
+        "dimmingFunctionVerified": false,
+        "humanReview": "NOT_RUN"
+      },
+      "targetBindings": [
+        {
+          "nodeIndex": 263,
+          "nodeName": "KPH09_20261020_PHOTO_PROPORTIONED_ROCKER_FLAT_ROTARY_FLAT_WORK_TEST",
+          "meshIndex": null,
+          "partLabel": "Kytkinryhmä",
+          "sourceField": "sourcePhotoDriveId",
+          "sourceFieldValue": "1QbBQAeCfIHyqRefVITEr3jLuBdq6E4kZ",
+          "resolveToCardId": "KPH09_SWITCH_GROUP_SHARED302",
+          "originalExtras": {
+            "sourcePhotoDriveId": "1QbBQAeCfIHyqRefVITEr3jLuBdq6E4kZ",
+            "sourcePhotoDate": "2026-10-19",
+            "userMeasuredCoverTopAboveFinishedBathroomFloorM": 1.02,
+            "coverTopWorkZFromOriginalSourceFloorAssumptionM": 1.1,
+            "bathroomFloorWorkAssumptionZ": 0.08,
+            "userConfirmedUpperControl": "SAUNA_LIGHT_LARGE_ROCKER",
+            "userConfirmedLowerControl": "BATHROOM_LIGHT_ROTARY",
+            "rotaryDimmingFunction": "UNVERIFIED",
+            "relativeAlignmentSource": "2026-10-18 bathroom switch and Bathroom Themo SAME_VERTICAL_LINE USER_CONFIRMED",
+            "relativeAlignmentDeviceNode": 1101,
+            "workThemoLineSourceX": 4.88,
+            "workWallFacePlanY": 5.032,
+            "unmeasuredFrameWidthM_WORK_ASSUMPTION": 0.11,
+            "unmeasuredFrameHeightM_WORK_ASSUMPTION": 0.222,
+            "exactPhysicalXYZ": false,
+            "sceneScope": "P137E_THREE_THEMOS_WALL_ONLY_NOT_SHARED_D1F_M5",
+            "representationKind": "SOURCE_USER_PHOTO_MEASURED_TOP_NONCANONICAL_WORK_TEST",
+            "presentationOnly": true,
+            "workAssumption": true,
+            "asBuilt": false,
+            "currentGeometryClaim": false,
+            "Canonical": false,
+            "publishToCURRENT": false,
+            "HUMAN_REVIEW": "NOT_RUN",
+            "previousPhotoDerivedKPH09ThreeNodesReplacedInOneNewScene": [
+              3442,
+              3443,
+              3444
+            ],
+            "sourceOriginalCombinedZipFileName": "LINJASTOTESTI_SHARED300_sauna__scene299.zip",
+            "sourceOriginalCombinedGLBSha256": "309383cd5e42da0d8f81a3c6721140aa38dc23a22ac141ed4cb2085737c7b002",
+            "preflightOnlyUntilNewestM4ScopeReleased": true,
+            "newCombinedSceneIsNONCANONICAL": true,
+            "isFinishedSharedModel": false,
+            "frontSurfaceGeometryAdjustedToReferencePhoto": true,
+            "userMeasuredCoverTopM": 1.02,
+            "frameWidthMmWorkAssumption": 92,
+            "frameHeightMmWorkAssumption": 148,
+            "widthHeightRatioPhotoApprox": 0.62,
+            "exactPhysicalFrameDimensionsVerified": false,
+            "absoluteHostXYVerified": false,
+            "notAnAsBuiltModel": true
+          }
+        },
+        {
+          "nodeIndex": 264,
+          "nodeName": "KPH09_PHOTO_FRAME_092x148_WORK_ASSUMPTION",
+          "meshIndex": 229,
+          "partLabel": "Kehys",
+          "sourceField": "referenceDriveId",
+          "sourceFieldValue": "1QbBQAeCfIHyqRefVITEr3jLuBdq6E4kZ",
+          "resolveToCardId": "KPH09_SWITCH_GROUP_SHARED302",
+          "originalExtras": {
+            "status": "PHOTO_PROPORTIONED_WORK_ASSUMPTION",
+            "referenceDriveId": "1QbBQAeCfIHyqRefVITEr3jLuBdq6E4kZ"
+          }
+        },
+        {
+          "nodeIndex": 265,
+          "nodeName": "KPH09_PHOTO_SAUNA_FLAT_ROCKER_TOP",
+          "meshIndex": 230,
+          "partLabel": "Saunan valon yläpainike",
+          "sourceField": "referenceDriveId",
+          "sourceFieldValue": "1QbBQAeCfIHyqRefVITEr3jLuBdq6E4kZ",
+          "resolveToCardId": "KPH09_SWITCH_GROUP_SHARED302",
+          "originalExtras": {
+            "status": "PHOTO_PROPORTIONED_WORK_ASSUMPTION",
+            "referenceDriveId": "1QbBQAeCfIHyqRefVITEr3jLuBdq6E4kZ"
+          }
+        },
+        {
+          "nodeIndex": 266,
+          "nodeName": "KPH09_PHOTO_SPACER_BAR",
+          "meshIndex": 231,
+          "partLabel": "Välikappale",
+          "sourceField": "referenceDriveId",
+          "sourceFieldValue": "1QbBQAeCfIHyqRefVITEr3jLuBdq6E4kZ",
+          "resolveToCardId": "KPH09_SWITCH_GROUP_SHARED302",
+          "originalExtras": {
+            "status": "PHOTO_PROPORTIONED_WORK_ASSUMPTION",
+            "referenceDriveId": "1QbBQAeCfIHyqRefVITEr3jLuBdq6E4kZ"
+          }
+        },
+        {
+          "nodeIndex": 267,
+          "nodeName": "KPH09_PHOTO_LOWER_ROTARY_SQUARE_PANEL",
+          "meshIndex": 232,
+          "partLabel": "Kylpyhuoneen valon alapaneeli",
+          "sourceField": "referenceDriveId",
+          "sourceFieldValue": "1QbBQAeCfIHyqRefVITEr3jLuBdq6E4kZ",
+          "resolveToCardId": "KPH09_SWITCH_GROUP_SHARED302",
+          "originalExtras": {
+            "status": "PHOTO_PROPORTIONED_WORK_ASSUMPTION",
+            "referenceDriveId": "1QbBQAeCfIHyqRefVITEr3jLuBdq6E4kZ"
+          }
+        },
+        {
+          "nodeIndex": 268,
+          "nodeName": "KPH09_PHOTO_ROTARY_BEZEL",
+          "meshIndex": 233,
+          "partLabel": "Kiertosäätimen kehä",
+          "sourceField": "referenceDriveId",
+          "sourceFieldValue": "1QbBQAeCfIHyqRefVITEr3jLuBdq6E4kZ",
+          "resolveToCardId": "KPH09_SWITCH_GROUP_SHARED302",
+          "originalExtras": {
+            "status": "PHOTO_PROPORTIONED_WORK_ASSUMPTION",
+            "referenceDriveId": "1QbBQAeCfIHyqRefVITEr3jLuBdq6E4kZ"
+          }
+        },
+        {
+          "nodeIndex": 269,
+          "nodeName": "KPH09_PHOTO_ROTARY_FLAT_FACE_CYLINDER",
+          "meshIndex": 234,
+          "partLabel": "Kiertosäätimen pinta",
+          "sourceField": "referenceDriveId",
+          "sourceFieldValue": "1QbBQAeCfIHyqRefVITEr3jLuBdq6E4kZ",
+          "resolveToCardId": "KPH09_SWITCH_GROUP_SHARED302",
+          "originalExtras": {
+            "status": "PHOTO_PROPORTIONED_WORK_ASSUMPTION",
+            "referenceDriveId": "1QbBQAeCfIHyqRefVITEr3jLuBdq6E4kZ"
+          }
+        }
+      ],
+      "metadataConflicts": [
+        {
+          "fields": [
+            "unmeasuredFrameWidthM_WORK_ASSUMPTION",
+            "unmeasuredFrameHeightM_WORK_ASSUMPTION"
+          ],
+          "oldValuesM": [
+            0.11,
+            0.222
+          ],
+          "newerFields": [
+            "frameWidthMmWorkAssumption",
+            "frameHeightMmWorkAssumption"
+          ],
+          "newerValuesMm": [
+            92,
+            148
+          ],
+          "geometryBoundsWidthHeightMm": [
+            92.0,
+            148.0
+          ],
+          "displayPolicy": "Käytä tässä täsmämalliversiossa 92 x 148 mm vain mallin työoletuksena. Älä näytä vanhoja 110 x 222 mm arvoja nykyisenä kehyskokona. GLB:n metadataa ei korjattu."
+        }
+      ]
+    }
+  ]
+}
