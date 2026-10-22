@@ -1504,6 +1504,127 @@ const AUTO_YLISRINNE_D2F_2015_KEITTION_SEINAKAAPIT_WORK_TEST_20261022_1UM19VWZ_C
   expectedSha256: 'e0a99b96886db16b22a744a54de8b585dcfe42704fd7f87f8917093a3ecfea46',
 } as const satisfies PrivateWorkTestCandidate;
 
+// Auto-registered 2026-10-22 from Drive queue file 1NZfANJfWBhfImQ5-IbLhVeBJmih6XkDQ
+// by auto-publish-work-test. WORK_TEST, never as-built.
+const AUTO_YLISRINNE_D1F_ETEISEN_KAAPIT_2015_GAP_APPROX300_WORK_TEST_20261022_1NZFANJF_CANDIDATE = {
+  id: 'auto-ylisrinne-d1f-eteisen-kaapit-2015-gap-approx300-work-test-20261022-1nzfanjf',
+  label: 'Auto: Ylisrinne D1F ETEISEN KAAPIT 2015 GAP APPROX300 WORK TEST 20261022 (scene0) - WORK_TEST',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/auto-ylisrinne-d1f-eteisen-kaapit-2015-gap-approx300-work-test-20261022-1nzfanjf.glb`,
+  objectKey: 'work-test/auto-ylisrinne-d1f-eteisen-kaapit-2015-gap-approx300-work-test-20261022-1nzfanjf.glb',
+  expectedSize: 51076,
+  expectedSha256: 'c7278007d2c020d0d77a42a52abf3c29ce726aa04a4867e93b064ad082ac636a',
+} as const satisfies PrivateWorkTestCandidate;
+
+// Auto-registered 2026-10-22 from Drive queue file 1PPWekwQm27xYHKgY4lBexZKh3Rq5fw0f
+// by auto-publish-work-test. WORK_TEST, never as-built.
+const AUTO_YLISRINNE_D_TERASSI_L_ASKELMA_V5_TERRAIN_EDGE_CONTINUITY_WORK_TEST_20261022_1PPWEKWQ_CANDIDATE = {
+  id: 'auto-ylisrinne-d-terassi-l-askelma-v5-terrain-edge-continuity-work-test-20261022-1ppwekwq',
+  label: 'Auto: Ylisrinne D TERASSI L ASKELMA v5 TERRAIN EDGE CONTINUITY WORK TEST 20261022 (scene0) - WORK_TEST',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/auto-ylisrinne-d-terassi-l-askelma-v5-terrain-edge-continuity-work-test-20261022-1ppwekwq.glb`,
+  objectKey: 'work-test/auto-ylisrinne-d-terassi-l-askelma-v5-terrain-edge-continuity-work-test-20261022-1ppwekwq.glb',
+  expectedSize: 1761500,
+  expectedSha256: 'ed919e5a8dbd472035a25661800af08d6ad3e2068f86b352ccf6a1ca42139789',
+} as const satisfies PrivateWorkTestCandidate;
+
+// Auto-registered 2026-10-22 from Drive queue file 1KjeK3btHfuKeDwsrl4MoqhgPpca7xwSh
+// by auto-publish-work-test. WORK_TEST, never as-built.
+const AUTO_YLISRINNE_D2F_2015_KEITTION_SEINAKAAPIT_SOURCELINKS_WORK_TEST_20261022_1KJEK3BT_CANDIDATE = {
+  id: 'auto-ylisrinne-d2f-2015-keittion-seinakaapit-sourcelinks-work-test-20261022-1kjek3bt',
+  label: 'Auto: Ylisrinne D2F 2015 KEITTION SEINAKAAPIT SOURCELINKS WORK TEST 20261022 (scene62) - WORK_TEST',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/auto-ylisrinne-d2f-2015-keittion-seinakaapit-sourcelinks-work-test-20261022-1kjek3bt.glb`,
+  objectKey: 'work-test/auto-ylisrinne-d2f-2015-keittion-seinakaapit-sourcelinks-work-test-20261022-1kjek3bt.glb',
+  expectedSize: 1478140,
+  expectedSha256: '1259e9efe065ec9cb5889de0e34763999d65b2245c340a7c49296f36e8534e13',
+} as const satisfies PrivateWorkTestCandidate;
+
+// Auto-registered 2026-10-22 from Drive queue file 1IuH5kd_RemsMygvCe8uTlN4QVvMnxX7u
+// by auto-publish-work-test. WORK_TEST, never as-built.
+const AUTO_YLISRINNE_T12_A_D_PAASISAANKAYNTIEN_OVILEHDET_WORK_TEST_20261022_1IUH5KDR_CANDIDATE = {
+  id: 'auto-ylisrinne-t12-a-d-paasisaankayntien-ovilehdet-work-test-20261022-1iuh5kdr',
+  label: 'Auto: Ylisrinne T12 A-D PAASISAANKAYNTIEN OVILEHDET WORK TEST 20261022 (scene1) - WORK_TEST',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/auto-ylisrinne-t12-a-d-paasisaankayntien-ovilehdet-work-test-20261022-1iuh5kdr.glb`,
+  objectKey: 'work-test/auto-ylisrinne-t12-a-d-paasisaankayntien-ovilehdet-work-test-20261022-1iuh5kdr.glb',
+  expectedSize: 1528548,
+  expectedSha256: 'faec257ac15fb42337fe7ab3400ae0c3d1186d2cf32ab95723dd7431a8bd3491',
+} as const satisfies PrivateWorkTestCandidate;
+
+// Auto-registered 2026-10-22 from Drive queue file 1TgcZxno3Xqd77hZXpPDokHUjcPtXDMBt
+// by auto-publish-work-test. WORK_TEST, never as-built.
+const AUTO_YLISRINNE_2015_LASTENHUONE_NORDLI3_ME3104_SOURCE_ONLY_WORK_TEST_20261022_1TGCZXNO_CANDIDATE = {
+  id: 'auto-ylisrinne-2015-lastenhuone-nordli3-me3104-source-only-work-test-20261022-1tgczxno',
+  label: 'Auto: Ylisrinne 2015 LASTENHUONE NORDLI3 ME3104 SOURCE ONLY WORK TEST 20261022 (scene0) - WORK_TEST',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/auto-ylisrinne-2015-lastenhuone-nordli3-me3104-source-only-work-test-20261022-1tgczxno.glb`,
+  objectKey: 'work-test/auto-ylisrinne-2015-lastenhuone-nordli3-me3104-source-only-work-test-20261022-1tgczxno.glb',
+  expectedSize: 56384,
+  expectedSha256: 'd93bcb28388352b7a9bd325e68219b2ae912d0bd46da55aafe981f4b05f85893',
+} as const satisfies PrivateWorkTestCandidate;
+
+// Auto-registered 2026-10-22 from Drive queue file 1NflAqxgnbWk44ABL2f-jsSb7ljmxaPdd
+// by auto-publish-work-test. WORK_TEST, never as-built.
+const AUTO_YLISRINNE_T12_1974_AC_1F_MARKATILASEINAT_WORK_TEST_20261022_1NFLAQXG_CANDIDATE = {
+  id: 'auto-ylisrinne-t12-1974-ac-1f-markatilaseinat-work-test-20261022-1nflaqxg',
+  label: 'Auto: Ylisrinne T12 1974 AC 1F MARKATILASEINAT WORK TEST 20261022 (scene2) - WORK_TEST',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/auto-ylisrinne-t12-1974-ac-1f-markatilaseinat-work-test-20261022-1nflaqxg.glb`,
+  objectKey: 'work-test/auto-ylisrinne-t12-1974-ac-1f-markatilaseinat-work-test-20261022-1nflaqxg.glb',
+  expectedSize: 1575040,
+  expectedSha256: '5b2c34e80fd0b4022e5e08c63ef67d7f41aaf6bf2a29021649fe0f92ee928942',
+} as const satisfies PrivateWorkTestCandidate;
+
+// Auto-registered 2026-10-22 from Drive queue file 1a6EvZLMDAecyqNEuS7Yqr6uw1KPCmmKJ
+// by auto-publish-work-test. WORK_TEST, never as-built.
+const AUTO_YLISRINNE_D2F_2015_KEITTION_KAAPIT_SISAOVET_KIINNI_SOURCELINKS_WORK_TEST_20261022_1A6EVZLM_CANDIDATE = {
+  id: 'auto-ylisrinne-d2f-2015-keittion-kaapit-sisaovet-kiinni-sourcelinks-work-test-20261022-1a6evzlm',
+  label: 'Auto: Ylisrinne D2F 2015 KEITTION KAAPIT SISAOVET KIINNI SOURCELINKS WORK TEST 20261022 (scene63) - WORK_TEST',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/auto-ylisrinne-d2f-2015-keittion-kaapit-sisaovet-kiinni-sourcelinks-work-test-20261022-1a6evzlm.glb`,
+  objectKey: 'work-test/auto-ylisrinne-d2f-2015-keittion-kaapit-sisaovet-kiinni-sourcelinks-work-test-20261022-1a6evzlm.glb',
+  expectedSize: 1468884,
+  expectedSha256: 'adf533122bdb204dc0e6eba8cf6e2b61e2916bb4d3eb24bb9acdf37e7fe22c07',
+} as const satisfies PrivateWorkTestCandidate;
+
+// Auto-registered 2026-10-22 from Drive queue file 1dxw1YUzH7YQDjhcNWB-4wBxF2uNUHa4z
+// by auto-publish-work-test. WORK_TEST, never as-built.
+const AUTO_YLISRINNE_T12_1974_ABC_2F_HUONEJAKOSEINAT_WORK_TEST_20261022_1DXW1YUZ_CANDIDATE = {
+  id: 'auto-ylisrinne-t12-1974-abc-2f-huonejakoseinat-work-test-20261022-1dxw1yuz',
+  label: 'Auto: Ylisrinne T12 1974 ABC 2F HUONEJAKOSEINAT WORK TEST 20261022 (scene4) - WORK_TEST',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/auto-ylisrinne-t12-1974-abc-2f-huonejakoseinat-work-test-20261022-1dxw1yuz.glb`,
+  objectKey: 'work-test/auto-ylisrinne-t12-1974-abc-2f-huonejakoseinat-work-test-20261022-1dxw1yuz.glb',
+  expectedSize: 1599716,
+  expectedSha256: 'fe8f82c9c0794afdac8315b1168fae07b465e24da68b4fae23288504677762fa',
+} as const satisfies PrivateWorkTestCandidate;
+
+// Auto-registered 2026-10-22 from Drive queue file 1I5zenUuuA3qI93WAlZvHIKs99V6kyMnE
+// by auto-publish-work-test. WORK_TEST, never as-built.
+const AUTO_YLISRINNE_2015_LASTENHUONE_9KALUSTETTA_SKALAND_SIGURD_WORK_TEST_20261022_1I5ZENUU_CANDIDATE = {
+  id: 'auto-ylisrinne-2015-lastenhuone-9kalustetta-skaland-sigurd-work-test-20261022-1i5zenuu',
+  label: 'Auto: Ylisrinne 2015 LASTENHUONE 9KALUSTETTA SKALAND SIGURD WORK TEST 20261022 (scene2) - WORK_TEST',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/auto-ylisrinne-2015-lastenhuone-9kalustetta-skaland-sigurd-work-test-20261022-1i5zenuu.glb`,
+  objectKey: 'work-test/auto-ylisrinne-2015-lastenhuone-9kalustetta-skaland-sigurd-work-test-20261022-1i5zenuu.glb',
+  expectedSize: 72060,
+  expectedSha256: '0cc2ab054e4575737ee5250778deb6b13c0406a8b3f3a9363f0a8e118b936d48',
+} as const satisfies PrivateWorkTestCandidate;
+
+// Auto-registered 2026-10-22 from Drive queue file 1Vv-kqrn5uJOQOpqIf6jplnZ0-8bfIcst
+// by auto-publish-work-test. WORK_TEST, never as-built.
+const AUTO_YLISRINNE_T12_1974_ABC_1F_ETELA_TK_VH_SOURCE_PLAN_WORK_TEST_20261022_1VVKQRN5_CANDIDATE = {
+  id: 'auto-ylisrinne-t12-1974-abc-1f-etela-tk-vh-source-plan-work-test-20261022-1vvkqrn5',
+  label: 'Auto: Ylisrinne T12 1974 ABC 1F ETELA TK VH SOURCE PLAN WORK TEST 20261022 (scene6) - WORK_TEST',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/auto-ylisrinne-t12-1974-abc-1f-etela-tk-vh-source-plan-work-test-20261022-1vvkqrn5.glb`,
+  objectKey: 'work-test/auto-ylisrinne-t12-1974-abc-1f-etela-tk-vh-source-plan-work-test-20261022-1vvkqrn5.glb',
+  expectedSize: 1611584,
+  expectedSha256: '574ecf2073d5154ccfec6458258bdac992012f105f1a39b871be3da7a91e6418',
+} as const satisfies PrivateWorkTestCandidate;
+
+// Auto-registered 2026-10-22 from Drive queue file 1Ye5pz6ItsEY3j4EwsmIc73jwqD9_J-aa
+// by auto-publish-work-test. WORK_TEST, never as-built.
+const AUTO_YLISRINNE_T12_1974_ABC_1F_ETEINEN_KAYTAVA_JAKOSEINAT_WORK_TEST_20261022_1YE5PZ6I_CANDIDATE = {
+  id: 'auto-ylisrinne-t12-1974-abc-1f-eteinen-kaytava-jakoseinat-work-test-20261022-1ye5pz6i',
+  label: 'Auto: Ylisrinne T12 1974 ABC 1F ETEINEN KAYTAVA JAKOSEINAT WORK TEST 20261022 (scene6) - WORK_TEST',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/auto-ylisrinne-t12-1974-abc-1f-eteinen-kaytava-jakoseinat-work-test-20261022-1ye5pz6i.glb`,
+  objectKey: 'work-test/auto-ylisrinne-t12-1974-abc-1f-eteinen-kaytava-jakoseinat-work-test-20261022-1ye5pz6i.glb',
+  expectedSize: 1635624,
+  expectedSha256: '853cfa5b47d572fedfffd956201f168a8ff551e5c4808fd12096668830b9cad6',
+} as const satisfies PrivateWorkTestCandidate;
+
 const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
   ...PRIVATE_WORK_TEST_CANDIDATES,
   M5A_Z2D_D100_D300_DIAMETER_CANDIDATE,
@@ -1596,6 +1717,17 @@ const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
   AUTO_YLISRINNE_KPH09_20_VIILTOA_OMISTAJAN_AUKOTUSHYVAKSYNTA_METADATA_WORK_TEST_20261022_1BC9JI7W_CANDIDATE,
   AUTO_YLISRINNE_D2F_2015_3_OVILEHTEA_AVATTU_SULJETTU_WORK_TEST_20261022_1WVGYFGT_CANDIDATE,
   AUTO_YLISRINNE_D2F_2015_KEITTION_SEINAKAAPIT_WORK_TEST_20261022_1UM19VWZ_CANDIDATE,
+  AUTO_YLISRINNE_D1F_ETEISEN_KAAPIT_2015_GAP_APPROX300_WORK_TEST_20261022_1NZFANJF_CANDIDATE,
+  AUTO_YLISRINNE_D_TERASSI_L_ASKELMA_V5_TERRAIN_EDGE_CONTINUITY_WORK_TEST_20261022_1PPWEKWQ_CANDIDATE,
+  AUTO_YLISRINNE_D2F_2015_KEITTION_SEINAKAAPIT_SOURCELINKS_WORK_TEST_20261022_1KJEK3BT_CANDIDATE,
+  AUTO_YLISRINNE_T12_A_D_PAASISAANKAYNTIEN_OVILEHDET_WORK_TEST_20261022_1IUH5KDR_CANDIDATE,
+  AUTO_YLISRINNE_2015_LASTENHUONE_NORDLI3_ME3104_SOURCE_ONLY_WORK_TEST_20261022_1TGCZXNO_CANDIDATE,
+  AUTO_YLISRINNE_T12_1974_AC_1F_MARKATILASEINAT_WORK_TEST_20261022_1NFLAQXG_CANDIDATE,
+  AUTO_YLISRINNE_D2F_2015_KEITTION_KAAPIT_SISAOVET_KIINNI_SOURCELINKS_WORK_TEST_20261022_1A6EVZLM_CANDIDATE,
+  AUTO_YLISRINNE_T12_1974_ABC_2F_HUONEJAKOSEINAT_WORK_TEST_20261022_1DXW1YUZ_CANDIDATE,
+  AUTO_YLISRINNE_2015_LASTENHUONE_9KALUSTETTA_SKALAND_SIGURD_WORK_TEST_20261022_1I5ZENUU_CANDIDATE,
+  AUTO_YLISRINNE_T12_1974_ABC_1F_ETELA_TK_VH_SOURCE_PLAN_WORK_TEST_20261022_1VVKQRN5_CANDIDATE,
+  AUTO_YLISRINNE_T12_1974_ABC_1F_ETEINEN_KAYTAVA_JAKOSEINAT_WORK_TEST_20261022_1YE5PZ6I_CANDIDATE,
 ] as const satisfies readonly PrivateWorkTestCandidate[];
 
 type PrivateWorkTestObjectMetadata = {
