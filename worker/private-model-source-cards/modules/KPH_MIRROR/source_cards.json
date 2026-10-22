@@ -1,0 +1,752 @@
+{
+  "schema": "ylisrinne-source-card-group-sidecar-v1",
+  "createdDate": "2026-10-20",
+  "status": "WORK_TEST_DATA_READY_UI_INTEGRATION_PENDING",
+  "model": {
+    "driveId": "1ZkL55zvoJl0mHXtD-oZdWRMRAvSPryyG",
+    "fileName": "Ylisrinne_PERUSMALLI_SHARED302_WORK_TEST_20261020.glb",
+    "sha256": "94ce14fe308a1591db31a72a0db01f5fdcb125865c95d117377fd9f7d1f4d6dd",
+    "sceneIndex": 0
+  },
+  "donor": {
+    "driveId": "1ccXRhfkU06NVCI-al2-KYXuKcSqMTRsw",
+    "glbSha256": "e7c25a164a2a8f1ce8c7b060651f7adeb23b43044f6100377f8cc7dba3052ad1"
+  },
+  "bindingPolicy": {
+    "exactModelSha256Required": true,
+    "matchAllFields": [
+      "nodeIndex",
+      "nodeName",
+      "meshIndex"
+    ],
+    "childMustBelongToRoot221": true,
+    "childSourceDonorNodeMustMatch": true,
+    "allPartsResolveToSameCard": true,
+    "nodeIndexesPortable": false
+  },
+  "viewerSchemaCompatibility": "Erillinen sisältöehdotus. Ei nykyiseen viewer/sourceLinks-skeemaan testattu integraatio.",
+  "cards": [
+    {
+      "cardId": "KPH_MIRROR_SHARED302",
+      "display": {
+        "title": "Kylpyhuoneen peilikaappi",
+        "status": "WORK_TEST - muoto ja mittasuhteet katselmoitu",
+        "facts": [
+          {
+            "label": "Ulkomitat",
+            "value": "1405 x 960 x noin 140 mm",
+            "evidence": "USER_MEASUREMENTS_DOCUMENTED_IN_DONOR_MANIFEST"
+          },
+          {
+            "label": "Etupaneelit vasemmalta",
+            "value": "Puu 395 mm, peili 295 mm, peili 295 mm, peili 395 mm",
+            "evidence": "USER_CONFIRMED_PANEL_TOPOLOGY_AND_MEASUREMENTS"
+          },
+          {
+            "label": "Oikea pääty",
+            "value": "Peilipinta",
+            "evidence": "USER_VISUAL_CONFIRMATION"
+          },
+          {
+            "label": "Alareuna allastason yläpuolella",
+            "value": "305 mm",
+            "evidence": "USER_MEASUREMENT_DOCUMENTED"
+          },
+          {
+            "label": "Saunan puoleisen seinän ja kaapin päädyn väli",
+            "value": "305 mm",
+            "evidence": "USER_MEASUREMENT_DOCUMENTED"
+          },
+          {
+            "label": "Muodon katselmus 20.10.2026",
+            "value": "Muoto ja mittasuhteet hyväksytty uskottavana WORK_TEST-esityksenä",
+            "evidence": "PARTIAL_VISUAL_REVIEW_QA_SECTION_6"
+          },
+          {
+            "label": "Tarkka sijoitus mallin seinäpintaan",
+            "value": "Lähdesovitus avoin",
+            "evidence": "HOST_FACE_UNRESOLVED"
+          }
+        ]
+      },
+      "sources": [
+        {
+          "role": "documented_user_measurements_and_component_provenance",
+          "driveId": "1ccXRhfkU06NVCI-al2-KYXuKcSqMTRsw",
+          "url": "https://drive.google.com/file/d/1ccXRhfkU06NVCI-al2-KYXuKcSqMTRsw/view",
+          "title": "Ylisrinne_D1F_peilikaappi_mitattu_20261018_G2b_WORK_TEST.zip",
+          "members": [
+            "source_manifest.json",
+            "LUE_ENSIN.txt"
+          ],
+          "supports": [
+            "Kirjatut käyttäjämitat ja paneelijako",
+            "Komponentin mallilähde"
+          ],
+          "doesNotEstablish": [
+            "Valmiin seinäpinnan täsmäkoordinaatti",
+            "Riippumaton uusi mittaus",
+            "Valokuvallinen nykytilatodiste"
+          ]
+        },
+        {
+          "role": "qa_and_partial_review",
+          "driveId": "1672zwWbYnU41NbKBaLz3Jze6NacbA1qcN4KOFqHc3Gk",
+          "url": "https://docs.google.com/document/d/1672zwWbYnU41NbKBaLz3Jze6NacbA1qcN4KOFqHc3Gk/edit",
+          "sections": [
+            "1-3: mitat ja työoletukset",
+            "6: omistajan osittainen katselmus",
+            "7: host-pinnan tulkintaraja"
+          ],
+          "doesNotEstablish": [
+            "Toteuman sijaintihyväksyntä",
+            "CURRENT/as-built-hyväksyntä"
+          ]
+        }
+      ],
+      "derivedDimensions": [
+        {
+          "label": "Alareuna lattiasta",
+          "valueMm": 1170,
+          "calculation": "865 + 305",
+          "evidence": "DERIVED_FROM_RECORDED_COUNTER_HEIGHT_AND_USER_GAP"
+        },
+        {
+          "label": "Yläreuna lattiasta",
+          "valueMm": 2130,
+          "calculation": "865 + 305 + 960",
+          "evidence": "DERIVED_NOT_SEPARATE_FIELD_MEASUREMENT"
+        }
+      ],
+      "workAssumptions": [
+        {
+          "label": "Etupaneelien väliin/reunoille jakautuva 25 mm",
+          "allocation": "5 x 5 mm",
+          "isMeasured": false
+        },
+        {
+          "label": "Etupaneelien pystyvara",
+          "valueMmEachEdge": 6,
+          "isMeasured": false
+        },
+        {
+          "label": "Host-seinäpinta ja sijoittelun plan-Y",
+          "value": "Avoin lähdesovitus",
+          "isMeasured": false
+        }
+      ],
+      "review": {
+        "visualShapeAndProportions": "ACCEPTED_WORK_TEST_2026-10-20",
+        "exactInstalledLocationVerified": false,
+        "doNotWriteBackHumanReviewFlags": true
+      },
+      "limits": {
+        "current": false,
+        "asBuilt": false,
+        "physicalWallHostVerified": false,
+        "noAutomaticShiftToPlanY2_654M": true,
+        "noRepeatMeasurementRequest": true
+      },
+      "targetBindings": [
+        {
+          "nodeIndex": 221,
+          "nodeName": "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2959_PRESENTATION_CLONE_2854_D1F_MIRROR_305MM_SAUNA_EDGE_CONDITIONAL_Y_PLUS_10MM_WORK_TEST",
+          "meshIndex": null,
+          "partLabel": "Peilikaapin ryhmä",
+          "resolveToCardId": "KPH_MIRROR_SHARED302",
+          "originalExtras": {
+            "WORK_TEST_ONLY": true,
+            "current": false,
+            "Canonical": false,
+            "asBuilt": false,
+            "publishToCURRENT": false,
+            "HUMAN_REVIEW": "NOT_RUN",
+            "donorMeasuredZipDriveId": "1ccXRhfkU06NVCI-al2-KYXuKcSqMTRsw",
+            "donorGLBSha256": "e7c25a164a2a8f1ce8c7b060651f7adeb23b43044f6100377f8cc7dba3052ad1",
+            "supersedesPriorRootNode": 2557,
+            "priorCabinet19MeshesPreservedInHistory": true,
+            "userFieldMeasured": {
+              "widthMm": 1405,
+              "heightMm": 960,
+              "depthMmApprox": 140,
+              "saunaWallGapMm": 305,
+              "bottomAboveCounterMm": 305,
+              "counterHeightMm": 865
+            },
+            "leftToRightPanelMm": [
+              395,
+              295,
+              295,
+              395
+            ],
+            "frontSurfaceRoles": [
+              "WOOD",
+              "MIRROR",
+              "MIRROR",
+              "MIRROR"
+            ],
+            "rightShortSideMaterial": "MIRROR_USER_VISUAL_CONFIRMATION_20261018",
+            "unallocatedWidthMm": 25,
+            "five5mmTrimVisualOnly": true,
+            "roomLeftYAssumptionM": 2.347,
+            "exactSaunaFaceY": null,
+            "lightReview": "GENERAL_FORM_ACCEPTED_CORRECTED_RIGHT_MIRROR_ONLY",
+            "productionWebGL": false,
+            "conditionalMirrorPlanYShiftMm": 10,
+            "conditionalSaunaCeilingEdgeYAssumptionM": 2.042,
+            "userFieldMeasuredWallGapMm": 305,
+            "shelfGapDerivedFromProxyMm": 28,
+            "shelfRealWorldPositionVerified": false,
+            "saunaFinishedWallFaceCoordinateVerified": false,
+            "_sourceOriginalNodeIndex": 2854,
+            "_sourceOriginalGlbSha256": "14eed1eff91785682ac7d5c7cd0e9dec6b2ba053f41f539242e2ab120a29af51",
+            "presentationOnly": true,
+            "CURRENT": false,
+            "canonical": false,
+            "_parentSceneOriginalNodeId": 2959,
+            "sourceSha256": "14eed1eff91785682ac7d5c7cd0e9dec6b2ba053f41f539242e2ab120a29af51",
+            "workTestOnly": true,
+            "humanReview": "NOT_RUN"
+          },
+          "sourceKey": "donorMeasuredZipDriveId",
+          "sourceValue": "1ccXRhfkU06NVCI-al2-KYXuKcSqMTRsw"
+        },
+        {
+          "nodeIndex": 222,
+          "nodeName": "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2960_PRESENTATION_CLONE_2583_KPH_MIRROR_BODY_1405x960x140mm_USER_MEASURED_ENVELOPE",
+          "meshIndex": 196,
+          "partLabel": "Runko",
+          "resolveToCardId": "KPH_MIRROR_SHARED302",
+          "originalExtras": {
+            "sourceDonorNode": 1,
+            "workTestOnly": true,
+            "current": false,
+            "canonical": false,
+            "asBuilt": false,
+            "HUMAN_REVIEW": "NOT_RUN",
+            "acceptedReviewScope": "LIGHT_GENERAL_FORM_ONLY_20261018",
+            "rightShortSideMirrored": true,
+            "_sourceOriginalNodeIndex": 2583,
+            "_sourceOriginalGlbSha256": "14eed1eff91785682ac7d5c7cd0e9dec6b2ba053f41f539242e2ab120a29af51",
+            "presentationOnly": true,
+            "CURRENT": false,
+            "_parentSceneOriginalNodeId": 2960,
+            "sourceSha256": "14eed1eff91785682ac7d5c7cd0e9dec6b2ba053f41f539242e2ab120a29af51",
+            "humanReview": "NOT_RUN"
+          },
+          "sourceDonorNode": 1,
+          "donorNodeName": "KPH_MIRROR_BODY_1405x960x140mm_USER_MEASURED_ENVELOPE",
+          "localBoundsM": {
+            "min": [
+              -0.4000000059604645,
+              -0.125,
+              1.090000033378601
+            ],
+            "max": [
+              1.0,
+              0.0,
+              2.049999952316284
+            ]
+          }
+        },
+        {
+          "nodeIndex": 223,
+          "nodeName": "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2961_PRESENTATION_CLONE_2584_KPH_MIRROR_FRONT_PUU_LEFT",
+          "meshIndex": 197,
+          "partLabel": "Vasen puupaneeli",
+          "resolveToCardId": "KPH_MIRROR_SHARED302",
+          "originalExtras": {
+            "sourceDonorNode": 2,
+            "workTestOnly": true,
+            "current": false,
+            "canonical": false,
+            "asBuilt": false,
+            "HUMAN_REVIEW": "NOT_RUN",
+            "acceptedReviewScope": "LIGHT_GENERAL_FORM_ONLY_20261018",
+            "rightShortSideMirrored": true,
+            "_sourceOriginalNodeIndex": 2584,
+            "_sourceOriginalGlbSha256": "14eed1eff91785682ac7d5c7cd0e9dec6b2ba053f41f539242e2ab120a29af51",
+            "presentationOnly": true,
+            "CURRENT": false,
+            "_parentSceneOriginalNodeId": 2961,
+            "sourceSha256": "14eed1eff91785682ac7d5c7cd0e9dec6b2ba053f41f539242e2ab120a29af51",
+            "humanReview": "NOT_RUN"
+          },
+          "sourceDonorNode": 2,
+          "donorNodeName": "KPH_MIRROR_FRONT_PUU_LEFT",
+          "localBoundsM": {
+            "min": [
+              -0.39500001072883606,
+              -0.14000000059604645,
+              1.0959999561309814
+            ],
+            "max": [
+              0.0,
+              -0.12800000607967377,
+              2.0439999103546143
+            ]
+          }
+        },
+        {
+          "nodeIndex": 224,
+          "nodeName": "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2962_PRESENTATION_CLONE_2585_KPH_MIRROR_FRONT_PEILI_1",
+          "meshIndex": 198,
+          "partLabel": "Peilipaneeli 1",
+          "resolveToCardId": "KPH_MIRROR_SHARED302",
+          "originalExtras": {
+            "sourceDonorNode": 3,
+            "workTestOnly": true,
+            "current": false,
+            "canonical": false,
+            "asBuilt": false,
+            "HUMAN_REVIEW": "NOT_RUN",
+            "acceptedReviewScope": "LIGHT_GENERAL_FORM_ONLY_20261018",
+            "rightShortSideMirrored": true,
+            "_sourceOriginalNodeIndex": 2585,
+            "_sourceOriginalGlbSha256": "14eed1eff91785682ac7d5c7cd0e9dec6b2ba053f41f539242e2ab120a29af51",
+            "presentationOnly": true,
+            "CURRENT": false,
+            "_parentSceneOriginalNodeId": 2962,
+            "sourceSha256": "14eed1eff91785682ac7d5c7cd0e9dec6b2ba053f41f539242e2ab120a29af51",
+            "humanReview": "NOT_RUN"
+          },
+          "sourceDonorNode": 3,
+          "donorNodeName": "KPH_MIRROR_FRONT_PEILI_1",
+          "localBoundsM": {
+            "min": [
+              0.004999999888241291,
+              -0.14000000059604645,
+              1.0959999561309814
+            ],
+            "max": [
+              0.30000001192092896,
+              -0.12800000607967377,
+              2.0439999103546143
+            ]
+          }
+        },
+        {
+          "nodeIndex": 225,
+          "nodeName": "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2963_PRESENTATION_CLONE_2586_KPH_MIRROR_FRONT_PEILI_2",
+          "meshIndex": 199,
+          "partLabel": "Peilipaneeli 2",
+          "resolveToCardId": "KPH_MIRROR_SHARED302",
+          "originalExtras": {
+            "sourceDonorNode": 4,
+            "workTestOnly": true,
+            "current": false,
+            "canonical": false,
+            "asBuilt": false,
+            "HUMAN_REVIEW": "NOT_RUN",
+            "acceptedReviewScope": "LIGHT_GENERAL_FORM_ONLY_20261018",
+            "rightShortSideMirrored": true,
+            "_sourceOriginalNodeIndex": 2586,
+            "_sourceOriginalGlbSha256": "14eed1eff91785682ac7d5c7cd0e9dec6b2ba053f41f539242e2ab120a29af51",
+            "presentationOnly": true,
+            "CURRENT": false,
+            "_parentSceneOriginalNodeId": 2963,
+            "sourceSha256": "14eed1eff91785682ac7d5c7cd0e9dec6b2ba053f41f539242e2ab120a29af51",
+            "humanReview": "NOT_RUN"
+          },
+          "sourceDonorNode": 4,
+          "donorNodeName": "KPH_MIRROR_FRONT_PEILI_2",
+          "localBoundsM": {
+            "min": [
+              0.3050000071525574,
+              -0.14000000059604645,
+              1.0959999561309814
+            ],
+            "max": [
+              0.6000000238418579,
+              -0.12800000607967377,
+              2.0439999103546143
+            ]
+          }
+        },
+        {
+          "nodeIndex": 226,
+          "nodeName": "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2964_PRESENTATION_CLONE_2587_KPH_MIRROR_FRONT_PEILI_3",
+          "meshIndex": 200,
+          "partLabel": "Peilipaneeli 3",
+          "resolveToCardId": "KPH_MIRROR_SHARED302",
+          "originalExtras": {
+            "sourceDonorNode": 5,
+            "workTestOnly": true,
+            "current": false,
+            "canonical": false,
+            "asBuilt": false,
+            "HUMAN_REVIEW": "NOT_RUN",
+            "acceptedReviewScope": "LIGHT_GENERAL_FORM_ONLY_20261018",
+            "rightShortSideMirrored": true,
+            "_sourceOriginalNodeIndex": 2587,
+            "_sourceOriginalGlbSha256": "14eed1eff91785682ac7d5c7cd0e9dec6b2ba053f41f539242e2ab120a29af51",
+            "presentationOnly": true,
+            "CURRENT": false,
+            "_parentSceneOriginalNodeId": 2964,
+            "sourceSha256": "14eed1eff91785682ac7d5c7cd0e9dec6b2ba053f41f539242e2ab120a29af51",
+            "humanReview": "NOT_RUN"
+          },
+          "sourceDonorNode": 5,
+          "donorNodeName": "KPH_MIRROR_FRONT_PEILI_3",
+          "localBoundsM": {
+            "min": [
+              0.6050000190734863,
+              -0.14000000059604645,
+              1.0959999561309814
+            ],
+            "max": [
+              1.0,
+              -0.12800000607967377,
+              2.0439999103546143
+            ]
+          }
+        },
+        {
+          "nodeIndex": 227,
+          "nodeName": "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2965_PRESENTATION_CLONE_2588_KPH_WORK_ASSUMPTION_5mm_TRIM_GAP_0",
+          "meshIndex": 201,
+          "partLabel": "Reuna-/rakotyöoletus 1",
+          "resolveToCardId": "KPH_MIRROR_SHARED302",
+          "originalExtras": {
+            "sourceDonorNode": 6,
+            "workTestOnly": true,
+            "current": false,
+            "canonical": false,
+            "asBuilt": false,
+            "HUMAN_REVIEW": "NOT_RUN",
+            "acceptedReviewScope": "LIGHT_GENERAL_FORM_ONLY_20261018",
+            "rightShortSideMirrored": true,
+            "_sourceOriginalNodeIndex": 2588,
+            "_sourceOriginalGlbSha256": "14eed1eff91785682ac7d5c7cd0e9dec6b2ba053f41f539242e2ab120a29af51",
+            "presentationOnly": true,
+            "CURRENT": false,
+            "_parentSceneOriginalNodeId": 2965,
+            "sourceSha256": "14eed1eff91785682ac7d5c7cd0e9dec6b2ba053f41f539242e2ab120a29af51",
+            "humanReview": "NOT_RUN"
+          },
+          "sourceDonorNode": 6,
+          "donorNodeName": "KPH_WORK_ASSUMPTION_5mm_TRIM_GAP_0",
+          "localBoundsM": {
+            "min": [
+              -0.4000000059604645,
+              -0.13600000739097595,
+              1.0959999561309814
+            ],
+            "max": [
+              -0.39500001072883606,
+              -0.12600000202655792,
+              2.0439999103546143
+            ]
+          }
+        },
+        {
+          "nodeIndex": 228,
+          "nodeName": "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2966_PRESENTATION_CLONE_2589_KPH_WORK_ASSUMPTION_5mm_TRIM_GAP_1",
+          "meshIndex": 202,
+          "partLabel": "Reuna-/rakotyöoletus 2",
+          "resolveToCardId": "KPH_MIRROR_SHARED302",
+          "originalExtras": {
+            "sourceDonorNode": 7,
+            "workTestOnly": true,
+            "current": false,
+            "canonical": false,
+            "asBuilt": false,
+            "HUMAN_REVIEW": "NOT_RUN",
+            "acceptedReviewScope": "LIGHT_GENERAL_FORM_ONLY_20261018",
+            "rightShortSideMirrored": true,
+            "_sourceOriginalNodeIndex": 2589,
+            "_sourceOriginalGlbSha256": "14eed1eff91785682ac7d5c7cd0e9dec6b2ba053f41f539242e2ab120a29af51",
+            "presentationOnly": true,
+            "CURRENT": false,
+            "_parentSceneOriginalNodeId": 2966,
+            "sourceSha256": "14eed1eff91785682ac7d5c7cd0e9dec6b2ba053f41f539242e2ab120a29af51",
+            "humanReview": "NOT_RUN"
+          },
+          "sourceDonorNode": 7,
+          "donorNodeName": "KPH_WORK_ASSUMPTION_5mm_TRIM_GAP_1",
+          "localBoundsM": {
+            "min": [
+              0.0,
+              -0.13600000739097595,
+              1.0959999561309814
+            ],
+            "max": [
+              0.004999999888241291,
+              -0.12600000202655792,
+              2.0439999103546143
+            ]
+          }
+        },
+        {
+          "nodeIndex": 229,
+          "nodeName": "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2967_PRESENTATION_CLONE_2590_KPH_WORK_ASSUMPTION_5mm_TRIM_GAP_2",
+          "meshIndex": 203,
+          "partLabel": "Reuna-/rakotyöoletus 3",
+          "resolveToCardId": "KPH_MIRROR_SHARED302",
+          "originalExtras": {
+            "sourceDonorNode": 8,
+            "workTestOnly": true,
+            "current": false,
+            "canonical": false,
+            "asBuilt": false,
+            "HUMAN_REVIEW": "NOT_RUN",
+            "acceptedReviewScope": "LIGHT_GENERAL_FORM_ONLY_20261018",
+            "rightShortSideMirrored": true,
+            "_sourceOriginalNodeIndex": 2590,
+            "_sourceOriginalGlbSha256": "14eed1eff91785682ac7d5c7cd0e9dec6b2ba053f41f539242e2ab120a29af51",
+            "presentationOnly": true,
+            "CURRENT": false,
+            "_parentSceneOriginalNodeId": 2967,
+            "sourceSha256": "14eed1eff91785682ac7d5c7cd0e9dec6b2ba053f41f539242e2ab120a29af51",
+            "humanReview": "NOT_RUN"
+          },
+          "sourceDonorNode": 8,
+          "donorNodeName": "KPH_WORK_ASSUMPTION_5mm_TRIM_GAP_2",
+          "localBoundsM": {
+            "min": [
+              0.30000001192092896,
+              -0.13600000739097595,
+              1.0959999561309814
+            ],
+            "max": [
+              0.3050000071525574,
+              -0.12600000202655792,
+              2.0439999103546143
+            ]
+          }
+        },
+        {
+          "nodeIndex": 230,
+          "nodeName": "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2968_PRESENTATION_CLONE_2591_KPH_WORK_ASSUMPTION_5mm_TRIM_GAP_3",
+          "meshIndex": 204,
+          "partLabel": "Reuna-/rakotyöoletus 4",
+          "resolveToCardId": "KPH_MIRROR_SHARED302",
+          "originalExtras": {
+            "sourceDonorNode": 9,
+            "workTestOnly": true,
+            "current": false,
+            "canonical": false,
+            "asBuilt": false,
+            "HUMAN_REVIEW": "NOT_RUN",
+            "acceptedReviewScope": "LIGHT_GENERAL_FORM_ONLY_20261018",
+            "rightShortSideMirrored": true,
+            "_sourceOriginalNodeIndex": 2591,
+            "_sourceOriginalGlbSha256": "14eed1eff91785682ac7d5c7cd0e9dec6b2ba053f41f539242e2ab120a29af51",
+            "presentationOnly": true,
+            "CURRENT": false,
+            "_parentSceneOriginalNodeId": 2968,
+            "sourceSha256": "14eed1eff91785682ac7d5c7cd0e9dec6b2ba053f41f539242e2ab120a29af51",
+            "humanReview": "NOT_RUN"
+          },
+          "sourceDonorNode": 9,
+          "donorNodeName": "KPH_WORK_ASSUMPTION_5mm_TRIM_GAP_3",
+          "localBoundsM": {
+            "min": [
+              0.6000000238418579,
+              -0.13600000739097595,
+              1.0959999561309814
+            ],
+            "max": [
+              0.6050000190734863,
+              -0.12600000202655792,
+              2.0439999103546143
+            ]
+          }
+        },
+        {
+          "nodeIndex": 231,
+          "nodeName": "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2969_PRESENTATION_CLONE_2592_KPH_WORK_ASSUMPTION_5mm_TRIM_GAP_4",
+          "meshIndex": 205,
+          "partLabel": "Reuna-/rakotyöoletus 5",
+          "resolveToCardId": "KPH_MIRROR_SHARED302",
+          "originalExtras": {
+            "sourceDonorNode": 10,
+            "workTestOnly": true,
+            "current": false,
+            "canonical": false,
+            "asBuilt": false,
+            "HUMAN_REVIEW": "NOT_RUN",
+            "acceptedReviewScope": "LIGHT_GENERAL_FORM_ONLY_20261018",
+            "rightShortSideMirrored": true,
+            "_sourceOriginalNodeIndex": 2592,
+            "_sourceOriginalGlbSha256": "14eed1eff91785682ac7d5c7cd0e9dec6b2ba053f41f539242e2ab120a29af51",
+            "presentationOnly": true,
+            "CURRENT": false,
+            "_parentSceneOriginalNodeId": 2969,
+            "sourceSha256": "14eed1eff91785682ac7d5c7cd0e9dec6b2ba053f41f539242e2ab120a29af51",
+            "humanReview": "NOT_RUN"
+          },
+          "sourceDonorNode": 10,
+          "donorNodeName": "KPH_WORK_ASSUMPTION_5mm_TRIM_GAP_4",
+          "localBoundsM": {
+            "min": [
+              1.0,
+              -0.13600000739097595,
+              1.0959999561309814
+            ],
+            "max": [
+              1.0049999952316284,
+              -0.12600000202655792,
+              2.0439999103546143
+            ]
+          }
+        },
+        {
+          "nodeIndex": 232,
+          "nodeName": "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2970_PRESENTATION_CLONE_2593_KPH_MIRROR_RIGHT_END_SIDE_USER_CONFIRMED",
+          "meshIndex": 206,
+          "partLabel": "Oikean päädyn peilipinta",
+          "resolveToCardId": "KPH_MIRROR_SHARED302",
+          "originalExtras": {
+            "sourceDonorNode": 11,
+            "workTestOnly": true,
+            "current": false,
+            "canonical": false,
+            "asBuilt": false,
+            "HUMAN_REVIEW": "NOT_RUN",
+            "acceptedReviewScope": "LIGHT_GENERAL_FORM_ONLY_20261018",
+            "rightShortSideMirrored": true,
+            "_sourceOriginalNodeIndex": 2593,
+            "_sourceOriginalGlbSha256": "14eed1eff91785682ac7d5c7cd0e9dec6b2ba053f41f539242e2ab120a29af51",
+            "presentationOnly": true,
+            "CURRENT": false,
+            "_parentSceneOriginalNodeId": 2970,
+            "sourceSha256": "14eed1eff91785682ac7d5c7cd0e9dec6b2ba053f41f539242e2ab120a29af51",
+            "humanReview": "NOT_RUN"
+          },
+          "sourceDonorNode": 11,
+          "donorNodeName": "KPH_MIRROR_RIGHT_END_SIDE_USER_CONFIRMED",
+          "localBoundsM": {
+            "min": [
+              1.003000020980835,
+              -0.13699999451637268,
+              1.0959999561309814
+            ],
+            "max": [
+              1.0049999952316284,
+              -0.0020000000949949026,
+              2.0439999103546143
+            ]
+          }
+        },
+        {
+          "nodeIndex": 233,
+          "nodeName": "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2971_PRESENTATION_CLONE_2594_KPH_MIRROR_FRONT_LOWER_EDGE_PEILI_1",
+          "meshIndex": 207,
+          "partLabel": "Peilipaneelin 1 alareuna",
+          "resolveToCardId": "KPH_MIRROR_SHARED302",
+          "originalExtras": {
+            "sourceDonorNode": 12,
+            "workTestOnly": true,
+            "current": false,
+            "canonical": false,
+            "asBuilt": false,
+            "HUMAN_REVIEW": "NOT_RUN",
+            "acceptedReviewScope": "LIGHT_GENERAL_FORM_ONLY_20261018",
+            "rightShortSideMirrored": true,
+            "_sourceOriginalNodeIndex": 2594,
+            "_sourceOriginalGlbSha256": "14eed1eff91785682ac7d5c7cd0e9dec6b2ba053f41f539242e2ab120a29af51",
+            "presentationOnly": true,
+            "CURRENT": false,
+            "_parentSceneOriginalNodeId": 2971,
+            "sourceSha256": "14eed1eff91785682ac7d5c7cd0e9dec6b2ba053f41f539242e2ab120a29af51",
+            "humanReview": "NOT_RUN"
+          },
+          "sourceDonorNode": 12,
+          "donorNodeName": "KPH_MIRROR_FRONT_LOWER_EDGE_PEILI_1",
+          "localBoundsM": {
+            "min": [
+              0.00800000037997961,
+              -0.14000000059604645,
+              1.0980000495910645
+            ],
+            "max": [
+              0.296999990940094,
+              -0.1379999965429306,
+              1.1009999513626099
+            ]
+          }
+        },
+        {
+          "nodeIndex": 234,
+          "nodeName": "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2972_PRESENTATION_CLONE_2595_KPH_MIRROR_FRONT_LOWER_EDGE_PEILI_2",
+          "meshIndex": 208,
+          "partLabel": "Peilipaneelin 2 alareuna",
+          "resolveToCardId": "KPH_MIRROR_SHARED302",
+          "originalExtras": {
+            "sourceDonorNode": 13,
+            "workTestOnly": true,
+            "current": false,
+            "canonical": false,
+            "asBuilt": false,
+            "HUMAN_REVIEW": "NOT_RUN",
+            "acceptedReviewScope": "LIGHT_GENERAL_FORM_ONLY_20261018",
+            "rightShortSideMirrored": true,
+            "_sourceOriginalNodeIndex": 2595,
+            "_sourceOriginalGlbSha256": "14eed1eff91785682ac7d5c7cd0e9dec6b2ba053f41f539242e2ab120a29af51",
+            "presentationOnly": true,
+            "CURRENT": false,
+            "_parentSceneOriginalNodeId": 2972,
+            "sourceSha256": "14eed1eff91785682ac7d5c7cd0e9dec6b2ba053f41f539242e2ab120a29af51",
+            "humanReview": "NOT_RUN"
+          },
+          "sourceDonorNode": 13,
+          "donorNodeName": "KPH_MIRROR_FRONT_LOWER_EDGE_PEILI_2",
+          "localBoundsM": {
+            "min": [
+              0.30799999833106995,
+              -0.14000000059604645,
+              1.0980000495910645
+            ],
+            "max": [
+              0.597000002861023,
+              -0.1379999965429306,
+              1.1009999513626099
+            ]
+          }
+        },
+        {
+          "nodeIndex": 235,
+          "nodeName": "R989_FLOOR_INTEGRATION_DERIVED_CLONE_2973_PRESENTATION_CLONE_2596_KPH_MIRROR_FRONT_LOWER_EDGE_PEILI_3",
+          "meshIndex": 209,
+          "partLabel": "Peilipaneelin 3 alareuna",
+          "resolveToCardId": "KPH_MIRROR_SHARED302",
+          "originalExtras": {
+            "sourceDonorNode": 14,
+            "workTestOnly": true,
+            "current": false,
+            "canonical": false,
+            "asBuilt": false,
+            "HUMAN_REVIEW": "NOT_RUN",
+            "acceptedReviewScope": "LIGHT_GENERAL_FORM_ONLY_20261018",
+            "rightShortSideMirrored": true,
+            "_sourceOriginalNodeIndex": 2596,
+            "_sourceOriginalGlbSha256": "14eed1eff91785682ac7d5c7cd0e9dec6b2ba053f41f539242e2ab120a29af51",
+            "presentationOnly": true,
+            "CURRENT": false,
+            "_parentSceneOriginalNodeId": 2973,
+            "sourceSha256": "14eed1eff91785682ac7d5c7cd0e9dec6b2ba053f41f539242e2ab120a29af51",
+            "humanReview": "NOT_RUN"
+          },
+          "sourceDonorNode": 14,
+          "donorNodeName": "KPH_MIRROR_FRONT_LOWER_EDGE_PEILI_3",
+          "localBoundsM": {
+            "min": [
+              0.6079999804496765,
+              -0.14000000059604645,
+              1.0980000495910645
+            ],
+            "max": [
+              0.996999979019165,
+              -0.1379999965429306,
+              1.1009999513626099
+            ]
+          }
+        }
+      ],
+      "modelAuditNotes": [
+        "SHARED302:n rungon mesh 196 on 1400 mm leveä, donor-runko 1405 mm. Muut 13 osaa vastaavat donor-boundsia ja koko kaapin ulkomitta on edelleen 1405 mm. Tämä on QA-osion 7 kanssa yhtäpitävä rakenne-ero, ei uusi käyttäjämitta tai syy muuttaa hyväksyttyä kokonaisulkomittaa."
+      ]
+    }
+  ]
+}

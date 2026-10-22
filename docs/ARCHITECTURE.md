@@ -102,6 +102,8 @@ Varsinainen 3D-malli ei kuulu Git-repositoryyn eikä Astro-buildin julkisiin ass
 
 Viewer käyttää repositoryn yhteistä npm Three.js -runtimea. Se ei käytä erillistä CDN-runtimea eikä muodosta rinnakkaista 3D-kirjastopinon versiota.
 
+Objektien lähdekortit palvellaan Access-tarkistetusta `/private-model/source-cards.json`-reitistä. Alkuperäiset sidecar-moduulit säilyvät Workerissä, eivät julkisissa Astro-asseteissa. Tavallinen mallilataus laskee SHA-256:n samoista tavuista, jotka GLTFLoader avaa. Kortti edellyttää lisäksi alkuperäistä sisäistä sceneä, solmua, lähdekenttiä ja hierarkiaa. Erikoisnäkymät ja uudet malliversiot eivät peri vanhoja kortteja ilman varmennettua sidontaa. Kortti ei muuta mallia, lähderooleja tai toteuma- ja katselmusmerkintöjä.
+
 ## Animation Lab
 
 Animation Lab sijaitsee `src/pages/lab/`-reitissä. Uusien interaktiivisten animaatiotutkielmien pariteettisääntö on määritelty `AGENTS.md`-tiedostossa.

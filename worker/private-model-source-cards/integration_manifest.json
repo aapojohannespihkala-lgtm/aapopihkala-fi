@@ -1,0 +1,143 @@
+{
+  "schema": "ylisrinne-source-card-integration-handoff-v1",
+  "createdDate": "2026-10-20",
+  "status": "DATA_CONSOLIDATED_NOT_UI_INTEGRATED",
+  "ownership": {
+    "ChatGPT": "Mallidata, lähderoolit ja kohdistusten QA",
+    "Claude": "Nykyisen viewerin adapteri ja UI-testi"
+  },
+  "totals": {
+    "cards": 18,
+    "targetBindings": 38,
+    "modelScopes": 2,
+    "cardLevelSourceRoleRecords": 35,
+    "note": "35 on korttien lähderoolien tietuemäärä, ei GLB-sourceLinks-määrä tai yksilöllisten lähdetiedostojen määrä."
+  },
+  "models": [
+    {
+      "driveId": "1UPlDDRwI3-s4TWOJoVvBtt90DgbJ6MX4",
+      "fileName": "Ylisrinne_D2015_SAHKO_RYHMAT_JA_ERIKOISMERKINNAT_P186E_X1_WORK_TEST_20261020__scene64.glb",
+      "sha256": "a92cecbdb419048ca985bbc91663f7c511929924bf889cabc8cc3847602dacb5",
+      "sceneIndex": 64
+    },
+    {
+      "driveId": "1ZkL55zvoJl0mHXtD-oZdWRMRAvSPryyG",
+      "fileName": "Ylisrinne_PERUSMALLI_SHARED302_WORK_TEST_20261020.glb",
+      "sha256": "94ce14fe308a1591db31a72a0db01f5fdcb125865c95d117377fd9f7d1f4d6dd",
+      "sceneIndex": 0
+    }
+  ],
+  "modules": [
+    {
+      "module": "D2015",
+      "driveId": "1TBOMPdajJAtawR_p42t2PmJp7UjQEw6-",
+      "driveUrl": "https://drive.google.com/file/d/1TBOMPdajJAtawR_p42t2PmJp7UjQEw6-/view",
+      "originalZipFileName": "Ylisrinne_D2F_lahdekortit_G1-G15_S1_WORK_TEST_20261020.zip",
+      "originalZipSha256": "75adab63f4aacf1fb04855f5e2bfb6595914dec47e9d8bb4a3cae429735dd56f",
+      "originalZipBytes": 5003,
+      "payloadSchema": "ylisrinne-electrical-source-cards-sidecar-v1",
+      "modelSha256": "a92cecbdb419048ca985bbc91663f7c511929924bf889cabc8cc3847602dacb5",
+      "sceneIndex": 64,
+      "cardCount": 16,
+      "targetCount": 16,
+      "inputValidationStatus": "PASS",
+      "payloadFile": "modules/D2015/source_cards.json",
+      "rawPayloadSha256": "5c0b53ea4c45b0d7279ef5e478bfb7e472f3dd8fe133548fc39361aff86e244b"
+    },
+    {
+      "module": "KPH09_SWITCH",
+      "driveId": "1i00cY9Oxolc3Ym-1JMHLnZVBaRQOgp9x",
+      "driveUrl": "https://drive.google.com/file/d/1i00cY9Oxolc3Ym-1JMHLnZVBaRQOgp9x/view",
+      "originalZipFileName": "Ylisrinne_KPH09_kytkinryhman_lahdekortti_SHARED302_WORK_TEST_20261020.zip",
+      "originalZipSha256": "2b9687b33c50bc06b4caddc1a93ecd636d204a17ebf453085b314bc9732413b2",
+      "originalZipBytes": 5081,
+      "payloadSchema": "ylisrinne-source-card-group-sidecar-v1",
+      "modelSha256": "94ce14fe308a1591db31a72a0db01f5fdcb125865c95d117377fd9f7d1f4d6dd",
+      "sceneIndex": 0,
+      "cardCount": 1,
+      "targetCount": 7,
+      "inputValidationStatus": "PASS",
+      "payloadFile": "modules/KPH09_SWITCH/source_cards.json",
+      "rawPayloadSha256": "c2a9970ceaf0cb79f082b49f00153c2048e2b44f078f1ba920b9b5603d42aad3"
+    },
+    {
+      "module": "KPH_MIRROR",
+      "driveId": "1ySuyjckRKP6WluOCxI22dwwA7eNDdNLm",
+      "driveUrl": "https://drive.google.com/file/d/1ySuyjckRKP6WluOCxI22dwwA7eNDdNLm/view",
+      "originalZipFileName": "Ylisrinne_peilikaapin_lahdekortti_SHARED302_WORK_TEST_20261020.zip",
+      "originalZipSha256": "d56373e6eb2205568a6e5b8813f8de818c656eb177ac3cad728ebabf43018537",
+      "originalZipBytes": 6939,
+      "payloadSchema": "ylisrinne-source-card-group-sidecar-v1",
+      "modelSha256": "94ce14fe308a1591db31a72a0db01f5fdcb125865c95d117377fd9f7d1f4d6dd",
+      "sceneIndex": 0,
+      "cardCount": 1,
+      "targetCount": 15,
+      "inputValidationStatus": "PASS_WITH_DOCUMENTED_BODY_BOUNDS_DIFFERENCE",
+      "payloadFile": "modules/KPH_MIRROR/source_cards.json",
+      "rawPayloadSha256": "a5736441819d056ec7003d8c21297539ded66e2380f7e6b4a7c5f2fe2979f444"
+    }
+  ],
+  "selectionKey": [
+    "modelSha256",
+    "sceneIndex",
+    "nodeIndex"
+  ],
+  "selectionRule": "Tarkista lisäksi alkuperäisen moduulin kaikki nimi-, mesh-, lähdekenttä- ja hierarkiaguardit. Tämä indeksi ei korvaa niitä.",
+  "doNotConvertSourceRolesAutomatically": true,
+  "relatedPlansAndSourceOnlyModules": [
+    {
+      "module": "KPH09_sourceLinks_22test",
+      "url": "https://drive.google.com/file/d/1pX0Rzu7--V2I886XejXTX_ngt581QhAn/view",
+      "scope": "7 target nodes / 14 support records / 22 test + 7 add",
+      "recommendation": "Ensisijainen jatkosuunnitelma: kaksi erotettua lähderoolia ja tarkemmat kohdistustestit. Suositus koosteessa, ei automaattinen supersedes-päätös.",
+      "status": "PREPARED_NOT_APPLIED",
+      "expectedLinkedNodeCountAfterApply": 17,
+      "expectedSourceLinkRecordsAfterApply": 39,
+      "applicationAllowedNow": false,
+      "localFileSha256": "2d0d83058a0b14d3a734c853b133db3a8874d3cf1db3aa00ee6ba0050a3ea2bf",
+      "notIncludedAsExecutablePatch": true
+    },
+    {
+      "module": "KPH09_sourceLinks_7test",
+      "url": "https://drive.google.com/file/d/1U2SljkIjPwzNER4upBcwLDOdvqCT8oGE/view",
+      "scope": "7 target nodes / 7 photo support records / 7 test + 7 add",
+      "recommendation": "Vaihtoehtoinen yhden kuvalähteen suunnitelma. Ei sovelleta yhdessä 22 test -suunnitelman kanssa.",
+      "status": "PREPARED_NOT_APPLIED",
+      "expectedLinkedNodeCountAfterApply": 17,
+      "expectedSourceLinkRecordsAfterApply": 32,
+      "evidenceScope": "Kattavuusasiakirjan 11A, ei uutta patch-koeajoa tässä koosteessa."
+    },
+    {
+      "module": "RING_R2_sourceLinks",
+      "url": "https://drive.google.com/file/d/16nBa1PLOEP-B-8zL0QLFYCOgWY6R3Ak4/view",
+      "scope": "13 target objects / 43 links / scene1",
+      "status": "PREPARED_NOT_APPLIED",
+      "requiredModelSha256": "fc5feb0472b15c2e580cd6cb6d720f1d4c186c909860c647b3f41eab888318dd",
+      "applicationGate": "RING R2:n katselmuksen jälkeen erikseen avattava WORK_TEST-päivitys.",
+      "evidenceScope": "Kattavuus 15A, ei uudelleen auditoitu tai sisällytetty 38 kohdistukseen."
+    },
+    {
+      "module": "R476B_PDF",
+      "url": "https://drive.google.com/file/d/1V_SDQ4-aon_qZe2AVkxseyheoPcBGayl/view",
+      "scope": "8 source cards / 12 PDF primitives",
+      "status": "SOURCE_ONLY_NO_INDIVIDUAL_3D_TARGETS",
+      "modelTargetNodeIds": []
+    },
+    {
+      "module": "R476C_target_audit",
+      "url": "https://drive.google.com/file/d/1a2sGHqGIld0KYSzvF2FWLzu1Rmjk1qOw/view",
+      "scope": "8/8 source cards, 0/8 individual 3D targets",
+      "status": "SOURCE_ONLY_NO_INDIVIDUAL_3D_TARGETS",
+      "modelTargetNodeIds": [],
+      "contextOnlyNodeIds": [
+        1063,
+        1064
+      ],
+      "doNotUseContextAsIndividualTarget": true,
+      "evidenceScope": "Kattavuus 23, ei uutta R476-inventaariota."
+    }
+  ],
+  "viewerCompatibility": "Ei ajettu. Kooste ei määrää runtime-latausratkaisua eikä ole viewer-repon muutos.",
+  "modelMutation": "NONE",
+  "publication": "Ei G2b-julkaisujonoon."
+}
