@@ -1,0 +1,1375 @@
+{
+  "schema": "ylisrinne-source-card-version-bindings-v1",
+  "createdDate": "2026-10-22",
+  "totals": {
+    "modelVersions": 2,
+    "targetBindings": 32
+  },
+  "versions": [
+    {
+      "moduleId": "D2015",
+      "sourceModelSha256": "a92cecbdb419048ca985bbc91663f7c511929924bf889cabc8cc3847602dacb5",
+      "model": {
+        "sha256": "826a74615f47f15d516d2956b9649ec23a89976b0fb8b0ab48bd5b230ef2bf5c",
+        "byteLength": 2263608,
+        "sceneIndex": 0,
+        "kind": "drive-source",
+        "driveId": "1WdqV2K5BSyrmVdzKNV6GXfj-JqG_vYht"
+      },
+      "audit": {
+        "geometryAndTransformsUnchanged": true,
+        "semanticFieldsUnchanged": true,
+        "cardCount": 16,
+        "sourceRoleRecords": 31,
+        "geometryProofSha256": "a18150541d56b10fa8717045af0a73683981e66a5292f3f47f782259a6ce7c60"
+      },
+      "bindings": [
+        {
+          "integrationCardId": "D2015::G1",
+          "selector": {
+            "nodeIndex": 398,
+            "nodeName": "P186E_X1_GROUP_LABEL_D_2F_11_2_001",
+            "meshIndex": 198,
+            "extrasKey": "annotationStableKey",
+            "extrasValue": "D2015_GROUP_LABEL::D_2F::11.2::001",
+            "nodePath": [
+              414,
+              398
+            ],
+            "nodePathNames": [
+              "P186E_X1_D2015_GROUP_LABEL_ANCHORS_ROOT_BABYLON_Y_UP",
+              "P186E_X1_GROUP_LABEL_D_2F_11_2_001"
+            ],
+            "extraGuards": {
+              "hostStorey": "D_2F",
+              "representationKind": "electricalGroupSourceLabelAnchor",
+              "sourcePdfDriveId": "1dzzZsa9FCiyqmv8WholhLxba6Kxobspg",
+              "sourceGroupKey": "11.2",
+              "sourceOccurrenceOrdinal": 1,
+              "sourceScheduleName": "Ulko PR parveke"
+            },
+            "sourceLinkGuards": [
+              {
+                "docId": "DOC:1dzzZsa9FCiyqmv8WholhLxba6Kxobspg",
+                "link": "https://drive.google.com/file/d/1dzzZsa9FCiyqmv8WholhLxba6Kxobspg/view",
+                "role": "primary"
+              },
+              {
+                "docId": "DOC:1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP",
+                "link": "https://drive.google.com/file/d/1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP/view",
+                "role": "support",
+                "documentDate": "2014-12-30"
+              }
+            ]
+          },
+          "notes": [
+            "Keskuskaavion painettu päiväys on 30.12.2014. Vuosi 2015 kuvaa suunnitelma-aineiston arkistokontekstia."
+          ]
+        },
+        {
+          "integrationCardId": "D2015::G2",
+          "selector": {
+            "nodeIndex": 399,
+            "nodeName": "P186E_X1_GROUP_LABEL_D_2F_12_2_001",
+            "meshIndex": 198,
+            "extrasKey": "annotationStableKey",
+            "extrasValue": "D2015_GROUP_LABEL::D_2F::12.2::001",
+            "nodePath": [
+              414,
+              399
+            ],
+            "nodePathNames": [
+              "P186E_X1_D2015_GROUP_LABEL_ANCHORS_ROOT_BABYLON_Y_UP",
+              "P186E_X1_GROUP_LABEL_D_2F_12_2_001"
+            ],
+            "extraGuards": {
+              "hostStorey": "D_2F",
+              "representationKind": "electricalGroupSourceLabelAnchor",
+              "sourcePdfDriveId": "1dzzZsa9FCiyqmv8WholhLxba6Kxobspg",
+              "sourceGroupKey": "12.2",
+              "sourceOccurrenceOrdinal": 1,
+              "sourceScheduleName": "MH yläkerta isompi"
+            },
+            "sourceLinkGuards": [
+              {
+                "docId": "DOC:1dzzZsa9FCiyqmv8WholhLxba6Kxobspg",
+                "link": "https://drive.google.com/file/d/1dzzZsa9FCiyqmv8WholhLxba6Kxobspg/view",
+                "role": "primary"
+              },
+              {
+                "docId": "DOC:1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP",
+                "link": "https://drive.google.com/file/d/1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP/view",
+                "role": "support",
+                "documentDate": "2014-12-30"
+              }
+            ]
+          },
+          "notes": [
+            "Keskuskaavion painettu päiväys on 30.12.2014. Vuosi 2015 kuvaa suunnitelma-aineiston arkistokontekstia."
+          ]
+        },
+        {
+          "integrationCardId": "D2015::G3",
+          "selector": {
+            "nodeIndex": 400,
+            "nodeName": "P186E_X1_GROUP_LABEL_D_2F_12_3_001",
+            "meshIndex": 198,
+            "extrasKey": "annotationStableKey",
+            "extrasValue": "D2015_GROUP_LABEL::D_2F::12.3::001",
+            "nodePath": [
+              414,
+              400
+            ],
+            "nodePathNames": [
+              "P186E_X1_D2015_GROUP_LABEL_ANCHORS_ROOT_BABYLON_Y_UP",
+              "P186E_X1_GROUP_LABEL_D_2F_12_3_001"
+            ],
+            "extraGuards": {
+              "hostStorey": "D_2F",
+              "representationKind": "electricalGroupSourceLabelAnchor",
+              "sourcePdfDriveId": "1dzzZsa9FCiyqmv8WholhLxba6Kxobspg",
+              "sourceGroupKey": "12.3",
+              "sourceOccurrenceOrdinal": 1,
+              "sourceScheduleName": "MH yläkerta pienempi"
+            },
+            "sourceLinkGuards": [
+              {
+                "docId": "DOC:1dzzZsa9FCiyqmv8WholhLxba6Kxobspg",
+                "link": "https://drive.google.com/file/d/1dzzZsa9FCiyqmv8WholhLxba6Kxobspg/view",
+                "role": "primary"
+              },
+              {
+                "docId": "DOC:1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP",
+                "link": "https://drive.google.com/file/d/1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP/view",
+                "role": "support",
+                "documentDate": "2014-12-30"
+              }
+            ]
+          },
+          "notes": [
+            "Keskuskaavion painettu päiväys on 30.12.2014. Vuosi 2015 kuvaa suunnitelma-aineiston arkistokontekstia."
+          ]
+        },
+        {
+          "integrationCardId": "D2015::G4",
+          "selector": {
+            "nodeIndex": 401,
+            "nodeName": "P186E_X1_GROUP_LABEL_D_2F_13_1_001",
+            "meshIndex": 198,
+            "extrasKey": "annotationStableKey",
+            "extrasValue": "D2015_GROUP_LABEL::D_2F::13.1::001",
+            "nodePath": [
+              414,
+              401
+            ],
+            "nodePathNames": [
+              "P186E_X1_D2015_GROUP_LABEL_ANCHORS_ROOT_BABYLON_Y_UP",
+              "P186E_X1_GROUP_LABEL_D_2F_13_1_001"
+            ],
+            "extraGuards": {
+              "hostStorey": "D_2F",
+              "representationKind": "electricalGroupSourceLabelAnchor",
+              "sourcePdfDriveId": "1dzzZsa9FCiyqmv8WholhLxba6Kxobspg",
+              "sourceGroupKey": "13.1",
+              "sourceOccurrenceOrdinal": 1,
+              "sourceScheduleName": "PR keittiö"
+            },
+            "sourceLinkGuards": [
+              {
+                "docId": "DOC:1dzzZsa9FCiyqmv8WholhLxba6Kxobspg",
+                "link": "https://drive.google.com/file/d/1dzzZsa9FCiyqmv8WholhLxba6Kxobspg/view",
+                "role": "primary"
+              },
+              {
+                "docId": "DOC:1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP",
+                "link": "https://drive.google.com/file/d/1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP/view",
+                "role": "support",
+                "documentDate": "2014-12-30"
+              }
+            ]
+          },
+          "notes": [
+            "Keskuskaavion painettu päiväys on 30.12.2014. Vuosi 2015 kuvaa suunnitelma-aineiston arkistokontekstia."
+          ]
+        },
+        {
+          "integrationCardId": "D2015::G5",
+          "selector": {
+            "nodeIndex": 402,
+            "nodeName": "P186E_X1_GROUP_LABEL_D_2F_13_1_002",
+            "meshIndex": 198,
+            "extrasKey": "annotationStableKey",
+            "extrasValue": "D2015_GROUP_LABEL::D_2F::13.1::002",
+            "nodePath": [
+              414,
+              402
+            ],
+            "nodePathNames": [
+              "P186E_X1_D2015_GROUP_LABEL_ANCHORS_ROOT_BABYLON_Y_UP",
+              "P186E_X1_GROUP_LABEL_D_2F_13_1_002"
+            ],
+            "extraGuards": {
+              "hostStorey": "D_2F",
+              "representationKind": "electricalGroupSourceLabelAnchor",
+              "sourcePdfDriveId": "1dzzZsa9FCiyqmv8WholhLxba6Kxobspg",
+              "sourceGroupKey": "13.1",
+              "sourceOccurrenceOrdinal": 2,
+              "sourceScheduleName": "PR keittiö"
+            },
+            "sourceLinkGuards": [
+              {
+                "docId": "DOC:1dzzZsa9FCiyqmv8WholhLxba6Kxobspg",
+                "link": "https://drive.google.com/file/d/1dzzZsa9FCiyqmv8WholhLxba6Kxobspg/view",
+                "role": "primary"
+              },
+              {
+                "docId": "DOC:1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP",
+                "link": "https://drive.google.com/file/d/1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP/view",
+                "role": "support",
+                "documentDate": "2014-12-30"
+              }
+            ]
+          },
+          "notes": [
+            "Keskuskaavion painettu päiväys on 30.12.2014. Vuosi 2015 kuvaa suunnitelma-aineiston arkistokontekstia."
+          ]
+        },
+        {
+          "integrationCardId": "D2015::G6",
+          "selector": {
+            "nodeIndex": 403,
+            "nodeName": "P186E_X1_GROUP_LABEL_D_2F_13_2_001",
+            "meshIndex": 198,
+            "extrasKey": "annotationStableKey",
+            "extrasValue": "D2015_GROUP_LABEL::D_2F::13.2::001",
+            "nodePath": [
+              414,
+              403
+            ],
+            "nodePathNames": [
+              "P186E_X1_D2015_GROUP_LABEL_ANCHORS_ROOT_BABYLON_Y_UP",
+              "P186E_X1_GROUP_LABEL_D_2F_13_2_001"
+            ],
+            "extraGuards": {
+              "hostStorey": "D_2F",
+              "representationKind": "electricalGroupSourceLabelAnchor",
+              "sourcePdfDriveId": "1dzzZsa9FCiyqmv8WholhLxba6Kxobspg",
+              "sourceGroupKey": "13.2",
+              "sourceOccurrenceOrdinal": 1,
+              "sourceScheduleName": "APK"
+            },
+            "sourceLinkGuards": [
+              {
+                "docId": "DOC:1dzzZsa9FCiyqmv8WholhLxba6Kxobspg",
+                "link": "https://drive.google.com/file/d/1dzzZsa9FCiyqmv8WholhLxba6Kxobspg/view",
+                "role": "primary"
+              },
+              {
+                "docId": "DOC:1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP",
+                "link": "https://drive.google.com/file/d/1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP/view",
+                "role": "support",
+                "documentDate": "2014-12-30"
+              }
+            ]
+          },
+          "notes": [
+            "Keskuskaavion painettu päiväys on 30.12.2014. Vuosi 2015 kuvaa suunnitelma-aineiston arkistokontekstia."
+          ]
+        },
+        {
+          "integrationCardId": "D2015::G7",
+          "selector": {
+            "nodeIndex": 404,
+            "nodeName": "P186E_X1_GROUP_LABEL_D_2F_13_3_001",
+            "meshIndex": 198,
+            "extrasKey": "annotationStableKey",
+            "extrasValue": "D2015_GROUP_LABEL::D_2F::13.3::001",
+            "nodePath": [
+              414,
+              404
+            ],
+            "nodePathNames": [
+              "P186E_X1_D2015_GROUP_LABEL_ANCHORS_ROOT_BABYLON_Y_UP",
+              "P186E_X1_GROUP_LABEL_D_2F_13_3_001"
+            ],
+            "extraGuards": {
+              "hostStorey": "D_2F",
+              "representationKind": "electricalGroupSourceLabelAnchor",
+              "sourcePdfDriveId": "1dzzZsa9FCiyqmv8WholhLxba6Kxobspg",
+              "sourceGroupKey": "13.3",
+              "sourceOccurrenceOrdinal": 1,
+              "sourceScheduleName": "Uuni"
+            },
+            "sourceLinkGuards": [
+              {
+                "docId": "DOC:1dzzZsa9FCiyqmv8WholhLxba6Kxobspg",
+                "link": "https://drive.google.com/file/d/1dzzZsa9FCiyqmv8WholhLxba6Kxobspg/view",
+                "role": "primary"
+              },
+              {
+                "docId": "DOC:1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP",
+                "link": "https://drive.google.com/file/d/1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP/view",
+                "role": "support",
+                "documentDate": "2014-12-30"
+              }
+            ]
+          },
+          "notes": [
+            "Keskuskaavion painettu päiväys on 30.12.2014. Vuosi 2015 kuvaa suunnitelma-aineiston arkistokontekstia."
+          ]
+        },
+        {
+          "integrationCardId": "D2015::G8",
+          "selector": {
+            "nodeIndex": 405,
+            "nodeName": "P186E_X1_GROUP_LABEL_D_2F_14_1_001",
+            "meshIndex": 198,
+            "extrasKey": "annotationStableKey",
+            "extrasValue": "D2015_GROUP_LABEL::D_2F::14.1::001",
+            "nodePath": [
+              414,
+              405
+            ],
+            "nodePathNames": [
+              "P186E_X1_D2015_GROUP_LABEL_ANCHORS_ROOT_BABYLON_Y_UP",
+              "P186E_X1_GROUP_LABEL_D_2F_14_1_001"
+            ],
+            "extraGuards": {
+              "hostStorey": "D_2F",
+              "representationKind": "electricalGroupSourceLabelAnchor",
+              "sourcePdfDriveId": "1dzzZsa9FCiyqmv8WholhLxba6Kxobspg",
+              "sourceGroupKey": "14.1",
+              "sourceOccurrenceOrdinal": 1,
+              "sourceScheduleName": "Olohuone"
+            },
+            "sourceLinkGuards": [
+              {
+                "docId": "DOC:1dzzZsa9FCiyqmv8WholhLxba6Kxobspg",
+                "link": "https://drive.google.com/file/d/1dzzZsa9FCiyqmv8WholhLxba6Kxobspg/view",
+                "role": "primary"
+              },
+              {
+                "docId": "DOC:1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP",
+                "link": "https://drive.google.com/file/d/1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP/view",
+                "role": "support",
+                "documentDate": "2014-12-30"
+              }
+            ]
+          },
+          "notes": [
+            "Keskuskaavion painettu päiväys on 30.12.2014. Vuosi 2015 kuvaa suunnitelma-aineiston arkistokontekstia."
+          ]
+        },
+        {
+          "integrationCardId": "D2015::G9",
+          "selector": {
+            "nodeIndex": 406,
+            "nodeName": "P186E_X1_GROUP_LABEL_D_2F_14_2_001",
+            "meshIndex": 198,
+            "extrasKey": "annotationStableKey",
+            "extrasValue": "D2015_GROUP_LABEL::D_2F::14.2::001",
+            "nodePath": [
+              414,
+              406
+            ],
+            "nodePathNames": [
+              "P186E_X1_D2015_GROUP_LABEL_ANCHORS_ROOT_BABYLON_Y_UP",
+              "P186E_X1_GROUP_LABEL_D_2F_14_2_001"
+            ],
+            "extraGuards": {
+              "hostStorey": "D_2F",
+              "representationKind": "electricalGroupSourceLabelAnchor",
+              "sourcePdfDriveId": "1dzzZsa9FCiyqmv8WholhLxba6Kxobspg",
+              "sourceGroupKey": "14.2",
+              "sourceOccurrenceOrdinal": 1,
+              "sourceScheduleName": "Viinikaappi"
+            },
+            "sourceLinkGuards": [
+              {
+                "docId": "DOC:1dzzZsa9FCiyqmv8WholhLxba6Kxobspg",
+                "link": "https://drive.google.com/file/d/1dzzZsa9FCiyqmv8WholhLxba6Kxobspg/view",
+                "role": "primary"
+              },
+              {
+                "docId": "DOC:1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP",
+                "link": "https://drive.google.com/file/d/1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP/view",
+                "role": "support",
+                "documentDate": "2014-12-30"
+              }
+            ]
+          },
+          "notes": [
+            "Keskuskaavion painettu päiväys on 30.12.2014. Vuosi 2015 kuvaa suunnitelma-aineiston arkistokontekstia."
+          ]
+        },
+        {
+          "integrationCardId": "D2015::G10",
+          "selector": {
+            "nodeIndex": 407,
+            "nodeName": "P186E_X1_GROUP_LABEL_D_2F_14_3_001",
+            "meshIndex": 198,
+            "extrasKey": "annotationStableKey",
+            "extrasValue": "D2015_GROUP_LABEL::D_2F::14.3::001",
+            "nodePath": [
+              414,
+              407
+            ],
+            "nodePathNames": [
+              "P186E_X1_D2015_GROUP_LABEL_ANCHORS_ROOT_BABYLON_Y_UP",
+              "P186E_X1_GROUP_LABEL_D_2F_14_3_001"
+            ],
+            "extraGuards": {
+              "hostStorey": "D_2F",
+              "representationKind": "electricalGroupSourceLabelAnchor",
+              "sourcePdfDriveId": "1dzzZsa9FCiyqmv8WholhLxba6Kxobspg",
+              "sourceGroupKey": "14.3",
+              "sourceOccurrenceOrdinal": 1,
+              "sourceScheduleName": "Lieistuuletin"
+            },
+            "sourceLinkGuards": [
+              {
+                "docId": "DOC:1dzzZsa9FCiyqmv8WholhLxba6Kxobspg",
+                "link": "https://drive.google.com/file/d/1dzzZsa9FCiyqmv8WholhLxba6Kxobspg/view",
+                "role": "primary"
+              },
+              {
+                "docId": "DOC:1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP",
+                "link": "https://drive.google.com/file/d/1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP/view",
+                "role": "support",
+                "documentDate": "2014-12-30"
+              }
+            ]
+          },
+          "notes": [
+            "Keskuskaavion painettu päiväys on 30.12.2014. Vuosi 2015 kuvaa suunnitelma-aineiston arkistokontekstia."
+          ]
+        },
+        {
+          "integrationCardId": "D2015::G11",
+          "selector": {
+            "nodeIndex": 408,
+            "nodeName": "P186E_X1_GROUP_LABEL_D_2F_15_1_001",
+            "meshIndex": 198,
+            "extrasKey": "annotationStableKey",
+            "extrasValue": "D2015_GROUP_LABEL::D_2F::15.1::001",
+            "nodePath": [
+              414,
+              408
+            ],
+            "nodePathNames": [
+              "P186E_X1_D2015_GROUP_LABEL_ANCHORS_ROOT_BABYLON_Y_UP",
+              "P186E_X1_GROUP_LABEL_D_2F_15_1_001"
+            ],
+            "extraGuards": {
+              "hostStorey": "D_2F",
+              "representationKind": "electricalGroupSourceLabelAnchor",
+              "sourcePdfDriveId": "1dzzZsa9FCiyqmv8WholhLxba6Kxobspg",
+              "sourceGroupKey": "15.1",
+              "sourceOccurrenceOrdinal": 1,
+              "sourceScheduleName": "PR aula/wc"
+            },
+            "sourceLinkGuards": [
+              {
+                "docId": "DOC:1dzzZsa9FCiyqmv8WholhLxba6Kxobspg",
+                "link": "https://drive.google.com/file/d/1dzzZsa9FCiyqmv8WholhLxba6Kxobspg/view",
+                "role": "primary"
+              },
+              {
+                "docId": "DOC:1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP",
+                "link": "https://drive.google.com/file/d/1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP/view",
+                "role": "support",
+                "documentDate": "2014-12-30"
+              }
+            ]
+          },
+          "notes": [
+            "Keskuskaavion painettu päiväys on 30.12.2014. Vuosi 2015 kuvaa suunnitelma-aineiston arkistokontekstia."
+          ]
+        },
+        {
+          "integrationCardId": "D2015::G12",
+          "selector": {
+            "nodeIndex": 409,
+            "nodeName": "P186E_X1_GROUP_LABEL_D_2F_4_3_001",
+            "meshIndex": 198,
+            "extrasKey": "annotationStableKey",
+            "extrasValue": "D2015_GROUP_LABEL::D_2F::4.3::001",
+            "nodePath": [
+              414,
+              409
+            ],
+            "nodePathNames": [
+              "P186E_X1_D2015_GROUP_LABEL_ANCHORS_ROOT_BABYLON_Y_UP",
+              "P186E_X1_GROUP_LABEL_D_2F_4_3_001"
+            ],
+            "extraGuards": {
+              "hostStorey": "D_2F",
+              "representationKind": "electricalGroupSourceLabelAnchor",
+              "sourcePdfDriveId": "1dzzZsa9FCiyqmv8WholhLxba6Kxobspg",
+              "sourceGroupKey": "4.3",
+              "sourceOccurrenceOrdinal": 1,
+              "sourceScheduleName": "Valaistus keittiö"
+            },
+            "sourceLinkGuards": [
+              {
+                "docId": "DOC:1dzzZsa9FCiyqmv8WholhLxba6Kxobspg",
+                "link": "https://drive.google.com/file/d/1dzzZsa9FCiyqmv8WholhLxba6Kxobspg/view",
+                "role": "primary"
+              },
+              {
+                "docId": "DOC:1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP",
+                "link": "https://drive.google.com/file/d/1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP/view",
+                "role": "support",
+                "documentDate": "2014-12-30"
+              }
+            ]
+          },
+          "notes": [
+            "Keskuskaavion painettu päiväys on 30.12.2014. Vuosi 2015 kuvaa suunnitelma-aineiston arkistokontekstia."
+          ]
+        },
+        {
+          "integrationCardId": "D2015::G13",
+          "selector": {
+            "nodeIndex": 410,
+            "nodeName": "P186E_X1_GROUP_LABEL_D_2F_5_1_001",
+            "meshIndex": 198,
+            "extrasKey": "annotationStableKey",
+            "extrasValue": "D2015_GROUP_LABEL::D_2F::5.1::001",
+            "nodePath": [
+              414,
+              410
+            ],
+            "nodePathNames": [
+              "P186E_X1_D2015_GROUP_LABEL_ANCHORS_ROOT_BABYLON_Y_UP",
+              "P186E_X1_GROUP_LABEL_D_2F_5_1_001"
+            ],
+            "extraGuards": {
+              "hostStorey": "D_2F",
+              "representationKind": "electricalGroupSourceLabelAnchor",
+              "sourcePdfDriveId": "1dzzZsa9FCiyqmv8WholhLxba6Kxobspg",
+              "sourceGroupKey": "5.1",
+              "sourceOccurrenceOrdinal": 1,
+              "sourceScheduleName": "Jääkaappi"
+            },
+            "sourceLinkGuards": [
+              {
+                "docId": "DOC:1dzzZsa9FCiyqmv8WholhLxba6Kxobspg",
+                "link": "https://drive.google.com/file/d/1dzzZsa9FCiyqmv8WholhLxba6Kxobspg/view",
+                "role": "primary"
+              },
+              {
+                "docId": "DOC:1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP",
+                "link": "https://drive.google.com/file/d/1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP/view",
+                "role": "support",
+                "documentDate": "2014-12-30"
+              }
+            ]
+          },
+          "notes": [
+            "Keskuskaavion painettu päiväys on 30.12.2014. Vuosi 2015 kuvaa suunnitelma-aineiston arkistokontekstia."
+          ]
+        },
+        {
+          "integrationCardId": "D2015::G14",
+          "selector": {
+            "nodeIndex": 411,
+            "nodeName": "P186E_X1_GROUP_LABEL_D_2F_5_2_001",
+            "meshIndex": 198,
+            "extrasKey": "annotationStableKey",
+            "extrasValue": "D2015_GROUP_LABEL::D_2F::5.2::001",
+            "nodePath": [
+              414,
+              411
+            ],
+            "nodePathNames": [
+              "P186E_X1_D2015_GROUP_LABEL_ANCHORS_ROOT_BABYLON_Y_UP",
+              "P186E_X1_GROUP_LABEL_D_2F_5_2_001"
+            ],
+            "extraGuards": {
+              "hostStorey": "D_2F",
+              "representationKind": "electricalGroupSourceLabelAnchor",
+              "sourcePdfDriveId": "1dzzZsa9FCiyqmv8WholhLxba6Kxobspg",
+              "sourceGroupKey": "5.2",
+              "sourceOccurrenceOrdinal": 1,
+              "sourceScheduleName": "Pakastin"
+            },
+            "sourceLinkGuards": [
+              {
+                "docId": "DOC:1dzzZsa9FCiyqmv8WholhLxba6Kxobspg",
+                "link": "https://drive.google.com/file/d/1dzzZsa9FCiyqmv8WholhLxba6Kxobspg/view",
+                "role": "primary"
+              },
+              {
+                "docId": "DOC:1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP",
+                "link": "https://drive.google.com/file/d/1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP/view",
+                "role": "support",
+                "documentDate": "2014-12-30"
+              }
+            ]
+          },
+          "notes": [
+            "Keskuskaavion painettu päiväys on 30.12.2014. Vuosi 2015 kuvaa suunnitelma-aineiston arkistokontekstia."
+          ]
+        },
+        {
+          "integrationCardId": "D2015::G15",
+          "selector": {
+            "nodeIndex": 412,
+            "nodeName": "P186E_X1_GROUP_LABEL_D_2F_5_3_001",
+            "meshIndex": 198,
+            "extrasKey": "annotationStableKey",
+            "extrasValue": "D2015_GROUP_LABEL::D_2F::5.3::001",
+            "nodePath": [
+              414,
+              412
+            ],
+            "nodePathNames": [
+              "P186E_X1_D2015_GROUP_LABEL_ANCHORS_ROOT_BABYLON_Y_UP",
+              "P186E_X1_GROUP_LABEL_D_2F_5_3_001"
+            ],
+            "extraGuards": {
+              "hostStorey": "D_2F",
+              "representationKind": "electricalGroupSourceLabelAnchor",
+              "sourcePdfDriveId": "1dzzZsa9FCiyqmv8WholhLxba6Kxobspg",
+              "sourceGroupKey": "5.3",
+              "sourceOccurrenceOrdinal": 1,
+              "sourceScheduleName": "Palovaroittimet"
+            },
+            "sourceLinkGuards": [
+              {
+                "docId": "DOC:1dzzZsa9FCiyqmv8WholhLxba6Kxobspg",
+                "link": "https://drive.google.com/file/d/1dzzZsa9FCiyqmv8WholhLxba6Kxobspg/view",
+                "role": "primary"
+              },
+              {
+                "docId": "DOC:1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP",
+                "link": "https://drive.google.com/file/d/1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP/view",
+                "role": "support",
+                "documentDate": "2014-12-30"
+              }
+            ]
+          },
+          "notes": [
+            "Keskuskaavion painettu päiväys on 30.12.2014. Vuosi 2015 kuvaa suunnitelma-aineiston arkistokontekstia."
+          ]
+        },
+        {
+          "integrationCardId": "D2015::S1",
+          "selector": {
+            "nodeIndex": 419,
+            "nodeName": "P186E_X1_SPECIAL_LABEL_D2F_SKYLIGHT_LED_STRIP_01",
+            "meshIndex": 198,
+            "extrasKey": "sourceLabelId",
+            "extrasValue": "D2015_SPECIAL_LABEL_D2F_SKYLIGHT_LED_STRIP_01",
+            "nodePath": [
+              421,
+              419
+            ],
+            "nodePathNames": [
+              "P186E_X1_D2015_SPECIAL_LABEL_ANCHORS_ROOT_BABYLON_Y_UP",
+              "P186E_X1_SPECIAL_LABEL_D2F_SKYLIGHT_LED_STRIP_01"
+            ],
+            "extraGuards": {
+              "hostStorey": "D_2F",
+              "representationKind": "electricalSpecialSourceLabelAnchor",
+              "sourcePdfDriveId": "1dzzZsa9FCiyqmv8WholhLxba6Kxobspg",
+              "sourceText": "Kattoikkuna LED-nauha 9,6W/m"
+            },
+            "sourceLinkGuards": [
+              {
+                "docId": "DOC:1dzzZsa9FCiyqmv8WholhLxba6Kxobspg",
+                "link": "https://drive.google.com/file/d/1dzzZsa9FCiyqmv8WholhLxba6Kxobspg/view",
+                "role": "primary"
+              }
+            ]
+          },
+          "notes": []
+        }
+      ]
+    },
+    {
+      "moduleId": "D2015",
+      "sourceModelSha256": "a92cecbdb419048ca985bbc91663f7c511929924bf889cabc8cc3847602dacb5",
+      "model": {
+        "sha256": "d16d6c3e14eafaa8da09d0cef17dcabe3c36aab5a5cae05c97eea5e2e50f6403",
+        "byteLength": 1718700,
+        "sceneIndex": 0,
+        "kind": "published-scene",
+        "driveId": "1WdqV2K5BSyrmVdzKNV6GXfj-JqG_vYht",
+        "candidateId": "auto-ylisrinne-d2015-d2f-keskuskaavio2014-sourcelinks-work-test-20261022-1wdqv2k5"
+      },
+      "audit": {
+        "geometryAndTransformsUnchanged": true,
+        "semanticFieldsUnchanged": true,
+        "cardCount": 16,
+        "sourceRoleRecords": 31,
+        "geometryProofSha256": "a18150541d56b10fa8717045af0a73683981e66a5292f3f47f782259a6ce7c60"
+      },
+      "bindings": [
+        {
+          "integrationCardId": "D2015::G1",
+          "selector": {
+            "nodeIndex": 399,
+            "nodeName": "P186E_X1_GROUP_LABEL_D_2F_11_2_001",
+            "meshIndex": 198,
+            "extrasKey": "annotationStableKey",
+            "extrasValue": "D2015_GROUP_LABEL::D_2F::11.2::001",
+            "nodePath": [
+              384,
+              399
+            ],
+            "nodePathNames": [
+              "P186E_X1_D2015_GROUP_LABEL_ANCHORS_ROOT_BABYLON_Y_UP",
+              "P186E_X1_GROUP_LABEL_D_2F_11_2_001"
+            ],
+            "extraGuards": {
+              "hostStorey": "D_2F",
+              "representationKind": "electricalGroupSourceLabelAnchor",
+              "sourcePdfDriveId": "1dzzZsa9FCiyqmv8WholhLxba6Kxobspg",
+              "sourceGroupKey": "11.2",
+              "sourceOccurrenceOrdinal": 1,
+              "sourceScheduleName": "Ulko PR parveke"
+            },
+            "sourceLinkGuards": [
+              {
+                "docId": "DOC:1dzzZsa9FCiyqmv8WholhLxba6Kxobspg",
+                "link": "https://drive.google.com/file/d/1dzzZsa9FCiyqmv8WholhLxba6Kxobspg/view",
+                "role": "primary"
+              },
+              {
+                "docId": "DOC:1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP",
+                "link": "https://drive.google.com/file/d/1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP/view",
+                "role": "support",
+                "documentDate": "2014-12-30"
+              }
+            ]
+          },
+          "notes": [
+            "Keskuskaavion painettu päiväys on 30.12.2014. Vuosi 2015 kuvaa suunnitelma-aineiston arkistokontekstia."
+          ]
+        },
+        {
+          "integrationCardId": "D2015::G2",
+          "selector": {
+            "nodeIndex": 400,
+            "nodeName": "P186E_X1_GROUP_LABEL_D_2F_12_2_001",
+            "meshIndex": 198,
+            "extrasKey": "annotationStableKey",
+            "extrasValue": "D2015_GROUP_LABEL::D_2F::12.2::001",
+            "nodePath": [
+              384,
+              400
+            ],
+            "nodePathNames": [
+              "P186E_X1_D2015_GROUP_LABEL_ANCHORS_ROOT_BABYLON_Y_UP",
+              "P186E_X1_GROUP_LABEL_D_2F_12_2_001"
+            ],
+            "extraGuards": {
+              "hostStorey": "D_2F",
+              "representationKind": "electricalGroupSourceLabelAnchor",
+              "sourcePdfDriveId": "1dzzZsa9FCiyqmv8WholhLxba6Kxobspg",
+              "sourceGroupKey": "12.2",
+              "sourceOccurrenceOrdinal": 1,
+              "sourceScheduleName": "MH yläkerta isompi"
+            },
+            "sourceLinkGuards": [
+              {
+                "docId": "DOC:1dzzZsa9FCiyqmv8WholhLxba6Kxobspg",
+                "link": "https://drive.google.com/file/d/1dzzZsa9FCiyqmv8WholhLxba6Kxobspg/view",
+                "role": "primary"
+              },
+              {
+                "docId": "DOC:1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP",
+                "link": "https://drive.google.com/file/d/1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP/view",
+                "role": "support",
+                "documentDate": "2014-12-30"
+              }
+            ]
+          },
+          "notes": [
+            "Keskuskaavion painettu päiväys on 30.12.2014. Vuosi 2015 kuvaa suunnitelma-aineiston arkistokontekstia."
+          ]
+        },
+        {
+          "integrationCardId": "D2015::G3",
+          "selector": {
+            "nodeIndex": 401,
+            "nodeName": "P186E_X1_GROUP_LABEL_D_2F_12_3_001",
+            "meshIndex": 198,
+            "extrasKey": "annotationStableKey",
+            "extrasValue": "D2015_GROUP_LABEL::D_2F::12.3::001",
+            "nodePath": [
+              384,
+              401
+            ],
+            "nodePathNames": [
+              "P186E_X1_D2015_GROUP_LABEL_ANCHORS_ROOT_BABYLON_Y_UP",
+              "P186E_X1_GROUP_LABEL_D_2F_12_3_001"
+            ],
+            "extraGuards": {
+              "hostStorey": "D_2F",
+              "representationKind": "electricalGroupSourceLabelAnchor",
+              "sourcePdfDriveId": "1dzzZsa9FCiyqmv8WholhLxba6Kxobspg",
+              "sourceGroupKey": "12.3",
+              "sourceOccurrenceOrdinal": 1,
+              "sourceScheduleName": "MH yläkerta pienempi"
+            },
+            "sourceLinkGuards": [
+              {
+                "docId": "DOC:1dzzZsa9FCiyqmv8WholhLxba6Kxobspg",
+                "link": "https://drive.google.com/file/d/1dzzZsa9FCiyqmv8WholhLxba6Kxobspg/view",
+                "role": "primary"
+              },
+              {
+                "docId": "DOC:1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP",
+                "link": "https://drive.google.com/file/d/1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP/view",
+                "role": "support",
+                "documentDate": "2014-12-30"
+              }
+            ]
+          },
+          "notes": [
+            "Keskuskaavion painettu päiväys on 30.12.2014. Vuosi 2015 kuvaa suunnitelma-aineiston arkistokontekstia."
+          ]
+        },
+        {
+          "integrationCardId": "D2015::G4",
+          "selector": {
+            "nodeIndex": 402,
+            "nodeName": "P186E_X1_GROUP_LABEL_D_2F_13_1_001",
+            "meshIndex": 198,
+            "extrasKey": "annotationStableKey",
+            "extrasValue": "D2015_GROUP_LABEL::D_2F::13.1::001",
+            "nodePath": [
+              384,
+              402
+            ],
+            "nodePathNames": [
+              "P186E_X1_D2015_GROUP_LABEL_ANCHORS_ROOT_BABYLON_Y_UP",
+              "P186E_X1_GROUP_LABEL_D_2F_13_1_001"
+            ],
+            "extraGuards": {
+              "hostStorey": "D_2F",
+              "representationKind": "electricalGroupSourceLabelAnchor",
+              "sourcePdfDriveId": "1dzzZsa9FCiyqmv8WholhLxba6Kxobspg",
+              "sourceGroupKey": "13.1",
+              "sourceOccurrenceOrdinal": 1,
+              "sourceScheduleName": "PR keittiö"
+            },
+            "sourceLinkGuards": [
+              {
+                "docId": "DOC:1dzzZsa9FCiyqmv8WholhLxba6Kxobspg",
+                "link": "https://drive.google.com/file/d/1dzzZsa9FCiyqmv8WholhLxba6Kxobspg/view",
+                "role": "primary"
+              },
+              {
+                "docId": "DOC:1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP",
+                "link": "https://drive.google.com/file/d/1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP/view",
+                "role": "support",
+                "documentDate": "2014-12-30"
+              }
+            ]
+          },
+          "notes": [
+            "Keskuskaavion painettu päiväys on 30.12.2014. Vuosi 2015 kuvaa suunnitelma-aineiston arkistokontekstia."
+          ]
+        },
+        {
+          "integrationCardId": "D2015::G5",
+          "selector": {
+            "nodeIndex": 403,
+            "nodeName": "P186E_X1_GROUP_LABEL_D_2F_13_1_002",
+            "meshIndex": 198,
+            "extrasKey": "annotationStableKey",
+            "extrasValue": "D2015_GROUP_LABEL::D_2F::13.1::002",
+            "nodePath": [
+              384,
+              403
+            ],
+            "nodePathNames": [
+              "P186E_X1_D2015_GROUP_LABEL_ANCHORS_ROOT_BABYLON_Y_UP",
+              "P186E_X1_GROUP_LABEL_D_2F_13_1_002"
+            ],
+            "extraGuards": {
+              "hostStorey": "D_2F",
+              "representationKind": "electricalGroupSourceLabelAnchor",
+              "sourcePdfDriveId": "1dzzZsa9FCiyqmv8WholhLxba6Kxobspg",
+              "sourceGroupKey": "13.1",
+              "sourceOccurrenceOrdinal": 2,
+              "sourceScheduleName": "PR keittiö"
+            },
+            "sourceLinkGuards": [
+              {
+                "docId": "DOC:1dzzZsa9FCiyqmv8WholhLxba6Kxobspg",
+                "link": "https://drive.google.com/file/d/1dzzZsa9FCiyqmv8WholhLxba6Kxobspg/view",
+                "role": "primary"
+              },
+              {
+                "docId": "DOC:1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP",
+                "link": "https://drive.google.com/file/d/1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP/view",
+                "role": "support",
+                "documentDate": "2014-12-30"
+              }
+            ]
+          },
+          "notes": [
+            "Keskuskaavion painettu päiväys on 30.12.2014. Vuosi 2015 kuvaa suunnitelma-aineiston arkistokontekstia."
+          ]
+        },
+        {
+          "integrationCardId": "D2015::G6",
+          "selector": {
+            "nodeIndex": 404,
+            "nodeName": "P186E_X1_GROUP_LABEL_D_2F_13_2_001",
+            "meshIndex": 198,
+            "extrasKey": "annotationStableKey",
+            "extrasValue": "D2015_GROUP_LABEL::D_2F::13.2::001",
+            "nodePath": [
+              384,
+              404
+            ],
+            "nodePathNames": [
+              "P186E_X1_D2015_GROUP_LABEL_ANCHORS_ROOT_BABYLON_Y_UP",
+              "P186E_X1_GROUP_LABEL_D_2F_13_2_001"
+            ],
+            "extraGuards": {
+              "hostStorey": "D_2F",
+              "representationKind": "electricalGroupSourceLabelAnchor",
+              "sourcePdfDriveId": "1dzzZsa9FCiyqmv8WholhLxba6Kxobspg",
+              "sourceGroupKey": "13.2",
+              "sourceOccurrenceOrdinal": 1,
+              "sourceScheduleName": "APK"
+            },
+            "sourceLinkGuards": [
+              {
+                "docId": "DOC:1dzzZsa9FCiyqmv8WholhLxba6Kxobspg",
+                "link": "https://drive.google.com/file/d/1dzzZsa9FCiyqmv8WholhLxba6Kxobspg/view",
+                "role": "primary"
+              },
+              {
+                "docId": "DOC:1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP",
+                "link": "https://drive.google.com/file/d/1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP/view",
+                "role": "support",
+                "documentDate": "2014-12-30"
+              }
+            ]
+          },
+          "notes": [
+            "Keskuskaavion painettu päiväys on 30.12.2014. Vuosi 2015 kuvaa suunnitelma-aineiston arkistokontekstia."
+          ]
+        },
+        {
+          "integrationCardId": "D2015::G7",
+          "selector": {
+            "nodeIndex": 405,
+            "nodeName": "P186E_X1_GROUP_LABEL_D_2F_13_3_001",
+            "meshIndex": 198,
+            "extrasKey": "annotationStableKey",
+            "extrasValue": "D2015_GROUP_LABEL::D_2F::13.3::001",
+            "nodePath": [
+              384,
+              405
+            ],
+            "nodePathNames": [
+              "P186E_X1_D2015_GROUP_LABEL_ANCHORS_ROOT_BABYLON_Y_UP",
+              "P186E_X1_GROUP_LABEL_D_2F_13_3_001"
+            ],
+            "extraGuards": {
+              "hostStorey": "D_2F",
+              "representationKind": "electricalGroupSourceLabelAnchor",
+              "sourcePdfDriveId": "1dzzZsa9FCiyqmv8WholhLxba6Kxobspg",
+              "sourceGroupKey": "13.3",
+              "sourceOccurrenceOrdinal": 1,
+              "sourceScheduleName": "Uuni"
+            },
+            "sourceLinkGuards": [
+              {
+                "docId": "DOC:1dzzZsa9FCiyqmv8WholhLxba6Kxobspg",
+                "link": "https://drive.google.com/file/d/1dzzZsa9FCiyqmv8WholhLxba6Kxobspg/view",
+                "role": "primary"
+              },
+              {
+                "docId": "DOC:1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP",
+                "link": "https://drive.google.com/file/d/1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP/view",
+                "role": "support",
+                "documentDate": "2014-12-30"
+              }
+            ]
+          },
+          "notes": [
+            "Keskuskaavion painettu päiväys on 30.12.2014. Vuosi 2015 kuvaa suunnitelma-aineiston arkistokontekstia."
+          ]
+        },
+        {
+          "integrationCardId": "D2015::G8",
+          "selector": {
+            "nodeIndex": 406,
+            "nodeName": "P186E_X1_GROUP_LABEL_D_2F_14_1_001",
+            "meshIndex": 198,
+            "extrasKey": "annotationStableKey",
+            "extrasValue": "D2015_GROUP_LABEL::D_2F::14.1::001",
+            "nodePath": [
+              384,
+              406
+            ],
+            "nodePathNames": [
+              "P186E_X1_D2015_GROUP_LABEL_ANCHORS_ROOT_BABYLON_Y_UP",
+              "P186E_X1_GROUP_LABEL_D_2F_14_1_001"
+            ],
+            "extraGuards": {
+              "hostStorey": "D_2F",
+              "representationKind": "electricalGroupSourceLabelAnchor",
+              "sourcePdfDriveId": "1dzzZsa9FCiyqmv8WholhLxba6Kxobspg",
+              "sourceGroupKey": "14.1",
+              "sourceOccurrenceOrdinal": 1,
+              "sourceScheduleName": "Olohuone"
+            },
+            "sourceLinkGuards": [
+              {
+                "docId": "DOC:1dzzZsa9FCiyqmv8WholhLxba6Kxobspg",
+                "link": "https://drive.google.com/file/d/1dzzZsa9FCiyqmv8WholhLxba6Kxobspg/view",
+                "role": "primary"
+              },
+              {
+                "docId": "DOC:1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP",
+                "link": "https://drive.google.com/file/d/1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP/view",
+                "role": "support",
+                "documentDate": "2014-12-30"
+              }
+            ]
+          },
+          "notes": [
+            "Keskuskaavion painettu päiväys on 30.12.2014. Vuosi 2015 kuvaa suunnitelma-aineiston arkistokontekstia."
+          ]
+        },
+        {
+          "integrationCardId": "D2015::G9",
+          "selector": {
+            "nodeIndex": 407,
+            "nodeName": "P186E_X1_GROUP_LABEL_D_2F_14_2_001",
+            "meshIndex": 198,
+            "extrasKey": "annotationStableKey",
+            "extrasValue": "D2015_GROUP_LABEL::D_2F::14.2::001",
+            "nodePath": [
+              384,
+              407
+            ],
+            "nodePathNames": [
+              "P186E_X1_D2015_GROUP_LABEL_ANCHORS_ROOT_BABYLON_Y_UP",
+              "P186E_X1_GROUP_LABEL_D_2F_14_2_001"
+            ],
+            "extraGuards": {
+              "hostStorey": "D_2F",
+              "representationKind": "electricalGroupSourceLabelAnchor",
+              "sourcePdfDriveId": "1dzzZsa9FCiyqmv8WholhLxba6Kxobspg",
+              "sourceGroupKey": "14.2",
+              "sourceOccurrenceOrdinal": 1,
+              "sourceScheduleName": "Viinikaappi"
+            },
+            "sourceLinkGuards": [
+              {
+                "docId": "DOC:1dzzZsa9FCiyqmv8WholhLxba6Kxobspg",
+                "link": "https://drive.google.com/file/d/1dzzZsa9FCiyqmv8WholhLxba6Kxobspg/view",
+                "role": "primary"
+              },
+              {
+                "docId": "DOC:1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP",
+                "link": "https://drive.google.com/file/d/1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP/view",
+                "role": "support",
+                "documentDate": "2014-12-30"
+              }
+            ]
+          },
+          "notes": [
+            "Keskuskaavion painettu päiväys on 30.12.2014. Vuosi 2015 kuvaa suunnitelma-aineiston arkistokontekstia."
+          ]
+        },
+        {
+          "integrationCardId": "D2015::G10",
+          "selector": {
+            "nodeIndex": 408,
+            "nodeName": "P186E_X1_GROUP_LABEL_D_2F_14_3_001",
+            "meshIndex": 198,
+            "extrasKey": "annotationStableKey",
+            "extrasValue": "D2015_GROUP_LABEL::D_2F::14.3::001",
+            "nodePath": [
+              384,
+              408
+            ],
+            "nodePathNames": [
+              "P186E_X1_D2015_GROUP_LABEL_ANCHORS_ROOT_BABYLON_Y_UP",
+              "P186E_X1_GROUP_LABEL_D_2F_14_3_001"
+            ],
+            "extraGuards": {
+              "hostStorey": "D_2F",
+              "representationKind": "electricalGroupSourceLabelAnchor",
+              "sourcePdfDriveId": "1dzzZsa9FCiyqmv8WholhLxba6Kxobspg",
+              "sourceGroupKey": "14.3",
+              "sourceOccurrenceOrdinal": 1,
+              "sourceScheduleName": "Lieistuuletin"
+            },
+            "sourceLinkGuards": [
+              {
+                "docId": "DOC:1dzzZsa9FCiyqmv8WholhLxba6Kxobspg",
+                "link": "https://drive.google.com/file/d/1dzzZsa9FCiyqmv8WholhLxba6Kxobspg/view",
+                "role": "primary"
+              },
+              {
+                "docId": "DOC:1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP",
+                "link": "https://drive.google.com/file/d/1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP/view",
+                "role": "support",
+                "documentDate": "2014-12-30"
+              }
+            ]
+          },
+          "notes": [
+            "Keskuskaavion painettu päiväys on 30.12.2014. Vuosi 2015 kuvaa suunnitelma-aineiston arkistokontekstia."
+          ]
+        },
+        {
+          "integrationCardId": "D2015::G11",
+          "selector": {
+            "nodeIndex": 409,
+            "nodeName": "P186E_X1_GROUP_LABEL_D_2F_15_1_001",
+            "meshIndex": 198,
+            "extrasKey": "annotationStableKey",
+            "extrasValue": "D2015_GROUP_LABEL::D_2F::15.1::001",
+            "nodePath": [
+              384,
+              409
+            ],
+            "nodePathNames": [
+              "P186E_X1_D2015_GROUP_LABEL_ANCHORS_ROOT_BABYLON_Y_UP",
+              "P186E_X1_GROUP_LABEL_D_2F_15_1_001"
+            ],
+            "extraGuards": {
+              "hostStorey": "D_2F",
+              "representationKind": "electricalGroupSourceLabelAnchor",
+              "sourcePdfDriveId": "1dzzZsa9FCiyqmv8WholhLxba6Kxobspg",
+              "sourceGroupKey": "15.1",
+              "sourceOccurrenceOrdinal": 1,
+              "sourceScheduleName": "PR aula/wc"
+            },
+            "sourceLinkGuards": [
+              {
+                "docId": "DOC:1dzzZsa9FCiyqmv8WholhLxba6Kxobspg",
+                "link": "https://drive.google.com/file/d/1dzzZsa9FCiyqmv8WholhLxba6Kxobspg/view",
+                "role": "primary"
+              },
+              {
+                "docId": "DOC:1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP",
+                "link": "https://drive.google.com/file/d/1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP/view",
+                "role": "support",
+                "documentDate": "2014-12-30"
+              }
+            ]
+          },
+          "notes": [
+            "Keskuskaavion painettu päiväys on 30.12.2014. Vuosi 2015 kuvaa suunnitelma-aineiston arkistokontekstia."
+          ]
+        },
+        {
+          "integrationCardId": "D2015::G12",
+          "selector": {
+            "nodeIndex": 410,
+            "nodeName": "P186E_X1_GROUP_LABEL_D_2F_4_3_001",
+            "meshIndex": 198,
+            "extrasKey": "annotationStableKey",
+            "extrasValue": "D2015_GROUP_LABEL::D_2F::4.3::001",
+            "nodePath": [
+              384,
+              410
+            ],
+            "nodePathNames": [
+              "P186E_X1_D2015_GROUP_LABEL_ANCHORS_ROOT_BABYLON_Y_UP",
+              "P186E_X1_GROUP_LABEL_D_2F_4_3_001"
+            ],
+            "extraGuards": {
+              "hostStorey": "D_2F",
+              "representationKind": "electricalGroupSourceLabelAnchor",
+              "sourcePdfDriveId": "1dzzZsa9FCiyqmv8WholhLxba6Kxobspg",
+              "sourceGroupKey": "4.3",
+              "sourceOccurrenceOrdinal": 1,
+              "sourceScheduleName": "Valaistus keittiö"
+            },
+            "sourceLinkGuards": [
+              {
+                "docId": "DOC:1dzzZsa9FCiyqmv8WholhLxba6Kxobspg",
+                "link": "https://drive.google.com/file/d/1dzzZsa9FCiyqmv8WholhLxba6Kxobspg/view",
+                "role": "primary"
+              },
+              {
+                "docId": "DOC:1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP",
+                "link": "https://drive.google.com/file/d/1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP/view",
+                "role": "support",
+                "documentDate": "2014-12-30"
+              }
+            ]
+          },
+          "notes": [
+            "Keskuskaavion painettu päiväys on 30.12.2014. Vuosi 2015 kuvaa suunnitelma-aineiston arkistokontekstia."
+          ]
+        },
+        {
+          "integrationCardId": "D2015::G13",
+          "selector": {
+            "nodeIndex": 411,
+            "nodeName": "P186E_X1_GROUP_LABEL_D_2F_5_1_001",
+            "meshIndex": 198,
+            "extrasKey": "annotationStableKey",
+            "extrasValue": "D2015_GROUP_LABEL::D_2F::5.1::001",
+            "nodePath": [
+              384,
+              411
+            ],
+            "nodePathNames": [
+              "P186E_X1_D2015_GROUP_LABEL_ANCHORS_ROOT_BABYLON_Y_UP",
+              "P186E_X1_GROUP_LABEL_D_2F_5_1_001"
+            ],
+            "extraGuards": {
+              "hostStorey": "D_2F",
+              "representationKind": "electricalGroupSourceLabelAnchor",
+              "sourcePdfDriveId": "1dzzZsa9FCiyqmv8WholhLxba6Kxobspg",
+              "sourceGroupKey": "5.1",
+              "sourceOccurrenceOrdinal": 1,
+              "sourceScheduleName": "Jääkaappi"
+            },
+            "sourceLinkGuards": [
+              {
+                "docId": "DOC:1dzzZsa9FCiyqmv8WholhLxba6Kxobspg",
+                "link": "https://drive.google.com/file/d/1dzzZsa9FCiyqmv8WholhLxba6Kxobspg/view",
+                "role": "primary"
+              },
+              {
+                "docId": "DOC:1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP",
+                "link": "https://drive.google.com/file/d/1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP/view",
+                "role": "support",
+                "documentDate": "2014-12-30"
+              }
+            ]
+          },
+          "notes": [
+            "Keskuskaavion painettu päiväys on 30.12.2014. Vuosi 2015 kuvaa suunnitelma-aineiston arkistokontekstia."
+          ]
+        },
+        {
+          "integrationCardId": "D2015::G14",
+          "selector": {
+            "nodeIndex": 412,
+            "nodeName": "P186E_X1_GROUP_LABEL_D_2F_5_2_001",
+            "meshIndex": 198,
+            "extrasKey": "annotationStableKey",
+            "extrasValue": "D2015_GROUP_LABEL::D_2F::5.2::001",
+            "nodePath": [
+              384,
+              412
+            ],
+            "nodePathNames": [
+              "P186E_X1_D2015_GROUP_LABEL_ANCHORS_ROOT_BABYLON_Y_UP",
+              "P186E_X1_GROUP_LABEL_D_2F_5_2_001"
+            ],
+            "extraGuards": {
+              "hostStorey": "D_2F",
+              "representationKind": "electricalGroupSourceLabelAnchor",
+              "sourcePdfDriveId": "1dzzZsa9FCiyqmv8WholhLxba6Kxobspg",
+              "sourceGroupKey": "5.2",
+              "sourceOccurrenceOrdinal": 1,
+              "sourceScheduleName": "Pakastin"
+            },
+            "sourceLinkGuards": [
+              {
+                "docId": "DOC:1dzzZsa9FCiyqmv8WholhLxba6Kxobspg",
+                "link": "https://drive.google.com/file/d/1dzzZsa9FCiyqmv8WholhLxba6Kxobspg/view",
+                "role": "primary"
+              },
+              {
+                "docId": "DOC:1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP",
+                "link": "https://drive.google.com/file/d/1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP/view",
+                "role": "support",
+                "documentDate": "2014-12-30"
+              }
+            ]
+          },
+          "notes": [
+            "Keskuskaavion painettu päiväys on 30.12.2014. Vuosi 2015 kuvaa suunnitelma-aineiston arkistokontekstia."
+          ]
+        },
+        {
+          "integrationCardId": "D2015::G15",
+          "selector": {
+            "nodeIndex": 413,
+            "nodeName": "P186E_X1_GROUP_LABEL_D_2F_5_3_001",
+            "meshIndex": 198,
+            "extrasKey": "annotationStableKey",
+            "extrasValue": "D2015_GROUP_LABEL::D_2F::5.3::001",
+            "nodePath": [
+              384,
+              413
+            ],
+            "nodePathNames": [
+              "P186E_X1_D2015_GROUP_LABEL_ANCHORS_ROOT_BABYLON_Y_UP",
+              "P186E_X1_GROUP_LABEL_D_2F_5_3_001"
+            ],
+            "extraGuards": {
+              "hostStorey": "D_2F",
+              "representationKind": "electricalGroupSourceLabelAnchor",
+              "sourcePdfDriveId": "1dzzZsa9FCiyqmv8WholhLxba6Kxobspg",
+              "sourceGroupKey": "5.3",
+              "sourceOccurrenceOrdinal": 1,
+              "sourceScheduleName": "Palovaroittimet"
+            },
+            "sourceLinkGuards": [
+              {
+                "docId": "DOC:1dzzZsa9FCiyqmv8WholhLxba6Kxobspg",
+                "link": "https://drive.google.com/file/d/1dzzZsa9FCiyqmv8WholhLxba6Kxobspg/view",
+                "role": "primary"
+              },
+              {
+                "docId": "DOC:1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP",
+                "link": "https://drive.google.com/file/d/1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP/view",
+                "role": "support",
+                "documentDate": "2014-12-30"
+              }
+            ]
+          },
+          "notes": [
+            "Keskuskaavion painettu päiväys on 30.12.2014. Vuosi 2015 kuvaa suunnitelma-aineiston arkistokontekstia."
+          ]
+        },
+        {
+          "integrationCardId": "D2015::S1",
+          "selector": {
+            "nodeIndex": 420,
+            "nodeName": "P186E_X1_SPECIAL_LABEL_D2F_SKYLIGHT_LED_STRIP_01",
+            "meshIndex": 198,
+            "extrasKey": "sourceLabelId",
+            "extrasValue": "D2015_SPECIAL_LABEL_D2F_SKYLIGHT_LED_STRIP_01",
+            "nodePath": [
+              415,
+              420
+            ],
+            "nodePathNames": [
+              "P186E_X1_D2015_SPECIAL_LABEL_ANCHORS_ROOT_BABYLON_Y_UP",
+              "P186E_X1_SPECIAL_LABEL_D2F_SKYLIGHT_LED_STRIP_01"
+            ],
+            "extraGuards": {
+              "hostStorey": "D_2F",
+              "representationKind": "electricalSpecialSourceLabelAnchor",
+              "sourcePdfDriveId": "1dzzZsa9FCiyqmv8WholhLxba6Kxobspg",
+              "sourceText": "Kattoikkuna LED-nauha 9,6W/m"
+            },
+            "sourceLinkGuards": [
+              {
+                "docId": "DOC:1dzzZsa9FCiyqmv8WholhLxba6Kxobspg",
+                "link": "https://drive.google.com/file/d/1dzzZsa9FCiyqmv8WholhLxba6Kxobspg/view",
+                "role": "primary"
+              }
+            ]
+          },
+          "notes": []
+        }
+      ]
+    }
+  ]
+}

@@ -4,11 +4,16 @@ import { expect, test, type Page } from '@playwright/test';
 import {
   adaptSourceCard, allowedSourceCardUrl, classifySourceEvidence,
   createSourceCardResolver, indexSourceCardBundle, sourceCardIdentity,
+  type SourceCardBundle,
 } from '../../src/scripts/privateModelSourceCards';
 import { privateModelSourceCards } from '../../worker/privateModelSourceCards';
 import { handlePrivateModelRequest } from '../../worker/privateModel';
+import { getPrivateWorkTestCandidateById } from '../../worker/privateWorkTest';
 
-const fixtures = JSON.parse(readFileSync(new URL('../fixtures/private-model-source-cards.json', import.meta.url), 'utf8'));
+const fixtures = {
+  ...JSON.parse(readFileSync(new URL('../fixtures/private-model-source-cards.json', import.meta.url), 'utf8')),
+  ...JSON.parse(readFileSync(new URL('../fixtures/private-model-d2f-source-card-versions.json', import.meta.url), 'utf8')),
+};
 const bundle = () => structuredClone(privateModelSourceCards);
 const model = (name = 'shared302') => {
   const fixture = structuredClone(fixtures[name]);
@@ -28,7 +33,7 @@ const model = (name = 'shared302') => {
 
 test('T01 original module bytes, 18 cards, 38 unique bindings and 35 source roles are preserved', () => {
   const data = bundle();
-  const entries = indexSourceCardBundle(data);
+  const entries = indexSourceCardBundle({ ...data, versionBindings: undefined });
   expect(entries).toHaveLength(38);
   expect(new Set(entries.map(entry => entry.id)).size).toBe(18);
   expect(new Set(entries.map(entry => entry.module.model.sha256)).size).toBe(2);
@@ -40,6 +45,88 @@ test('T01 original module bytes, 18 cards, 38 unique bindings and 35 source role
   data.lookup.bindings.push(data.lookup.bindings[0]);
   expect(() => indexSourceCardBundle(data)).toThrow();
 });
+
+test('D2F source and published versions add 32 audited bindings without adding cards or changing original handoff counts', () => {
+  const data = bundle();
+  const entries = indexSourceCardBundle(data);
+  expect(entries).toHaveLength(70);
+  expect(new Set(entries.map(entry => entry.id)).size).toBe(18);
+  expect(new Set(entries.map(entry => entry.module.model.sha256)).size).toBe(4);
+  expect(data.manifest.totals.targetBindings).toBe(38);
+  expect(data.lookup.bindings).toHaveLength(38);
+  expect(data.versionBindings.totals.targetBindings).toBe(32);
+  const source = data.versionBindings.versions.find(version => version.model.kind === 'drive-source')!;
+  const published = data.versionBindings.versions.find(version => version.model.kind === 'published-scene')!;
+  expect(source.bindings[0].selector.nodeIndex).toBe(398);
+  expect(source.bindings[0].selector.nodePath).toEqual([414, 398]);
+  expect(published.bindings[0].selector.nodeIndex).toBe(399);
+  expect(published.bindings[0].selector.nodePath).toEqual([384, 399]);
+  const registered = getPrivateWorkTestCandidateById(published.model.candidateId!);
+  expect(registered?.expectedSha256).toBe(published.model.sha256);
+  expect(registered?.expectedSize).toBe(published.model.byteLength);
+  expect(source.audit.geometryProofSha256).toBe(published.audit.geometryProofSha256);
+});
+
+test('all 32 D2F version bindings resolve to the unchanged original cards; published node 398 cannot become G1', async () => {
+  const data = bundle();
+  const before = JSON.stringify(data);
+  for (const version of data.versionBindings.versions) {
+    const source = model(version.model.kind);
+    const original = JSON.stringify(source.gltf.parser.json);
+    const resolve = createSourceCardResolver(await sourceCardIdentity(source.gltf), source.sha256, data);
+    for (const binding of version.bindings) {
+      const result = resolve(source.objects[binding.selector.nodeIndex]);
+      expect(result.state, `${version.model.kind}:${binding.integrationCardId}`).toBe('matched');
+      expect(result.cards.map(card => card.id)).toEqual([binding.integrationCardId]);
+      if (binding.integrationCardId !== 'D2015::S1') expect(result.cards[0].notes.join(' ')).toContain('30.12.2014');
+      else {
+        expect(result.cards[0].sources).toHaveLength(1);
+        expect(result.cards[0].notes.join(' ')).not.toContain('Keskuskaavio');
+      }
+    }
+    if (version.model.kind === 'published-scene') {
+      expect(source.objects[398].userData.hostStorey).toBe('D_1F');
+      expect(resolve(source.objects[398]).cards).toEqual([]);
+    }
+    expect(JSON.stringify(source.gltf.parser.json)).toBe(original);
+  }
+  expect(JSON.stringify(data)).toBe(before);
+});
+
+for (const failure of ['sha', 'scene', 'old-index', 'root-name', 'source-text', 'source-role', 'source-date', 'missing-source']) {
+  test(`D2F published binding rejects ${failure} without showing the old card`, () => {
+    const source = model('published-scene');
+    const selected = source.objects[399];
+    if (failure === 'sha') source.sha256 = fixtures['drive-source'].sha256;
+    if (failure === 'scene') source.gltf.scenes.unshift({ name: '__scene301 transport name', parent: null });
+    if (failure === 'old-index') source.gltf.parser.associations.set(selected, { nodes: 398 });
+    if (failure === 'root-name') source.gltf.parser.json.nodes[384].name = 'Unverified root';
+    if (failure === 'source-text') selected.userData.sourceScheduleName = 'Wrong circuit';
+    if (failure === 'source-role') selected.userData.sourceLinks[1].role = 'primary';
+    if (failure === 'source-date') selected.userData.sourceLinks[1].documentDate = '2015-01-01';
+    if (failure === 'missing-source') selected.userData.sourceLinks.pop();
+    const result = createSourceCardResolver(source.gltf, source.sha256, bundle())(selected);
+    expect(result.state).toBe('mismatch');
+    expect(result.cards).toEqual([]);
+  });
+}
+
+for (const failure of ['duplicate-version', 'original-sha', 'stable-key', 'missing-card', 'source-role', 'led-extra-source', 'audit', 'root-path']) {
+  test(`D2F version handoff rejects ${failure}`, () => {
+    const data: SourceCardBundle = bundle();
+    const version = data.versionBindings!.versions[1];
+    const binding = version.bindings[0];
+    if (failure === 'duplicate-version') version.model.sha256 = data.modules.D2015.model.sha256;
+    if (failure === 'original-sha') version.sourceModelSha256 = '0'.repeat(64);
+    if (failure === 'stable-key') binding.selector.extrasValue = 'unverified';
+    if (failure === 'missing-card') version.bindings.pop();
+    if (failure === 'source-role') binding.selector.sourceLinkGuards[1].role = 'primary';
+    if (failure === 'led-extra-source') version.bindings[15].selector.sourceLinkGuards.push(binding.selector.sourceLinkGuards[1]);
+    if (failure === 'audit') version.audit.geometryAndTransformsUnchanged = false;
+    if (failure === 'root-path') binding.selector.nodePath[1] = 398;
+    expect(() => indexSourceCardBundle(data)).toThrow('versiosidontaa');
+  });
+}
 
 test('T03/T04 all 38 source-fixture bindings resolve only in their internal scene and do not mutate metadata', async () => {
   const data = bundle();

@@ -104,6 +104,8 @@ Viewer käyttää repositoryn yhteistä npm Three.js -runtimea. Se ei käytä er
 
 Objektien lähdekortit palvellaan Access-tarkistetusta `/private-model/source-cards.json`-reitistä. Alkuperäiset sidecar-moduulit säilyvät Workerissä, eivät julkisissa Astro-asseteissa. Tavallinen mallilataus laskee SHA-256:n samoista tavuista, jotka GLTFLoader avaa. Kortti edellyttää lisäksi alkuperäistä sisäistä sceneä, solmua, lähdekenttiä ja hierarkiaa. Erikoisnäkymät ja uudet malliversiot eivät peri vanhoja kortteja ilman varmennettua sidontaa. Kortti ei muuta mallia, lähderooleja tai toteuma- ja katselmusmerkintöjä.
 
+D2F:n varmennetut versiosidonnat ovat erillinen aineisto alkuperäisen korttikoosteen rinnalla. Sidonta nimeää version oman solmun ja root-polun sekä tarkistaa alkuperäisen kortin pysyvän lähdeavaimen, lähdetekstin ja linkkien roolit. Lähde-GLB ja julkaisupoiminta varmennetaan kumpikin erikseen. Uuden sidonnan auditointi edellyttää alkuperäisiä GLB-tavuja sekä kohteiden geometrian ja maailmamuunnosten vertailua. Mallitavuja ei tallenneta Git-repositoryyn.
+
 ## Animation Lab
 
 Animation Lab sijaitsee `src/pages/lab/`-reitissä. Uusien interaktiivisten animaatiotutkielmien pariteettisääntö on määritelty `AGENTS.md`-tiedostossa.
