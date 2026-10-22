@@ -413,6 +413,10 @@ for (const width of [1280, 390]) {
     const sha = await browserFixture(page, false, 'kph-latest-extract');
     await page.goto('/private-model/');
     await selectCenter(page);
+    // SourceLinks is a separate disclosure: never borrow the metadata selector class.
+    // Existing selection regressions rely on the metadata locator being unique.
+    await expect(page.locator('#selection-panel details.selection-metadata')).toHaveCount(1);
+    await expect(page.locator('#selection-panel details.selection-source-links')).toHaveCount(1);
     const section = page.locator('#selection-source-evidence');
     await expect(section).toHaveAttribute('data-state', 'matched');
     await expect(section.locator('[data-evidence-kind="observation"]')).toContainText(['Saunan valo', 'Kylpyhuoneen valohimmennin', 'Valohimmennin, omistaja vahvistanut 20.10.2026']);
