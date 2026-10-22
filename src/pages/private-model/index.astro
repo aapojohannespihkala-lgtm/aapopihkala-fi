@@ -1218,7 +1218,8 @@ const title = 'Private 3D viewer';
         overflow-wrap: anywhere;
       }
 
-      .selection-metadata {
+      .selection-metadata,
+      .selection-source-links {
         display: grid;
         gap: 6px;
         margin-top: 11px;
@@ -1226,7 +1227,8 @@ const title = 'Private 3D viewer';
         border-top: 1px solid #e2e3de;
       }
 
-      .selection-metadata > summary {
+      .selection-metadata > summary,
+      .selection-source-links > summary {
         color: #555853;
         cursor: pointer;
         font-size: 11px;
@@ -1452,6 +1454,7 @@ const title = 'Private 3D viewer';
       .profile-note,
       .selection-grid dt,
       .selection-metadata > summary,
+      .selection-source-links > summary,
       .selection-metadata-list dt {
         color: var(--viewer-stone-light);
       }
@@ -1467,7 +1470,8 @@ const title = 'Private 3D viewer';
       .layer-section,
       .layer-tree-children,
       .d1-user-door-legend-section,
-      .selection-metadata {
+      .selection-metadata,
+      .selection-source-links {
         border-color: var(--viewer-line-soft);
       }
 
@@ -1953,7 +1957,7 @@ const title = 'Private 3D viewer';
             <div id="selection-metadata-empty" class="selection-metadata-empty">Ei lisämetadataa</div>
           </details>
           <section id="selection-source-evidence" class="selection-source-evidence" aria-label="Lähdekortti ja varmuus" hidden></section>
-          <details id="selection-source-links" class="selection-metadata selection-source-links" hidden>
+          <details id="selection-source-links" class="selection-source-links" hidden>
             <summary title="GLB-solmun sourceLinks-lähdeviitteet. Lähdeviite, ei nykytila- eikä toteumaväite.">Lähteet</summary>
             <ul id="selection-source-links-list" class="selection-source-links-list"></ul>
           </details>
