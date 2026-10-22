@@ -156,9 +156,21 @@ card.sources.push({ title: 'KPH09-katselmushistoria, kohdat 2, 17 ja 18',
   url: 'https://docs.google.com/document/d/1VKZNrkGd87QtwChV5ygs_E_k1Gi2e6iCPQbePpinzJY/edit', role: 'owner_visual_proportion_and_function_review',
   supports: ['Omistajan valitsema 92:148-työmittasuhde ja kirjattu himmennystoiminto.'],
   limits: ['Fyysisiä tuotemittoja, tuotekoodia, sähköarvoja, johdotusta tai tarkkaa asennuspaikkaa. Koko KPH09:n katselmus on avoin.'] });
+// The approval successor has an independent exact GLB bridge audit (SLUI QA §10):
+// 22/22 selected nodes, 46/46 source roles, scene0 paths, geometry and transforms
+// are identical to the previous published extract. Preserve the audited map;
+// approval-only metadata on unrelated nodes does not extend card scope.
+const approval = JSON.parse(JSON.stringify(versions.at(-1)));
+assert.equal(approval.model.sha256, 'db67604823671b701fb4822688d66da98362eb19068301496cac1eef53c0e73e');
+approval.model.sha256 = '6cab3b21177446fe377b703231feddf6837e3b47e0b141627fd866bfad393a2c';
+approval.model.byteLength = 2005324;
+approval.model.driveId = '1bc9Ji7W6DvJmKsKQJVKpDfLrccT2c3JG';
+approval.model.candidateId = 'auto-ylisrinne-kph09-20-viiltoa-omistajan-aukotushyvaksynta-metadata-work-test-20261022-1bc9ji7w';
+versions.push(approval);
+fixtures['kph-approval-extract'] = { ...JSON.parse(JSON.stringify(fixtures['kph-latest-extract'])), sha256: approval.model.sha256 };
 const output = { schema: 'ylisrinne-kph-source-card-version-bindings-v1', createdDate: '2026-10-22',
   switchCardRevision: { reviewSourceDriveId: '1VKZNrkGd87QtwChV5ygs_E_k1Gi2e6iCPQbePpinzJY', card },
-  totals: { modelVersions: 4, targetBindings: 88 }, versions };
+  totals: { modelVersions: 5, targetBindings: 110 }, versions };
 const bundle = { schema: 'ylisrinne-viewer-source-cards-v1', manifest: read('integration_manifest.json'), lookup: read('selection_lookup.json'),
   modules, versionBindings: read('version_bindings.json'), kphVersionBindings: output };
 let runtimeBindingsMatched = 0;
@@ -182,7 +194,7 @@ if (mode === '--write') {
   assert.deepEqual(JSON.parse(readFileSync(outputPath, 'utf8')), output);
   assert.deepEqual(JSON.parse(readFileSync(fixturePath, 'utf8')), fixtures);
 }
-console.log(JSON.stringify({ result: 'PASS', versions: versions.length, auditedBindings: 88, runtimeBindingsMatched,
+console.log(JSON.stringify({ result: 'PASS', versions: versions.length, auditedBindings: 88, approvedBridgeBindings: 22, runtimeBindingsMatched,
   sourceRoleRecords: versions.map(version => version.audit.sourceRoleRecords),
   publishedRoots: versions.filter(version => version.model.kind === 'published-scene').map(version => version.groups.map(group => group.rootNodeIndex)),
   latestModelRegistrationVerified: false }));

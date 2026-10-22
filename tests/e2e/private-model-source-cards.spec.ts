@@ -129,24 +129,30 @@ for (const failure of ['duplicate-version', 'original-sha', 'stable-key', 'missi
   });
 }
 
-test('KPH IV1 and latest photo-slot source/extract versions add 88 bindings for two existing cards', () => {
+test('KPH IV1, photo-slot and approval SHA versions add 110 bindings for two existing cards', () => {
   const data = bundle(), entries = indexSourceCardBundle(data);
-  expect(entries).toHaveLength(158);
+  expect(entries).toHaveLength(180);
   expect(new Set(entries.map(entry => entry.id)).size).toBe(18);
-  expect(new Set(entries.map(entry => entry.module.model.sha256)).size).toBe(8);
-  expect(data.kphVersionBindings.totals).toEqual({ modelVersions: 4, targetBindings: 88 });
-  expect(data.kphVersionBindings.versions.map(version => version.audit.sourceRoleRecords)).toEqual([46, 46, 46, 46]);
+  expect(new Set(entries.map(entry => entry.module.model.sha256)).size).toBe(9);
+  expect(data.kphVersionBindings.totals).toEqual({ modelVersions: 5, targetBindings: 110 });
+  expect(data.kphVersionBindings.versions.map(version => version.audit.sourceRoleRecords)).toEqual([46, 46, 46, 46, 46]);
   expect(new Set(data.kphVersionBindings.versions.map(version => version.audit.geometryProofSha256)).size).toBe(1);
   const registered = data.kphVersionBindings.versions[1].model;
   expect(getPrivateWorkTestCandidateById(registered.candidateId!)?.expectedSha256).toBe(registered.sha256);
   expect(getPrivateWorkTestCandidateById(registered.candidateId!)?.expectedSize).toBe(registered.byteLength);
   // Prepared bindings do not register or publish the newest model.
   expect(data.kphVersionBindings.versions[3].model.candidateId).toBeUndefined();
+  const approved = data.kphVersionBindings.versions[4].model;
+  expect(approved.sha256).toBe('6cab3b21177446fe377b703231feddf6837e3b47e0b141627fd866bfad393a2c');
+  expect(approved.byteLength).toBe(2005324);
+  expect(approved.driveId).toBe('1bc9Ji7W6DvJmKsKQJVKpDfLrccT2c3JG');
+  expect(getPrivateWorkTestCandidateById(approved.candidateId!)?.expectedSha256).toBe(approved.sha256);
+  expect(getPrivateWorkTestCandidateById(approved.candidateId!)?.expectedSize).toBe(approved.byteLength);
 });
 
-test('all 88 KPH version bindings preserve measurements and distinguish owner-confirmed dimming from open product and host', async () => {
+test('all 110 KPH version bindings preserve measurements and distinguish owner-confirmed dimming from open product and host', async () => {
   const data = bundle(), before = JSON.stringify(data);
-  for (const name of ['kph-iv1-source', 'kph-iv1-published', 'kph-latest-source', 'kph-latest-extract']) {
+  for (const name of ['kph-iv1-source', 'kph-iv1-published', 'kph-latest-source', 'kph-latest-extract', 'kph-approval-extract']) {
     const source = model(name), original = JSON.stringify(source.gltf.parser.json);
     const profile = data.kphVersionBindings.versions.find(version => version.model.sha256 === source.sha256)!;
     const resolve = createSourceCardResolver(await sourceCardIdentity(source.gltf), source.sha256, data);
