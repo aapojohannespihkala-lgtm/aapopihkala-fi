@@ -448,6 +448,50 @@
     "auto-ylisrinne-d2f-2015-keittion-seinakaapit-work-test-20261022-1um19vwz": {
       "driveFileId": "1um19Vwz2-1wxqpApw8IX48sX9tGE34JX",
       "extractScene": 62
+    },
+    "auto-ylisrinne-d1f-eteisen-kaapit-2015-gap-approx300-work-test-20261022-1nzfanjf": {
+      "driveFileId": "1NZfANJfWBhfImQ5-IbLhVeBJmih6XkDQ",
+      "extractScene": 0
+    },
+    "auto-ylisrinne-d-terassi-l-askelma-v5-terrain-edge-continuity-work-test-20261022-1ppwekwq": {
+      "driveFileId": "1PPWekwQm27xYHKgY4lBexZKh3Rq5fw0f",
+      "extractScene": 0
+    },
+    "auto-ylisrinne-d2f-2015-keittion-seinakaapit-sourcelinks-work-test-20261022-1kjek3bt": {
+      "driveFileId": "1KjeK3btHfuKeDwsrl4MoqhgPpca7xwSh",
+      "extractScene": 62
+    },
+    "auto-ylisrinne-t12-a-d-paasisaankayntien-ovilehdet-work-test-20261022-1iuh5kdr": {
+      "driveFileId": "1IuH5kd_RemsMygvCe8uTlN4QVvMnxX7u",
+      "extractScene": 1
+    },
+    "auto-ylisrinne-2015-lastenhuone-nordli3-me3104-source-only-work-test-20261022-1tgczxno": {
+      "driveFileId": "1TgcZxno3Xqd77hZXpPDokHUjcPtXDMBt",
+      "extractScene": 0
+    },
+    "auto-ylisrinne-t12-1974-ac-1f-markatilaseinat-work-test-20261022-1nflaqxg": {
+      "driveFileId": "1NflAqxgnbWk44ABL2f-jsSb7ljmxaPdd",
+      "extractScene": 2
+    },
+    "auto-ylisrinne-d2f-2015-keittion-kaapit-sisaovet-kiinni-sourcelinks-work-test-20261022-1a6evzlm": {
+      "driveFileId": "1a6EvZLMDAecyqNEuS7Yqr6uw1KPCmmKJ",
+      "extractScene": 63
+    },
+    "auto-ylisrinne-t12-1974-abc-2f-huonejakoseinat-work-test-20261022-1dxw1yuz": {
+      "driveFileId": "1dxw1YUzH7YQDjhcNWB-4wBxF2uNUHa4z",
+      "extractScene": 4
+    },
+    "auto-ylisrinne-2015-lastenhuone-9kalustetta-skaland-sigurd-work-test-20261022-1i5zenuu": {
+      "driveFileId": "1I5zenUuuA3qI93WAlZvHIKs99V6kyMnE",
+      "extractScene": 2
+    },
+    "auto-ylisrinne-t12-1974-abc-1f-etela-tk-vh-source-plan-work-test-20261022-1vvkqrn5": {
+      "driveFileId": "1Vv-kqrn5uJOQOpqIf6jplnZ0-8bfIcst",
+      "extractScene": 6
+    },
+    "auto-ylisrinne-t12-1974-abc-1f-eteinen-kaytava-jakoseinat-work-test-20261022-1ye5pz6i": {
+      "driveFileId": "1Ye5pz6ItsEY3j4EwsmIc73jwqD9_J-aa",
+      "extractScene": 6
     }
   }
 }
