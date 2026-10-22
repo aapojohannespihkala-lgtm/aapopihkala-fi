@@ -416,6 +416,38 @@
     "auto-ylisrinne-t12-8-valoaukon-roolimerkit-work-test-20261022-1ctopnco": {
       "driveFileId": "1CtoPnCOwQn5Lt-8HgSky0beCgQ39iYKD",
       "extractScene": 0
+    },
+    "auto-ylisrinne-kph09-20-viiltoa-valokuvasta-tarkistettu-work-test-20261022-1yrn2dlk": {
+      "driveFileId": "1YRn2dLK0ZMxdVmCf2Qpxuct6F-GXwNPs",
+      "extractScene": 0
+    },
+    "auto-ylisrinne-d-terassi-l-askelma-v3-work-test-20261022-1wjqjbt9": {
+      "driveFileId": "1wJqJBT9LQc7snBMON2v0Lfe859-5beAc",
+      "extractScene": 0
+    },
+    "auto-ylisrinne-d-terassi-l-askelma-v4-local-terrain-clip-work-test-20261022-1uqgnutc": {
+      "driveFileId": "1Uqgn-UTCo6xUgmDSLya-sEHHEzielxy9",
+      "extractScene": 0
+    },
+    "auto-ylisrinne-t12-8-valoaukon-3d-footprintit-work-test-20261022-1or2pxpg": {
+      "driveFileId": "1O_R2PXpg86kpav-hQ6U_GYwG6cfnjVm-",
+      "extractScene": 0
+    },
+    "auto-ylisrinne-d1f-eteisen-kaapit-2015-5-modules-work-test-20261022-1imci825": {
+      "driveFileId": "1iMCi825D-Pk4jzGQ3mUyXcUuI0tvXfPQ",
+      "extractScene": 0
+    },
+    "auto-ylisrinne-kph09-20-viiltoa-omistajan-aukotushyvaksynta-metadata-work-test-20261022-1bc9ji7w": {
+      "driveFileId": "1bc9Ji7W6DvJmKsKQJVKpDfLrccT2c3JG",
+      "extractScene": 0
+    },
+    "auto-ylisrinne-d2f-2015-3-ovilehtea-avattu-suljettu-work-test-20261022-1wvgyfgt": {
+      "driveFileId": "1wVgYfGtl5EhCV5lFVwkB_x8WHhSMXAMT",
+      "extractScene": 60
+    },
+    "auto-ylisrinne-d2f-2015-keittion-seinakaapit-work-test-20261022-1um19vwz": {
+      "driveFileId": "1um19Vwz2-1wxqpApw8IX48sX9tGE34JX",
+      "extractScene": 62
     }
   }
 }
