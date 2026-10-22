@@ -174,3 +174,59 @@ export const selectionMetadataEntries = (
     })
     .slice(0, 12);
 };
+
+export type SelectionSourceLink = {
+  readonly link: string;
+  readonly label: string;
+};
+
+const allowedSourceLinkPrefixes = ['https://drive.google.com/', 'https://docs.google.com/'] as const;
+const maxSelectionSourceLinks = 50;
+
+const sourceLinkText = (value: unknown) => {
+  if (typeof value === 'string') return value.trim();
+  if (Array.isArray(value)) {
+    return value
+      .filter((item): item is string => typeof item === 'string' && item.trim().length > 0)
+      .map((item) => item.trim())
+      .join(', ');
+  }
+  return '';
+};
+
+/**
+ * GLB node extras.sourceLinks ({docId, link, role, supports}) from the selected node and
+ * its ancestors (same 8-level walk as scalar metadata). Only Google Drive/Docs links are
+ * returned, de-duplicated by link. Source references, not current/as-built claims.
+ */
+export const selectionSourceLinks = (
+  object: SelectionMetadataNode | null | undefined,
+  stopAt: SelectionMetadataNode | null | undefined,
+): SelectionSourceLink[] => {
+  const links = new Map<string, SelectionSourceLink>();
+  let current = object;
+  let depth = 0;
+
+  while (current && current !== stopAt && depth < 8 && links.size < maxSelectionSourceLinks) {
+    const raw = current.userData?.sourceLinks;
+    if (Array.isArray(raw)) {
+      for (const item of raw) {
+        if (links.size >= maxSelectionSourceLinks) break;
+        if (!item || typeof item !== 'object') continue;
+        const record = item as Record<string, unknown>;
+        const link = typeof record.link === 'string' ? record.link.trim() : '';
+        if (!allowedSourceLinkPrefixes.some((prefix) => link.startsWith(prefix))) continue;
+        if (links.has(link)) continue;
+        const label =
+          [sourceLinkText(record.role), sourceLinkText(record.supports)].filter(Boolean).join(' · ') ||
+          sourceLinkText(record.docId) ||
+          'Lähde';
+        links.set(link, { link, label: label.length > 240 ? `${label.slice(0, 237)}…` : label });
+      }
+    }
+    current = current.parent;
+    depth += 1;
+  }
+
+  return [...links.values()];
+};

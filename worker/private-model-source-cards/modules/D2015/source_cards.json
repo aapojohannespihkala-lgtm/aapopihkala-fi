@@ -1,0 +1,1050 @@
+{
+  "schema": "ylisrinne-electrical-source-cards-sidecar-v1",
+  "createdDate": "2026-10-20",
+  "status": "WORK_TEST_DATA_READY_UI_INTEGRATION_PENDING",
+  "model": {
+    "driveId": "1UPlDDRwI3-s4TWOJoVvBtt90DgbJ6MX4",
+    "fileName": "Ylisrinne_D2015_SAHKO_RYHMAT_JA_ERIKOISMERKINNAT_P186E_X1_WORK_TEST_20261020__scene64.glb",
+    "sha256": "a92cecbdb419048ca985bbc91663f7c511929924bf889cabc8cc3847602dacb5",
+    "byteLength": 3217892,
+    "sceneIndex": 64
+  },
+  "bindingPolicy": {
+    "exactModelSha256Required": true,
+    "nodeIndexPortableAcrossVersions": false,
+    "selectorRequiresAllFields": true,
+    "mismatchAction": "Älä kohdista automaattisesti. Varmenna uuden version vastaavuus erikseen."
+  },
+  "scope": "15 D2F-ryhmämerkintää ja yksi LED-erityismerkintä, ei koko sähköjärjestelmä.",
+  "uiContractStatus": "Sisältöehdotus. Ei väitettä nykyisen viewerin sourceLinks-skeeman yhteensopivuudesta.",
+  "cards": [
+    {
+      "reviewLabel": "G1",
+      "selector": {
+        "nodeIndex": 1117,
+        "nodeName": "P186E_X1_GROUP_LABEL_D_2F_11_2_001",
+        "extrasKey": "annotationStableKey",
+        "extrasValue": "D2015_GROUP_LABEL::D_2F::11.2::001"
+      },
+      "sourceGroupKey": "11.2",
+      "sourceOccurrenceOrdinal": 1,
+      "sourceTextVerbatim": "Ulko PR parveke",
+      "display": {
+        "title": "Ryhmä 11.2 - Ulko PR parveke",
+        "period": "Vuoden 2015 suunnitelma",
+        "locationStatus": "Viitteellinen sijainti",
+        "sourceLabels": [
+          "Merkintä johdotuspiirustuksessa",
+          "Ryhmän nimi keskuskaaviossa"
+        ]
+      },
+      "sources": [
+        {
+          "role": "drawing_label",
+          "driveId": "1dzzZsa9FCiyqmv8WholhLxba6Kxobspg",
+          "title": "Johdotus.me_design.pdf",
+          "url": "https://drive.google.com/file/d/1dzzZsa9FCiyqmv8WholhLxba6Kxobspg/view"
+        },
+        {
+          "role": "group_name",
+          "driveId": "1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP",
+          "title": "Keskuskaavio.pdf",
+          "url": "https://drive.google.com/file/d/1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP/view"
+        }
+      ],
+      "sourceBindingClass": "SOURCE_DIRECT_GROUP_LABEL_PLUS_EXACT_GROUP_KEY_SCHEDULE_JOIN",
+      "coordinateAudit": {
+        "system": "YLIS-G1-LOCAL",
+        "nodeLocalTranslationM": [
+          1.089758,
+          -0.874677,
+          2.815
+        ],
+        "displayHeightRole": "PRESENTATION_STYLE_WORK_ASSUMPTION",
+        "displayHeightIsInstallationHeight": false
+      },
+      "sourceModelClaims": {
+        "presentationOnly": true,
+        "sourceDerived": true,
+        "deviceGeometryClaim": false,
+        "socketGeometryClaim": false,
+        "switchOrFixtureClaim": false,
+        "physicalCableRouteClaim": false,
+        "connectionTopologyClaim": false,
+        "exactCurrentXYClaim": false,
+        "exactZClaim": false,
+        "currentGeometryClaim": false,
+        "current": false,
+        "asBuilt": false,
+        "canonical": false,
+        "publishToCURRENT": false,
+        "HUMAN_REVIEW": "NOT_RUN"
+      },
+      "notes": []
+    },
+    {
+      "reviewLabel": "G2",
+      "selector": {
+        "nodeIndex": 1118,
+        "nodeName": "P186E_X1_GROUP_LABEL_D_2F_12_2_001",
+        "extrasKey": "annotationStableKey",
+        "extrasValue": "D2015_GROUP_LABEL::D_2F::12.2::001"
+      },
+      "sourceGroupKey": "12.2",
+      "sourceOccurrenceOrdinal": 1,
+      "sourceTextVerbatim": "MH yläkerta isompi",
+      "display": {
+        "title": "Ryhmä 12.2 - MH yläkerta isompi",
+        "period": "Vuoden 2015 suunnitelma",
+        "locationStatus": "Viitteellinen sijainti",
+        "sourceLabels": [
+          "Merkintä johdotuspiirustuksessa",
+          "Ryhmän nimi keskuskaaviossa"
+        ]
+      },
+      "sources": [
+        {
+          "role": "drawing_label",
+          "driveId": "1dzzZsa9FCiyqmv8WholhLxba6Kxobspg",
+          "title": "Johdotus.me_design.pdf",
+          "url": "https://drive.google.com/file/d/1dzzZsa9FCiyqmv8WholhLxba6Kxobspg/view"
+        },
+        {
+          "role": "group_name",
+          "driveId": "1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP",
+          "title": "Keskuskaavio.pdf",
+          "url": "https://drive.google.com/file/d/1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP/view"
+        }
+      ],
+      "sourceBindingClass": "SOURCE_DIRECT_GROUP_LABEL_PLUS_EXACT_GROUP_KEY_SCHEDULE_JOIN",
+      "coordinateAudit": {
+        "system": "YLIS-G1-LOCAL",
+        "nodeLocalTranslationM": [
+          1.244663,
+          8.634748,
+          2.815
+        ],
+        "displayHeightRole": "PRESENTATION_STYLE_WORK_ASSUMPTION",
+        "displayHeightIsInstallationHeight": false
+      },
+      "sourceModelClaims": {
+        "presentationOnly": true,
+        "sourceDerived": true,
+        "deviceGeometryClaim": false,
+        "socketGeometryClaim": false,
+        "switchOrFixtureClaim": false,
+        "physicalCableRouteClaim": false,
+        "connectionTopologyClaim": false,
+        "exactCurrentXYClaim": false,
+        "exactZClaim": false,
+        "currentGeometryClaim": false,
+        "current": false,
+        "asBuilt": false,
+        "canonical": false,
+        "publishToCURRENT": false,
+        "HUMAN_REVIEW": "NOT_RUN"
+      },
+      "notes": []
+    },
+    {
+      "reviewLabel": "G3",
+      "selector": {
+        "nodeIndex": 1119,
+        "nodeName": "P186E_X1_GROUP_LABEL_D_2F_12_3_001",
+        "extrasKey": "annotationStableKey",
+        "extrasValue": "D2015_GROUP_LABEL::D_2F::12.3::001"
+      },
+      "sourceGroupKey": "12.3",
+      "sourceOccurrenceOrdinal": 1,
+      "sourceTextVerbatim": "MH yläkerta pienempi",
+      "display": {
+        "title": "Ryhmä 12.3 - MH yläkerta pienempi",
+        "period": "Vuoden 2015 suunnitelma",
+        "locationStatus": "Viitteellinen sijainti",
+        "sourceLabels": [
+          "Merkintä johdotuspiirustuksessa",
+          "Ryhmän nimi keskuskaaviossa"
+        ]
+      },
+      "sources": [
+        {
+          "role": "drawing_label",
+          "driveId": "1dzzZsa9FCiyqmv8WholhLxba6Kxobspg",
+          "title": "Johdotus.me_design.pdf",
+          "url": "https://drive.google.com/file/d/1dzzZsa9FCiyqmv8WholhLxba6Kxobspg/view"
+        },
+        {
+          "role": "group_name",
+          "driveId": "1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP",
+          "title": "Keskuskaavio.pdf",
+          "url": "https://drive.google.com/file/d/1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP/view"
+        }
+      ],
+      "sourceBindingClass": "SOURCE_DIRECT_GROUP_LABEL_PLUS_EXACT_GROUP_KEY_SCHEDULE_JOIN",
+      "coordinateAudit": {
+        "system": "YLIS-G1-LOCAL",
+        "nodeLocalTranslationM": [
+          4.324123,
+          8.234711,
+          2.815
+        ],
+        "displayHeightRole": "PRESENTATION_STYLE_WORK_ASSUMPTION",
+        "displayHeightIsInstallationHeight": false
+      },
+      "sourceModelClaims": {
+        "presentationOnly": true,
+        "sourceDerived": true,
+        "deviceGeometryClaim": false,
+        "socketGeometryClaim": false,
+        "switchOrFixtureClaim": false,
+        "physicalCableRouteClaim": false,
+        "connectionTopologyClaim": false,
+        "exactCurrentXYClaim": false,
+        "exactZClaim": false,
+        "currentGeometryClaim": false,
+        "current": false,
+        "asBuilt": false,
+        "canonical": false,
+        "publishToCURRENT": false,
+        "HUMAN_REVIEW": "NOT_RUN"
+      },
+      "notes": []
+    },
+    {
+      "reviewLabel": "G4",
+      "selector": {
+        "nodeIndex": 1120,
+        "nodeName": "P186E_X1_GROUP_LABEL_D_2F_13_1_001",
+        "extrasKey": "annotationStableKey",
+        "extrasValue": "D2015_GROUP_LABEL::D_2F::13.1::001"
+      },
+      "sourceGroupKey": "13.1",
+      "sourceOccurrenceOrdinal": 1,
+      "sourceTextVerbatim": "PR keittiö",
+      "display": {
+        "title": "Ryhmä 13.1 - PR keittiö",
+        "period": "Vuoden 2015 suunnitelma",
+        "locationStatus": "Viitteellinen sijainti",
+        "sourceLabels": [
+          "Merkintä johdotuspiirustuksessa",
+          "Ryhmän nimi keskuskaaviossa"
+        ]
+      },
+      "sources": [
+        {
+          "role": "drawing_label",
+          "driveId": "1dzzZsa9FCiyqmv8WholhLxba6Kxobspg",
+          "title": "Johdotus.me_design.pdf",
+          "url": "https://drive.google.com/file/d/1dzzZsa9FCiyqmv8WholhLxba6Kxobspg/view"
+        },
+        {
+          "role": "group_name",
+          "driveId": "1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP",
+          "title": "Keskuskaavio.pdf",
+          "url": "https://drive.google.com/file/d/1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP/view"
+        }
+      ],
+      "sourceBindingClass": "SOURCE_DIRECT_GROUP_LABEL_PLUS_EXACT_GROUP_KEY_SCHEDULE_JOIN",
+      "coordinateAudit": {
+        "system": "YLIS-G1-LOCAL",
+        "nodeLocalTranslationM": [
+          5.117638,
+          0.631947,
+          2.815
+        ],
+        "displayHeightRole": "PRESENTATION_STYLE_WORK_ASSUMPTION",
+        "displayHeightIsInstallationHeight": false
+      },
+      "sourceModelClaims": {
+        "presentationOnly": true,
+        "sourceDerived": true,
+        "deviceGeometryClaim": false,
+        "socketGeometryClaim": false,
+        "switchOrFixtureClaim": false,
+        "physicalCableRouteClaim": false,
+        "connectionTopologyClaim": false,
+        "exactCurrentXYClaim": false,
+        "exactZClaim": false,
+        "currentGeometryClaim": false,
+        "current": false,
+        "asBuilt": false,
+        "canonical": false,
+        "publishToCURRENT": false,
+        "HUMAN_REVIEW": "NOT_RUN"
+      },
+      "notes": [
+        "Ryhmän 13.1 erillinen tekstiesiintymä. Säilytä molemmat kortit ja niiden erilliset tunnukset."
+      ]
+    },
+    {
+      "reviewLabel": "G5",
+      "selector": {
+        "nodeIndex": 1121,
+        "nodeName": "P186E_X1_GROUP_LABEL_D_2F_13_1_002",
+        "extrasKey": "annotationStableKey",
+        "extrasValue": "D2015_GROUP_LABEL::D_2F::13.1::002"
+      },
+      "sourceGroupKey": "13.1",
+      "sourceOccurrenceOrdinal": 2,
+      "sourceTextVerbatim": "PR keittiö",
+      "display": {
+        "title": "Ryhmä 13.1 - PR keittiö",
+        "period": "Vuoden 2015 suunnitelma",
+        "locationStatus": "Viitteellinen sijainti",
+        "sourceLabels": [
+          "Merkintä johdotuspiirustuksessa",
+          "Ryhmän nimi keskuskaaviossa"
+        ]
+      },
+      "sources": [
+        {
+          "role": "drawing_label",
+          "driveId": "1dzzZsa9FCiyqmv8WholhLxba6Kxobspg",
+          "title": "Johdotus.me_design.pdf",
+          "url": "https://drive.google.com/file/d/1dzzZsa9FCiyqmv8WholhLxba6Kxobspg/view"
+        },
+        {
+          "role": "group_name",
+          "driveId": "1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP",
+          "title": "Keskuskaavio.pdf",
+          "url": "https://drive.google.com/file/d/1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP/view"
+        }
+      ],
+      "sourceBindingClass": "SOURCE_DIRECT_GROUP_LABEL_PLUS_EXACT_GROUP_KEY_SCHEDULE_JOIN",
+      "coordinateAudit": {
+        "system": "YLIS-G1-LOCAL",
+        "nodeLocalTranslationM": [
+          3.11446,
+          3.349869,
+          2.815
+        ],
+        "displayHeightRole": "PRESENTATION_STYLE_WORK_ASSUMPTION",
+        "displayHeightIsInstallationHeight": false
+      },
+      "sourceModelClaims": {
+        "presentationOnly": true,
+        "sourceDerived": true,
+        "deviceGeometryClaim": false,
+        "socketGeometryClaim": false,
+        "switchOrFixtureClaim": false,
+        "physicalCableRouteClaim": false,
+        "connectionTopologyClaim": false,
+        "exactCurrentXYClaim": false,
+        "exactZClaim": false,
+        "currentGeometryClaim": false,
+        "current": false,
+        "asBuilt": false,
+        "canonical": false,
+        "publishToCURRENT": false,
+        "HUMAN_REVIEW": "NOT_RUN"
+      },
+      "notes": [
+        "Ryhmän 13.1 erillinen tekstiesiintymä. Säilytä molemmat kortit ja niiden erilliset tunnukset."
+      ]
+    },
+    {
+      "reviewLabel": "G6",
+      "selector": {
+        "nodeIndex": 1122,
+        "nodeName": "P186E_X1_GROUP_LABEL_D_2F_13_2_001",
+        "extrasKey": "annotationStableKey",
+        "extrasValue": "D2015_GROUP_LABEL::D_2F::13.2::001"
+      },
+      "sourceGroupKey": "13.2",
+      "sourceOccurrenceOrdinal": 1,
+      "sourceTextVerbatim": "APK",
+      "display": {
+        "title": "Ryhmä 13.2 - APK",
+        "period": "Vuoden 2015 suunnitelma",
+        "locationStatus": "Viitteellinen sijainti",
+        "sourceLabels": [
+          "Merkintä johdotuspiirustuksessa",
+          "Ryhmän nimi keskuskaaviossa"
+        ]
+      },
+      "sources": [
+        {
+          "role": "drawing_label",
+          "driveId": "1dzzZsa9FCiyqmv8WholhLxba6Kxobspg",
+          "title": "Johdotus.me_design.pdf",
+          "url": "https://drive.google.com/file/d/1dzzZsa9FCiyqmv8WholhLxba6Kxobspg/view"
+        },
+        {
+          "role": "group_name",
+          "driveId": "1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP",
+          "title": "Keskuskaavio.pdf",
+          "url": "https://drive.google.com/file/d/1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP/view"
+        }
+      ],
+      "sourceBindingClass": "SOURCE_DIRECT_GROUP_LABEL_PLUS_EXACT_GROUP_KEY_SCHEDULE_JOIN",
+      "coordinateAudit": {
+        "system": "YLIS-G1-LOCAL",
+        "nodeLocalTranslationM": [
+          5.322097,
+          2.229392,
+          2.815
+        ],
+        "displayHeightRole": "PRESENTATION_STYLE_WORK_ASSUMPTION",
+        "displayHeightIsInstallationHeight": false
+      },
+      "sourceModelClaims": {
+        "presentationOnly": true,
+        "sourceDerived": true,
+        "deviceGeometryClaim": false,
+        "socketGeometryClaim": false,
+        "switchOrFixtureClaim": false,
+        "physicalCableRouteClaim": false,
+        "connectionTopologyClaim": false,
+        "exactCurrentXYClaim": false,
+        "exactZClaim": false,
+        "currentGeometryClaim": false,
+        "current": false,
+        "asBuilt": false,
+        "canonical": false,
+        "publishToCURRENT": false,
+        "HUMAN_REVIEW": "NOT_RUN"
+      },
+      "notes": []
+    },
+    {
+      "reviewLabel": "G7",
+      "selector": {
+        "nodeIndex": 1123,
+        "nodeName": "P186E_X1_GROUP_LABEL_D_2F_13_3_001",
+        "extrasKey": "annotationStableKey",
+        "extrasValue": "D2015_GROUP_LABEL::D_2F::13.3::001"
+      },
+      "sourceGroupKey": "13.3",
+      "sourceOccurrenceOrdinal": 1,
+      "sourceTextVerbatim": "Uuni",
+      "display": {
+        "title": "Ryhmä 13.3 - Uuni",
+        "period": "Vuoden 2015 suunnitelma",
+        "locationStatus": "Viitteellinen sijainti",
+        "sourceLabels": [
+          "Merkintä johdotuspiirustuksessa",
+          "Ryhmän nimi keskuskaaviossa"
+        ]
+      },
+      "sources": [
+        {
+          "role": "drawing_label",
+          "driveId": "1dzzZsa9FCiyqmv8WholhLxba6Kxobspg",
+          "title": "Johdotus.me_design.pdf",
+          "url": "https://drive.google.com/file/d/1dzzZsa9FCiyqmv8WholhLxba6Kxobspg/view"
+        },
+        {
+          "role": "group_name",
+          "driveId": "1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP",
+          "title": "Keskuskaavio.pdf",
+          "url": "https://drive.google.com/file/d/1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP/view"
+        }
+      ],
+      "sourceBindingClass": "SOURCE_DIRECT_GROUP_LABEL_PLUS_EXACT_GROUP_KEY_SCHEDULE_JOIN",
+      "coordinateAudit": {
+        "system": "YLIS-G1-LOCAL",
+        "nodeLocalTranslationM": [
+          3.100309,
+          3.093304,
+          2.815
+        ],
+        "displayHeightRole": "PRESENTATION_STYLE_WORK_ASSUMPTION",
+        "displayHeightIsInstallationHeight": false
+      },
+      "sourceModelClaims": {
+        "presentationOnly": true,
+        "sourceDerived": true,
+        "deviceGeometryClaim": false,
+        "socketGeometryClaim": false,
+        "switchOrFixtureClaim": false,
+        "physicalCableRouteClaim": false,
+        "connectionTopologyClaim": false,
+        "exactCurrentXYClaim": false,
+        "exactZClaim": false,
+        "currentGeometryClaim": false,
+        "current": false,
+        "asBuilt": false,
+        "canonical": false,
+        "publishToCURRENT": false,
+        "HUMAN_REVIEW": "NOT_RUN"
+      },
+      "notes": []
+    },
+    {
+      "reviewLabel": "G8",
+      "selector": {
+        "nodeIndex": 1124,
+        "nodeName": "P186E_X1_GROUP_LABEL_D_2F_14_1_001",
+        "extrasKey": "annotationStableKey",
+        "extrasValue": "D2015_GROUP_LABEL::D_2F::14.1::001"
+      },
+      "sourceGroupKey": "14.1",
+      "sourceOccurrenceOrdinal": 1,
+      "sourceTextVerbatim": "Olohuone",
+      "display": {
+        "title": "Ryhmä 14.1 - Olohuone",
+        "period": "Vuoden 2015 suunnitelma",
+        "locationStatus": "Viitteellinen sijainti",
+        "sourceLabels": [
+          "Merkintä johdotuspiirustuksessa",
+          "Ryhmän nimi keskuskaaviossa"
+        ]
+      },
+      "sources": [
+        {
+          "role": "drawing_label",
+          "driveId": "1dzzZsa9FCiyqmv8WholhLxba6Kxobspg",
+          "title": "Johdotus.me_design.pdf",
+          "url": "https://drive.google.com/file/d/1dzzZsa9FCiyqmv8WholhLxba6Kxobspg/view"
+        },
+        {
+          "role": "group_name",
+          "driveId": "1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP",
+          "title": "Keskuskaavio.pdf",
+          "url": "https://drive.google.com/file/d/1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP/view"
+        }
+      ],
+      "sourceBindingClass": "SOURCE_DIRECT_GROUP_LABEL_PLUS_EXACT_GROUP_KEY_SCHEDULE_JOIN",
+      "coordinateAudit": {
+        "system": "YLIS-G1-LOCAL",
+        "nodeLocalTranslationM": [
+          1.469527,
+          4.483831,
+          2.815
+        ],
+        "displayHeightRole": "PRESENTATION_STYLE_WORK_ASSUMPTION",
+        "displayHeightIsInstallationHeight": false
+      },
+      "sourceModelClaims": {
+        "presentationOnly": true,
+        "sourceDerived": true,
+        "deviceGeometryClaim": false,
+        "socketGeometryClaim": false,
+        "switchOrFixtureClaim": false,
+        "physicalCableRouteClaim": false,
+        "connectionTopologyClaim": false,
+        "exactCurrentXYClaim": false,
+        "exactZClaim": false,
+        "currentGeometryClaim": false,
+        "current": false,
+        "asBuilt": false,
+        "canonical": false,
+        "publishToCURRENT": false,
+        "HUMAN_REVIEW": "NOT_RUN"
+      },
+      "notes": []
+    },
+    {
+      "reviewLabel": "G9",
+      "selector": {
+        "nodeIndex": 1125,
+        "nodeName": "P186E_X1_GROUP_LABEL_D_2F_14_2_001",
+        "extrasKey": "annotationStableKey",
+        "extrasValue": "D2015_GROUP_LABEL::D_2F::14.2::001"
+      },
+      "sourceGroupKey": "14.2",
+      "sourceOccurrenceOrdinal": 1,
+      "sourceTextVerbatim": "Viinikaappi",
+      "display": {
+        "title": "Ryhmä 14.2 - Viinikaappi",
+        "period": "Vuoden 2015 suunnitelma",
+        "locationStatus": "Viitteellinen sijainti",
+        "sourceLabels": [
+          "Merkintä johdotuspiirustuksessa",
+          "Ryhmän nimi keskuskaaviossa"
+        ]
+      },
+      "sources": [
+        {
+          "role": "drawing_label",
+          "driveId": "1dzzZsa9FCiyqmv8WholhLxba6Kxobspg",
+          "title": "Johdotus.me_design.pdf",
+          "url": "https://drive.google.com/file/d/1dzzZsa9FCiyqmv8WholhLxba6Kxobspg/view"
+        },
+        {
+          "role": "group_name",
+          "driveId": "1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP",
+          "title": "Keskuskaavio.pdf",
+          "url": "https://drive.google.com/file/d/1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP/view"
+        }
+      ],
+      "sourceBindingClass": "SOURCE_DIRECT_GROUP_LABEL_PLUS_EXACT_GROUP_KEY_SCHEDULE_JOIN",
+      "coordinateAudit": {
+        "system": "YLIS-G1-LOCAL",
+        "nodeLocalTranslationM": [
+          3.064324,
+          4.316921,
+          2.815
+        ],
+        "displayHeightRole": "PRESENTATION_STYLE_WORK_ASSUMPTION",
+        "displayHeightIsInstallationHeight": false
+      },
+      "sourceModelClaims": {
+        "presentationOnly": true,
+        "sourceDerived": true,
+        "deviceGeometryClaim": false,
+        "socketGeometryClaim": false,
+        "switchOrFixtureClaim": false,
+        "physicalCableRouteClaim": false,
+        "connectionTopologyClaim": false,
+        "exactCurrentXYClaim": false,
+        "exactZClaim": false,
+        "currentGeometryClaim": false,
+        "current": false,
+        "asBuilt": false,
+        "canonical": false,
+        "publishToCURRENT": false,
+        "HUMAN_REVIEW": "NOT_RUN"
+      },
+      "notes": []
+    },
+    {
+      "reviewLabel": "G10",
+      "selector": {
+        "nodeIndex": 1126,
+        "nodeName": "P186E_X1_GROUP_LABEL_D_2F_14_3_001",
+        "extrasKey": "annotationStableKey",
+        "extrasValue": "D2015_GROUP_LABEL::D_2F::14.3::001"
+      },
+      "sourceGroupKey": "14.3",
+      "sourceOccurrenceOrdinal": 1,
+      "sourceTextVerbatim": "Lieistuuletin",
+      "display": {
+        "title": "Ryhmä 14.3 - Liesituuletin",
+        "period": "Vuoden 2015 suunnitelma",
+        "locationStatus": "Viitteellinen sijainti",
+        "sourceLabels": [
+          "Merkintä johdotuspiirustuksessa",
+          "Ryhmän nimi keskuskaaviossa"
+        ]
+      },
+      "sources": [
+        {
+          "role": "drawing_label",
+          "driveId": "1dzzZsa9FCiyqmv8WholhLxba6Kxobspg",
+          "title": "Johdotus.me_design.pdf",
+          "url": "https://drive.google.com/file/d/1dzzZsa9FCiyqmv8WholhLxba6Kxobspg/view"
+        },
+        {
+          "role": "group_name",
+          "driveId": "1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP",
+          "title": "Keskuskaavio.pdf",
+          "url": "https://drive.google.com/file/d/1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP/view"
+        }
+      ],
+      "sourceBindingClass": "SOURCE_DIRECT_GROUP_LABEL_PLUS_EXACT_GROUP_KEY_SCHEDULE_JOIN",
+      "coordinateAudit": {
+        "system": "YLIS-G1-LOCAL",
+        "nodeLocalTranslationM": [
+          2.962725,
+          4.007841,
+          2.815
+        ],
+        "displayHeightRole": "PRESENTATION_STYLE_WORK_ASSUMPTION",
+        "displayHeightIsInstallationHeight": false
+      },
+      "sourceModelClaims": {
+        "presentationOnly": true,
+        "sourceDerived": true,
+        "deviceGeometryClaim": false,
+        "socketGeometryClaim": false,
+        "switchOrFixtureClaim": false,
+        "physicalCableRouteClaim": false,
+        "connectionTopologyClaim": false,
+        "exactCurrentXYClaim": false,
+        "exactZClaim": false,
+        "currentGeometryClaim": false,
+        "current": false,
+        "asBuilt": false,
+        "canonical": false,
+        "publishToCURRENT": false,
+        "HUMAN_REVIEW": "NOT_RUN"
+      },
+      "notes": [
+        "Näyttötekstin kirjoitusasu korjattu. Alkuperäinen sourceScheduleName säilyy sourceTextVerbatim-kentässä."
+      ]
+    },
+    {
+      "reviewLabel": "G11",
+      "selector": {
+        "nodeIndex": 1127,
+        "nodeName": "P186E_X1_GROUP_LABEL_D_2F_15_1_001",
+        "extrasKey": "annotationStableKey",
+        "extrasValue": "D2015_GROUP_LABEL::D_2F::15.1::001"
+      },
+      "sourceGroupKey": "15.1",
+      "sourceOccurrenceOrdinal": 1,
+      "sourceTextVerbatim": "PR aula/wc",
+      "display": {
+        "title": "Ryhmä 15.1 - PR aula/wc",
+        "period": "Vuoden 2015 suunnitelma",
+        "locationStatus": "Viitteellinen sijainti",
+        "sourceLabels": [
+          "Merkintä johdotuspiirustuksessa",
+          "Ryhmän nimi keskuskaaviossa"
+        ]
+      },
+      "sources": [
+        {
+          "role": "drawing_label",
+          "driveId": "1dzzZsa9FCiyqmv8WholhLxba6Kxobspg",
+          "title": "Johdotus.me_design.pdf",
+          "url": "https://drive.google.com/file/d/1dzzZsa9FCiyqmv8WholhLxba6Kxobspg/view"
+        },
+        {
+          "role": "group_name",
+          "driveId": "1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP",
+          "title": "Keskuskaavio.pdf",
+          "url": "https://drive.google.com/file/d/1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP/view"
+        }
+      ],
+      "sourceBindingClass": "SOURCE_DIRECT_GROUP_LABEL_PLUS_EXACT_GROUP_KEY_SCHEDULE_JOIN",
+      "coordinateAudit": {
+        "system": "YLIS-G1-LOCAL",
+        "nodeLocalTranslationM": [
+          2.628185,
+          7.006964,
+          2.815
+        ],
+        "displayHeightRole": "PRESENTATION_STYLE_WORK_ASSUMPTION",
+        "displayHeightIsInstallationHeight": false
+      },
+      "sourceModelClaims": {
+        "presentationOnly": true,
+        "sourceDerived": true,
+        "deviceGeometryClaim": false,
+        "socketGeometryClaim": false,
+        "switchOrFixtureClaim": false,
+        "physicalCableRouteClaim": false,
+        "connectionTopologyClaim": false,
+        "exactCurrentXYClaim": false,
+        "exactZClaim": false,
+        "currentGeometryClaim": false,
+        "current": false,
+        "asBuilt": false,
+        "canonical": false,
+        "publishToCURRENT": false,
+        "HUMAN_REVIEW": "NOT_RUN"
+      },
+      "notes": []
+    },
+    {
+      "reviewLabel": "G12",
+      "selector": {
+        "nodeIndex": 1128,
+        "nodeName": "P186E_X1_GROUP_LABEL_D_2F_4_3_001",
+        "extrasKey": "annotationStableKey",
+        "extrasValue": "D2015_GROUP_LABEL::D_2F::4.3::001"
+      },
+      "sourceGroupKey": "4.3",
+      "sourceOccurrenceOrdinal": 1,
+      "sourceTextVerbatim": "Valaistus keittiö",
+      "display": {
+        "title": "Ryhmä 4.3 - Valaistus keittiö",
+        "period": "Vuoden 2015 suunnitelma",
+        "locationStatus": "Viitteellinen sijainti",
+        "sourceLabels": [
+          "Merkintä johdotuspiirustuksessa",
+          "Ryhmän nimi keskuskaaviossa"
+        ]
+      },
+      "sources": [
+        {
+          "role": "drawing_label",
+          "driveId": "1dzzZsa9FCiyqmv8WholhLxba6Kxobspg",
+          "title": "Johdotus.me_design.pdf",
+          "url": "https://drive.google.com/file/d/1dzzZsa9FCiyqmv8WholhLxba6Kxobspg/view"
+        },
+        {
+          "role": "group_name",
+          "driveId": "1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP",
+          "title": "Keskuskaavio.pdf",
+          "url": "https://drive.google.com/file/d/1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP/view"
+        }
+      ],
+      "sourceBindingClass": "SOURCE_DIRECT_GROUP_LABEL_PLUS_EXACT_GROUP_KEY_SCHEDULE_JOIN",
+      "coordinateAudit": {
+        "system": "YLIS-G1-LOCAL",
+        "nodeLocalTranslationM": [
+          4.357231,
+          7.179328,
+          2.815
+        ],
+        "displayHeightRole": "PRESENTATION_STYLE_WORK_ASSUMPTION",
+        "displayHeightIsInstallationHeight": false
+      },
+      "sourceModelClaims": {
+        "presentationOnly": true,
+        "sourceDerived": true,
+        "deviceGeometryClaim": false,
+        "socketGeometryClaim": false,
+        "switchOrFixtureClaim": false,
+        "physicalCableRouteClaim": false,
+        "connectionTopologyClaim": false,
+        "exactCurrentXYClaim": false,
+        "exactZClaim": false,
+        "currentGeometryClaim": false,
+        "current": false,
+        "asBuilt": false,
+        "canonical": false,
+        "publishToCURRENT": false,
+        "HUMAN_REVIEW": "NOT_RUN"
+      },
+      "notes": [
+        "4.3 tarkoittaa keittiön valaistusryhmää. Merkinnän piirustussijainti ei muuta ryhmän nimeä aulan valaistukseksi."
+      ]
+    },
+    {
+      "reviewLabel": "G13",
+      "selector": {
+        "nodeIndex": 1129,
+        "nodeName": "P186E_X1_GROUP_LABEL_D_2F_5_1_001",
+        "extrasKey": "annotationStableKey",
+        "extrasValue": "D2015_GROUP_LABEL::D_2F::5.1::001"
+      },
+      "sourceGroupKey": "5.1",
+      "sourceOccurrenceOrdinal": 1,
+      "sourceTextVerbatim": "Jääkaappi",
+      "display": {
+        "title": "Ryhmä 5.1 - Jääkaappi",
+        "period": "Vuoden 2015 suunnitelma",
+        "locationStatus": "Viitteellinen sijainti",
+        "sourceLabels": [
+          "Merkintä johdotuspiirustuksessa",
+          "Ryhmän nimi keskuskaaviossa"
+        ]
+      },
+      "sources": [
+        {
+          "role": "drawing_label",
+          "driveId": "1dzzZsa9FCiyqmv8WholhLxba6Kxobspg",
+          "title": "Johdotus.me_design.pdf",
+          "url": "https://drive.google.com/file/d/1dzzZsa9FCiyqmv8WholhLxba6Kxobspg/view"
+        },
+        {
+          "role": "group_name",
+          "driveId": "1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP",
+          "title": "Keskuskaavio.pdf",
+          "url": "https://drive.google.com/file/d/1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP/view"
+        }
+      ],
+      "sourceBindingClass": "SOURCE_DIRECT_GROUP_LABEL_PLUS_EXACT_GROUP_KEY_SCHEDULE_JOIN",
+      "coordinateAudit": {
+        "system": "YLIS-G1-LOCAL",
+        "nodeLocalTranslationM": [
+          5.752325,
+          3.865379,
+          2.815
+        ],
+        "displayHeightRole": "PRESENTATION_STYLE_WORK_ASSUMPTION",
+        "displayHeightIsInstallationHeight": false
+      },
+      "sourceModelClaims": {
+        "presentationOnly": true,
+        "sourceDerived": true,
+        "deviceGeometryClaim": false,
+        "socketGeometryClaim": false,
+        "switchOrFixtureClaim": false,
+        "physicalCableRouteClaim": false,
+        "connectionTopologyClaim": false,
+        "exactCurrentXYClaim": false,
+        "exactZClaim": false,
+        "currentGeometryClaim": false,
+        "current": false,
+        "asBuilt": false,
+        "canonical": false,
+        "publishToCURRENT": false,
+        "HUMAN_REVIEW": "NOT_RUN"
+      },
+      "notes": []
+    },
+    {
+      "reviewLabel": "G14",
+      "selector": {
+        "nodeIndex": 1130,
+        "nodeName": "P186E_X1_GROUP_LABEL_D_2F_5_2_001",
+        "extrasKey": "annotationStableKey",
+        "extrasValue": "D2015_GROUP_LABEL::D_2F::5.2::001"
+      },
+      "sourceGroupKey": "5.2",
+      "sourceOccurrenceOrdinal": 1,
+      "sourceTextVerbatim": "Pakastin",
+      "display": {
+        "title": "Ryhmä 5.2 - Pakastin",
+        "period": "Vuoden 2015 suunnitelma",
+        "locationStatus": "Viitteellinen sijainti",
+        "sourceLabels": [
+          "Merkintä johdotuspiirustuksessa",
+          "Ryhmän nimi keskuskaaviossa"
+        ]
+      },
+      "sources": [
+        {
+          "role": "drawing_label",
+          "driveId": "1dzzZsa9FCiyqmv8WholhLxba6Kxobspg",
+          "title": "Johdotus.me_design.pdf",
+          "url": "https://drive.google.com/file/d/1dzzZsa9FCiyqmv8WholhLxba6Kxobspg/view"
+        },
+        {
+          "role": "group_name",
+          "driveId": "1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP",
+          "title": "Keskuskaavio.pdf",
+          "url": "https://drive.google.com/file/d/1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP/view"
+        }
+      ],
+      "sourceBindingClass": "SOURCE_DIRECT_GROUP_LABEL_PLUS_EXACT_GROUP_KEY_SCHEDULE_JOIN",
+      "coordinateAudit": {
+        "system": "YLIS-G1-LOCAL",
+        "nodeLocalTranslationM": [
+          5.7684,
+          4.436485,
+          2.815
+        ],
+        "displayHeightRole": "PRESENTATION_STYLE_WORK_ASSUMPTION",
+        "displayHeightIsInstallationHeight": false
+      },
+      "sourceModelClaims": {
+        "presentationOnly": true,
+        "sourceDerived": true,
+        "deviceGeometryClaim": false,
+        "socketGeometryClaim": false,
+        "switchOrFixtureClaim": false,
+        "physicalCableRouteClaim": false,
+        "connectionTopologyClaim": false,
+        "exactCurrentXYClaim": false,
+        "exactZClaim": false,
+        "currentGeometryClaim": false,
+        "current": false,
+        "asBuilt": false,
+        "canonical": false,
+        "publishToCURRENT": false,
+        "HUMAN_REVIEW": "NOT_RUN"
+      },
+      "notes": []
+    },
+    {
+      "reviewLabel": "G15",
+      "selector": {
+        "nodeIndex": 1131,
+        "nodeName": "P186E_X1_GROUP_LABEL_D_2F_5_3_001",
+        "extrasKey": "annotationStableKey",
+        "extrasValue": "D2015_GROUP_LABEL::D_2F::5.3::001"
+      },
+      "sourceGroupKey": "5.3",
+      "sourceOccurrenceOrdinal": 1,
+      "sourceTextVerbatim": "Palovaroittimet",
+      "display": {
+        "title": "Ryhmä 5.3 - Palovaroittimet",
+        "period": "Vuoden 2015 suunnitelma",
+        "locationStatus": "Viitteellinen sijainti",
+        "sourceLabels": [
+          "Merkintä johdotuspiirustuksessa",
+          "Ryhmän nimi keskuskaaviossa"
+        ]
+      },
+      "sources": [
+        {
+          "role": "drawing_label",
+          "driveId": "1dzzZsa9FCiyqmv8WholhLxba6Kxobspg",
+          "title": "Johdotus.me_design.pdf",
+          "url": "https://drive.google.com/file/d/1dzzZsa9FCiyqmv8WholhLxba6Kxobspg/view"
+        },
+        {
+          "role": "group_name",
+          "driveId": "1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP",
+          "title": "Keskuskaavio.pdf",
+          "url": "https://drive.google.com/file/d/1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP/view"
+        }
+      ],
+      "sourceBindingClass": "SOURCE_DIRECT_GROUP_LABEL_PLUS_EXACT_GROUP_KEY_SCHEDULE_JOIN",
+      "coordinateAudit": {
+        "system": "YLIS-G1-LOCAL",
+        "nodeLocalTranslationM": [
+          1.148856,
+          7.54888,
+          2.815
+        ],
+        "displayHeightRole": "PRESENTATION_STYLE_WORK_ASSUMPTION",
+        "displayHeightIsInstallationHeight": false
+      },
+      "sourceModelClaims": {
+        "presentationOnly": true,
+        "sourceDerived": true,
+        "deviceGeometryClaim": false,
+        "socketGeometryClaim": false,
+        "switchOrFixtureClaim": false,
+        "physicalCableRouteClaim": false,
+        "connectionTopologyClaim": false,
+        "exactCurrentXYClaim": false,
+        "exactZClaim": false,
+        "currentGeometryClaim": false,
+        "current": false,
+        "asBuilt": false,
+        "canonical": false,
+        "publishToCURRENT": false,
+        "HUMAN_REVIEW": "NOT_RUN"
+      },
+      "notes": []
+    },
+    {
+      "reviewLabel": "S1",
+      "selector": {
+        "nodeIndex": 1138,
+        "nodeName": "P186E_X1_SPECIAL_LABEL_D2F_SKYLIGHT_LED_STRIP_01",
+        "extrasKey": "sourceLabelId",
+        "extrasValue": "D2015_SPECIAL_LABEL_D2F_SKYLIGHT_LED_STRIP_01"
+      },
+      "sourceGroupKey": null,
+      "sourceOccurrenceOrdinal": null,
+      "sourceTextVerbatim": "Kattoikkuna LED-nauha 9,6W/m",
+      "display": {
+        "title": "Kattoikkunan LED-nauha 9,6 W/m",
+        "period": "Vuoden 2015 suunnitelma",
+        "locationStatus": "Viitteellinen sijainti",
+        "sourceLabels": [
+          "Merkintä johdotuspiirustuksessa"
+        ]
+      },
+      "sources": [
+        {
+          "role": "drawing_label",
+          "driveId": "1dzzZsa9FCiyqmv8WholhLxba6Kxobspg",
+          "title": "Johdotus.me_design.pdf",
+          "url": "https://drive.google.com/file/d/1dzzZsa9FCiyqmv8WholhLxba6Kxobspg/view"
+        }
+      ],
+      "sourceBindingClass": "SKYLIGHT_LED_STRIP_LABEL",
+      "coordinateAudit": {
+        "system": "YLIS-G1-LOCAL",
+        "nodeLocalTranslationM": [
+          5.386327,
+          4.87263,
+          2.815
+        ],
+        "displayHeightRole": "PRESENTATION_STYLE_WORK_ASSUMPTION_MATCH_R880_LABEL_PLANE",
+        "displayHeightIsInstallationHeight": false
+      },
+      "sourceModelClaims": {
+        "presentationOnly": true,
+        "sourceDerived": true,
+        "deviceGeometryClaim": false,
+        "socketGeometryClaim": false,
+        "switchOrFixtureClaim": false,
+        "physicalCableRouteClaim": false,
+        "connectionTopologyClaim": false,
+        "exactCurrentXYClaim": false,
+        "exactZClaim": false,
+        "currentGeometryClaim": false,
+        "current": false,
+        "asBuilt": false,
+        "canonical": false,
+        "publishToCURRENT": false,
+        "HUMAN_REVIEW": "NOT_RUN"
+      },
+      "notes": [
+        "Erityismerkintä, ei vahvistettua ryhmänumeroa tai keskuskaaviosidontaa."
+      ],
+      "sourceGroupBindingDerived": false
+    }
+  ]
+}

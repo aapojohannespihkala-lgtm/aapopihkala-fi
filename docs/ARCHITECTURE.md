@@ -102,6 +102,12 @@ Varsinainen 3D-malli ei kuulu Git-repositoryyn eikä Astro-buildin julkisiin ass
 
 Viewer käyttää repositoryn yhteistä npm Three.js -runtimea. Se ei käytä erillistä CDN-runtimea eikä muodosta rinnakkaista 3D-kirjastopinon versiota.
 
+Objektien lähdekortit palvellaan Access-tarkistetusta `/private-model/source-cards.json`-reitistä. Alkuperäiset sidecar-moduulit säilyvät Workerissä, eivät julkisissa Astro-asseteissa. Tavallinen mallilataus laskee SHA-256:n samoista tavuista, jotka GLTFLoader avaa. Kortti edellyttää lisäksi alkuperäistä sisäistä sceneä, solmua, lähdekenttiä ja hierarkiaa. Erikoisnäkymät ja uudet malliversiot eivät peri vanhoja kortteja ilman varmennettua sidontaa. Kortti ei muuta mallia, lähderooleja tai toteuma- ja katselmusmerkintöjä.
+
+D2F:n varmennetut versiosidonnat ovat erillinen aineisto alkuperäisen korttikoosteen rinnalla. Sidonta nimeää version oman solmun ja root-polun sekä tarkistaa alkuperäisen kortin pysyvän lähdeavaimen, lähdetekstin ja linkkien roolit. Lähde-GLB ja julkaisupoiminta varmennetaan kumpikin erikseen. Uuden sidonnan auditointi edellyttää alkuperäisiä GLB-tavuja sekä kohteiden geometrian ja maailmamuunnosten vertailua. Mallitavuja ei tallenneta Git-repositoryyn.
+
+KPH:n kytkin- ja peilikaappikorttien versiosidonnat varmentavat lisäksi valitun osan oman ryhmäjuuren lähde- ja donor-tiedot. Uudemman kytkinversion himmennystoiminto perustuu kirjattuun omistajahavaintoon, kun taas kehyksen fyysiset mitat, tuote ja tarkka asennuspaikka pysyvät avoimina. Alkuperäinen korttimoduuli säilyttää oman versionsa tiedot. KPH-auditointiskripti vertaa 22 kohteen geometriaa, maailmamuunnoksia ja metatietomuutoksia alkuperäiseen SHARED302:een sekä testaa oikeiden GLB:ien ajonaikaisen korttikohdistuksen. Ennakkoon varmennettu poimintasidonta ei rekisteröi tai julkaise mallia.
+
 ## Animation Lab
 
 Animation Lab sijaitsee `src/pages/lab/`-reitissä. Uusien interaktiivisten animaatiotutkielmien pariteettisääntö on määritelty `AGENTS.md`-tiedostossa.

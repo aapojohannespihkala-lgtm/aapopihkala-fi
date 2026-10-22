@@ -2,8 +2,11 @@ name: Auto-publish WORK_TEST from Drive queue
 
 # Drive folder "G2b-JULKAISUJONO" -> registry + Worker allowlist PR -> build ->
 # squash merge -> (after Cloudflare deploy) publish-work-test.
-# One step per run: either register one new file or publish the latest auto
-# candidate. Optional "__sceneN" in the file name selects extractScene.
+# Batch mode: one run publishes every auto candidate registered in the last 6 h
+# that is deployed (>= 15 min) and not yet in the catalog, then registers up to
+# 15 new queue files in ONE PR (one build, one merge, one deploy). Exact size and
+# SHA-256 are still derived from the raw Drive bytes and pinned in the Worker.
+# Optional "__sceneN" in the file name selects extractScene.
 
 on:
   schedule:
@@ -29,7 +32,7 @@ env:
 jobs:
   auto:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 90
     steps:
       - name: Require trusted main run
         shell: bash
@@ -58,7 +61,7 @@ jobs:
           create_credentials_file: false
           export_environment_variables: false
 
-      - name: Read queue, catalog and open auto PRs
+      - name: Read queue, catalog, recent registrations and publish failures
         shell: bash
         env:
           GDRIVE_ACCESS_TOKEN: ${{ steps.google-auth.outputs.access_token }}
@@ -75,11 +78,15 @@ jobs:
           open_prs="$(gh api "/repos/${GITHUB_REPOSITORY}/pulls?state=open&per_page=100" \
             --jq '[.[] | select(.head.ref | startswith("auto/work-test-"))] | length')"
           echo "OPEN_AUTO_PR=$([[ "$open_prs" -gt 0 ]] && echo 1 || echo 0)" >> "$GITHUB_ENV"
-          registry_ts="$(git log -1 --format=%ct -- .github/work-test-candidates.json || true)"
-          [[ -n "$registry_ts" ]] || registry_ts="$(git log -1 --format=%ct)"
-          echo "REGISTRY_AGE=$(( $(date +%s) - registry_ts ))" >> "$GITHUB_ENV"
+          python3 -I "$HELPER" recent-registrations \
+            --registry .github/work-test-candidates.json --out "$RUNNER_TEMP/recent.json"
+          # Failed publish attempts per candidate, from the run titles of publish-work-test.
+          gh api "/repos/${GITHUB_REPOSITORY}/actions/workflows/publish-work-test.yml/runs?per_page=100" \
+            --jq '[.workflow_runs[] | select(.conclusion == "failure") | .display_title
+                   | select(startswith("Publish WORK_TEST - ")) | ltrimstr("Publish WORK_TEST - ")]
+                  | group_by(.) | map({(.[0]): length}) | add // {}' > "$RUNNER_TEMP/failures.json"
 
-      - name: Plan
+      - name: Plan batch
         id: plan
         shell: bash
         run: |
@@ -88,135 +95,210 @@ jobs:
             --registry .github/work-test-candidates.json \
             --catalog "$RUNNER_TEMP/catalog.json" \
             --queue "$RUNNER_TEMP/queue.json" \
-            --registry-age "$REGISTRY_AGE" \
+            --recent "$RUNNER_TEMP/recent.json" \
+            --failures "$RUNNER_TEMP/failures.json" \
             --open-auto-pr "$OPEN_AUTO_PR" \
-            --name-out "$RUNNER_TEMP/queue-name.txt" \
+            --publish-out "$RUNNER_TEMP/publish.txt" \
+            --register-out "$RUNNER_TEMP/register.json" \
             --out "$GITHUB_OUTPUT"
 
-      - name: Dispatch publish of merged auto candidate
-        if: steps.plan.outputs.action == 'publish'
+      - name: Publish deployed candidates one at a time
+        if: steps.plan.outputs.publish_count != '0'
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
-          CANDIDATE: ${{ steps.plan.outputs.candidate }}
         run: |
           set -euo pipefail
-          gh api --method POST \
-            "/repos/${GITHUB_REPOSITORY}/actions/workflows/publish-work-test.yml/dispatches" \
-            -f ref=main -f "inputs[candidate]=$CANDIDATE"
-          echo "Dispatched Publish WORK_TEST for $CANDIDATE."
+          # Dispatch-and-wait sequentially: publish-work-test shares one concurrency group,
+          # and GitHub cancels an already pending run when another one is queued.
+          failed=0
+          while IFS= read -r candidate; do
+            [[ "$candidate" =~ ^auto-[a-z0-9-]{1,123}$ ]] || { echo "::error::invalid id"; exit 1; }
+            since="$(date -u -d '-10 seconds' +%Y-%m-%dT%H:%M:%SZ)"
+            gh api --method POST \
+              "/repos/${GITHUB_REPOSITORY}/actions/workflows/publish-work-test.yml/dispatches" \
+              -f ref=main -f "inputs[candidate]=$candidate"
+            result=""
+            for _ in $(seq 1 36); do
+              sleep 10
+              run="$(gh api "/repos/${GITHUB_REPOSITORY}/actions/workflows/publish-work-test.yml/runs?event=workflow_dispatch&created=%3E%3D${since}&per_page=20" \
+                --jq "[.workflow_runs[] | select(.display_title == \"Publish WORK_TEST - ${candidate}\")][0] // {} | \"\(.status // \"\") \(.conclusion // \"\")\"")"
+              read -r status conclusion <<<"$run" || true
+              if [[ "$status" == "completed" ]]; then result="$conclusion"; break; fi
+            done
+            if [[ "$result" == "success" ]]; then
+              echo "Published $candidate."
+            else
+              failed=$((failed + 1))
+              echo "::warning::Publish of $candidate ended: ${result:-timeout}. Retried in a later run (skipped after 3 failures)."
+            fi
+          done < "$RUNNER_TEMP/publish.txt"
+          echo "Publish failures this run: $failed"
 
-      - name: Download and derive exact GLB identity
-        if: steps.plan.outputs.action == 'register'
+      - name: Download and derive exact GLB identities
+        id: derive
+        if: steps.plan.outputs.register_count != '0'
         shell: bash
         env:
           GDRIVE_ACCESS_TOKEN: ${{ steps.google-auth.outputs.access_token }}
-          FILE_ID: ${{ steps.plan.outputs.file_id }}
-          EXTRACT_SCENE: ${{ steps.plan.outputs.extract_scene }}
         run: |
           set -euo pipefail
-          download="$RUNNER_TEMP/queue-download.bin"
-          model="$RUNNER_TEMP/queue-model.glb"
-          curl --silent --show-error --fail --location \
-            --header "Authorization: Bearer $GDRIVE_ACCESS_TOKEN" \
-            --output "$download" \
-            "https://www.googleapis.com/drive/v3/files/$FILE_ID?alt=media&supportsAllDrives=true"
-          python3 -I .github/scripts/work-test-extract-one-glb.py "$download" "$model"
-          [[ "$(head -c 4 "$model")" == "glTF" ]] || { echo "GLB magic guard rejected source" >&2; exit 1; }
-          if [[ -n "$EXTRACT_SCENE" ]]; then
-            python3 -I .github/scripts/work-test-extract-scene.py "$model" "$EXTRACT_SCENE" "$model.scene"
-            python3 -I .github/scripts/work-test-verify-scene-equal.py "$model" "$EXTRACT_SCENE" "$model.scene"
-            mv "$model.scene" "$model"
-          fi
-          echo "MODEL_SIZE=$(stat -c '%s' "$model")" >> "$GITHUB_ENV"
-          echo "MODEL_SHA=$(sha256sum "$model" | awk '{print $1}')" >> "$GITHUB_ENV"
+          # Ids and scenes only reach the shell after strict validation; names stay in JSON.
+          python3 -I - "$RUNNER_TEMP/register.json" "$RUNNER_TEMP/register.tsv" <<'PY'
+          import json, re, sys
+          items = json.load(open(sys.argv[1], encoding="utf-8"))
+          scene_re = re.compile(r"__scene(\d{1,4})(?=$|[_.\- ])", re.IGNORECASE)
+          with open(sys.argv[2], "w", encoding="utf-8") as out:
+              for n, item in enumerate(items):
+                  if not re.fullmatch(r"[A-Za-z0-9_-]{10,128}", item["file_id"]):
+                      raise SystemExit("invalid Drive file id")
+                  stem = re.sub(r"\.(glb|zip)$", "", item["name"], flags=re.IGNORECASE)
+                  match = scene_re.search(stem)
+                  out.write(f"{n}\t{item['file_id']}\t{match.group(1) if match else ''}\n")
+          PY
+          : > "$RUNNER_TEMP/derived.tsv"
+          while IFS=$'\t' read -r n file_id scene; do
+            download="$RUNNER_TEMP/queue-download-$n.bin"
+            model="$RUNNER_TEMP/queue-model-$n.glb"
+            # A separate bash process keeps errexit active (it is ignored inside `if !`).
+            if ! FILE_ID="$file_id" SCENE="$scene" DOWNLOAD="$download" MODEL="$model" bash -euo pipefail -c '
+              curl --silent --show-error --fail --location \
+                --header "Authorization: Bearer $GDRIVE_ACCESS_TOKEN" \
+                --output "$DOWNLOAD" \
+                "https://www.googleapis.com/drive/v3/files/$FILE_ID?alt=media&supportsAllDrives=true"
+              python3 -I .github/scripts/work-test-extract-one-glb.py "$DOWNLOAD" "$MODEL"
+              [[ "$(head -c 4 "$MODEL")" == "glTF" ]] || { echo "GLB magic guard rejected source" >&2; exit 1; }
+              if [[ -n "$SCENE" ]]; then
+                python3 -I .github/scripts/work-test-extract-scene.py "$MODEL" "$SCENE" "$MODEL.scene"
+                python3 -I .github/scripts/work-test-verify-scene-equal.py "$MODEL" "$SCENE" "$MODEL.scene"
+                mv "$MODEL.scene" "$MODEL"
+              fi
+            '; then
+              echo "::warning::Queue file $file_id could not be derived; skipped this run."
+              continue
+            fi
+            printf '%s\t%s\t%s\n' "$n" "$(stat -c '%s' "$model")" "$(sha256sum "$model" | awk '{print $1}')" >> "$RUNNER_TEMP/derived.tsv"
+          done < "$RUNNER_TEMP/register.tsv"
+          python3 -I - "$RUNNER_TEMP/register.json" "$RUNNER_TEMP/derived.tsv" "$RUNNER_TEMP/items.json" <<'PY'
+          import json, sys
+          items = json.load(open(sys.argv[1], encoding="utf-8"))
+          derived = []
+          for line in open(sys.argv[2], encoding="utf-8"):
+              n, size, sha = line.rstrip("\n").split("\t")
+              derived.append({**items[int(n)], "size": int(size), "sha256": sha})
+          json.dump(derived, open(sys.argv[3], "w", encoding="utf-8"), ensure_ascii=False)
+          print(f"Derived {len(derived)}/{len(items)} queue files.")
+          PY
+          echo "derived_count=$(wc -l < "$RUNNER_TEMP/derived.tsv")" >> "$GITHUB_OUTPUT"
 
-      - name: Register candidate, open PR, build and merge
-        if: steps.plan.outputs.action == 'register'
+      - name: Register batch, open PR, build and merge
+        if: steps.plan.outputs.register_count != '0' && steps.derive.outputs.derived_count != '0'
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
-          FILE_ID: ${{ steps.plan.outputs.file_id }}
         run: |
           set -euo pipefail
-          python3 -I "$HELPER" apply \
-            --registry .github/work-test-candidates.json \
-            --worker worker/privateWorkTest.ts \
-            --file-id "$FILE_ID" \
-            --name-file "$RUNNER_TEMP/queue-name.txt" \
-            --size "$MODEL_SIZE" --sha256 "$MODEL_SHA" \
-            --date "$(date -u +%Y-%m-%d)" \
-            --out "$RUNNER_TEMP/apply.env"
-          source "$RUNNER_TEMP/apply.env"
-          branch="auto/work-test-${candidate}"
-          branch="${branch:0:200}"
-
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git switch -c "$branch"
-          git add .github/work-test-candidates.json worker/privateWorkTest.ts
-          git commit -m "WORK_TEST auto: rekisteröi ${candidate} Drive-jonosta"
-          git push --force origin "$branch"
-          head_sha="$(git rev-parse HEAD)"
+          base_sha="$(git rev-parse HEAD)"
 
-          body="$RUNNER_TEMP/pr.json"
-          python3 - "$branch" "$candidate" "$FILE_ID" "$MODEL_SIZE" "$MODEL_SHA" "$body" <<'PY'
+          # Returns 0 when merged; 1 when the build failed (PR closed, branch deleted).
+          register() {
+            local items="$1"
+            git checkout --quiet --force "$base_sha"
+            python3 -I "$HELPER" apply-batch \
+              --registry .github/work-test-candidates.json \
+              --worker worker/privateWorkTest.ts \
+              --items "$items" \
+              --date "$(date -u +%Y-%m-%d)" \
+              --ids-out "$RUNNER_TEMP/ids.txt"
+            local count first branch
+            count="$(wc -l < "$RUNNER_TEMP/ids.txt")"
+            first="$(head -n 1 "$RUNNER_TEMP/ids.txt")"
+            if [[ "$count" -eq 1 ]]; then
+              title="WORK_TEST auto: rekisteröi ${first} Drive-jonosta"
+            else
+              title="WORK_TEST auto: rekisteröi ${count} mallia Drive-jonosta"
+            fi
+            branch="auto/work-test-${first}"
+            branch="${branch:0:200}"
+            git switch --quiet -C "$branch"
+            git add .github/work-test-candidates.json worker/privateWorkTest.ts
+            git commit --quiet -m "$title"
+            git push --quiet --force origin "$branch"
+            head_sha="$(git rev-parse HEAD)"
+
+            python3 -I - "$branch" "$title" "$items" "$RUNNER_TEMP/ids.txt" "$RUNNER_TEMP/pr.json" <<'PY'
           import json, sys
-          branch, cid, fid, size, sha, path = sys.argv[1:]
+          branch, title, items_path, ids_path, out = sys.argv[1:]
+          items = json.load(open(items_path, encoding="utf-8"))
+          ids = open(ids_path, encoding="utf-8").read().split()
+          lines = [f"- `{cid}`: Drive `{i['file_id']}`, {i['size']} B, SHA-256 `{i['sha256']}`"
+                   for cid, i in zip(ids, items)]
           json.dump({
-              "title": f"WORK_TEST auto: {cid}",
-              "head": branch,
-              "base": "main",
-              "body": (
-                  "Automaattinen rekisteröinti Drive-jonokansiosta (auto-publish-work-test).\n\n"
-                  f"- Drive-tiedosto: `{fid}`\n- Koko: {size} B\n- SHA-256: `{sha}`\n\n"
-                  "Julkaisu katselimeen tehdään seuraavassa ajastetussa ajossa Cloudflare-deployn jälkeen. "
-                  "WORK_TEST, ei as-built-tietoa."
-              ),
-          }, open(path, "w", encoding="utf-8"))
+              "title": title, "head": branch, "base": "main",
+              "body": ("Automaattinen rekisteröinti Drive-jonokansiosta (auto-publish-work-test).\n\n"
+                       + "\n".join(lines) + "\n\nJulkaisu katselimeen tehdään seuraavassa ajossa "
+                       "Cloudflare-deployn jälkeen. WORK_TEST, ei as-built-tietoa."),
+          }, open(out, "w", encoding="utf-8"))
           PY
-          if ! pr_number="$(gh api --method POST "/repos/${GITHUB_REPOSITORY}/pulls" --input "$body" --jq '.number')"; then
+            if ! pr_number="$(gh api --method POST "/repos/${GITHUB_REPOSITORY}/pulls" --input "$RUNNER_TEMP/pr.json" --jq '.number')"; then
+              gh api --method DELETE "/repos/${GITHUB_REPOSITORY}/git/refs/heads/${branch}" || true
+              echo "::error::PR creation refused. Enable Settings > Actions > General > Workflow permissions > 'Allow GitHub Actions to create and approve pull requests'." >&2
+              exit 1
+            fi
+            echo "Opened PR #$pr_number ($count candidates)"
+
+            # A bot-opened PR triggers Build check (pull_request) in "action_required"
+            # state; approve that run so the required "build" check comes from it.
+            local conclusion=""
+            for _ in $(seq 1 90); do
+              sleep 20
+              run="$(gh api "/repos/${GITHUB_REPOSITORY}/actions/workflows/build-check.yml/runs?event=pull_request&head_sha=${head_sha}&per_page=1" \
+                --jq '.workflow_runs[0] // {} | "\(.id // "") \(.status // "") \(.conclusion // "")"')"
+              read -r run_id run_status run_conclusion <<<"$run" || true
+              [[ -n "${run_id:-}" ]] || continue
+              if [[ "${run_conclusion:-}" == "action_required" || "$run_status" == "waiting" ]]; then
+                gh api --method POST "/repos/${GITHUB_REPOSITORY}/actions/runs/${run_id}/approve" >/dev/null || true
+                continue
+              fi
+              if [[ "$run_status" == "completed" ]]; then
+                conclusion="$run_conclusion"
+                break
+              fi
+            done
+            if [[ "$conclusion" != "success" ]]; then
+              if [[ "$count" -gt 1 ]]; then
+                gh api --method PATCH "/repos/${GITHUB_REPOSITORY}/pulls/${pr_number}" -f state=closed >/dev/null || true
+                gh api --method DELETE "/repos/${GITHUB_REPOSITORY}/git/refs/heads/${branch}" || true
+                echo "::warning::Batch build did not succeed (${conclusion:-timeout}); PR #$pr_number closed."
+                return 1
+              fi
+              echo "Build check did not succeed (${conclusion:-timeout}); PR #$pr_number left open." >&2
+              exit 1
+            fi
+
+            local merged=false
+            for _ in $(seq 1 6); do
+              if gh api --method PUT "/repos/${GITHUB_REPOSITORY}/pulls/${pr_number}/merge" \
+                -f merge_method=squash -f "sha=$head_sha" --jq '.merged' | grep -q true; then
+                merged=true
+                break
+              fi
+              sleep 15
+            done
+            if [[ "$merged" != "true" ]]; then
+              echo "Merge of PR #$pr_number was rejected; PR left open for the owner." >&2
+              exit 1
+            fi
             gh api --method DELETE "/repos/${GITHUB_REPOSITORY}/git/refs/heads/${branch}" || true
-            echo "::error::PR creation refused. Enable Settings > Actions > General > Workflow permissions > 'Allow GitHub Actions to create and approve pull requests'." >&2
-            exit 1
-          fi
-          echo "Opened PR #$pr_number"
+            echo "Merged PR #$pr_number. Publish follows in a later run after the Cloudflare deploy."
+          }
 
-          # A bot-opened PR triggers Build check (pull_request) in "action_required"
-          # state; approve that run so the required "build" check comes from it.
-          conclusion=""
-          for _ in $(seq 1 90); do
-            sleep 20
-            run="$(gh api "/repos/${GITHUB_REPOSITORY}/actions/workflows/build-check.yml/runs?event=pull_request&head_sha=${head_sha}&per_page=1" \
-              --jq '.workflow_runs[0] // {} | "\(.id // "") \(.status // "") \(.conclusion // "")"')"
-            read -r run_id run_status run_conclusion <<<"$run"
-            [[ -n "$run_id" ]] || continue
-            if [[ "$run_conclusion" == "action_required" || "$run_status" == "waiting" ]]; then
-              gh api --method POST "/repos/${GITHUB_REPOSITORY}/actions/runs/${run_id}/approve" >/dev/null || true
-              continue
-            fi
-            if [[ "$run_status" == "completed" ]]; then
-              conclusion="$run_conclusion"
-              break
-            fi
-          done
-          if [[ "$conclusion" != "success" ]]; then
-            echo "Build check did not succeed (${conclusion:-timeout}); PR #$pr_number left open." >&2
-            exit 1
+          if ! register "$RUNNER_TEMP/items.json"; then
+            # Fallback: one file at a time, as before batching. A single bad file can then
+            # only hold back itself; the remaining files go in the next run's batch.
+            python3 -I -c 'import json,sys; json.dump(json.load(open(sys.argv[1]))[:1], open(sys.argv[2], "w"))' \
+              "$RUNNER_TEMP/items.json" "$RUNNER_TEMP/items-first.json"
+            register "$RUNNER_TEMP/items-first.json" || exit 1
           fi
-
-          merged=false
-          for _ in $(seq 1 6); do
-            if gh api --method PUT "/repos/${GITHUB_REPOSITORY}/pulls/${pr_number}/merge" \
-              -f merge_method=squash -f "sha=$head_sha" --jq '.merged' | grep -q true; then
-              merged=true
-              break
-            fi
-            sleep 15
-          done
-          if [[ "$merged" != "true" ]]; then
-            echo "Merge of PR #$pr_number was rejected; PR left open for the owner." >&2
-            exit 1
-          fi
-          gh api --method DELETE "/repos/${GITHUB_REPOSITORY}/git/refs/heads/${branch}" || true
-          echo "Merged PR #$pr_number. Publish follows in a later scheduled run."

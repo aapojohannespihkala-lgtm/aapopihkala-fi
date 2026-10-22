@@ -1218,7 +1218,8 @@ const title = 'Private 3D viewer';
         overflow-wrap: anywhere;
       }
 
-      .selection-metadata {
+      .selection-metadata,
+      .selection-source-links {
         display: grid;
         gap: 6px;
         margin-top: 11px;
@@ -1226,7 +1227,8 @@ const title = 'Private 3D viewer';
         border-top: 1px solid #e2e3de;
       }
 
-      .selection-metadata > summary {
+      .selection-metadata > summary,
+      .selection-source-links > summary {
         color: #555853;
         cursor: pointer;
         font-size: 11px;
@@ -1260,6 +1262,46 @@ const title = 'Private 3D viewer';
       }
 
       .selection-metadata-empty[hidden] { display: none; }
+
+      .selection-source-links[hidden] { display: none; }
+
+      .selection-source-links-list {
+        display: grid;
+        gap: 4px;
+        margin: 0;
+        padding-left: 16px;
+        font-size: 12px;
+      }
+
+      .selection-source-links-list a {
+        overflow-wrap: anywhere;
+      }
+
+      .selection-source-evidence {
+        margin-top: 11px;
+        padding-top: 10px;
+        border-top: 1px solid var(--viewer-line-soft);
+        font-size: 12px;
+        line-height: 1.5;
+        overflow-wrap: anywhere;
+      }
+
+      .selection-source-evidence[hidden] { display: none; }
+      .selection-source-evidence :global(h3),
+      .selection-source-evidence :global(h4) { margin: 0 0 6px; font-size: 13px; }
+      .selection-source-evidence :global(p) { margin: 5px 0; }
+      .selection-source-evidence :global(summary) { cursor: pointer; }
+      .selection-source-evidence :global(.source-evidence-card) { margin-top: 12px; }
+      .selection-source-evidence :global(.source-evidence-facts) { margin: 8px 0; }
+      .selection-source-evidence :global(dt) { margin-top: 8px; }
+      .selection-source-evidence :global(dd) { margin: 0; }
+      .selection-source-evidence :global(.source-evidence-kind) { display: block; color: var(--viewer-stone-light); }
+      .selection-source-evidence :global(.source-evidence-note) { color: var(--viewer-stone-light); }
+      .selection-source-evidence :global(.source-evidence-status) { font-weight: 650; }
+      .selection-source-evidence :global(.source-evidence-conflict) { border-left: 3px solid #d1ad69; padding-left: 8px; margin: 10px 0; }
+      .selection-source-evidence :global(.source-evidence-sources) { padding-left: 18px; }
+      .selection-source-evidence :global(li) { margin-top: 10px; }
+      .selection-source-evidence :global(a) { color: var(--viewer-ink); text-decoration: underline; }
 
       .selection-actions {
         display: flex;
@@ -1412,6 +1454,7 @@ const title = 'Private 3D viewer';
       .profile-note,
       .selection-grid dt,
       .selection-metadata > summary,
+      .selection-source-links > summary,
       .selection-metadata-list dt {
         color: var(--viewer-stone-light);
       }
@@ -1427,7 +1470,8 @@ const title = 'Private 3D viewer';
       .layer-section,
       .layer-tree-children,
       .d1-user-door-legend-section,
-      .selection-metadata {
+      .selection-metadata,
+      .selection-source-links {
         border-color: var(--viewer-line-soft);
       }
 
@@ -1912,6 +1956,11 @@ const title = 'Private 3D viewer';
             <dl id="selection-metadata-list" class="selection-metadata-list"></dl>
             <div id="selection-metadata-empty" class="selection-metadata-empty">Ei lisämetadataa</div>
           </details>
+          <section id="selection-source-evidence" class="selection-source-evidence" aria-label="Lähdekortti ja varmuus" hidden></section>
+          <details id="selection-source-links" class="selection-source-links" hidden>
+            <summary title="GLB-solmun sourceLinks-lähdeviitteet. Lähdeviite, ei nykytila- eikä toteumaväite.">Lähteet</summary>
+            <ul id="selection-source-links-list" class="selection-source-links-list"></ul>
+          </details>
           <div class="selection-actions" aria-label="Valitun kohteen näkyvyys">
             <button id="isolate-selection-button" type="button">Isoloi</button>
             <button id="hide-selection-button" type="button">Piilota</button>
@@ -1974,11 +2023,17 @@ const title = 'Private 3D viewer';
       import { setupPrivateModelToolbarMenus } from '../../scripts/privateModelToolbarMenus';
       import {
         selectionMetadataEntries as collectSelectionMetadataEntries,
+        selectionSourceLinks as collectSelectionSourceLinks,
       } from '../../scripts/privateModelSelectionMetadata';
       import {
         createSelectionPanelController,
         formatSelectionDimensionsFi,
       } from '../../scripts/privateModelSelectionPanel';
+      import {
+        loadModelWithSourceCards,
+        sourceCardResolverForModel,
+        type SelectionSourceEvidence,
+      } from '../../scripts/privateModelSourceCards';
       import { createSelectionHighlightController } from '../../scripts/privateModelSelectionHighlight';
       import {
         nearestNamedAncestor,
@@ -2628,6 +2683,9 @@ const title = 'Private 3D viewer';
         dimensions: selectionDimensions ?? undefined,
         metadataList: selectionMetadataList,
         metadataEmpty: selectionMetadataEmpty,
+        sourceLinksSection: document.querySelector<HTMLElement>('#selection-source-links'),
+        sourceLinksList: document.querySelector<HTMLElement>('#selection-source-links-list'),
+        sourceEvidenceSection: document.querySelector<HTMLElement>('#selection-source-evidence'),
       });
 
       const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
@@ -2820,6 +2878,9 @@ const title = 'Private 3D viewer';
         ticks: heightScaleTicks,
       });
       let fullModelScene: any = null;
+      let resolveSelectionSources: (object: any) => SelectionSourceEvidence = () => ({
+        state: 'unavailable', version: 'Mallia ei ole ladattu', cards: [],
+      });
       let dInteriorScene: any = null;
       let p186dReviewRoomContextGroup: THREE.Group | null = null;
       let activeResearchPreset: ViewerResearchPreset = 'whole-building';
@@ -4637,6 +4698,8 @@ const title = 'Private 3D viewer';
             ...technicalMetadata,
             ...collectSelectionMetadataEntries(object, modelRoot),
           ],
+          sourceLinks: collectSelectionSourceLinks(object, modelRoot),
+          sourceEvidence: resolveSelectionSources(object),
         });
 
         selectionHighlightController.select(object);
@@ -6479,6 +6542,7 @@ const title = 'Private 3D viewer';
 
         clearD2FBoundaryReviewContext();
         fullModelScene = gltf.scene;
+        resolveSelectionSources = sourceCardResolverForModel(gltf);
         dInteriorScene = dInteriorOverride ??
           findSourceNamedScene(gltf, 'D CURRENT INTERIOR - BABYLON Y-UP');
         const modelLoadLayerState = createViewerLayerStateForModelLoad({
@@ -6536,7 +6600,7 @@ const title = 'Private 3D viewer';
         status.textContent = 'Ladataan suojattua mallia...';
 
         try {
-          const gltf = await loader.loadAsync('/private-model/model.glb');
+          const gltf = await loadModelWithSourceCards(loader, '/private-model/model.glb');
           applyLoadedModel(gltf, 'current', 'CURRENT');
           locusLayerLabel.textContent = 'Locus kunnallistekniikka (WORK_TEST)';
         } catch (error) {
@@ -10339,7 +10403,7 @@ const title = 'Private 3D viewer';
                     : verifiedP137EOriginal,
                 P137E_SCENE67_EXACT_ASSET_PATH.replace(/[^/]+$/, ''),
               )
-            : await loader.loadAsync(candidate.path));
+            : await loadModelWithSourceCards(loader, candidate.path));
           loadFailurePhase = 'review-runtime-failed';
           const isP143aScalgoTerrainReview =
             candidate.id === p143aCandidateId && isP143aScalgoTerrainReviewRequested();

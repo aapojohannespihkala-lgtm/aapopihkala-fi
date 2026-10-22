@@ -4,6 +4,7 @@ import {
   privateGlbIfNoneMatchHits,
   privateGlbNotModified,
 } from './privateGlbRevalidation';
+import { privateModelSourceCards } from './privateModelSourceCards';
 
 type AssetsBinding = { fetch(request: Request): Promise<Response> };
 
@@ -503,6 +504,13 @@ export const handlePrivateModelRequest = async (
 
   if (request.method !== 'GET' && request.method !== 'HEAD') return methodNotAllowed();
   if (!(await verifyPrivateModelAccess(request, env))) return notFound();
+
+  if (pathname === `${PRIVATE_MODEL_PREFIX}/source-cards.json`) {
+    const headers = privateHeaders();
+    headers.set('Content-Type', 'application/json; charset=utf-8');
+    headers.set('Cross-Origin-Resource-Policy', 'same-origin');
+    return new Response(request.method === 'HEAD' ? null : JSON.stringify(privateModelSourceCards), { headers });
+  }
 
   if (pathname === PRIVATE_MODEL_PATH) {
     if (!env.PRIVATE_MODEL_BUCKET) {

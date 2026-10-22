@@ -398,7 +398,7 @@ test('actual viewer load callsite uses verified scene for ' + id, async () => {
     prefix + 'return { gltf, combinedWallReview }; } catch (error) { throw error; } }; loadWorkTestCandidate(candidate);',
     {
       candidate, canvas: { dataset: {} }, status: {}, p137ePlaceToolButton: {},
-      clearP137EPlaceDraft() {}, setViewerToolMode() {}, GLTFLoader: CheckedLoader,
+      clearP137EPlaceDraft() {}, clearPointMeasure() {}, setViewerToolMode() {}, GLTFLoader: CheckedLoader,
       p137eScene67CandidateId: 'p137e-d1f-three-wall-mounted-themos',
       isP137EScene67ReviewRequested: () => false,
       isD1FShowerPhotoReviewRequested: () => false,

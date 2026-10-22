@@ -1,8 +1,11 @@
 import {
   formatSelectionMetadataKey,
   type SelectionMetadataEntry,
+  type SelectionSourceLink,
 } from './privateModelSelectionMetadata';
 import { viewerBoundsToYlis, type CartesianLike } from './privateModelAiNavigator';
+import type { SelectionSourceEvidence } from './privateModelSourceCards';
+import { renderSelectionSourceEvidence } from './privateModelSourceEvidencePanel';
 
 const formatMetersFi = (value: number) => (Math.abs(value) < 0.005 ? 0 : value).toFixed(2).replace('.', ',');
 
@@ -31,6 +34,9 @@ type SelectionPanelElements = {
   dimensions?: HTMLElement;
   metadataList: HTMLElement;
   metadataEmpty: HTMLElement;
+  sourceLinksSection?: HTMLElement | null;
+  sourceLinksList?: HTMLElement | null;
+  sourceEvidenceSection?: HTMLElement | null;
 };
 
 export type SelectionPanelContent = {
@@ -42,6 +48,8 @@ export type SelectionPanelContent = {
   physicalClaim: string;
   dimensions?: string;
   metadataEntries: SelectionMetadataEntry[];
+  sourceLinks?: SelectionSourceLink[];
+  sourceEvidence?: SelectionSourceEvidence;
 };
 
 const ensureSelectionTool = (canvas: HTMLElement) => {
@@ -115,14 +123,43 @@ export const createSelectionPanelController = ({
   dimensions,
   metadataList,
   metadataEmpty,
+  sourceLinksSection,
+  sourceLinksList,
+  sourceEvidenceSection,
 }: SelectionPanelElements) => {
   ensureSelectionTool(canvas);
+
+  const clearSourceLinks = () => {
+    sourceLinksList?.replaceChildren();
+    if (sourceLinksSection) sourceLinksSection.hidden = true;
+    delete canvas.dataset.selectionSourceLinkCount;
+  };
+
+  const renderSourceLinks = (links: SelectionSourceLink[]) => {
+    clearSourceLinks();
+    if (!sourceLinksSection || !sourceLinksList) return;
+    canvas.dataset.selectionSourceLinkCount = String(links.length);
+    if (links.length === 0) return;
+    for (const { link, label } of links) {
+      const item = document.createElement('li');
+      const anchor = document.createElement('a');
+      anchor.href = link;
+      anchor.target = '_blank';
+      anchor.rel = 'noopener noreferrer';
+      anchor.textContent = label;
+      item.append(anchor);
+      sourceLinksList.append(item);
+    }
+    sourceLinksSection.hidden = false;
+  };
 
   const clearMetadata = () => {
     metadataList.replaceChildren();
     metadataEmpty.hidden = false;
     delete canvas.dataset.selectionMetadataCount;
     delete canvas.dataset.selectionMetadataSource;
+    clearSourceLinks();
+    renderSelectionSourceEvidence(sourceEvidenceSection, undefined, 0);
   };
 
   const clear = () => {
@@ -147,6 +184,8 @@ export const createSelectionPanelController = ({
     physicalClaim: physicalClaimText,
     dimensions: dimensionsText,
     metadataEntries,
+    sourceLinks = [],
+    sourceEvidence,
   }: SelectionPanelContent) => {
     mesh.textContent = meshText;
     group.textContent = groupText;
@@ -170,6 +209,9 @@ export const createSelectionPanelController = ({
       content.textContent = value;
       metadataList.append(label, content);
     }
+
+    renderSourceLinks(sourceLinks);
+    renderSelectionSourceEvidence(sourceEvidenceSection, sourceEvidence, sourceLinks.length);
 
     panel.hidden = false;
   };
