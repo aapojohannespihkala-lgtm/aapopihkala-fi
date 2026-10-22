@@ -6,6 +6,7 @@ export type SourceCardBundle = {
   lookup: { cards: RecordData[]; bindings: RecordData[] };
   modules: Record<string, RecordData>;
   versionBindings?: RecordData;
+  kphVersionBindings?: RecordData;
 };
 
 export type SourceEvidenceKind = 'measurement' | 'plan' | 'observation' | 'derived' | 'assumption' | 'unverified';
@@ -97,7 +98,8 @@ export const adaptSourceCard = (id: string, raw: RecordData): SelectionSourceCar
   };
 };
 
-type IndexedCard = { id: string; moduleId: string; module: RecordData; raw: RecordData; binding: RecordData; notes?: string[] };
+type IndexedCard = { id: string; moduleId: string; module: RecordData; raw: RecordData; binding: RecordData; notes?: string[];
+  kphGroup?: RecordData; cardRevision?: SelectionSourceCard };
 
 const validIndex = (value: unknown): value is number => Number.isInteger(value) && Number(value) >= 0;
 const validSha = (value: unknown): value is string => typeof value === 'string' && /^[a-f0-9]{64}$/.test(value);
@@ -161,6 +163,102 @@ const appendD2FVersionBindings = (bundle: SourceCardBundle, entries: IndexedCard
   if (additional.totals?.modelVersions !== additional.versions.length || additional.totals?.targetBindings !== count) invalid();
 };
 
+const kphDimmer = 'OWNER_CONFIRMED_LIGHT_BRIGHTNESS_DIMMER_20261020';
+
+/** The two KPH cards share a model, but have separate component roots. Numeric
+ * paths and the later switch evidence are audited for each exact GLB. */
+const appendKphVersionBindings = (bundle: SourceCardBundle, entries: IndexedCard[], keys: Set<string>) => {
+  const additional = bundle.kphVersionBindings;
+  if (!additional) return;
+  const invalid = () => { throw Error('KPH-lähdekortin versiosidontaa ei ole varmennettu.'); };
+  if (additional.schema !== 'ylisrinne-kph-source-card-version-bindings-v1' || !Array.isArray(additional.versions)) invalid();
+  const revision = additional.switchCardRevision, originalCard = bundle.modules.KPH09_SWITCH.cards[0];
+  const originalView = adaptSourceCard(`KPH09_SWITCH::${originalCard.cardId}`, originalCard);
+  const revised = revision?.card;
+  if (!revised || revised.id !== originalView.id || revised.title !== originalView.title ||
+      !Array.isArray(revised.facts) || revised.facts.length !== originalView.facts.length ||
+      [0, 2, 3, 5].some(index => !sameValues(revised.facts[index], originalView.facts[index])) ||
+      revised.facts[1]?.label !== originalView.facts[1].label || revised.facts[1].kind !== 'observation' ||
+      revised.facts[4]?.label !== originalView.facts[4].label || revised.facts[4].kind !== 'observation' ||
+      revised.facts[4].evidence !== 'USER_CONFIRMED_FUNCTION_COVERAGE_SECTION_28' ||
+      !sameValues(revised.notes, originalView.notes) || !Array.isArray(revised.conflicts) ||
+      revised.conflicts.some((item: unknown) => typeof item !== 'string') || !Array.isArray(revised.sources) || revised.sources.length !== 3 ||
+      !sameValues(revised.sources[0], originalView.sources[0]) || revised.sources[1].url !== originalView.sources[1].url ||
+      revised.sources[1].role !== originalView.sources[1].role || !sameValues(revised.sources[1].limits, originalView.sources[1].limits) ||
+      revised.sources.some((source: RecordData) => !allowedSourceCardUrl(source.url)) ||
+      revised.sources[2].url !== `https://docs.google.com/document/d/${revision.reviewSourceDriveId}/edit` ||
+      revised.sources[2].role !== 'owner_visual_proportion_and_function_review') invalid();
+  const originalScopes = new Set(entries.map(entry => entry.module.model.sha256));
+  let count = 0;
+  for (const version of additional.versions) {
+    const model = version.model;
+    if (!validSha(model?.sha256) || originalScopes.has(model.sha256) || model.sceneIndex !== 0 ||
+        !validIndex(model.byteLength) || model.byteLength === 0 || !['drive-source', 'published-scene'].includes(model.kind) ||
+        !Array.isArray(version.groups) || version.groups.length !== 2 ||
+        version.audit?.geometryAndTransformsUnchanged !== true || version.audit?.semanticFieldsReviewed !== true ||
+        version.audit.cardCount !== 2 || version.audit.bindingCount !== 22 || !validSha(version.audit.geometryProofSha256)) invalid();
+    originalScopes.add(model.sha256);
+    const modules = new Set<string>();
+    let links = 0;
+    for (const group of version.groups) {
+      const moduleId = group.moduleId;
+      if (!['KPH09_SWITCH', 'KPH_MIRROR'].includes(moduleId) || modules.has(moduleId)) invalid();
+      modules.add(moduleId);
+      const module = bundle.modules[moduleId], raw = module.cards[0];
+      const original = raw.targetBindings, root = original[0];
+      if (version.sourceModelSha256 !== module.model.sha256 || group.integrationCardId !== `${moduleId}::${raw.cardId}` ||
+          !validIndex(group.roomNodeIndex) || !validIndex(group.rootNodeIndex) || group.roomNodeIndex === group.rootNodeIndex ||
+          group.roomNodeName !== 'D1F_ROOM_KPH09_PHOTO_PROPORTIONED_FLAT_ROCKER_AND_FLAT_DIAL_WORK_TEST' ||
+          group.rootNodeName !== root.nodeName || !Array.isArray(group.bindings) || group.bindings.length !== original.length ||
+          !group.rootExtraGuards || !Array.isArray(group.rootSourceLinkGuards)) invalid();
+      if (moduleId === 'KPH09_SWITCH') {
+        const guards = group.rootExtraGuards;
+        if (group.cardRevision !== 'owner-dimmer-and-frame-20261022' || guards.rotaryDimmingFunction !== kphDimmer ||
+            guards.userConfirmedLowerControl !== 'BATHROOM_LIGHT_ROTARY_DIMMER' ||
+            guards.unmeasuredFrameWidthM_WORK_ASSUMPTION !== 0.092 || guards.unmeasuredFrameHeightM_WORK_ASSUMPTION !== 0.148 ||
+            guards.sourcePhotoDriveId !== raw.sources[0].driveId || guards.userMeasuredCoverTopM !== 1.02 ||
+            guards.ownerConfirmedDimmer20261020?.sourceDocument !== raw.sources[1].url ||
+            guards.ownerConfirmedDimmer20261020?.geometryChanged !== false ||
+            !group.rootSourceLinkGuards.some((link: RecordData) => link.docId === `DOC:${revision.reviewSourceDriveId}`)) invalid();
+      } else if (group.cardRevision !== 'original' || group.rootExtraGuards.donorGLBSha256 !== module.donor.glbSha256 ||
+          group.rootExtraGuards.donorMeasuredZipDriveId !== module.donor.driveId) invalid();
+      const seen = new Set<string>();
+      for (const selector of group.bindings) {
+        const source = original.find((item: RecordData) => item.nodeName === selector.nodeName);
+        const isRoot = selector.nodeIndex === group.rootNodeIndex;
+        const path = isRoot ? [group.roomNodeIndex, group.rootNodeIndex] : [group.roomNodeIndex, group.rootNodeIndex, selector.nodeIndex];
+        const names = isRoot ? [group.roomNodeName, group.rootNodeName] : [group.roomNodeName, group.rootNodeName, selector.nodeName];
+        if (!source || seen.has(selector.nodeName) || isRoot !== (source === root) || !validIndex(selector.nodeIndex) ||
+            (source.meshIndex === null ? selector.meshIndex !== null : !validIndex(selector.meshIndex)) ||
+            selector.sourceField !== (source.sourceField ?? source.sourceKey) ||
+            selector.sourceFieldValue !== (source.sourceFieldValue ?? source.sourceValue) ||
+            selector.sourceDonorNode !== source.sourceDonorNode || !sameValues(selector.nodePath, path) ||
+            !sameValues(selector.nodePathNames, names) || !Array.isArray(selector.sourceLinkGuards)) invalid();
+        const expectedSources = [...raw.sources.map((source: RecordData) => source.url)];
+        if (moduleId === 'KPH09_SWITCH' && (isRoot || source === original.at(-1)))
+          expectedSources.push(revised.sources[2].url);
+        if (selector.sourceLinkGuards.length !== expectedSources.length || expectedSources.some(url =>
+          selector.sourceLinkGuards.filter((link: RecordData) => link.link === url && link.role === 'support' &&
+            allowedSourceCardUrl(link.link) && link.docId === `DOC:${url.match(/\/d\/([^/]+)/)?.[1]}`).length !== 1)) invalid();
+        if (isRoot && !sameValues(selector.sourceLinkGuards, group.rootSourceLinkGuards)) invalid();
+        const key = `${model.sha256}:${model.sceneIndex}:${selector.nodeIndex}`;
+        if (keys.has(key)) invalid();
+        keys.add(key); seen.add(selector.nodeName); links += selector.sourceLinkGuards.length; count++;
+        entries.push({ id: group.integrationCardId, moduleId, module: { ...module, model }, raw, binding: selector, kphGroup: group,
+          ...(moduleId === 'KPH09_SWITCH' ? { cardRevision: revised } : {}) });
+      }
+    }
+    if (version.audit.sourceRoleRecords !== links) invalid();
+  }
+  if (additional.totals?.modelVersions !== additional.versions.length || additional.totals?.targetBindings !== count) invalid();
+};
+
+const adaptVersionedCard = (entry: IndexedCard) => {
+  const card = entry.cardRevision ? structuredClone(entry.cardRevision) : adaptSourceCard(entry.id, entry.raw);
+  card.notes.push(...(entry.notes ?? []));
+  return card;
+};
+
 /** Reject incomplete/ambiguous handoffs rather than widening a card's scope. */
 export const indexSourceCardBundle = (bundle: SourceCardBundle): IndexedCard[] => {
   if (bundle.schema !== 'ylisrinne-viewer-source-cards-v1' ||
@@ -187,6 +285,7 @@ export const indexSourceCardBundle = (bundle: SourceCardBundle): IndexedCard[] =
   if (new Set(entries.map(entry => entry.id)).size !== bundle.manifest.totals.cards ||
       entries.length !== bundle.manifest.totals.targetBindings || entries.length !== bundle.lookup.bindings.length) throw Error('Lähdekorttien kattavuus ei täsmää.');
   appendD2FVersionBindings(bundle, entries, keys);
+  appendKphVersionBindings(bundle, entries, keys);
   return entries;
 };
 
@@ -263,7 +362,7 @@ export const createSourceCardResolver = (
       const known = index.some(item => item.binding.nodeName === node?.name || item.binding.nodeName === object.name);
       return result(known ? 'mismatch' : 'unbound', known ? 'Mallin SHA-256, sisäinen scene tai solmu ei vastaa lähdekortin versiota.' : undefined, [], sceneIndex >= 0 ? sceneIndex : undefined);
     }
-    const { binding, moduleId, module, raw, id } = entry;
+    const { binding, moduleId, module, kphGroup } = entry;
     const paths = sourcePaths(json, sceneIndex, binding.nodeIndex);
     if (paths.length !== 1 || runtimePath.join(',') !== [...paths[0]].reverse().join(',')) return result('mismatch', 'Objektin parent/root-polku ei täsmää alkuperäiseen sceneen.', [], sceneIndex);
     if (binding.nodePath && (!sameValues(paths[0], binding.nodePath) ||
@@ -274,7 +373,7 @@ export const createSourceCardResolver = (
     const expected = binding.extrasValue ?? binding.sourceFieldValue ?? binding.sourceValue;
     if (field && (node.extras?.[field] !== expected || selected?.userData?.[field] !== expected)) return result('mismatch', 'Objektin lähdekenttä ei täsmää.', [], sceneIndex);
     for (const [key, value] of Object.entries(binding.extraGuards ?? {})) {
-      if (node.extras?.[key] !== value || selected?.userData?.[key] !== value) return result('mismatch', 'Versiosidonnan lähdetieto ei täsmää.', [], sceneIndex);
+      if (!sameValues(node.extras?.[key], value) || !sameValues(selected?.userData?.[key], value)) return result('mismatch', 'Versiosidonnan lähdetieto ei täsmää.', [], sceneIndex);
     }
     if (binding.sourceLinkGuards) {
       for (const rawLinks of [node.extras?.sourceLinks, selected?.userData?.sourceLinks]) {
@@ -283,18 +382,30 @@ export const createSourceCardResolver = (
               link && Object.entries(expected).every(([key, value]) => link[key] === value)).length !== 1)) return result('mismatch', 'Versiosidonnan lähdelinkit tai roolit eivät täsmää.', [], sceneIndex);
       }
     }
-    if (moduleId === 'KPH09_SWITCH' &&
+    if (kphGroup) {
+      const root = json.nodes[kphGroup.rootNodeIndex];
+      let rootObject: SourceNode | null | undefined = selected;
+      while (rootObject && associations.get(rootObject)?.nodes !== kphGroup.rootNodeIndex) rootObject = rootObject.parent;
+      if (!rootObject || root.name !== kphGroup.rootNodeName || rootObject.name !== kphGroup.rootNodeName ||
+          Object.entries(kphGroup.rootExtraGuards).some(([key, value]) =>
+            !sameValues(root.extras?.[key], value) || !sameValues(rootObject!.userData?.[key], value)) ||
+          [root.extras?.sourceLinks, rootObject.userData?.sourceLinks].some(links => !Array.isArray(links) ||
+            links.length !== kphGroup.rootSourceLinkGuards.length || kphGroup.rootSourceLinkGuards.some((expected: RecordData) =>
+              links.filter((link: RecordData) => link && Object.entries(expected).every(([key, value]) => sameValues(link[key], value))).length !== 1)))
+        return result('mismatch', 'KPH-version ryhmän lähdetiedot tai toiminto eivät täsmää.', [], sceneIndex);
+    }
+    if (moduleId === 'KPH09_SWITCH' && !kphGroup &&
         (paths[0][0] !== 119 || (binding.nodeIndex !== 263 && paths[0].at(-2) !== 263))) return result('mismatch', 'Kytkinryhmän hierarkia ei täsmää.', [], sceneIndex);
     if (moduleId === 'KPH_MIRROR') {
-      const root = json.nodes[221];
-      if (paths[0][0] !== 119 || !paths[0].includes(221) ||
+      const rootIndex = kphGroup?.rootNodeIndex ?? 221;
+      const root = json.nodes[rootIndex];
+      if (paths[0][0] !== (kphGroup?.roomNodeIndex ?? 119) || !paths[0].includes(rootIndex) ||
           root.extras?.donorGLBSha256 !== module.donor.glbSha256 ||
           root.extras?.donorMeasuredZipDriveId !== module.donor.driveId ||
           (binding.sourceDonorNode !== undefined &&
            (node.extras?.sourceDonorNode !== binding.sourceDonorNode || selected?.userData?.sourceDonorNode !== binding.sourceDonorNode))) return result('mismatch', 'Peilikaapin root/donor-kohdistus ei täsmää.', [], sceneIndex);
     }
-    const card = adaptSourceCard(id, raw);
-    card.notes.push(...(entry.notes ?? []));
+    const card = adaptVersionedCard(entry);
     return result('matched', undefined, [card], sceneIndex);
   };
 };
