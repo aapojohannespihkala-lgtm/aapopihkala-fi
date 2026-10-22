@@ -492,6 +492,66 @@
     "auto-ylisrinne-t12-1974-abc-1f-eteinen-kaytava-jakoseinat-work-test-20261022-1ye5pz6i": {
       "driveFileId": "1Ye5pz6ItsEY3j4EwsmIc73jwqD9_J-aa",
       "extractScene": 6
+    },
+    "auto-ylisrinne-t12-1974-abc-1f-h-seinat-tk-vh-yhdiste-work-test-20261022-1rqzyqwy": {
+      "driveFileId": "1-rqzyqWyuUa_pXaTkylfsgi44lK9HHBH",
+      "extractScene": 8
+    },
+    "auto-ylisrinne-t12-1974-abc-2f-wc-seinat-yhdiste-work-test-20261022-1omrgzys": {
+      "driveFileId": "1OmRGZYs5YJj8QZhjojr3rxtiUj0uMkv1",
+      "extractScene": 10
+    },
+    "auto-ylisrinne-t12-1974-abc-1f-h-tkvh-2f-wc-yhdiste-work-test-20261022-1jioo3i3": {
+      "driveFileId": "1-jIoo3I3DuYfDLoFKudA8pvI9jdUY_MH",
+      "extractScene": 10
+    },
+    "auto-ylisrinne-t12-1974-abc-3-porrasta-work-test-20261022-1bfmyfmw": {
+      "driveFileId": "1BFmYFmWH0HseZRpJXJNsHDDXpAkcO4Zi",
+      "extractScene": 12
+    },
+    "auto-ylisrinne-kph09-sauna-u-ikkunat-mitat-work-test-20261022-1dse7lf0": {
+      "driveFileId": "1dsE7LF0Lfi3WosXaI5zPMSB0Z2JGxCIz",
+      "extractScene": 0
+    },
+    "auto-ylisrinne-kph09-sauna-ikkunat-symmetria-user-confirmed-work-test-20261022-1vcjudcj": {
+      "driveFileId": "1-VcJuDcj8va5GjIY8vk04qU1oV9rLsmw",
+      "extractScene": 0
+    },
+    "auto-ylisrinne-kph09-lasikaari-wckansi-owner-review-meta-work-test-20261022-1jvcreiw": {
+      "driveFileId": "1jvCReIWl7ulcB-1nBJge03QpiSBbgZ7T",
+      "extractScene": 0
+    },
+    "auto-ylisrinne-d2f-2024-kitchen-photo-corrected-r1-with-doors-work-test-20261022-1umyovpo": {
+      "driveFileId": "1UmyoVPoqjYs4arhrTcM4PrWqSiWJY5hJ",
+      "extractScene": 65
+    },
+    "auto-ylisrinne-d1f-kaapit-ulkoseinapuoli-provenanssi-work-test-20261022-1vmoomql": {
+      "driveFileId": "1VMOOmQLyDkwHWSfbhLhQO8xLhdyr60BM",
+      "extractScene": 0
+    },
+    "auto-ylisrinne-d2f-2024-kitchen-r2-3x600-tall-qa-verified-work-test-20261022-1khypx9f": {
+      "driveFileId": "1KHYpx9FjR0MvbV3u47RZj80l7uB8zniA",
+      "extractScene": 67
+    },
+    "auto-ylisrinne-d1f-kaapit-paatyjen-kuvatarkistus-work-test-20261022-13p6mzdm": {
+      "driveFileId": "13p6mzdMTHAKRsxRmp_ZWZXcg4MBHCXzQ",
+      "extractScene": 0
+    },
+    "auto-ylisrinne-d2f-2024-kitchen-r3-aisle1200-photo-work-test-20261022-1mocyc5p": {
+      "driveFileId": "1mocYC5Pnd7K3IXasXAH9n79R33QbA00l",
+      "extractScene": 69
+    },
+    "auto-ylisrinne-d-terassi-l-askelma-v6-west-leg-terrain-blend-work-test-20261022-1jj1klib": {
+      "driveFileId": "1Jj1KLIBBD7Rn8UVVugu5bYUL_dPOVqHg",
+      "extractScene": 0
+    },
+    "auto-ylisrinne-d1f-kaapit-g1-akselisuunta-tyokohdistus-work-test-20261022-1tttkqo5": {
+      "driveFileId": "1T-TtkQO510WhmZwzv2xot9RkGAm8yVNY",
+      "extractScene": 2
+    },
+    "auto-ylisrinne-d1f-kaapit-pohjapiirustus-xy-vyohyke-work-test-20261022-1upg3bxe": {
+      "driveFileId": "1uPg3bXeQjcWc44LnlBXbHhAT6yBJcRv1",
+      "extractScene": 3
     }
   }
 }
