@@ -324,6 +324,7 @@ test('standalone web widget falls back instead of staying LOADING when Widget v2
 });
 
 test('standalone large widget keeps the Android information hierarchy on mobile', async ({ page }) => {
+  await page.clock.setFixedTime(new Date('2026-09-14T09:31:00.000Z'));
   await page.setViewportSize({ width: 390, height: 844 });
   const mobilePayload = payload('prod');
   mobilePayload.sections[0].detail = 'Light drizzle / 13° / 17°\n↑07:07 ↓19:18 ☀12H11M';
