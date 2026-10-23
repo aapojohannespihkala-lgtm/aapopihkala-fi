@@ -1845,6 +1845,61 @@ const AUTO_YLISRINNE_D2F_KEITTIO_R6_SAAREKE_VIINIKAAPPI_ETUJAKO_WORK_TEST_202610
   expectedSha256: 'c32db95b5e09254a285b7482620f2902b6a4c3bc14e0ea04bc3fb92649084089',
 } as const satisfies PrivateWorkTestCandidate;
 
+// Auto-registered 2026-10-23 from Drive queue file 1kRpYPKwdndQ66-RQyKymSAohoadbID9J
+// by auto-publish-work-test. WORK_TEST, never as-built.
+const AUTO_YLISRINNE_D_TERASSI_NAKOSUOJA_V8_KUVARISTIKKO_WORK_TEST_20261023_1KRPYPKW_CANDIDATE = {
+  id: 'auto-ylisrinne-d-terassi-nakosuoja-v8-kuvaristikko-work-test-20261023-1krpypkw',
+  label: 'Auto: Ylisrinne D TERASSI NAKOSUOJA V8 KUVARISTIKKO WORK TEST 20261023 (scene3) - WORK_TEST',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/auto-ylisrinne-d-terassi-nakosuoja-v8-kuvaristikko-work-test-20261023-1krpypkw.glb`,
+  objectKey: 'work-test/auto-ylisrinne-d-terassi-nakosuoja-v8-kuvaristikko-work-test-20261023-1krpypkw.glb',
+  expectedSize: 1957836,
+  expectedSha256: 'cbe3909b39d1fab8826a6010c607eee81db016de71f6cc23779cc36913a7dc89',
+} as const satisfies PrivateWorkTestCandidate;
+
+// Auto-registered 2026-10-23 from Drive queue file 1h4iL6ylqt0xWB-vbD_Iqmhb8Mj6NrhRW
+// by auto-publish-work-test. WORK_TEST, never as-built.
+const AUTO_YLISRINNE_D2F_2015_3_OVILEHTEA_R2_KAYNTIVALYS_TYO_OLETUS_WORK_TEST_20261023_1H4IL6YL_CANDIDATE = {
+  id: 'auto-ylisrinne-d2f-2015-3-ovilehtea-r2-kayntivalys-tyo-oletus-work-test-20261023-1h4il6yl',
+  label: 'Auto: Ylisrinne D2F 2015 3 OVILEHTEA R2 KAYNTIVALYS TYO OLETUS WORK TEST 20261023 (scene63) - WORK_TEST',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/auto-ylisrinne-d2f-2015-3-ovilehtea-r2-kayntivalys-tyo-oletus-work-test-20261023-1h4il6yl.glb`,
+  objectKey: 'work-test/auto-ylisrinne-d2f-2015-3-ovilehtea-r2-kayntivalys-tyo-oletus-work-test-20261023-1h4il6yl.glb',
+  expectedSize: 1416900,
+  expectedSha256: 'a3f5a4f085d28afc915f4493e447d34a482470d050d586a006bf523de3afb802',
+} as const satisfies PrivateWorkTestCandidate;
+
+// Auto-registered 2026-10-23 from Drive queue file 16Pqh2JB1qcbn1VJpnaWdsU7F9VtZpGYp
+// by auto-publish-work-test. WORK_TEST, never as-built.
+const AUTO_YLISRINNE_D2F_KEITTIO_R13_KULMA_LAATAT_2X2_VAAKAKEHYS_SAUMAVIITE_WORK_TEST_20261023_16PQH2JB_CANDIDATE = {
+  id: 'auto-ylisrinne-d2f-keittio-r13-kulma-laatat-2x2-vaakakehys-saumaviite-work-test-20261023-16pqh2jb',
+  label: 'Auto: Ylisrinne D2F KEITTIO R13 KULMA LAATAT 2X2 VAAKAKEHYS SAUMAVIITE WORK TEST 20261023 (scene85) - WORK_TEST',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/auto-ylisrinne-d2f-keittio-r13-kulma-laatat-2x2-vaakakehys-saumaviite-work-test-20261023-16pqh2jb.glb`,
+  objectKey: 'work-test/auto-ylisrinne-d2f-keittio-r13-kulma-laatat-2x2-vaakakehys-saumaviite-work-test-20261023-16pqh2jb.glb',
+  expectedSize: 1722292,
+  expectedSha256: '24fb142b52c56376eb506a39d2d3403c71399f6905b104f213f54033560ce4b3',
+} as const satisfies PrivateWorkTestCandidate;
+
+// Auto-registered 2026-10-23 from Drive queue file 1rThFo9ZvvAZpwlYPxWcVhRNetzPrUtvI
+// by auto-publish-work-test. WORK_TEST, never as-built.
+const AUTO_YLISRINNE_D_TERASSI_NAKOSUOJA_V12_KAKSI_PANEELIA_PORRASTUS_MAASTO_WORK_TEST_20261023_1RTHFO9Z_CANDIDATE = {
+  id: 'auto-ylisrinne-d-terassi-nakosuoja-v12-kaksi-paneelia-porrastus-maasto-work-test-20261023-1rthfo9z',
+  label: 'Auto: Ylisrinne D TERASSI NAKOSUOJA V12 KAKSI PANEELIA PORRASTUS MAASTO WORK TEST 20261023 (scene7) - WORK_TEST',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/auto-ylisrinne-d-terassi-nakosuoja-v12-kaksi-paneelia-porrastus-maasto-work-test-20261023-1rthfo9z.glb`,
+  objectKey: 'work-test/auto-ylisrinne-d-terassi-nakosuoja-v12-kaksi-paneelia-porrastus-maasto-work-test-20261023-1rthfo9z.glb',
+  expectedSize: 1945964,
+  expectedSha256: '39b9396ca8358510e3412e903b478f7974854ef50e92a132cbe1213337a46309',
+} as const satisfies PrivateWorkTestCandidate;
+
+// Auto-registered 2026-10-23 from Drive queue file 1Iqk4jDjP_cB_3wUpNDsC7gsyxcoQHwLK
+// by auto-publish-work-test. WORK_TEST, never as-built.
+const AUTO_YLISRINNE_D_TERASSI_NAKOSUOJA_V11_KOLME_PORRASTETTUA_ELEMENTTIA_KATSELMUS01_WORK_TEST_20261023_1IQK4JDJ_CANDIDATE = {
+  id: 'auto-ylisrinne-d-terassi-nakosuoja-v11-kolme-porrastettua-elementtia-katselmus01-work-test-20261023-1iqk4jdj',
+  label: 'Auto: Ylisrinne D TERASSI NAKOSUOJA V11 KOLME PORRASTETTUA ELEMENTTIA KATSELMUS01 WORK TEST 20261023 (scene6) - WORK_TEST',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/auto-ylisrinne-d-terassi-nakosuoja-v11-kolme-porrastettua-elementtia-katselmus01-work-test-20261023-1iqk4jdj.glb`,
+  objectKey: 'work-test/auto-ylisrinne-d-terassi-nakosuoja-v11-kolme-porrastettua-elementtia-katselmus01-work-test-20261023-1iqk4jdj.glb',
+  expectedSize: 1960184,
+  expectedSha256: '1ba5285405aee34f7d39b5c04fec088b48c53e250e780cb8f710c3657fe31ae0',
+} as const satisfies PrivateWorkTestCandidate;
+
 const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
   ...PRIVATE_WORK_TEST_CANDIDATES,
   M5A_Z2D_D100_D300_DIAMETER_CANDIDATE,
@@ -1968,6 +2023,11 @@ const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
   AUTO_YLISRINNE_D2F_2024_KITCHEN_R4_4TALL_OWNER_REVIEW_WORK_TEST_20261023_1K19ILGO_CANDIDATE,
   AUTO_YLISRINNE_D2F_KEITTIO_R4_4_KORKEAA_OWNER_WORK_TEST_20261023_1K6OSSKJ_CANDIDATE,
   AUTO_YLISRINNE_D2F_KEITTIO_R6_SAAREKE_VIINIKAAPPI_ETUJAKO_WORK_TEST_20261023_1IM1GFTN_CANDIDATE,
+  AUTO_YLISRINNE_D_TERASSI_NAKOSUOJA_V8_KUVARISTIKKO_WORK_TEST_20261023_1KRPYPKW_CANDIDATE,
+  AUTO_YLISRINNE_D2F_2015_3_OVILEHTEA_R2_KAYNTIVALYS_TYO_OLETUS_WORK_TEST_20261023_1H4IL6YL_CANDIDATE,
+  AUTO_YLISRINNE_D2F_KEITTIO_R13_KULMA_LAATAT_2X2_VAAKAKEHYS_SAUMAVIITE_WORK_TEST_20261023_16PQH2JB_CANDIDATE,
+  AUTO_YLISRINNE_D_TERASSI_NAKOSUOJA_V12_KAKSI_PANEELIA_PORRASTUS_MAASTO_WORK_TEST_20261023_1RTHFO9Z_CANDIDATE,
+  AUTO_YLISRINNE_D_TERASSI_NAKOSUOJA_V11_KOLME_PORRASTETTUA_ELEMENTTIA_KATSELMUS01_WORK_TEST_20261023_1IQK4JDJ_CANDIDATE,
 ] as const satisfies readonly PrivateWorkTestCandidate[];
 
 type PrivateWorkTestObjectMetadata = {
