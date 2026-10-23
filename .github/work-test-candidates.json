@@ -552,6 +552,26 @@
     "auto-ylisrinne-d1f-kaapit-pohjapiirustus-xy-vyohyke-work-test-20261022-1upg3bxe": {
       "driveFileId": "1uPg3bXeQjcWc44LnlBXbHhAT6yBJcRv1",
       "extractScene": 3
+    },
+    "auto-ylisrinne-d-terassi-laskelma-v7-45jiiri-maasto-work-test-20261023-1xoldylu": {
+      "driveFileId": "1XOld_YLurqS-NHzXWotzywD0YiP4nFOK",
+      "extractScene": 2
+    },
+    "auto-ylisrinne-d1f-kaapit-rako-leveys-avoin-work-test-20261023-1oj3rqau": {
+      "driveFileId": "1oj3Rqau_EmybkFyYPaIKH1Kd8RnBLUup",
+      "extractScene": 4
+    },
+    "auto-ylisrinne-d2f-2024-kitchen-r4-4tall-owner-review-work-test-20261023-1k19ilgo": {
+      "driveFileId": "1k19ILGoXs93ChiOF6NLBctWzt_cFvsU9",
+      "extractScene": 70
+    },
+    "auto-ylisrinne-d2f-keittio-r4-4-korkeaa-owner-work-test-20261023-1k6osskj": {
+      "driveFileId": "1k6osskJK6yQ76KO5iEgvHzhu-qlMikpt",
+      "extractScene": 71
+    },
+    "auto-ylisrinne-d2f-keittio-r6-saareke-viinikaappi-etujako-work-test-20261023-1im1gftn": {
+      "driveFileId": "1im1g_ftN0Nx_VdrUGoLhHhMDdcEspIm8",
+      "extractScene": 75
     }
   }
 }
