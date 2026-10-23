@@ -31,3 +31,13 @@ export const snapshotRequestFailureDiagnostic = (rawUrl, error, method = 'GET') 
     : 'request_failed';
   return { endpoint, method, networkError };
 };
+
+export const widgetBrowserResponseFailure = (rawUrl, status, method = 'GET') => {
+  const diagnostic = snapshotResponseDiagnostic(rawUrl, status, method);
+  return diagnostic?.endpoint === '/api/current/widget-v2' && status >= 500 ? diagnostic : null;
+};
+
+export const widgetBrowserRequestFailure = (rawUrl, error, method = 'GET') => {
+  const diagnostic = snapshotRequestFailureDiagnostic(rawUrl, error, method);
+  return diagnostic?.endpoint === '/api/current/widget-v2' ? diagnostic : null;
+};

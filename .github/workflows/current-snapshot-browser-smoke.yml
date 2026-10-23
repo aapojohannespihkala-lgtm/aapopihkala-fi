@@ -103,16 +103,32 @@ jobs:
 
           node --input-type=module <<'NODE'
           import { chromium } from '@playwright/test';
+          import { widgetBrowserResponseFailure, widgetBrowserRequestFailure } from './.github/scripts/snapshot-http-diagnostics.mjs';
 
           const url = `https://aapopihkala.fi/current/widget/?live_smoke=${process.env.GITHUB_RUN_ID}`;
           const browser = await chromium.launch({ headless: true });
           const page = await browser.newPage({ viewport: { width: 1024, height: 768 } });
+          const failures = [];
+          page.on('pageerror', (error) => failures.push(`pageerror: ${error.name || 'Error'}`));
+          page.on('response', (response) => {
+            const diagnostic = widgetBrowserResponseFailure(
+              response.url(), response.status(), response.request().method(),
+            );
+            if (diagnostic) failures.push(`http: ${JSON.stringify(diagnostic)}`);
+          });
+          page.on('requestfailed', (request) => {
+            const diagnostic = widgetBrowserRequestFailure(
+              request.url(), request.failure()?.errorText, request.method(),
+            );
+            if (diagnostic) failures.push(`requestfailed: ${JSON.stringify(diagnostic)}`);
+          });
 
           try {
             let verified = false;
             let diagnostics = null;
 
             for (let attempt = 1; attempt <= 6; attempt += 1) {
+              failures.length = 0;
               await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30_000 });
               try {
                 await page.waitForFunction(
@@ -139,11 +155,12 @@ jobs:
                   unavailable: document.querySelector('[data-widget]')?.textContent?.includes('UNAVAILABLE') ?? false,
                 };
               });
-              console.log(JSON.stringify({ attempt, ...diagnostics }, null, 2));
+              console.log(JSON.stringify({ attempt, ...diagnostics, failures: failures.slice(0, 10) }, null, 2));
 
               if (
                 (diagnostics.loadState === 'ready' || diagnostics.loadState === 'stale') &&
                 !diagnostics.unavailable &&
+                failures.length === 0 &&
                 diagnostics.sections.length >= 4
               ) {
                 verified = true;
@@ -154,8 +171,8 @@ jobs:
             }
 
             if (!verified) {
-              console.error('Production standalone Widget remained unavailable.');
-              console.error(JSON.stringify(diagnostics, null, 2));
+              console.error('Production standalone Widget did not pass browser verification.');
+              console.error(JSON.stringify({ ...diagnostics, failures: failures.slice(0, 10) }, null, 2));
               process.exitCode = 1;
             }
           } finally {

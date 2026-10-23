@@ -4,6 +4,8 @@ import {
   snapshotEndpoint,
   snapshotResponseDiagnostic,
   snapshotRequestFailureDiagnostic,
+  widgetBrowserResponseFailure,
+  widgetBrowserRequestFailure,
 } from './snapshot-http-diagnostics.mjs';
 
 test('Snapshot HTTP diagnostics keep the exact status but strip query parameters', () => {
@@ -44,4 +46,17 @@ test('Snapshot diagnostics ignore unrelated, insecure and spoofed endpoints', ()
     assert.equal(snapshotResponseDiagnostic(url, 503), null);
     assert.equal(snapshotRequestFailureDiagnostic(url, 'failed'), null);
   }
+});
+
+test('Widget browser smoke detects only Widget v2 5xx and network failures', () => {
+  const url = 'https://aapopihkala.fi/api/current/widget-v2?channel=prod&secret=never-log';
+  assert.deepEqual(widgetBrowserResponseFailure(url, 503), {
+    endpoint: '/api/current/widget-v2', method: 'GET', httpStatus: 503,
+  });
+  assert.equal(widgetBrowserResponseFailure(url, 200), null);
+  assert.equal(widgetBrowserResponseFailure('https://aapopihkala.fi/api/current/markets', 503), null);
+  assert.deepEqual(widgetBrowserRequestFailure(url, 'net::ERR_CONNECTION_RESET'), {
+    endpoint: '/api/current/widget-v2', method: 'GET', networkError: 'net::ERR_CONNECTION_RESET',
+  });
+  assert.equal(widgetBrowserRequestFailure('https://example.com/api/current/widget-v2', 'net::ERR_FAILED'), null);
 });
