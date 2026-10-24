@@ -948,6 +948,66 @@
     "auto-ylisrinne-g1-piha-r3-p6-d-parveke-lasit-kaide-katon-alapinta-work-test-20261024-1ljfxxfp": {
       "driveFileId": "1LjFXXF_PUcUKEpFeBLhePZhDY1dhT8wf",
       "extractScene": 13
+    },
+    "auto-ylisrinne-g1-piha-r3-p6-d-parveke-ac-moduuli-alt-work-test-20261024-1iw10tam": {
+      "driveFileId": "1Iw10TAMJhznPsaVWpTAb1vxggoRvsSs2",
+      "extractScene": 15
+    },
+    "auto-ylisrinne-ark2-1985-ab-pohjoislappeen-kattoluukku-work-test-20261024-1gudc5zi": {
+      "driveFileId": "1GuDC5ZiK95r_YKD2xQPDAL9dz4hN8Q5H",
+      "extractScene": 6
+    },
+    "auto-ylisrinne-g1-piha-ac-d-katupuoli2026-erillinen-work-test-20261024-1iuxnddy": {
+      "driveFileId": "1IUxnddynKM4uQ7bBBhD9uCIFqH0A8M5p",
+      "extractScene": 17
+    },
+    "auto-ylisrinne-g1-piha-ac-d-katupuoli2026-terassi-v15-erillinen-work-test-20261024-118xjpsm": {
+      "driveFileId": "118XjpSm_-BcEmNFtfL3jNuD8kuxxgMiz",
+      "extractScene": 18
+    },
+    "auto-ylisrinne-g1-piha-ac-d-katupuoli-terassi-d1f2015-seinat-work-test-20261024-1tytmpri": {
+      "driveFileId": "1TyTMPriD8vu40FXEg5y_acLKQCB2LTsO",
+      "extractScene": 19
+    },
+    "auto-ylisrinne-g1-piha-ac-d-katupuoli-terassi-d1f2015-seinat-kaapit-work-test-20261024-1egaeead": {
+      "driveFileId": "1E_gAEEAd_ycleGsncMTubl0jMv7h1Vs0",
+      "extractScene": 20
+    },
+    "auto-ylisrinne-d1f-kaapit-oletusscene20-work-test-20261024-18ncypxv": {
+      "driveFileId": "18nCyPxvYbsMQ0m4hlh4PpzcEBYMqwlyx",
+      "extractScene": 20
+    },
+    "auto-ylisrinne-d1f2015-seinat-kaapit-rinnakkain-eri-koordinaatit-work-test-20261024-1o8hifja": {
+      "driveFileId": "1-O8HIFJatIxIVIYegjBzF995k9IAqYCv",
+      "extractScene": 21
+    },
+    "auto-ylisrinne-a-c-1974-etelaparvekkeet-moduuli-meta-r2-work-test-20261024-17rsybjl": {
+      "driveFileId": "17rSybJl2btbzr8ql8nOaF0vR-AXAm8Xl",
+      "extractScene": 0
+    },
+    "auto-ylisrinne-sauna-ikkunat-u680-work-test-20261024-188knb0v": {
+      "driveFileId": "18_8kNb0VVdEM-4J1SDIP5DhsBPEKVNzE",
+      "extractScene": 0
+    },
+    "auto-ylisrinne-g1-piha-ac-d-katupuoli-terassi-d1f2015-seinat-kaapit-default20-patch-work-test-20261024-1gpjd6we": {
+      "driveFileId": "1gPJD6we-dB4JxGPxvQTGd1JJ1qTkX8B6",
+      "extractScene": 20
+    },
+    "auto-ylisrinne-ei141-palovaroitin-model-level-work-test-20261024-manifest-r2-1qyyi7tp": {
+      "driveFileId": "1qyyi7tP92rmgo5FhpPUk1n6sb7jBlVCZ",
+      "extractScene": 0
+    },
+    "auto-ylisrinne-g1-piha-d1f-themo3-default21-work-test-20261024-1vwnya9k": {
+      "driveFileId": "1VWnYa9KXuxWLKxZ9tq-eQVnEGNItURm9",
+      "extractScene": 21
+    },
+    "auto-ylisrinne-g1-piha-d1f-bosch-default22-work-test-20261024-1mnngp35": {
+      "driveFileId": "1MnNgP3522_g-E4TI5kEZByA9h_SGgBfb",
+      "extractScene": 22
+    },
+    "auto-ylisrinne-d-kokoava-g1-d1f2015-seinat-kaapit-terassi-v16e-work-test-20261025-1wb9l8q7": {
+      "driveFileId": "1WB9l8q7A0tQFlzu2ZVB403PVI8v93_YU",
+      "extractScene": 23
     }
   }
 }
