@@ -3044,6 +3044,17 @@ const AUTO_YLISRINNE_D_KOKOAVA_G1_D1F2015_SEINAT_KAAPIT_TERASSI_V16E_WORK_TEST_2
   expectedSha256: '8127b19206cb39ac1536c5afcd899e658ce16d672dd6a88000300034472ea522',
 } as const satisfies PrivateWorkTestCandidate;
 
+// Auto-registered 2026-10-24 from Drive queue file 1Y__r7o4b7WfW4TrQ4K5N0pz-3HRQZhkL
+// by auto-publish-work-test. WORK_TEST, never as-built.
+const AUTO_YLISRINNE_D_KOKOAVA_SC23_PLUS_D2F_KEITTIO_R19_OVET2015_WORK_TEST_20261025_1YR7O4B7_CANDIDATE = {
+  id: 'auto-ylisrinne-d-kokoava-sc23-plus-d2f-keittio-r19-ovet2015-work-test-20261025-1yr7o4b7',
+  label: 'Auto: Ylisrinne D KOKOAVA SC23 PLUS D2F KEITTIO R19 OVET2015 WORK TEST 20261025 (scene24) - WORK_TEST',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/auto-ylisrinne-d-kokoava-sc23-plus-d2f-keittio-r19-ovet2015-work-test-20261025-1yr7o4b7.glb`,
+  objectKey: 'work-test/auto-ylisrinne-d-kokoava-sc23-plus-d2f-keittio-r19-ovet2015-work-test-20261025-1yr7o4b7.glb',
+  expectedSize: 2075440,
+  expectedSha256: 'bb8a3dc9b3b3fa47c17cfeaebfb7a4fba5093071016c3ff7c2951e9be73e8367',
+} as const satisfies PrivateWorkTestCandidate;
+
 const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
   ...PRIVATE_WORK_TEST_CANDIDATES,
   M5A_Z2D_D100_D300_DIAMETER_CANDIDATE,
@@ -3276,6 +3287,7 @@ const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
   AUTO_YLISRINNE_G1_PIHA_D1F_THEMO3_DEFAULT21_WORK_TEST_20261024_1VWNYA9K_CANDIDATE,
   AUTO_YLISRINNE_G1_PIHA_D1F_BOSCH_DEFAULT22_WORK_TEST_20261024_1MNNGP35_CANDIDATE,
   AUTO_YLISRINNE_D_KOKOAVA_G1_D1F2015_SEINAT_KAAPIT_TERASSI_V16E_WORK_TEST_20261025_1WB9L8Q7_CANDIDATE,
+  AUTO_YLISRINNE_D_KOKOAVA_SC23_PLUS_D2F_KEITTIO_R19_OVET2015_WORK_TEST_20261025_1YR7O4B7_CANDIDATE,
 ] as const satisfies readonly PrivateWorkTestCandidate[];
 
 type PrivateWorkTestObjectMetadata = {
