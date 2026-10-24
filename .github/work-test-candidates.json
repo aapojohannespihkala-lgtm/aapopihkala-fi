@@ -888,6 +888,66 @@
     "auto-ylisrinne-a-c-1974-etelaparvekkeet-moduuli-g2-alt-work-test-20261024-1irucixu": {
       "driveFileId": "1irUCixuTYjXwyzwvZlXUXQqufVlPR-cD",
       "extractScene": 0
+    },
+    "auto-ylisrinne-p1-1974-itapaadyn-pistepiha-l-kulkualue-work-test-20261024-1xlvna5p": {
+      "driveFileId": "1XLvnA5PCX_SFVfaboFw4B7sOlCftIhtU",
+      "extractScene": 9
+    },
+    "auto-ylisrinne-g1-piha-parvekkeet-parkki-p2-tasanteet-work-test-20261024-1d1sb6gg": {
+      "driveFileId": "1d1SB6GgDzRBMCczOFz3y897bv7irPBfX",
+      "extractScene": 5
+    },
+    "auto-ylisrinne-p2-1974-abcd-tasanteet-metadata-pariteetti-work-test-20261024-1ensb495": {
+      "driveFileId": "1ENSB495nf5181CYPrMSIYWSA7El1P0cm",
+      "extractScene": 9
+    },
+    "auto-ylisrinne-g1-piha-p2-itapaadyn-l-piha-work-test-20261024-1y36lmcn": {
+      "driveFileId": "1y36LmCNtTrQH8c3XzcAiiPe1tJ464rIX",
+      "extractScene": 6
+    },
+    "auto-ylisrinne-katupuoli-2026-postilaatikot-aita-puusto-work-test-20261024-1lgknwgl": {
+      "driveFileId": "1lgKNwGlXyK3tdmx-Ul_zBSNPnL1hSyrc",
+      "extractScene": 0
+    },
+    "auto-ylisrinne-ark2-1985-etelalappeen-kattoikkuna-aukkomerkinnat-work-test-20261024-1cbf7m1h": {
+      "driveFileId": "1cbf7M1h9x_mju8TSv8JM31oPk7-9q32l",
+      "extractScene": 4
+    },
+    "auto-ylisrinne-katupuoli-2026-postilaatikot-aita-puusto-r2-photo-qa-work-test-20261024-1kwnagal": {
+      "driveFileId": "1KwNaGAl4g2Kz4MPCBYgmETODZQmkqePL",
+      "extractScene": 0
+    },
+    "auto-ylisrinne-g1-piha-d-parvekelasit-8kpl-kenttamitta-work-test-20261024-1ud72u3u": {
+      "driveFileId": "1Ud72u3umHm5_5EkAJ1rJZ4sRAm2XuEjM",
+      "extractScene": 7
+    },
+    "auto-ylisrinne-p6-2022-autokatoksen-rannit-2-linjaa-work-test-20261024-1k6fvll7": {
+      "driveFileId": "1K6fvLL7flW5mVe95ibAvqR-8KrW_MZnF",
+      "extractScene": 7
+    },
+    "auto-ylisrinne-p1-1974-polytys-yksi-kehikko-vaaleanvihrea-r3-work-test-20261024-1ne62zvg": {
+      "driveFileId": "1Ne62_ZvGScfZcuLhTKnqN56o6pjQG2N4",
+      "extractScene": 6
+    },
+    "auto-ylisrinne-g1-piha-d-parveke-alakaide-5jaksoa-kuva-work-test-20261024-1c0u3e5o": {
+      "driveFileId": "1c0u3E5OdhokDf2jsrt9lkN4b_b55QYHE",
+      "extractScene": 8
+    },
+    "auto-ylisrinne-g1-piha-p6-rannit-polytys-r3-yksi-vihrea-20261024-1l4ifvw6": {
+      "driveFileId": "1l4IFvw6-0-pstIdakM_t7esCLUmFqAJx",
+      "extractScene": 9
+    },
+    "auto-ylisrinne-g1-piha-d-parveke-katon-alapinta-laudoitus-tyooletus-work-test-20261024-1ijx0ep1": {
+      "driveFileId": "1IJX0ep1Lv9VwCjgrHjn1XtjLXeJnyZ_P",
+      "extractScene": 9
+    },
+    "auto-ylisrinne-g1-piha-d-parvekelasit-alakaide-r3-p6-rannit-work-test-20261024-1qa6uwff": {
+      "driveFileId": "1Qa6UwFfVHrsFy2YpCeWvgp0zwTNBB3-3",
+      "extractScene": 11
+    },
+    "auto-ylisrinne-g1-piha-r3-p6-d-parveke-lasit-kaide-katon-alapinta-work-test-20261024-1ljfxxfp": {
+      "driveFileId": "1LjFXXF_PUcUKEpFeBLhePZhDY1dhT8wf",
+      "extractScene": 13
     }
   }
 }
