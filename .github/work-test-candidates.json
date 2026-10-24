@@ -828,6 +828,66 @@
     "auto-ylisrinne-p1-1974-pihan-hiekkalaatikko-work-test-20261024-1zpd94p3": {
       "driveFileId": "1ZPD94P_3yOElUtWbY2LH-Gp9bMd-kNnq",
       "extractScene": 104
+    },
+    "auto-ylisrinne-p1-1974-pihapuut-koivu-kuusi-manty-work-test-20261024-1mbgthow": {
+      "driveFileId": "1mBGThoWV-HcNr3bumbQLdziw5G6FMUFJ",
+      "extractScene": 1
+    },
+    "auto-ylisrinne-ark4-1985-katuaidan-2m-rakennedetalji-work-test-20261024-1h3z9qop": {
+      "driveFileId": "1h3z9QOPwWMLEQX6tYS9yxRVHXtZCYVBA",
+      "extractScene": 0
+    },
+    "auto-ylisrinne-g1c-p6-ac-parvekkeet-yhdistelma-work-test-20261024-18cb0l31": {
+      "driveFileId": "18Cb0L31jCT9fGIbZvN5Qjo9QfDEskGlE",
+      "extractScene": 1
+    },
+    "auto-ylisrinne-2025-postilaatikot-aitaelementti-work-test-20261024-1zwt5l8a": {
+      "driveFileId": "1Z_Wt5l8Af9WZ6SBdVb_nVFYHrLOsGyTM",
+      "extractScene": 3
+    },
+    "auto-ylisrinne-ark4-1985-katuaita-meta-r2-work-test-20261024-1dygvk6l": {
+      "driveFileId": "1dYgVk6l6SDbdoISX2unFuWdTyCBJzJ2Z",
+      "extractScene": 0
+    },
+    "auto-ylisrinne-ulkomalli-parvekkeet-pihapuut-leikkialue-work-test-20261024-1xwmudlt": {
+      "driveFileId": "1xWMUDLTEdzGZ5-p6P9do98nCmRTyoZpl",
+      "extractScene": 3
+    },
+    "auto-ylisrinne-p1-1974-polytys-mattoteline-r2-rebased-work-test-20261024-1cnw3ode": {
+      "driveFileId": "1C_nW3OdEkuVCTWLmSHm3LKRznGp4V9ze",
+      "extractScene": 4
+    },
+    "auto-ylisrinne-p1-p6-1974-piha-yhdistelma-akselikorjattu-work-test-20261024-1ygawyec": {
+      "driveFileId": "1yGAWyecD0Gl0b11P7K3twmREWN6AXVc3",
+      "extractScene": 5
+    },
+    "auto-ylisrinne-d2f-r20-tuotemitat-lahde-qa-meta-work-test-20261024-1v75dvgu": {
+      "driveFileId": "1v75dVGusOvG8R22cYMY7CfsKYo3SpKLO",
+      "extractScene": 97
+    },
+    "auto-ylisrinne-p1-p6-1974-piha-yhdistelma-polytys-work-test-20261024-1zyskzqk": {
+      "driveFileId": "1ZYskZQkdEC5FLYDrlH3WMX3rTig1cS30",
+      "extractScene": 6
+    },
+    "auto-ylisrinne-d2015-iv-p02-xy-suunnitelmaviite-work-test-20261024-1qczrgvd": {
+      "driveFileId": "1QCZrgvDmsx4EJjPHk2MORvZkeoadA46q",
+      "extractScene": 0
+    },
+    "auto-ylisrinne-p2-1974-abcd-etelasisaankayntien-tasanteet-yhd-polytys-work-test-20261024-18r1scpz": {
+      "driveFileId": "18R1scpzaCcwHO8u0a6jpxbDm6geKs2r0",
+      "extractScene": 7
+    },
+    "auto-ylisrinne-d2f-keittio-r21-pesakupit-visual-work-assumption-20261024-1w2umfuh": {
+      "driveFileId": "1w2uMFuhIaPANz6UXtEU694wMuOAkk_E4",
+      "extractScene": 98
+    },
+    "auto-ylisrinne-g1-piha-parvekkeet-p6-parkki-polytys-yhd-work-test-20261024-11jtoivc": {
+      "driveFileId": "11jTOivC2G-9z3rUq6-IgYNeqQ8p7CpaW",
+      "extractScene": 4
+    },
+    "auto-ylisrinne-a-c-1974-etelaparvekkeet-moduuli-g2-alt-work-test-20261024-1irucixu": {
+      "driveFileId": "1irUCixuTYjXwyzwvZlXUXQqufVlPR-cD",
+      "extractScene": 0
     }
   }
 }
