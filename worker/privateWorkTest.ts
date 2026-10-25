@@ -3275,6 +3275,17 @@ const AUTO_YLISRINNE_D_KOKOAVA_IV15_KV17_LL3_P03_WORK_TEST_20261025_1PSXWNAN_CAN
   expectedSha256: 'e86507b9cb14bce929b51bc484d08c7515c97ba135566cbe3b53589694e51402',
 } as const satisfies PrivateWorkTestCandidate;
 
+// Auto-registered 2026-10-25 from Drive queue file 1MisJsWpH5UNf8Z-x7Q246KgeJiJ_1krd
+// by auto-publish-work-test. WORK_TEST, never as-built.
+const AUTO_YLISRINNE_P6_AUTOKATOS_OMISTAJA_180_WORK_TEST_R2_20261025_1MISJSWP_CANDIDATE = {
+  id: 'auto-ylisrinne-p6-autokatos-omistaja-180-work-test-r2-20261025-1misjswp',
+  label: 'Auto: Ylisrinne P6 AUTOKATOS OMISTAJA 180 WORK TEST R2 20261025 (scene0) - WORK_TEST',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/auto-ylisrinne-p6-autokatos-omistaja-180-work-test-r2-20261025-1misjswp.glb`,
+  objectKey: 'work-test/auto-ylisrinne-p6-autokatos-omistaja-180-work-test-r2-20261025-1misjswp.glb',
+  expectedSize: 167564,
+  expectedSha256: '622fe2fd272f850b3e522e20b078a6fc4bbab5f4c246698457a5e093b85e2777',
+} as const satisfies PrivateWorkTestCandidate;
+
 const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
   ...PRIVATE_WORK_TEST_CANDIDATES,
   M5A_Z2D_D100_D300_DIAMETER_CANDIDATE,
@@ -3528,6 +3539,7 @@ const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
   AUTO_YLISRINNE_D_KOKOAVA_PAX_A_IV15_R2_STATIC_VIEW_WORK_TEST_20261025_1PXJBDIJ_CANDIDATE,
   AUTO_YLISRINNE_D_KOKOAVA_PAX_A_IV15_KV17_RUNKO_STATIC_P02_WORK_TEST_20261025_1HUHHPXR_CANDIDATE,
   AUTO_YLISRINNE_D_KOKOAVA_IV15_KV17_LL3_P03_WORK_TEST_20261025_1PSXWNAN_CANDIDATE,
+  AUTO_YLISRINNE_P6_AUTOKATOS_OMISTAJA_180_WORK_TEST_R2_20261025_1MISJSWP_CANDIDATE,
 ] as const satisfies readonly PrivateWorkTestCandidate[];
 
 type PrivateWorkTestObjectMetadata = {
