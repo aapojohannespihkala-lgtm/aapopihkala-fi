@@ -3242,6 +3242,17 @@ const AUTO_YLISRINNE_KV2017_VIEW_R2_GLTF_FIX_WORK_TEST_20261025_1BWOSJWZ_CANDIDA
   expectedSha256: 'd8bc342f13540244cb40156732a7cf3c6266f0085d94c5f40faca53fd2d7ccfe',
 } as const satisfies PrivateWorkTestCandidate;
 
+// Auto-registered 2026-10-25 from Drive queue file 1PXJBDIJzv2xImZOERN3FUCBCs5s-FL9L
+// by auto-publish-work-test. WORK_TEST, never as-built.
+const AUTO_YLISRINNE_D_KOKOAVA_PAX_A_IV15_R2_STATIC_VIEW_WORK_TEST_20261025_1PXJBDIJ_CANDIDATE = {
+  id: 'auto-ylisrinne-d-kokoava-pax-a-iv15-r2-static-view-work-test-20261025-1pxjbdij',
+  label: 'Auto: Ylisrinne D KOKOAVA PAX A IV15 R2 STATIC VIEW WORK TEST 20261025 (scene0) - WORK_TEST',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/auto-ylisrinne-d-kokoava-pax-a-iv15-r2-static-view-work-test-20261025-1pxjbdij.glb`,
+  objectKey: 'work-test/auto-ylisrinne-d-kokoava-pax-a-iv15-r2-static-view-work-test-20261025-1pxjbdij.glb',
+  expectedSize: 2602564,
+  expectedSha256: 'a0331011972303456b6969ed1f932d47f735523469b792c20d9a740f62e58993',
+} as const satisfies PrivateWorkTestCandidate;
+
 const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
   ...PRIVATE_WORK_TEST_CANDIDATES,
   M5A_Z2D_D100_D300_DIAMETER_CANDIDATE,
@@ -3492,6 +3503,7 @@ const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
   AUTO_YLISRINNE_D2015_IV_R2_GLTF_FIX_WORK_TEST_20261025_1XIQWZMS_CANDIDATE,
   AUTO_YLISRINNE_IV1974_32_LAHDEANKKURIA_VIEW_WORK_TEST_20261025_1W01X7DJ_CANDIDATE,
   AUTO_YLISRINNE_KV2017_VIEW_R2_GLTF_FIX_WORK_TEST_20261025_1BWOSJWZ_CANDIDATE,
+  AUTO_YLISRINNE_D_KOKOAVA_PAX_A_IV15_R2_STATIC_VIEW_WORK_TEST_20261025_1PXJBDIJ_CANDIDATE,
 ] as const satisfies readonly PrivateWorkTestCandidate[];
 
 type PrivateWorkTestObjectMetadata = {
