@@ -3187,6 +3187,28 @@ const AUTO_YLISRINNE_D_KOKOAVA_D2F_OVIYLAOSAT_WORK_TEST_20261025_1LN2A8ZK_CANDID
   expectedSha256: '260224efa2a5d5c14558315ee8c83729546fd1b34df9756b3c961768867f5220',
 } as const satisfies PrivateWorkTestCandidate;
 
+// Auto-registered 2026-10-25 from Drive queue file 1QAFyLnKtWuHGNuN6hPWugDSEucHb_Fog
+// by auto-publish-work-test. WORK_TEST, never as-built.
+const AUTO_YLISRINNE_KV2017_VYOHYKKEET_VIEW_WORK_TEST_20261025_1QAFYLNK_CANDIDATE = {
+  id: 'auto-ylisrinne-kv2017-vyohykkeet-view-work-test-20261025-1qafylnk',
+  label: 'Auto: Ylisrinne KV2017 VYOHYKKEET VIEW WORK TEST 20261025 (scene0) - WORK_TEST',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/auto-ylisrinne-kv2017-vyohykkeet-view-work-test-20261025-1qafylnk.glb`,
+  objectKey: 'work-test/auto-ylisrinne-kv2017-vyohykkeet-view-work-test-20261025-1qafylnk.glb',
+  expectedSize: 334720,
+  expectedSha256: 'd8bc342f13540244cb40156732a7cf3c6266f0085d94c5f40faca53fd2d7ccfe',
+} as const satisfies PrivateWorkTestCandidate;
+
+// Auto-registered 2026-10-25 from Drive queue file 1wpARdOr-TtkkdekQXrCmAXyh9Ino1nQr
+// by auto-publish-work-test. WORK_TEST, never as-built.
+const AUTO_YLISRINNE_D2015_IV_KANAVAT_LAITTEET_WORK_TEST_20261025_1WPARDOR_CANDIDATE = {
+  id: 'auto-ylisrinne-d2015-iv-kanavat-laitteet-work-test-20261025-1wpardor',
+  label: 'Auto: Ylisrinne D2015 IV KANAVAT LAITTEET WORK TEST 20261025 (scene0) - WORK_TEST',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/auto-ylisrinne-d2015-iv-kanavat-laitteet-work-test-20261025-1wpardor.glb`,
+  objectKey: 'work-test/auto-ylisrinne-d2015-iv-kanavat-laitteet-work-test-20261025-1wpardor.glb',
+  expectedSize: 420212,
+  expectedSha256: '5e9421a0e026fa568209621caa2ecabca4af273c65e90ba6a70279e9a651220c',
+} as const satisfies PrivateWorkTestCandidate;
+
 const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
   ...PRIVATE_WORK_TEST_CANDIDATES,
   M5A_Z2D_D100_D300_DIAMETER_CANDIDATE,
@@ -3432,6 +3454,8 @@ const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
   AUTO_YLISRINNE_D_KOKOAVA_D2F_OVET_R2_PAX_AB_WORK_TEST_20261025_1LAR1FGS_CANDIDATE,
   AUTO_YLISRINNE_D_KOKOAVA_D2F_OVIYLAOSAT_WORK_TEST_20261025_1CTWRIEU_CANDIDATE,
   AUTO_YLISRINNE_D_KOKOAVA_D2F_OVIYLAOSAT_WORK_TEST_20261025_1LN2A8ZK_CANDIDATE,
+  AUTO_YLISRINNE_KV2017_VYOHYKKEET_VIEW_WORK_TEST_20261025_1QAFYLNK_CANDIDATE,
+  AUTO_YLISRINNE_D2015_IV_KANAVAT_LAITTEET_WORK_TEST_20261025_1WPARDOR_CANDIDATE,
 ] as const satisfies readonly PrivateWorkTestCandidate[];
 
 type PrivateWorkTestObjectMetadata = {
