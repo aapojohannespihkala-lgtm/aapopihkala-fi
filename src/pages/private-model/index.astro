@@ -1165,10 +1165,11 @@ const title = 'Private 3D viewer';
         line-height: 1.35;
       }
 
+      /* Bottom-left so the orientation gizmo (bottom-right) stays visible; sits above the coordinate panel when it is shown. */
       .selection-panel {
         position: absolute;
-        top: 12px;
-        right: 12px;
+        bottom: 12px;
+        left: 12px;
         z-index: 2;
         width: min(340px, calc(100% - 24px));
         max-height: calc(100% - 24px);
@@ -1181,6 +1182,22 @@ const title = 'Private 3D viewer';
       }
 
       .selection-panel[hidden] { display: none; }
+
+      .viewport:has(.coordinate-panel:not([hidden])) .selection-panel {
+        bottom: calc(20px + var(--coordinate-panel-block, 120px));
+        max-height: calc(100% - 32px - var(--coordinate-panel-block, 120px));
+      }
+
+      /* Narrow screens: the full-width panel would cover the bottom gizmo, so it opens from the top. */
+      @media (max-width: 760px) {
+        .selection-panel,
+        .viewport:has(.coordinate-panel:not([hidden])) .selection-panel {
+          top: 8px;
+          bottom: auto;
+          left: 8px;
+          max-height: 55%;
+        }
+      }
 
       .selection-header {
         display: flex;
@@ -13033,6 +13050,15 @@ const title = 'Private 3D viewer';
 
       const resizeObserver = new ResizeObserver(updateSize);
       resizeObserver.observe(canvas.parentElement ?? canvas);
+
+      // Keeps the bottom-left selection panel stacked above the coordinate panel.
+      const coordinatePanelObserver = new ResizeObserver(() => {
+        coordinatePanel.parentElement?.style.setProperty(
+          '--coordinate-panel-block',
+          `${coordinatePanel.offsetHeight}px`,
+        );
+      });
+      coordinatePanelObserver.observe(coordinatePanel);
 
       renderer.setAnimationLoop(() => {
         updateSize();
