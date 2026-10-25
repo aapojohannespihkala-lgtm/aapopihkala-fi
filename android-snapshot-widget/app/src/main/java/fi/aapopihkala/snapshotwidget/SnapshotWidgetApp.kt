@@ -268,7 +268,7 @@ private fun Footer(
         status == WidgetRepository.STATUS_ERROR -> diagnostics.failureLabel()
         payload?.channel == "legacy" && payloadTime != null ->
             "${diagnostics.legacyFallbackLabel()} · UPDATED $payloadTime"
-        payloadTime != null -> "UPDATED $payloadTime"
+        payloadTime != null -> updatedFooterLabel(payloadTime, BuildConfig.VERSION_NAME)
         else -> "WAITING FOR DATA"
     }
 
