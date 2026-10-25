@@ -70,8 +70,10 @@ The header is native/live Android time rather than a server timestamp and uses t
 Refresh/status lives in the footer:
 
 ```text
-UPDATED 08:04                                      ↻
+UPDATED 08:04 · 2.10.63                            ↻
 ```
+
+In the normal state the footer appends the installed APK `versionName` so a sideloaded update can be confirmed at a glance. Failure and legacy-fallback states show their diagnostics instead of the version.
 
 A manual `↻` tap immediately switches to a native indeterminate `ProgressBar`. The network refresh itself runs through WorkManager so a slow retry/fallback sequence does not keep the Glance action callback alive.
 
@@ -448,6 +450,7 @@ Signing credentials must not be committed to repository source. Keystore file ex
 - **2.10.58**: added an explicit launcher/bootstrap activity for OEM Android builds that keep sideloaded widget-only packages stopped/not-launched; opening it once starts the package, restores periodic scheduling, performs a foreground refresh and rebuilds the existing widget.
 - **2.10.59**: added a separate Snapshot Tablet provider with tablet-only typography, chart sizing and full-height section distribution. The existing Snapshot Widget provider remains the Honor/phone layout and is not visually changed.
 - **2.10.62**: added a four-day cached-copy STALE guard for Markets, Rates and non-live Liiga, and removes cached Electricity from an earlier Helsinki day.
+- **2.10.63**: normal-state footer shows the installed APK version after the update time.
 
 ## Key files
 
