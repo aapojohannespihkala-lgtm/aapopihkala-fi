@@ -3099,6 +3099,94 @@ const AUTO_YLISRINNE_D_KOKOAVA_SC24_PLUS_VK1_PAX15_AB_WORK_TEST_20261025_1VHFYIG
   expectedSha256: '6fca45e06e9f5ab614323d0b5190d7c8b6620663fa073f667dbd79ba053d74f9',
 } as const satisfies PrivateWorkTestCandidate;
 
+// Auto-registered 2026-10-25 from Drive queue file 1osL62SIYR9GuSWfUQts6t76h-SMUvrN2
+// by auto-publish-work-test. WORK_TEST, never as-built.
+const AUTO_YLISRINNE_D_KOKOAVA_D1F_V12_OVET_WC_PAX_AB_WORK_TEST_20261025_1OSL62SI_CANDIDATE = {
+  id: 'auto-ylisrinne-d-kokoava-d1f-v12-ovet-wc-pax-ab-work-test-20261025-1osl62si',
+  label: 'Auto: Ylisrinne D KOKOAVA D1F V12 OVET WC PAX AB WORK TEST 20261025 (scene27) - WORK_TEST',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/auto-ylisrinne-d-kokoava-d1f-v12-ovet-wc-pax-ab-work-test-20261025-1osl62si.glb`,
+  objectKey: 'work-test/auto-ylisrinne-d-kokoava-d1f-v12-ovet-wc-pax-ab-work-test-20261025-1osl62si.glb',
+  expectedSize: 2149920,
+  expectedSha256: 'cd6b31e1d0a272b1e93200e234029902e4984f24df1fc897848d72052f8747d4',
+} as const satisfies PrivateWorkTestCandidate;
+
+// Auto-registered 2026-10-25 from Drive queue file 1b_klctwKwxeAj7KQOVfQhCJyLG8MC2BJ
+// by auto-publish-work-test. WORK_TEST, never as-built.
+const AUTO_YLISRINNE_D_KOKOAVA_D1F_V12_OVET_WC_PAX_AB_WORK_TEST_20261025_1BKLCTWK_CANDIDATE = {
+  id: 'auto-ylisrinne-d-kokoava-d1f-v12-ovet-wc-pax-ab-work-test-20261025-1bklctwk',
+  label: 'Auto: Ylisrinne D KOKOAVA D1F V12 OVET WC PAX AB WORK TEST 20261025 (scene28) - WORK_TEST',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/auto-ylisrinne-d-kokoava-d1f-v12-ovet-wc-pax-ab-work-test-20261025-1bklctwk.glb`,
+  objectKey: 'work-test/auto-ylisrinne-d-kokoava-d1f-v12-ovet-wc-pax-ab-work-test-20261025-1bklctwk.glb',
+  expectedSize: 2146088,
+  expectedSha256: '979f3ac989b5d2f6f5cea8b6c9f5a492cff8c29ec0b3d0dcca5303a84a6a994f',
+} as const satisfies PrivateWorkTestCandidate;
+
+// Auto-registered 2026-10-25 from Drive queue file 1dGQv9mHUzzu1DM3_KEtjwXv3_1nzW5BK
+// by auto-publish-work-test. WORK_TEST, never as-built.
+const AUTO_YLISRINNE_D_KOKOAVA_D2F_2015_9_SEINAA_PAX_AB_WORK_TEST_20261025_1DGQV9MH_CANDIDATE = {
+  id: 'auto-ylisrinne-d-kokoava-d2f-2015-9-seinaa-pax-ab-work-test-20261025-1dgqv9mh',
+  label: 'Auto: Ylisrinne D KOKOAVA D2F 2015 9 SEINAA PAX AB WORK TEST 20261025 (scene29) - WORK_TEST',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/auto-ylisrinne-d-kokoava-d2f-2015-9-seinaa-pax-ab-work-test-20261025-1dgqv9mh.glb`,
+  objectKey: 'work-test/auto-ylisrinne-d-kokoava-d2f-2015-9-seinaa-pax-ab-work-test-20261025-1dgqv9mh.glb',
+  expectedSize: 2172048,
+  expectedSha256: '5bdf3a985205ff74d39609e486a55aff58c5a4599ccec4f615084fcf409a385d',
+} as const satisfies PrivateWorkTestCandidate;
+
+// Auto-registered 2026-10-25 from Drive queue file 19-B4cvsrxLx_8UY-aepjY4Q28zeV2-1V
+// by auto-publish-work-test. WORK_TEST, never as-built.
+const AUTO_YLISRINNE_D_KOKOAVA_D2F_2015_9_SEINAA_PAX_AB_WORK_TEST_20261025_19B4CVSR_CANDIDATE = {
+  id: 'auto-ylisrinne-d-kokoava-d2f-2015-9-seinaa-pax-ab-work-test-20261025-19b4cvsr',
+  label: 'Auto: Ylisrinne D KOKOAVA D2F 2015 9 SEINAA PAX AB WORK TEST 20261025 (scene30) - WORK_TEST',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/auto-ylisrinne-d-kokoava-d2f-2015-9-seinaa-pax-ab-work-test-20261025-19b4cvsr.glb`,
+  objectKey: 'work-test/auto-ylisrinne-d-kokoava-d2f-2015-9-seinaa-pax-ab-work-test-20261025-19b4cvsr.glb',
+  expectedSize: 2168216,
+  expectedSha256: 'db0b2d5decc96dd34ce2461b1a47914cdccea9cc2b2f07fdc8e6431cc75be343',
+} as const satisfies PrivateWorkTestCandidate;
+
+// Auto-registered 2026-10-25 from Drive queue file 1fBbTYjZA_wpOOPrjH434Ik89G4tbtZwS
+// by auto-publish-work-test. WORK_TEST, never as-built.
+const AUTO_YLISRINNE_D_KOKOAVA_D2F_OVET_R2_PAX_AB_WORK_TEST_20261025_1FBBTYJZ_CANDIDATE = {
+  id: 'auto-ylisrinne-d-kokoava-d2f-ovet-r2-pax-ab-work-test-20261025-1fbbtyjz',
+  label: 'Auto: Ylisrinne D KOKOAVA D2F OVET R2 PAX AB WORK TEST 20261025 (scene31) - WORK_TEST',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/auto-ylisrinne-d-kokoava-d2f-ovet-r2-pax-ab-work-test-20261025-1fbbtyjz.glb`,
+  objectKey: 'work-test/auto-ylisrinne-d-kokoava-d2f-ovet-r2-pax-ab-work-test-20261025-1fbbtyjz.glb',
+  expectedSize: 2175480,
+  expectedSha256: 'bb5251c2986968db274defb50ac7cfac76dcfe98e14024c9787e40401e777814',
+} as const satisfies PrivateWorkTestCandidate;
+
+// Auto-registered 2026-10-25 from Drive queue file 1lar1fGS6tWfT4ZIZd4G4LfjM1X9fjRYj
+// by auto-publish-work-test. WORK_TEST, never as-built.
+const AUTO_YLISRINNE_D_KOKOAVA_D2F_OVET_R2_PAX_AB_WORK_TEST_20261025_1LAR1FGS_CANDIDATE = {
+  id: 'auto-ylisrinne-d-kokoava-d2f-ovet-r2-pax-ab-work-test-20261025-1lar1fgs',
+  label: 'Auto: Ylisrinne D KOKOAVA D2F OVET R2 PAX AB WORK TEST 20261025 (scene32) - WORK_TEST',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/auto-ylisrinne-d-kokoava-d2f-ovet-r2-pax-ab-work-test-20261025-1lar1fgs.glb`,
+  objectKey: 'work-test/auto-ylisrinne-d-kokoava-d2f-ovet-r2-pax-ab-work-test-20261025-1lar1fgs.glb',
+  expectedSize: 2171648,
+  expectedSha256: '2b1a55090acbb36cf61ef47e6a3ff97382ec2e9c797ae99991660730047c2e85',
+} as const satisfies PrivateWorkTestCandidate;
+
+// Auto-registered 2026-10-25 from Drive queue file 1ctwrIEUMhda8El8e1b8G6VBH_DA88LKe
+// by auto-publish-work-test. WORK_TEST, never as-built.
+const AUTO_YLISRINNE_D_KOKOAVA_D2F_OVIYLAOSAT_WORK_TEST_20261025_1CTWRIEU_CANDIDATE = {
+  id: 'auto-ylisrinne-d-kokoava-d2f-oviylaosat-work-test-20261025-1ctwrieu',
+  label: 'Auto: Ylisrinne D KOKOAVA D2F OVIYLAOSAT WORK TEST 20261025 (scene33) - WORK_TEST',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/auto-ylisrinne-d-kokoava-d2f-oviylaosat-work-test-20261025-1ctwrieu.glb`,
+  objectKey: 'work-test/auto-ylisrinne-d-kokoava-d2f-oviylaosat-work-test-20261025-1ctwrieu.glb',
+  expectedSize: 2179304,
+  expectedSha256: 'b864698a05a71ef055d9e738d87abd34664c1d2fd6abfb145b346b190d139e46',
+} as const satisfies PrivateWorkTestCandidate;
+
+// Auto-registered 2026-10-25 from Drive queue file 1Ln2a8zK7vsNw_IBrxr1hBbexIoCzZ0Ss
+// by auto-publish-work-test. WORK_TEST, never as-built.
+const AUTO_YLISRINNE_D_KOKOAVA_D2F_OVIYLAOSAT_WORK_TEST_20261025_1LN2A8ZK_CANDIDATE = {
+  id: 'auto-ylisrinne-d-kokoava-d2f-oviylaosat-work-test-20261025-1ln2a8zk',
+  label: 'Auto: Ylisrinne D KOKOAVA D2F OVIYLAOSAT WORK TEST 20261025 (scene34) - WORK_TEST',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/auto-ylisrinne-d-kokoava-d2f-oviylaosat-work-test-20261025-1ln2a8zk.glb`,
+  objectKey: 'work-test/auto-ylisrinne-d-kokoava-d2f-oviylaosat-work-test-20261025-1ln2a8zk.glb',
+  expectedSize: 2175472,
+  expectedSha256: '260224efa2a5d5c14558315ee8c83729546fd1b34df9756b3c961768867f5220',
+} as const satisfies PrivateWorkTestCandidate;
+
 const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
   ...PRIVATE_WORK_TEST_CANDIDATES,
   M5A_Z2D_D100_D300_DIAMETER_CANDIDATE,
@@ -3336,6 +3424,14 @@ const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
   AUTO_YLISRINNE_D2015_1F_V12_WC_OVEN_SEINAYHTEYS_WORK_TEST_20261025_1QFTSKKD_CANDIDATE,
   AUTO_YLISRINNE_D_KOKOAVA_SC24_PLUS_VK1_PAX15_AB_WORK_TEST_20261025_1KGWKZCA_CANDIDATE,
   AUTO_YLISRINNE_D_KOKOAVA_SC24_PLUS_VK1_PAX15_AB_WORK_TEST_20261025_1VHFYIG6_CANDIDATE,
+  AUTO_YLISRINNE_D_KOKOAVA_D1F_V12_OVET_WC_PAX_AB_WORK_TEST_20261025_1OSL62SI_CANDIDATE,
+  AUTO_YLISRINNE_D_KOKOAVA_D1F_V12_OVET_WC_PAX_AB_WORK_TEST_20261025_1BKLCTWK_CANDIDATE,
+  AUTO_YLISRINNE_D_KOKOAVA_D2F_2015_9_SEINAA_PAX_AB_WORK_TEST_20261025_1DGQV9MH_CANDIDATE,
+  AUTO_YLISRINNE_D_KOKOAVA_D2F_2015_9_SEINAA_PAX_AB_WORK_TEST_20261025_19B4CVSR_CANDIDATE,
+  AUTO_YLISRINNE_D_KOKOAVA_D2F_OVET_R2_PAX_AB_WORK_TEST_20261025_1FBBTYJZ_CANDIDATE,
+  AUTO_YLISRINNE_D_KOKOAVA_D2F_OVET_R2_PAX_AB_WORK_TEST_20261025_1LAR1FGS_CANDIDATE,
+  AUTO_YLISRINNE_D_KOKOAVA_D2F_OVIYLAOSAT_WORK_TEST_20261025_1CTWRIEU_CANDIDATE,
+  AUTO_YLISRINNE_D_KOKOAVA_D2F_OVIYLAOSAT_WORK_TEST_20261025_1LN2A8ZK_CANDIDATE,
 ] as const satisfies readonly PrivateWorkTestCandidate[];
 
 type PrivateWorkTestObjectMetadata = {
