@@ -343,6 +343,8 @@ The widget keeps the latest compatible payload in SharedPreferences.
 
 Realtime stale guards use section source timestamps when available. Weather and Electricity prefer `observedAt`, then `fetchedAt`, while old compatible payloads continue to fall back to payload `generatedAt`. HSL keeps its own fetched timestamp and local future schedule fallback rules. Once HSL is over five minutes old, cached LIVE rows are discarded; only still-future static schedule rows may remain until fresh network data arrives.
 
+Electricity values describe one Helsinki calendar day, so a cached Electricity section from an earlier Helsinki day is removed instead of being shown as STALE under TODAY labels. Markets, Rates and non-live Liiga legitimately carry source dates that lag by a trading or banking day, so their guard measures the age of the cached copy (`fetchedAt`, then payload `generatedAt`) rather than `observedAt`; they stay visible and are marked STALE only when that copy is more than four days old.
+
 Diagnostic codes include:
 
 - `OK`
@@ -445,6 +447,7 @@ Signing credentials must not be committed to repository source. Keystore file ex
 - **2.10.57**: added host-update bootstrap and a pre-network Glance render so newly added widget instances do not depend solely on `onEnabled` to leave the static initial layout.
 - **2.10.58**: added an explicit launcher/bootstrap activity for OEM Android builds that keep sideloaded widget-only packages stopped/not-launched; opening it once starts the package, restores periodic scheduling, performs a foreground refresh and rebuilds the existing widget.
 - **2.10.59**: added a separate Snapshot Tablet provider with tablet-only typography, chart sizing and full-height section distribution. The existing Snapshot Widget provider remains the Honor/phone layout and is not visually changed.
+- **2.10.62**: added a four-day cached-copy STALE guard for Markets, Rates and non-live Liiga, and removes cached Electricity from an earlier Helsinki day.
 
 ## Key files
 
