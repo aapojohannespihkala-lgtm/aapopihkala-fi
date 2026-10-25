@@ -34,6 +34,8 @@ PUBLISH_MIN_AGE = 15 * 60  # let the Cloudflare deploy of the merged allowlist f
 PUBLISH_MAX_AGE = 6 * 60 * 60  # stop retrying a failed publish so the queue keeps moving
 MAX_BATCH = 15  # files registered per run: bounds run time and PR size
 MAX_PUBLISH_FAILURES = 3  # a candidate that failed this often is skipped, not retried forever
+QUEUE_PAGE_SIZE = 100  # Drive files.list page size; every page is read
+MAX_QUEUE_PAGES = 50  # safety bound: 5 000 queue files
 
 
 def split_name(name):
@@ -73,36 +75,72 @@ def load_json(path):
         return json.load(handle)
 
 
+def drive_list_page(folder, token, page_token=None):
+    """One Drive files.list page for the queue folder (network call)."""
+    query = f"'{folder}' in parents and trashed = false"
+    params = {
+        "q": query,
+        "fields": "nextPageToken,files(id,name,mimeType,createdTime,size)",
+        "orderBy": "createdTime",
+        "pageSize": str(QUEUE_PAGE_SIZE),
+        "supportsAllDrives": "true",
+        "includeItemsFromAllDrives": "true",
+    }
+    if page_token:
+        params["pageToken"] = page_token
+    request = urllib.request.Request(
+        f"https://www.googleapis.com/drive/v3/files?{urllib.parse.urlencode(params)}",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    with urllib.request.urlopen(request, timeout=30) as response:
+        return json.load(response)
+
+
+def list_queue(fetch_page, max_pages=MAX_QUEUE_PAGES):
+    """Read every queue page; return (files, pages).
+
+    Earlier versions read only the first page (100 oldest files), so newer queue
+    files were never registered once the folder held more than 100 models.
+    A repeated page token or too many pages is an error, never a partial success.
+    """
+    files, seen_ids, seen_tokens = [], set(), set()
+    page_token, pages = None, 0
+    while True:
+        if pages >= max_pages:
+            raise SystemExit(f"Drive queue listing exceeded {max_pages} pages")
+        payload = fetch_page(page_token)
+        pages += 1
+        if not isinstance(payload, dict) or not isinstance(payload.get("files", []), list):
+            raise SystemExit("unexpected Drive files.list response")
+        for f in payload.get("files", []):
+            file_id = f.get("id", "")
+            if (
+                f.get("name", "").lower().endswith(QUEUE_EXTENSIONS)
+                and DRIVE_ID_RE.fullmatch(file_id)
+                and file_id not in seen_ids
+            ):
+                seen_ids.add(file_id)
+                files.append({"id": file_id, "name": f["name"], "createdTime": f.get("createdTime", "")})
+        page_token = payload.get("nextPageToken")
+        if not page_token:
+            break
+        if page_token in seen_tokens:
+            raise SystemExit("Drive returned a repeated page token")
+        seen_tokens.add(page_token)
+    files.sort(key=lambda f: (f["createdTime"], f["id"]))
+    return files, pages
+
+
 def cmd_list_queue(args):
     token = os.environ.get("GDRIVE_ACCESS_TOKEN", "")
     if not token:
         raise SystemExit("GDRIVE_ACCESS_TOKEN missing")
     if not DRIVE_ID_RE.fullmatch(args.folder):
         raise SystemExit("invalid queue folder id")
-    query = f"'{args.folder}' in parents and trashed = false"
-    params = urllib.parse.urlencode({
-        "q": query,
-        "fields": "files(id,name,mimeType,createdTime,size)",
-        "orderBy": "createdTime",
-        "pageSize": "100",
-        "supportsAllDrives": "true",
-        "includeItemsFromAllDrives": "true",
-    })
-    request = urllib.request.Request(
-        f"https://www.googleapis.com/drive/v3/files?{params}",
-        headers={"Authorization": f"Bearer {token}"},
-    )
-    with urllib.request.urlopen(request, timeout=30) as response:
-        payload = json.load(response)
-    files = [
-        {"id": f["id"], "name": f["name"], "createdTime": f.get("createdTime", "")}
-        for f in payload.get("files", [])
-        if f.get("name", "").lower().endswith(QUEUE_EXTENSIONS)
-        and DRIVE_ID_RE.fullmatch(f.get("id", ""))
-    ]
+    files, pages = list_queue(lambda page_token: drive_list_page(args.folder, token, page_token))
     with open(args.out, "w", encoding="utf-8") as handle:
         json.dump(files, handle)
-    print(f"Queue files: {len(files)}")
+    print(f"Queue files: {len(files)} (pages: {pages})")
 
 
 def plan(registry, catalog_ids, queue, recent, failures, open_auto_pr, max_batch=MAX_BATCH):

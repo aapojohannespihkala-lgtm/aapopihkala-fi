@@ -492,6 +492,626 @@
     "auto-ylisrinne-t12-1974-abc-1f-eteinen-kaytava-jakoseinat-work-test-20261022-1ye5pz6i": {
       "driveFileId": "1Ye5pz6ItsEY3j4EwsmIc73jwqD9_J-aa",
       "extractScene": 6
+    },
+    "auto-ylisrinne-t12-1974-abc-1f-h-seinat-tk-vh-yhdiste-work-test-20261022-1rqzyqwy": {
+      "driveFileId": "1-rqzyqWyuUa_pXaTkylfsgi44lK9HHBH",
+      "extractScene": 8
+    },
+    "auto-ylisrinne-t12-1974-abc-2f-wc-seinat-yhdiste-work-test-20261022-1omrgzys": {
+      "driveFileId": "1OmRGZYs5YJj8QZhjojr3rxtiUj0uMkv1",
+      "extractScene": 10
+    },
+    "auto-ylisrinne-t12-1974-abc-1f-h-tkvh-2f-wc-yhdiste-work-test-20261022-1jioo3i3": {
+      "driveFileId": "1-jIoo3I3DuYfDLoFKudA8pvI9jdUY_MH",
+      "extractScene": 10
+    },
+    "auto-ylisrinne-t12-1974-abc-3-porrasta-work-test-20261022-1bfmyfmw": {
+      "driveFileId": "1BFmYFmWH0HseZRpJXJNsHDDXpAkcO4Zi",
+      "extractScene": 12
+    },
+    "auto-ylisrinne-kph09-sauna-u-ikkunat-mitat-work-test-20261022-1dse7lf0": {
+      "driveFileId": "1dsE7LF0Lfi3WosXaI5zPMSB0Z2JGxCIz",
+      "extractScene": 0
+    },
+    "auto-ylisrinne-kph09-sauna-ikkunat-symmetria-user-confirmed-work-test-20261022-1vcjudcj": {
+      "driveFileId": "1-VcJuDcj8va5GjIY8vk04qU1oV9rLsmw",
+      "extractScene": 0
+    },
+    "auto-ylisrinne-kph09-lasikaari-wckansi-owner-review-meta-work-test-20261022-1jvcreiw": {
+      "driveFileId": "1jvCReIWl7ulcB-1nBJge03QpiSBbgZ7T",
+      "extractScene": 0
+    },
+    "auto-ylisrinne-d2f-2024-kitchen-photo-corrected-r1-with-doors-work-test-20261022-1umyovpo": {
+      "driveFileId": "1UmyoVPoqjYs4arhrTcM4PrWqSiWJY5hJ",
+      "extractScene": 65
+    },
+    "auto-ylisrinne-d1f-kaapit-ulkoseinapuoli-provenanssi-work-test-20261022-1vmoomql": {
+      "driveFileId": "1VMOOmQLyDkwHWSfbhLhQO8xLhdyr60BM",
+      "extractScene": 0
+    },
+    "auto-ylisrinne-d2f-2024-kitchen-r2-3x600-tall-qa-verified-work-test-20261022-1khypx9f": {
+      "driveFileId": "1KHYpx9FjR0MvbV3u47RZj80l7uB8zniA",
+      "extractScene": 67
+    },
+    "auto-ylisrinne-d1f-kaapit-paatyjen-kuvatarkistus-work-test-20261022-13p6mzdm": {
+      "driveFileId": "13p6mzdMTHAKRsxRmp_ZWZXcg4MBHCXzQ",
+      "extractScene": 0
+    },
+    "auto-ylisrinne-d2f-2024-kitchen-r3-aisle1200-photo-work-test-20261022-1mocyc5p": {
+      "driveFileId": "1mocYC5Pnd7K3IXasXAH9n79R33QbA00l",
+      "extractScene": 69
+    },
+    "auto-ylisrinne-d-terassi-l-askelma-v6-west-leg-terrain-blend-work-test-20261022-1jj1klib": {
+      "driveFileId": "1Jj1KLIBBD7Rn8UVVugu5bYUL_dPOVqHg",
+      "extractScene": 0
+    },
+    "auto-ylisrinne-d1f-kaapit-g1-akselisuunta-tyokohdistus-work-test-20261022-1tttkqo5": {
+      "driveFileId": "1T-TtkQO510WhmZwzv2xot9RkGAm8yVNY",
+      "extractScene": 2
+    },
+    "auto-ylisrinne-d1f-kaapit-pohjapiirustus-xy-vyohyke-work-test-20261022-1upg3bxe": {
+      "driveFileId": "1uPg3bXeQjcWc44LnlBXbHhAT6yBJcRv1",
+      "extractScene": 3
+    },
+    "auto-ylisrinne-d-terassi-laskelma-v7-45jiiri-maasto-work-test-20261023-1xoldylu": {
+      "driveFileId": "1XOld_YLurqS-NHzXWotzywD0YiP4nFOK",
+      "extractScene": 2
+    },
+    "auto-ylisrinne-d1f-kaapit-rako-leveys-avoin-work-test-20261023-1oj3rqau": {
+      "driveFileId": "1oj3Rqau_EmybkFyYPaIKH1Kd8RnBLUup",
+      "extractScene": 4
+    },
+    "auto-ylisrinne-d2f-2024-kitchen-r4-4tall-owner-review-work-test-20261023-1k19ilgo": {
+      "driveFileId": "1k19ILGoXs93ChiOF6NLBctWzt_cFvsU9",
+      "extractScene": 70
+    },
+    "auto-ylisrinne-d2f-keittio-r4-4-korkeaa-owner-work-test-20261023-1k6osskj": {
+      "driveFileId": "1k6osskJK6yQ76KO5iEgvHzhu-qlMikpt",
+      "extractScene": 71
+    },
+    "auto-ylisrinne-d2f-keittio-r6-saareke-viinikaappi-etujako-work-test-20261023-1im1gftn": {
+      "driveFileId": "1im1g_ftN0Nx_VdrUGoLhHhMDdcEspIm8",
+      "extractScene": 75
+    },
+    "auto-ylisrinne-d-terassi-nakosuoja-v8-kuvaristikko-work-test-20261023-1krpypkw": {
+      "driveFileId": "1kRpYPKwdndQ66-RQyKymSAohoadbID9J",
+      "extractScene": 3
+    },
+    "auto-ylisrinne-d2f-2015-3-ovilehtea-r2-kayntivalys-tyo-oletus-work-test-20261023-1h4il6yl": {
+      "driveFileId": "1h4iL6ylqt0xWB-vbD_Iqmhb8Mj6NrhRW",
+      "extractScene": 63
+    },
+    "auto-ylisrinne-d2f-keittio-r13-kulma-laatat-2x2-vaakakehys-saumaviite-work-test-20261023-16pqh2jb": {
+      "driveFileId": "16Pqh2JB1qcbn1VJpnaWdsU7F9VtZpGYp",
+      "extractScene": 85
+    },
+    "auto-ylisrinne-d-terassi-nakosuoja-v12-kaksi-paneelia-porrastus-maasto-work-test-20261023-1rthfo9z": {
+      "driveFileId": "1rThFo9ZvvAZpwlYPxWcVhRNetzPrUtvI",
+      "extractScene": 7
+    },
+    "auto-ylisrinne-d-terassi-nakosuoja-v11-kolme-porrastettua-elementtia-katselmus01-work-test-20261023-1iqk4jdj": {
+      "driveFileId": "1Iqk4jDjP_cB_3wUpNDsC7gsyxcoQHwLK",
+      "extractScene": 6
+    },
+    "auto-ylisrinne-d2f-keittio-r19-vinot-reiat-maadoitus-work-test-20261023-1buwwesq": {
+      "driveFileId": "1BuwWESQoJ0DUrZj1Tlju4GBQQ-xtX6cY",
+      "extractScene": 97
+    },
+    "auto-ylisrinne-t12-1974-abcd-2f-huonejakoseinat-work-test-20261023-1gmgdd8i": {
+      "driveFileId": "1GmgdD8I0irwiuDLDSUkSZkU3eJZVW_qR",
+      "extractScene": 6
+    },
+    "auto-ylisrinne-t12-katon-harjapellit-visual-proxy-work-test-20261023-1e82yzuo": {
+      "driveFileId": "1e82YZUOIbUzjmd0sLfl1r99FznpCXNvH",
+      "extractScene": 64
+    },
+    "auto-ylisrinne-t12-abc-1974-2f-walls-d2f-r19-2026-combined-work-test-20261023-16duh4cp": {
+      "driveFileId": "16DuH4cpl5-RKJGF9EC8hwx3RmvqWZyMg",
+      "extractScene": 98
+    },
+    "auto-ylisrinne-d2015-r476-kahdeksan-lahdemerkkia-work-test-20261023-1awocynd": {
+      "driveFileId": "1aWoCYNd0oWXwMr0chey38tGvZR-5ExIp",
+      "extractScene": 65
+    },
+    "auto-ylisrinne-d2015-2f-3d-seinat-work-test-20261023-1qive3f4": {
+      "driveFileId": "1QIve3F4qaBs4UsErZ7aLF8rEWmTpGHm9",
+      "extractScene": 6
+    },
+    "auto-ylisrinne-d-terassi-v13-lstep-continuous-vertical-bridge-work-test-20261023-1kkjedpv": {
+      "driveFileId": "1KkJEDPVf3lmzFrNmlwDYXa3S_qLE-BNx",
+      "extractScene": 6
+    },
+    "auto-ylisrinne-t12-d2015-2f-huone3-4-seinaproxy-work-test-20261023-1nszi7li": {
+      "driveFileId": "1nSZI_7liguiqjLSrOvBDPosJ-Lp2xbuf",
+      "extractScene": 9
+    },
+    "auto-ylisrinne-t12-ac-1f-wetwalls-abc-2f-walls-d2f-r19-combined-work-test-20261023-1xw8h1lc": {
+      "driveFileId": "1xw8H1lCp-VE4vaRWOJc1RmaPLTfOWADm",
+      "extractScene": 99
+    },
+    "auto-ylisrinne-p6-1974-avoin-autokatos-pilarit-varasto-work-test-20261023-1l6fnehb": {
+      "driveFileId": "1l6_FNEhBJ1LFfh3BFA1DV7AVEPBYwstI",
+      "extractScene": 1
+    },
+    "auto-ylisrinne-t12-1974-abc-1f-saunatupa-porras-eteinen-walls-work-test-20261023-1slflgln": {
+      "driveFileId": "1slfLgLn9lnt4i5KySsxJB-ydNiLGYvaV",
+      "extractScene": 4
+    },
+    "auto-ylisrinne-ei141-palovaroitin-model-level-work-test-20261023-1jaiyoaz": {
+      "driveFileId": "1JaIyOAZChGer19f4v7ijWUOSkSac9xf9",
+      "extractScene": 0
+    },
+    "auto-ylisrinne-d2015-1f-uudet-3d-seinat-ja-1f2f-yhd-work-test-20261023-1pms2p76": {
+      "driveFileId": "1PMs2p76JK11CNsfBqGgBaqimu1IlCK9n",
+      "extractScene": 8
+    },
+    "auto-ylisrinne-d2015-10-kiv100-tuotemallit-r2-work-test-20261023-17lw0rdn": {
+      "driveFileId": "17lw0rdnjzPwr5-4x0Dq2zrKIIvte0p4o",
+      "extractScene": 6
+    },
+    "auto-ylisrinne-t12-abc-1974-1f-18-sisaovea-work-test-20261023-19vmxh1h": {
+      "driveFileId": "19vMxH1hEggSPPfBXr-DjOR2x8bCABMh-",
+      "extractScene": 100
+    },
+    "auto-ylisrinne-t12-d2015-2f-wc-altaan-ja-istuimen-geometria-work-test-20261023-1oiizxs0": {
+      "driveFileId": "1oIIzXs0e3-gdINaphw8Pgd_RDfgU99Dj",
+      "extractScene": 11
+    },
+    "auto-ylisrinne-1974-kvv-73-piirustuslinjan-3d-source-local-work-test-20261023-1ekoilda": {
+      "driveFileId": "1EkoIlDAJNIsOrKRCKY4K39ZXFtAtxsXC",
+      "extractScene": 0
+    },
+    "auto-ylisrinne-t12-ark2-1985-kattoikkuna-ab-south-work-test-20261023-1mtavmvl": {
+      "driveFileId": "1MtAvmVlncP0my377tJDlf-g8X-kDMgVU",
+      "extractScene": 64
+    },
+    "auto-ylisrinne-t12-1985-pohjoisjulkisivun-puusaleikko-work-test-20261023-1n2jltco": {
+      "driveFileId": "1n2JLT-COYTOS6oQRcRCq1XWRKYX2w2pO",
+      "extractScene": 65
+    },
+    "auto-ylisrinne-airam-compact-tilt-ip44-4107625-product-work-test-20261024-1jnzv5cn": {
+      "driveFileId": "1JNzv5CNanvrnM6Hcvcmw95iT7nzJEQym",
+      "extractScene": 0
+    },
+    "auto-ylisrinne-t12-1974-abc-2f-kolme-historiallista-keittiokalusteryhmaa-work-test-20261023-131fww1q": {
+      "driveFileId": "13_1FwW1QW3eGpPKOXIq6Lcv-2i6U8JjE",
+      "extractScene": 6
+    },
+    "auto-ylisrinne-d2015-vilpe-e220s-roof-fan-work-test-20261024-1jvbklob": {
+      "driveFileId": "1jV_BkLobFcBx_u02l2wNArp1_Blr_mdd",
+      "extractScene": 8
+    },
+    "auto-ylisrinne-t12-raystaskourut-4-jaksoa-work-test-20261024-11qbl7jy": {
+      "driveFileId": "11qbl7jyLZQYNTmfe3xN16GQdmS2NA12k",
+      "extractScene": 65
+    },
+    "auto-ylisrinne-d2015-vilpe-e220s-kattoimuri-product-work-test-20261024-1xii3lb7": {
+      "driveFileId": "1XII3Lb7j21bSLSk2Y0mPxTd8Xjv9dJtT",
+      "extractScene": 0
+    },
+    "auto-ylisrinne-t12-1985-itapaaty-pystylaudat-work-test-20261024-1th7dgps": {
+      "driveFileId": "1tH7DgpswKSbk4mbhY1rWTuEeT0At9-xt",
+      "extractScene": 13
+    },
+    "auto-ylisrinne-d2015-1f-v10-viisi-sisaovilehtea-2015-work-test-20261024-1snwvmu8": {
+      "driveFileId": "1SNWVMU8Zhgt_5dxAkmWWKEr2VjNAz3vX",
+      "extractScene": 10
+    },
+    "auto-ylisrinne-t12-1974-abc-2f-6-door-leaves-integrated-work-test-20261024-1e2uxvbm": {
+      "driveFileId": "1E_2uxVBM0GOsd8lVXEA6ky-m5XEKvW_o",
+      "extractScene": 100
+    },
+    "auto-ylisrinne-d1f-themo-3-asennettua-tuoteesitys-work-test-20261024-1zlgz04v": {
+      "driveFileId": "1ZlGZ04vNeWcjP7Ssd0tGFJSDUVm7EHLi",
+      "extractScene": 0
+    },
+    "auto-ylisrinne-p3-1974-a-c-keittioalakaapit-work-test-20261024-1ugovvph": {
+      "driveFileId": "1ugovvPhrhbD_-kcSfgRhiCcpVcd-wLBc",
+      "extractScene": 10
+    },
+    "auto-ylisrinne-winled-helmi-lasikuutio-4141926-product-work-test-20261024-1u8ak58w": {
+      "driveFileId": "1U8aK58WfrfdTtZFSgDnUdPnWxDazXM9J",
+      "extractScene": 0
+    },
+    "auto-ylisrinne-t12-1974-abc-1f-kolme-saunaa-lauteet-kiuas-work-test-20261024-19chpruq": {
+      "driveFileId": "19CHPRuqovKkqeSK1anX45S2LVvTgSIJX",
+      "extractScene": 6
+    },
+    "auto-ylisrinne-d2015-sk1-400x150-2kpl-work-test-20261024-10bifxdf": {
+      "driveFileId": "10bifxdF4ZM2LxZQ68xm48daRSNuQHEDj",
+      "extractScene": 10
+    },
+    "auto-ylisrinne-t12-syoksytorvet-5-vyohyketta-work-test-20261024-1o1p2v82": {
+      "driveFileId": "1o1p2V82co-F6TX3BSgePKGxTUXrgjb6Y",
+      "extractScene": 66
+    },
+    "auto-ylisrinne-d-toshiba-daiseikai8-25-35-sisayksikko-ulkoyksikko-product-work-test-20261024-1dp6v4dd": {
+      "driveFileId": "1dP6V4d-DFkqCupK1EyzSed90KBG8zwZY",
+      "extractScene": 0
+    },
+    "auto-ylisrinne-t12-1974-abc-1f-wc-istuimet-pesualtaat-work-test-20261024-1a3wnj8i": {
+      "driveFileId": "1A3wnJ8IQ3dLHf-mzIOdbJcHD_ts-Kj7x",
+      "extractScene": 100
+    },
+    "auto-ylisrinne-t12-1974-abc-2f-wc-3-toilets-3-basins-work-test-20261024-1a00vqcx": {
+      "driveFileId": "1A00vqcxNggKzTIJrZBARwKhPVHxFjn_n",
+      "extractScene": 101
+    },
+    "auto-ylisrinne-winled-lilja-6w-4142068-product-work-test-20261024-1sbghitp": {
+      "driveFileId": "1sBghiTPPAzWKfVqdzrbYfY81UFmDtg8U",
+      "extractScene": 0
+    },
+    "auto-ylisrinne-d-toshiba-g2kvp-g2avp-sisa-ulko-tuotemalli-work-test-20261024-1zrzkbzd": {
+      "driveFileId": "1zrZK-BZd2WDQBGGpORjFyidH5zOQz5iu",
+      "extractScene": 0
+    },
+    "auto-ylisrinne-d2015-kso100-tuotemalli-2014-work-test-20261024-1eldcxxs": {
+      "driveFileId": "1ELDCxXsrM2Xg1QT-HSjDXHjvKo3VMuuF",
+      "extractScene": 12
+    },
+    "auto-ylisrinne-t12-2014-viemarin-tuuletusputki-2-alternatiivia-work-test-20261024-1zm70kz4": {
+      "driveFileId": "1zM70kz4yO7JWotvGGE-qqraCeI98GTcU",
+      "extractScene": 67
+    },
+    "auto-ylisrinne-p3-1974-abc-2f-wc-kalusteet-work-test-20261024-1rrtktnm": {
+      "driveFileId": "1RRtKTnmFRMOgwgOx4-9uQR6DALyNzBGe",
+      "extractScene": 12
+    },
+    "auto-merika-1790rs-elegance-110-tuotemalli-work-test-20261024-16wxeg2a": {
+      "driveFileId": "16wxe_g2AxcbxAb6clqWCySR2QuVTmllM",
+      "extractScene": 0
+    },
+    "auto-ylisrinne-bosch-wng254absn-product-work-test-20261024-1mnozytq": {
+      "driveFileId": "1MNOzYtQdTfeB7kTH_X5KTEJggRqSwp6g",
+      "extractScene": 0
+    },
+    "auto-ylisrinne-a-c-1974-2f-3-balcony-door-leaves-3d-work-test-20261024-1nwfzlew": {
+      "driveFileId": "1nWfZLEwQil9fRETUj0S--REEZlUN7f_H",
+      "extractScene": 102
+    },
+    "auto-ylisrinne-d-bosch-wng254absn-kuivaava-pesukone-work-test-20261024-149xflbj": {
+      "driveFileId": "149xflbjdJMQ1hxyHReTsUVHGxM7F4kRE",
+      "extractScene": 0
+    },
+    "auto-ylisrinne-d2015-kso125-2014-tuotemalli-work-test-20261024-1s9xikoe": {
+      "driveFileId": "1s9XIkoEzogCgprscTM7TFFs_ANzrbgtG",
+      "extractScene": 14
+    },
+    "auto-ylisrinne-t12-1974-abc-1f-pk-pesukonevaraukset-work-test-20261024-1vv30dzu": {
+      "driveFileId": "1vV30dzuJT88vHod4v0DDAOHs8ul_dDF9",
+      "extractScene": 102
+    },
+    "auto-ylisrinne-d2015-flaktwoods-kso125-kkt125-tuotemalli-work-test-20261024-1opra6lz": {
+      "driveFileId": "1oPRA6lzo6dQ0ceVcSS_vJxR2jPZ2bPyg",
+      "extractScene": 0
+    },
+    "auto-ylisrinne-t12-1974-abc-1f-2f-wc-kalusteet-work-test-20261024-13ktfkc9": {
+      "driveFileId": "13Ktfkc9XjgWcHyTLCt9Wa7zV6QsmrRBe",
+      "extractScene": 8
+    },
+    "auto-ylisrinne-d-bosch-wng254absn-2026-product-work-test-20261024-17yu9p05": {
+      "driveFileId": "17yU9P05RsKZZZlZHhIc7-0aENZlxFoci",
+      "extractScene": 0
+    },
+    "auto-ylisrinne-a-c-1974-etelaparvekkeet-kaide-g2-work-test-20261024-1riun1ew": {
+      "driveFileId": "1RiUn1Ew6H8th5TyquzrSkXxpnPAHNldd",
+      "extractScene": 0
+    },
+    "auto-ylisrinne-g1c-p1-viisi-avopaikkaa-1974-work-test-20261024-1r2esind": {
+      "driveFileId": "1R-2eSIndyHyZPcjncd9215y6YwDbnrb1",
+      "extractScene": 1
+    },
+    "auto-ylisrinne-d-ulko-oras-431515-vp1-product-work-test-20261024-1phqwtho": {
+      "driveFileId": "1pHQwtHO6XqXsbOkQfuZMOaVSmvKyYTPh",
+      "extractScene": 0
+    },
+    "auto-ylisrinne-p143a-rstit-patolevyn-reunalistat-paatyihin-suunnitelma-work-test-20261024-1hltfo5n": {
+      "driveFileId": "1hLtFo5nudcbRioUmpNRv3mSeUA23hqBL",
+      "extractScene": 31
+    },
+    "auto-ylisrinne-p1-1974-5-avopaikkaa-ja-p6-4-katettua-work-test-20261024-1he4rt9l": {
+      "driveFileId": "1hE4rT9l7g7-rU-JWkUfjEjvjAUNBfXFS",
+      "extractScene": 1
+    },
+    "auto-ylisrinne-ark4-1985-katuaita-portti-work-test-20261024-1fqrohpq": {
+      "driveFileId": "1FqroHPqEomEkiUPLtr1VAdvloPrZrrV6",
+      "extractScene": 0
+    },
+    "auto-ylisrinne-g1c-p1-1974-5-avopaikkaa-raster-work-test-20261024-1eumhymu": {
+      "driveFileId": "1EUmHyMUm7DOG0bU9Awe5V9XaZ_mjPVAg",
+      "extractScene": 1
+    },
+    "auto-ylisrinne-p1-1974-5-avopaikkaa-p6-historical-parking-work-test-20261024-1jlb7fn9": {
+      "driveFileId": "1JLb7Fn9oUFBIsS1eaiyxdKnig8VTIKu6",
+      "extractScene": 2
+    },
+    "auto-ylisrinne-p1-1974-pihan-hiekkalaatikko-work-test-20261024-1zpd94p3": {
+      "driveFileId": "1ZPD94P_3yOElUtWbY2LH-Gp9bMd-kNnq",
+      "extractScene": 104
+    },
+    "auto-ylisrinne-p1-1974-pihapuut-koivu-kuusi-manty-work-test-20261024-1mbgthow": {
+      "driveFileId": "1mBGThoWV-HcNr3bumbQLdziw5G6FMUFJ",
+      "extractScene": 1
+    },
+    "auto-ylisrinne-ark4-1985-katuaidan-2m-rakennedetalji-work-test-20261024-1h3z9qop": {
+      "driveFileId": "1h3z9QOPwWMLEQX6tYS9yxRVHXtZCYVBA",
+      "extractScene": 0
+    },
+    "auto-ylisrinne-g1c-p6-ac-parvekkeet-yhdistelma-work-test-20261024-18cb0l31": {
+      "driveFileId": "18Cb0L31jCT9fGIbZvN5Qjo9QfDEskGlE",
+      "extractScene": 1
+    },
+    "auto-ylisrinne-2025-postilaatikot-aitaelementti-work-test-20261024-1zwt5l8a": {
+      "driveFileId": "1Z_Wt5l8Af9WZ6SBdVb_nVFYHrLOsGyTM",
+      "extractScene": 3
+    },
+    "auto-ylisrinne-ark4-1985-katuaita-meta-r2-work-test-20261024-1dygvk6l": {
+      "driveFileId": "1dYgVk6l6SDbdoISX2unFuWdTyCBJzJ2Z",
+      "extractScene": 0
+    },
+    "auto-ylisrinne-ulkomalli-parvekkeet-pihapuut-leikkialue-work-test-20261024-1xwmudlt": {
+      "driveFileId": "1xWMUDLTEdzGZ5-p6P9do98nCmRTyoZpl",
+      "extractScene": 3
+    },
+    "auto-ylisrinne-p1-1974-polytys-mattoteline-r2-rebased-work-test-20261024-1cnw3ode": {
+      "driveFileId": "1C_nW3OdEkuVCTWLmSHm3LKRznGp4V9ze",
+      "extractScene": 4
+    },
+    "auto-ylisrinne-p1-p6-1974-piha-yhdistelma-akselikorjattu-work-test-20261024-1ygawyec": {
+      "driveFileId": "1yGAWyecD0Gl0b11P7K3twmREWN6AXVc3",
+      "extractScene": 5
+    },
+    "auto-ylisrinne-d2f-r20-tuotemitat-lahde-qa-meta-work-test-20261024-1v75dvgu": {
+      "driveFileId": "1v75dVGusOvG8R22cYMY7CfsKYo3SpKLO",
+      "extractScene": 97
+    },
+    "auto-ylisrinne-p1-p6-1974-piha-yhdistelma-polytys-work-test-20261024-1zyskzqk": {
+      "driveFileId": "1ZYskZQkdEC5FLYDrlH3WMX3rTig1cS30",
+      "extractScene": 6
+    },
+    "auto-ylisrinne-d2015-iv-p02-xy-suunnitelmaviite-work-test-20261024-1qczrgvd": {
+      "driveFileId": "1QCZrgvDmsx4EJjPHk2MORvZkeoadA46q",
+      "extractScene": 0
+    },
+    "auto-ylisrinne-p2-1974-abcd-etelasisaankayntien-tasanteet-yhd-polytys-work-test-20261024-18r1scpz": {
+      "driveFileId": "18R1scpzaCcwHO8u0a6jpxbDm6geKs2r0",
+      "extractScene": 7
+    },
+    "auto-ylisrinne-d2f-keittio-r21-pesakupit-visual-work-assumption-20261024-1w2umfuh": {
+      "driveFileId": "1w2uMFuhIaPANz6UXtEU694wMuOAkk_E4",
+      "extractScene": 98
+    },
+    "auto-ylisrinne-g1-piha-parvekkeet-p6-parkki-polytys-yhd-work-test-20261024-11jtoivc": {
+      "driveFileId": "11jTOivC2G-9z3rUq6-IgYNeqQ8p7CpaW",
+      "extractScene": 4
+    },
+    "auto-ylisrinne-a-c-1974-etelaparvekkeet-moduuli-g2-alt-work-test-20261024-1irucixu": {
+      "driveFileId": "1irUCixuTYjXwyzwvZlXUXQqufVlPR-cD",
+      "extractScene": 0
+    },
+    "auto-ylisrinne-p1-1974-itapaadyn-pistepiha-l-kulkualue-work-test-20261024-1xlvna5p": {
+      "driveFileId": "1XLvnA5PCX_SFVfaboFw4B7sOlCftIhtU",
+      "extractScene": 9
+    },
+    "auto-ylisrinne-g1-piha-parvekkeet-parkki-p2-tasanteet-work-test-20261024-1d1sb6gg": {
+      "driveFileId": "1d1SB6GgDzRBMCczOFz3y897bv7irPBfX",
+      "extractScene": 5
+    },
+    "auto-ylisrinne-p2-1974-abcd-tasanteet-metadata-pariteetti-work-test-20261024-1ensb495": {
+      "driveFileId": "1ENSB495nf5181CYPrMSIYWSA7El1P0cm",
+      "extractScene": 9
+    },
+    "auto-ylisrinne-g1-piha-p2-itapaadyn-l-piha-work-test-20261024-1y36lmcn": {
+      "driveFileId": "1y36LmCNtTrQH8c3XzcAiiPe1tJ464rIX",
+      "extractScene": 6
+    },
+    "auto-ylisrinne-katupuoli-2026-postilaatikot-aita-puusto-work-test-20261024-1lgknwgl": {
+      "driveFileId": "1lgKNwGlXyK3tdmx-Ul_zBSNPnL1hSyrc",
+      "extractScene": 0
+    },
+    "auto-ylisrinne-ark2-1985-etelalappeen-kattoikkuna-aukkomerkinnat-work-test-20261024-1cbf7m1h": {
+      "driveFileId": "1cbf7M1h9x_mju8TSv8JM31oPk7-9q32l",
+      "extractScene": 4
+    },
+    "auto-ylisrinne-katupuoli-2026-postilaatikot-aita-puusto-r2-photo-qa-work-test-20261024-1kwnagal": {
+      "driveFileId": "1KwNaGAl4g2Kz4MPCBYgmETODZQmkqePL",
+      "extractScene": 0
+    },
+    "auto-ylisrinne-g1-piha-d-parvekelasit-8kpl-kenttamitta-work-test-20261024-1ud72u3u": {
+      "driveFileId": "1Ud72u3umHm5_5EkAJ1rJZ4sRAm2XuEjM",
+      "extractScene": 7
+    },
+    "auto-ylisrinne-p6-2022-autokatoksen-rannit-2-linjaa-work-test-20261024-1k6fvll7": {
+      "driveFileId": "1K6fvLL7flW5mVe95ibAvqR-8KrW_MZnF",
+      "extractScene": 7
+    },
+    "auto-ylisrinne-p1-1974-polytys-yksi-kehikko-vaaleanvihrea-r3-work-test-20261024-1ne62zvg": {
+      "driveFileId": "1Ne62_ZvGScfZcuLhTKnqN56o6pjQG2N4",
+      "extractScene": 6
+    },
+    "auto-ylisrinne-g1-piha-d-parveke-alakaide-5jaksoa-kuva-work-test-20261024-1c0u3e5o": {
+      "driveFileId": "1c0u3E5OdhokDf2jsrt9lkN4b_b55QYHE",
+      "extractScene": 8
+    },
+    "auto-ylisrinne-g1-piha-p6-rannit-polytys-r3-yksi-vihrea-20261024-1l4ifvw6": {
+      "driveFileId": "1l4IFvw6-0-pstIdakM_t7esCLUmFqAJx",
+      "extractScene": 9
+    },
+    "auto-ylisrinne-g1-piha-d-parveke-katon-alapinta-laudoitus-tyooletus-work-test-20261024-1ijx0ep1": {
+      "driveFileId": "1IJX0ep1Lv9VwCjgrHjn1XtjLXeJnyZ_P",
+      "extractScene": 9
+    },
+    "auto-ylisrinne-g1-piha-d-parvekelasit-alakaide-r3-p6-rannit-work-test-20261024-1qa6uwff": {
+      "driveFileId": "1Qa6UwFfVHrsFy2YpCeWvgp0zwTNBB3-3",
+      "extractScene": 11
+    },
+    "auto-ylisrinne-g1-piha-r3-p6-d-parveke-lasit-kaide-katon-alapinta-work-test-20261024-1ljfxxfp": {
+      "driveFileId": "1LjFXXF_PUcUKEpFeBLhePZhDY1dhT8wf",
+      "extractScene": 13
+    },
+    "auto-ylisrinne-g1-piha-r3-p6-d-parveke-ac-moduuli-alt-work-test-20261024-1iw10tam": {
+      "driveFileId": "1Iw10TAMJhznPsaVWpTAb1vxggoRvsSs2",
+      "extractScene": 15
+    },
+    "auto-ylisrinne-ark2-1985-ab-pohjoislappeen-kattoluukku-work-test-20261024-1gudc5zi": {
+      "driveFileId": "1GuDC5ZiK95r_YKD2xQPDAL9dz4hN8Q5H",
+      "extractScene": 6
+    },
+    "auto-ylisrinne-g1-piha-ac-d-katupuoli2026-erillinen-work-test-20261024-1iuxnddy": {
+      "driveFileId": "1IUxnddynKM4uQ7bBBhD9uCIFqH0A8M5p",
+      "extractScene": 17
+    },
+    "auto-ylisrinne-g1-piha-ac-d-katupuoli2026-terassi-v15-erillinen-work-test-20261024-118xjpsm": {
+      "driveFileId": "118XjpSm_-BcEmNFtfL3jNuD8kuxxgMiz",
+      "extractScene": 18
+    },
+    "auto-ylisrinne-g1-piha-ac-d-katupuoli-terassi-d1f2015-seinat-work-test-20261024-1tytmpri": {
+      "driveFileId": "1TyTMPriD8vu40FXEg5y_acLKQCB2LTsO",
+      "extractScene": 19
+    },
+    "auto-ylisrinne-g1-piha-ac-d-katupuoli-terassi-d1f2015-seinat-kaapit-work-test-20261024-1egaeead": {
+      "driveFileId": "1E_gAEEAd_ycleGsncMTubl0jMv7h1Vs0",
+      "extractScene": 20
+    },
+    "auto-ylisrinne-d1f-kaapit-oletusscene20-work-test-20261024-18ncypxv": {
+      "driveFileId": "18nCyPxvYbsMQ0m4hlh4PpzcEBYMqwlyx",
+      "extractScene": 20
+    },
+    "auto-ylisrinne-d1f2015-seinat-kaapit-rinnakkain-eri-koordinaatit-work-test-20261024-1o8hifja": {
+      "driveFileId": "1-O8HIFJatIxIVIYegjBzF995k9IAqYCv",
+      "extractScene": 21
+    },
+    "auto-ylisrinne-a-c-1974-etelaparvekkeet-moduuli-meta-r2-work-test-20261024-17rsybjl": {
+      "driveFileId": "17rSybJl2btbzr8ql8nOaF0vR-AXAm8Xl",
+      "extractScene": 0
+    },
+    "auto-ylisrinne-sauna-ikkunat-u680-work-test-20261024-188knb0v": {
+      "driveFileId": "18_8kNb0VVdEM-4J1SDIP5DhsBPEKVNzE",
+      "extractScene": 0
+    },
+    "auto-ylisrinne-g1-piha-ac-d-katupuoli-terassi-d1f2015-seinat-kaapit-default20-patch-work-test-20261024-1gpjd6we": {
+      "driveFileId": "1gPJD6we-dB4JxGPxvQTGd1JJ1qTkX8B6",
+      "extractScene": 20
+    },
+    "auto-ylisrinne-ei141-palovaroitin-model-level-work-test-20261024-manifest-r2-1qyyi7tp": {
+      "driveFileId": "1qyyi7tP92rmgo5FhpPUk1n6sb7jBlVCZ",
+      "extractScene": 0
+    },
+    "auto-ylisrinne-g1-piha-d1f-themo3-default21-work-test-20261024-1vwnya9k": {
+      "driveFileId": "1VWnYa9KXuxWLKxZ9tq-eQVnEGNItURm9",
+      "extractScene": 21
+    },
+    "auto-ylisrinne-g1-piha-d1f-bosch-default22-work-test-20261024-1mnngp35": {
+      "driveFileId": "1MnNgP3522_g-E4TI5kEZByA9h_SGgBfb",
+      "extractScene": 22
+    },
+    "auto-ylisrinne-d-kokoava-g1-d1f2015-seinat-kaapit-terassi-v16e-work-test-20261025-1wb9l8q7": {
+      "driveFileId": "1WB9l8q7A0tQFlzu2ZVB403PVI8v93_YU",
+      "extractScene": 23
+    },
+    "auto-ylisrinne-d-kokoava-sc23-plus-d2f-keittio-r19-ovet2015-work-test-20261025-1yr7o4b7": {
+      "driveFileId": "1Y__r7o4b7WfW4TrQ4K5N0pz-3HRQZhkL",
+      "extractScene": 24
+    },
+    "auto-ylisrinne-d2015-1f-v11-oviaukkojen-ylaosat-work-test-20261025-1fzeypsg": {
+      "driveFileId": "1FzeYpS_G9KC0tspLiF25-Ze1rrFZfnws",
+      "extractScene": 11
+    },
+    "auto-ylisrinne-d2015-1f-v12-wc-oven-seinayhteys-work-test-20261025-1qftskkd": {
+      "driveFileId": "1QFTsKkdG7w2nwGyvtnjjCxpMlp4XZSHp",
+      "extractScene": 12
+    },
+    "auto-ylisrinne-d-kokoava-sc24-plus-vk1-pax15-ab-work-test-20261025-1kgwkzca": {
+      "driveFileId": "1KgWKzCAjIVfT-Br9KnX826CnYoOCe9uT",
+      "extractScene": 26
+    },
+    "auto-ylisrinne-d-kokoava-sc24-plus-vk1-pax15-ab-work-test-20261025-1vhfyig6": {
+      "driveFileId": "1vHfYIG_62JEk7jKyOMWpkKsWx12MjnCQ",
+      "extractScene": 25
+    },
+    "auto-ylisrinne-d-kokoava-d1f-v12-ovet-wc-pax-ab-work-test-20261025-1osl62si": {
+      "driveFileId": "1osL62SIYR9GuSWfUQts6t76h-SMUvrN2",
+      "extractScene": 27
+    },
+    "auto-ylisrinne-d-kokoava-d1f-v12-ovet-wc-pax-ab-work-test-20261025-1bklctwk": {
+      "driveFileId": "1b_klctwKwxeAj7KQOVfQhCJyLG8MC2BJ",
+      "extractScene": 28
+    },
+    "auto-ylisrinne-d-kokoava-d2f-2015-9-seinaa-pax-ab-work-test-20261025-1dgqv9mh": {
+      "driveFileId": "1dGQv9mHUzzu1DM3_KEtjwXv3_1nzW5BK",
+      "extractScene": 29
+    },
+    "auto-ylisrinne-d-kokoava-d2f-2015-9-seinaa-pax-ab-work-test-20261025-19b4cvsr": {
+      "driveFileId": "19-B4cvsrxLx_8UY-aepjY4Q28zeV2-1V",
+      "extractScene": 30
+    },
+    "auto-ylisrinne-d-kokoava-d2f-ovet-r2-pax-ab-work-test-20261025-1fbbtyjz": {
+      "driveFileId": "1fBbTYjZA_wpOOPrjH434Ik89G4tbtZwS",
+      "extractScene": 31
+    },
+    "auto-ylisrinne-d-kokoava-d2f-ovet-r2-pax-ab-work-test-20261025-1lar1fgs": {
+      "driveFileId": "1lar1fGS6tWfT4ZIZd4G4LfjM1X9fjRYj",
+      "extractScene": 32
+    },
+    "auto-ylisrinne-d-kokoava-d2f-oviylaosat-work-test-20261025-1ctwrieu": {
+      "driveFileId": "1ctwrIEUMhda8El8e1b8G6VBH_DA88LKe",
+      "extractScene": 33
+    },
+    "auto-ylisrinne-d-kokoava-d2f-oviylaosat-work-test-20261025-1ln2a8zk": {
+      "driveFileId": "1Ln2a8zK7vsNw_IBrxr1hBbexIoCzZ0Ss",
+      "extractScene": 34
+    },
+    "auto-ylisrinne-kv2017-vyohykkeet-view-work-test-20261025-1qafylnk": {
+      "driveFileId": "1QAFyLnKtWuHGNuN6hPWugDSEucHb_Fog",
+      "extractScene": 0
+    },
+    "auto-ylisrinne-d2015-iv-kanavat-laitteet-work-test-20261025-1wpardor": {
+      "driveFileId": "1wpARdOr-TtkkdekQXrCmAXyh9Ino1nQr",
+      "extractScene": 0
+    },
+    "auto-ylisrinne-d2015-iv-r2-gltf-fix-work-test-20261025-1xiqwzms": {
+      "driveFileId": "1XIqwzM-SVN0e_GnkAbEfMKpLZKhxIKR5",
+      "extractScene": 0
+    },
+    "auto-ylisrinne-iv1974-32-lahdeankkuria-view-work-test-20261025-1w01x7dj": {
+      "driveFileId": "1w01x7d_JNuvmEuCnJC5xgEeM5FfoQlzr",
+      "extractScene": 0
+    },
+    "auto-ylisrinne-kv2017-view-r2-gltf-fix-work-test-20261025-1bwosjwz": {
+      "driveFileId": "1_bWo-sJwzXIMWKZ21JLM-q8mrVTruU0y",
+      "extractScene": 0
+    },
+    "auto-ylisrinne-d-kokoava-pax-a-iv15-r2-static-view-work-test-20261025-1pxjbdij": {
+      "driveFileId": "1PXJBDIJzv2xImZOERN3FUCBCs5s-FL9L",
+      "extractScene": 0
+    },
+    "auto-ylisrinne-d-kokoava-pax-a-iv15-kv17-runko-static-p02-work-test-20261025-1huhhpxr": {
+      "driveFileId": "1Hu-hHP_xrDi8hEXCikK4207p0P6PyPIm",
+      "extractScene": 0
+    },
+    "auto-ylisrinne-d-kokoava-iv15-kv17-ll3-p03-work-test-20261025-1psxwnan": {
+      "driveFileId": "1pSxwnAnwAu9F7tOxEtv8QgnOzYfQpTSY",
+      "extractScene": 0
+    },
+    "auto-ylisrinne-p6-autokatos-omistaja-180-work-test-r2-20261025-1misjswp": {
+      "driveFileId": "1MisJsWpH5UNf8Z-x7Q246KgeJiJ_1krd",
+      "extractScene": 0
+    },
+    "auto-ylisrinne-d-kokoava-p03-omistaja-p6-kaapit-puut-off-work-test-20261025-1luyfm5g": {
+      "driveFileId": "1luY_fM5GlLEWIoKUdXEsUV4AVlJmEnDq",
+      "extractScene": 0
+    },
+    "auto-ylisrinne-d-kokoava-omistaja-k1-ovet-kaapit-work-test-20261025-1exzpixt": {
+      "driveFileId": "1ExZPIxtOPTXA4YzIo6WWBn40L65UlJko",
+      "extractScene": 3
+    },
+    "auto-ylisrinne-d-kokoava-omistaja-k2-katto-parvekkeen-yli-work-test-20261025-1h5smmyc": {
+      "driveFileId": "1h5SMmYcYrkgWmxpm2qZuefivm1a5w2zj",
+      "extractScene": 4
+    },
+    "auto-ylisrinne-d-kokoava-omistaja-k3-vaipat-varastot-valiseinat-work-test-20261025-1klpppmr": {
+      "driveFileId": "1KlppPMrd_LiMFvPZx5QwPqqvzQOZF0kf",
+      "extractScene": 5
     }
   }
 }
