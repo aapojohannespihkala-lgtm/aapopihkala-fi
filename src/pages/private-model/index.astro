@@ -1188,13 +1188,21 @@ const title = 'Private 3D viewer';
         max-height: calc(100% - 32px - var(--coordinate-panel-block, 120px));
       }
 
+      /* The layers panel also lives on the left: sit beside it instead of covering its controls. */
+      .viewport:has(.layers-panel:not([hidden])) .selection-panel {
+        left: calc(min(290px, 100% - 24px) + 24px);
+        width: min(340px, calc(100% - min(290px, 100% - 24px) - 36px));
+      }
+
       /* Narrow screens: the full-width panel would cover the bottom gizmo, so it opens from the top. */
       @media (max-width: 760px) {
         .selection-panel,
-        .viewport:has(.coordinate-panel:not([hidden])) .selection-panel {
+        .viewport:has(.coordinate-panel:not([hidden])) .selection-panel,
+        .viewport:has(.layers-panel:not([hidden])) .selection-panel {
           top: 8px;
           bottom: auto;
           left: 8px;
+          width: calc(100% - 16px);
           max-height: 55%;
         }
       }

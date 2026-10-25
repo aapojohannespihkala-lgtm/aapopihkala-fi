@@ -7119,4 +7119,12 @@ test('private viewer selection panel sits bottom-left and does not cover the ori
       gizmoBox.y < panelBox.y + panelBox.height;
     expect(overlaps).toBe(false);
   }
+
+  await page.getByRole('button', { name: 'Layerit' }).click();
+  const layersBox = await page.locator('#layers-panel').boundingBox();
+  const shiftedBox = await panel.boundingBox();
+  expect(layersBox).not.toBeNull();
+  expect(shiftedBox).not.toBeNull();
+  if (!layersBox || !shiftedBox) return;
+  expect(shiftedBox.x).toBeGreaterThanOrEqual(layersBox.x + layersBox.width);
 });
