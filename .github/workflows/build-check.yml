@@ -184,7 +184,8 @@ jobs:
             tests/unit/check-d-scene32-preview-parity.test.mjs \
             tests/unit/check-k14-roof-crossings.test.mjs \
             tests/unit/shared-boundary-local-clip.test.mjs \
-            tests/unit/private-model-stair-host-gate.test.mjs
+            tests/unit/private-model-stair-host-gate.test.mjs \
+            tests/unit/private-model-t04-primitive-source-binding.test.mjs
 
       # Four self-contained K16-b/c scene33 builder guards run on every
       # executable PR. The optional original-Drive-source replay remains
