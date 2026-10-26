@@ -73,6 +73,22 @@ test('T04 uses inverse transpose including reflected (negative determinant) root
   assert.ok(distance(hi.plane, world(mirrored, [0, 0, 5])) < 0);
 });
 
+test('T04 keeps the G1 cut under tilted world axes, not a fixed world-Y plane', () => {
+  const q = Math.SQRT1_2;
+  const tilted = [1, 0, 0, 0, 0, q, q, 0, 0, -q, q, 0, 1, 2, 3, 1];
+  const lower = calculate('1F', tilted);
+  const upper = calculate('2F', tilted);
+  assert.equal(lower.ok, true);
+  assert.equal(upper.ok, true);
+  assert.ok(Math.abs(lower.plane.normal[1]) > 0.5);
+  assert.ok(Math.abs(lower.plane.normal[2]) > 0.5);
+  approx(distance(lower.plane, world(tilted, [0, 0, 2.760])), 0);
+  assert.ok(distance(lower.plane, world(tilted, [0, 0, 1])) < 0);
+  assert.ok(distance(lower.plane, world(tilted, [0, 0, 4])) > 0);
+  assert.ok(distance(upper.plane, world(tilted, [0, 0, 1])) > 0);
+  assert.ok(distance(upper.plane, world(tilted, [0, 0, 4])) < 0);
+});
+
 test('WHOLE and D+BOTH keep one original wall with no render proxy/plane', () => {
   for (const floor of ['WHOLE', 'BOTH']) {
     const answer = calculate(floor);
