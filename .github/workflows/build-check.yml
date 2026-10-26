@@ -13,22 +13,67 @@ on:
     branches:
       - main
   workflow_dispatch:
+    inputs:
+      replay_pr:
+        description: 'Owner PR number after bot refresh (empty for normal dispatch)'
+        type: string
+        required: false
+      replay_sha:
+        description: 'Exact refreshed PR head commit SHA'
+        type: string
+        required: false
+      replay_round:
+        description: 'Bounded automatic refresh count (1 or 2)'
+        type: string
+        required: false
 
 permissions:
   contents: read
 
 concurrency:
-  group: build-check-${{ github.event.pull_request.number || github.ref }}
+  group: build-check-${{ inputs.replay_pr || github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
     steps:
+      # Dispatch runs on the PR branch and carries its exact head SHA so the
+      # GitHub Actions check is attached to that commit, not an older green SHA.
+      - name: Verify trusted bot-refresh replay
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.replay_pr != '' }}
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPLAY_PR: ${{ inputs.replay_pr }}
+          REPLAY_SHA: ${{ inputs.replay_sha }}
+          REPLAY_ROUND: ${{ inputs.replay_round }}
+        run: |
+          set -euo pipefail
+          [[ "$REPLAY_PR" =~ ^[1-9][0-9]*$ ]]
+          [[ "$REPLAY_SHA" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$REPLAY_ROUND" =~ ^[12]$ ]]
+          [[ "$GITHUB_SHA" == "$REPLAY_SHA" ]] || { echo "::error::Replay ref SHA changed"; exit 1; }
+          pr="$(gh api "/repos/${GITHUB_REPOSITORY}/pulls/${REPLAY_PR}")"
+          jq -e --arg repo "$GITHUB_REPOSITORY" --arg owner "${GITHUB_REPOSITORY%%/*}" \
+            --arg sha "$REPLAY_SHA" --arg branch "$GITHUB_REF_NAME" \
+            '.state=="open" and .draft==false and .base.ref=="main" and
+             .head.repo.full_name==$repo and .user.login==$owner and
+             .head.sha==$sha and .head.ref==$branch' <<< "$pr" >/dev/null
+          changed="$(gh api --paginate "/repos/${GITHUB_REPOSITORY}/pulls/${REPLAY_PR}/files" --jq '.[].filename')"
+          if grep -Eq '^\.github/workflows/' <<< "$changed"; then
+            echo "::error::Workflow-changing PRs cannot use bot replay" >&2
+            exit 1
+          fi
+
       - name: Checkout
         uses: actions/checkout@v7
         with:
           fetch-depth: 0
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.replay_pr != '' && inputs.replay_sha || github.sha }}
 
       - name: Classify validation mode
         id: changes
@@ -39,6 +84,8 @@ jobs:
           PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
           PUSH_BEFORE_SHA: ${{ github.event.before }}
           CURRENT_SHA: ${{ github.sha }}
+          GH_TOKEN: ${{ github.token }}
+          REPLAY_PR: ${{ inputs.replay_pr }}
         run: |
           set -euo pipefail
 
@@ -47,6 +94,8 @@ jobs:
 
           if [[ "$EVENT_NAME" == "pull_request" ]]; then
             mapfile -t changed_files < <(git diff --name-only "$PR_BASE_SHA...$PR_HEAD_SHA")
+          elif [[ "$EVENT_NAME" == "workflow_dispatch" && -n "$REPLAY_PR" ]]; then
+            mapfile -t changed_files < <(gh api --paginate "/repos/${GITHUB_REPOSITORY}/pulls/${REPLAY_PR}/files" --jq '.[].filename')
           elif [[ "$EVENT_NAME" == "push" && -n "$PUSH_BEFORE_SHA" && "$PUSH_BEFORE_SHA" != "0000000000000000000000000000000000000000" ]]; then
             mapfile -t changed_files < <(git diff --name-only "$PUSH_BEFORE_SHA" "$CURRENT_SHA")
           else
@@ -86,6 +135,9 @@ jobs:
       - name: Verify browser test selection
         run: python3 .github/scripts/test-select-browser-tests.py
 
+      - name: Verify bot-refresh replay policy
+        run: python3 .github/scripts/test-build-check-bot-refresh.py
+
       - name: Verify WORK_TEST publisher contract
         run: python3 .github/scripts/test-publish-work-test-workflow.py
 
@@ -121,6 +173,26 @@ jobs:
         if: steps.changes.outputs.docs_only != 'true'
         run: npm ci
 
+      # Regression gates for D-view source identity, floor clipping and
+      # unverified K14/K17 components. These synthetic-source tests cannot
+      # certify actual GLB/browser output, but must fail every executable PR
+      # if a previously protected HOLD or identity contract regresses.
+      - name: Verify D-view source and model gates
+        if: steps.changes.outputs.docs_only != 'true' && steps.changes.outputs.css_only != 'true'
+        run: |
+          node --test \
+            tests/unit/check-d-scene32-preview-parity.test.mjs \
+            tests/unit/check-k14-roof-crossings.test.mjs \
+            tests/unit/shared-boundary-local-clip.test.mjs \
+            tests/unit/private-model-stair-host-gate.test.mjs
+
+      # Four self-contained K16-b/c scene33 builder guards run on every
+      # executable PR. The optional original-Drive-source replay remains
+      # skipped without the SHA-pinned private source ZIP.
+      - name: Verify K16bc source-locked scene33 builder
+        if: steps.changes.outputs.docs_only != 'true' && steps.changes.outputs.css_only != 'true'
+        run: python3 -m unittest discover -s tests/unit -p 'test_build_k16bc_scene33.py' -v
+
       - name: Static checks
         if: steps.changes.outputs.docs_only != 'true' && steps.changes.outputs.css_only != 'true'
         run: npm run check
@@ -141,7 +213,8 @@ jobs:
 
       - name: Selected browser guards
         if: >-
-          github.event_name == 'pull_request' &&
+          (github.event_name == 'pull_request' ||
+           (github.event_name == 'workflow_dispatch' && inputs.replay_pr != '')) &&
           steps.changes.outputs.browser_tests != ''
         env:
           BROWSER_TESTS: ${{ steps.changes.outputs.browser_tests }}
@@ -151,7 +224,7 @@ jobs:
           npx playwright test "${specs[@]}"
 
       - name: Browser regression tests
-        if: steps.changes.outputs.docs_only != 'true' && github.event_name != 'pull_request'
+        if: steps.changes.outputs.docs_only != 'true' && github.event_name != 'pull_request' && inputs.replay_pr == ''
         run: npm run test:e2e
 
       - name: Upload browser test artifacts
@@ -165,10 +238,12 @@ jobs:
   merge:
     needs: build
     if: >-
-      github.event_name == 'pull_request' &&
-      github.event.pull_request.draft == false &&
-      github.event.pull_request.head.repo.full_name == github.repository &&
-      github.event.pull_request.user.login == github.repository_owner
+      (github.event_name == 'pull_request' &&
+       github.event.pull_request.draft == false &&
+       github.event.pull_request.head.repo.full_name == github.repository &&
+       github.event.pull_request.user.login == github.repository_owner) ||
+      (github.event_name == 'workflow_dispatch' &&
+       inputs.replay_pr != '' && inputs.replay_sha != '')
     runs-on: ubuntu-latest
     permissions:
       actions: write
@@ -179,11 +254,23 @@ jobs:
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
-          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-          HEAD_REF: ${{ github.event.pull_request.head.ref }}
+          PR_NUMBER: ${{ github.event.pull_request.number || inputs.replay_pr }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha || inputs.replay_sha }}
+          HEAD_REF: ${{ github.event.pull_request.head.ref || github.ref_name }}
+          REPLAY_ROUND: ${{ inputs.replay_round || '0' }}
         run: |
           set -euo pipefail
+          [[ "$PR_NUMBER" =~ ^[1-9][0-9]*$ ]]
+          [[ "$HEAD_SHA" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$REPLAY_ROUND" =~ ^[0-2]$ ]]
+
+          # Recheck authorization, requested SHA and origin after browser tests.
+          pr="$(gh api "/repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}")"
+          jq -e --arg repo "$GITHUB_REPOSITORY" --arg owner "${GITHUB_REPOSITORY%%/*}" \
+            --arg sha "$HEAD_SHA" --arg branch "$HEAD_REF" \
+            '.state=="open" and .draft==false and .base.ref=="main" and
+             .head.repo.full_name==$repo and .user.login==$owner and
+             .head.sha==$sha and .head.ref==$branch' <<< "$pr" >/dev/null
 
           android_changed=false
           if gh api --paginate "/repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}/files" \
@@ -207,10 +294,33 @@ jobs:
               echo "::error::This PR edits GitHub Actions workflows and is behind main. GITHUB_TOKEN cannot update workflow-file branches (403). Use the GitHub Update branch action with an authorized identity; then CI will re-run." >&2
               exit 1
             fi
+            if (( REPLAY_ROUND >= 2 )); then
+              echo "::error::PR still behind main after two replay cycles; fail closed" >&2
+              exit 1
+            fi
             gh api --method PUT \
               "/repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}/update-branch" \
               --raw-field expected_head_sha="$HEAD_SHA"
-            echo "Pull request branch updated; the next CI cycle will continue automatically."
+            # GITHUB_TOKEN branch updates do not emit pull_request synchronize.
+            # Dispatch explicitly on the updated PR branch: check attaches to new SHA.
+            refreshed=""
+            for poll in $(seq 1 15); do
+              refreshed="$(gh api "/repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}" --jq '.head.sha')"
+              if [[ "$refreshed" != "$HEAD_SHA" ]]; then break; fi
+              sleep 2
+            done
+            [[ "$refreshed" =~ ^[0-9a-f]{40}$ && "$refreshed" != "$HEAD_SHA" ]] || {
+              echo "::error::Updated branch SHA not observed; no replay" >&2
+              exit 1
+            }
+            # Use a bracketed input map for the REST dispatch endpoint.
+            gh api --method POST \
+              "/repos/${GITHUB_REPOSITORY}/actions/workflows/build-check.yml/dispatches" \
+              --raw-field ref="$HEAD_REF" \
+              -f "inputs[replay_pr]=$PR_NUMBER" \
+              -f "inputs[replay_sha]=$refreshed" \
+              -f "inputs[replay_round]=$((REPLAY_ROUND + 1))"
+            echo "PR refresh replay dispatched for exact new SHA $refreshed"
             exit 0
           fi
 
