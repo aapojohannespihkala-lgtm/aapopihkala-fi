@@ -63,6 +63,7 @@ for (const width of [1280, 390]) test(`actual R4E main viewer floor/reference/or
   const errors: string[] = [];
   page.on('pageerror', e => errors.push(e.message));
   page.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });
+  await page.route('**/private-model/work-test/catalog.json', route => route.fulfill({ json: { candidates: [] } }));
   await page.route('**/private-model/source-cards.json', route => route.fulfill({ json: { modules: {} } }));
   await page.route('**/private-model/model.glb', route => route.fulfill({ contentType: 'model/gltf-binary', body: bytes }));
   await page.goto('/private-model/');
@@ -110,12 +111,13 @@ for (const width of [1280, 390]) test(`actual R4E main viewer floor/reference/or
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   expect(errors).toEqual([]);
   await info.attach('actual-r4e-runtime-report', { body: JSON.stringify({ sourceSha256: locks.r4e.sha,
-    sourceScene: 32, sourceLevel: 'WORK_TEST_SOURCE_ONLY_STAGING_HOLD', testedCommit: process.env.GITHUB_SHA ?? 'local',
+    sourceScene: 32, sourceLevel: 'WORK_TEST_SOURCE_ONLY_STAGING_HOLD', testedCommit: process.env.D_VIEW_TESTED_COMMIT ?? process.env.GITHUB_SHA ?? 'local',
     browserWebGL: 'PASS', production: 'NOT_RUN', host: 'HOLD', width, observations }), contentType: 'application/json' });
 });
 
 test('published scene28 is separate and cannot claim unavailable D metadata', async ({ page }, info) => {
   const bytes = privateBytes('scene28');
+  await page.route('**/private-model/work-test/catalog.json', route => route.fulfill({ json: { candidates: [] } }));
   await page.route('**/private-model/source-cards.json', route => route.fulfill({ json: { modules: {} } }));
   await page.route('**/private-model/model.glb', route => route.fulfill({ contentType: 'model/gltf-binary', body: bytes }));
   await page.goto('/private-model/');
