@@ -28,21 +28,22 @@ const calculate = (floor, matrix = g1ToWorld, rest = {}) =>
   deriveSharedCdFloorPlane({ ...base, floor, g1LocalToWorld: matrix, ...rest });
 const approx = (a, b) => assert.ok(Math.abs(a - b) < 1e-10, `${a} != ${b}`);
 
+// Three.js clips the negative signed-distance half-space. Positive samples stay.
 test('T04 1F/2F: G1 local 2.760 becomes world Y=7.760, not world Z', () => {
   assert.equal(G2_CD_FLOOR_SPLIT_Z_M, 2.760);
   const lower = calculate('1F');
   const upper = calculate('2F');
   assert.equal(lower.ok, true);
   assert.equal(upper.ok, true);
-  lower.plane.normal.forEach((v, i) => approx(v, [0, 1, 0][i]));
-  upper.plane.normal.forEach((v, i) => approx(v, [0, -1, 0][i]));
-  approx(lower.plane.constant, -7.76);
-  approx(upper.plane.constant, 7.76);
+  lower.plane.normal.forEach((v, i) => approx(v, [0, -1, 0][i]));
+  upper.plane.normal.forEach((v, i) => approx(v, [0, 1, 0][i]));
+  approx(lower.plane.constant, 7.76);
+  approx(upper.plane.constant, -7.76);
   for (const xy of [[0, 0], [5, 1]]) {
-    assert.ok(distance(lower.plane, world(g1ToWorld, [...xy, 1])) < 0);
-    assert.ok(distance(lower.plane, world(g1ToWorld, [...xy, 4])) > 0);
-    assert.ok(distance(upper.plane, world(g1ToWorld, [...xy, 4])) < 0);
-    assert.ok(distance(upper.plane, world(g1ToWorld, [...xy, 1])) > 0);
+    assert.ok(distance(lower.plane, world(g1ToWorld, [...xy, 1])) > 0);
+    assert.ok(distance(lower.plane, world(g1ToWorld, [...xy, 4])) < 0);
+    assert.ok(distance(upper.plane, world(g1ToWorld, [...xy, 4])) > 0);
+    assert.ok(distance(upper.plane, world(g1ToWorld, [...xy, 1])) < 0);
     approx(distance(lower.plane, world(g1ToWorld, [...xy, 2.760])), 0);
   }
 });
@@ -55,10 +56,10 @@ test('T04 preserves local reference through nonuniform scaling, skew and origin 
   assert.equal(hi.ok, true);
   const lower = world(m, [1, 1, 0.3]);
   const upper = world(m, [1, 1, 4.3]);
-  assert.ok(distance(lo.plane, lower) < 0);
-  assert.ok(distance(lo.plane, upper) > 0);
-  assert.ok(distance(hi.plane, upper) < 0);
-  assert.ok(distance(hi.plane, lower) > 0);
+  assert.ok(distance(lo.plane, lower) > 0);
+  assert.ok(distance(lo.plane, upper) < 0);
+  assert.ok(distance(hi.plane, upper) > 0);
+  assert.ok(distance(hi.plane, lower) < 0);
   approx(distance(lo.plane, world(m, [1, 1, 2.760])), 0);
 });
 
@@ -68,9 +69,9 @@ test('T04 uses inverse transpose including reflected (negative determinant) root
   const hi = calculate('2F', mirrored);
   assert.equal(lo.ok, true);
   assert.equal(hi.ok, true);
-  assert.ok(distance(lo.plane, world(mirrored, [0, 0, 1])) < 0);
-  assert.ok(distance(lo.plane, world(mirrored, [0, 0, 5])) > 0);
-  assert.ok(distance(hi.plane, world(mirrored, [0, 0, 5])) < 0);
+  assert.ok(distance(lo.plane, world(mirrored, [0, 0, 1])) > 0);
+  assert.ok(distance(lo.plane, world(mirrored, [0, 0, 5])) < 0);
+  assert.ok(distance(hi.plane, world(mirrored, [0, 0, 5])) > 0);
 });
 
 test('T04 keeps the G1 cut under tilted world axes, not a fixed world-Y plane', () => {
@@ -83,10 +84,10 @@ test('T04 keeps the G1 cut under tilted world axes, not a fixed world-Y plane', 
   assert.ok(Math.abs(lower.plane.normal[1]) > 0.5);
   assert.ok(Math.abs(lower.plane.normal[2]) > 0.5);
   approx(distance(lower.plane, world(tilted, [0, 0, 2.760])), 0);
-  assert.ok(distance(lower.plane, world(tilted, [0, 0, 1])) < 0);
-  assert.ok(distance(lower.plane, world(tilted, [0, 0, 4])) > 0);
-  assert.ok(distance(upper.plane, world(tilted, [0, 0, 1])) > 0);
-  assert.ok(distance(upper.plane, world(tilted, [0, 0, 4])) < 0);
+  assert.ok(distance(lower.plane, world(tilted, [0, 0, 1])) > 0);
+  assert.ok(distance(lower.plane, world(tilted, [0, 0, 4])) < 0);
+  assert.ok(distance(upper.plane, world(tilted, [0, 0, 1])) < 0);
+  assert.ok(distance(upper.plane, world(tilted, [0, 0, 4])) > 0);
 });
 
 test('WHOLE and D+BOTH keep one original wall with no render proxy/plane', () => {

@@ -183,6 +183,7 @@ jobs:
           node --test \
             tests/unit/check-d-scene32-preview-parity.test.mjs \
             tests/unit/check-k14-roof-crossings.test.mjs \
+            tests/unit/private-model-k14-roof-view-clip.test.mjs \
             tests/unit/shared-boundary-local-clip.test.mjs \
             tests/unit/private-model-stair-host-gate.test.mjs \
             tests/unit/private-model-t04-primitive-source-binding.test.mjs
@@ -222,6 +223,10 @@ jobs:
         shell: bash
         run: |
           read -r -a specs <<< "$BROWSER_TESTS"
+          # Preserve K14's actual WebGL half-space/pixel contract on all selected browser runs.
+          if [[ " ${specs[*]} " != *" tests/e2e/private-model-k14-roof-clip-webgl.spec.ts "* ]]; then
+            specs+=(tests/e2e/private-model-k14-roof-clip-webgl.spec.ts)
+          fi
           npx playwright test "${specs[@]}"
 
       - name: Browser regression tests
