@@ -2736,6 +2736,32 @@ const title = 'Private 3D viewer';
       controls.enableDamping = true;
       controls.dampingFactor = 0.08;
       controls.screenSpacePanning = true;
+      // Zoom toward the point under the cursor instead of the fixed orbit target.
+      controls.zoomToCursor = true;
+
+      // OrbitControls scales the camera-to-target distance on every wheel step, so
+      // the step shrinks towards zero near the target and the camera gets stuck
+      // (owner review 06). Once the camera is close to the target, a wheel-in moves
+      // the camera and the target forward together so the user can keep moving
+      // into rooms. Wheel-out and orbiting are unchanged.
+      const DOLLY_THROUGH_DISTANCE_M = 0.8;
+      const dollyThroughDirection = new THREE.Vector3();
+      const dollyThroughOnWheel = (event: WheelEvent) => {
+        if (!controls.enabled || !controls.enableZoom) return;
+        const pixels =
+          event.deltaMode === 1 ? event.deltaY * 16 : event.deltaMode === 2 ? event.deltaY * 400 : event.deltaY;
+        if (!(pixels < 0)) return;
+        if (camera.position.distanceTo(controls.target) > DOLLY_THROUGH_DISTANCE_M) return;
+        event.preventDefault();
+        event.stopPropagation();
+        const step = Math.min(0.5, Math.max(0.05, Math.abs(pixels) * 0.002));
+        camera.getWorldDirection(dollyThroughDirection);
+        camera.position.addScaledVector(dollyThroughDirection, step);
+        controls.target.addScaledVector(dollyThroughDirection, step);
+        controls.update();
+      };
+      // Capture on the parent so this runs before OrbitControls' own wheel listener.
+      canvas.parentElement?.addEventListener('wheel', dollyThroughOnWheel, { capture: true, passive: false });
 
       const planControls = new OrbitControls(planCamera, canvas);
       planControls.enableDamping = true;

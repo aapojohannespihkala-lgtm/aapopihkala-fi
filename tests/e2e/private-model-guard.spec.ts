@@ -7128,3 +7128,47 @@ test('private viewer selection panel sits bottom-left and does not cover the ori
   if (!layersBox || !shiftedBox) return;
   expect(shiftedBox.x).toBeGreaterThanOrEqual(layersBox.x + layersBox.width);
 });
+
+test('private viewer wheel zoom keeps moving forward near the orbit target', async ({ page }) => {
+  const model = makeTriangleGlb();
+
+  await page.route('**/private-model/model.glb', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'model/gltf-binary',
+      body: model,
+    });
+  });
+
+  await page.goto('/private-model/');
+  await expect(page.getByRole('status')).toHaveText('Malli ladattu');
+
+  const canvas = page.locator('#private-model-canvas');
+  const readout = page.locator('#ai-navigator-readout');
+  const box = await canvas.boundingBox();
+  expect(box).not.toBeNull();
+  if (!box) return;
+
+  const readVector = async (label: 'CAM' | 'TARGET') => {
+    const text = await readout.innerText();
+    const match = new RegExp(`${label}\\s+X([+-][\\d.]+)\\s+Y([+-][\\d.]+)\\s+Z([+-][\\d.]+)`).exec(text);
+    expect(match, `${label} row in navigator readout: ${text}`).not.toBeNull();
+    return match!.slice(1, 4).map(Number) as [number, number, number];
+  };
+  const distance = (a: number[], b: number[]) => Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
+
+  await expect(readout).toContainText('TARGET');
+  const startCamera = await readVector('CAM');
+  const startTarget = await readVector('TARGET');
+  const startDistance = distance(startCamera, startTarget);
+  expect(startDistance).toBeGreaterThan(0.1);
+
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  for (let i = 0; i < 160; i += 1) {
+    await page.mouse.wheel(0, -120);
+  }
+
+  await expect
+    .poll(async () => distance(await readVector('CAM'), startCamera), { timeout: 5000 })
+    .toBeGreaterThan(startDistance + 0.5);
+});
