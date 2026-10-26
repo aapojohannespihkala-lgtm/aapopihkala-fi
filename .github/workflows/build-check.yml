@@ -227,6 +227,11 @@ jobs:
           if [[ " ${specs[*]} " != *" tests/e2e/private-model-k14-roof-clip-webgl.spec.ts "* ]]; then
             specs+=(tests/e2e/private-model-k14-roof-clip-webgl.spec.ts)
           fi
+          # Protect T04 C/D floor-clipping half-space in real Chromium/WebGL whenever
+          # any browser guards run. The private R4E companion still SKIPs without the GLB.
+          if [[ " ${specs[*]} " != *" tests/e2e/private-model-t04-clip-sign.spec.ts "* ]]; then
+            specs+=(tests/e2e/private-model-t04-clip-sign.spec.ts)
+          fi
           npx playwright test "${specs[@]}"
 
       - name: Browser regression tests
