@@ -122,6 +122,34 @@ const model = (classified = true) => {
 const frames = (page: Page, n = 4) => page.evaluate((count) => new Promise<void>((resolve) => {
   const step = () => { if (--count <= 0) resolve(); else requestAnimationFrame(step); }; requestAnimationFrame(step);
 }), n);
+
+const screenshotsVisuallyEqual = async (page: Page, baseline: Buffer, observed: Buffer) =>
+  page.evaluate(async ({ baseline64, observed64 }) => {
+    const decode = async (encoded: string) => {
+      const raw = atob(encoded);
+      const bytes = new Uint8Array(raw.length);
+      for (let i = 0; i < raw.length; i++) bytes[i] = raw.charCodeAt(i);
+      const bitmap = await createImageBitmap(new Blob([bytes], { type: 'image/png' }));
+      const surface = document.createElement('canvas');
+      surface.width = bitmap.width; surface.height = bitmap.height;
+      const context = surface.getContext('2d', { willReadFrequently: true });
+      if (!context) throw new Error('Unable to decode screenshot pixels');
+      context.drawImage(bitmap, 0, 0);
+      bitmap.close();
+      return { width: surface.width, height: surface.height, rgba: context.getImageData(0, 0, surface.width, surface.height).data };
+    };
+    const a = await decode(baseline64), b = await decode(observed64);
+    if (a.width !== b.width || a.height !== b.height) return false;
+    // Compare rendered pixels, not compressed PNG bytes. A ghost outline
+    // changes channels far more than the <=2/255 GPU quantization tolerance.
+    for (let p = 0; p < a.rgba.length; p += 4) {
+      for (let channel = 0; channel < 4; channel++) {
+        if (Math.abs(a.rgba[p + channel] - b.rgba[p + channel]) > 2) return false;
+      }
+    }
+    return true;
+  }, { baseline64: baseline.toString('base64'), observed64: observed.toString('base64') });
+
 const menu = async (page: Page, id = '#preset-menu') => {
   await page.keyboard.press('Escape'); await page.locator(`${id} > summary`).click();
 };
@@ -190,7 +218,9 @@ test('reference pixels appear in two 3D directions and plan, then return exactly
     const afterPosition = JSON.parse((await page.locator('#ai-navigator-readout').getAttribute('data-world-pose'))!).position as number[];
     expect(Math.hypot(...beforePosition.map((n, i) => n - afterPosition[i])), view).toBeLessThan(1e-7);
     await select(page, 'Muu kerros', 'HIDDEN');
-    expect((await canvas.screenshot()).equals(before), view).toBe(true);
+    await expect(canvas).toHaveAttribute('data-other-floor-reference-count', '0');
+    await expect(canvas).toHaveAttribute('data-other-floor-mode', 'HIDDEN');
+    expect(await screenshotsVisuallyEqual(page, before, await canvas.screenshot()), view).toBe(true);
   }
 });
 
