@@ -82,3 +82,130 @@ test('actual R4E D/1F stays fitted when live viewport changes desktop -> portrai
     contentType: 'application/json',
   });
 });
+
+// Always-on camera regression. Execute the REAL production resize handler and
+// its visible-bounds fit function, with tiny deterministic renderer/scene stubs.
+// This guard must run in ordinary PR CI even when the private R4E GLB is absent.
+// It is a Node camera-contract check, NOT a Three.js/WebGL or source-model PASS.
+class TestFitVector {
+  constructor(public x = 0, public y = 0, public z = 0) {}
+  clone() { return new TestFitVector(this.x, this.y, this.z); }
+  copy(v: TestFitVector) { this.x = v.x; this.y = v.y; this.z = v.z; return this; }
+  sub(v: TestFitVector) { this.x -= v.x; this.y -= v.y; this.z -= v.z; return this; }
+  addScaledVector(v: TestFitVector, scale: number) {
+    this.x += v.x * scale; this.y += v.y * scale; this.z += v.z * scale; return this;
+  }
+  length() { return Math.hypot(this.x, this.y, this.z); }
+}
+
+function createActualResizeHandler(mode: 'D' | 'WHOLE' | 'PLAN') {
+  const source = readFileSync('src/pages/private-model/index.astro', 'utf8');
+  const start = source.indexOf('const updateSize = () => {');
+  const end = source.indexOf('const fitModel = () => {', start);
+  expect(start).toBeGreaterThan(0);
+  expect(end).toBeGreaterThan(start);
+  const liveFunctions = source.slice(start, end).replace(
+    'const refreshFullModelFitMetrics = (sceneRoot: any = fullModelScene)',
+    'const refreshFullModelFitMetrics = (sceneRoot = fullModelScene)',
+  );
+  expect(liveFunctions).toContain('const refreshFullModelFitMetrics =');
+  expect(liveFunctions).not.toContain('sceneRoot: any');
+
+  const radius = 5, angle = 38 * Math.PI / 360;
+  const initialFit = Math.max(radius / Math.tan(angle) * 1.3, 2);
+  const canvas = {
+    width: 1280, height: 900, clientWidth: 1280, clientHeight: 900,
+    dataset: {} as Record<string, string>,
+  };
+  const target = new TestFitVector(2, 1, -3);
+  const camera = {
+    aspect: 1280 / 900, fov: 38, near: .01, far: 5000, projectionUpdates: 0,
+    position: target.clone().addScaledVector(new TestFitVector(.72, .55, .72), initialFit * .88),
+    updateProjectionMatrix() { this.projectionUpdates++; },
+  };
+  const renderer = {
+    getPixelRatio: () => 1,
+    setSize(width: number, height: number) { canvas.width = width; canvas.height = height; },
+  };
+  const controls = { target, updates: 0, update() { this.updates++; } };
+  const fullModelScene = {};
+  const modelCenter = new TestFitVector();
+  const THREE = {
+    Sphere: class { radius = 0; },
+    MathUtils: { degToRad: (degrees: number) => degrees * Math.PI / 180 },
+  };
+  const computeVisibleBounds = (root: unknown) => root !== fullModelScene ? null : ({
+    getCenter(v: TestFitVector) { return v.copy(new TestFitVector(0, 0, 0)); },
+    getBoundingSphere(s: { radius: number }) { s.radius = radius; return s; },
+  });
+  const mainViewScope = { active: mode !== 'WHOLE' };
+  const activePlanFloor = mode === 'PLAN' ? '1F' : null;
+  const isoCamera = {};
+  let planRefits = 0;
+  // Compile only the two current production declarations, never a copy of
+  // their implementation. All other viewer dependencies are unreachable in
+  // D/WHOLE/PLAN when no ISO/elevation mode is active.
+  const factory = new Function(
+    'canvas', 'renderer', 'camera', 'controls', 'mainViewScope', 'activeCamera',
+    'activePlanFloor', 'fullModelScene', 'computeVisibleBounds', 'modelCenter',
+    'THREE', 'fitPlanCamera', 'isoCamera',
+    'let fitDistance = 0;\n' + liveFunctions +
+    '\nreturn { updateSize, getFit: () => fitDistance, setFit: value => { fitDistance = value; } };',
+  );
+  const live = factory(canvas, renderer, camera, controls, mainViewScope, camera,
+    activePlanFloor, fullModelScene, computeVisibleBounds, modelCenter, THREE,
+    () => { planRefits++; }, isoCamera);
+  live.setFit(initialFit);
+  return { canvas, camera, controls, radius, angle, initialFit,
+    updateSize: live.updateSize as () => void, getFit: live.getFit as () => number,
+    planRefits: () => planRefits };
+}
+
+test('production D orbit live resize preserves fit-relative zoom, look direction and pan without private GLB', () => {
+  const h = createActualResizeHandler('D');
+  const startTarget = h.controls.target.clone();
+  const offsetBefore = h.camera.position.clone().sub(h.controls.target);
+  const originalZoom = offsetBefore.length() / h.initialFit;
+  h.canvas.clientWidth = 390;
+  h.updateSize();
+  const portraitFit = Math.max(
+    h.radius / Math.tan(Math.atan(Math.tan(h.angle) * 390 / 900)) * 1.3, 2,
+  );
+  expect(h.camera.aspect).toBeCloseTo(390 / 900, 12);
+  expect(h.getFit()).toBeCloseTo(portraitFit, 12);
+  expect(h.camera.position.clone().sub(h.controls.target).length() / h.getFit())
+    .toBeCloseTo(originalZoom, 12);
+  const portraitOffset = h.camera.position.clone().sub(h.controls.target);
+  for (const axis of ['x', 'y', 'z'] as const) {
+    expect(portraitOffset[axis] / portraitOffset.length())
+      .toBeCloseTo(offsetBefore[axis] / offsetBefore.length(), 12);
+    expect(h.controls.target[axis]).toBe(startTarget[axis]);
+  }
+  expect(h.camera.near).toBeCloseTo(Math.max(portraitFit / 10000, .001), 12);
+  expect(h.camera.far).toBeCloseTo(Math.max(portraitFit * 50, 1000), 12);
+
+  h.canvas.clientWidth = 1280;
+  h.updateSize();
+  expect(h.getFit()).toBeCloseTo(h.initialFit, 12);
+  for (const axis of ['x', 'y', 'z'] as const) {
+    expect(h.camera.position[axis])
+      .toBeCloseTo(startTarget[axis] + offsetBefore[axis], 11);
+  }
+  expect(h.controls.updates).toBe(2);
+});
+
+test('production D resize leaves WHOLE orbit framing and active plan camera alone', () => {
+  for (const mode of ['WHOLE', 'PLAN'] as const) {
+    const h = createActualResizeHandler(mode);
+    const before = h.camera.position.clone();
+    h.canvas.clientWidth = 390;
+    h.updateSize();
+    expect(h.camera.aspect).toBeCloseTo(390 / 900, 12);
+    expect(h.getFit()).toBeCloseTo(h.initialFit, 12);
+    expect(h.camera.position.x).toBe(before.x);
+    expect(h.camera.position.y).toBe(before.y);
+    expect(h.camera.position.z).toBe(before.z);
+    expect(h.controls.updates).toBe(0);
+    expect(h.planRefits()).toBe(mode === 'PLAN' ? 1 : 0);
+  }
+});
