@@ -54,6 +54,8 @@ export function createSharedCdMaterialClip({ mesh, renderer, THREE, derivePlane 
       restore();
       return fail('MATERIAL_OWNERSHIP_CHANGED');
     }
+    // Do not overwrite materials changed by another layer before first mount.
+    if (staged === null && mesh?.material !== original) return fail('SOURCE_MATERIAL_CHANGED');
     restore();
     if (!mesh?.isMesh || !renderer || !THREE?.Plane || !THREE?.Vector3 ||
         !matchesScope(mesh, source) || !expectedObjectKey ||
