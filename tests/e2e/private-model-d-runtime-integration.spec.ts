@@ -110,7 +110,7 @@ for (const width of [1280, 390]) test(`actual R4E main viewer floor/reference/or
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   expect(errors).toEqual([]);
   await info.attach('actual-r4e-runtime-report', { body: JSON.stringify({ sourceSha256: locks.r4e.sha,
-    sourceScene: 32, sourceLevel: 'WORK_TEST_SOURCE_ONLY_STAGING_HOLD', testedCommit: process.env.GITHUB_SHA ?? 'local',
+    sourceScene: 32, sourceLevel: 'WORK_TEST_SOURCE_ONLY_STAGING_HOLD', testedCommit: process.env.D_VIEW_TESTED_COMMIT ?? process.env.GITHUB_SHA ?? 'local',
     browserWebGL: 'PASS', production: 'NOT_RUN', host: 'HOLD', width, observations }), contentType: 'application/json' });
 });
 

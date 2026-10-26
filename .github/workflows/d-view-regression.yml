@@ -2,6 +2,12 @@ name: D-view exact-source WebGL regression
 
 on:
   workflow_dispatch:
+  # Automerge uses GITHUB_TOKEN, so its push does not start another workflow.
+  # The repository explicitly dispatches main's Build check after merging.
+  workflow_run:
+    workflows: [Build check]
+    types: [requested]
+    branches: [main]
   push:
     branches: [main]
     paths:
@@ -31,6 +37,8 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
       - uses: actions/setup-node@v4
         with:
           node-version: 24.20.0
@@ -84,6 +92,7 @@ jobs:
           YLIS_R4E_GLB: ${{ runner.temp }}/r4e.glb
           YLIS_SCENE28_GLB: ${{ runner.temp }}/scene28.glb
           YLIS_REQUIRE_REAL: '1'
+          D_VIEW_TESTED_COMMIT: ${{ github.event.workflow_run.head_sha || github.sha }}
         run: npx playwright test tests/e2e/private-model-d-runtime-integration.spec.ts --workers=1 --trace=off
       - name: Encrypt private model screenshots before artifact storage
         if: always()
