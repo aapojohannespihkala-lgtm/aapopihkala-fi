@@ -20,6 +20,10 @@ all_current() {
   add current2-responsive
 }
 
+# Run the normal P4 batch regression on viewer changes. The real-R4E
+# companion is intentionally SKIP when YLIS_R4E_GLB is unavailable.
+p4() { add private-model-other-floor-batch private-model-p4-real-r4e; }
+
 # An unknown/empty change set must not silently disable the construction guards.
 if [[ $# -eq 0 ]]; then all_current; add meshy-poise-regression; fi
 
@@ -56,19 +60,19 @@ for file in "$@"; do
     functions/api/current/*|worker/*|wrangler.jsonc)
       add current-worker-regression current-portfolio-resilience current-markets-fallback current-markets-timeout ;;
     src/pages/private-model/index.astro)
-      add private-model-d1f-combined-wall-scene-contract private-model-main-view-scope private-model-other-floor-reference private-model-work-test-load-diagnostics ;;
+      add private-model-d1f-combined-wall-scene-contract private-model-main-view-scope private-model-other-floor-reference private-model-work-test-load-diagnostics; p4 ;;
     src/scripts/privateModelWorkTest.ts)
       add private-model-work-test-load-diagnostics ;;
     src/scripts/privateModelMainViewScope.ts)
-      add private-model-main-view-scope private-model-other-floor-reference ;;
+      add private-model-main-view-scope private-model-other-floor-reference; p4 ;;
     src/scripts/privateModelOtherFloorReference.ts)
-      add private-model-other-floor-reference ;;
+      add private-model-other-floor-reference; p4 ;;
     src/scripts/privateModelSharedBoundaryClip.mjs|src/scripts/privateModelSharedCdMaterialClip.mjs|src/scripts/privateModelT04FloorScopeBridge.mjs)
       # T04 source changes must retain D-floor presentation guards; this
       # does not replace geometry-specific Node tests or real-model QA.
       add private-model-main-view-scope private-model-other-floor-reference ;;
     src/scripts/threeRuntime.ts)
-      add meshy-poise-regression private-model-other-floor-reference ;;
+      add meshy-poise-regression private-model-other-floor-reference; p4 ;;
     src/components/MeshyPixelatedPoise.astro)
       add meshy-poise-regression ;;
     tests/e2e/*.spec.ts)
