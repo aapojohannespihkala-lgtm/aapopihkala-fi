@@ -55,7 +55,21 @@ for file in "$@"; do
       hsl; add current-worker-regression ;;
     functions/api/current/*|worker/*|wrangler.jsonc)
       add current-worker-regression current-portfolio-resilience current-markets-fallback current-markets-timeout ;;
-    src/components/MeshyPixelatedPoise.astro|src/scripts/threeRuntime.ts)
+    src/pages/private-model/index.astro)
+      add private-model-d1f-combined-wall-scene-contract private-model-main-view-scope private-model-other-floor-reference private-model-work-test-load-diagnostics ;;
+    src/scripts/privateModelWorkTest.ts)
+      add private-model-work-test-load-diagnostics ;;
+    src/scripts/privateModelMainViewScope.ts)
+      add private-model-main-view-scope private-model-other-floor-reference ;;
+    src/scripts/privateModelOtherFloorReference.ts)
+      add private-model-other-floor-reference ;;
+    src/scripts/privateModelSharedBoundaryClip.mjs|src/scripts/privateModelSharedCdMaterialClip.mjs|src/scripts/privateModelT04FloorScopeBridge.mjs)
+      # T04 source changes must retain D-floor presentation guards; this
+      # does not replace geometry-specific Node tests or real-model QA.
+      add private-model-main-view-scope private-model-other-floor-reference ;;
+    src/scripts/threeRuntime.ts)
+      add meshy-poise-regression private-model-other-floor-reference ;;
+    src/components/MeshyPixelatedPoise.astro)
       add meshy-poise-regression ;;
     tests/e2e/*.spec.ts)
       selected["$file"]=1 ;;
