@@ -69,6 +69,7 @@ export const createMainViewScope = (root: Object3D) => {
       let show = false;
       let reason = '';
       if (!s) reason = 'MISSING_OR_DUPLICATE_SCOPE';
+      else if (['A', 'B', 'C', 'SITE', 'SHARED_OTHER'].includes(s.apartmentScope)) { /* outside the D scope, not a missing D floor */ }
       else if (s.apartmentScope === 'UNKNOWN' || s.storeyScope === 'UNKNOWN' ||
                s.phaseScope === 'UNKNOWN' || s.role === 'UNCLASSIFIED') reason = 'UNRESOLVED_SCOPE';
       else if (s.phaseScope !== 'ACTIVE_IN_SELECTED_WORKTEST') { /* history is opt-in */ }

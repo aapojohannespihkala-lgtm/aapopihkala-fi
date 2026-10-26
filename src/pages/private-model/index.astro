@@ -1632,19 +1632,21 @@ const title = 'Private 3D viewer';
             <button id="d1-plan-button" type="button">D 1F</button>
             <button id="d2-plan-button" type="button">D 2F</button>
             <div class="toolbar-menu-separator"></div>
-            <label class="layer-select" for="main-view-area">Alue päämallissa
+            <div class="layer-select">
+              <label for="main-view-area">Alue päämallissa</label>
               <select id="main-view-area" aria-describedby="main-view-scope-note" disabled>
                 <option value="WHOLE">Koko kohde</option>
                 <option value="D">Vain D</option>
               </select>
-            </label>
-            <label class="layer-select" for="main-view-floor">Kerros päämallissa
+            </div>
+            <div class="layer-select">
+              <label for="main-view-floor">Kerros päämallissa</label>
               <select id="main-view-floor" aria-describedby="main-view-scope-note" disabled>
                 <option value="BOTH">Molemmat</option>
                 <option value="1F">Alakerta</option>
                 <option value="2F">Yläkerta</option>
               </select>
-            </label>
+            </div>
             <p id="main-view-scope-note" class="toolbar-menu-label">Päämallin D-luokittelua ei ole saatavilla.</p>
             <details id="main-view-exceptions" hidden>
               <summary>Rajauksen poikkeamat</summary>

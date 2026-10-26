@@ -10,7 +10,7 @@ test('main scene scope excludes other apartments, unresolved ownership, history 
   const material = new THREE.MeshBasicMaterial();
   const data = [scope('lower'), scope('upper', 'D', '2F'), scope('outside', 'D', 'OUTSIDE_1F', 'OUTDOOR_D'),
     scope('shared', 'SHARED_CD', 'BOTH', 'SHARED_BOUNDARY'), scope('stairs', 'D', 'BOTH', 'VERTICAL_CONNECTOR'),
-    scope('a', 'A'), scope('b', 'B'), scope('c', 'C'), scope('site', 'SITE'),
+    scope('a', 'A'), scope('b', 'B'), scope('c', 'C'), scope('site', 'SITE', 'UNKNOWN'),
     scope('unknown', 'UNKNOWN'), scope('old', 'D', '1F', 'CONTENT', 'HISTORICAL'),
     scope('reference', 'D', '1F', 'REFERENCE_ONLY'), scope('cover', 'D', '1F', 'UPPER_OCCLUDER')];
   const meshes = data.map((s) => {
@@ -25,6 +25,7 @@ test('main scene scope excludes other apartments, unresolved ownership, history 
   const report = filter.apply('1F')!;
   expect(meshes.filter((o) => o.visible).map((o) => o.userData.ylisViewScope.objectKey)).toEqual(['lower', 'outside']);
   expect(report.exceptions.filter((e) => e.reason === 'STOREY_CLIPPING_PENDING').map((e) => e.objectKey)).toEqual(['shared', 'stairs']);
+  expect(report.exceptions.some((e) => e.objectKey === 'site')).toBe(false);
   filter.apply('2F');
   expect(meshes.filter((o) => o.visible).map((o) => o.userData.ylisViewScope.objectKey)).toEqual(['upper']);
   filter.apply('BOTH');
