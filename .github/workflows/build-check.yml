@@ -440,3 +440,29 @@ jobs:
 
           echo "Automatic merge failed after required CI passed and status-propagation retries." >&2
           exit 1
+
+  # The repository owner bot dispatches main Build check via GITHUB_TOKEN.
+  # A workflow_run downstream trigger is not guaranteed to fire in that chain.
+  # Use a trusted main-only dispatch job AFTER the full main build succeeds.
+  # Neither private model bytes nor Drive tokens enter this small dispatch job.
+  d-view-exact-source-dispatch:
+    needs: build
+    if: >-
+      github.event_name == 'workflow_dispatch' &&
+      github.repository == 'aapojohannespihkala-lgtm/aapopihkala-fi' &&
+      github.ref == 'refs/heads/main' &&
+      inputs.replay_pr == '' &&
+      inputs.replay_sha == ''
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+    steps:
+      - name: Trigger exact-source D-view WebGL on trusted main
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh api --method POST \
+            "/repos/${GITHUB_REPOSITORY}/actions/workflows/d-view-regression.yml/dispatches" \
+            --raw-field ref=main
