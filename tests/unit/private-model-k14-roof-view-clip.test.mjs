@@ -79,11 +79,13 @@ test('two local X clip planes become WORLD Z planes after verified rotated root'
   }
   for(const p of [[0,0,0],[2,2,5],[6,0,-3]]) {
     const w=world(x.g1LocalToWorld,p);
-    assert.ok(distance(lo,w)<0);
-    assert.ok(distance(hi,w)<0);
+    // Three.js clips NEGATIVE signed distances. Both planes must keep the
+    // interior on their nonnegative side, including after a root transform.
+    assert.ok(distance(lo,w)>0);
+    assert.ok(distance(hi,w)>0);
   }
-  assert.ok(distance(lo,world(matrix,[-.7,0,0]))>0);
-  assert.ok(distance(hi,world(matrix,[6.45,0,0]))>0);
+  assert.ok(distance(lo,world(matrix,[-.7,0,0]))<0);
+  assert.ok(distance(hi,world(matrix,[6.45,0,0]))<0);
   assert.equal(q.keepSourceVisible,false);
   assert.equal(q.canApplyToViewer,false);
   assert.equal(q.canPublish,false);
@@ -94,16 +96,16 @@ test('nonuniform scale and shear preserve local-X band, not a world axis heurist
   const [lo,hi]=q.planes;
   for(const xG1 of [-1,0,3,6.4]) {
     const w=world(x.g1LocalToWorld,[xG1,8,4]);
-    assert.equal(distance(lo,w)>1e-9,xG1<-.6);
-    assert.equal(distance(hi,w)>1e-9,xG1>6.375);
+    assert.equal(distance(lo,w)<-1e-9,xG1<-.6);
+    assert.equal(distance(hi,w)<-1e-9,xG1>6.375);
   }
 });
 test('mirrored local X axis preserves the clipped side', () => {
   const x=fixture();x.g1LocalToWorld=[-1,0,0,0,0,2,0,0,0,0,1,0,12,3,7,1];
   const q=deriveK14RoofViewClip(x);assert.equal(q.ok,true);
-  assert.ok(distance(q.planes[0],world(x.g1LocalToWorld,[-1,0,0]))>0);
-  assert.ok(distance(q.planes[0],world(x.g1LocalToWorld,[0,0,0]))<0);
-  assert.ok(distance(q.planes[1],world(x.g1LocalToWorld,[7,0,0]))>0);
+  assert.ok(distance(q.planes[0],world(x.g1LocalToWorld,[-1,0,0]))<0);
+  assert.ok(distance(q.planes[0],world(x.g1LocalToWorld,[0,0,0]))>0);
+  assert.ok(distance(q.planes[1],world(x.g1LocalToWorld,[7,0,0]))<0);
 });
 test('invalid model hash, scene, or source identity fail closed', () => {
   for(const [edit,code] of [

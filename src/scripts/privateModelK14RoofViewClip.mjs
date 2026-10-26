@@ -12,7 +12,8 @@
  * callers MUST NOT render with these planes until a separate source gate
  * and real-model browser regression explicitly permit presentation.
  *
- * Three.js clipping convention used here: positive plane distance is clipped.
+ * Three.js clips negative signed plane distances. The kept X band therefore
+ * lies on the nonnegative side of BOTH returned planes (clipIntersection=false).
  */
 export const R4E_K14_SOURCE_LOCK = Object.freeze({
   zipSha256: 'e840c5fa14c0f919aa9617fdd9cd3ae144f511e5e0a023641e6599431b074807',
@@ -121,8 +122,8 @@ export function deriveK14RoofViewClip(input = {}) {
     return fail('G1_TRANSFORM_NOT_VERIFIED');
   const basis = localXNormalAndPoint(g1LocalToWorld);
   if (!basis) return fail('G1_TRANSFORM_SINGULAR_OR_INVALID');
-  const left = signedPlane(basis.normal.map(v => -v), basis.pointAt(minX));
-  const right = signedPlane([...basis.normal], basis.pointAt(maxX));
+  const left = signedPlane([...basis.normal], basis.pointAt(minX));
+  const right = signedPlane(basis.normal.map(v => -v), basis.pointAt(maxX));
   if (![...left.normal, left.constant, ...right.normal, right.constant].every(finite))
     return fail('INVALID_WORLD_PLANES');
 
