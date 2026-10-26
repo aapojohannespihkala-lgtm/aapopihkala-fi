@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { readFileSync } from 'node:fs';
 import {
   snapshotEndpoint,
   snapshotResponseDiagnostic,
@@ -59,4 +60,14 @@ test('Widget browser smoke detects only Widget v2 5xx and network failures', () 
     endpoint: '/api/current/widget-v2', method: 'GET', networkError: 'net::ERR_CONNECTION_RESET',
   });
   assert.equal(widgetBrowserRequestFailure('https://example.com/api/current/widget-v2', 'net::ERR_FAILED'), null);
+});
+
+// A timed-out Widget v2 probe must not suppress independent production browser checks.
+test('Snapshot smoke keeps browser verification after an API failure', () => {
+  const workflow = readFileSync(new URL('../workflows/current-snapshot-browser-smoke.yml', import.meta.url), 'utf8');
+  assert.match(workflow, /- name: Verify Snapshot HTTP diagnostics\r?\n\s+if: \$\{\{ !cancelled\(\) \}\}/);
+  assert.match(workflow, /- name: Install Chromium\r?\n\s+id: chromium\r?\n\s+if: \$\{\{ !cancelled\(\) \}\}/);
+  for (const name of ['Verify production standalone Widget in browser', 'Verify production Snapshot sources in browser']) {
+    assert.ok(workflow.includes(`- name: ${name}\n        if: \${{ !cancelled() && steps.chromium.outcome == 'success' }}`));
+  }
 });
