@@ -64,6 +64,58 @@ class SelectionTests(unittest.TestCase):
     def test_docs_do_not_install_browser(self):
         self.assertEqual(selected('README.md', 'AGENTS.md', 'docs/ARCHITECTURE.md'), [])
 
+    def test_private_model_page_changes_run_real_vm_and_floor_regressions(self):
+        self.assertEqual(selected('src/pages/private-model/index.astro'), [
+            'tests/e2e/private-model-d1f-combined-wall-scene-contract.spec.ts',
+            'tests/e2e/private-model-main-view-scope.spec.ts',
+            'tests/e2e/private-model-other-floor-reference.spec.ts',
+            'tests/e2e/private-model-work-test-load-diagnostics.spec.ts',
+        ])
+
+    def test_work_test_loader_changes_run_diagnostics(self):
+        self.assertEqual(selected('src/scripts/privateModelWorkTest.ts'), [
+            'tests/e2e/private-model-work-test-load-diagnostics.spec.ts',
+        ])
+
+    def test_floor_scope_changes_recheck_reference_and_floor_filter(self):
+        self.assertEqual(selected('src/scripts/privateModelMainViewScope.ts'), [
+            'tests/e2e/private-model-main-view-scope.spec.ts',
+            'tests/e2e/private-model-other-floor-reference.spec.ts',
+        ])
+        self.assertEqual(selected('src/scripts/privateModelOtherFloorReference.ts'), [
+            'tests/e2e/private-model-other-floor-reference.spec.ts',
+        ])
+
+    def test_t04_source_changes_recheck_adjacent_floor_viewer_guards(self):
+        # T04 source geometry remains separately gated by its Node/unit tests.
+        expected = [
+            'tests/e2e/private-model-main-view-scope.spec.ts',
+            'tests/e2e/private-model-other-floor-reference.spec.ts',
+        ]
+        for path in ('src/scripts/privateModelSharedBoundaryClip.mjs',
+                     'src/scripts/privateModelSharedCdMaterialClip.mjs',
+                     'src/scripts/privateModelT04FloorScopeBridge.mjs'):
+            self.assertEqual(selected(path), expected)
+
+    def test_three_runtime_keeps_floor_reference_and_meshy_guards(self):
+        self.assertEqual(selected('src/scripts/threeRuntime.ts'), [
+            'tests/e2e/meshy-poise-regression.spec.ts',
+            'tests/e2e/private-model-other-floor-reference.spec.ts',
+        ])
+
+    def test_private_model_changes_union_dedup_without_current_tests(self):
+        paths = ('src/pages/private-model/index.astro',
+                 'src/scripts/privateModelMainViewScope.ts',
+                 'src/scripts/privateModelOtherFloorReference.ts',
+                 'src/scripts/privateModelWorkTest.ts')
+        selected_specs = selected(*paths, *paths)
+        self.assertEqual(selected_specs, selected(paths[0]))
+        self.assertEqual(selected_specs, sorted(set(selected_specs)))
+        self.assertFalse(any('/current-' in item for item in selected_specs))
+
+    def test_unrelated_source_still_does_not_trigger_private_model_browser(self):
+        self.assertEqual(selected('README.md', 'src/scripts/unrelated-helper.ts'), [])
+
     def test_ci_changes_validate_selector_and_guards(self):
         self.assertEqual(selected('.github/scripts/select-browser-tests.sh'), selected())
 
