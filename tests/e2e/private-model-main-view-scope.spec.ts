@@ -30,6 +30,16 @@ test('main scene scope excludes other apartments, unresolved ownership, history 
   // unsplittable T04/T05 geometry. ROOF also stays hidden in single-floor views.
   expect(report.exceptions.some((e) => ['cover-both', 'roof'].includes(e.objectKey))).toBe(false);
   expect(report.exceptions.some((e) => e.objectKey === 'site')).toBe(false);
+  // A separate layer toggle may try to reveal these meshes while D/1F is
+  // selected. T06 must still enforce the selected-floor occlusion mask.
+  for (const key of ['cover-both', 'roof']) {
+    const cover = meshes.find((o) => o.userData.ylisViewScope.objectKey === key)!;
+    cover.visible = true;
+  }
+  filter.enforce();
+  for (const key of ['cover-both', 'roof']) {
+    expect(meshes.find((o) => o.userData.ylisViewScope.objectKey === key)?.visible).toBe(false);
+  }
   const upperReport = filter.apply('2F')!;
   expect(meshes.filter((o) => o.visible).map((o) => o.userData.ylisViewScope.objectKey)).toEqual(['upper']);
   expect(upperReport.exceptions.filter((e) => e.reason === 'STOREY_CLIPPING_PENDING').map((e) => e.objectKey)).toEqual(['shared', 'stairs']);
