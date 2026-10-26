@@ -7080,3 +7080,97 @@ test('private viewer autoloads the exact P153C D stair review candidate', async 
   );
 });
 
+
+test('private viewer selection panel sits bottom-left and does not cover the orientation gizmo', async ({ page }) => {
+  const model = makeTriangleGlb();
+
+  await page.route('**/private-model/model.glb', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'model/gltf-binary',
+      body: model,
+    });
+  });
+
+  await page.goto('/private-model/');
+  await expect(page.getByRole('status')).toHaveText('Malli ladattu');
+
+  const canvas = page.locator('#private-model-canvas');
+  const panel = page.locator('#selection-panel');
+  const gizmo = page.locator('.orientation-gizmo');
+  const box = await canvas.boundingBox();
+  expect(box).not.toBeNull();
+  if (!box) return;
+
+  await page.locator('#selection-tool-button').click();
+  await canvas.click({ position: { x: box.width / 2, y: box.height / 2 } });
+  await expect(panel).toBeVisible();
+
+  const panelBox = await panel.boundingBox();
+  const gizmoBox = await gizmo.boundingBox();
+  expect(panelBox).not.toBeNull();
+  if (!panelBox) return;
+  expect(panelBox.x).toBeLessThan(box.x + box.width / 2);
+  if (gizmoBox) {
+    const overlaps =
+      panelBox.x < gizmoBox.x + gizmoBox.width &&
+      gizmoBox.x < panelBox.x + panelBox.width &&
+      panelBox.y < gizmoBox.y + gizmoBox.height &&
+      gizmoBox.y < panelBox.y + panelBox.height;
+    expect(overlaps).toBe(false);
+  }
+
+  await page.getByRole('button', { name: 'Layerit' }).click();
+  const layersBox = await page.locator('#layers-panel').boundingBox();
+  const shiftedBox = await panel.boundingBox();
+  expect(layersBox).not.toBeNull();
+  expect(shiftedBox).not.toBeNull();
+  if (!layersBox || !shiftedBox) return;
+  expect(shiftedBox.x).toBeGreaterThanOrEqual(layersBox.x + layersBox.width);
+});
+
+test('private viewer wheel zoom keeps moving forward near the orbit target', async ({ page }) => {
+  const model = makeTriangleGlb();
+
+  await page.route('**/private-model/model.glb', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'model/gltf-binary',
+      body: model,
+    });
+  });
+
+  await page.goto('/private-model/');
+  await expect(page.getByRole('status')).toHaveText('Malli ladattu');
+
+  const canvas = page.locator('#private-model-canvas');
+  const readout = page.locator('#ai-navigator-readout');
+  const box = await canvas.boundingBox();
+  expect(box).not.toBeNull();
+  if (!box) return;
+
+  const tryReadVector = async (label: 'CAM' | 'TARGET') => {
+    const text = (await readout.textContent()) ?? '';
+    const match = new RegExp(`${label}\\s*X([+-]?[\\d.]+)\\s*Y([+-]?[\\d.]+)\\s*Z([+-]?[\\d.]+)`).exec(text);
+    return match ? (match.slice(1, 4).map(Number) as [number, number, number]) : null;
+  };
+  const readVector = async (label: 'CAM' | 'TARGET') => {
+    await expect.poll(() => tryReadVector(label), { timeout: 15000 }).not.toBeNull();
+    return (await tryReadVector(label))!;
+  };
+  const distance = (a: number[], b: number[]) => Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
+
+  const startCamera = await readVector('CAM');
+  const startTarget = await readVector('TARGET');
+  const startDistance = distance(startCamera, startTarget);
+  expect(startDistance).toBeGreaterThan(0.1);
+
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  for (let i = 0; i < 160; i += 1) {
+    await page.mouse.wheel(0, -120);
+  }
+
+  await expect
+    .poll(async () => distance(await readVector('CAM'), startCamera), { timeout: 5000 })
+    .toBeGreaterThan(startDistance + 0.5);
+});

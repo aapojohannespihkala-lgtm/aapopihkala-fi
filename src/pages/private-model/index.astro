@@ -1165,10 +1165,11 @@ const title = 'Private 3D viewer';
         line-height: 1.35;
       }
 
+      /* Bottom-left so the orientation gizmo (bottom-right) stays visible; sits above the coordinate panel when it is shown. */
       .selection-panel {
         position: absolute;
-        top: 12px;
-        right: 12px;
+        bottom: 12px;
+        left: 12px;
         z-index: 2;
         width: min(340px, calc(100% - 24px));
         max-height: calc(100% - 24px);
@@ -1181,6 +1182,30 @@ const title = 'Private 3D viewer';
       }
 
       .selection-panel[hidden] { display: none; }
+
+      .viewport:has(.coordinate-panel:not([hidden])) .selection-panel {
+        bottom: calc(20px + var(--coordinate-panel-block, 120px));
+        max-height: calc(100% - 32px - var(--coordinate-panel-block, 120px));
+      }
+
+      /* The layers panel also lives on the left: sit beside it instead of covering its controls. */
+      .viewport:has(.layers-panel:not([hidden])) .selection-panel {
+        left: calc(min(290px, 100% - 24px) + 24px);
+        width: min(340px, calc(100% - min(290px, 100% - 24px) - 36px));
+      }
+
+      /* Narrow screens: the full-width panel would cover the bottom gizmo, so it opens from the top. */
+      @media (max-width: 760px) {
+        .selection-panel,
+        .viewport:has(.coordinate-panel:not([hidden])) .selection-panel,
+        .viewport:has(.layers-panel:not([hidden])) .selection-panel {
+          top: 8px;
+          bottom: auto;
+          left: 8px;
+          width: calc(100% - 16px);
+          max-height: 55%;
+        }
+      }
 
       .selection-header {
         display: flex;
@@ -2711,6 +2736,32 @@ const title = 'Private 3D viewer';
       controls.enableDamping = true;
       controls.dampingFactor = 0.08;
       controls.screenSpacePanning = true;
+      // Zoom toward the point under the cursor instead of the fixed orbit target.
+      controls.zoomToCursor = true;
+
+      // OrbitControls scales the camera-to-target distance on every wheel step, so
+      // the step shrinks towards zero near the target and the camera gets stuck
+      // (owner review 06). Once the camera is close to the target, a wheel-in moves
+      // the camera and the target forward together so the user can keep moving
+      // into rooms. Wheel-out and orbiting are unchanged.
+      const DOLLY_THROUGH_DISTANCE_M = 0.8;
+      const dollyThroughDirection = new THREE.Vector3();
+      const dollyThroughOnWheel = (event: WheelEvent) => {
+        if (!controls.enabled || !controls.enableZoom) return;
+        const pixels =
+          event.deltaMode === 1 ? event.deltaY * 16 : event.deltaMode === 2 ? event.deltaY * 400 : event.deltaY;
+        if (!(pixels < 0)) return;
+        if (camera.position.distanceTo(controls.target) > DOLLY_THROUGH_DISTANCE_M) return;
+        event.preventDefault();
+        event.stopPropagation();
+        const step = Math.min(0.5, Math.max(0.05, Math.abs(pixels) * 0.002));
+        camera.getWorldDirection(dollyThroughDirection);
+        camera.position.addScaledVector(dollyThroughDirection, step);
+        controls.target.addScaledVector(dollyThroughDirection, step);
+        controls.update();
+      };
+      // Capture on the parent so this runs before OrbitControls' own wheel listener.
+      canvas.parentElement?.addEventListener('wheel', dollyThroughOnWheel, { capture: true, passive: false });
 
       const planControls = new OrbitControls(planCamera, canvas);
       planControls.enableDamping = true;
@@ -13033,6 +13084,15 @@ const title = 'Private 3D viewer';
 
       const resizeObserver = new ResizeObserver(updateSize);
       resizeObserver.observe(canvas.parentElement ?? canvas);
+
+      // Keeps the bottom-left selection panel stacked above the coordinate panel.
+      const coordinatePanelObserver = new ResizeObserver(() => {
+        coordinatePanel.parentElement?.style.setProperty(
+          '--coordinate-panel-block',
+          `${coordinatePanel.offsetHeight}px`,
+        );
+      });
+      coordinatePanelObserver.observe(coordinatePanel);
 
       renderer.setAnimationLoop(() => {
         updateSize();

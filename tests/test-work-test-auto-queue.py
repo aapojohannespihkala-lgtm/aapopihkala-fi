@@ -109,6 +109,65 @@ class PlanTests(unittest.TestCase):
         self.assertEqual(result["publish"], ["auto-a-111111"])
 
 
+class ListQueueTests(unittest.TestCase):
+    @staticmethod
+    def drive_file(n):
+        return {"id": f"1QueueFileId{n:04d}", "name": f"m{n}.zip", "createdTime": f"2026-10-24T{n // 60:02d}:{n % 60:02d}:00Z"}
+
+    def paged(self, total, page_size=100):
+        files = [self.drive_file(n) for n in range(total)]
+        pages = [files[i:i + page_size] for i in range(0, total, page_size)] or [[]]
+        calls = []
+
+        def fetch(token):
+            calls.append(token)
+            index = 0 if token is None else int(token[1:])
+            payload = {"files": pages[index]}
+            if index + 1 < len(pages):
+                payload["nextPageToken"] = f"p{index + 1}"
+            return payload
+        return fetch, calls
+
+    def test_reads_every_page_beyond_first_100(self):
+        fetch, calls = self.paged(162)
+        files, pages = module.list_queue(fetch)
+        self.assertEqual((len(files), pages), (162, 2))
+        self.assertEqual(calls, [None, "p1"])
+        self.assertEqual(files[-1]["id"], "1QueueFileId0161")
+
+    def test_files_past_first_page_reach_registration(self):
+        fetch, _ = self.paged(162)
+        files, _ = module.list_queue(fetch)
+        reg = registry()
+        for item in files[:150]:
+            reg["candidates"][f"auto-{item['id'].lower()}"] = {"driveFileId": item["id"]}
+        register = module.plan(reg, set(), files, {}, {}, False)["register"]
+        self.assertEqual([r["file_id"] for r in register], [f"1QueueFileId{n:04d}" for n in range(150, 162)])
+
+    def test_filters_extensions_and_duplicates_and_sorts(self):
+        payloads = {
+            None: {"files": [self.drive_file(2), {"id": "1NotAModel00001", "name": "notes.txt"}], "nextPageToken": "x"},
+            "x": {"files": [self.drive_file(1), self.drive_file(2)]},
+        }
+        files, pages = module.list_queue(lambda token: payloads[token])
+        self.assertEqual([f["id"] for f in files], ["1QueueFileId0001", "1QueueFileId0002"])
+        self.assertEqual(pages, 2)
+
+    def test_repeated_page_token_fails(self):
+        payloads = {None: {"files": [], "nextPageToken": "a"}, "a": {"files": [], "nextPageToken": "a"}}
+        with self.assertRaises(SystemExit):
+            module.list_queue(lambda token: payloads[token])
+
+    def test_page_limit_fails_instead_of_partial_success(self):
+        fetch, _ = self.paged(500, page_size=100)
+        with self.assertRaises(SystemExit):
+            module.list_queue(fetch, max_pages=3)
+
+    def test_malformed_response_fails(self):
+        with self.assertRaises(SystemExit):
+            module.list_queue(lambda token: {"files": "oops"})
+
+
 class RecentRegistrationTests(unittest.TestCase):
     def fake_git(self, commits, files, parents):
         class R:
