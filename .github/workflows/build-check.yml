@@ -173,6 +173,19 @@ jobs:
         if: steps.changes.outputs.docs_only != 'true'
         run: npm ci
 
+      # Regression gates for D-view source identity, floor clipping and
+      # unverified K14/K17 components. These synthetic-source tests cannot
+      # certify actual GLB/browser output, but must fail every executable PR
+      # if a previously protected HOLD or identity contract regresses.
+      - name: Verify D-view source and model gates
+        if: steps.changes.outputs.docs_only != 'true' && steps.changes.outputs.css_only != 'true'
+        run: |
+          node --test \\
+            tests/unit/check-d-scene32-preview-parity.test.mjs \\
+            tests/unit/check-k14-roof-crossings.test.mjs \\
+            tests/unit/shared-boundary-local-clip.test.mjs \\
+            tests/unit/private-model-stair-host-gate.test.mjs
+
       - name: Static checks
         if: steps.changes.outputs.docs_only != 'true' && steps.changes.outputs.css_only != 'true'
         run: npm run check
