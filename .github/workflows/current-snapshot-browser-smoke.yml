@@ -91,12 +91,16 @@ jobs:
           NODE
 
       - name: Verify Snapshot HTTP diagnostics
+        if: ${{ !cancelled() }}
         run: node --test .github/scripts/test-snapshot-http-diagnostics.mjs
 
       - name: Install Chromium
+        id: chromium
+        if: ${{ !cancelled() }}
         run: npx playwright install --with-deps chromium
 
       - name: Verify production standalone Widget in browser
+        if: ${{ !cancelled() && steps.chromium.outcome == 'success' }}
         shell: bash
         run: |
           set -euo pipefail
@@ -181,6 +185,7 @@ jobs:
           NODE
 
       - name: Verify production Snapshot sources in browser
+        if: ${{ !cancelled() && steps.chromium.outcome == 'success' }}
         shell: bash
         run: |
           set -euo pipefail
