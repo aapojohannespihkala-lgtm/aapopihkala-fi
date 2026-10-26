@@ -66,7 +66,10 @@ test('authenticated viewer GLB routes revalidate with SHA ETag and answer 304 wi
   const bytes = new TextEncoder().encode('unit-glb');
   const currentSha = 'c'.repeat(64);
   const env = {
-    ASSETS: { fetch: async () => new Response('unused') },
+    ASSETS: { fetch: async (request: Request) => new Response('private-asset', {
+      headers: { 'Content-Type': new URL(request.url).pathname.endsWith('.js')
+        ? 'application/javascript' : 'text/html; charset=utf-8' },
+    }) },
     PRIVATE_MODEL_BUCKET: {
       get: async (key: string) => {
         if (key === candidate!.objectKey) {
@@ -102,6 +105,23 @@ test('authenticated viewer GLB routes revalidate with SHA ETag and answer 304 wi
           ...(ifNoneMatch ? { 'If-None-Match': ifNoneMatch } : {}),
         },
       });
+
+    // An authenticated private page must reject intermediary script injection
+    // while preserving the same strict CSP, privacy headers and asset bytes.
+    const html = await handlePrivateModelRequest(get('/private-model/', viewerToken), env);
+    expect(html.status).toBe(200);
+    expect(html.headers.get('Cache-Control')).toBe('private, no-store, no-transform');
+    expect(html.headers.get('Content-Security-Policy')).toBe(
+      "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'",
+    );
+    expect(html.headers.get('Referrer-Policy')).toBe('no-referrer');
+    expect(html.headers.get('X-Robots-Tag')).toContain('noindex');
+    expect(await html.text()).toBe('private-asset');
+    const js = await handlePrivateModelRequest(get('/private-model/viewer.js', viewerToken), env);
+    expect(js.headers.get('Cache-Control')).toBe('private, no-store');
+    expect(js.headers.has('Content-Security-Policy')).toBe(false);
+    const deniedHtml = await handlePrivateModelRequest(new Request('https://example.test/private-model/'), env);
+    expect(deniedHtml.status).toBe(404);
 
     const first = await handlePrivateWorkTestRequest(get(candidate!.path, viewerToken), env);
     expect(first.status).toBe(200);

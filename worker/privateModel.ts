@@ -477,6 +477,10 @@ const secureAssetResponse = (response: Response) => {
   headers.set('X-Robots-Tag', 'noindex, nofollow, noarchive');
 
   if (headers.get('Content-Type')?.includes('text/html')) {
+    // Preserve the protected HTML bytes: automatic CDN analytics injection
+    // otherwise violates this page's self-only CSP. Keep Access/CSP intact.
+    // https://developers.cloudflare.com/web-analytics/get-started/
+    headers.set('Cache-Control', 'private, no-store, no-transform');
     headers.set(
       'Content-Security-Policy',
       "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'",
