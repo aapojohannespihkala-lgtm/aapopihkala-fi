@@ -6744,11 +6744,10 @@ const title = 'Private 3D viewer';
 
         clearD2FBoundaryReviewContext();
         mainViewScope?.dispose();
+        mainViewScope = null;
         otherFloorReference.clear();
         otherFloorMode.value = 'HIDDEN';
         fullModelScene = gltf.scene;
-        mainViewScope = createDViewRuntime(gltf, renderer);
-        syncMainViewScope();
         resolveSelectionSources = sourceCardResolverForModel(gltf);
         dInteriorScene = dInteriorOverride ??
           findSourceNamedScene(gltf, 'D CURRENT INTERIOR - BABYLON Y-UP');
@@ -6776,6 +6775,11 @@ const title = 'Private 3D viewer';
           });
         }
         prepareDReviewStyling();
+
+        // Layer setup clones ARCH_BASE materials. Capture those final viewer
+        // materials so the T04 adapter never replaces a layer's newer owner.
+        mainViewScope = createDViewRuntime(gltf, renderer);
+        syncMainViewScope();
 
         modelSourceBadge.textContent = sourceLabel;
         modelSourceBadge.dataset.kind = sourceKind;
