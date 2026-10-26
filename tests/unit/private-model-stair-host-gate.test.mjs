@@ -121,3 +121,15 @@ test('WHOLE still fails closed on an unverified physical-model version', () => {
   assert.equal(result.ok, false);
   assert.equal(result.reason, 'SELECTED_MAIN_MODEL_NOT_VERIFIED');
 });
+
+test('SHA fields must be real strings, not coercible impostors', () => {
+  const faux = { toString: () => sha };
+  for (const field of ['zipSha256']) {
+    const badSelected = change(x => { x.selectedModel[field] = faux; });
+    const badExpected = change(x => { x.expected[field] = faux; });
+    assert.equal(decide(badSelected).reason, 'SELECTED_MAIN_MODEL_NOT_VERIFIED');
+    assert.equal(decide(badExpected).reason, 'SELECTED_MAIN_MODEL_NOT_VERIFIED');
+    const badProof = change(x => { x.hostProof[field] = faux; });
+    assert.equal(decide(badProof).reason, 'T05_HOST_PROOF_NOT_VERSION_BOUND');
+  }
+});
