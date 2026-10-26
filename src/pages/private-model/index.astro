@@ -5348,7 +5348,11 @@ const title = 'Private 3D viewer';
         box.getBoundingSphere(sphere);
 
         const halfFov = THREE.MathUtils.degToRad(camera.fov * 0.5);
-        fitDistance = Math.max((sphere.radius / Math.tan(halfFov)) * 1.3, 2);
+        // In a portrait D view the horizontal field of view is the limiting
+        // angle. Keep the established desktop and WHOLE framing unchanged.
+        const fitHalfFov = mainViewScope?.active && camera.aspect > 0 && camera.aspect < 1
+          ? Math.atan(Math.tan(halfFov) * camera.aspect) : halfFov;
+        fitDistance = Math.max((sphere.radius / Math.tan(fitHalfFov)) * 1.3, 2);
         canvas.dataset.fitCenterX = String(modelCenter.x);
         canvas.dataset.fitRadius = String(sphere.radius);
         return true;

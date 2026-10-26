@@ -99,7 +99,8 @@ jobs:
           YLIS_SCENE28_GLB: ${{ runner.temp }}/scene28.glb
           YLIS_REQUIRE_REAL: '1'
           D_VIEW_TESTED_COMMIT: ${{ github.event.workflow_run.head_sha || github.sha }}
-        run: npx playwright test tests/e2e/private-model-d-runtime-integration.spec.ts --workers=1 --trace=off
+          PLAYWRIGHT_JSON_OUTPUT_FILE: test-results/d-view-report.json
+        run: npx playwright test tests/e2e/private-model-d-runtime-integration.spec.ts --workers=1 --trace=off --reporter=line,json
       - name: Encrypt private model screenshots before artifact storage
         if: always()
         env:

@@ -86,6 +86,25 @@ for (const width of [1280, 390]) test(`actual R4E main viewer floor/reference/or
     await expect(canvas).toHaveAttribute('data-main-view-stair-status', 'HOST_HOLD');
     const transitionMs = performance.now() - start;
     expect(transitionMs, 'Floor transition must remain bounded').toBeLessThan(10_000);
+    const framing = await canvas.evaluate((c: HTMLCanvasElement) => new Promise<{ colored: number; edge: number }>(resolve => {
+      requestAnimationFrame(() => {
+        const gl = c.getContext('webgl2')!;
+        const w = gl.drawingBufferWidth, h = gl.drawingBufferHeight;
+        const pixels = new Uint8Array(w * h * 4);
+        gl.readPixels(0, 0, w, h, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
+        let colored = 0, edge = 0;
+        for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+          const i = (y * w + x) * 4;
+          if (Math.abs(pixels[i] - pixels[0]) + Math.abs(pixels[i + 1] - pixels[1]) + Math.abs(pixels[i + 2] - pixels[2]) > 30) {
+            colored++;
+            if (x < 4 || x >= w - 4) edge++;
+          }
+        }
+        resolve({ colored, edge });
+      });
+    }));
+    expect(framing.colored, 'Actual model pixels must exist').toBeGreaterThan(100);
+    if (width === 390) expect(framing.edge, 'Portrait fit must leave both horizontal borders clear').toBe(0);
     if (floor !== 'BOTH') {
       await menu(page, '#preset-menu'); await page.locator('#other-floor-mode').selectOption('REFERENCE');
       await expect.poll(async () => Number(await canvas.getAttribute('data-other-floor-reference-count'))).toBeGreaterThan(16);
@@ -100,7 +119,7 @@ for (const width of [1280, 390]) test(`actual R4E main viewer floor/reference/or
     await expect(canvas).toHaveAttribute('data-camera-rotation', 'enabled');
     await expect.poll(async () => (await canvas.screenshot()).equals(before)).toBe(false);
     await page.screenshot({ path: info.outputPath(`r4e-${floor}-orbit-${observations.length}.png`) });
-    observations.push({ floor, transitionMs,
+    observations.push({ floor, transitionMs, framing,
       count: await canvas.getAttribute('data-edge-source-mesh-count') });
   }
   await menu(page, '#more-menu'); await page.getByRole('button', { name: 'Palauta näkymän oletukset', exact: true }).click();
