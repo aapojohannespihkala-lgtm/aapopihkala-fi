@@ -25,7 +25,7 @@ export function createT04FloorScopeBridge({ mainScope, sharedMeshes, clippingAda
     const successes = [];
     let lastReason = 'SOURCE_NOT_VERIFIED';
     for (const c of clippingAdapters) {
-      const result = c.apply({ floor, ...evidence });
+      const result = c.apply({ ...evidence, floor });
       const accepted = result.ok && result.materialClipped && c.active && c.activeFloor === floor;
       if (!accepted) { lastReason = result.reason; break; }
       successes.push(result);

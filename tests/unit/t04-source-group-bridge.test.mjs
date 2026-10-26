@@ -65,10 +65,12 @@ test('scope refusal rolls back correctly clipped materials',()=>{
  assert.equal(f.bridge.apply('1F',f.evidence).status,'T04_HOLD');
  assert.equal(f.first.material,first);assert.equal(f.second.material,second);
 });
-test('D/2F has opposite plane orientation on both primitive materials',()=>{
+test('D/2F overrides stale 1F evidence and uses the correct plane on both primitives',()=>{
  const f=setup();assert.equal(f.bridge.apply('2F',f.evidence).status,'T04_CLIPPED_SOURCE');
- assert.ok(f.first.material.clippingPlanes[0].constant>0);
- assert.ok(f.second.material.clippingPlanes[0].constant>0);
+ assert.ok(f.clips.every(c=>c.activeFloor==='2F'));
+ assert.equal(f.evidence.floor,'1F');
+ assert.ok(f.first.material.clippingPlanes[0].constant<0);
+ assert.ok(f.second.material.clippingPlanes[0].constant<0);
 });
 test('BOTH and WHOLE restore both original materials and grant nothing',()=>{
  const f=setup(),originals=[f.first.material,f.second.material];f.bridge.apply('1F',f.evidence);
