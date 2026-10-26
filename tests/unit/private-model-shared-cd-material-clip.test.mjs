@@ -23,12 +23,12 @@ test('1F installs local half-space without source mutation or automatic visibili
  const r=f.ctl.apply(f.proof);assert.equal(r.materialClipped,true);assert.equal(r.sourceVisible,false);
  assert.equal(f.mesh.material.clippingPlanes.length,1);assert.equal(f.ctl.active,true);
  const plane=f.mesh.material.clippingPlanes[0];
- assert.ok(plane.distance(0,2,0)<0 && plane.distance(0,3,0)>0);
+ assert.ok(plane.distance(0,2,0)>0 && plane.distance(0,3,0)<0);
  f.ctl.restore();assert.equal(f.mesh.material,original);assert.equal(original.disposed,false);
 });
 test('2F uses opposite half-space',()=>{
  const f=setup();f.ctl.apply({...f.proof,floor:'2F'});
- const p=f.mesh.material.clippingPlanes[0];assert.ok(p.distance(0,2,0)>0&&p.distance(0,3,0)<0);
+ const p=f.mesh.material.clippingPlanes[0];assert.ok(p.distance(0,2,0)<0&&p.distance(0,3,0)>0);
 });
 test('node metadata inherited from glTF multi-primitive parent group',()=>{
  const f=setup({group:true});

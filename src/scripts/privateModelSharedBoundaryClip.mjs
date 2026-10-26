@@ -9,7 +9,7 @@
  * The caller must first verify the selected ZIP SHA, the source objectKey,
  * the active SHARED_CD/BOTH metadata, and the G1-local-to-world matrix.
  * Result plane is in Three.js Plane form (normal, constant): clipped when
- * normal·worldPosition + constant > 0 (the opposite half is kept).
+ * normal·worldPosition + constant < 0 (the opposite half is kept).
  * Install on a target-specific material clone, NOT the global renderer
  * clippingPlanes, so neighboring apartments cannot be clipped.
  */
@@ -78,7 +78,9 @@ export function deriveSharedCdFloorPlane({
                     m[9] * z + m[13],
                     m[10] * z + m[14]];
   const keepLower = floor === '1F';
-  const normal = worldUp.map(v => keepLower ? v : -v);
+  // Three.js discards negative Plane.distanceToPoint values. Point the
+  // normal into the requested floor, so that floor is the positive half.
+  const normal = worldUp.map(v => keepLower ? -v : v);
   const constant = -normal.reduce((sum, value, i) => sum + value * cutPoint[i], 0);
 
   if (!normal.every(Number.isFinite) || !Number.isFinite(constant)) {
