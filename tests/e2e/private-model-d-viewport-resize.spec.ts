@@ -25,7 +25,9 @@ test('actual R4E D/1F stays fitted when live viewport changes desktop -> portrai
   const canvas = page.locator('#private-model-canvas');
   await expect(page.getByRole('status')).toContainText('Malli ladattu', { timeout: 60_000 });
   await expect(canvas).toHaveAttribute('data-main-view-source-sha256', R4E_SHA);
-  await page.locator('#preset-menu > summary').click();
+  if (await page.locator('#preset-menu').getAttribute('open') === null) {
+    await page.locator('#preset-menu > summary').click();
+  }
   await page.locator('#main-view-area').selectOption('D');
   await page.locator('#main-view-floor').selectOption('1F');
   await expect(canvas).toHaveAttribute('data-main-view-floor', '1F');
