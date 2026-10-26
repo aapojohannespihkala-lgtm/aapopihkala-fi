@@ -63,6 +63,7 @@ for (const width of [1280, 390]) test(`actual R4E main viewer floor/reference/or
   const errors: string[] = [];
   page.on('pageerror', e => errors.push(e.message));
   page.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });
+  await page.route('**/private-model/work-test/catalog.json', route => route.fulfill({ json: { candidates: [] } }));
   await page.route('**/private-model/source-cards.json', route => route.fulfill({ json: { modules: {} } }));
   await page.route('**/private-model/model.glb', route => route.fulfill({ contentType: 'model/gltf-binary', body: bytes }));
   await page.goto('/private-model/');
@@ -116,6 +117,7 @@ for (const width of [1280, 390]) test(`actual R4E main viewer floor/reference/or
 
 test('published scene28 is separate and cannot claim unavailable D metadata', async ({ page }, info) => {
   const bytes = privateBytes('scene28');
+  await page.route('**/private-model/work-test/catalog.json', route => route.fulfill({ json: { candidates: [] } }));
   await page.route('**/private-model/source-cards.json', route => route.fulfill({ json: { modules: {} } }));
   await page.route('**/private-model/model.glb', route => route.fulfill({ contentType: 'model/gltf-binary', body: bytes }));
   await page.goto('/private-model/');
