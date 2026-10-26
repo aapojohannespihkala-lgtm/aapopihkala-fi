@@ -1648,6 +1648,14 @@ const title = 'Private 3D viewer';
               </select>
             </div>
             <p id="main-view-scope-note" class="toolbar-menu-label">Päämallin D-luokittelua ei ole saatavilla.</p>
+            <div class="layer-select">
+              <label for="other-floor-mode">Muu kerros</label>
+              <select id="other-floor-mode" aria-describedby="other-floor-note" disabled>
+                <option value="HIDDEN">Piilossa</option>
+                <option value="REFERENCE">Viitteellinen</option>
+              </select>
+            </div>
+            <p id="other-floor-note" class="toolbar-menu-label">Valitse D:n alakerta tai yläkerta.</p>
             <details id="main-view-exceptions" hidden>
               <summary>Rajauksen poikkeamat</summary>
               <ul id="main-view-exception-list"></ul>
@@ -2256,6 +2264,7 @@ const title = 'Private 3D viewer';
       } from '../../scripts/privateModelP183ReviewPresentation';
       import { createHorizontalClippingController } from '../../scripts/privateModelHorizontalClipping';
       import { createMainViewScope, type MainViewFloor } from '../../scripts/privateModelMainViewScope';
+      import { createOtherFloorReference } from '../../scripts/privateModelOtherFloorReference';
       import {
         createViewerLayerStateForModelLoad,
         mergeViewerLayerState,
@@ -2952,6 +2961,25 @@ const title = 'Private 3D viewer';
       });
       let fullModelScene: any = null;
       let mainViewScope: ReturnType<typeof createMainViewScope> | null = null;
+      const otherFloorReference = createOtherFloorReference(scene);
+      const otherFloorMode = document.querySelector<HTMLSelectElement>('#other-floor-mode')!;
+      const otherFloorNote = document.querySelector<HTMLElement>('#other-floor-note')!;
+      const syncOtherFloorReference = () => {
+        const available = Boolean(mainViewScope?.active && mainViewScope.floor !== 'BOTH');
+        otherFloorMode.disabled = !available;
+        if (!available) otherFloorMode.value = 'HIDDEN';
+        const enabled = available && otherFloorMode.value === 'REFERENCE';
+        const candidates = enabled ? mainViewScope!.referenceCandidates().filter(({ object }) =>
+          !roofLayerMembers.has(object) && !locusLayerMembers.has(object) && !electricalLayerMembers.has(object)) : [];
+        const result = otherFloorReference.update(enabled, candidates);
+        canvas.dataset.otherFloorMode = otherFloorMode.value;
+        canvas.dataset.otherFloorReferenceCount = String(result.count);
+        canvas.dataset.otherFloorReferenceKeys = candidates.map((c) => c.objectKey).join('|');
+        otherFloorNote.textContent = !available ? 'Valitse D:n alakerta tai yläkerta.' : enabled
+          ? `${result.count} viitteellistä ääriviivaa. Viitteitä ei voi valita.` +
+            (result.unsupported ? ` ${result.unsupported} kohdetta ei voida esittää ääriviivana.` : '')
+          : 'Muu kerros on piilossa.';
+      };
       const mainViewArea = document.querySelector<HTMLSelectElement>('#main-view-area')!;
       const mainViewFloor = document.querySelector<HTMLSelectElement>('#main-view-floor')!;
       const mainViewScopeNote = document.querySelector<HTMLElement>('#main-view-scope-note')!;
@@ -2962,6 +2990,11 @@ const title = 'Private 3D viewer';
         mainViewArea.value = mainViewScope?.active ? 'D' : 'WHOLE';
         mainViewFloor.value = mainViewScope?.floor ?? 'BOTH';
         mainViewFloor.disabled = !mainViewScope?.active;
+        if (!mainViewScope?.active || mainViewScope.floor === 'BOTH') {
+          otherFloorMode.value = 'HIDDEN';
+          otherFloorReference.clear();
+        }
+        syncOtherFloorReference();
         canvas.dataset.mainViewArea = mainViewArea.value;
         canvas.dataset.mainViewFloor = mainViewFloor.value;
         if (!mainViewScope?.active) {
@@ -4134,6 +4167,7 @@ const title = 'Private 3D viewer';
       const refreshEdgeRendering = (root: any) => {
         restoreLegacyEdgeVisibility();
         mainViewScope?.enforce();
+        syncOtherFloorReference();
         clearEdgeOverlay();
 
         let suppressedLegacyLines = 0;
@@ -6001,6 +6035,7 @@ const title = 'Private 3D viewer';
 
       const activateMainModelScope = (floor: MainViewFloor) => {
         if (!mainViewScope?.available) return;
+        const requestedOtherFloorMode = otherFloorMode.value;
         clearSelection();
         clearPointMeasure();
         objectVisibilityFilter.restore();
@@ -6011,6 +6046,7 @@ const title = 'Private 3D viewer';
         setModelScene(fullModelScene);
         const report = mainViewScope.apply(floor);
         if (!report) return;
+        otherFloorMode.value = floor === 'BOTH' ? 'HIDDEN' : requestedOtherFloorMode;
         syncMainViewScope();
         const reasonLabels: Record<string, string> = {
           MISSING_OR_DUPLICATE_SCOPE: 'Luokittelu puuttuu tai tunniste toistuu',
@@ -6702,6 +6738,8 @@ const title = 'Private 3D viewer';
 
         clearD2FBoundaryReviewContext();
         mainViewScope?.restore();
+        otherFloorReference.clear();
+        otherFloorMode.value = 'HIDDEN';
         fullModelScene = gltf.scene;
         mainViewScope = createMainViewScope(fullModelScene);
         syncMainViewScope();
@@ -12928,6 +12966,10 @@ const title = 'Private 3D viewer';
       };
 
       layersButton.addEventListener('click', () => closeToolbarMenus());
+      otherFloorMode.addEventListener('change', () => {
+        syncOtherFloorReference();
+        closeToolbarMenus();
+      });
       mainViewArea.addEventListener('change', () => {
         applyStandardViewPreset(mainViewArea.value === 'D' ? 'd-apartment' : 'whole-building');
         closeToolbarMenus();

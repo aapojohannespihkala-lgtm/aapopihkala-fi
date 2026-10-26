@@ -76,7 +76,7 @@ test('actual viewer D1F ruler: first anchor, live X mm, lock, clear', async ({ p
   await page.goto('/private-model/');
   const canvas = page.locator('#private-model-canvas');
   await expect(canvas).toHaveAttribute('data-model-source', /current/i);
-  await page.locator('#preset-menu summary').click();
+  await page.locator('#preset-menu > summary').click();
   await page.locator('#d1-plan-button').click();
   await expect(canvas).toHaveAttribute('data-view-preset', 'd-plan');
   await expect(canvas).toHaveAttribute('data-content-floor', '1F');
@@ -144,7 +144,7 @@ test('actual viewer ruler stays temporary on leaving D plan and changing tools',
   const canvas = page.locator('#private-model-canvas');
   const measureButton = page.locator('#axis-measure-tool-button');
   await expect(measureButton).toBeDisabled();
-  await page.locator('#preset-menu summary').click();
+  await page.locator('#preset-menu > summary').click();
   await page.locator('#d1-plan-button').click();
   await expect(canvas).toHaveAttribute('data-view-preset', 'd-plan');
   await expect(measureButton).toBeEnabled();
@@ -163,7 +163,7 @@ test('actual viewer ruler stays temporary on leaving D plan and changing tools',
   // Canvas interactions may close the preset <details>; open it as a user would.
   const wholeBuildingButton = page.locator('#whole-building-preset-button');
   if (!(await wholeBuildingButton.isVisible())) {
-    await page.locator('#preset-menu summary').click();
+    await page.locator('#preset-menu > summary').click();
   }
   await expect(wholeBuildingButton).toBeVisible();
   await wholeBuildingButton.click();
@@ -189,7 +189,7 @@ test('actual D1F browser ruler measures along Y and never invents a diagonal', a
   await page.goto('/private-model/');
   const canvas = page.locator('#private-model-canvas');
   await expect(canvas).toHaveAttribute('data-model-source', 'current');
-  await page.locator('#preset-menu summary').click();
+  await page.locator('#preset-menu > summary').click();
   await page.locator('#d1-plan-button').click();
   await expect(canvas).toHaveAttribute('data-view-preset', 'd-plan');
   await page.locator('#axis-measure-tool-button').click();
@@ -261,7 +261,7 @@ test('D1F P137E target-specific crosshairs coexist with ruler and never claim G2
   await page.locator('#work-test-select').selectOption(candidateId);
   await page.locator('#work-test-button').click();
   await expect(canvas).toHaveAttribute('data-model-source', 'work-test');
-  await page.locator('#preset-menu summary').click();
+  await page.locator('#preset-menu > summary').click();
   await page.locator('#d1-plan-button').click();
   await expect(canvas).toHaveAttribute('data-content-floor', '1F');
   await expect(place).toBeEnabled();
@@ -300,7 +300,7 @@ test('D1F P137E target-specific crosshairs coexist with ruler and never claim G2
   await page.locator('#p137e-place-clear').click();
   await expect(canvas).toHaveAttribute('data-p137e-place-draft-count', '0');
   await expect(page.locator('#p137e-place-list')).toContainText('Kylpyhuone: ei rastia');
-  await page.locator('#preset-menu summary').click();
+  await page.locator('#preset-menu > summary').click();
   await page.locator('#d2-plan-button').click();
   await expect(place).toBeDisabled();
   await expect(page.locator('#p137e-place-panel')).toBeHidden();
@@ -336,7 +336,7 @@ test('P137E placement never trusts the selected option instead of the loaded can
   await page.locator('#work-test-button').click();
   await expect(canvas).toHaveAttribute('data-p137e-loaded-candidate-id', otherId);
   await expect(canvas).toHaveAttribute('data-model-source', 'work-test');
-  await page.locator('#preset-menu summary').click();
+  await page.locator('#preset-menu > summary').click();
   await page.locator('#d1-plan-button').click();
   await expect(place).toBeDisabled();
   await choose(selectedId);
@@ -344,7 +344,7 @@ test('P137E placement never trusts the selected option instead of the loaded can
   await expect(canvas).toHaveAttribute('data-p137e-place-draft-count', '0');
   await page.locator('#work-test-button').click();
   await expect(canvas).toHaveAttribute('data-p137e-loaded-candidate-id', selectedId);
-  await page.locator('#preset-menu summary').click();
+  await page.locator('#preset-menu > summary').click();
   await page.locator('#d1-plan-button').click();
   await expect(place).toBeEnabled();
   await choose(otherId);
