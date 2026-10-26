@@ -68,7 +68,9 @@ class SelectionTests(unittest.TestCase):
         self.assertEqual(selected('src/pages/private-model/index.astro'), [
             'tests/e2e/private-model-d1f-combined-wall-scene-contract.spec.ts',
             'tests/e2e/private-model-main-view-scope.spec.ts',
+            'tests/e2e/private-model-other-floor-batch.spec.ts',
             'tests/e2e/private-model-other-floor-reference.spec.ts',
+            'tests/e2e/private-model-p4-real-r4e.spec.ts',
             'tests/e2e/private-model-work-test-load-diagnostics.spec.ts',
         ])
 
@@ -80,10 +82,14 @@ class SelectionTests(unittest.TestCase):
     def test_floor_scope_changes_recheck_reference_and_floor_filter(self):
         self.assertEqual(selected('src/scripts/privateModelMainViewScope.ts'), [
             'tests/e2e/private-model-main-view-scope.spec.ts',
+            'tests/e2e/private-model-other-floor-batch.spec.ts',
             'tests/e2e/private-model-other-floor-reference.spec.ts',
+            'tests/e2e/private-model-p4-real-r4e.spec.ts',
         ])
         self.assertEqual(selected('src/scripts/privateModelOtherFloorReference.ts'), [
+            'tests/e2e/private-model-other-floor-batch.spec.ts',
             'tests/e2e/private-model-other-floor-reference.spec.ts',
+            'tests/e2e/private-model-p4-real-r4e.spec.ts',
         ])
 
     def test_t04_source_changes_recheck_adjacent_floor_viewer_guards(self):
@@ -100,7 +106,9 @@ class SelectionTests(unittest.TestCase):
     def test_three_runtime_keeps_floor_reference_and_meshy_guards(self):
         self.assertEqual(selected('src/scripts/threeRuntime.ts'), [
             'tests/e2e/meshy-poise-regression.spec.ts',
+            'tests/e2e/private-model-other-floor-batch.spec.ts',
             'tests/e2e/private-model-other-floor-reference.spec.ts',
+            'tests/e2e/private-model-p4-real-r4e.spec.ts',
         ])
 
     def test_private_model_changes_union_dedup_without_current_tests(self):
@@ -115,6 +123,26 @@ class SelectionTests(unittest.TestCase):
 
     def test_unrelated_source_still_does_not_trigger_private_model_browser(self):
         self.assertEqual(selected('README.md', 'src/scripts/unrelated-helper.ts'), [])
+
+    def test_p4_covered_by_all_runtime_entrypoints(self):
+        batch = 'tests/e2e/private-model-other-floor-batch.spec.ts'
+        real = 'tests/e2e/private-model-p4-real-r4e.spec.ts'
+        for path in ('src/pages/private-model/index.astro',
+                     'src/scripts/privateModelMainViewScope.ts',
+                     'src/scripts/privateModelOtherFloorReference.ts',
+                     'src/scripts/threeRuntime.ts'):
+            with self.subTest(path=path):
+                specs = selected(path)
+                self.assertIn(batch, specs)
+                self.assertIn(real, specs)
+                self.assertEqual(specs, sorted(set(specs)))
+
+    def test_p4_not_scheduled_for_loader_or_unrelated_docs(self):
+        for path in ('src/scripts/privateModelWorkTest.ts', 'README.md'):
+            with self.subTest(path=path):
+                specs = selected(path)
+                self.assertNotIn('tests/e2e/private-model-other-floor-batch.spec.ts', specs)
+                self.assertNotIn('tests/e2e/private-model-p4-real-r4e.spec.ts', specs)
 
     def test_ci_changes_validate_selector_and_guards(self):
         self.assertEqual(selected('.github/scripts/select-browser-tests.sh'), selected())
