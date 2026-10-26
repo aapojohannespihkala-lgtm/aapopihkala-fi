@@ -1632,6 +1632,27 @@ const title = 'Private 3D viewer';
             <button id="d1-plan-button" type="button">D 1F</button>
             <button id="d2-plan-button" type="button">D 2F</button>
             <div class="toolbar-menu-separator"></div>
+            <div class="layer-select">
+              <label for="main-view-area">Alue päämallissa</label>
+              <select id="main-view-area" aria-describedby="main-view-scope-note" disabled>
+                <option value="WHOLE">Koko kohde</option>
+                <option value="D">Vain D</option>
+              </select>
+            </div>
+            <div class="layer-select">
+              <label for="main-view-floor">Kerros päämallissa</label>
+              <select id="main-view-floor" aria-describedby="main-view-scope-note" disabled>
+                <option value="BOTH">Molemmat</option>
+                <option value="1F">Alakerta</option>
+                <option value="2F">Yläkerta</option>
+              </select>
+            </div>
+            <p id="main-view-scope-note" class="toolbar-menu-label">Päämallin D-luokittelua ei ole saatavilla.</p>
+            <details id="main-view-exceptions" hidden>
+              <summary>Rajauksen poikkeamat</summary>
+              <ul id="main-view-exception-list"></ul>
+            </details>
+            <div class="toolbar-menu-separator"></div>
             <div class="toolbar-menu-label">Alue ja järjestelmät</div>
             <button id="site-preset-button" type="button">Tontti</button>
             <button id="infra-preset-button" type="button">Infra</button>
@@ -2234,6 +2255,7 @@ const title = 'Private 3D viewer';
         resolveP183P160ClosureIntegrationRoot,
       } from '../../scripts/privateModelP183ReviewPresentation';
       import { createHorizontalClippingController } from '../../scripts/privateModelHorizontalClipping';
+      import { createMainViewScope, type MainViewFloor } from '../../scripts/privateModelMainViewScope';
       import {
         createViewerLayerStateForModelLoad,
         mergeViewerLayerState,
@@ -2929,6 +2951,29 @@ const title = 'Private 3D viewer';
         ticks: heightScaleTicks,
       });
       let fullModelScene: any = null;
+      let mainViewScope: ReturnType<typeof createMainViewScope> | null = null;
+      const mainViewArea = document.querySelector<HTMLSelectElement>('#main-view-area')!;
+      const mainViewFloor = document.querySelector<HTMLSelectElement>('#main-view-floor')!;
+      const mainViewScopeNote = document.querySelector<HTMLElement>('#main-view-scope-note')!;
+      const mainViewExceptions = document.querySelector<HTMLDetailsElement>('#main-view-exceptions')!;
+      const mainViewExceptionList = document.querySelector<HTMLElement>('#main-view-exception-list')!;
+      const syncMainViewScope = () => {
+        mainViewArea.disabled = !mainViewScope?.available;
+        mainViewArea.value = mainViewScope?.active ? 'D' : 'WHOLE';
+        mainViewFloor.value = mainViewScope?.floor ?? 'BOTH';
+        mainViewFloor.disabled = !mainViewScope?.active;
+        canvas.dataset.mainViewArea = mainViewArea.value;
+        canvas.dataset.mainViewFloor = mainViewFloor.value;
+        if (!mainViewScope?.active) {
+          canvas.dataset.mainViewScopeStatus = mainViewScope?.available ? 'available' : 'unavailable';
+          delete canvas.dataset.mainViewExceptionCount;
+          mainViewExceptions.hidden = true;
+          mainViewExceptionList.replaceChildren();
+          mainViewScopeNote.textContent = mainViewScope?.available
+            ? 'D-rajaus käyttää tämän päämallin luokittelua. Kamera valitaan Näkymä-valikosta.'
+            : 'Päämallin D-luokittelua ei ole saatavilla.';
+        }
+      };
       let resolveSelectionSources: (object: any) => SelectionSourceEvidence = () => ({
         state: 'unavailable', version: 'Mallia ei ole ladattu', cards: [],
       });
@@ -3031,6 +3076,11 @@ const title = 'Private 3D viewer';
       let dAxisMeasureMarker: any = null;
 
       const setModelScene = (root: any) => {
+        if (root !== fullModelScene && mainViewScope?.active) {
+          mainViewScope.restore();
+          applyElectricalLayerState();
+          syncMainViewScope();
+        }
         modelRoot.clear();
         if (root) modelRoot.add(root);
         modelRoot.updateMatrixWorld(true);
@@ -4083,6 +4133,7 @@ const title = 'Private 3D viewer';
 
       const refreshEdgeRendering = (root: any) => {
         restoreLegacyEdgeVisibility();
+        mainViewScope?.enforce();
         clearEdgeOverlay();
 
         let suppressedLegacyLines = 0;
@@ -5833,6 +5884,10 @@ const title = 'Private 3D viewer';
       };
 
       const resolveActiveResearchContentScene = () => {
+        if (mainViewScope?.active) {
+          mainViewScope.enforce();
+          return fullModelScene;
+        }
         if (activeResearchPreset === 'd-apartment') {
           delete canvas.dataset.contentFloor;
           restoreDVisibility();
@@ -5944,7 +5999,49 @@ const title = 'Private 3D viewer';
         else activateElevationView('neg-x');
       };
 
+      const activateMainModelScope = (floor: MainViewFloor) => {
+        if (!mainViewScope?.available) return;
+        clearSelection();
+        clearPointMeasure();
+        objectVisibilityFilter.restore();
+        resetObjectVisibilityFilterState();
+        restoreDVisibility();
+        mainViewScope.restore();
+        applyElectricalLayerState();
+        setModelScene(fullModelScene);
+        const report = mainViewScope.apply(floor);
+        if (!report) return;
+        syncMainViewScope();
+        const reasonLabels: Record<string, string> = {
+          MISSING_OR_DUPLICATE_SCOPE: 'Luokittelu puuttuu tai tunniste toistuu',
+          UNRESOLVED_SCOPE: 'Asunto, kerros tai vaihe on selvittämättä',
+          REFERENCE_PRESENTATION_PENDING: 'Viitteellinen esitys odottaa toteutusta',
+          STOREY_CLIPPING_PENDING: 'Kerrosten välistä rajauskohtaa ei ole varmennettu',
+        };
+        mainViewExceptionList.replaceChildren(...report.exceptions.map((exception) => {
+          const item = document.createElement('li');
+          item.textContent = `${exception.objectKey}: ${reasonLabels[exception.reason] ?? exception.reason}`;
+          return item;
+        }));
+        mainViewExceptions.hidden = report.exceptions.length === 0;
+        mainViewScopeNote.textContent = `${report.included} luokiteltua kohdetta rajauksessa. ` +
+          (report.exceptions.length ? `Rajaus on osittainen: ${report.exceptions.length} luokittelu- tai esityspoikkeamaa.` : '');
+        canvas.dataset.mainViewExceptionCount = String(report.exceptions.length);
+        canvas.dataset.mainViewScopeStatus = report.exceptions.length ? 'partial' : 'classified';
+        canvas.dataset.contentScene = 'full-model';
+        canvas.dataset.contentFloor = floor;
+        fitModel();
+        status.textContent = `D-asunto - ${floor === 'BOTH' ? 'molemmat kerrokset' : floor === '1F' ? 'alakerta' : 'yläkerta'}, vapaa 3D` +
+          (report.exceptions.length ? ' - osittainen rajaus' : '');
+      };
+
       const applyStandardViewPreset = (preset: StandardViewPreset) => {
+        if (mainViewScope?.active && (preset === 'whole-building' || preset === 'site' ||
+            preset === 'infra' || preset === 'drainage' || preset === 'electrical')) {
+          mainViewScope.restore();
+          applyElectricalLayerState();
+          syncMainViewScope();
+        }
         const researchPreset = researchPresetForStandardView(preset);
         if (researchPreset) setActiveResearchPreset(researchPreset);
         canvas.dataset.standardViewPreset = preset;
@@ -5953,7 +6050,10 @@ const title = 'Private 3D viewer';
           standardViewLayerDefaultsInitialized = true;
         }
 
-        activateStandardViewCamera(preset);
+        if (mainViewScope?.available &&
+            (preset === 'd-apartment' || preset === 'd-1f' || preset === 'd-2f')) {
+          activateMainModelScope(preset === 'd-1f' ? '1F' : preset === 'd-2f' ? '2F' : 'BOTH');
+        } else activateStandardViewCamera(preset);
         refreshEdgeRendering(modelRoot.children[0] ?? null);
       };
 
@@ -6039,6 +6139,15 @@ const title = 'Private 3D viewer';
       };
 
       const resetActiveViewDefaults = () => {
+        if (mainViewScope?.active) {
+          objectVisibilityFilter.restore();
+          resetObjectVisibilityFilterState();
+          resetHorizontalClipping();
+          mainViewScope.restore();
+          applyElectricalLayerState();
+          syncMainViewScope();
+          setActiveResearchPreset('whole-building');
+        }
         const resetState = resetViewerInteractionStateToPresetDefaults(
           createViewerInteractionState(activeResearchPreset),
         );
@@ -6592,7 +6701,10 @@ const title = 'Private 3D viewer';
         }
 
         clearD2FBoundaryReviewContext();
+        mainViewScope?.restore();
         fullModelScene = gltf.scene;
+        mainViewScope = createMainViewScope(fullModelScene);
+        syncMainViewScope();
         resolveSelectionSources = sourceCardResolverForModel(gltf);
         dInteriorScene = dInteriorOverride ??
           findSourceNamedScene(gltf, 'D CURRENT INTERIOR - BABYLON Y-UP');
@@ -12816,6 +12928,16 @@ const title = 'Private 3D viewer';
       };
 
       layersButton.addEventListener('click', () => closeToolbarMenus());
+      mainViewArea.addEventListener('change', () => {
+        applyStandardViewPreset(mainViewArea.value === 'D' ? 'd-apartment' : 'whole-building');
+        closeToolbarMenus();
+      });
+      mainViewFloor.addEventListener('change', () => {
+        if (!mainViewScope?.active) return;
+        applyStandardViewPreset(mainViewFloor.value === '1F' ? 'd-1f' :
+          mainViewFloor.value === '2F' ? 'd-2f' : 'd-apartment');
+        closeToolbarMenus();
+      });
       fitButton.addEventListener('click', fitModel);
       resetViewDefaultsButton.addEventListener('click', resetActiveViewDefaults);
       wholeBuildingPresetButton.addEventListener('click', () => applyStandardViewPreset('whole-building'));
@@ -13095,6 +13217,7 @@ const title = 'Private 3D viewer';
       coordinatePanelObserver.observe(coordinatePanel);
 
       renderer.setAnimationLoop(() => {
+        mainViewScope?.enforce();
         updateSize();
         controls.update();
         planControls.update();
