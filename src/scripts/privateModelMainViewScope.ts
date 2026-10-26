@@ -89,5 +89,24 @@ export const createMainViewScope = (root: Object3D) => {
     enforce();
     return { included, exceptions };
   };
-  return { available, apply, restore, enforce, get active() { return active; }, get floor() { return floor; } };
+  const referenceCandidates = () => {
+    if (!active || floor === 'BOTH') return [];
+    const other = floor === '1F' ? '2F' : '1F';
+    return objects.flatMap((object) => {
+      const s = validScope(object);
+      if (!s || !['D', 'SHARED_CD'].includes(s.apartmentScope) ||
+          s.phaseScope !== 'ACTIVE_IN_SELECTED_WORKTEST' ||
+          !['CONTENT', 'SHARED_BOUNDARY', 'OUTDOOR_D'].includes(s.role) ||
+          ![other, `OUTSIDE_${other}`].includes(s.storeyScope)) return [];
+      // Read the pre-filter visibility, including hidden source ancestors.
+      // Do not reveal source objects just because their floor is referenced.
+      let ancestor: Object3D | null = object;
+      while (ancestor && ancestor !== root.parent) {
+        if (!(baseline.get(ancestor) ?? ancestor.visible)) return [];
+        ancestor = ancestor.parent;
+      }
+      return [{ object, objectKey: s.objectKey }];
+    });
+  };
+  return { available, apply, restore, enforce, referenceCandidates, get active() { return active; }, get floor() { return floor; } };
 };
