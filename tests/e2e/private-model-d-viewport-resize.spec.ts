@@ -29,6 +29,9 @@ test('actual R4E D/1F stays fitted when live viewport changes desktop -> portrai
     await page.locator('#preset-menu > summary').click();
   }
   await page.locator('#main-view-area').selectOption('D');
+  // The real area change closes toolbar menus. Reopen before the next user
+  // action instead of timing out on a hidden select in trusted-main WebGL CI.
+  await page.locator('#preset-menu > summary').click();
   await page.locator('#main-view-floor').selectOption('1F');
   await expect(canvas).toHaveAttribute('data-main-view-floor', '1F');
   await expect(canvas).toHaveAttribute('data-main-view-t04-status', 'T04_CLIPPED_SOURCE');

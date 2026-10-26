@@ -14,6 +14,9 @@ on:
     paths:
       - src/pages/private-model/index.astro
       - src/scripts/privateModelDViewRuntime.ts
+      - src/scripts/c70_main_view_bridge.mjs
+      - src/scripts/d_floor_router.mjs
+      - src/scripts/privateModelC70Contract.json
       - src/scripts/privateModelMainViewScope.ts
       - src/scripts/privateModelSourceCards.ts
       - src/scripts/privateModelSharedBoundaryClip.mjs
@@ -22,6 +25,7 @@ on:
       - src/scripts/privateModelOtherFloorReference.ts
       - tests/e2e/private-model-d-runtime-integration.spec.ts
       - tests/e2e/private-model-d-viewport-resize.spec.ts
+      - tests/e2e/private-model-c70-integration.spec.ts
       - .github/workflows/d-view-regression.yml
 
 permissions:
@@ -66,7 +70,7 @@ jobs:
           access_token_scopes: https://www.googleapis.com/auth/drive.readonly
           create_credentials_file: false
           export_environment_variables: false
-      - name: Fetch two distinct immutable sources and verify ZIP CRC and SHA
+      - name: Fetch immutable sources and verify ZIP CRC and SHA
         env:
           GDRIVE_ACCESS_TOKEN: ${{ steps.google-auth.outputs.access_token }}
         shell: bash
@@ -81,6 +85,9 @@ jobs:
             ('r4e', '1LoRfeI7JigrbR2S6hIsOJ7Q_DonYocAU', 1106851,
              'e840c5fa14c0f919aa9617fdd9cd3ae144f511e5e0a023641e6599431b074807',
              '2f42444401224f7b5bd62663c4227d78e3af0618c58c1961e317598cf7886680'),
+            ('c70', '1hHD39DHJCE8mR-R-RW16Za00dAfEvYI9', 1281693,
+             '4e901bd4cdcaf4e2258af543f86accb238aeab0b6031a69a1910c7d1cf4a5be2',
+             '75b586aaf774bce34cf1dceba5d19e6ae41c112b8717f4cce5ce64458fddc491'),
           ]
           for name, file_id, size, zip_sha, glb_sha in locks:
             request = urllib.request.Request(
@@ -97,14 +104,25 @@ jobs:
             pathlib.Path(os.environ['RUNNER_TEMP'], name + '.glb').write_bytes(glb)
             print(name + ': ZIP/CRC/GLB SHA PASS ' + glb_sha)
           PY
-      - name: Actual R4E runtime and live-resize WebGL2 pixels, selection and lifecycle
+      - name: Actual R4E and C70 viewer WebGL2 pixels, selection and lifecycle
         env:
           YLIS_R4E_GLB: ${{ runner.temp }}/r4e.glb
           YLIS_SCENE28_GLB: ${{ runner.temp }}/scene28.glb
+          YLIS_C70_GLB: ${{ runner.temp }}/c70.glb
           YLIS_REQUIRE_REAL: '1'
           D_VIEW_TESTED_COMMIT: ${{ github.event.workflow_run.head_sha || github.sha }}
           PLAYWRIGHT_JSON_OUTPUT_FILE: test-results/d-view-report.json
-        run: npx playwright test tests/e2e/private-model-d-runtime-integration.spec.ts tests/e2e/private-model-d-viewport-resize.spec.ts --workers=1 --trace=off --reporter=line,json
+        run: npx playwright test tests/e2e/private-model-d-runtime-integration.spec.ts tests/e2e/private-model-d-viewport-resize.spec.ts tests/e2e/private-model-c70-integration.spec.ts --workers=1 --trace=off --reporter=line,json
+      - name: Published protected viewer C70 local preview, desktop and mobile
+        env:
+          YLIS_C70_GLB: ${{ runner.temp }}/c70.glb
+          YLIS_REQUIRE_REAL: '1'
+          YLIS_C70_PRODUCTION: '1'
+          CF_ACCESS_VIEWER_PROBE_CLIENT_ID: ${{ secrets.CF_ACCESS_VIEWER_PROBE_CLIENT_ID }}
+          CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET: ${{ secrets.CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET }}
+          D_VIEW_TESTED_COMMIT: ${{ github.event.workflow_run.head_sha || github.sha }}
+          PLAYWRIGHT_JSON_OUTPUT_FILE: test-results/c70-published-report.json
+        run: npx playwright test tests/e2e/private-model-c70-integration.spec.ts --grep 'actual C70' --workers=1 --trace=off --output=test-results/c70-published --reporter=line,json
       - name: Encrypt private model screenshots before artifact storage
         if: always()
         env:

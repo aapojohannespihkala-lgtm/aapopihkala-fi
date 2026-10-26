@@ -234,6 +234,12 @@ const title = 'Private 3D viewer';
         display: none;
       }
 
+      #c70-preview-controls p {
+        margin: 6px 0;
+        font-size: 12px;
+        line-height: 1.45;
+      }
+
       .more-menu > summary {
         min-width: 36px;
         justify-content: center;
@@ -1721,6 +1727,11 @@ const title = 'Private 3D viewer';
             <button id="compare-model-button" type="button" disabled>Vertaa WORK_TESTiin</button>
             <button id="work-test-upload-button" type="button" hidden>Tuo WORK_TEST .glb</button>
             <input id="work-test-upload-input" type="file" accept=".glb,model/gltf-binary,application/octet-stream" hidden />
+            <div id="c70-preview-controls" hidden>
+              <button id="c70-preview-button" type="button">Avaa C70-lähde-esikatselu</button>
+              <input id="c70-preview-input" type="file" accept=".glb,model/gltf-binary" hidden />
+              <p>WORK_TEST / SOURCE_ONLY / STAGING_HOLD. Tiedosto avataan vain omassa selaimessa. Fyysiset liitokset ovat varmistamatta.</p>
+            </div>
             <button id="current-model-button" type="button" hidden>Palaa CURRENTiin</button>
           </div>
         </details>
@@ -2265,6 +2276,8 @@ const title = 'Private 3D viewer';
       import { createHorizontalClippingController } from '../../scripts/privateModelHorizontalClipping';
       import { type MainViewFloor } from '../../scripts/privateModelMainViewScope';
       import { createDViewRuntime } from '../../scripts/privateModelDViewRuntime';
+      import { prepareC70Preview, createC70MainViewBridge } from '../../scripts/c70_main_view_bridge.mjs';
+      import c70WorkTestContract from '../../scripts/privateModelC70Contract.json';
       import { createOtherFloorReference } from '../../scripts/privateModelOtherFloorReference';
       import {
         createViewerLayerStateForModelLoad,
@@ -2962,12 +2975,16 @@ const title = 'Private 3D viewer';
         ticks: heightScaleTicks,
       });
       let fullModelScene: any = null;
-      let mainViewScope: ReturnType<typeof createDViewRuntime> | null = null;
+      let modelLoadVersion = 0;
+      let mainViewScope: ReturnType<typeof createDViewRuntime> | ReturnType<typeof createC70MainViewBridge> | null = null;
       const otherFloorReference = createOtherFloorReference(scene);
       const otherFloorMode = document.querySelector<HTMLSelectElement>('#other-floor-mode')!;
       const otherFloorNote = document.querySelector<HTMLElement>('#other-floor-note')!;
       const syncOtherFloorReference = () => {
-        const available = Boolean(mainViewScope?.active && mainViewScope.floor !== 'BOTH');
+        // C70 source scenes contain the correct floor roots already. Never project
+        // other-storey outlines from unknown host/metadata in SOURCE_ONLY mode.
+        const isC70SourceScene = Boolean(mainViewScope && 'isC70SourceScene' in mainViewScope);
+        const available = Boolean(mainViewScope?.active && mainViewScope.floor !== 'BOTH' && !isC70SourceScene);
         otherFloorMode.disabled = !available;
         if (!available) otherFloorMode.value = 'HIDDEN';
         const enabled = available && otherFloorMode.value === 'REFERENCE';
@@ -3003,11 +3020,14 @@ const title = 'Private 3D viewer';
         canvas.dataset.mainViewStairStatus = mainViewScope?.stairStatus ?? 'HOST_HOLD';
         canvas.dataset.mainViewSourceSha256 = mainViewScope?.sourceSha256 ?? '';
         if (!mainViewScope?.active) {
+          delete canvas.dataset.mainViewSourceSceneIndex;
           canvas.dataset.mainViewScopeStatus = mainViewScope?.available ? 'available' : 'unavailable';
           delete canvas.dataset.mainViewExceptionCount;
           mainViewExceptions.hidden = true;
           mainViewExceptionList.replaceChildren();
-          mainViewScopeNote.textContent = mainViewScope?.available
+          mainViewScopeNote.textContent = mainViewScope && 'isC70SourceScene' in mainViewScope
+            ? 'C70-lähde-esikatselu / WORK_TEST / SOURCE_ONLY. Valitse D ja kerros. Fyysiset liitokset ovat varmistamatta.'
+            : mainViewScope?.available
             ? 'D-rajaus käyttää tämän päämallin luokittelua. Kamera valitaan Näkymä-valikosta.'
             : 'Päämallin D-luokittelua ei ole saatavilla.';
         }
@@ -3114,7 +3134,7 @@ const title = 'Private 3D viewer';
       let dAxisMeasureMarker: any = null;
 
       const setModelScene = (root: any) => {
-        if (root !== fullModelScene && mainViewScope?.active) {
+        if (root !== fullModelScene && mainViewScope?.active && root !== modelRoot.children[0]) {
           mainViewScope.restore();
           applyElectricalLayerState();
           syncMainViewScope();
@@ -5356,6 +5376,7 @@ const title = 'Private 3D viewer';
       };
 
       const refreshFullModelFitMetrics = (sceneRoot: any = fullModelScene) => {
+        if (mainViewScope && 'isC70SourceScene' in mainViewScope) sceneRoot = mainViewScope.selectedScene;
         if (!sceneRoot) return false;
 
         const box = computeVisibleBounds(sceneRoot, true);
@@ -5947,7 +5968,7 @@ const title = 'Private 3D viewer';
       const resolveActiveResearchContentScene = () => {
         if (mainViewScope?.active) {
           mainViewScope.enforce();
-          return fullModelScene;
+          return 'isC70SourceScene' in mainViewScope ? mainViewScope.selectedScene : fullModelScene;
         }
         if (activeResearchPreset === 'd-apartment') {
           delete canvas.dataset.contentFloor;
@@ -6073,6 +6094,33 @@ const title = 'Private 3D viewer';
         setModelScene(fullModelScene);
         const report = mainViewScope.apply(floor);
         if (!report) return;
+        if ('isC70SourceScene' in mainViewScope) {
+          resetHorizontalClipping();
+          horizontalClipping.configureRange(mainViewScope.selectedScene);
+        }
+        if ('isC70SourceScene' in mainViewScope && mainViewScope.isC70SourceScene === true) {
+          // This is a selected SOURCE SCENE, not classified mesh or current state.
+          // Avoid the default "luokiteltua kohdetta"/shared clipping wording.
+          const sourceSceneIndex = (report as {sceneIndex:number}).sceneIndex;
+          if (!Number.isInteger(sourceSceneIndex) || sourceSceneIndex < 0 || sourceSceneIndex > 69)
+            throw new Error('C70 source scene index invalid');
+          otherFloorMode.value = 'HIDDEN';
+          syncMainViewScope();
+          mainViewExceptions.hidden = false;
+          const held = document.createElement('li');
+          held.textContent = 'SOURCE_ONLY: fyysiset liitokset ovat varmistamatta. Vuoden 2015 ovivaihtoehdot ja K9-viitteet ovat pois käytöstä.';
+          mainViewExceptionList.replaceChildren(held);
+          const floorLabel = floor === '1F' ? 'alakerta' : floor === '2F' ? 'yläkerta' : 'molemmat kerrokset';
+          mainViewScopeNote.textContent = `C70 WORK_TEST: ${floorLabel}. Ei vahvistettu nykytila.`;
+          canvas.dataset.mainViewSourceSceneIndex = String(sourceSceneIndex);
+          canvas.dataset.mainViewScopeStatus = 'C70_WORK_TEST_SOURCE_ONLY_HOST_HOLD';
+          canvas.dataset.contentScene = 'C70_WORK_TEST_SOURCE';
+          canvas.dataset.contentFloor = floor;
+          fitModel();
+          status.textContent = `D-asunto C70 - ${floorLabel} - WORK_TEST`;
+          return;
+        }
+        delete canvas.dataset.mainViewSourceSceneIndex;
         otherFloorMode.value = floor === 'BOTH' ? 'HIDDEN' : requestedOtherFloorMode;
         syncMainViewScope();
         const reasonLabels: Record<string, string> = {
@@ -6103,6 +6151,10 @@ const title = 'Private 3D viewer';
         if (mainViewScope?.active && (preset === 'whole-building' || preset === 'site' ||
             preset === 'infra' || preset === 'drainage' || preset === 'electrical')) {
           mainViewScope.restore();
+          if ('isC70SourceScene' in mainViewScope) {
+            resetHorizontalClipping();
+            horizontalClipping.configureRange(mainViewScope.defaultScene);
+          }
           applyElectricalLayerState();
           syncMainViewScope();
         }
@@ -6693,7 +6745,11 @@ const title = 'Private 3D viewer';
         sourceKind: ModelSourceKind,
         sourceLabel: string,
         dInteriorOverride: THREE.Object3D | null = null,
+        c70PreviewSession: any = null,
       ) => {
+        modelLoadVersion++;
+        delete canvas.dataset.c70Preview;
+        delete canvas.dataset.c70SourceSha256;
         (canvas as any).d1fSource156RestoreOriginalVisibility?.();
         delete (canvas as any).d1fSource156SetOriginalVisibility;
         delete (canvas as any).d1fSource156RestoreOriginalVisibility;
@@ -6767,6 +6823,7 @@ const title = 'Private 3D viewer';
         clearD2FBoundaryReviewContext();
         mainViewScope?.dispose();
         mainViewScope = null;
+        delete canvas.dataset.mainViewSourceSceneIndex;
         otherFloorReference.clear();
         otherFloorMode.value = 'HIDDEN';
         fullModelScene = gltf.scene;
@@ -6800,7 +6857,19 @@ const title = 'Private 3D viewer';
 
         // Layer setup clones ARCH_BASE materials. Capture those final viewer
         // materials so the T04 adapter never replaces a layer's newer owner.
-        mainViewScope = createDViewRuntime(gltf, renderer);
+        // Opt-in only: C70's 1F/2F/BOTH live in distinct glTF scenes,
+        // whereas generic runtime can only filter gltf.scene's embedded scopes.
+        // The bridge preserves existing source loader, modelRoot & camera owners.
+        if (c70PreviewSession && (sourceKind !== 'work-test' ||
+            c70PreviewSession.gltf !== gltf || gltf.scene !== gltf.scenes?.[33]))
+          throw new Error('C70_WORK_TEST_SESSION_CHANGED');
+        mainViewScope = c70PreviewSession
+          ? createC70MainViewBridge({
+              session: c70PreviewSession, setScene: setModelScene,
+              readMountedScene: () => modelRoot.children[0] ?? null,
+              previewGate: 'EXPLICIT_WORK_TEST_PREVIEW', sourceKind: 'work-test',
+            })
+          : createDViewRuntime(gltf, renderer);
         syncMainViewScope();
 
         modelSourceBadge.textContent = sourceLabel;
@@ -6841,6 +6910,56 @@ const title = 'Private 3D viewer';
           status.textContent = 'Suojattua mallia ei ole vielä käytettävissä';
         }
       };
+
+      // A STAGING_HOLD model is never uploaded, catalogued or activated on the
+      // server. This explicit local-file path uses the actual protected viewer.
+      const c70PreviewEnabled = new URLSearchParams(window.location.search).get('c70-preview') === '1';
+      const c70PreviewControls = document.querySelector<HTMLElement>('#c70-preview-controls')!;
+      const c70PreviewButton = document.querySelector<HTMLButtonElement>('#c70-preview-button')!;
+      const c70PreviewInput = document.querySelector<HTMLInputElement>('#c70-preview-input')!;
+      c70PreviewControls.hidden = !c70PreviewEnabled;
+      let c70PreviewLoading = false;
+      c70PreviewButton.addEventListener('click', () => {
+        if (c70PreviewEnabled && !c70PreviewLoading) c70PreviewInput.click();
+      });
+      c70PreviewInput.addEventListener('change', async () => {
+        const file = c70PreviewInput.files?.[0];
+        if (!c70PreviewEnabled || !file || c70PreviewLoading) return;
+        c70PreviewLoading = true;
+        c70PreviewButton.disabled = true;
+        const version = modelLoadVersion;
+        canvas.dataset.c70Preview = 'loading';
+        status.textContent = 'Avataan C70-lähde-esikatselua...';
+        try {
+          if (file.size !== c70WorkTestContract.glbByteLength) throw new Error('C70_SOURCE_SIZE');
+          const session = await prepareC70Preview({
+            glbBytes: await file.arrayBuffer(), contract: c70WorkTestContract,
+            loader: new GLTFLoader(), baseUrl: '/private-model/',
+            previewGate: 'EXPLICIT_WORK_TEST_PREVIEW', sourceKind: 'work-test',
+          });
+          if (version !== modelLoadVersion) throw new Error('C70_MODEL_CHANGED_DURING_LOAD');
+          clearModelComparisonState();
+          delete canvas.dataset.p137eLoadedCandidateId;
+          delete canvas.dataset.workTestReviewMode;
+          delete canvas.dataset.workTestReviewCandidate;
+          p137ePlaceToolButton.disabled = true;
+          clearP137EPlaceDraft();
+          clearPointMeasure();
+          setViewerToolMode('navigate');
+          applyLoadedModel(session.gltf, 'work-test', 'C70 WORK_TEST', null, session);
+          applyStandardViewPreset('d-1f');
+          canvas.dataset.c70Preview = 'ready';
+          canvas.dataset.c70SourceSha256 = session.verification.glbSha256;
+          closeToolbarMenus();
+        } catch {
+          canvas.dataset.c70Preview = 'rejected';
+          status.textContent = 'C70-esikatselua ei avattu. Valitse täsmälleen hyväksytty C70-lähdetiedosto.';
+        } finally {
+          c70PreviewLoading = false;
+          c70PreviewButton.disabled = false;
+          c70PreviewInput.value = '';
+        }
+      });
 
       const p139nPlanSceneName =
         'P139N SITE_PLAN_OVERLAY - Z UNKNOWN - PLAN ONLY - NOT AS-BUILT';

@@ -1,0 +1,183 @@
+{
+  "schema": "ylisrinne.d-floor-selector.v1",
+  "model": "D_C70",
+  "sourceDriveFileId": "1hHD39DHJCE8mR-R-RW16Za00dAfEvYI9",
+  "sourceZipSha256": "4e901bd4cdcaf4e2258af543f86accb238aeab0b6031a69a1910c7d1cf4a5be2",
+  "glbSha256": "75b586aaf774bce34cf1dceba5d19e6ae41c112b8717f4cce5ce64458fddc491",
+  "glbByteLength": 9818932,
+  "sourceSceneCount": 70,
+  "glbDefaultScene": 33,
+  "stage": "WORK_TEST",
+  "classification": "SOURCE_ONLY/STAGING_HOLD",
+  "current": false,
+  "asBuilt": false,
+  "canonical": false,
+  "productionReady": false,
+  "canPublish": false,
+  "canApplyToViewer": false,
+  "physicalHost": "HOLD_K14_220MM_K19_1095MM_K8",
+  "humanReview": "NOT_RUN",
+  "webGlProductionTest": "NOT_RUN",
+  "coordinateFrame": "YLIS-G1-LOCAL; source glTF transformations preserved",
+  "optional2015": "HISTORICAL_2015_OPTIN_NOT_CURRENT",
+  "floorRules": {
+    "floorSpecificExcludesSharedCrossFloor": true,
+    "sharedIndices": [
+      55,
+      56,
+      57
+    ],
+    "floor1fK19COWScene": 62,
+    "floor2fDefaultScene": 52,
+    "historical2fDoorScenes": [
+      64,
+      65
+    ],
+    "sharedNodesCount": 18,
+    "gablesOnlyInBoth": true,
+    "k9IsReferenceOnly": true,
+    "noK9WithHistoricDoorModes": true
+  },
+  "modes": [
+    {
+      "floor": "1F",
+      "doorMode": "WORK_TEST",
+      "gable": "NONE",
+      "k9Reference": false,
+      "sceneIndex": 62,
+      "rootCount": 791,
+      "sceneName": "D_1F_K19_R7_7_U895_4_COW11_K9_REF_OFF_WORK_TEST_SOURCE_ONLY_STAGING_HOLD",
+      "rootSha256": "a3a870b30102a682385e02acadb25c9df242c0f1d45f3caadb0a660708d28311"
+    },
+    {
+      "floor": "1F",
+      "doorMode": "WORK_TEST",
+      "gable": "NONE",
+      "k9Reference": true,
+      "sceneIndex": 63,
+      "rootCount": 812,
+      "sceneName": "D_1F_K19_R7_7_U895_4_COW11_K9_REF_OPTIN_WORK_TEST_SOURCE_ONLY_STAGING_HOLD",
+      "rootSha256": "4fa967c5d813f775ade7a2dadbf75b513fbf6ea93bc57e48c74ac3cc7c9bdf09"
+    },
+    {
+      "floor": "2F",
+      "doorMode": "WORK_TEST",
+      "gable": "NONE",
+      "k9Reference": false,
+      "sceneIndex": 52,
+      "rootCount": 398,
+      "sceneName": "D_2F_WITHOUT_K8_LOW_WALL_WORK_TEST_SOURCE_ONLY",
+      "rootSha256": "d71c1fc59339c6d01a822dc5abe32cf3954c93d62b5ffa6adb0a860b26d182ef"
+    },
+    {
+      "floor": "2F",
+      "doorMode": "WORK_TEST",
+      "gable": "NONE",
+      "k9Reference": true,
+      "sceneIndex": 54,
+      "rootCount": 416,
+      "sceneName": "D_2F_PLUS_K9_REFERENCE_WITHOUT_K8_LOW_WALL_WORK_TEST",
+      "rootSha256": "995ab40f35f401e7606b73a7612b1d34e47378d3b4cac498fa1e8306c33b1fc3"
+    },
+    {
+      "floor": "2F",
+      "doorMode": "HIST_2015_OPEN",
+      "gable": "NONE",
+      "k9Reference": false,
+      "sceneIndex": 64,
+      "rootCount": 396,
+      "sceneName": "D_C66_HISTORICAL_2015_D2F_3_DOORS_OPEN_WITH_SWING_ARCS_SOURCE_ONLY_HOLD",
+      "rootSha256": "6f501cbc297cf1214f4df1e7dc6f607886fb8d6ddf654655abee3cddd3c7c4de"
+    },
+    {
+      "floor": "2F",
+      "doorMode": "HIST_2015_CLOSED",
+      "gable": "NONE",
+      "k9Reference": false,
+      "sceneIndex": 65,
+      "rootCount": 396,
+      "sceneName": "D_C66_HISTORICAL_2015_D2F_3_DOORS_CLOSED_SOURCE_ONLY_HOLD",
+      "rootSha256": "2179ea796fc6f64d3a2ca87df79869ddc1594a390b6c7e0b55bc2c6c2ec9f848"
+    },
+    {
+      "floor": "BOTH",
+      "doorMode": "WORK_TEST",
+      "gable": "K14_SHIFT_220",
+      "k9Reference": false,
+      "sceneIndex": 58,
+      "rootCount": 1207,
+      "sceneName": "ALT53_D_BOTH_COMB51_PLUS_K19_R7_7_U895_4_NO_K9_SOURCE_ONLY",
+      "rootSha256": "41dd041767c4a0ed84ba994af6ca3f3f73818140fa596cdfc5f1bca09c987f81"
+    },
+    {
+      "floor": "BOTH",
+      "doorMode": "WORK_TEST",
+      "gable": "K13_ORIGINAL",
+      "k9Reference": false,
+      "sceneIndex": 60,
+      "rootCount": 1207,
+      "sceneName": "K13_D_WEST_ORIGINAL_X_MINUS220MM_WORK_TEST_ALTERNATIVE_K9_REF_OFF",
+      "rootSha256": "e06987c530ba2c4faf739e2f65d2aaa59febae44f5997bd0428d9127d44bebac"
+    },
+    {
+      "floor": "BOTH",
+      "doorMode": "WORK_TEST",
+      "gable": "K14_SHIFT_220",
+      "k9Reference": true,
+      "sceneIndex": 59,
+      "rootCount": 1246,
+      "sceneName": "ALT53_D_BOTH_COMB51_PLUS_K19_R7_7_U895_4_K9_REFERENCE_SOURCE_ONLY",
+      "rootSha256": "781bd2ba4b8bffb73dbd6116c690d683e4cb8adf076a0c1a19ff2234e7c9d17f"
+    },
+    {
+      "floor": "BOTH",
+      "doorMode": "WORK_TEST",
+      "gable": "K13_ORIGINAL",
+      "k9Reference": true,
+      "sceneIndex": 61,
+      "rootCount": 1246,
+      "sceneName": "K13_D_WEST_ORIGINAL_X_MINUS220MM_WORK_TEST_ALTERNATIVE_K9_REF_OPTIN",
+      "rootSha256": "a255b2dbc6c79ed4420cee7760d945a31bab69159a5222fac4b0bf6fa927ecd0"
+    },
+    {
+      "floor": "BOTH",
+      "doorMode": "HIST_2015_OPEN",
+      "gable": "K14_SHIFT_220",
+      "k9Reference": false,
+      "sceneIndex": 66,
+      "rootCount": 1205,
+      "sceneName": "D_C68_BOTH_K19_COW11_D2F_2015_3DOORS_OPEN_ARCS_HIST_OPTIN_WORK_TEST",
+      "rootSha256": "5aa5c4e983820ce9116917496458a76a6ab92738bd72e3ee6e872945fe6a2545"
+    },
+    {
+      "floor": "BOTH",
+      "doorMode": "HIST_2015_CLOSED",
+      "gable": "K14_SHIFT_220",
+      "k9Reference": false,
+      "sceneIndex": 67,
+      "rootCount": 1205,
+      "sceneName": "D_C68_BOTH_K19_COW11_D2F_2015_3DOORS_CLOSED_HIST_OPTIN_WORK_TEST",
+      "rootSha256": "104173c1416bab6a4368420ae0ef502c560911028911ada7c187d3562d9bd363"
+    },
+    {
+      "floor": "BOTH",
+      "doorMode": "HIST_2015_OPEN",
+      "gable": "K13_ORIGINAL",
+      "k9Reference": false,
+      "sceneIndex": 68,
+      "rootCount": 1205,
+      "sceneName": "D_C70_BOTH_K19_COW11_2015_D2F_DOORS_OPEN_K13_ORIGINAL_WEST_GABLE_WORK_TEST_OPTIN",
+      "rootSha256": "78a50f878b424dc5b070a30e366f75b63bbddfd3d2250507ffc41012fbcaca3d"
+    },
+    {
+      "floor": "BOTH",
+      "doorMode": "HIST_2015_CLOSED",
+      "gable": "K13_ORIGINAL",
+      "k9Reference": false,
+      "sceneIndex": 69,
+      "rootCount": 1205,
+      "sceneName": "D_C70_BOTH_K19_COW11_2015_D2F_DOORS_CLOSED_K13_ORIGINAL_WEST_GABLE_WORK_TEST_OPTIN",
+      "rootSha256": "592407744b1b6b6a06eb00c7b17c11fd663c4946dc8f2871e9249986523e1261"
+    }
+  ]
+}
