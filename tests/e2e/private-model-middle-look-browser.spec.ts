@@ -83,8 +83,10 @@ test.beforeEach(async ({ page }) => {
     for (const type of ['pointerdown', 'mousedown', 'auxclick']) {
       document.addEventListener(type, (event) => {
         const e = event as PointerEvent;
-        queueMicrotask(() => (window as any).__middleEvents.push({ type, button: e.button,
-          pointerId: e.pointerId, prevented: e.defaultPrevented, target: (e.target as HTMLElement)?.id }));
+        // Microtasks can run between listeners during native input dispatch.
+        // Observe cancellation after the canvas capture handlers have finished.
+        setTimeout(() => (window as any).__middleEvents.push({ type, button: e.button,
+          pointerId: e.pointerId, prevented: e.defaultPrevented, target: (e.target as HTMLElement)?.id }), 0);
       }, { capture: true });
     }
   });
@@ -160,6 +162,7 @@ test('MMB-06 release, cancel, focus loss, missing button and outside release sto
     await page.mouse.move(p.x, p.y);
     await page.mouse.down({ button: 'middle' });
     await page.mouse.move(p.x + 25, p.y - 15);
+    await frames(page);
     const pointerId = await page.evaluate(() => (window as any).__middleEvents.filter((e: any) =>
       e.type === 'pointerdown' && e.button === 1 && e.target === 'private-model-canvas').at(-1).pointerId as number);
     if (ending === 'cancel') await page.dispatchEvent('#private-model-canvas', 'pointercancel', { pointerId, pointerType: 'mouse', buttons: 0 });
