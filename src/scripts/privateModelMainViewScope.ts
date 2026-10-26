@@ -75,8 +75,11 @@ export const createMainViewScope = (root: Object3D) => {
       else if (s.phaseScope !== 'ACTIVE_IN_SELECTED_WORKTEST') { /* history is opt-in */ }
       else if (s.apartmentScope === 'D' || s.apartmentScope === 'SHARED_CD') {
         if (s.role === 'REFERENCE_ONLY') reason = 'REFERENCE_PRESENTATION_PENDING';
-        else if (floor !== 'BOTH' && s.storeyScope === 'BOTH') reason = 'STOREY_CLIPPING_PENDING';
+        // T06: hide upper covers before testing unsplit BOTH geometry. A roof or
+        // upper occluder needs no floor split when it is entirely omitted.
+        // Shared boundaries and stair connectors still require T04/T05 clipping.
         else if (floor !== 'BOTH' && (s.role === 'UPPER_OCCLUDER' || s.storeyScope === 'ROOF')) { /* hide covers */ }
+        else if (floor !== 'BOTH' && s.storeyScope === 'BOTH') reason = 'STOREY_CLIPPING_PENDING';
         else show = floor === 'BOTH' || s.storeyScope === floor || s.storeyScope === `OUTSIDE_${floor}`;
       }
       if (reason) exceptions.push({ objectKey: s?.objectKey ?? `scene-object:${object.uuid}`, reason });
