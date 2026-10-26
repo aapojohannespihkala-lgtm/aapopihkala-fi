@@ -2263,7 +2263,8 @@ const title = 'Private 3D viewer';
         resolveP183P160ClosureIntegrationRoot,
       } from '../../scripts/privateModelP183ReviewPresentation';
       import { createHorizontalClippingController } from '../../scripts/privateModelHorizontalClipping';
-      import { createMainViewScope, type MainViewFloor } from '../../scripts/privateModelMainViewScope';
+      import { type MainViewFloor } from '../../scripts/privateModelMainViewScope';
+      import { createDViewRuntime } from '../../scripts/privateModelDViewRuntime';
       import { createOtherFloorReference } from '../../scripts/privateModelOtherFloorReference';
       import {
         createViewerLayerStateForModelLoad,
@@ -2745,6 +2746,7 @@ const title = 'Private 3D viewer';
       });
 
       const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+      renderer.localClippingEnabled = true;
       renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
       renderer.outputColorSpace = THREE.SRGBColorSpace;
       renderer.setClearColor(0x202a34, 1);
@@ -2960,7 +2962,7 @@ const title = 'Private 3D viewer';
         ticks: heightScaleTicks,
       });
       let fullModelScene: any = null;
-      let mainViewScope: ReturnType<typeof createMainViewScope> | null = null;
+      let mainViewScope: ReturnType<typeof createDViewRuntime> | null = null;
       const otherFloorReference = createOtherFloorReference(scene);
       const otherFloorMode = document.querySelector<HTMLSelectElement>('#other-floor-mode')!;
       const otherFloorNote = document.querySelector<HTMLElement>('#other-floor-note')!;
@@ -2997,6 +2999,9 @@ const title = 'Private 3D viewer';
         syncOtherFloorReference();
         canvas.dataset.mainViewArea = mainViewArea.value;
         canvas.dataset.mainViewFloor = mainViewFloor.value;
+        canvas.dataset.mainViewT04Status = mainViewScope?.t04Status ?? 'T04_HOLD';
+        canvas.dataset.mainViewStairStatus = mainViewScope?.stairStatus ?? 'HOST_HOLD';
+        canvas.dataset.mainViewSourceSha256 = mainViewScope?.sourceSha256 ?? '';
         if (!mainViewScope?.active) {
           canvas.dataset.mainViewScopeStatus = mainViewScope?.available ? 'available' : 'unavailable';
           delete canvas.dataset.mainViewExceptionCount;
@@ -6061,7 +6066,8 @@ const title = 'Private 3D viewer';
         }));
         mainViewExceptions.hidden = report.exceptions.length === 0;
         mainViewScopeNote.textContent = `${report.included} luokiteltua kohdetta rajauksessa. ` +
-          (report.exceptions.length ? `Rajaus on osittainen: ${report.exceptions.length} luokittelu- tai esityspoikkeamaa.` : '');
+          (report.exceptions.length ? `Rajaus on osittainen: ${report.exceptions.length} luokittelu- tai esityspoikkeamaa. ` : '') +
+          'Portaat: HOLD, K17:n liitosta ei ole varmennettu.';
         canvas.dataset.mainViewExceptionCount = String(report.exceptions.length);
         canvas.dataset.mainViewScopeStatus = report.exceptions.length ? 'partial' : 'classified';
         canvas.dataset.contentScene = 'full-model';
@@ -6737,11 +6743,11 @@ const title = 'Private 3D viewer';
         }
 
         clearD2FBoundaryReviewContext();
-        mainViewScope?.restore();
+        mainViewScope?.dispose();
         otherFloorReference.clear();
         otherFloorMode.value = 'HIDDEN';
         fullModelScene = gltf.scene;
-        mainViewScope = createMainViewScope(fullModelScene);
+        mainViewScope = createDViewRuntime(gltf, renderer);
         syncMainViewScope();
         resolveSelectionSources = sourceCardResolverForModel(gltf);
         dInteriorScene = dInteriorOverride ??
