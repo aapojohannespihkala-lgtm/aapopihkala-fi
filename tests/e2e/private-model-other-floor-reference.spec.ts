@@ -166,9 +166,15 @@ test('reference pixels appear in two 3D directions and plan, then return exactly
   for (const view of ['free', 'rotated', 'plan']) {
     if (view === 'rotated') {
       const rect = (await canvas.boundingBox())!;
+      const beforeLook = JSON.parse((await page.locator('#ai-navigator-readout').getAttribute('data-world-pose'))!).direction as number[];
       await page.mouse.move(rect.x + rect.width * .4, rect.y + rect.height * .45);
-      await page.mouse.down(); await page.mouse.move(rect.x + rect.width * .6, rect.y + rect.height * .5, { steps: 8 });
-      await page.mouse.up(); await frames(page, 240);
+      // Fixed-position look produces a distinct view without a residual orbit
+      // damping impulse changing the baseline during the pixel comparison.
+      await page.mouse.down({ button: 'middle' });
+      await page.mouse.move(rect.x + rect.width * .4 + 60, rect.y + rect.height * .45 - 20, { steps: 8 });
+      await page.mouse.up({ button: 'middle' }); await frames(page);
+      const afterLook = JSON.parse((await page.locator('#ai-navigator-readout').getAttribute('data-world-pose'))!).direction as number[];
+      expect(Math.hypot(...beforeLook.map((n, i) => n - afterLook[i]))).toBeGreaterThan(.1);
     } else if (view === 'plan') {
       await menu(page, '#view-menu'); await page.getByRole('button', { name: 'Ylhäältä', exact: true }).click();
     }
@@ -194,7 +200,10 @@ test('reference is non-selectable in the real page and works with the mobile men
   await page.locator('#selection-tool-button').click();
   const canvas = page.locator('#private-model-canvas'), rect = (await canvas.boundingBox())!;
   await canvas.click({ position: { x: rect.width / 2, y: rect.height / 2 } });
-  await expect(page.locator('#selection-mesh')).toHaveText('lower');
+  await expect(page.locator('#selection-panel')).toBeVisible();
+  const sourceIdentity = page.locator('#selection-metadata-list dt').filter({ hasText: /^Tekninen kohde$/ })
+    .locator('xpath=following-sibling::dd[1]');
+  await expect(sourceIdentity).toHaveText('lower');
   await expect(canvas).toHaveAttribute('data-other-floor-reference-keys', 'upper');
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });
