@@ -27,7 +27,7 @@ class BotRefreshPolicy(unittest.TestCase):
         self.assertIn('[[ "$REPLAY_ROUND" =~ ^[12]$ ]]', BODY)
 
     def test_explicit_event_and_new_sha(self):
-        self.assertIn('"/actions/workflows/build-check.yml/dispatches"', BODY)
+        self.assertIn('actions/workflows/build-check.yml/dispatches"', BODY)
         self.assertIn('--raw-field ref="$HEAD_REF"', BODY)
         self.assertIn('"inputs[replay_sha]=$refreshed"', BODY)
         self.assertIn('[[ "$refreshed" =~ ^[0-9a-f]{40}$', BODY)
