@@ -7149,15 +7149,17 @@ test('private viewer wheel zoom keeps moving forward near the orbit target', asy
   expect(box).not.toBeNull();
   if (!box) return;
 
+  const tryReadVector = async (label: 'CAM' | 'TARGET') => {
+    const text = (await readout.textContent()) ?? '';
+    const match = new RegExp(`${label}\\s*X([+-]?[\\d.]+)\\s*Y([+-]?[\\d.]+)\\s*Z([+-]?[\\d.]+)`).exec(text);
+    return match ? (match.slice(1, 4).map(Number) as [number, number, number]) : null;
+  };
   const readVector = async (label: 'CAM' | 'TARGET') => {
-    const text = await readout.innerText();
-    const match = new RegExp(`${label}\\s+X([+-][\\d.]+)\\s+Y([+-][\\d.]+)\\s+Z([+-][\\d.]+)`).exec(text);
-    expect(match, `${label} row in navigator readout: ${text}`).not.toBeNull();
-    return match!.slice(1, 4).map(Number) as [number, number, number];
+    await expect.poll(() => tryReadVector(label), { timeout: 15000 }).not.toBeNull();
+    return (await tryReadVector(label))!;
   };
   const distance = (a: number[], b: number[]) => Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
 
-  await expect(readout).toContainText('TARGET');
   const startCamera = await readVector('CAM');
   const startTarget = await readVector('TARGET');
   const startDistance = distance(startCamera, startTarget);
