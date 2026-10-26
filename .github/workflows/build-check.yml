@@ -180,10 +180,10 @@ jobs:
       - name: Verify D-view source and model gates
         if: steps.changes.outputs.docs_only != 'true' && steps.changes.outputs.css_only != 'true'
         run: |
-          node --test \\
-            tests/unit/check-d-scene32-preview-parity.test.mjs \\
-            tests/unit/check-k14-roof-crossings.test.mjs \\
-            tests/unit/shared-boundary-local-clip.test.mjs \\
+          node --test \
+            tests/unit/check-d-scene32-preview-parity.test.mjs \
+            tests/unit/check-k14-roof-crossings.test.mjs \
+            tests/unit/shared-boundary-local-clip.test.mjs \
             tests/unit/private-model-stair-host-gate.test.mjs
 
       - name: Static checks
