@@ -1,0 +1,121 @@
+name: D-view exact-source WebGL regression
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - src/pages/private-model/index.astro
+      - src/scripts/privateModelDViewRuntime.ts
+      - src/scripts/privateModelMainViewScope.ts
+      - src/scripts/privateModelSourceCards.ts
+      - src/scripts/privateModelSharedBoundaryClip.mjs
+      - src/scripts/privateModelSharedCdMaterialClip.mjs
+      - src/scripts/privateModelT04*.mjs
+      - src/scripts/privateModelOtherFloorReference.ts
+      - tests/e2e/private-model-d-runtime-integration.spec.ts
+      - .github/workflows/d-view-regression.yml
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: d-view-exact-source-webgl
+  cancel-in-progress: false
+
+jobs:
+  real-model-webgl:
+    if: github.ref == 'refs/heads/main' && github.repository == 'aapojohannespihkala-lgtm/aapopihkala-fi'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.20.0
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - name: Authenticate read-only Drive source access on trusted main
+        id: google-auth
+        uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: ${{ vars.GDRIVE_WIF_PROVIDER }}
+          service_account: ${{ vars.GDRIVE_PUBLISHER_SERVICE_ACCOUNT }}
+          token_format: access_token
+          access_token_scopes: https://www.googleapis.com/auth/drive.readonly
+          create_credentials_file: false
+          export_environment_variables: false
+      - name: Fetch two distinct immutable sources and verify ZIP CRC and SHA
+        env:
+          GDRIVE_ACCESS_TOKEN: ${{ steps.google-auth.outputs.access_token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import hashlib, io, os, pathlib, urllib.request, zipfile
+          locks = [
+            ('scene28', '1TUQsJlPRLVORes7MfT3BYJCbo56xYQRT', 978526,
+             '14e506b41f80559b18643e8a4d3c67f089759c086310d27a5440f690112ced53',
+             '9bd394795b6bee37de9aea6f6b128cf93e9489a34015852d2d59082a3529013e'),
+            ('r4e', '1LoRfeI7JigrbR2S6hIsOJ7Q_DonYocAU', 1106851,
+             'e840c5fa14c0f919aa9617fdd9cd3ae144f511e5e0a023641e6599431b074807',
+             '2f42444401224f7b5bd62663c4227d78e3af0618c58c1961e317598cf7886680'),
+          ]
+          for name, file_id, size, zip_sha, glb_sha in locks:
+            request = urllib.request.Request(
+              'https://www.googleapis.com/drive/v3/files/' + file_id + '?alt=media&supportsAllDrives=true',
+              headers={'Authorization': 'Bearer ' + os.environ['GDRIVE_ACCESS_TOKEN']})
+            with urllib.request.urlopen(request, timeout=60) as response:
+              data = response.read(size + 1)
+            assert len(data) == size and hashlib.sha256(data).hexdigest() == zip_sha, 'Source ZIP mismatch: ' + name
+            with zipfile.ZipFile(io.BytesIO(data)) as archive:
+              assert archive.testzip() is None, 'ZIP CRC: ' + name
+              assert archive.getinfo('model.glb').file_size < 12000000
+              glb = archive.read('model.glb')
+            assert hashlib.sha256(glb).hexdigest() == glb_sha, 'GLB source mismatch: ' + name
+            pathlib.Path(os.environ['RUNNER_TEMP'], name + '.glb').write_bytes(glb)
+            print(name + ': ZIP/CRC/GLB SHA PASS ' + glb_sha)
+          PY
+      - name: Actual runtime desktop/mobile, T04 pixels, selection and lifecycle
+        env:
+          YLIS_R4E_GLB: ${{ runner.temp }}/r4e.glb
+          YLIS_SCENE28_GLB: ${{ runner.temp }}/scene28.glb
+          YLIS_REQUIRE_REAL: '1'
+        run: npx playwright test tests/e2e/private-model-d-runtime-integration.spec.ts --workers=1 --trace=off
+      - name: Encrypt private model screenshots before artifact storage
+        if: always()
+        env:
+          D_VIEW_EVIDENCE_PUBLIC_KEY: |
+            -----BEGIN PUBLIC KEY-----
+            MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA2Wb28lKfJ8xHD91rtdd8
+            RGE5jPi94X4nyXYjmpu73IGLztOYCHmTnuggQ5YwQKYM5bIF9DccSC39j2zT2K8J
+            6s0a+8ez6buU4Bbq3pdRtUo63Lb+PmsvZr30XUW4daMu56Z8yCY+q1uQBGImN+zw
+            yCUHCU14nVagKkCiqShi4FK7AEo+YJY4pel26X4ZlT/25XsCKt+rgUe/Vz1QcB5D
+            5wZDNC3+cwXG2J6vjVGjHdsnRF8MqDXd+wcg0ufivbQORKN2GEgBSpMWjvhMKEbF
+            IzOdnOKyCMJjB0/z3iWaGja+eosVaP10LbgiGks73ttewm7UHk40rZdq0LNwMT34
+            swIDAQAB
+            -----END PUBLIC KEY-----
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ -d test-results ]] || exit 0
+          mkdir -p "$RUNNER_TEMP/d-view-evidence"
+          printf '%s\n' "$D_VIEW_EVIDENCE_PUBLIC_KEY" > "$RUNNER_TEMP/d-view-evidence-public.pem"
+          openssl rand -base64 48 > "$RUNNER_TEMP/d-view-evidence-password"
+          tar -czf "$RUNNER_TEMP/d-view-evidence.tar.gz" test-results
+          openssl enc -aes-256-cbc -salt -pbkdf2 -iter 200000 \
+            -pass "file:$RUNNER_TEMP/d-view-evidence-password" \
+            -in "$RUNNER_TEMP/d-view-evidence.tar.gz" -out "$RUNNER_TEMP/d-view-evidence/evidence.enc"
+          openssl pkeyutl -encrypt -pubin -inkey "$RUNNER_TEMP/d-view-evidence-public.pem" \
+            -pkeyopt rsa_padding_mode:oaep -pkeyopt rsa_oaep_md:sha256 \
+            -in "$RUNNER_TEMP/d-view-evidence-password" -out "$RUNNER_TEMP/d-view-evidence/password.rsa"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: d-view-exact-source-webgl-${{ github.sha }}
+          path: ${{ runner.temp }}/d-view-evidence/
+          if-no-files-found: warn
+          retention-days: 3

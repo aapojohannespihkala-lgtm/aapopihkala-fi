@@ -411,6 +411,9 @@ export const createSourceCardResolver = (
 };
 
 const sessions = new WeakMap<object, (object: SourceNode) => SelectionSourceEvidence>();
+const loadedDigests = new WeakMap<object, string>();
+/** The digest of the exact GLB bytes parsed in this load session, never catalog metadata. */
+export const loadedModelSha256 = (gltf: object) => loadedDigests.get(gltf) ?? null;
 let bundleRequest: Promise<{ bundle: SourceCardBundle | null; failure?: string }> | undefined;
 const getBundle = () => bundleRequest ??= (async () => {
   try {
@@ -437,6 +440,7 @@ export const loadModelWithSourceCards = async <T extends GltfSource & object>(
   let identity: GltfSource = gltf;
   try { identity = await sourceCardIdentity(gltf); } catch { /* Cards fail closed, model loading remains available. */ }
   sessions.set(gltf, createSourceCardResolver(identity, digest, cards.bundle, cards.failure));
+  if (digest) loadedDigests.set(gltf, digest);
   return gltf;
 };
 
