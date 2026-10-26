@@ -290,6 +290,16 @@ export const createOrientationGizmoController = ({
     const look = new THREE.Vector3(0, 0, -1)
       .applyQuaternion(camera.quaternion)
       .normalize();
+    // Machine-readable pose of the actual active camera. Keep this independent
+    // of the human readout's centimetre rounding and the input controllers.
+    const worldPose = JSON.stringify({
+      frame: 'THREE_WORLD_Y_UP',
+      projection,
+      position: camera.position.toArray(),
+      target: target.toArray(),
+      direction: look.toArray(),
+    });
+    if (readout.dataset.worldPose !== worldPose) readout.dataset.worldPose = worldPose;
     const lookYlis = toYlis(look).normalize();
     const cameraYlis = toYlis(camera.position);
     const targetYlis = toYlis(target);
