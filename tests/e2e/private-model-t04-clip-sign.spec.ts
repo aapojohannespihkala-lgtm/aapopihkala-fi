@@ -72,7 +72,8 @@ test('T04 WebGL retains the requested floor and rejects the old reversed-sign co
         }
         const restored = draw(null);
         results.push({ floors, original:{lower:before.lower,upper:before.upper},
-          exactRestore:before.bytes.every((v,i)=>v===restored.bytes[i]) });
+          exactRestore:before.bytes.every((v,i)=>v===restored.bytes[i]),
+          glError:renderer.getContext().getError() });
       }
       target.dispose(); geometry.dispose(); material.dispose(); renderer.dispose();
       window.__t04 = { ok:true, results };
@@ -80,6 +81,7 @@ test('T04 WebGL retains the requested floor and rejects the old reversed-sign co
     </script></body></html>` }));
   const errors: string[] = [];
   page.on('pageerror', error => errors.push(error.message));
+  page.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });
   await page.goto('/t04-probe/');
   await page.waitForFunction(() => Boolean((window as any).__t04));
   const result = await page.evaluate(() => (window as any).__t04);
@@ -93,6 +95,7 @@ test('T04 WebGL retains the requested floor and rejects the old reversed-sign co
     expect(observed.floors['1F'].oldControl).toEqual({ lower: false, upper: true });
     expect(observed.floors['2F'].oldControl).toEqual({ lower: true, upper: false });
     expect(observed.exactRestore).toBe(true);
+    expect(observed.glError).toBe(0);
   }
   await info.attach('t04-gpu-sign-report', { body: JSON.stringify(result, null, 2), contentType: 'application/json' });
 });
