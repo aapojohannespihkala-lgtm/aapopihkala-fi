@@ -107,7 +107,7 @@ jobs:
 
           node --input-type=module <<'NODE'
           import { chromium } from '@playwright/test';
-          import { widgetBrowserResponseFailure, widgetBrowserRequestFailure } from './.github/scripts/snapshot-http-diagnostics.mjs';
+          import { widgetBrowserResponseFailure, widgetBrowserRequestFailure, widgetBrowserReady } from './.github/scripts/snapshot-http-diagnostics.mjs';
 
           const url = `https://aapopihkala.fi/current/widget/?live_smoke=${process.env.GITHUB_RUN_ID}`;
           const browser = await chromium.launch({ headless: true });
@@ -161,12 +161,7 @@ jobs:
               });
               console.log(JSON.stringify({ attempt, ...diagnostics, failures: failures.slice(0, 10) }, null, 2));
 
-              if (
-                (diagnostics.loadState === 'ready' || diagnostics.loadState === 'stale') &&
-                !diagnostics.unavailable &&
-                failures.length === 0 &&
-                diagnostics.sections.length >= 4
-              ) {
+              if (widgetBrowserReady({ ...diagnostics, failures })) {
                 verified = true;
                 break;
               }

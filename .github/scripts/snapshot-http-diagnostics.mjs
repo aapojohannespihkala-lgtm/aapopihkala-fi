@@ -41,3 +41,10 @@ export const widgetBrowserRequestFailure = (rawUrl, error, method = 'GET') => {
   const diagnostic = snapshotRequestFailureDiagnostic(rawUrl, error, method);
   return diagnostic?.endpoint === '/api/current/widget-v2' ? diagnostic : null;
 };
+
+// A stale fallback is usable but degraded, never a fresh production success.
+export const widgetBrowserReady = ({ loadState, sections, unavailable, failures }) =>
+  loadState === 'ready' &&
+  unavailable === false &&
+  Array.isArray(sections) && sections.length >= 4 &&
+  Array.isArray(failures) && failures.length === 0;

@@ -7,6 +7,7 @@ import {
   snapshotRequestFailureDiagnostic,
   widgetBrowserResponseFailure,
   widgetBrowserRequestFailure,
+  widgetBrowserReady,
 } from './snapshot-http-diagnostics.mjs';
 
 test('Snapshot HTTP diagnostics keep the exact status but strip query parameters', () => {
@@ -70,4 +71,27 @@ test('Snapshot smoke keeps browser verification after an API failure', () => {
   for (const name of ['Verify production standalone Widget in browser', 'Verify production Snapshot sources in browser']) {
     assert.ok(workflow.includes(`- name: ${name}\n        if: \${{ !cancelled() && steps.chromium.outcome == 'success' }}`));
   }
+});
+
+test('Widget browser smoke requires fresh ready, not a stale fallback', () => {
+  const healthy = {
+    loadState: 'ready',
+    sections: ['weather', 'electricity', 'markets', 'rates'],
+    unavailable: false,
+    failures: [],
+  };
+  assert.equal(widgetBrowserReady(healthy), true);
+  for (const degraded of [
+    { loadState: 'stale' },
+    { loadState: 'error' },
+    { loadState: 'loading' },
+    { unavailable: true },
+    { sections: healthy.sections.slice(0, 3) },
+    { failures: ['http: 503'] },
+  ]) {
+    assert.equal(widgetBrowserReady({ ...healthy, ...degraded }), false);
+  }
+
+  const workflow = readFileSync(new URL('../workflows/current-snapshot-browser-smoke.yml', import.meta.url), 'utf8');
+  assert.match(workflow, /widgetBrowserReady\(\{ \.\.\.diagnostics, failures \}\)/);
 });
