@@ -13,7 +13,8 @@
 const HASH = /^[a-f\d]{64}$/i;
 const DOC = /^DOC:[a-zA-Z0-9_-]{8,}$/;
 const FLOOR = new Set(['WHOLE', 'BOTH', '1F', '2F']);
-const sameHash = (a, b) => HASH.test(a ?? '') && HASH.test(b ?? '') && a.toLowerCase() === b.toLowerCase();
+const sameHash = (a, b) => typeof a === 'string' && typeof b === 'string' &&
+  HASH.test(a) && HASH.test(b) && a.toLowerCase() === b.toLowerCase();
 const reject = (reason, floor = null) => Object.freeze({
   ok: false, status: 'HOST_HOLD', reason, floor,
   render: 'NO_NEW_STAIR_PRESENTATION', primaryKeys: [], referenceKeys: [],
