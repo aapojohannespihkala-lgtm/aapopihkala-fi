@@ -28,6 +28,31 @@ function bootstrapGlb() {
 const openMenu = async (page: Page, id: string) => {
   if (await page.locator(id).getAttribute('open') === null) await page.locator(`${id} > summary`).click();
 };
+
+async function viewerModuleUrls(page: Page, origin: string) {
+  const scripts = await page.locator('script[type="module"][src]').evaluateAll(elements =>
+    elements.map(element => (element as HTMLScriptElement).src));
+  // Cloudflare can inject its own module. Only the site's positive /_astro/
+  // module set belongs to this build; every selected module still needs SHA parity.
+  const own = scripts.filter(src => {
+    const url = new URL(src);
+    return url.origin === origin && url.pathname.startsWith('/_astro/');
+  });
+  expect(own.length, 'Published viewer must expose its own actual module bundle').toBeGreaterThan(0);
+  return own;
+}
+
+function watchModelWrites(page: Page, bytes: Buffer, writes: string[]) {
+  page.on('request', request => {
+    if (['GET', 'HEAD'].includes(request.method())) return;
+    const url = new URL(request.url()), body = request.postDataBuffer();
+    // Retain the private endpoint and model-payload gates, including a GLB
+    // sent elsewhere, without treating unrelated CDN telemetry as a model upload.
+    if (url.pathname.startsWith('/private-model/') || body?.includes(bytes.subarray(0, 64)))
+      writes.push(request.method() + ' ' + url.pathname);
+  });
+}
+
 async function boot(page: Page, preview = true) {
   if (process.env.YLIS_C70_PRODUCTION === '1') {
     const clientId = process.env.CF_ACCESS_VIEWER_PROBE_CLIENT_ID;
@@ -56,14 +81,10 @@ async function boot(page: Page, preview = true) {
     await expect(async () => {
       await page.goto('https://aapopihkala.fi/private-model/?c70-preview=1');
       await expect(page.locator('#c70-preview-controls')).toHaveCount(1, { timeout: 5000 });
-      const scripts = await page.locator('script[type="module"][src]').evaluateAll(elements =>
-        elements.map(element => (element as HTMLScriptElement).src));
-      expect(scripts.length, 'Published viewer must expose its actual module bundle').toBeGreaterThan(0);
+      const scripts = await viewerModuleUrls(page, 'https://aapopihkala.fi');
       const verifiedBundles: any[] = [];
       for (const src of scripts) {
         const url = new URL(src);
-        expect(url.origin).toBe('https://aapopihkala.fi');
-        expect(url.pathname.startsWith('/_astro/')).toBe(true);
         const local = join(process.cwd(), 'dist', url.pathname);
         expect(existsSync(local), 'Published module must belong to the tested main build').toBe(true);
         const response = await page.request.get(src, { maxRedirects: 0 });
@@ -87,7 +108,7 @@ async function boot(page: Page, preview = true) {
 test('C70 preview needs explicit opt-in, rejects unrelated bytes and never uploads', async ({ page }) => {
   test.skip(process.env.YLIS_C70_PRODUCTION === '1', 'Source-free negative UI test runs on the local build.');
   const writes: string[] = [];
-  page.on('request', r => { if (!['GET', 'HEAD'].includes(r.method())) writes.push(r.method() + ' ' + new URL(r.url()).pathname); });
+  watchModelWrites(page, bootstrapGlb(), writes);
   await boot(page, false);
   await openMenu(page, '#model-menu');
   await expect(page.locator('#c70-preview-controls')).toBeHidden();
@@ -98,6 +119,26 @@ test('C70 preview needs explicit opt-in, rejects unrelated bytes and never uploa
   await expect(page.locator('#private-model-canvas')).toHaveAttribute('data-c70-preview', 'rejected');
   await expect(page.locator('#private-model-canvas')).toHaveAttribute('data-model-source', 'current');
   expect(writes).toEqual([]);
+});
+
+test('published verifier keeps own modules and private write gates with an injected CDN module', async ({ page }) => {
+  test.skip(process.env.YLIS_C70_PRODUCTION === '1', 'Source-free verifier regression.');
+  await boot(page);
+  await page.route('https://static.cloudflareinsights.com/c70-verifier-fixture.js', r =>
+    r.fulfill({ contentType: 'application/javascript', headers: { 'Access-Control-Allow-Origin': '*' }, body: 'export {};' }));
+  await page.addScriptTag({ type: 'module', url: 'https://static.cloudflareinsights.com/c70-verifier-fixture.js' });
+  const own = await viewerModuleUrls(page, new URL(page.url()).origin);
+  expect(own.every(src => !src.includes('cloudflareinsights'))).toBe(true);
+  const writes: string[] = [], bytes = bootstrapGlb();
+  watchModelWrites(page, bytes, writes);
+  for (const path of ['/cdn-cgi/rum', '/private-model/write-fixture', '/payload-fixture'])
+    await page.route(`**${path}`, r => r.fulfill({ status: 204 }));
+  await page.evaluate(() => fetch('/cdn-cgi/rum', { method: 'POST', body: '{}' }));
+  expect(writes).toEqual([]);
+  await page.evaluate(() => fetch('/private-model/write-fixture', { method: 'POST', body: '{}' }));
+  await page.evaluate(base64 => fetch('/payload-fixture', { method: 'POST',
+    body: Uint8Array.from(atob(base64), c => c.charCodeAt(0)) }), bytes.toString('base64'));
+  expect(writes).toEqual(['POST /private-model/write-fixture', 'POST /payload-fixture']);
 });
 
 for (const width of [1280, 390]) test(`actual C70 GLTFLoader viewer 1F/2F/BOTH/WHOLE, restore and private local file at ${width}px`, async ({ page }, info) => {
@@ -111,7 +152,7 @@ for (const width of [1280, 390]) test(`actual C70 GLTFLoader viewer 1F/2F/BOTH/W
   const errors: string[] = [], writes: string[] = [];
   page.on('pageerror', e => errors.push(e.message));
   page.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });
-  page.on('request', r => { if (!['GET', 'HEAD'].includes(r.method())) writes.push(r.method() + ' ' + new URL(r.url()).pathname); });
+  watchModelWrites(page, bytes, writes);
   await page.setViewportSize({ width, height: 900 });
   await boot(page);
   await openMenu(page, '#model-menu');
@@ -203,6 +244,12 @@ for (const width of [1280, 390]) test(`actual C70 GLTFLoader viewer 1F/2F/BOTH/W
   }
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   expect(errors).toEqual([]); expect(writes).toEqual([]);
+  // Allowlisted identity/status metadata only; private model bytes, headers and
+  // screenshots remain outside logs and in the existing encrypted evidence path.
+  console.log('C70_VIEWER_RESULT ' + JSON.stringify({ width, sourceSha256: C70_SHA,
+    target: process.env.YLIS_C70_PRODUCTION === '1' ? 'published' : 'main-build',
+    publishedModelIdentities, publishedBundles: (page as any).publishedBundles ?? [],
+    modelWrites: writes.length, webgl: 'PASS', sourceLevel: 'WORK_TEST_SOURCE_ONLY_STAGING_HOLD' }));
   await info.attach('c70-real-viewer-result', { body: JSON.stringify({ sourceSha256: C70_SHA,
     sourceSceneCount: 70, width, observations, writes, browser: 'REAL_GLTFLOADER_WEBGL2',
     testedCommit: process.env.D_VIEW_TESTED_COMMIT ?? 'local', publishedModelIdentities,
