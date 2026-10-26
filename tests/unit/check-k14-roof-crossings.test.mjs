@@ -91,3 +91,13 @@ test('no valid footprint audit can claim real browser or publication acceptance'
   assert.equal(result.canApplyToViewer, false);
   assert.equal(result.canPublish, false);
 });
+
+test('no implicit source version, scene or roof bounds are accepted', () => {
+  const report = auditK14RoofCrossings();
+  assert.equal(report.ok, false);
+  assert.equal(report.canApplyToViewer, false);
+  assert.equal(report.canPublish, false);
+  assert.ok(report.errors.includes('SOURCE_ZIP_SHA_MISMATCH'));
+  assert.ok(report.errors.includes('SCENE_ID_MISMATCH'));
+  assert.ok(report.errors.includes('ROOF_FOOTPRINT_SET_INVALID'));
+});
