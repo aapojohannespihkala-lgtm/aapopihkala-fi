@@ -12,7 +12,8 @@ test('main scene scope excludes other apartments, unresolved ownership, history 
     scope('shared', 'SHARED_CD', 'BOTH', 'SHARED_BOUNDARY'), scope('stairs', 'D', 'BOTH', 'VERTICAL_CONNECTOR'),
     scope('a', 'A'), scope('b', 'B'), scope('c', 'C'), scope('site', 'SITE', 'UNKNOWN'),
     scope('unknown', 'UNKNOWN'), scope('old', 'D', '1F', 'CONTENT', 'HISTORICAL'),
-    scope('reference', 'D', '1F', 'REFERENCE_ONLY'), scope('cover', 'D', '1F', 'UPPER_OCCLUDER')];
+    scope('reference', 'D', '1F', 'REFERENCE_ONLY'), scope('cover', 'D', '1F', 'UPPER_OCCLUDER'),
+    scope('cover-both', 'D', 'BOTH', 'UPPER_OCCLUDER'), scope('roof', 'D', 'ROOF', 'CONTENT')];
   const meshes = data.map((s) => {
     const object = new THREE.Mesh(new THREE.BoxGeometry(), material);
     object.userData = { ylisViewScope: s, sourceDocIds: ['fixture-source'], geometryConfidence: 'WORK_TEST' };
@@ -25,11 +26,15 @@ test('main scene scope excludes other apartments, unresolved ownership, history 
   const report = filter.apply('1F')!;
   expect(meshes.filter((o) => o.visible).map((o) => o.userData.ylisViewScope.objectKey)).toEqual(['lower', 'outside']);
   expect(report.exceptions.filter((e) => e.reason === 'STOREY_CLIPPING_PENDING').map((e) => e.objectKey)).toEqual(['shared', 'stairs']);
+  // T06 covers that span both levels are omitted, not spuriously marked as
+  // unsplittable T04/T05 geometry. ROOF also stays hidden in single-floor views.
+  expect(report.exceptions.some((e) => ['cover-both', 'roof'].includes(e.objectKey))).toBe(false);
   expect(report.exceptions.some((e) => e.objectKey === 'site')).toBe(false);
-  filter.apply('2F');
+  const upperReport = filter.apply('2F')!;
   expect(meshes.filter((o) => o.visible).map((o) => o.userData.ylisViewScope.objectKey)).toEqual(['upper']);
+  expect(upperReport.exceptions.filter((e) => e.reason === 'STOREY_CLIPPING_PENDING').map((e) => e.objectKey)).toEqual(['shared', 'stairs']);
   filter.apply('BOTH');
-  expect(meshes.filter((o) => o.visible).map((o) => o.userData.ylisViewScope.objectKey)).toEqual(['lower', 'upper', 'outside', 'shared', 'stairs', 'cover']);
+  expect(meshes.filter((o) => o.visible).map((o) => o.userData.ylisViewScope.objectKey)).toEqual(['lower', 'upper', 'outside', 'shared', 'stairs', 'cover', 'cover-both', 'roof']);
   meshes[7].visible = true; // a layer toggle must not leak C back into the D scope
   filter.enforce();
   expect(meshes[7].visible).toBe(false);
