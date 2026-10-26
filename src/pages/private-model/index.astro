@@ -3078,6 +3078,7 @@ const title = 'Private 3D viewer';
       const setModelScene = (root: any) => {
         if (root !== fullModelScene && mainViewScope?.active) {
           mainViewScope.restore();
+          applyElectricalLayerState();
           syncMainViewScope();
         }
         modelRoot.clear();
@@ -6005,6 +6006,8 @@ const title = 'Private 3D viewer';
         objectVisibilityFilter.restore();
         resetObjectVisibilityFilterState();
         restoreDVisibility();
+        mainViewScope.restore();
+        applyElectricalLayerState();
         setModelScene(fullModelScene);
         const report = mainViewScope.apply(floor);
         if (!report) return;
@@ -6036,6 +6039,7 @@ const title = 'Private 3D viewer';
         if (mainViewScope?.active && (preset === 'whole-building' || preset === 'site' ||
             preset === 'infra' || preset === 'drainage' || preset === 'electrical')) {
           mainViewScope.restore();
+          applyElectricalLayerState();
           syncMainViewScope();
         }
         const researchPreset = researchPresetForStandardView(preset);
@@ -6140,6 +6144,7 @@ const title = 'Private 3D viewer';
           resetObjectVisibilityFilterState();
           resetHorizontalClipping();
           mainViewScope.restore();
+          applyElectricalLayerState();
           syncMainViewScope();
           setActiveResearchPreset('whole-building');
         }
@@ -12925,11 +12930,13 @@ const title = 'Private 3D viewer';
       layersButton.addEventListener('click', () => closeToolbarMenus());
       mainViewArea.addEventListener('change', () => {
         applyStandardViewPreset(mainViewArea.value === 'D' ? 'd-apartment' : 'whole-building');
+        closeToolbarMenus();
       });
       mainViewFloor.addEventListener('change', () => {
         if (!mainViewScope?.active) return;
         applyStandardViewPreset(mainViewFloor.value === '1F' ? 'd-1f' :
           mainViewFloor.value === '2F' ? 'd-2f' : 'd-apartment');
+        closeToolbarMenus();
       });
       fitButton.addEventListener('click', fitModel);
       resetViewDefaultsButton.addEventListener('click', resetActiveViewDefaults);

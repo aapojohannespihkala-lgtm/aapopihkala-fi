@@ -65,7 +65,7 @@ test('names and duplicate keys cannot establish D ownership and original hidden 
   expect(noMetadata.visible).toBe(true);
 });
 
-const fixture = (withScope = true) => {
+const fixture = (withScope = true, withElectrical = false) => {
   const positions = Buffer.alloc(36);
   [-.5, -.5, 0, .5, -.5, 0, 0, .5, 0].forEach((n, i) => positions.writeFloatLE(n, i * 4));
   const data = [scope('lower'), scope('upper', 'D', '2F'), scope('other', 'C'),
@@ -76,7 +76,8 @@ const fixture = (withScope = true) => {
     scenes: [{ name: 'main', nodes: data.map((_, i) => i) },
       { name: 'D CURRENT INTERIOR - BABYLON Y-UP', nodes: [data.length] }],
     nodes: [...data.map((s, i) => ({ name: s.objectKey, mesh: 0, translation: [i * 2, i === 1 ? 3 : 0, 0],
-      extras: withScope ? { ylisViewScope: s } : {} })), { name: 'legacy-interior', mesh: 0 }],
+      extras: { ...(withScope ? { ylisViewScope: s } : {}),
+        ...(withElectrical && i === 2 ? { presentationLayer: 'MEP_ELECTRICAL' } : {}) } })), { name: 'legacy-interior', mesh: 0 }],
     meshes: [{ primitives: [{ attributes: { POSITION: 0 }, material: 0 }] }],
     materials: [{ doubleSided: true, pbrMetallicRoughness: { baseColorFactor: [.5, .7, .8, 1] } }],
     buffers: [{ byteLength: 36 }], bufferViews: [{ buffer: 0, byteLength: 36 }],
@@ -143,4 +144,19 @@ test('a legacy model keeps its existing D review and disables the main-model sco
   await menu(page, '#preset-menu');
   await page.getByRole('button', { name: 'D-asunto', exact: true }).click();
   await expect(page.locator('#private-model-canvas')).toHaveAttribute('data-content-scene', 'd-overview');
+});
+
+test('returning to the whole model preserves layer changes made inside the D scope', async ({ page }) => {
+  await page.route('**/private-model/model.glb', (route) => route.fulfill({ status: 200, contentType: 'model/gltf-binary', body: fixture(true, true) }));
+  await page.goto('/private-model/');
+  await expect(page.getByRole('status')).toContainText('Malli ladattu');
+  await menu(page, '#preset-menu');
+  await page.getByLabel('Alue päämallissa', { exact: true }).selectOption('D');
+  await page.locator('#layers-button').click();
+  await page.locator('#electrical-layer-visible').uncheck();
+  await page.locator('#layers-button').click();
+  await menu(page, '#preset-menu');
+  await page.getByLabel('Alue päämallissa', { exact: true }).selectOption('WHOLE');
+  await expect(page.locator('#electrical-layer-visible')).not.toBeChecked();
+  await expect(page.locator('#private-model-canvas')).toHaveAttribute('data-edge-source-mesh-count', '5');
 });
