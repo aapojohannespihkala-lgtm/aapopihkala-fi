@@ -1,0 +1,86 @@
+name: Seed verified C70 WORK_TEST preview after trusted main WebGL
+
+on:
+  workflow_run:
+    workflows: ["D-view exact-source WebGL regression"]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: write
+
+concurrency:
+  group: seed-c70-source-only
+  cancel-in-progress: false
+
+jobs:
+  dispatch-publisher:
+    if: >-
+      github.repository == 'aapojohannespihkala-lgtm/aapopihkala-fi' &&
+      ((github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') ||
+       (github.event_name == 'workflow_run' &&
+        github.event.workflow_run.conclusion == 'success' &&
+        github.event.workflow_run.head_branch == 'main' &&
+        github.event.workflow_run.head_repository.full_name == github.repository))
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: main
+      - name: Guard the exact Drive and Worker C70 source identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json, pathlib
+          candidate = 'ylisrinne-d-c70-source-only-20261027'
+          registry = json.loads(pathlib.Path('.github/work-test-candidates.json').read_text())
+          assert registry['candidates'][candidate] == {
+              'driveFileId': '1hHD39DHJCE8mR-R-RW16Za00dAfEvYI9'
+          }
+          worker = pathlib.Path('worker/privateWorkTest.ts').read_text()
+          assert "id: '" + candidate + "'" in worker
+          assert "expectedSize: 9818932" in worker
+          assert "75b586aaf774bce34cf1dceba5d19e6ae41c112b8717f4cce5ce64458fddc491" in worker
+          assert 'D_C70_SOURCE_ONLY_PREVIEW_CANDIDATE,' in worker
+          print('C70 exact-source WORK_TEST allowlist PASS')
+          PY
+      - name: Check authenticated production WORK_TEST catalog
+        id: catalog
+        shell: bash
+        env:
+          CF_ACCESS_READBACK_CLIENT_ID: ${{ secrets.CF_ACCESS_READBACK_CLIENT_ID }}
+          CF_ACCESS_READBACK_CLIENT_SECRET: ${{ secrets.CF_ACCESS_READBACK_CLIENT_SECRET }}
+        run: |
+          set -euo pipefail
+          [[ -n "$CF_ACCESS_READBACK_CLIENT_ID" && -n "$CF_ACCESS_READBACK_CLIENT_SECRET" ]]
+          curl --silent --show-error --fail --connect-timeout 10 --max-time 30 \
+            --header "CF-Access-Client-Id: $CF_ACCESS_READBACK_CLIENT_ID" \
+            --header "CF-Access-Client-Secret: $CF_ACCESS_READBACK_CLIENT_SECRET" \
+            --output "$RUNNER_TEMP/c70-catalog.json" \
+            'https://aapopihkala.fi/private-model/work-test/verify/catalog.json'
+          python3 - <<'PY'
+          import json,os,pathlib
+          data=json.loads((pathlib.Path(os.environ['RUNNER_TEMP'])/'c70-catalog.json').read_text())
+          name='ylisrinne-d-c70-source-only-20261027'
+          path=f'/private-model/work-test/{name}.glb'
+          matches=[x for x in data.get('candidates',[]) if x.get('id')==name]
+          assert len(matches) <= 1, 'Duplicate C70 id in production catalog'
+          if matches: assert matches[0].get('path')==path, 'C70 path mismatch'
+          with open(os.environ['GITHUB_OUTPUT'],'a') as f:
+              f.write('missing='+('false' if matches else 'true')+'\n')
+          print('C70 catalog: already ready' if matches else 'C70 catalog: exact candidate not yet seeded')
+          PY
+      - name: Dispatch existing main-only exact-source WORK_TEST publisher
+        if: steps.catalog.outputs.missing == 'true'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh workflow run publish-work-test.yml --ref main \
+            -f candidate=ylisrinne-d-c70-source-only-20261027
+          echo 'Publisher dispatched; only its authenticated R2/catalog/full GLB readback can prove readiness.'
