@@ -614,6 +614,16 @@ export const buildWidgetV2Payload = (
   };
 };
 
+// A successful response must contain four distinct, renderable sections in every layout.
+// Otherwise the Worker must see a 503 and preserve its last-known-good cache.
+export const widgetV2HasRenderableSections = (payload: WidgetV2Payload) => {
+  const ids = new Set(payload.sections
+    .filter((section) => section.id.trim() && section.label.trim() && section.primary.trim())
+    .map((section) => section.id));
+  return (['compact', 'medium', 'large'] as const).every((layout) =>
+    new Set(payload.layouts[layout].filter((id) => ids.has(id))).size >= 4);
+};
+
 export const onRequestGet = async (context: WidgetV2Context) => {
   const url = new URL(context.request.url);
   const channel = url.searchParams.get('channel') === 'dev' ? 'dev' : 'prod';
@@ -644,7 +654,7 @@ export const onRequestGet = async (context: WidgetV2Context) => {
     hsl,
     finiteNumber(electricityMonth?.average),
   );
-  const hasSections = payload.sections.length > 0;
+  const hasSections = widgetV2HasRenderableSections(payload);
 
   return Response.json(
     hasSections ? payload : { ...payload, error: 'widget_data_unavailable' },
