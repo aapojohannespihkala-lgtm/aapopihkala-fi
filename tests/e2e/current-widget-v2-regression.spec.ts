@@ -6,6 +6,7 @@ import {
 import {
   buildWidgetV2Payload,
   widgetV2CacheControl,
+  widgetV2HasRenderableSections,
 } from '../../functions/api/current/widget-v2';
 
 const hslFixture = {
@@ -397,6 +398,28 @@ test('widget v2 keeps a stable tomorrow placeholder before prices are available'
   );
 });
 
+
+test('widget v2 rejects incomplete live sections instead of caching a hollow HTTP 200', () => {
+  const complete = buildWidgetV2Payload(baseFixture, liigaFixture, 'prod');
+  expect(widgetV2HasRenderableSections(complete)).toBe(true);
+
+  const partial = buildWidgetV2Payload(
+    { weather: baseFixture.weather },
+    liigaFixture,
+    'prod',
+  );
+  expect(partial.sections.map((section) => section.id)).toEqual(['weather', 'liiga']);
+  expect(widgetV2HasRenderableSections(partial)).toBe(false);
+
+  // Four overall sections still cannot fill a compact layout without Rates.
+  const missingRates = buildWidgetV2Payload(
+    { ...baseFixture, rates: undefined },
+    liigaFixture,
+    'prod',
+  );
+  expect(missingRates.sections).toHaveLength(4);
+  expect(widgetV2HasRenderableSections(missingRates)).toBe(false);
+});
 
 test('widget endpoints never cache transient 5xx responses', () => {
   expect(widgetResponseCacheControl(503)).toBe('no-store');
