@@ -31,6 +31,7 @@ export function installMiddleMouseLookAround({
   if (!win) return () => {};
 
   let pointerId: number | null = null;
+  let lookMoved = false;
   let lastX = 0;
   let lastY = 0;
   let yaw = 0;
@@ -45,10 +46,15 @@ export function installMiddleMouseLookAround({
     if (pointerId === null) return;
     const id = pointerId;
     pointerId = null;
+    const didLook = lookMoved;
+    lookMoved = false;
     camera.position.copy(savedPosition);
     camera.lookAt(controls.target);
     controls.enableDamping = dampingBefore;
     if (canvas.hasPointerCapture?.(id)) canvas.releasePointerCapture(id);
+    // A subsequent LEFT drag may re-anchor its orbit pivot to the visible view.
+    // Do not recenter on release: fixed-eye look must not jump.
+    if (didLook) canvas.dispatchEvent(new Event('private-model-look-end'));
   };
 
   const onDown = (e: PointerEvent) => {
@@ -63,6 +69,7 @@ export function installMiddleMouseLookAround({
     const angles = anglesFromDirection(forward);
     yaw = angles.yaw;
     pitch = angles.pitch;
+    lookMoved = false;
     dampingBefore = controls.enableDamping;
     controls.enableDamping = false;
     controls.update();
@@ -90,6 +97,7 @@ export function installMiddleMouseLookAround({
     const dy = e.clientY - lastY;
     lastX = e.clientX;
     lastY = e.clientY;
+    if (dx !== 0 || dy !== 0) lookMoved = true;
     yaw += dx * radiansPerPixel;
     pitch = Math.max(-pitchLimit, Math.min(pitchLimit, pitch - dy * radiansPerPixel));
     const d = directionFromAngles(yaw, pitch);
