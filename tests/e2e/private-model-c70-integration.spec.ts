@@ -258,3 +258,84 @@ for (const width of [1280, 390]) test(`actual C70 GLTFLoader viewer 1F/2F/BOTH/W
     stage: 'WORK_TEST_SOURCE_ONLY_STAGING_HOLD', canPublish: false, canApplyToViewer: false,
   }), contentType: 'application/json' });
 });
+
+for (const width of [1280, 390]) test(`C70 P1 source-only alternatives use the real GLTFLoader/WebGL2 at ${width}px`, async ({ page }) => {
+  const path = process.env.YLIS_C70_GLB;
+  if (process.env.YLIS_REQUIRE_REAL === '1') expect(path, 'Trusted real C70 source required').toBeTruthy();
+  test.skip(!path, 'Private real C70 GLB unavailable; WebGL NOT_RUN, never PASS.');
+  test.setTimeout(process.env.YLIS_C70_PRODUCTION === '1' ? 480_000 : 240_000);
+  const bytes = readFileSync(path!);
+  expect(createHash('sha256').update(bytes).digest('hex')).toBe(C70_SHA);
+  const errors: string[] = [], writes: string[] = [];
+  page.on('pageerror', e => errors.push(e.message));
+  page.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });
+  watchModelWrites(page, bytes, writes);
+  await page.setViewportSize({ width, height: 900 });
+  await boot(page);
+  await openMenu(page, '#model-menu');
+  await page.locator('#c70-preview-input').setInputFiles({
+    name: 'model.glb', mimeType: 'model/gltf-binary', buffer: bytes,
+  });
+  const canvas = page.locator('#private-model-canvas');
+  await expect(canvas).toHaveAttribute('data-c70-preview', 'ready', { timeout: 120_000 });
+  await expect(page.locator('#c70-variant-controls')).toBeVisible();
+  await expect(page.locator('#c70-scene-variant option')).toHaveCount(14);
+  await expect(canvas).toHaveAttribute('data-main-view-source-scene-index', '62');
+
+  // C70's single verified source, no model writes or substitution. Test newly
+  // exposed 2F 2015 OPEN/CLOSED, 1F/2F K9, K13/K14 gables and cross-options.
+  const variants = width === 1280
+    ? [64, 65, 63, 54, 60, 58, 61, 68, 69, 59]
+    : [64, 65, 63, 54, 60, 58];
+  const seen: number[] = [];
+  for (const scene of variants) {
+    await openMenu(page, '#model-menu');
+    await page.locator('#c70-scene-variant').selectOption(String(scene));
+    await expect(canvas).toHaveAttribute('data-main-view-source-scene-index', String(scene));
+    await expect(canvas).toHaveAttribute('data-main-view-scope-status',
+      'C70_WORK_TEST_SOURCE_ONLY_HOST_HOLD');
+    await expect(canvas).toHaveAttribute('data-c70-variant', 'explicit-opt-in');
+    await expect(page.locator('#main-view-scope-note')).toContainText('Ei vahvistettu nykytila');
+    const pixels = await canvas.evaluate((node: HTMLCanvasElement) => new Promise<{
+      real: boolean; count: number; error: number;
+    }>(resolve => requestAnimationFrame(() => {
+      const gl = node.getContext('webgl2')!;
+      const w = gl.drawingBufferWidth, h = gl.drawingBufferHeight;
+      const data = new Uint8Array(w * h * 4);
+      gl.readPixels(0, 0, w, h, gl.RGBA, gl.UNSIGNED_BYTE, data);
+      let count = 0;
+      for (let i = 4; i < data.length; i += 4)
+        if (Math.abs(data[i] - data[0]) + Math.abs(data[i+1] - data[1]) +
+            Math.abs(data[i+2] - data[2]) > 30) count++;
+      resolve({ real: gl instanceof WebGL2RenderingContext && !gl.isContextLost(),
+        count, error: gl.getError() });
+    })));
+    expect(pixels.real).toBe(true);
+    expect(pixels.error).toBe(0);
+    expect(pixels.count).toBeGreaterThan(100);
+    seen.push(scene);
+  }
+
+  // Switching floors through the existing preset selector cancels an
+  // incompatible opt-in and returns to the original verified C70 route.
+  await openMenu(page, '#model-menu');
+  await page.locator('#c70-scene-variant').selectOption('64');
+  await openMenu(page, '#preset-menu');
+  await page.locator('#main-view-floor').selectOption('1F');
+  await expect(canvas).toHaveAttribute('data-main-view-source-scene-index', '62');
+  await expect(page.locator('#c70-scene-variant')).toHaveValue('62');
+  await openMenu(page, '#preset-menu');
+  await page.locator('#main-view-floor').selectOption('2F');
+  await expect(canvas).toHaveAttribute('data-main-view-source-scene-index', '52');
+  await openMenu(page, '#model-menu');
+  await page.locator('#current-model-button').click();
+  await expect(canvas).toHaveAttribute('data-model-source', 'current');
+  await expect(page.locator('#c70-variant-controls')).toBeHidden();
+  expect(errors).toEqual([]);
+  expect(writes).toEqual([]);
+  console.log('C70_P1_OPTIONAL_VIEW_RESULT ' + JSON.stringify({
+    width, sourceSha256: C70_SHA, verifiedSourceScenes: seen,
+    mode: 'WORK_TEST_SOURCE_ONLY_STAGING_HOLD', modelWrites: 0,
+    browser: 'REAL_GLTFLOADER_WEBGL2',
+  }));
+});
