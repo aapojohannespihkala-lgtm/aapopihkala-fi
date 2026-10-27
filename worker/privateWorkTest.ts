@@ -3396,7 +3396,17 @@ const AUTO_YLISRINNE_D_KOKOAVA_OMISTAJA_K6_K12_VALMIS_WORK_TEST_20261026_1TUQSJL
   expectedSha256: 'e801298d0c8cbec095d0a208b709c1783cc3b7c8460bc2a699a09c517bad50d4',
 } as const satisfies PrivateWorkTestCandidate;
 
+const D_C70_SOURCE_ONLY_PREVIEW_CANDIDATE = {
+  id: 'ylisrinne-d-c70-source-only-20261027',
+  label: 'D C70 70scene WORK_TEST / SOURCE_ONLY - ei nykytila',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/ylisrinne-d-c70-source-only-20261027.glb`,
+  objectKey: 'work-test/ylisrinne-d-c70-source-only-20261027.glb',
+  expectedSize: 9818932,
+  expectedSha256: '75b586aaf774bce34cf1dceba5d19e6ae41c112b8717f4cce5ce64458fddc491',
+} as const satisfies PrivateWorkTestCandidate;
+
 const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
+  D_C70_SOURCE_ONLY_PREVIEW_CANDIDATE,
   ...PRIVATE_WORK_TEST_CANDIDATES,
   M5A_Z2D_D100_D300_DIAMETER_CANDIDATE,
   M5A_Z2D_R1090_WELL_TOP_GROUND_SURFACE_CANDIDATE,
