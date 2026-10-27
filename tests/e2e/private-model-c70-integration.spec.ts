@@ -4,6 +4,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 const C70_SHA = '75b586aaf774bce34cf1dceba5d19e6ae41c112b8717f4cce5ce64458fddc491';
+const C70_PATH = '/private-model/work-test/ylisrinne-d-c70-source-only-20261027.glb';
 
 // Public, tiny bootstrap fixture. Private C70 bytes are only supplied on trusted
 // main or locally and are selected through the real browser file-input path.
@@ -53,7 +54,7 @@ function watchModelWrites(page: Page, bytes: Buffer, writes: string[]) {
   });
 }
 
-async function boot(page: Page, preview = true) {
+async function boot(page: Page, preview = true, direct = false) {
   if (process.env.YLIS_C70_PRODUCTION === '1') {
     const clientId = process.env.CF_ACCESS_VIEWER_PROBE_CLIENT_ID;
     const clientSecret = process.env.CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET;
@@ -79,7 +80,7 @@ async function boot(page: Page, preview = true) {
     });
     (page as any).publishedModelIdentities = sourceIdentities;
     await expect(async () => {
-      await page.goto('https://aapopihkala.fi/private-model/?c70-preview=1');
+      await page.goto('https://aapopihkala.fi/private-model/' + (direct ? '?c70=1' : '?c70-preview=1'));
       await expect(page.locator('#c70-preview-controls')).toHaveCount(1, { timeout: 5000 });
       const scripts = await viewerModuleUrls(page, 'https://aapopihkala.fi');
       const verifiedBundles: any[] = [];
@@ -95,14 +96,16 @@ async function boot(page: Page, preview = true) {
       }
       (page as any).publishedBundles = verifiedBundles;
     }).toPass({ timeout: 240_000, intervals: [10_000, 20_000] });
-    await expect(page.getByRole('status')).toContainText('Malli ladattu', { timeout: 60_000 });
+    if (direct) await expect(page.locator('#private-model-canvas')).toHaveAttribute('data-c70-preview', 'ready', { timeout: 120_000 });
+    else await expect(page.getByRole('status')).toContainText('Malli ladattu', { timeout: 60_000 });
     return;
   }
   await page.route('**/private-model/model.glb', r => r.fulfill({ contentType: 'model/gltf-binary', body: bootstrapGlb() }));
   await page.route('**/private-model/work-test/catalog.json', r => r.fulfill({ json: { candidates: [] } }));
   await page.route('**/private-model/source-cards.json', r => r.fulfill({ json: { modules: {} } }));
-  await page.goto(`/private-model/${preview ? '?c70-preview=1' : ''}`);
-  await expect(page.getByRole('status')).toContainText('Malli ladattu');
+  await page.goto(`/private-model/${direct ? '?c70=1' : preview ? '?c70-preview=1' : ''}`);
+  if (direct) await expect(page.locator('#private-model-canvas')).toHaveAttribute('data-c70-preview', 'ready', { timeout: 120_000 });
+  else await expect(page.getByRole('status')).toContainText('Malli ladattu');
 }
 
 test('C70 preview needs explicit opt-in, rejects unrelated bytes and never uploads', async ({ page }) => {
@@ -139,6 +142,161 @@ test('published verifier keeps own modules and private write gates with an injec
   await page.evaluate(base64 => fetch('/payload-fixture', { method: 'POST',
     body: Uint8Array.from(atob(base64), c => c.charCodeAt(0)) }), bytes.toString('base64'));
   expect(writes).toEqual(['POST /private-model/write-fixture', 'POST /payload-fixture']);
+});
+
+test('C70 direct source failure rejects without loading the unrelated default model', async ({ page }) => {
+  test.skip(process.env.YLIS_C70_PRODUCTION === '1', 'Local negative boundary test.');
+  let defaults = 0;
+  await page.route('**/private-model/model.glb', route => {
+    defaults++; return route.fulfill({ body: bootstrapGlb() });
+  });
+  // Same length but wrong hash must also fail before GLTFLoader can attach it.
+  for (const [query, body, status] of [
+    ['?c70=1', Buffer.from('unavailable'), 404],
+    ['?review=ylisrinne-d-c70-source-only-20261027-review', Buffer.alloc(9818932), 200],
+  ] as const) {
+    await page.route('**' + C70_PATH, route => route.fulfill({ status, body }));
+    await page.goto('/private-model/' + query);
+    const canvas = page.locator('#private-model-canvas');
+    await expect(canvas).toHaveAttribute('data-c70-preview', 'rejected');
+    await expect(canvas).not.toHaveAttribute('data-c70-source-sha256');
+    await expect(page.getByRole('status')).toContainText('ei voitu avata');
+    await page.unroute('**' + C70_PATH);
+  }
+  expect(defaults).toBe(0);
+});
+
+for (const width of [1280, 390]) test.describe(`C70 direct ${width}`, () => {
+  test.use({ viewport: { width, height: 900 }, hasTouch: width === 390,
+    isMobile: width === 390, deviceScaleFactor: width === 390 ? 2 : 1 });
+  test(`actual C70 protected direct opening, floors and camera gestures at ${width}px`, async ({ page, context }, info) => {
+    const path = process.env.YLIS_C70_GLB;
+    if (process.env.YLIS_REQUIRE_REAL === '1') expect(path).toBeTruthy();
+    test.skip(!path, 'Private C70 absent, actual direct opening NOT_RUN.');
+    test.setTimeout(480_000);
+    const bytes = readFileSync(path!);
+    expect(createHash('sha256').update(bytes).digest('hex')).toBe(C70_SHA);
+    const production = process.env.YLIS_C70_PRODUCTION === '1';
+    const errors: string[] = [], writes: string[] = [], reads: string[] = [];
+    page.on('pageerror', error => errors.push(error.message));
+    page.on('console', msg => { if (msg.type() === 'error') errors.push(msg.text()); });
+    page.on('response', response => {
+      if (new URL(response.url()).pathname === C70_PATH) reads.push(response.url());
+    });
+    watchModelWrites(page, bytes, writes);
+    // Production deliberately has no model/catalog mocking and no file input.
+    if (!production) await page.route('**' + C70_PATH, route => route.fulfill({
+      contentType: 'model/gltf-binary', body: bytes,
+    }));
+    await boot(page, true, true);
+    const canvas = page.locator('#private-model-canvas');
+    await expect(canvas).toHaveAttribute('data-c70-source-transport', 'protected-work-test');
+    await expect(canvas).toHaveAttribute('data-c70-source-sha256', C70_SHA);
+    await expect(page.locator('#model-source-badge')).toHaveText('C70 WORK_TEST');
+    expect(reads.length).toBeGreaterThan(0);
+    const settle = () => page.evaluate(() => new Promise<void>(resolve => {
+      let n = 45; const step = () => --n ? requestAnimationFrame(step) : resolve();
+      requestAnimationFrame(step);
+    }));
+    const pose = async () => {
+      const raw = await page.locator('#ai-navigator-readout').getAttribute('data-world-pose');
+      expect(raw).toBeTruthy();
+      return JSON.parse(raw!) as { position: number[]; target: number[]; direction: number[] };
+    };
+    const distance = (a: number[], b: number[]) => Math.hypot(...a.map((v, i) => v - b[i]));
+    const radius = (p: Awaited<ReturnType<typeof pose>>) => distance(p.position, p.target);
+    const pixelCounts: number[] = [];
+    for (const [floor, scene] of [['1F', 62], ['2F', 52], ['BOTH', 58], ['1F', 62]] as const) {
+      await openMenu(page, '#preset-menu');
+      await page.locator('#main-view-floor').selectOption(floor);
+      if (await page.locator('#preset-menu').getAttribute('open') !== null)
+        await page.locator('#preset-menu > summary').click();
+      await expect(canvas).toHaveAttribute('data-main-view-source-scene-index', String(scene));
+      await expect(canvas).toHaveAttribute('data-main-view-scope-status', 'C70_WORK_TEST_SOURCE_ONLY_HOST_HOLD');
+      await settle();
+      const pixels = await canvas.evaluate((node: HTMLCanvasElement) => new Promise<{ count: number; error: number }>(resolve => requestAnimationFrame(() => {
+        const gl = node.getContext('webgl2')!;
+        if (!(gl instanceof WebGL2RenderingContext) || gl.isContextLost()) throw Error('WebGL2 unavailable');
+        const data = new Uint8Array(gl.drawingBufferWidth * gl.drawingBufferHeight * 4);
+        gl.readPixels(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight, gl.RGBA, gl.UNSIGNED_BYTE, data);
+        let count = 0;
+        for (let i = 4; i < data.length; i += 4)
+          if (Math.abs(data[i]-data[0])+Math.abs(data[i+1]-data[1])+Math.abs(data[i+2]-data[2]) > 30) count++;
+        resolve({ count, error: gl.getError() });
+      })));
+      expect(pixels.error).toBe(0); expect(pixels.count).toBeGreaterThan(100);
+      pixelCounts.push(pixels.count);
+    }
+    const box = (await canvas.boundingBox())!;
+    const x = box.x + box.width * .5, y = box.y + box.height * .5;
+    let gestures: string[] = [];
+    if (width === 1280) {
+      const drag = async (button: 'left' | 'right' | 'middle', dx: number, dy: number) => {
+        await page.mouse.move(x, y); await page.mouse.down({ button });
+        await page.mouse.move(x + dx, y + dy, { steps: 10 });
+        await page.mouse.up({ button }); await settle();
+      };
+      const start = await pose();
+      await drag('right', 24, -12);
+      const pan = await pose();
+      expect(distance(start.position, pan.position)).toBeGreaterThan(.001);
+      expect(distance(start.target, pan.target)).toBeGreaterThan(.001);
+      expect(distance(start.direction, pan.direction)).toBeLessThan(.0001);
+      await page.mouse.move(x, y); await page.mouse.wheel(0, -180); await settle();
+      const zoom = await pose();
+      expect(radius(zoom)).toBeLessThan(radius(pan));
+      await drag('middle', 10, -3);
+      const look = await pose();
+      expect(distance(zoom.position, look.position)).toBeLessThan(.0001);
+      expect(distance(zoom.direction, look.direction)).toBeGreaterThan(.001);
+      await page.mouse.click(x, y); await settle();
+      expect(distance((await pose()).target, look.target)).toBeLessThan(.0001);
+      await drag('left', 20, 8);
+      const orbit = await pose();
+      expect(distance(orbit.direction, look.direction)).toBeGreaterThan(.001);
+      expect(distance(orbit.position, look.position)).toBeGreaterThan(.001);
+      expect(await canvas.getAttribute('data-orbit-focus-status')).toMatch(/^(RECENTERED|ALREADY_FOCUSED|NO_VISIBLE_HIT)$/);
+      gestures = ['RMB_PAN', 'WHEEL_ZOOM', 'MMB_FIXED_EYE', 'CLICK_NO_RETARGET', 'LMB_ORBIT'];
+    } else {
+      expect(await page.evaluate(() => navigator.maxTouchPoints)).toBeGreaterThan(0);
+      const cdp = await context.newCDPSession(page);
+      const touch = async (points: { x: number; y: number }[], type: 'touchStart' | 'touchMove' | 'touchEnd') =>
+        cdp.send('Input.dispatchTouchEvent', { type, touchPoints: points.map((p, id) => ({ ...p, id })) });
+      const start = await pose();
+      await touch([{ x, y }], 'touchStart');
+      for (let n = 1; n <= 10; n++) await touch([{ x: x + n * 2, y: y + n }], 'touchMove');
+      await touch([], 'touchEnd'); await settle();
+      const orbit = await pose();
+      expect(distance(start.direction, orbit.direction)).toBeGreaterThan(.001);
+      await touch([{ x: x-30, y }, { x: x+30, y }], 'touchStart');
+      for (let n = 1; n <= 10; n++) await touch([{ x: x-30+n, y: y+n }, { x: x+30+n, y: y+n }], 'touchMove');
+      await touch([], 'touchEnd'); await settle();
+      const pan = await pose();
+      expect(distance(orbit.target, pan.target)).toBeGreaterThan(.001);
+      expect(distance(orbit.direction, pan.direction)).toBeLessThan(.0001);
+      await touch([{ x: x-30, y }, { x: x+30, y }], 'touchStart');
+      for (let n = 1; n <= 10; n++) await touch([{ x: x-30-n, y }, { x: x+30+n, y }], 'touchMove');
+      await touch([], 'touchEnd'); await settle();
+      expect(radius(await pose())).toBeLessThan(radius(pan));
+      await cdp.detach();
+      gestures = ['TOUCH_ORBIT', 'TWO_FINGER_PAN', 'PINCH_ZOOM'];
+    }
+    await page.screenshot({ path: info.outputPath('c70-direct-gestures.png') });
+    await openMenu(page, '#model-menu'); await page.locator('#current-model-button').click();
+    await expect(canvas).toHaveAttribute('data-model-source', 'current');
+    await expect(canvas).not.toHaveAttribute('data-c70-source-sha256');
+    await expect(canvas).not.toHaveAttribute('data-c70-source-transport');
+    const defaults = (page as any).publishedModelIdentities ?? [];
+    if (production) {
+      expect(defaults.length).toBe(1);
+      expect(defaults[0]).toEqual({ sha256: '9940e879fcf9d587055fbc23a92be90c0608568bb9a86dfd53438af7be2e03b6', byteLength: 2932512, scene: 59, sceneCount: 60 });
+    }
+    expect(errors).toEqual([]); expect(writes).toEqual([]);
+    console.log('C70_DIRECT_RESULT ' + JSON.stringify({ width, production, sourceSha256: C70_SHA,
+      realWebGL2: true, pixelCounts, gestures, modelWrites: writes.length, defaults,
+      publishedBundles: (page as any).publishedBundles ?? [],
+      testedCommit: process.env.D_VIEW_TESTED_COMMIT, status: 'WORK_TEST_SOURCE_ONLY_HOST_HOLD' }));
+  });
 });
 
 for (const width of [1280, 390]) test(`actual C70 GLTFLoader viewer 1F/2F/BOTH/WHOLE, restore and private local file at ${width}px`, async ({ page }, info) => {
@@ -278,6 +436,7 @@ for (const width of [1280, 390]) test(`actual C70 P1 source-only alternatives us
   });
   const canvas = page.locator('#private-model-canvas');
   await expect(canvas).toHaveAttribute('data-c70-preview', 'ready', { timeout: 120_000 });
+  await openMenu(page, '#model-menu');
   await expect(page.locator('#c70-variant-controls')).toBeVisible();
   await expect(page.locator('#c70-scene-variant option')).toHaveCount(14);
   await expect(canvas).toHaveAttribute('data-main-view-source-scene-index', '62');
