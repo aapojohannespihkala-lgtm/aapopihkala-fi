@@ -6989,22 +6989,28 @@ const title = 'Private 3D viewer';
         }
         closeToolbarMenus();
       });
+      // Explicit source-only review. The protected R2 WORK_TEST object is never
+      // the CURRENT/default GLB and cannot be promoted by this browser path.
+      const c70ProtectedSourcePath =
+        '/private-model/work-test/ylisrinne-d-c70-source-only-20261027.glb';
+      const c70ServerAutoOpen = c70PreviewEnabled &&
+        new URLSearchParams(window.location.search).get('c70-server') === '1';
       let c70PreviewLoading = false;
-      c70PreviewButton.addEventListener('click', () => {
-        if (c70PreviewEnabled && !c70PreviewLoading) c70PreviewInput.click();
-      });
-      c70PreviewInput.addEventListener('change', async () => {
-        const file = c70PreviewInput.files?.[0];
-        if (!c70PreviewEnabled || !file || c70PreviewLoading) return;
+      const openC70Preview = async (getBytes: () => Promise<ArrayBuffer>, fromServer: boolean) => {
+        if (!c70PreviewEnabled || c70PreviewLoading) return false;
         c70PreviewLoading = true;
         c70PreviewButton.disabled = true;
         const version = modelLoadVersion;
         canvas.dataset.c70Preview = 'loading';
         status.textContent = 'Avataan C70-lähde-esikatselua...';
         try {
-          if (file.size !== c70WorkTestContract.glbByteLength) throw new Error('C70_SOURCE_SIZE');
+          const glbBytes = await getBytes();
+          if (glbBytes.byteLength !== c70WorkTestContract.glbByteLength)
+            throw new Error('C70_SOURCE_SIZE');
+          // prepareC70Preview performs the same exact C70 source SHA/root checks
+          // for both the original local-file and the authenticated R2 path.
           const session = await prepareC70Preview({
-            glbBytes: await file.arrayBuffer(), contract: c70WorkTestContract,
+            glbBytes, contract: c70WorkTestContract,
             loader: new GLTFLoader(), baseUrl: '/private-model/',
             previewGate: 'EXPLICIT_WORK_TEST_PREVIEW', sourceKind: 'work-test',
           });
@@ -7022,15 +7028,44 @@ const title = 'Private 3D viewer';
           applyStandardViewPreset('d-1f');
           canvas.dataset.c70Preview = 'ready';
           canvas.dataset.c70SourceSha256 = session.verification.glbSha256;
+          if (fromServer) canvas.dataset.c70ProtectedSource = 'verified';
+          else delete canvas.dataset.c70ProtectedSource;
           closeToolbarMenus();
+          return true;
         } catch {
           canvas.dataset.c70Preview = 'rejected';
-          status.textContent = 'C70-esikatselua ei avattu. Valitse täsmälleen hyväksytty C70-lähdetiedosto.';
+          delete canvas.dataset.c70ProtectedSource;
+          status.textContent = fromServer
+            ? 'C70-palvelinmallia ei voitu avata. Lähteen julkaisu tai SHA-tarkistus ei ole valmis.'
+            : 'C70-esikatselua ei avattu. Valitse täsmälleen hyväksytty C70-lähdetiedosto.';
+          return false;
         } finally {
           c70PreviewLoading = false;
           c70PreviewButton.disabled = false;
           c70PreviewInput.value = '';
         }
+      };
+      const openC70PreviewFromServer = () => openC70Preview(async () => {
+        const response = await fetch(c70ProtectedSourcePath, {
+          credentials: 'same-origin', cache: 'no-store',
+          headers: { Accept: 'model/gltf-binary' },
+        });
+        if (!response.ok || response.status !== 200 ||
+            !response.headers.get('Content-Type')?.toLowerCase().includes('model/gltf-binary'))
+          throw new Error('C70_PROTECTED_SOURCE_UNAVAILABLE');
+        const declaredSize = response.headers.get('Content-Length');
+        if (declaredSize && Number(declaredSize) !== c70WorkTestContract.glbByteLength)
+          throw new Error('C70_PROTECTED_SOURCE_LENGTH');
+        return response.arrayBuffer();
+      }, true);
+      c70PreviewButton.addEventListener('click', () => {
+        if (c70PreviewEnabled) void openC70PreviewFromServer();
+      });
+      // The local-file path remains available to the existing source-only
+      // regression tests; the ordinary user never needs to select a file.
+      c70PreviewInput.addEventListener('change', () => {
+        const file = c70PreviewInput.files?.[0];
+        if (file) void openC70Preview(() => file.arrayBuffer(), false);
       });
 
       const p139nPlanSceneName =
@@ -13520,6 +13555,10 @@ const title = 'Private 3D viewer';
           !d1fSource156ReviewRequested()
         ) {
           await loadCurrentModel();
+        }
+        if (c70ServerAutoOpen) {
+          const c70Opened = await openC70PreviewFromServer();
+          if (c70Opened) return;
         }
         const imported = await importWorkTestCandidateFromFragment();
         if (imported) return;
