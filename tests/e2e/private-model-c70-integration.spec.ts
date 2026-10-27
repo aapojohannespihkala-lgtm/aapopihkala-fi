@@ -259,7 +259,7 @@ for (const width of [1280, 390]) test(`actual C70 GLTFLoader viewer 1F/2F/BOTH/W
   }), contentType: 'application/json' });
 });
 
-for (const width of [1280, 390]) test(`C70 P1 source-only alternatives use the real GLTFLoader/WebGL2 at ${width}px`, async ({ page }) => {
+for (const width of [1280, 390]) test(`actual C70 P1 source-only alternatives use the real GLTFLoader/WebGL2 at ${width}px`, async ({ page }) => {
   const path = process.env.YLIS_C70_GLB;
   if (process.env.YLIS_REQUIRE_REAL === '1') expect(path, 'Trusted real C70 source required').toBeTruthy();
   test.skip(!path, 'Private real C70 GLB unavailable; WebGL NOT_RUN, never PASS.');
