@@ -2133,6 +2133,7 @@ const title = 'Private 3D viewer';
         isTreeVisible,
       } from '../../scripts/privateModelEdgeVisibility';
       import { computeVisibleBounds } from '../../scripts/privateModelVisibleBounds';
+import { installOrbitRecenterOnDrag } from '../../scripts/privateModelOrbitRecenter';
       import {
         p160WarmFloorContextOpacity,
         p160WarmFloorReviewOpacity,
@@ -2878,6 +2879,14 @@ const title = 'Private 3D viewer';
       const modelCenter = new THREE.Vector3();
       let fitDistance = 10;
       let activeCamera: typeof camera | typeof planCamera | typeof isoCamera = camera;
+      // Re-focus the next genuine left-orbit drag after wheel / fixed-eye look.
+      // Scope is strictly the current visible scene, not the hidden model roots.
+      installOrbitRecenterOnDrag({
+        canvas, camera, controls,
+        getScene: () => modelRoot.children[0] ?? null,
+        isActive: () => activeCamera === camera && controls.enabled &&
+          controls.enableRotate && canvas.dataset.interactionMode === 'navigate',
+      });
       let d1fCombinedPixelRuntime: ReturnType<typeof createD1FCombinedWallPixelRuntime> | null = null;
       let d1fService: ReturnType<typeof mountD1FServiceModel> | null = null;
       let p186ePixelRuntime: ReturnType<typeof createP186ELabelPixelRuntime> | null = null;
