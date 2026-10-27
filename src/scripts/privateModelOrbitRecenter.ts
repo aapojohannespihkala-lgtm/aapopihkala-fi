@@ -18,7 +18,7 @@ export function visibleOrbitFocus(
     if (!mesh.isMesh || !mesh.geometry) return;
     const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
     if (!materials.some((material) => material && material.visible &&
-      material.depthTest !== false && !material.wireframe &&
+      material.depthTest !== false && !('wireframe' in material && material.wireframe === true) &&
       (material.opacity ?? 1) >= 0.45)) return;
     meshes.push(mesh);
   });
@@ -99,6 +99,7 @@ export function installOrbitRecenterOnDrag({
   const clear = (event: PointerEvent) => {
     if (pressed?.id === event.pointerId) pressed = null;
   };
+  const clearCapture = () => { pressed = null; };
 
   canvas.addEventListener('wheel', onWheel, { capture: true, passive: true });
   canvas.addEventListener('private-model-look-end', onLookEnd);
@@ -106,7 +107,7 @@ export function installOrbitRecenterOnDrag({
   canvas.addEventListener('pointermove', onMove, { capture: true });
   canvas.addEventListener('pointerup', clear, { capture: true });
   canvas.addEventListener('pointercancel', clear, { capture: true });
-  canvas.addEventListener('lostpointercapture', () => { pressed = null; });
+  canvas.addEventListener('lostpointercapture', clearCapture);
 
   return () => {
     canvas.removeEventListener('wheel', onWheel, { capture: true });
@@ -115,5 +116,6 @@ export function installOrbitRecenterOnDrag({
     canvas.removeEventListener('pointermove', onMove, { capture: true });
     canvas.removeEventListener('pointerup', clear, { capture: true });
     canvas.removeEventListener('pointercancel', clear, { capture: true });
+    canvas.removeEventListener('lostpointercapture', clearCapture);
   };
 }
