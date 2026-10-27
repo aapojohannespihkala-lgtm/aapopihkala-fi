@@ -28,6 +28,28 @@ test('fresh Widget v2 response reaches ready with four sections', async ({ page 
   await expect(page.locator('[data-section]')).toHaveCount(4);
 });
 
+test('an open ready widget becomes stale once its displayed data ages out', async ({ page }) => {
+  await page.clock.install({ time: new Date(fixedNow) });
+  let requests = 0;
+  await page.route('**/api/current/widget-v2?*', (route) => {
+    requests += 1;
+    return route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(widgetPayload('2026-10-20T11:59:00.000Z')),
+    });
+  });
+
+  await page.goto('/current/widget/');
+  await expect(page.locator('[data-widget-root]')).toHaveAttribute('data-load-state', 'ready');
+  await expect(page.locator('[data-footer-status]')).toContainText('UPDATED');
+  await page.clock.fastForward(11 * 60_000);
+  await expect(page.locator('[data-widget-root]')).toHaveAttribute('data-load-state', 'stale');
+  await expect(page.locator('[data-footer-status]')).toContainText('STALE');
+  await expect(page.locator('[data-section]')).toHaveCount(4);
+  expect(requests).toBe(1);
+});
+
 test('old HTTP 200 payload is visible but explicitly stale, not ready', async ({ page }) => {
   await page.clock.setFixedTime(new Date(fixedNow));
   await page.route('**/api/current/widget-v2?*', (route) =>
