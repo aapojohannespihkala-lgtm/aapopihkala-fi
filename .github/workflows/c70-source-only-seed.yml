@@ -1,6 +1,8 @@
 name: Seed verified C70 WORK_TEST preview after trusted main WebGL
 
 on:
+  issue_comment:
+    types: [created]
   workflow_run:
     workflows: ["D-view exact-source WebGL regression"]
     types: [completed]
@@ -20,6 +22,10 @@ jobs:
     if: >-
       github.repository == 'aapojohannespihkala-lgtm/aapopihkala-fi' &&
       ((github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') ||
+       (github.event_name == 'issue_comment' &&
+        github.event.issue.number == 1526 &&
+        github.event.issue.pull_request != null &&
+        github.event.comment.body == '/seed-c70-work-test') ||
        (github.event_name == 'workflow_run' &&
         github.event.workflow_run.conclusion == 'success' &&
         github.event.workflow_run.head_branch == 'main' &&
