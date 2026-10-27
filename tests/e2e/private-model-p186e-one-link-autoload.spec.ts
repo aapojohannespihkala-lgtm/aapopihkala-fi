@@ -8,7 +8,7 @@ const reviewId=candidateId+'-review';
 
 // Execute the actual final viewer bootstrap, including its awaited call order.
 // Browser cases below also exercise the real URL predicate and page startup.
-async function sourceBootstrap(exactP186e:boolean){
+async function sourceBootstrap(exactP186e:boolean,exactC70=false){
   const source=readFileSync('src/pages/private-model/index.astro','utf8');
   const tail=source.slice(source.lastIndexOf('      void (async () => {'));
   const end='      })();';
@@ -21,6 +21,8 @@ async function sourceBootstrap(exactP186e:boolean){
   const candidate=exactP186e?{id:candidateId}:null;
   await runInNewContext(jsProgram,{
     window:{location:{search:exactP186e?'?review='+reviewId:''}},
+    c70DirectRequested:exactC70,
+    loadProtectedC70:async()=>{calls.push('C70_WORK_TEST');},
     isP137EScene67ReviewRequested:()=>false,
     isP186eElectricalLabelReviewRequested:()=>exactP186e,
     isD1FCombinedWallReviewRequested:()=>false,
@@ -52,6 +54,12 @@ test('source bootstrap directly loads exact P186E without CURRENT dependency',as
 test('source bootstrap preserves ordinary CURRENT-first startup',async()=>{
   const result=await sourceBootstrap(false);
   expect(result.calls).toEqual(['CURRENT','CATALOG']);
+  expect(result.dataset.workTestReviewAutoload).toBeUndefined();
+});
+
+test('source bootstrap isolates explicit C70 direct opening from CURRENT and generic reviews',async()=>{
+  const result=await sourceBootstrap(false,true);
+  expect(result.calls).toEqual(['C70_WORK_TEST']);
   expect(result.dataset.workTestReviewAutoload).toBeUndefined();
 });
 
