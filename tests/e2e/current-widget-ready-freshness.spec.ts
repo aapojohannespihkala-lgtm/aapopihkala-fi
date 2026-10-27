@@ -50,6 +50,34 @@ test('an open ready widget becomes stale once its displayed data ages out', asyn
   expect(requests).toBe(1);
 });
 
+test('incomplete HTTP 200 response is not treated as ready', async ({ page }) => {
+  await page.clock.setFixedTime(new Date(fixedNow));
+  const incomplete = widgetPayload('2026-10-20T11:59:00.000Z');
+  incomplete.sections = incomplete.sections.slice(0, 1);
+  await page.route('**/api/current/widget-v2?*', (route) =>
+    route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(incomplete) }));
+  await page.goto('/current/widget/');
+  await expect(page.locator('[data-widget-root]')).toHaveAttribute('data-load-state', 'error');
+  await expect(page.locator('[data-widget]')).toContainText('UNAVAILABLE');
+});
+
+test('incomplete HTTP 200 response preserves complete last-good data as stale', async ({ page }) => {
+  await page.clock.setFixedTime(new Date(fixedNow));
+  const complete = widgetPayload('2026-10-20T11:59:00.000Z');
+  const incomplete = { ...complete, sections: complete.sections.slice(0, 1) };
+  let next = complete;
+  await page.route('**/api/current/widget-v2?*', (route) =>
+    route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(next) }));
+  await page.goto('/current/widget/');
+  await expect(page.locator('[data-widget-root]')).toHaveAttribute('data-load-state', 'ready');
+  next = incomplete;
+  await page.locator('[data-widget-refresh]').click();
+  await expect(page.locator('[data-widget-root]')).toHaveAttribute('data-load-state', 'stale');
+  await expect(page.locator('[data-section]')).toHaveCount(4);
+  await expect(page.locator('[data-footer-status]')).toContainText('STALE');
+  await expect(page.locator('[data-widget]')).not.toContainText('UNAVAILABLE');
+});
+
 test('old HTTP 200 payload is visible but explicitly stale, not ready', async ({ page }) => {
   await page.clock.setFixedTime(new Date(fixedNow));
   await page.route('**/api/current/widget-v2?*', (route) =>
