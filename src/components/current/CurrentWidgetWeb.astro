@@ -459,6 +459,15 @@ const isPreview = mode === 'preview';
         }
         if (date) date.textContent = header.dateShort;
         if (week) week.textContent = header.week;
+        // The clock keeps running after the initial fetch. A previously fresh
+        // payload must not remain labelled ready indefinitely on an open tab.
+        if (root?.dataset.loadState === 'ready' && payload && !isFreshPayload(payload)) {
+          root.dataset.loadState = 'stale';
+          if (status) status.textContent = 'Using stale widget data';
+          const footerStatus = widget.querySelector('[data-footer-status]');
+          if (footerStatus) footerStatus.textContent = `STALE ${localTime(payload.generatedAt)}`;
+          scheduleRetry();
+        }
       };
 
       const bindStandaloneRefresh = () => {
