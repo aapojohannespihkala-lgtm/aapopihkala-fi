@@ -343,7 +343,7 @@ The widget keeps the latest compatible payload in SharedPreferences.
 - v2 + legacy failure -> preserve previous cache and keep/reschedule usable local temporal targets
 - optional section failure inside valid v2 -> omit only that section; HSL freshness scheduling still retries later
 
-Realtime stale guards use section source timestamps when available. Weather and Electricity prefer `observedAt`, then `fetchedAt`, while old compatible payloads continue to fall back to payload `generatedAt`. HSL keeps its own fetched timestamp and local future schedule fallback rules. Once HSL is over five minutes old, cached LIVE rows are discarded; only still-future static schedule rows may remain until fresh network data arrives.
+Realtime stale guards use section source timestamps when available. Weather and Electricity prefer `observedAt`, then `fetchedAt`, while old compatible payloads continue to fall back to payload `generatedAt`. HSL keeps its own fetched timestamp and local future schedule fallback rules. Once HSL is over five minutes old, cached LIVE rows are discarded; only still-future static schedule rows may remain until fresh network data arrives. If no safe schedule rows remain, Android keeps an empty `HSL / STALE` section with `--` instead of silently removing HSL.
 
 Electricity values describe one Helsinki calendar day, so a cached Electricity section from an earlier Helsinki day is removed instead of being shown as STALE under TODAY labels. Markets, Rates and non-live Liiga legitimately carry source dates that lag by a trading or banking day, so their guard measures the age of the cached copy (`fetchedAt`, then payload `generatedAt`) rather than `observedAt`; they stay visible and are marked STALE only when that copy is more than four days old.
 
@@ -451,6 +451,7 @@ Signing credentials must not be committed to repository source. Keystore file ex
 - **2.10.59**: added a separate Snapshot Tablet provider with tablet-only typography, chart sizing and full-height section distribution. The existing Snapshot Widget provider remains the Honor/phone layout and is not visually changed.
 - **2.10.62**: added a four-day cached-copy STALE guard for Markets, Rates and non-live Liiga, and removes cached Electricity from an earlier Helsinki day.
 - **2.10.63**: normal-state footer shows the installed APK version after the update time.
+- **2.10.64**: preserve HSL as a safe `HSL / STALE` placeholder when delayed Android refresh leaves no usable departure rows.
 
 ## Key files
 
