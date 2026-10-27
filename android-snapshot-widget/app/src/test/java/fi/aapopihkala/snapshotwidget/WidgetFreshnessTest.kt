@@ -56,7 +56,9 @@ class WidgetFreshnessTest {
             "2026-09-15T12:19:00Z",
             listOf(section("hsl", fetchedAt = "2026-09-15T12:00:00Z")),
         )
-        assertNull(payload.withSafeCachedFreshness(now).sections.firstOrNull())
+        val safe = payload.withSafeCachedFreshness(now).sections.single()
+        assertEquals("HSL / STALE", safe.label)
+        assertEquals("--", safe.primary)
     }
 
     @Test
@@ -105,11 +107,26 @@ class WidgetFreshnessTest {
     }
 
     @Test
-    fun staleHslWithoutStaticFallbackIsRemoved() {
-        val hsl = section("hsl").copy(rows = listOf(
-            WidgetItem("LIVE", "550", tone = "accent", countdownTargetMs = now + 60_000L),
-        ))
-        assertNull(payload("2026-09-15T12:00:00Z", listOf(hsl)).withSafeCachedFreshness(now).sections.firstOrNull())
+    fun staleHslWithoutStaticFallbackKeepsEmptyPlaceholder() {
+        val hsl = section("hsl").copy(
+            primary = "2 MIN",
+            secondary = "125 / TAPIOLA",
+            detail = "15:21 / LIVE",
+            tone = "accent",
+            countdownTargetMs = now + 60_000L,
+            rows = listOf(
+                WidgetItem("LIVE", "550", tone = "accent", countdownTargetMs = now + 60_000L),
+            ),
+        )
+        val safe = payload("2026-09-15T12:00:00Z", listOf(hsl))
+            .resolveTemporalSections(now).sections.single()
+        assertEquals("HSL / STALE", safe.label)
+        assertEquals("--", safe.primary)
+        assertNull(safe.secondary)
+        assertNull(safe.detail)
+        assertNull(safe.countdownTargetMs)
+        assertEquals("neutral", safe.tone)
+        assertTrue(safe.rows.isEmpty())
     }
 
     @Test
