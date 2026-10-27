@@ -1731,6 +1731,11 @@ const title = 'Private 3D viewer';
               <button id="c70-preview-button" type="button">Avaa C70-lähde-esikatselu</button>
               <input id="c70-preview-input" type="file" accept=".glb,model/gltf-binary" hidden />
               <p>WORK_TEST / SOURCE_ONLY / STAGING_HOLD. Tiedosto avataan vain omassa selaimessa. Fyysiset liitokset ovat varmistamatta.</p>
+              <div id="c70-variant-controls" hidden>
+                <label for="c70-scene-variant">C70:n vaihtoehtoinen lähdenäkymä (opt-in)</label>
+                <select id="c70-scene-variant" aria-label="C70 WORK_TEST vaihtoehtoinen lähdenäkymä"></select>
+                <p>Historialliset ovet, K9 ja päädyt ovat viitteellisiä lähdevaihtoehtoja, eivät nykytilaa.</p>
+              </div>
             </div>
             <button id="current-model-button" type="button" hidden>Palaa CURRENTiin</button>
           </div>
@@ -3001,6 +3006,8 @@ const title = 'Private 3D viewer';
       };
       const mainViewArea = document.querySelector<HTMLSelectElement>('#main-view-area')!;
       const mainViewFloor = document.querySelector<HTMLSelectElement>('#main-view-floor')!;
+      const c70VariantControls = document.querySelector<HTMLElement>('#c70-variant-controls')!;
+      const c70VariantSelect = document.querySelector<HTMLSelectElement>('#c70-scene-variant')!;
       const mainViewScopeNote = document.querySelector<HTMLElement>('#main-view-scope-note')!;
       const mainViewExceptions = document.querySelector<HTMLDetailsElement>('#main-view-exceptions')!;
       const mainViewExceptionList = document.querySelector<HTMLElement>('#main-view-exception-list')!;
@@ -6092,6 +6099,23 @@ const title = 'Private 3D viewer';
         mainViewScope.restore();
         applyElectricalLayerState();
         setModelScene(fullModelScene);
+        if ('isC70SourceScene' in mainViewScope) {
+          const chosen = c70WorkTestContract.modes.find(
+            (row) => String(row.sceneIndex) === c70VariantSelect.value);
+          if (!chosen || chosen.floor !== floor) {
+            // Changing floors through the regular viewer controls cancels an
+            // incompatible opt-in rather than silently using another scene.
+            const baseline = c70WorkTestContract.modes.find(
+              (row) => row.sceneIndex === (floor === '1F' ? 62 : floor === '2F' ? 52 : 58));
+            if (!baseline) throw new Error('C70 baseline route unavailable');
+            mainViewScope.setPreviewOptions({
+              targetFloor: floor, doorMode: baseline.doorMode,
+              gable: baseline.gable, k9Reference: baseline.k9Reference,
+            });
+            c70VariantSelect.value = String(baseline.sceneIndex);
+            canvas.dataset.c70Variant = 'baseline';
+          }
+        }
         const report = mainViewScope.apply(floor);
         if (!report) return;
         if ('isC70SourceScene' in mainViewScope) {
@@ -6108,10 +6132,19 @@ const title = 'Private 3D viewer';
           syncMainViewScope();
           mainViewExceptions.hidden = false;
           const held = document.createElement('li');
-          held.textContent = 'SOURCE_ONLY: fyysiset liitokset ovat varmistamatta. Vuoden 2015 ovivaihtoehdot ja K9-viitteet ovat pois käytöstä.';
+          const sourceOption = c70WorkTestContract.modes.find(
+            (row) => row.sceneIndex === sourceSceneIndex);
+          if (!sourceOption) throw new Error('C70 route not in source contract');
+          const sourceWarnings = [
+            'Fyysiset liitokset varmistamatta.',
+            ...(sourceOption.doorMode !== 'WORK_TEST' ? ['Vuoden 2015 oviasento, HISTORIA, ei nykytila.'] : []),
+            ...(sourceOption.k9Reference ? ['K9 viitteellinen lähdetulkinta, ei vahvistettu geometria.'] : []),
+            ...(sourceOption.floor === 'BOTH' ? ['K13/K14-päätyvaihtoehto, fyysinen host HOLD.'] : []),
+          ];
+          held.textContent = 'SOURCE_ONLY / STAGING_HOLD: ' + sourceWarnings.join(' ');
           mainViewExceptionList.replaceChildren(held);
           const floorLabel = floor === '1F' ? 'alakerta' : floor === '2F' ? 'yläkerta' : 'molemmat kerrokset';
-          mainViewScopeNote.textContent = `C70 WORK_TEST: ${floorLabel}. Ei vahvistettu nykytila.`;
+          mainViewScopeNote.textContent = `C70 WORK_TEST: ${floorLabel}, lähdescene ${sourceSceneIndex}. Ei vahvistettu nykytila.`;
           canvas.dataset.mainViewSourceSceneIndex = String(sourceSceneIndex);
           canvas.dataset.mainViewScopeStatus = 'C70_WORK_TEST_SOURCE_ONLY_HOST_HOLD';
           canvas.dataset.contentScene = 'C70_WORK_TEST_SOURCE';
@@ -6750,6 +6783,7 @@ const title = 'Private 3D viewer';
         modelLoadVersion++;
         delete canvas.dataset.c70Preview;
         delete canvas.dataset.c70SourceSha256;
+        c70VariantControls.hidden = !c70PreviewSession;
         (canvas as any).d1fSource156RestoreOriginalVisibility?.();
         delete (canvas as any).d1fSource156SetOriginalVisibility;
         delete (canvas as any).d1fSource156RestoreOriginalVisibility;
@@ -6918,6 +6952,43 @@ const title = 'Private 3D viewer';
       const c70PreviewButton = document.querySelector<HTMLButtonElement>('#c70-preview-button')!;
       const c70PreviewInput = document.querySelector<HTMLInputElement>('#c70-preview-input')!;
       c70PreviewControls.hidden = !c70PreviewEnabled;
+      for (const row of c70WorkTestContract.modes) {
+        const option = document.createElement('option');
+        option.value = String(row.sceneIndex);
+        const floorLabel = row.floor === '1F' ? 'D 1F' : row.floor === '2F' ? 'D 2F' : 'D molemmat';
+        const doorLabel = row.doorMode === 'HIST_2015_OPEN' ? '2015 ovet auki' :
+          row.doorMode === 'HIST_2015_CLOSED' ? '2015 ovet kiinni' : 'WORK_TEST';
+        const gableLabel = row.floor === 'BOTH' ?
+          (row.gable === 'K13_ORIGINAL' ? 'K13 alkuperäinen pääty' : 'K14 220 mm pääty') : '';
+        option.textContent = [floorLabel, doorLabel, gableLabel,
+          row.k9Reference ? 'K9 viitteellinen' : ''].filter(Boolean).join(' / ');
+        c70VariantSelect.add(option);
+      }
+      c70VariantSelect.value = '62';
+      c70VariantSelect.addEventListener('change', () => {
+        const selected = c70WorkTestContract.modes.find(
+          (row) => String(row.sceneIndex) === c70VariantSelect.value);
+        if (!selected || canvas.dataset.c70Preview !== 'ready' ||
+            !mainViewScope || !('isC70SourceScene' in mainViewScope)) return;
+        try {
+          mainViewScope.restore();
+          mainViewScope.setPreviewOptions({
+            targetFloor: selected.floor, doorMode: selected.doorMode,
+            gable: selected.gable, k9Reference: selected.k9Reference,
+          });
+          activateMainModelScope(selected.floor as MainViewFloor);
+          if (canvas.dataset.mainViewSourceSceneIndex !== String(selected.sceneIndex))
+            throw new Error('C70 source route mismatch');
+          canvas.dataset.c70Variant = selected.sceneIndex === 62 ? 'baseline' : 'explicit-opt-in';
+        } catch {
+          // Restore to WHOLE rather than pretending a rejected alternative
+          // was applied. The original protected model is never replaced.
+          try { mainViewScope.restore(); setModelScene(fullModelScene); syncMainViewScope(); } catch {}
+          canvas.dataset.c70Variant = 'rejected';
+          status.textContent = 'C70-lähdevaihtoehtoa ei voitu avata turvallisesti.';
+        }
+        closeToolbarMenus();
+      });
       let c70PreviewLoading = false;
       c70PreviewButton.addEventListener('click', () => {
         if (c70PreviewEnabled && !c70PreviewLoading) c70PreviewInput.click();
@@ -6946,6 +7017,7 @@ const title = 'Private 3D viewer';
           clearP137EPlaceDraft();
           clearPointMeasure();
           setViewerToolMode('navigate');
+          c70VariantSelect.value = '62';
           applyLoadedModel(session.gltf, 'work-test', 'C70 WORK_TEST', null, session);
           applyStandardViewPreset('d-1f');
           canvas.dataset.c70Preview = 'ready';

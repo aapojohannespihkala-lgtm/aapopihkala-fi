@@ -37,7 +37,7 @@ export function createC70MainViewBridge({session,setScene,readMountedScene,previ
   const {gltf,router,contract}=session;
   if(typeof setScene!=='function'||typeof readMountedScene!=='function'||gltf.scenes.length!==70||gltf.scene!==gltf.scenes[33])reject('Invalid/unobservable host scene switch');
   let active=false,disposed=false,poisoned=false,currentFloor='BOTH',activeSceneIndex=null;
-  let options={doorMode:'WORK_TEST',gable:'K14_SHIFT_220',k9Reference:false};
+  let options={doorMode:'WORK_TEST',gable:'K14_SHIFT_220',k9Reference:false,targetFloor:null};
   const ensure=()=>{if(disposed||poisoned)reject('Disposed or poisoned bridge')};
   const restore=()=>{
     if(disposed)return;
@@ -53,6 +53,10 @@ export function createC70MainViewBridge({session,setScene,readMountedScene,previ
   };
   const select=nextFloor=>{
     ensure();if(!VALID_FLOORS.has(nextFloor))reject('Unsupported floor');
+    // Explicit opt-ins stay tied to their verified source floor. Baseline
+    // changes are reset by the host when switching between 1F/2F/BOTH.
+    if(options.targetFloor && options.targetFloor!==nextFloor)
+      reject('Opt-in source floor differs from requested floor');
     const selection=nextFloor==='BOTH'
        ? {floor:nextFloor,doorMode:options.doorMode,gable:options.gable,k9Reference:options.k9Reference}
        : {floor:nextFloor,doorMode:options.doorMode,gable:'NONE',k9Reference:options.k9Reference};
@@ -110,13 +114,19 @@ export function createC70MainViewBridge({session,setScene,readMountedScene,previ
     },
     setPreviewOptions(next){
       ensure();if(active)reject('Restore before changing options');
-      if(!next||Object.keys(next).sort().join(',')!=='doorMode,gable,k9Reference'||
-         typeof next.k9Reference!=='boolean')reject('Exact explicit opt-in fields required');
-      // Validate against BOTH and 2F through router; never silently coerce
-      // historical 2015 doors or K9 into default/current mode.
-      const requested={floor:'BOTH',...next};
-      router.route(requested);
-      options={...next};
+      const keys=next && typeof next==='object' ? Object.keys(next).sort().join(',') : '';
+      const explicit=keys==='doorMode,gable,k9Reference,targetFloor';
+      const legacy=keys==='doorMode,gable,k9Reference';
+      if((!explicit&&!legacy)||typeof next.k9Reference!=='boolean')
+        reject('Exact source-scoped opt-in fields required');
+      const targetFloor=explicit?next.targetFloor:'BOTH';
+      if(!VALID_FLOORS.has(targetFloor))reject('Unsupported opt-in floor');
+      // Source contract validates the actual selection, never a fabricated
+      // BOTH route for the 2F historical or single-floor K9 source scenes.
+      router.route({floor:targetFloor,doorMode:next.doorMode,
+        gable:next.gable,k9Reference:next.k9Reference});
+      options={doorMode:next.doorMode,gable:next.gable,
+        k9Reference:next.k9Reference,targetFloor};
     },
     get available(){return !disposed&&!poisoned}, get active(){return active&&!poisoned},
     get floor(){return currentFloor}, get sceneIndex(){return activeSceneIndex},
