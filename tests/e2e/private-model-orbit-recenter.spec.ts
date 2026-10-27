@@ -111,7 +111,9 @@ test('real viewer: after middle-look/wheel, actual left drag reanchors to visibl
   const after = await pose(page);
   expect(after.projection).toBe('perspective');
   expect([...after.target, ...after.position].every(Number.isFinite)).toBe(true);
-  expect(length(after.target, looked.target)).toBeGreaterThan(0.02);
+  const focusStatus = await page.locator('#private-model-canvas').getAttribute('data-orbit-focus-status');
+  expect(length(after.target, looked.target),
+    `focusStatus=${focusStatus}, looked=${JSON.stringify(looked)}, after=${JSON.stringify(after)}`).toBeGreaterThan(0.02);
   // The target is the actual cube front surface, not the previous far look point.
   expect(Math.min(...after.target.map(x => Math.abs(Math.abs(x) - 8)))).toBeLessThan(0.08);
   expect(length(after.position, looked.position)).toBeGreaterThan(0.02);
