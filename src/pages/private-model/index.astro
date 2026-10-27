@@ -1730,7 +1730,7 @@ const title = 'Private 3D viewer';
             <div id="c70-preview-controls" hidden>
               <button id="c70-preview-button" type="button">Avaa C70-lähde-esikatselu</button>
               <input id="c70-preview-input" type="file" accept=".glb,model/gltf-binary" hidden />
-              <p>WORK_TEST / SOURCE_ONLY / STAGING_HOLD. Tiedosto avataan vain omassa selaimessa. Fyysiset liitokset ovat varmistamatta.</p>
+              <p>WORK_TEST / SOURCE_ONLY / STAGING_HOLD. Suojattu C70-lähde tai paikallinen GLB. Fyysiset liitokset ovat varmistamatta.</p>
               <div id="c70-variant-controls" hidden>
                 <label for="c70-scene-variant">C70:n vaihtoehtoinen lähdenäkymä (opt-in)</label>
                 <select id="c70-scene-variant" aria-label="C70 WORK_TEST vaihtoehtoinen lähdenäkymä"></select>
@@ -2133,7 +2133,7 @@ const title = 'Private 3D viewer';
         isTreeVisible,
       } from '../../scripts/privateModelEdgeVisibility';
       import { computeVisibleBounds } from '../../scripts/privateModelVisibleBounds';
-import { installOrbitRecenterOnDrag } from '../../scripts/privateModelOrbitRecenter';
+      import { installOrbitRecenterOnDrag } from '../../scripts/privateModelOrbitRecenter';
       import {
         p160WarmFloorContextOpacity,
         p160WarmFloorReviewOpacity,
@@ -6792,6 +6792,7 @@ import { installOrbitRecenterOnDrag } from '../../scripts/privateModelOrbitRecen
         modelLoadVersion++;
         delete canvas.dataset.c70Preview;
         delete canvas.dataset.c70SourceSha256;
+        delete canvas.dataset.c70SourceTransport;
         c70VariantControls.hidden = !c70PreviewSession;
         (canvas as any).d1fSource156RestoreOriginalVisibility?.();
         delete (canvas as any).d1fSource156SetOriginalVisibility;
@@ -6956,7 +6957,10 @@ import { installOrbitRecenterOnDrag } from '../../scripts/privateModelOrbitRecen
 
       // A STAGING_HOLD model is never uploaded, catalogued or activated on the
       // server. This explicit local-file path uses the actual protected viewer.
-      const c70PreviewEnabled = new URLSearchParams(window.location.search).get('c70-preview') === '1';
+      const c70Search = new URLSearchParams(window.location.search);
+      const c70DirectRequested = c70Search.get('c70') === '1' ||
+        c70Search.get('review') === 'ylisrinne-d-c70-source-only-20261027-review';
+      const c70PreviewEnabled = c70DirectRequested || c70Search.get('c70-preview') === '1';
       const c70PreviewControls = document.querySelector<HTMLElement>('#c70-preview-controls')!;
       const c70PreviewButton = document.querySelector<HTMLButtonElement>('#c70-preview-button')!;
       const c70PreviewInput = document.querySelector<HTMLInputElement>('#c70-preview-input')!;
@@ -7002,18 +7006,16 @@ import { installOrbitRecenterOnDrag } from '../../scripts/privateModelOrbitRecen
       c70PreviewButton.addEventListener('click', () => {
         if (c70PreviewEnabled && !c70PreviewLoading) c70PreviewInput.click();
       });
-      c70PreviewInput.addEventListener('change', async () => {
-        const file = c70PreviewInput.files?.[0];
-        if (!c70PreviewEnabled || !file || c70PreviewLoading) return;
+      const loadC70Preview = async (readBytes: () => Promise<ArrayBuffer>, transport: string) => {
+        if (!c70PreviewEnabled || c70PreviewLoading) return;
         c70PreviewLoading = true;
         c70PreviewButton.disabled = true;
         const version = modelLoadVersion;
         canvas.dataset.c70Preview = 'loading';
         status.textContent = 'Avataan C70-lähde-esikatselua...';
         try {
-          if (file.size !== c70WorkTestContract.glbByteLength) throw new Error('C70_SOURCE_SIZE');
           const session = await prepareC70Preview({
-            glbBytes: await file.arrayBuffer(), contract: c70WorkTestContract,
+            glbBytes: await readBytes(), contract: c70WorkTestContract,
             loader: new GLTFLoader(), baseUrl: '/private-model/',
             previewGate: 'EXPLICIT_WORK_TEST_PREVIEW', sourceKind: 'work-test',
           });
@@ -7031,16 +7033,50 @@ import { installOrbitRecenterOnDrag } from '../../scripts/privateModelOrbitRecen
           applyStandardViewPreset('d-1f');
           canvas.dataset.c70Preview = 'ready';
           canvas.dataset.c70SourceSha256 = session.verification.glbSha256;
+          canvas.dataset.c70SourceTransport = transport;
           closeToolbarMenus();
         } catch {
           canvas.dataset.c70Preview = 'rejected';
-          status.textContent = 'C70-esikatselua ei avattu. Valitse täsmälleen hyväksytty C70-lähdetiedosto.';
+          status.textContent = transport === 'protected-work-test'
+            ? 'Suojattua C70 WORK_TEST -lähdettä ei voitu avata. Yritä uudelleen lataamalla sivu.'
+            : 'C70-esikatselua ei avattu. Valitse täsmälleen hyväksytty C70-lähdetiedosto.';
         } finally {
           c70PreviewLoading = false;
           c70PreviewButton.disabled = false;
           c70PreviewInput.value = '';
         }
+      };
+      c70PreviewInput.addEventListener('change', () => {
+        const file = c70PreviewInput.files?.[0];
+        if (!file) return;
+        void loadC70Preview(async () => {
+          if (file.size !== c70WorkTestContract.glbByteLength) throw new Error('C70_SOURCE_SIZE');
+          return file.arrayBuffer();
+        }, 'local-file');
       });
+      const loadProtectedC70 = () => loadC70Preview(async () => {
+        const path = '/private-model/work-test/ylisrinne-d-c70-source-only-20261027.glb';
+        const response = await fetch(path, {
+          credentials: 'same-origin', cache: 'no-store', redirect: 'error',
+          signal: AbortSignal.timeout(45_000),
+        });
+        if (!response.ok || response.url !== new URL(path, location.origin).href || !response.body)
+          throw new Error('C70_PROTECTED_SOURCE_UNAVAILABLE');
+        // Bound the full body. The shared loader verifies SHA and all 70 scenes.
+        const reader = response.body.getReader();
+        const bytes = new Uint8Array(c70WorkTestContract.glbByteLength);
+        let offset = 0;
+        try {
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            if (offset + value.length > bytes.length) throw new Error('C70_SOURCE_SIZE');
+            bytes.set(value, offset); offset += value.length;
+          }
+          if (offset !== bytes.length) throw new Error('C70_SOURCE_SIZE');
+        } finally { await reader.cancel(); }
+        return bytes.buffer;
+      }, 'protected-work-test');
 
       const p139nPlanSceneName =
         'P139N SITE_PLAN_OVERLAY - Z UNKNOWN - PLAN ONLY - NOT AS-BUILT';
@@ -13516,6 +13552,10 @@ import { installOrbitRecenterOnDrag } from '../../scripts/privateModelOrbitRecen
       void (async () => {
         // Exact P137E, P186E and R1125 one-link reviews load separate WORK_TEST
         // GLBs; do not make their autoload depend on the unrelated CURRENT GLB.
+        if (c70DirectRequested) {
+          await loadProtectedC70();
+          return;
+        }
         // Keep CURRENT-first for ordinary routes and all other reviews.
         if (
           !isP137EScene67ReviewRequested() &&

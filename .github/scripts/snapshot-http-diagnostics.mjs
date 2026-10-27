@@ -48,3 +48,28 @@ export const widgetBrowserReady = ({ loadState, sections, unavailable, failures 
   unavailable === false &&
   Array.isArray(sections) && sections.length >= 4 &&
   Array.isArray(failures) && failures.length === 0;
+
+// The API can return HTTP 200 with cached data. Reject stale or hollow production payloads.
+export const widgetV2ProductionPayloadError = (payload, nowMs = Date.now()) => {
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) return 'invalid_payload';
+  if (payload.schemaVersion !== 2 || payload.channel !== 'prod') return 'invalid_schema_or_channel';
+
+  const generatedAtMs = typeof payload.generatedAt === 'string'
+    ? Date.parse(payload.generatedAt) : NaN;
+  const ageMs = nowMs - generatedAtMs;
+  if (!Number.isFinite(ageMs) || ageMs < -120_000 || ageMs > 600_000) {
+    return 'invalid_or_stale_generated_at';
+  }
+
+  if (!Array.isArray(payload.sections) || payload.sections.length < 4) return 'incomplete_sections';
+  const ids = new Set();
+  for (const section of payload.sections) {
+    if (!section || typeof section !== 'object' ||
+        typeof section.id !== 'string' || !section.id.trim() ||
+        typeof section.label !== 'string' || !section.label.trim() ||
+        typeof section.primary !== 'string' || !section.primary.trim() ||
+        ids.has(section.id)) return 'invalid_sections';
+    ids.add(section.id);
+  }
+  return null;
+};
