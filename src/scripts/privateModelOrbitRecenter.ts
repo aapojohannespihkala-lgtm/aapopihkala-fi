@@ -84,20 +84,12 @@ export function installOrbitRecenterOnDrag({
     // A target outside the current centre ray would snap the camera's direction.
     if (direction.dot(toFocus) < 0.999999) { report('OFF_CAMERA_AXIS'); return; }
 
-    const poseBefore = camera.quaternion.clone();
+    // Do not call controls.update() here: it flushes damping from the previous
+    // gesture and moves the eye before the user's new drag event is processed.
+    // The OrbitControls pointermove handler runs later in this same event and
+    // rotates normally around this centre-ray anchor without a pre-drag jump.
     controls.target.copy(focus.point);
-    controls.update();
-    const noEyeDrift = camera.position.distanceToSquared(eye) < 1e-8;
-    const noLookJump = 1 - Math.abs(camera.quaternion.dot(poseBefore)) < 1e-8;
-    if (!noEyeDrift || !noLookJump) {
-      report('REJECT_POSE_DRIFT');
-      controls.target.copy(originalTarget);
-      camera.position.copy(eye);
-      camera.quaternion.copy(poseBefore);
-      controls.update();
-      camera.position.copy(eye);
-      camera.quaternion.copy(poseBefore);
-    } else report('RECENTERED');
+    report('RECENTERED');
   };
   const clear = (event: PointerEvent) => {
     if (pressed?.id === event.pointerId) pressed = null;
