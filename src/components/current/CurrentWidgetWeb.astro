@@ -67,12 +67,31 @@ const isPreview = mode === 'preview';
         return age >= -FUTURE_CLOCK_SKEW_MS && age <= MAX_READY_AGE_MS;
       };
 
-      const isUsablePayload = (value) =>
-        value &&
-        typeof value === 'object' &&
-        value.schemaVersion === 2 &&
-        Array.isArray(value.sections) &&
-        value.sections.length >= 4;
+      const isUsablePayload = (value) => {
+        if (!value || typeof value !== 'object' || Array.isArray(value) ||
+            value.schemaVersion !== 2 || value.channel !== channel ||
+            !value.theme || typeof value.theme !== 'object' || Array.isArray(value.theme) ||
+            !Array.isArray(value.sections) || value.sections.length < 4) return false;
+
+        const byId = new Set();
+        for (const section of value.sections) {
+          if (!section || typeof section !== 'object' ||
+              typeof section.id !== 'string' || !section.id.trim() ||
+              typeof section.label !== 'string' || !section.label.trim() ||
+              typeof section.primary !== 'string' || !section.primary.trim() ||
+              byId.has(section.id)) return false;
+          byId.add(section.id);
+        }
+
+        // A valid response must also render four real sections in every layout.
+        // The standalone large renderer only recognizes these six section IDs.
+        const renderableIds = new Set(['weather', 'electricity', 'markets', 'hsl', 'rates', 'liiga']);
+        return ['compact', 'medium', 'large'].every((layout) => {
+          const ids = value.layouts?.[layout];
+          return Array.isArray(ids) && new Set(ids).size === ids.length &&
+            ids.filter((id) => renderableIds.has(id) && byId.has(id)).length >= 4;
+        });
+      };
 
       const readCachedPayload = () => {
         if (isPreview || channel !== 'prod') return null;
