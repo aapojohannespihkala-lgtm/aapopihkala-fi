@@ -72,7 +72,7 @@ const isPreview = mode === 'preview';
         typeof value === 'object' &&
         value.schemaVersion === 2 &&
         Array.isArray(value.sections) &&
-        value.sections.length > 0;
+        value.sections.length >= 4;
 
       const readCachedPayload = () => {
         if (isPreview || channel !== 'prod') return null;
