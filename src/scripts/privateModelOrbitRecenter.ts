@@ -56,12 +56,14 @@ export function installOrbitRecenterOnDrag({
   let pending = false;
   let pressed: { id: number; x: number; y: number } | null = null;
 
-  const onWheel = () => { if (isActive() && controls.enableZoom) pending = true; };
-  const onLookEnd = () => { if (isActive()) pending = true; };
+  const report = (status: string) => { canvas.dataset.orbitFocusStatus = status; };
+  const onWheel = () => { if (isActive() && controls.enableZoom) { pending = true; report('PENDING_WHEEL'); } };
+  const onLookEnd = () => { if (isActive()) { pending = true; report('PENDING_LOOK'); } };
   const onDown = (event: PointerEvent) => {
     if (event.button !== 0 || event.pointerType !== 'mouse' ||
       !isActive() || !controls.enabled || !controls.enableRotate) return;
     pressed = { id: event.pointerId, x: event.clientX, y: event.clientY };
+    report(pending ? 'DRAG_ARMED' : 'DRAG_NO_RECENTER');
   };
   const onMove = (event: PointerEvent) => {
     if (!pressed || pressed.id !== event.pointerId) return;
@@ -70,17 +72,17 @@ export function installOrbitRecenterOnDrag({
     pressed = null;
     if (!pending || !isActive() || !controls.enabled || !controls.enableRotate) return;
     pending = false;
-
+    report('FOCUS_ATTEMPTED');
     const focus = visibleOrbitFocus(getScene(), camera);
-    if (!focus) return;
+    if (!focus) { report('NO_VISIBLE_HIT'); return; }
     const originalTarget = controls.target.clone();
     // Avoid microscopic re-anchoring and ignore focus points directly at the eye.
-    if (originalTarget.distanceToSquared(focus.point) < 0.01 * 0.01) return;
+    if (originalTarget.distanceToSquared(focus.point) < 0.01 * 0.01) { report('ALREADY_FOCUSED'); return; }
     const eye = camera.position.clone();
     const direction = camera.getWorldDirection(eye.clone().set(0, 0, 0));
     const toFocus = focus.point.clone().sub(eye).normalize();
     // A target outside the current centre ray would snap the camera's direction.
-    if (direction.dot(toFocus) < 0.999999) return;
+    if (direction.dot(toFocus) < 0.999999) { report('OFF_CAMERA_AXIS'); return; }
 
     const poseBefore = camera.quaternion.clone();
     controls.target.copy(focus.point);
@@ -88,13 +90,14 @@ export function installOrbitRecenterOnDrag({
     const noEyeDrift = camera.position.distanceToSquared(eye) < 1e-8;
     const noLookJump = 1 - Math.abs(camera.quaternion.dot(poseBefore)) < 1e-8;
     if (!noEyeDrift || !noLookJump) {
+      report('REJECT_POSE_DRIFT');
       controls.target.copy(originalTarget);
       camera.position.copy(eye);
       camera.quaternion.copy(poseBefore);
       controls.update();
       camera.position.copy(eye);
       camera.quaternion.copy(poseBefore);
-    }
+    } else report('RECENTERED');
   };
   const clear = (event: PointerEvent) => {
     if (pressed?.id === event.pointerId) pressed = null;
