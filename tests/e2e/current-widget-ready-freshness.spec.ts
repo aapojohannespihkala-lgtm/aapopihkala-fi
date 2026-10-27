@@ -78,6 +78,38 @@ test('incomplete HTTP 200 response preserves complete last-good data as stale', 
   await expect(page.locator('[data-widget]')).not.toContainText('UNAVAILABLE');
 });
 
+
+for (const invalid of ['duplicate', 'blank-primary', 'wrong-channel'] as const) {
+  test(`malformed four-section HTTP 200 (${invalid}) cannot be marked ready`, async ({ page }) => {
+    await page.clock.setFixedTime(new Date(fixedNow));
+    const malformed = widgetPayload('2026-10-20T11:59:00.000Z');
+    if (invalid === 'duplicate') malformed.sections[3] = { ...malformed.sections[0] };
+    if (invalid === 'blank-primary') malformed.sections[1].primary = '';
+    if (invalid === 'wrong-channel') malformed.channel = 'dev';
+    await page.route('**/api/current/widget-v2?*', (route) =>
+      route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(malformed) }));
+    await page.goto('/current/widget/');
+    await expect(page.locator('[data-widget-root]')).toHaveAttribute('data-load-state', 'error');
+    await expect(page.locator('[data-widget]')).toContainText('UNAVAILABLE');
+  });
+}
+
+test('hollow HTTP 200 layout cannot replace valid last-good data', async ({ page }) => {
+  await page.clock.setFixedTime(new Date(fixedNow));
+  const complete = widgetPayload('2026-10-20T11:59:00.000Z');
+  const hollow = { ...complete, layouts: { ...complete.layouts, large: ['weather'] } };
+  let next = complete;
+  await page.route('**/api/current/widget-v2?*', (route) =>
+    route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(next) }));
+  await page.goto('/current/widget/');
+  await expect(page.locator('[data-widget-root]')).toHaveAttribute('data-load-state', 'ready');
+  next = hollow;
+  await page.locator('[data-widget-refresh]').click();
+  await expect(page.locator('[data-widget-root]')).toHaveAttribute('data-load-state', 'stale');
+  await expect(page.locator('[data-section]')).toHaveCount(4);
+  await expect(page.locator('[data-footer-status]')).toContainText('STALE');
+});
+
 test('old HTTP 200 payload is visible but explicitly stale, not ready', async ({ page }) => {
   await page.clock.setFixedTime(new Date(fixedNow));
   await page.route('**/api/current/widget-v2?*', (route) =>
