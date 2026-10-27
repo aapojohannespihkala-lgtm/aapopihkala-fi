@@ -194,8 +194,24 @@ for (const width of [1280, 390]) test.describe(`C70 direct ${width}`, () => {
     await expect(canvas).toHaveAttribute('data-c70-source-sha256', C70_SHA);
     await expect(page.locator('#model-source-badge')).toHaveText('C70 WORK_TEST');
     expect(reads.length).toBeGreaterThan(0);
-    const settle = () => page.evaluate(() => new Promise<void>(resolve => {
-      let n = 45; const step = () => --n ? requestAnimationFrame(step) : resolve();
+    const settle = () => page.evaluate(() => new Promise<void>((resolve, reject) => {
+      let n = 0, stable = 0;
+      let previous: number[] | null = null;
+      // A fixed 45 frames leaves measurable OrbitControls damping after touch
+      // rotation. Observe the real camera reaching rest before testing a new
+      // gesture; retain the strict pan/direction assertions below.
+      const step = () => {
+        const raw = document.querySelector('#ai-navigator-readout')?.getAttribute('data-world-pose');
+        const pose = raw ? JSON.parse(raw) : null;
+        const values: number[] = pose ? [...pose.position, ...pose.target, ...pose.direction] : [];
+        const delta = previous && values.length === previous.length
+          ? Math.hypot(...values.map((v, i) => v - previous![i])) : Infinity;
+        stable = values.length === 9 && Number.isFinite(delta) && delta < 1e-7 ? stable + 1 : 0;
+        previous = values;
+        if (++n >= 45 && stable >= 8) { resolve(); return; }
+        if (n >= 360) { reject(new Error('Actual camera did not settle before the next gesture')); return; }
+        requestAnimationFrame(step);
+      };
       requestAnimationFrame(step);
     }));
     const pose = async () => {
