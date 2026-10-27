@@ -95,8 +95,8 @@ private fun WidgetSection.withRealtimeGuard(payloadGeneratedAt: String, nowMs: L
         !item.tone.equals("accent", ignoreCase = true) &&
             item.countdownTargetMs?.let { it > nowMs } == true
     }
-    return if (scheduledRows.isEmpty()) null
-    else copy(
+    // Never show expired LIVE departures, but keep HSL visible if refresh is delayed.
+    return copy(
         label = staleLabel(label),
         primary = "--",
         secondary = null,
@@ -122,7 +122,8 @@ private fun WidgetSection.withSlowCacheGuard(payloadGeneratedAt: String, nowMs: 
  * Stale Weather and Electricity values remain visible as last-known-good data and are marked
  * STALE instead of disappearing, except Electricity from an earlier Helsinki day, which is
  * removed. HSL still removes stale LIVE data and keeps only future non-LIVE schedule rows,
- * also marked STALE. Markets, Rates and non-live Liiga remain available and are marked STALE
+ * also marked STALE. Without safe schedule rows, HSL remains an empty STALE placeholder.
+ * Markets, Rates and non-live Liiga remain available and are marked STALE
  * only when the cached copy itself is more than four days old.
  */
 internal fun WidgetPayload.withSafeCachedFreshness(nowMs: Long): WidgetPayload {
