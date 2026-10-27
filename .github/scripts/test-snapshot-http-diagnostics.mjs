@@ -8,6 +8,7 @@ import {
   widgetBrowserResponseFailure,
   widgetBrowserRequestFailure,
   widgetBrowserReady,
+  widgetV2ProductionPayloadError,
 } from './snapshot-http-diagnostics.mjs';
 
 test('Snapshot HTTP diagnostics keep the exact status but strip query parameters', () => {
@@ -94,4 +95,34 @@ test('Widget browser smoke requires fresh ready, not a stale fallback', () => {
 
   const workflow = readFileSync(new URL('../workflows/current-snapshot-browser-smoke.yml', import.meta.url), 'utf8');
   assert.match(workflow, /widgetBrowserReady\(\{ \.\.\.diagnostics, failures \}\)/);
+});
+
+test('Widget v2 production smoke rejects stale, future and malformed 200 payloads', () => {
+  const now = Date.parse('2026-10-27T03:00:00.000Z');
+  const healthy = {
+    schemaVersion: 2,
+    channel: 'prod',
+    generatedAt: '2026-10-27T02:59:00.000Z',
+    sections: ['weather', 'electricity', 'markets', 'rates'].map((id) => ({
+      id, label: id.toUpperCase(), primary: 'LIVE',
+    })),
+  };
+  assert.equal(widgetV2ProductionPayloadError(healthy, now), null);
+  for (const bad of [
+    { schemaVersion: 1 },
+    { channel: 'dev' },
+    { generatedAt: '2026-10-27T02:49:00.000Z' },
+    { generatedAt: '2026-10-27T03:03:00.000Z' },
+    { generatedAt: 'not-a-date' },
+    { sections: healthy.sections.slice(0, 3) },
+    { sections: [...healthy.sections.slice(0, 3), healthy.sections[0]] },
+    { sections: [{ ...healthy.sections[0], primary: '' }, ...healthy.sections.slice(1)] },
+    { sections: [{ ...healthy.sections[0], label: '' }, ...healthy.sections.slice(1)] },
+  ]) {
+    assert.notEqual(widgetV2ProductionPayloadError({ ...healthy, ...bad }, now), null);
+  }
+  assert.equal(widgetV2ProductionPayloadError(null, now), 'invalid_payload');
+
+  const workflow = readFileSync(new URL('../workflows/current-snapshot-browser-smoke.yml', import.meta.url), 'utf8');
+  assert.match(workflow, /widgetV2ProductionPayloadError\(payload\)/);
 });
