@@ -496,6 +496,7 @@ for (const width of [1280, 390]) test.describe(`C80 direct ${width}`, () => {
     await expect(canvas).toHaveAttribute('data-c80-scene-index', '3');
     await settle();
     await page.screenshot({ path: info.outputPath(`c80-${width}-FULL_CONTEXT.png`) });
+    await openMenu(page, '#preset-menu');
     await page.locator('#main-view-area').selectOption('D');
     await expect(canvas).toHaveAttribute('data-main-view-source-scene-index', '0');
     if (await page.locator('#preset-menu').getAttribute('open') !== null)
@@ -560,6 +561,13 @@ for (const width of [1280, 390]) test.describe(`C80 direct ${width}`, () => {
       gestures = ['TOUCH_ORBIT', 'TWO_FINGER_PAN', 'PINCH_ZOOM'];
     }
     await page.screenshot({ path: info.outputPath('c80-direct-gestures.png') });
+    await openMenu(page, '#more-menu');
+    await page.locator('#reset-view-defaults-button').click();
+    await expect(canvas).toHaveAttribute('data-main-view-area', 'WHOLE');
+    await expect(canvas).toHaveAttribute('data-c80-scene-index', '3');
+    await openMenu(page, '#preset-menu');
+    await page.locator('#main-view-area').selectOption('D');
+    await expect(canvas).toHaveAttribute('data-c80-scene-index', '0');
     await openMenu(page, '#view-menu'); await page.locator('#fit-button').click();
     await settle();
     await openMenu(page, '#model-menu'); await page.locator('#c70-fallback-link').click();
