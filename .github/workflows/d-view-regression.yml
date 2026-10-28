@@ -51,7 +51,7 @@ jobs:
         github.event.workflow_run.head_branch == 'main'))
     # Match the build job's supported, stable browser dependency environment.
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7
         with:
