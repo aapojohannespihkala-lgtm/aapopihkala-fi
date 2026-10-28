@@ -5473,6 +5473,7 @@ const title = 'Private 3D viewer';
 
       // D-view mobile safeRect: HUD-aware pure projection; no model mutation.
       let mobileSafeBaseDistance = 0;
+      let mobileSafeNormalBaseDistance = 0;
       let mobileSafeFitPending = false;
       const mobileHudElements = [
         '#coordinate-panel', '#orientation-gizmo', '#selection-panel',
@@ -5487,14 +5488,25 @@ const title = 'Private 3D viewer';
             delete canvas.dataset.mobileSafeFit;
           }
           mobileSafeBaseDistance = 0;
+          mobileSafeNormalBaseDistance = 0;
           return;
         }
         if (window.innerWidth > 960 || (window.innerWidth > 760 && window.innerHeight > 500)) {
           if (canvas.dataset.mobileSafeFit === 'true') {
+            // updateSize already applied the normal viewport fit ratio. Undo
+            // only the previous HUD fit scale, preserving zoom, pan and direction.
+            if (mobileSafeBaseDistance > 0 && mobileSafeNormalBaseDistance > 0) {
+              const offset = camera.position.clone().sub(controls.target);
+              camera.position.copy(controls.target).addScaledVector(offset,
+                mobileSafeNormalBaseDistance / mobileSafeBaseDistance);
+              controls.update();
+            }
             camera.clearViewOffset();
             camera.updateProjectionMatrix();
             delete canvas.dataset.mobileSafeFit;
           }
+          mobileSafeBaseDistance = 0;
+          mobileSafeNormalBaseDistance = 0;
           return;
         }
         const root = 'isSourceScene' in mainViewScope
@@ -5520,8 +5532,12 @@ const title = 'Private 3D viewer';
         const dir = camera.position.clone().sub(controls.target);
         if (dir.lengthSq() < 1e-10) dir.set(.72,.55,.72);
         const existingDistance = dir.length();
-        const ratio = mode === 'preserve' && mobileSafeBaseDistance > 0
-          ? existingDistance / mobileSafeBaseDistance : 1;
+        const normalBaseDistance = fitDistance * Math.hypot(.72, .55, .72);
+        const previousBase = mobileSafeBaseDistance > 0 && mobileSafeNormalBaseDistance > 0
+          ? mobileSafeBaseDistance * normalBaseDistance / mobileSafeNormalBaseDistance
+          : normalBaseDistance;
+        const ratio = mode === 'preserve' && previousBase > 0
+          ? existingDistance / previousBase : 1;
         const fit = solvePerspectiveSafeFit({width:W,height:H,safeRect,
           bounds:{min:box.min,max:box.max},target:controls.target,
           orbit:dir,fovDeg:camera.fov,zoomRatio:ratio});
@@ -5533,6 +5549,7 @@ const title = 'Private 3D viewer';
         camera.updateProjectionMatrix();
         controls.update();
         mobileSafeBaseDistance=fit.baseDistance;
+        mobileSafeNormalBaseDistance=normalBaseDistance;
         canvas.dataset.mobileSafeFit='true';
         canvas.dataset.mobileSafeCovered=String(fit.covered);
         canvas.dataset.mobileSafeRect=[safeRect.x,safeRect.y,safeRect.width,safeRect.height]
