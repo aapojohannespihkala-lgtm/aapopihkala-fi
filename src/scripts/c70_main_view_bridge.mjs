@@ -18,9 +18,9 @@ export async function prepareC70Preview({glbBytes,contract,loader,baseUrl,previe
   const verification=await verifyC70GLB(glbBytes,contract);
   const bytes=glbBytes instanceof ArrayBuffer?glbBytes:glbBytes.buffer.slice(glbBytes.byteOffset,glbBytes.byteOffset+glbBytes.byteLength);
   const gltf=await loader.parseAsync(bytes,baseUrl);
-  if(!gltf||!Array.isArray(gltf.scenes)||gltf.scenes.length!==70 ||
-     gltf.scene!==gltf.scenes[33]||gltf.parser?.json?.scene!==33||
-     gltf.parser?.json?.scenes?.length!==70)reject('Parsed model does not match verified C70 default33');
+  if(!gltf||!Array.isArray(gltf.scenes)||gltf.scenes.length!==verification.sceneCount ||
+     gltf.scene!==gltf.scenes[contract.glbDefaultScene]||gltf.parser?.json?.scene!==contract.glbDefaultScene||
+     gltf.parser?.json?.scenes?.length!==verification.sceneCount)reject('Parsed model does not match verified source');
   const router=createC70Router(contract,verification);
   return Object.freeze({gltf,router,contract,verification});
 }
@@ -35,9 +35,11 @@ export function createC70MainViewBridge({session,setScene,readMountedScene,previ
      session.verification.glbSha256!==session.contract?.glbSha256 ||
      session.contract?.canApplyToViewer!==false || session.contract?.canPublish!==false)reject('Source/safety gate missing');
   const {gltf,router,contract}=session;
-  if(typeof setScene!=='function'||typeof readMountedScene!=='function'||gltf.scenes.length!==70||gltf.scene!==gltf.scenes[33])reject('Invalid/unobservable host scene switch');
+  const wholeScene=gltf.scenes[contract.viewerWholeScene??contract.glbDefaultScene];
+  if(typeof setScene!=='function'||typeof readMountedScene!=='function'||gltf.scenes.length!==session.verification.sceneCount||
+     gltf.scene!==gltf.scenes[contract.glbDefaultScene]||!wholeScene)reject('Invalid/unobservable host scene switch');
   let active=false,disposed=false,poisoned=false,currentFloor='BOTH',activeSceneIndex=null;
-  let options={doorMode:'WORK_TEST',gable:'K14_SHIFT_220',k9Reference:false,targetFloor:null};
+  let options={doorMode:'WORK_TEST',gable:contract.model==='D_C80'?'NONE':'K14_SHIFT_220',k9Reference:false,targetFloor:null};
   const ensure=()=>{if(disposed||poisoned)reject('Disposed or poisoned bridge')};
   const restore=()=>{
     if(disposed)return;
@@ -46,8 +48,8 @@ export function createC70MainViewBridge({session,setScene,readMountedScene,previ
     const wasActive=active;active=false;currentFloor='BOTH';activeSceneIndex=null;
     if(wasActive){
       try {
-        setScene(gltf.scene);
-        if(readMountedScene()!==gltf.scene)reject('WHOLE restore was not mounted');
+        setScene(wholeScene);
+        if(readMountedScene()!==wholeScene)reject('WHOLE restore was not mounted');
       } catch(error){poisoned=true;reject('WHOLE restore failed; discard viewer session');}
     }
   };
@@ -74,7 +76,7 @@ export function createC70MainViewBridge({session,setScene,readMountedScene,previ
       // Best effort WHOLE rollback; poison even after successful rollback, to
       // prevent an unnoticed transient partial mount from being reused.
       poisoned=true;
-      try {setScene(gltf.scene);}catch(_){/* host will require reload */}
+      try {setScene(wholeScene);}catch(_){/* host will require reload */}
       reject('Scene mount failed; discard viewer session');
     }
     currentFloor=nextFloor;activeSceneIndex=row.sceneIndex;active=true;
@@ -87,13 +89,13 @@ export function createC70MainViewBridge({session,setScene,readMountedScene,previ
     };
   };
   return Object.freeze({
-    isC70SourceScene:true,
+    isC70SourceScene:contract.model==='D_C70', isSourceScene:true, sourceModel:contract.model,
     apply:select, restore,
     enforce:()=>{
       if(disposed||poisoned||!active)return;
       if(readMountedScene()!==gltf.scenes[activeSceneIndex]){
         poisoned=true;active=false;currentFloor='BOTH';activeSceneIndex=null;
-        try{setScene(gltf.scene);}catch(_){/* reload required */}
+        try{setScene(wholeScene);}catch(_){/* reload required */}
         // The caller must reload this failed source session, never reuse it.
       }
     },
@@ -133,7 +135,8 @@ export function createC70MainViewBridge({session,setScene,readMountedScene,previ
     get t04Status(){return 'T04_HOLD'}, stairStatus:'HOST_HOLD',
     sourceSha256:contract.glbSha256, sourceStatus:'WORK_TEST_SOURCE_ONLY',
     canPublish:false,canApplyToViewer:false,
-    get defaultScene(){return gltf.scene},
-    get selectedScene(){return active&&!poisoned?gltf.scenes[activeSceneIndex]:gltf.scene},
+    get defaultScene(){return wholeScene},
+    get selectedScene(){return active&&!poisoned?gltf.scenes[activeSceneIndex]:wholeScene},
   });
 }
+

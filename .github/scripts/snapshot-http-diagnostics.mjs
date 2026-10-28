@@ -32,6 +32,13 @@ export const snapshotRequestFailureDiagnostic = (rawUrl, error, method = 'GET') 
   return { endpoint, method, networkError };
 };
 
+// A LIVE DATA / OK label is not enough if the browser observed source or JS failures.
+export const snapshotBrowserReady = ({ status, failures, httpResponses }) =>
+  status === 'LIVE DATA / OK' &&
+  Array.isArray(failures) && failures.length === 0 &&
+  Array.isArray(httpResponses) &&
+  httpResponses.every((response) => Number.isInteger(response?.httpStatus) && response.httpStatus < 500);
+
 export const widgetBrowserResponseFailure = (rawUrl, status, method = 'GET') => {
   const diagnostic = snapshotResponseDiagnostic(rawUrl, status, method);
   return diagnostic?.endpoint === '/api/current/widget-v2' && status >= 500 ? diagnostic : null;
