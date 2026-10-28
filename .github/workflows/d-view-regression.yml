@@ -35,7 +35,8 @@ permissions:
 
 concurrency:
   group: d-view-exact-source-webgl
-  cancel-in-progress: false
+  # Read-only viewer QA is bound to one exact main head. A newer head supersedes it.
+  cancel-in-progress: true
 
 jobs:
   real-model-webgl:
