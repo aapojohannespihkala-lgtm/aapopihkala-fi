@@ -8,6 +8,7 @@ import {
   widgetBrowserResponseFailure,
   widgetBrowserRequestFailure,
   widgetBrowserReady,
+  widgetBrowserRenderableSections,
   widgetV2ProductionPayloadError,
 } from './snapshot-http-diagnostics.mjs';
 
@@ -64,6 +65,26 @@ test('Widget browser smoke detects only Widget v2 5xx and network failures', () 
   assert.equal(widgetBrowserRequestFailure('https://example.com/api/current/widget-v2', 'net::ERR_FAILED'), null);
 });
 
+test('Widget browser smoke counts only distinct visible cards with real primary data', () => {
+  const cards = ['weather', 'electricity', 'markets', 'rates'].map((id) => ({
+    id, visible: true, primary: 'LIVE',
+  }));
+  assert.deepEqual(widgetBrowserRenderableSections(cards), cards.map(({ id }) => id));
+  assert.deepEqual(widgetBrowserRenderableSections([
+    ...cards.slice(0, 3),
+    { ...cards[0] },
+    { id: 'hsl', visible: false, primary: 'LIVE' },
+    { id: 'liiga', visible: true, primary: '  ' },
+    null,
+  ]), ['weather', 'electricity', 'markets']);
+  assert.deepEqual(widgetBrowserRenderableSections(null), []);
+
+  const workflow = readFileSync(new URL('../workflows/current-snapshot-browser-smoke.yml', import.meta.url), 'utf8');
+  assert.match(workflow, /getBoundingClientRect\(\)/);
+  assert.match(workflow, /\.android-primary, \.metric-primary/);
+  assert.match(workflow, /widgetBrowserRenderableSections\(diagnostics\.sections\)/);
+});
+
 // A timed-out Widget v2 probe must not suppress independent production browser checks.
 test('Snapshot smoke keeps browser verification after an API failure', () => {
   const workflow = readFileSync(new URL('../workflows/current-snapshot-browser-smoke.yml', import.meta.url), 'utf8');
@@ -94,7 +115,7 @@ test('Widget browser smoke requires fresh ready, not a stale fallback', () => {
   }
 
   const workflow = readFileSync(new URL('../workflows/current-snapshot-browser-smoke.yml', import.meta.url), 'utf8');
-  assert.match(workflow, /widgetBrowserReady\(\{ \.\.\.diagnostics, failures \}\)/);
+  assert.match(workflow, /widgetBrowserReady\(\{ \.\.\.diagnostics, sections: renderedSections, failures \}\)/);
 });
 
 test('Widget v2 production smoke rejects stale, future and malformed 200 payloads', () => {
