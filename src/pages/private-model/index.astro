@@ -1701,6 +1701,10 @@ const title = 'Private 3D viewer';
                 <option value="2F">Yläkerta</option>
               </select>
             </div>
+            <label id="c80-both-roof-control" class="clip-toggle" hidden>
+              <input id="c80-both-roof-visible" type="checkbox" />
+              Näytä C80 kattokonteksti (WORK_TEST, vain BOTH)
+            </label>
             <p id="main-view-scope-note" class="toolbar-menu-label">Päämallin D-luokittelua ei ole saatavilla.</p>
             <div class="layer-select">
               <label for="other-floor-mode">Muu kerros</label>
@@ -1962,6 +1966,18 @@ const title = 'Private 3D viewer';
           <div class="layers-header">
             <h2>Layerit</h2>
             <button id="close-layers-button" type="button">Sulje</button>
+          </div>
+          <div id="c80-shell-focus-layer" hidden>
+            <label class="layer-row">
+              <input id="c80-shell-focus" type="checkbox" checked />
+              <span>C80 1F/2F sisätilafokus (WORK_TEST)</span>
+            </label>
+          </div>
+          <div id="c80-k17-context-layer" hidden>
+            <label class="layer-row">
+              <input id="c80-source-context-visible" type="checkbox" checked />
+              <span>C80-lähdekonteksti (K17-viitteet säilyvät)</span>
+            </label>
           </div>
           <label class="layer-row">
             <input id="roof-layer-visible" type="checkbox" checked />
@@ -2333,6 +2349,11 @@ const title = 'Private 3D viewer';
       import { type MainViewFloor } from '../../scripts/privateModelMainViewScope';
       import { createDViewRuntime } from '../../scripts/privateModelDViewRuntime';
       import { prepareC70Preview, createC70MainViewBridge } from '../../scripts/c70_main_view_bridge.mjs';
+      import { createC80K17ViewerBridgeAdapter } from '../../scripts/c80_k17_viewer_bridge_adapter.mjs';
+      // @ts-ignore - source-SHA-locked presentation policies only.
+      import { createC80VisibilityComposer } from '../../scripts/c80VisibilityComposer.mjs';
+      // @ts-ignore - SHA-locked C80 WORK_TEST presentation only.
+      import { createC80G1MainViewAdapter } from '../../scripts/c80_g1_main_view_adapter.mjs';
       import c70WorkTestContract from '../../scripts/privateModelC70Contract.json';
       import c80WorkTestContract from '../../scripts/privateModelC80Contract.json';
       import { createOtherFloorReference } from '../../scripts/privateModelOtherFloorReference';
@@ -2595,6 +2616,10 @@ const title = 'Private 3D viewer';
       const p186dSourceContextLimit = document.querySelector<HTMLElement>('#p186d-source-context-limit');
       const layersPanel = document.querySelector<HTMLElement>('#layers-panel');
       const closeLayersButton = document.querySelector<HTMLButtonElement>('#close-layers-button');
+      const c80ShellRow = document.querySelector<HTMLElement>('#c80-shell-focus-layer')!;
+      const c80ShellInput = document.querySelector<HTMLInputElement>('#c80-shell-focus')!;
+      const c80ContextRow = document.querySelector<HTMLElement>('#c80-k17-context-layer')!;
+      const c80ContextVisibleInput = document.querySelector<HTMLInputElement>('#c80-source-context-visible')!;
       const roofLayerVisibleInput = document.querySelector<HTMLInputElement>('#roof-layer-visible');
       const roofLayerOpacityInput = document.querySelector<HTMLInputElement>('#roof-layer-opacity');
       const roofLayerOpacityValue = document.querySelector<HTMLOutputElement>('#roof-layer-opacity-value');
@@ -3070,6 +3095,8 @@ const title = 'Private 3D viewer';
       const c70VariantControls = document.querySelector<HTMLElement>('#c70-variant-controls')!;
       const c70VariantSelect = document.querySelector<HTMLSelectElement>('#c70-scene-variant')!;
       const mainViewScopeNote = document.querySelector<HTMLElement>('#main-view-scope-note')!;
+      const c80RoofControl = document.querySelector<HTMLElement>('#c80-both-roof-control')!;
+      const c80RoofInput = document.querySelector<HTMLInputElement>('#c80-both-roof-visible')!;
       const mainViewExceptions = document.querySelector<HTMLDetailsElement>('#main-view-exceptions')!;
       const mainViewExceptionList = document.querySelector<HTMLElement>('#main-view-exception-list')!;
       const syncMainViewScope = () => {
@@ -3082,6 +3109,13 @@ const title = 'Private 3D viewer';
           otherFloorReference.clear();
         }
         syncOtherFloorReference();
+        const c80SelectedScene = mainViewScope?.active && 'sourceModel' in mainViewScope &&
+          mainViewScope.sourceModel === 'D_C80' ? mainViewScope.sceneIndex : null;
+        const c80BothMounted = c80SelectedScene === 0;
+        c80RoofControl.hidden = !c80BothMounted;
+        c80RoofControl.style.display = c80BothMounted ? '' : 'none';
+        c80RoofInput.disabled = !c80BothMounted;
+        c80ShellRow.hidden = !(c80SelectedScene === 1 || c80SelectedScene === 2);
         canvas.dataset.mainViewArea = mainViewArea.value;
         if (mainViewScope && 'sourceModel' in mainViewScope && mainViewScope.sourceModel === 'D_C80') {
           canvas.dataset.c80SceneIndex = String(mainViewScope.active ? mainViewScope.sceneIndex : 3);
@@ -6315,6 +6349,9 @@ const title = 'Private 3D viewer';
           canvas.dataset.mainViewScopeStatus = `${sourceLabel}_WORK_TEST_SOURCE_ONLY_HOST_HOLD`;
           canvas.dataset.contentScene = `${sourceLabel}_WORK_TEST_SOURCE`;
           if (sourceLabel === 'C80') {
+            // Apply AFTER the verified C80 scene is mounted by the existing bridge.
+            (mainViewScope as any).setSourceContextVisible(c80ContextVisibleInput.checked);
+            canvas.dataset.c80SourceContextVisible = String(c80ContextVisibleInput.checked);
             let meshes = 0, contextMeshes = 0;
             mainViewScope.selectedScene.traverse((o: any) => {
               if (o.isMesh) { meshes++; if (o.name.startsWith('C80_SOURCE_CONTEXT__')) contextMeshes++; }
@@ -6959,6 +6996,10 @@ const title = 'Private 3D viewer';
         delete canvas.dataset.c70SourceSha256;
         delete canvas.dataset.c70SourceTransport;
         c70VariantControls.hidden = !c70PreviewSession || c70PreviewSession.contract.model === 'D_C80';
+        c80ContextRow.hidden = c70PreviewSession?.contract.model !== 'D_C80';
+        c80ContextVisibleInput.checked = true;
+        c80RoofInput.checked = false;
+        c80ShellInput.checked = true;
         document.querySelector<HTMLElement>('#c70-fallback-link')!.hidden = c70PreviewSession?.contract.model !== 'D_C80';
         for (const key of Object.keys(canvas.dataset)) if (key.startsWith('c80')) delete canvas.dataset[key];
         (canvas as any).d1fSource156RestoreOriginalVisibility?.();
@@ -7082,6 +7123,18 @@ const title = 'Private 3D viewer';
               previewGate: 'EXPLICIT_WORK_TEST_PREVIEW', sourceKind: 'work-test',
             })
           : createDViewRuntime(gltf, renderer);
+        // C80 only: adapt the verified source-scene bridge; C70/CURRENT untouched.
+        if (c70PreviewSession?.contract.model === 'D_C80')
+          mainViewScope = createC80G1MainViewAdapter({
+            session: c70PreviewSession,
+            bridge: createC80VisibilityComposer({
+              bridge: createC80K17ViewerBridgeAdapter(mainViewScope, c70PreviewSession),
+              session: c70PreviewSession,
+            }),
+            readMountedScene: () => modelRoot.children[0] ?? null,
+            uiHost: document.querySelector<HTMLElement>('#c70-preview-controls'),
+            refreshEdges: () => refreshEdgeRendering(modelRoot.children[0] ?? null),
+          }) as any;
         syncMainViewScope();
 
         modelSourceBadge.textContent = sourceLabel;
@@ -13497,6 +13550,26 @@ const title = 'Private 3D viewer';
       currentModelButton.addEventListener('click', () => {
         clearModelComparisonState();
         void loadCurrentModel();
+      });
+      c80ContextVisibleInput.addEventListener('change', () => {
+        if (!mainViewScope || (mainViewScope as any).sourceModel !== 'D_C80') return;
+        const result = (mainViewScope as any).setSourceContextVisible(c80ContextVisibleInput.checked);
+        canvas.dataset.c80SourceContextVisible = String(c80ContextVisibleInput.checked);
+        if (result.applied) { clearSelection(); refreshEdgeRendering(modelRoot.children[0] ?? null); fitModel(); }
+      });
+      c80RoofInput.addEventListener('change', () => {
+        if (!mainViewScope?.active || (mainViewScope as any).sourceModel !== 'D_C80' ||
+            (mainViewScope as any).sceneIndex !== 0) return;
+        (mainViewScope as any).setRoofContextVisible(c80RoofInput.checked);
+        if (selectedObject && !isEffectivelyVisible(selectedObject,modelRoot)) clearSelection();
+        refreshEdgeRendering((mainViewScope as any).selectedScene);
+      });
+      c80ShellInput.addEventListener('change', () => {
+        if (!mainViewScope?.active || (mainViewScope as any).sourceModel !== 'D_C80' ||
+            ![1,2].includes((mainViewScope as any).sceneIndex)) return;
+        (mainViewScope as any).setFloorShellMode(c80ShellInput.checked ? 'FOCUS' : 'SOURCE');
+        if (selectedObject && !isEffectivelyVisible(selectedObject,modelRoot)) clearSelection();
+        refreshEdgeRendering((mainViewScope as any).selectedScene);
       });
       layersButton.addEventListener('click', () => setLayersPanelOpen(layersPanel.hidden));
       closeLayersButton.addEventListener('click', () => setLayersPanelOpen(false, true));
