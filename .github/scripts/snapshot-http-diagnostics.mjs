@@ -71,5 +71,15 @@ export const widgetV2ProductionPayloadError = (payload, nowMs = Date.now()) => {
         ids.has(section.id)) return 'invalid_sections';
     ids.add(section.id);
   }
+
+  // A healthy 200 must render four distinct, known sections in every layout.
+  const renderableIds = new Set(['weather', 'electricity', 'markets', 'hsl', 'rates', 'liiga']);
+  for (const layout of ['compact', 'medium', 'large']) {
+    const layoutIds = payload.layouts?.[layout];
+    if (!Array.isArray(layoutIds) || new Set(layoutIds).size !== layoutIds.length ||
+        layoutIds.filter((id) => renderableIds.has(id) && ids.has(id)).length < 4) {
+      return 'invalid_layouts';
+    }
+  }
   return null;
 };
