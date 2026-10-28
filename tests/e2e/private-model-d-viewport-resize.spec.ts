@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
+import ts from 'typescript';
 
 // Separate from the existing D runtime integration suite reserved by Sol.
 // Real R4E bytes are required for a WebGL PASS, never a synthetic replacement.
@@ -107,10 +108,16 @@ function createActualResizeHandler(mode: 'D' | 'WHOLE' | 'PLAN') {
   const end = source.indexOf('const fitModel = () => {', start);
   expect(start).toBeGreaterThan(0);
   expect(end).toBeGreaterThan(start);
-  const liveFunctions = source.slice(start, end).replace(
-    'const refreshFullModelFitMetrics = (sceneRoot: any = fullModelScene)',
-    'const refreshFullModelFitMetrics = (sceneRoot = fullModelScene)',
-  );
+  const parsed = ts.createSourceFile('viewer-resize.ts', source.slice(start, end), ts.ScriptTarget.Latest, true);
+  const names = new Set(['updateSize', 'refreshFullModelFitMetrics']);
+  const declarations = parsed.statements.filter(statement => ts.isVariableStatement(statement) &&
+    statement.declarationList.declarations.some(declaration => ts.isIdentifier(declaration.name) && names.has(declaration.name.text)));
+  expect(declarations).toHaveLength(2);
+  const printer = ts.createPrinter();
+  const liveFunctions = ts.transpileModule(declarations.map(statement =>
+    printer.printNode(ts.EmitHint.Unspecified, statement, parsed)).join('\n'), {
+    compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.None },
+  }).outputText;
   expect(liveFunctions).toContain('const refreshFullModelFitMetrics =');
   expect(liveFunctions).not.toContain('sceneRoot: any');
 
@@ -145,23 +152,24 @@ function createActualResizeHandler(mode: 'D' | 'WHOLE' | 'PLAN') {
   const activePlanFloor = mode === 'PLAN' ? '1F' : null;
   const isoCamera = {};
   let planRefits = 0;
+  const mobileFitRequests: string[] = [];
   // Compile only the two current production declarations, never a copy of
   // their implementation. All other viewer dependencies are unreachable in
   // D/WHOLE/PLAN when no ISO/elevation mode is active.
   const factory = new Function(
     'canvas', 'renderer', 'camera', 'controls', 'mainViewScope', 'activeCamera',
     'activePlanFloor', 'fullModelScene', 'computeVisibleBounds', 'modelCenter',
-    'THREE', 'fitPlanCamera', 'isoCamera',
+    'THREE', 'fitPlanCamera', 'isoCamera', 'queueMobileSafeFit',
     'let fitDistance = 0;\n' + liveFunctions +
     '\nreturn { updateSize, getFit: () => fitDistance, setFit: value => { fitDistance = value; } };',
   );
   const live = factory(canvas, renderer, camera, controls, mainViewScope, camera,
     activePlanFloor, fullModelScene, computeVisibleBounds, modelCenter, THREE,
-    () => { planRefits++; }, isoCamera);
+    () => { planRefits++; }, isoCamera, (mode: string) => mobileFitRequests.push(mode));
   live.setFit(initialFit);
   return { canvas, camera, controls, radius, angle, initialFit,
     updateSize: live.updateSize as () => void, getFit: live.getFit as () => number,
-    planRefits: () => planRefits };
+    planRefits: () => planRefits, mobileFitRequests };
 }
 
 test('production D orbit live resize preserves fit-relative zoom, look direction and pan without private GLB', () => {
@@ -195,6 +203,7 @@ test('production D orbit live resize preserves fit-relative zoom, look direction
       .toBeCloseTo(startTarget[axis] + offsetBefore[axis], 11);
   }
   expect(h.controls.updates).toBe(2);
+  expect(h.mobileFitRequests).toEqual(['preserve', 'preserve']);
 });
 
 test('production D resize leaves WHOLE orbit framing and active plan camera alone', () => {
@@ -210,5 +219,7 @@ test('production D resize leaves WHOLE orbit framing and active plan camera alon
     expect(h.camera.position.z).toBe(before.z);
     expect(h.controls.updates).toBe(0);
     expect(h.planRefits()).toBe(mode === 'PLAN' ? 1 : 0);
+    expect(h.mobileFitRequests).toEqual(mode === 'WHOLE' ? [] : ['preserve']);
   }
 });
+
