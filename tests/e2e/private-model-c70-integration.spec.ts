@@ -568,7 +568,7 @@ for (const width of [1280, 390]) test.describe(`C80 direct ${width}`, () => {
     await openMenu(page, '#preset-menu');
     await page.locator('#main-view-area').selectOption('D');
     await expect(canvas).toHaveAttribute('data-c80-scene-index', '0');
-    await openMenu(page, '#view-menu'); await page.locator('#fit-button').click();
+    await openMenu(page, '#more-menu'); await page.locator('#fit-button').click();
     await settle();
     await openMenu(page, '#model-menu'); await page.locator('#c70-fallback-link').click();
     await expect(canvas).toHaveAttribute('data-c70-preview', 'ready', { timeout: 120_000 });
