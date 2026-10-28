@@ -4,7 +4,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { GLTFLoader, THREE } from '../../src/scripts/threeRuntime';
 import { prepareC70Preview, createC70MainViewBridge } from '../../src/scripts/c70_main_view_bridge.mjs';
-import c80Contract from '../../src/scripts/privateModelC80Contract.json';
+const c80Contract = JSON.parse(readFileSync(join(process.cwd(), 'src/scripts/privateModelC80Contract.json'), 'utf8'));
 import { computeVisibleBounds } from '../../src/scripts/privateModelVisibleBounds';
 
 const C70_SHA = '75b586aaf774bce34cf1dceba5d19e6ae41c112b8717f4cce5ce64458fddc491';
