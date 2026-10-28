@@ -2,6 +2,7 @@ import { expect, test } from '@playwright/test';
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import ts from 'typescript';
+import { selectUnobstructedRect, solvePerspectiveSafeFit } from '../../src/scripts/privateModelMobileSafeRect.js';
 
 // Separate from the existing D runtime integration suite reserved by Sol.
 // Real R4E bytes are required for a WebGL PASS, never a synthetic replacement.
@@ -100,19 +101,22 @@ class TestFitVector {
     this.x += v.x * scale; this.y += v.y * scale; this.z += v.z * scale; return this;
   }
   length() { return Math.hypot(this.x, this.y, this.z); }
+  lengthSq() { return this.x*this.x+this.y*this.y+this.z*this.z; }
+  normalize() { const n=this.length(); this.x/=n; this.y/=n; this.z/=n; return this; }
 }
 
-function createActualResizeHandler(mode: 'D' | 'WHOLE' | 'PLAN') {
+function createActualResizeHandler(mode: 'D' | 'WHOLE' | 'PLAN', applyMobile = false) {
   const source = readFileSync('src/pages/private-model/index.astro', 'utf8');
   const start = source.indexOf('const updateSize = () => {');
   const end = source.indexOf('const fitModel = () => {', start);
   expect(start).toBeGreaterThan(0);
   expect(end).toBeGreaterThan(start);
   const parsed = ts.createSourceFile('viewer-resize.ts', source.slice(start, end), ts.ScriptTarget.Latest, true);
-  const names = new Set(['updateSize', 'refreshFullModelFitMetrics']);
+  const names = new Set(['updateSize', 'refreshFullModelFitMetrics',
+    'mobileSafeBaseDistance', 'mobileSafeNormalBaseDistance', 'mobileHudElements', 'applyMobileSafeCamera']);
   const declarations = parsed.statements.filter(statement => ts.isVariableStatement(statement) &&
     statement.declarationList.declarations.some(declaration => ts.isIdentifier(declaration.name) && names.has(declaration.name.text)));
-  expect(declarations).toHaveLength(2);
+  expect(declarations).toHaveLength(6);
   const printer = ts.createPrinter();
   const liveFunctions = ts.transpileModule(declarations.map(statement =>
     printer.printNode(ts.EmitHint.Unspecified, statement, parsed)).join('\n'), {
@@ -126,12 +130,16 @@ function createActualResizeHandler(mode: 'D' | 'WHOLE' | 'PLAN') {
   const canvas = {
     width: 1280, height: 900, clientWidth: 1280, clientHeight: 900,
     dataset: {} as Record<string, string>,
+    getBoundingClientRect() { return { left:0,top:0,width:this.clientWidth,height:this.clientHeight }; },
   };
   const target = new TestFitVector(2, 1, -3);
   const camera = {
     aspect: 1280 / 900, fov: 38, near: .01, far: 5000, projectionUpdates: 0,
     position: target.clone().addScaledVector(new TestFitVector(.72, .55, .72), initialFit * .88),
     updateProjectionMatrix() { this.projectionUpdates++; },
+    view: null as null | number[],
+    setViewOffset(...values: number[]) { this.view=values; },
+    clearViewOffset() { this.view=null; },
   };
   const renderer = {
     getPixelRatio: () => 1,
@@ -142,9 +150,11 @@ function createActualResizeHandler(mode: 'D' | 'WHOLE' | 'PLAN') {
   const modelCenter = new TestFitVector();
   const THREE = {
     Sphere: class { radius = 0; },
+    Vector3: TestFitVector,
     MathUtils: { degToRad: (degrees: number) => degrees * Math.PI / 180 },
   };
   const computeVisibleBounds = (root: unknown) => root !== fullModelScene ? null : ({
+    min: {x:-2,y:-1,z:-3}, max: {x:2,y:1,z:3},
     getCenter(v: TestFitVector) { return v.copy(new TestFitVector(0, 0, 0)); },
     getBoundingSphere(s: { radius: number }) { s.radius = radius; return s; },
   });
@@ -153,6 +163,7 @@ function createActualResizeHandler(mode: 'D' | 'WHOLE' | 'PLAN') {
   const isoCamera = {};
   let planRefits = 0;
   const mobileFitRequests: string[] = [];
+  const viewport = { innerWidth:1280,innerHeight:900 };
   // Compile only the two current production declarations, never a copy of
   // their implementation. All other viewer dependencies are unreachable in
   // D/WHOLE/PLAN when no ISO/elevation mode is active.
@@ -160,16 +171,20 @@ function createActualResizeHandler(mode: 'D' | 'WHOLE' | 'PLAN') {
     'canvas', 'renderer', 'camera', 'controls', 'mainViewScope', 'activeCamera',
     'activePlanFloor', 'fullModelScene', 'computeVisibleBounds', 'modelCenter',
     'THREE', 'fitPlanCamera', 'isoCamera', 'queueMobileSafeFit',
+    'window', 'document', 'getComputedStyle', 'selectUnobstructedRect', 'solvePerspectiveSafeFit', 'modelRoot',
     'let fitDistance = 0;\n' + liveFunctions +
-    '\nreturn { updateSize, getFit: () => fitDistance, setFit: value => { fitDistance = value; } };',
+    '\nreturn { updateSize, applyMobileSafeCamera, getMobileBase: () => mobileSafeBaseDistance, getFit: () => fitDistance, setFit: value => { fitDistance = value; } };',
   );
   const live = factory(canvas, renderer, camera, controls, mainViewScope, camera,
     activePlanFloor, fullModelScene, computeVisibleBounds, modelCenter, THREE,
-    () => { planRefits++; }, isoCamera, (mode: string) => mobileFitRequests.push(mode));
+    () => { planRefits++; }, isoCamera, (mode: string) => {
+      mobileFitRequests.push(mode); if (applyMobile) live.applyMobileSafeCamera(mode);
+    }, viewport, {querySelector:()=>null}, ()=>({display:'none'}),
+    selectUnobstructedRect, solvePerspectiveSafeFit, {children:[fullModelScene]});
   live.setFit(initialFit);
   return { canvas, camera, controls, radius, angle, initialFit,
     updateSize: live.updateSize as () => void, getFit: live.getFit as () => number,
-    planRefits: () => planRefits, mobileFitRequests };
+    planRefits: () => planRefits, mobileFitRequests, viewport, getMobileBase:live.getMobileBase as () => number };
 }
 
 test('production D orbit live resize preserves fit-relative zoom, look direction and pan without private GLB', () => {
@@ -204,6 +219,33 @@ test('production D orbit live resize preserves fit-relative zoom, look direction
   }
   expect(h.controls.updates).toBe(2);
   expect(h.mobileFitRequests).toEqual(['preserve', 'preserve']);
+});
+
+test('actual mobile fit controller preserves zoom, pan and direction across portrait/landscape/desktop', () => {
+  const h=createActualResizeHandler('D',true), target=h.controls.target.clone();
+  const offset=h.camera.position.clone().sub(target), defaultLength=Math.hypot(.72,.55,.72);
+  let zoom=offset.length()/(h.initialFit*defaultLength);
+  h.canvas.clientWidth=390; h.viewport.innerWidth=390;
+  h.updateSize();
+  expect(h.camera.position.clone().sub(target).length()/h.getMobileBase()).toBeCloseTo(zoom,11);
+  expect(h.camera.view).not.toBeNull();
+  const mobileOffset=h.camera.position.clone().sub(target);
+  h.camera.position.copy(target).addScaledVector(mobileOffset,.74); zoom*=.74;
+  h.canvas.clientWidth=760; h.canvas.clientHeight=390;
+  h.viewport.innerWidth=760; h.viewport.innerHeight=390;
+  h.updateSize();
+  expect(h.camera.position.clone().sub(target).length()/h.getMobileBase()).toBeCloseTo(zoom,11);
+  h.canvas.clientWidth=1280; h.canvas.clientHeight=900;
+  h.viewport.innerWidth=1280; h.viewport.innerHeight=900;
+  h.updateSize();
+  const restored=h.camera.position.clone().sub(target);
+  expect(restored.length()/(h.getFit()*defaultLength)).toBeCloseTo(zoom,11);
+  expect(h.camera.view).toBeNull();
+  expect(h.getMobileBase()).toBe(0);
+  for(const axis of ['x','y','z'] as const) {
+    expect(h.controls.target[axis]).toBe(target[axis]);
+    expect(restored[axis]/restored.length()).toBeCloseTo(offset[axis]/offset.length(),11);
+  }
 });
 
 test('production D resize leaves WHOLE orbit framing and active plan camera alone', () => {
