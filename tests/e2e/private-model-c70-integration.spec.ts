@@ -655,10 +655,55 @@ for (const width of [1280, 390]) test(`actual C70 GLTFLoader viewer 1F/2F/BOTH/W
   await expect(canvas).toHaveAttribute('data-horizontal-clip', 'inactive');
   // A real user can select geometry, then changing floors clears that selection.
   await page.locator('#selection-tool-button').click();
+  await expect(page.locator('#selection-tool-button')).toHaveAttribute('aria-pressed', 'true');
   const box = (await canvas.boundingBox())!;
   for (const [x, y] of [[.5, .5], [.45, .55], [.6, .55], [.5, .65], [.4, .4]]) {
     await page.mouse.click(box.x + box.width * x, box.y + box.height * y);
     if (await page.locator('#selection-panel').isVisible()) break;
+  }
+  // Portrait safeRect moves geometry away from the five fixed desktop click
+  // positions. If they miss, sample ACTUAL WebGL2 foreground pixels and click
+  // unobstructed canvas points. Do not weaken the selectable-mesh assertion.
+  if (!(await page.locator('#selection-panel').isVisible())) {
+    const candidates = await canvas.evaluate((element: HTMLCanvasElement) =>
+      new Promise<Array<{ x: number; y: number; contrast: number }>>(resolve => {
+        requestAnimationFrame(() => {
+          const gl = element.getContext('webgl2');
+          if (!gl) { resolve([]); return; }
+          const w = gl.drawingBufferWidth, h = gl.drawingBufferHeight;
+          const pixels = new Uint8Array(w * h * 4);
+          gl.readPixels(0, 0, w, h, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
+          const rect = element.getBoundingClientRect();
+          const background = [pixels[0], pixels[1], pixels[2]];
+          const offsets = [[0, 0], [-3, 0], [3, 0], [0, -3], [0, 3]];
+          const points: Array<{ x: number; y: number; contrast: number }> = [];
+          for (let row = 1; row < 28; row++) for (let col = 1; col < 18; col++) {
+            const x = Math.floor(col * w / 18);
+            const y = Math.floor(row * h / 28);
+            let colored = 0, contrast = 0;
+            for (const [dx, dy] of offsets) {
+              const px = Math.min(w - 1, Math.max(0, x + dx));
+              const py = Math.min(h - 1, Math.max(0, y + dy));
+              const i = ((h - 1 - py) * w + px) * 4;
+              const delta = Math.abs(pixels[i] - background[0]) +
+                Math.abs(pixels[i + 1] - background[1]) +
+                Math.abs(pixels[i + 2] - background[2]);
+              if (delta > 30) { colored++; contrast += delta; }
+            }
+            if (colored < 3) continue;
+            const clientX = rect.left + x * rect.width / w;
+            const clientY = rect.top + y * rect.height / h;
+            if (document.elementFromPoint(clientX, clientY) !== element) continue;
+            points.push({ x: x / w, y: y / h, contrast });
+          }
+          resolve(points.sort((a, b) => b.contrast - a.contrast).slice(0, 90));
+        });
+      }));
+    console.log('C70_SELECTION_PIXEL_CANDIDATES', JSON.stringify({ width, count: candidates.length }));
+    for (const { x, y } of candidates) {
+      await page.mouse.click(box.x + box.width * x, box.y + box.height * y);
+      if (await page.locator('#selection-panel').isVisible()) break;
+    }
   }
   await expect(page.locator('#selection-panel')).toBeVisible();
   await openMenu(page, '#preset-menu'); await page.locator('#main-view-floor').selectOption('1F');
