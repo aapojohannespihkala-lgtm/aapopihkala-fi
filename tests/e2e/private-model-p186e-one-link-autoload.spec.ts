@@ -8,7 +8,7 @@ const reviewId=candidateId+'-review';
 
 // Execute the actual final viewer bootstrap, including its awaited call order.
 // Browser cases below also exercise the real URL predicate and page startup.
-async function sourceBootstrap(exactP186e:boolean,exactC70=false){
+async function sourceBootstrap(exactP186e:boolean,exactC70=false,exactC80=false){
   const source=readFileSync('src/pages/private-model/index.astro','utf8');
   const tail=source.slice(source.lastIndexOf('      void (async () => {'));
   const end='      })();';
@@ -22,7 +22,9 @@ async function sourceBootstrap(exactP186e:boolean,exactC70=false){
   await runInNewContext(jsProgram,{
     window:{location:{search:exactP186e?'?review='+reviewId:''}},
     c70DirectRequested:exactC70,
+    c80DirectRequested:exactC80,
     loadProtectedC70:async()=>{calls.push('C70_WORK_TEST');},
+    loadProtectedC80:async()=>{calls.push('C80_WORK_TEST');},
     isP137EScene67ReviewRequested:()=>false,
     isP186eElectricalLabelReviewRequested:()=>exactP186e,
     isD1FCombinedWallReviewRequested:()=>false,
@@ -63,6 +65,14 @@ test('source bootstrap isolates explicit C70 direct opening from CURRENT and gen
   expect(result.dataset.workTestReviewAutoload).toBeUndefined();
 });
 
+test('source bootstrap isolates explicit C80 and never falls back to C70 or CURRENT',async()=>{
+  for (const c70 of [false, true]) {
+    const result=await sourceBootstrap(false,c70,true);
+    expect(result.calls).toEqual(['C80_WORK_TEST']);
+    expect(result.dataset.workTestReviewAutoload).toBeUndefined();
+  }
+});
+
 for(const floor of ['d1f','d2f']){
   test('real browser exact P186E '+floor+' does not request CURRENT before its catalog',async({page})=>{
     let currentRequests=0;
@@ -93,3 +103,4 @@ for(const suffix of ['', '?review=unrecognized-p186e-review']){
     expect(currentRequests).toBe(1);
   });
 }
+
