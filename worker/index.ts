@@ -132,6 +132,18 @@ const widgetFallbackResponse = async (
   return null;
 };
 
+const widgetGeneratedAtMs = async (response: Response): Promise<number | null> => {
+  try {
+    const payload: unknown = await response.clone().json();
+    if (!payload || typeof payload !== 'object' || Array.isArray(payload)) return null;
+    const generatedAt = (payload as { generatedAt?: unknown }).generatedAt;
+    const timestamp = typeof generatedAt === 'string' ? Date.parse(generatedAt) : NaN;
+    return Number.isFinite(timestamp) ? timestamp : null;
+  } catch {
+    return null;
+  }
+};
+
 export const serveWidgetWithLastKnownGood = async (
   request: Request,
   load: () => Promise<Response>,
@@ -157,6 +169,8 @@ export const serveWidgetWithLastKnownGood = async (
 
   const cacheHealthyResponse = async (liveResponse: Response) => {
     if (!liveResponse.ok) return;
+    // A slower, older v2 response must not replace a newer last-good snapshot.
+    const liveGeneratedAt = keys.length === 2 ? await widgetGeneratedAtMs(liveResponse) : null;
     const headers = new Headers(liveResponse.headers);
     headers.set('Cache-Control', `public, max-age=${WIDGET_LAST_KNOWN_GOOD_TTL_SECONDS}`);
     const cached = new Response(liveResponse.clone().body, {
@@ -166,6 +180,11 @@ export const serveWidgetWithLastKnownGood = async (
     });
     for (const key of keys) {
       try {
+        if (liveGeneratedAt !== null) {
+          const previous = await cache.match(key);
+          const previousGeneratedAt = previous ? await widgetGeneratedAtMs(previous) : null;
+          if (previousGeneratedAt !== null && previousGeneratedAt > liveGeneratedAt) continue;
+        }
         await cache.put(key, cached.clone());
       } catch {
         // Cache is a resilience layer only; one alias failing must not fail a healthy feed.

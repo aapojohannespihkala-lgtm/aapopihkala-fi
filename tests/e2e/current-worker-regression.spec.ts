@@ -611,6 +611,69 @@ test('Widget caches a late successful refresh after serving last-known-good', as
   });
 });
 
+test('Widget v2 keeps the newest last-good snapshot when a slow older refresh completes', async () => {
+  const entries = new Map<string, Response>();
+  const cache = {
+    match: async (request: Request) => entries.get(request.url)?.clone(),
+    put: async (request: Request, response: Response) => {
+      entries.set(request.url, response.clone());
+    },
+  };
+  const request = new Request('https://aapopihkala.fi/api/current/widget-v2?channel=prod');
+  const payload = (generatedAt: string) => ({
+    schemaVersion: 2,
+    generatedAt,
+    sections: [{ id: 'weather', observedAt: generatedAt }],
+  });
+
+  await serveWidgetWithLastKnownGood(
+    request,
+    async () => Response.json(payload('2026-10-17T01:00:00.000Z')),
+    cache,
+  );
+
+  let resolveOlder: (response: Response) => void = () => undefined;
+  const slowOlder = new Promise<Response>((resolve) => { resolveOlder = resolve; });
+  const background: Promise<void>[] = [];
+  const fallback = await serveWidgetWithLastKnownGood(
+    request,
+    () => slowOlder,
+    cache,
+    10,
+    (task) => { background.push(task); },
+  );
+  expect(fallback.headers.get('x-widget-fallback')).toBe('last-known-good');
+
+  await serveWidgetWithLastKnownGood(
+    request,
+    async () => Response.json(payload('2026-10-17T03:00:00.000Z')),
+    cache,
+  );
+  resolveOlder(Response.json(payload('2026-10-17T02:00:00.000Z')));
+  await Promise.all(background);
+
+  // Also reject an immediately returned older 200, on both v2 cache aliases.
+  await serveWidgetWithLastKnownGood(
+    request,
+    async () => Response.json(payload('2026-10-17T01:30:00.000Z')),
+    cache,
+  );
+  for (const alias of [
+    request,
+    new Request('https://aapopihkala.fi/api/current/widget?v=2&channel=prod'),
+  ]) {
+    const recovered = await serveWidgetWithLastKnownGood(
+      alias,
+      async () => Response.json({ error: 'widget_data_unavailable' }, { status: 503 }),
+      cache,
+    );
+    expect(recovered.headers.get('x-widget-fallback')).toBe('last-known-good');
+    expect(await recovered.json()).toMatchObject({
+      generatedAt: '2026-10-17T03:00:00.000Z',
+    });
+  }
+});
+
 test('Widget v2 aliases share one last-known-good payload', async () => {
   const entries = new Map<string, Response>();
   const cache = {
