@@ -18,6 +18,7 @@ on:
       - src/scripts/d_floor_router.mjs
       - src/scripts/privateModelC70Contract.json
       - src/scripts/privateModelMainViewScope.ts
+      - src/scripts/privateModelVisibleBounds.ts
       - src/scripts/privateModelSourceCards.ts
       - src/scripts/privateModelSharedBoundaryClip.mjs
       - src/scripts/privateModelSharedCdMaterialClip.mjs
@@ -89,6 +90,9 @@ jobs:
             ('c70', '1hHD39DHJCE8mR-R-RW16Za00dAfEvYI9', 1281693,
              '4e901bd4cdcaf4e2258af543f86accb238aeab0b6031a69a1910c7d1cf4a5be2',
              '75b586aaf774bce34cf1dceba5d19e6ae41c112b8717f4cce5ce64458fddc491'),
+            ('c80', '1x5Ahnl16RVa1OSqzlgLkHYbOD5CMm4m7', 1740505,
+             '499daab0353005537f6e7d64cbc79e4778e9d4915030e8e6ddb2abbc982b725c',
+             'c8230e1877a2fc2cd0c633c5247a92975b4669ae685f491fad9f45092fc11b8d'),
           ]
           for name, file_id, size, zip_sha, glb_sha in locks:
             request = urllib.request.Request(
@@ -105,11 +109,12 @@ jobs:
             pathlib.Path(os.environ['RUNNER_TEMP'], name + '.glb').write_bytes(glb)
             print(name + ': ZIP/CRC/GLB SHA PASS ' + glb_sha)
           PY
-      - name: Actual R4E and C70 viewer WebGL2 pixels, selection and lifecycle
+      - name: Actual R4E/C70/C80 source checks, WebGL2 pixels and lifecycle
         env:
           YLIS_R4E_GLB: ${{ runner.temp }}/r4e.glb
           YLIS_SCENE28_GLB: ${{ runner.temp }}/scene28.glb
           YLIS_C70_GLB: ${{ runner.temp }}/c70.glb
+          YLIS_C80_GLB: ${{ runner.temp }}/c80.glb
           YLIS_REQUIRE_REAL: '1'
           D_VIEW_TESTED_COMMIT: ${{ github.event.workflow_run.head_sha || github.sha }}
           PLAYWRIGHT_JSON_OUTPUT_FILE: test-results/d-view-report.json
@@ -124,6 +129,17 @@ jobs:
           D_VIEW_TESTED_COMMIT: ${{ github.event.workflow_run.head_sha || github.sha }}
           PLAYWRIGHT_JSON_OUTPUT_FILE: test-results/c70-published-report.json
         run: npx playwright test tests/e2e/private-model-c70-integration.spec.ts --grep 'actual C70' --workers=1 --trace=off --output=test-results/c70-published --reporter=line,json
+      - name: Published protected original C80, desktop and mobile
+        env:
+          YLIS_C70_GLB: ${{ runner.temp }}/c70.glb
+          YLIS_C80_GLB: ${{ runner.temp }}/c80.glb
+          YLIS_REQUIRE_REAL: '1'
+          YLIS_C80_PRODUCTION: '1'
+          CF_ACCESS_VIEWER_PROBE_CLIENT_ID: ${{ secrets.CF_ACCESS_VIEWER_PROBE_CLIENT_ID }}
+          CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET: ${{ secrets.CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET }}
+          D_VIEW_TESTED_COMMIT: ${{ github.event.workflow_run.head_sha || github.sha }}
+          PLAYWRIGHT_JSON_OUTPUT_FILE: test-results/c80-published-report.json
+        run: npx playwright test tests/e2e/private-model-c70-integration.spec.ts --grep 'actual C80 protected' --workers=1 --trace=off --output=test-results/c80-published --reporter=line,json
       - name: Encrypt private model screenshots before artifact storage
         if: always()
         env:
@@ -137,12 +153,23 @@ jobs:
             IzOdnOKyCMJjB0/z3iWaGja+eosVaP10LbgiGks73ttewm7UHk40rZdq0LNwMT34
             swIDAQAB
             -----END PUBLIC KEY-----
+          D_VIEW_EVIDENCE_AUDIT_PUBLIC_KEY: |
+            -----BEGIN PUBLIC KEY-----
+            MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA2xDOCDvl/fYM2Tz8QE1B
+            kFm1enTz/6T3eforeiejjTyHwylo2ZaBWPWTMvneozVMYO4LxCURurGm54rvvWz4
+            X38pMQqMckZ4dNKW2lqaQX8MVDjkYWJFUlWD3lTEbNhfdKyF08TNkxu+STtkuV8Y
+            bbTtshp02eZgol+xIWnFDNf7WM4QV+j3sr0XHxWhGvedQVhqVVAfhJybukhtGwon
+            pp1VvesNRtKW97y/rnSeav09pcxUBUcIAITn705b5q9r2m//08qesMNCms7hSxQD
+            2fbqCqzXE5mVtZ185m2hndgItsZ9ytlRTNaj9jsFNuknGl0tFH1A159db2ZSRo+d
+            TwIDAQAB
+            -----END PUBLIC KEY-----
         shell: bash
         run: |
           set -euo pipefail
           [[ -d test-results ]] || exit 0
           mkdir -p "$RUNNER_TEMP/d-view-evidence"
           printf '%s\n' "$D_VIEW_EVIDENCE_PUBLIC_KEY" > "$RUNNER_TEMP/d-view-evidence-public.pem"
+          printf '%s\n' "$D_VIEW_EVIDENCE_AUDIT_PUBLIC_KEY" > "$RUNNER_TEMP/d-view-evidence-audit-public.pem"
           openssl rand -base64 48 > "$RUNNER_TEMP/d-view-evidence-password"
           tar -czf "$RUNNER_TEMP/d-view-evidence.tar.gz" test-results
           openssl enc -aes-256-cbc -salt -pbkdf2 -iter 200000 \
@@ -151,6 +178,10 @@ jobs:
           openssl pkeyutl -encrypt -pubin -inkey "$RUNNER_TEMP/d-view-evidence-public.pem" \
             -pkeyopt rsa_padding_mode:oaep -pkeyopt rsa_oaep_md:sha256 \
             -in "$RUNNER_TEMP/d-view-evidence-password" -out "$RUNNER_TEMP/d-view-evidence/password.rsa"
+          # Preserve the original recipient and add this C80 inspection recipient.
+          openssl pkeyutl -encrypt -pubin -inkey "$RUNNER_TEMP/d-view-evidence-audit-public.pem" \
+            -pkeyopt rsa_padding_mode:oaep -pkeyopt rsa_oaep_md:sha256 \
+            -in "$RUNNER_TEMP/d-view-evidence-password" -out "$RUNNER_TEMP/d-view-evidence/password.audit.rsa"
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -158,3 +189,4 @@ jobs:
           path: ${{ runner.temp }}/d-view-evidence/
           if-no-files-found: warn
           retention-days: 3
+

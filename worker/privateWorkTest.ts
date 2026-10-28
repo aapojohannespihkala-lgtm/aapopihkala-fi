@@ -3405,7 +3405,19 @@ const D_C70_SOURCE_ONLY_PREVIEW_CANDIDATE = {
   expectedSha256: '75b586aaf774bce34cf1dceba5d19e6ae41c112b8717f4cce5ce64458fddc491',
 } as const satisfies PrivateWorkTestCandidate;
 
+// Original four-scene C80, protected WORK_TEST transport only.
+// Scene mounting, production rendering and HUMAN_REVIEW remain separate gates.
+const D_C80_SOURCE_ONLY_PREVIEW_CANDIDATE = {
+  id: 'ylisrinne-d-c80-source-only-20261028',
+  label: 'D C80 1F/2F/BOTH WORK_TEST / SOURCE_ONLY / HOST_HOLD - ei nykytila',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/ylisrinne-d-c80-source-only-20261028.glb`,
+  objectKey: 'work-test/ylisrinne-d-c80-source-only-20261028.glb',
+  expectedSize: 10044500,
+  expectedSha256: 'c8230e1877a2fc2cd0c633c5247a92975b4669ae685f491fad9f45092fc11b8d',
+} as const satisfies PrivateWorkTestCandidate;
+
 const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
+  D_C80_SOURCE_ONLY_PREVIEW_CANDIDATE,
   D_C70_SOURCE_ONLY_PREVIEW_CANDIDATE,
   ...PRIVATE_WORK_TEST_CANDIDATES,
   M5A_Z2D_D100_D300_DIAMETER_CANDIDATE,

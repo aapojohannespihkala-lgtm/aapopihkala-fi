@@ -14,7 +14,13 @@ function toBytes(v) {
 const encode = x=>new TextEncoder().encode(x);
 const stringsEqual = (a,b)=>JSON.stringify(a)===JSON.stringify(b);
 const valid = (data,contract) => {
-  if(contract?.schema!=='ylisrinne.d-floor-selector.v1' || contract.model!=='D_C70') fail('Invalid contract');
+  if(contract?.schema!=='ylisrinne.d-floor-selector.v1' || !['D_C70','D_C80'].includes(contract.model)) fail('Invalid contract');
+  const c80=contract.model==='D_C80', sceneCount=c80?4:70, defaultScene=c80?0:33;
+  if(c80 && (contract.glbSha256!=='c8230e1877a2fc2cd0c633c5247a92975b4669ae685f491fad9f45092fc11b8d' ||
+      contract.glbByteLength!==10044500 || contract.viewerWholeScene!==3 || contract.wholeScene?.sceneIndex!==3)) fail('Different C80 source contract');
+  if(c80 && (contract.modes.length!==3 || new Set(contract.modes.map(row=>row.floor)).size!==3 ||
+      contract.modes.some(row=>row.sceneIndex!==({BOTH:0,'1F':1,'2F':2})[row.floor] ||
+        row.doorMode!=='WORK_TEST'||row.gable!=='NONE'||row.k9Reference!==false))) fail('Different C80 floor map');
   if(contract.current!==false || contract.asBuilt!==false || contract.canPublish!==false || contract.productionReady!==false || contract.canApplyToViewer!==false) fail('Unsafe status policy');
   const b=toBytes(data);
   if(b.length !== contract.glbByteLength) fail('GLB length changed');
@@ -24,9 +30,9 @@ const valid = (data,contract) => {
   if(typ!==0x4e4f534a||20+len+8>b.length) fail('Invalid JSON chunk');
   const src=new TextDecoder('utf-8',{fatal:true}).decode(b.subarray(20,20+len));
   const j=JSON.parse(src);
-  if(j.scenes?.length!==70||j.scene!==33||j.asset?.extras?.current!==false||j.asset?.extras?.asBuilt!==false) fail('Different or CURRENT model');
+  if(j.scenes?.length!==sceneCount||j.scene!==defaultScene||j.asset?.extras?.current!==false||j.asset?.extras?.asBuilt!==false) fail('Different or CURRENT model');
   const memo=new Set();
-  for(const row of contract.modes){
+  for(const row of [...contract.modes,...(c80?[contract.wholeScene]:[])]){
     const sc=j.scenes[row.sceneIndex];
     if(!sc||sc.nodes.length!==row.rootCount||sc.name!==row.sceneName) fail('Scene index / name / root-count mismatch: '+row.sceneIndex);
     const hashKey=JSON.stringify([row.floor,row.doorMode,row.gable,row.k9Reference]);
@@ -41,12 +47,12 @@ export async function verifyC70GLB(glb, contract) {
   const actual=HEX(await globalThis.crypto.subtle.digest('SHA-256',b));
   if(actual!==contract.glbSha256) fail('Incorrect GLB SHA256 '+actual);
   // Root membership is not trusted solely because the scene names match; compare SHA locks.
-  for(const row of contract.modes) {
+  for(const row of [...contract.modes,...(contract.model==='D_C80'?[contract.wholeScene]:[])]) {
     const roots=model.scenes[row.sceneIndex].nodes;
     const got=HEX(await globalThis.crypto.subtle.digest('SHA-256',encode(JSON.stringify(roots))));
     if(got!==row.rootSha256) fail('Scene root membership differs: '+row.sceneIndex);
   }
-  return Object.freeze({verified:true,glbSha256:actual,sceneCount:70,contract:contract.schema,safeForProduction:false});
+  return Object.freeze({verified:true,glbSha256:actual,sceneCount:model.scenes.length,contract:contract.schema,safeForProduction:false});
 }
 function keyFor(s) {
   if(!s||Object.keys(s).sort().join(',')!=='doorMode,floor,gable,k9Reference') fail('Exact selection properties required');
@@ -81,3 +87,4 @@ export function attachC70Scene(router, gltf, mount, selection, {previewGate,curr
   if(currentScene!==next)mount.add(next);
   return Object.freeze({selectedScene:next,sceneIndex:info.sceneIndex,viewStage:'WORK_TEST_PREVIEW',physicalHost:'HOLD',allowPublish:false});
 }
+
