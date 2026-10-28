@@ -7020,9 +7020,8 @@ const title = 'Private 3D viewer';
         delete canvas.dataset.mainViewSourceSceneIndex;
         otherFloorReference.clear();
         otherFloorMode.value = 'HIDDEN';
-        fullModelScene = c70PreviewSession
-          ? gltf.scenes[c70PreviewSession.contract.viewerWholeScene ?? c70PreviewSession.contract.glbDefaultScene]
-          : gltf.scene;
+        fullModelScene = gltf.scene;
+        if (c70PreviewSession?.contract.model === 'D_C80') fullModelScene = gltf.scenes[3];
         resolveSelectionSources = sourceCardResolverForModel(gltf);
         dInteriorScene = dInteriorOverride ??
           findSourceNamedScene(gltf, 'D CURRENT INTERIOR - BABYLON Y-UP');
