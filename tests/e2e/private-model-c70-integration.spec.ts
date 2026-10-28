@@ -2,9 +2,62 @@ import { expect, test, type Page } from '@playwright/test';
 import { createHash } from 'node:crypto';
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { GLTFLoader } from '../../src/scripts/threeRuntime';
+import { computeVisibleBounds } from '../../src/scripts/privateModelVisibleBounds';
 
 const C70_SHA = '75b586aaf774bce34cf1dceba5d19e6ae41c112b8717f4cce5ce64458fddc491';
 const C70_PATH = '/private-model/work-test/ylisrinne-d-c70-source-only-20261027.glb';
+const C80_SHA = 'c8230e1877a2fc2cd0c633c5247a92975b4669ae685f491fad9f45092fc11b8d';
+
+test('C80 original floor fit bounds preserve visible context and C70/full-context bounds', async () => {
+  // Actual GLTFLoader/source geometry check; this does not assert browser pixels.
+  const path = process.env.YLIS_C80_GLB;
+  test.skip(process.env.YLIS_C70_PRODUCTION === '1', 'Runs once with trusted source bytes, separately from production pixels.');
+  if (process.env.YLIS_REQUIRE_REAL === '1') expect(path).toBeTruthy();
+  test.skip(!path, 'Private C80 absent; original-source camera bounds NOT_RUN.');
+  const bytes = readFileSync(path!);
+  expect(bytes.length).toBe(10044500);
+  expect(createHash('sha256').update(bytes).digest('hex')).toBe(C80_SHA);
+  const gltf = await new GLTFLoader().parseAsync(Uint8Array.from(bytes).buffer, '');
+  expect(gltf.scenes).toHaveLength(4);
+  // Independent bounds from the released High camera package's actual GLTFLoader
+  // run, Drive 1oIfJ2gr2_MXeAy-9UK8-ONsUQU67tikk (QA_FOCUS.json).
+  const expected = [
+    [[-.14000000059604645, -.7230337190628054, -10.911583498120306], [6.5, 5.934999933242798, 5.926000118255618]],
+    [[-.14000000059604645, -.7230337190628054, -10.404000282287605], [6.5, 2.52999997138977, 5.926000118255618]],
+    [[.12450000011175871, 2.7599999904632555, -10.911583498120306], [6.32, 5.934999933242798, 1.614]],
+  ];
+  const visualState = (root: any) => {
+    const state: unknown[] = [];
+    root.traverse((object: any) => state.push({ uuid: object.uuid, visible: object.visible,
+      parent: object.parent?.uuid, matrix: object.matrix.toArray(),
+      geometry: object.geometry?.uuid, material: Array.isArray(object.material)
+        ? object.material.map((m: any) => m.uuid) : object.material?.uuid }));
+    return state;
+  };
+  for (const [index, contextCount] of [[0, 18], [1, 22], [2, 21]]) {
+    const root = gltf.scenes[index];
+    let visibleContext = 0;
+    root.traverse((o: any) => { if (o.isMesh && o.name.startsWith('C80_SOURCE_CONTEXT__') && o.visible) visibleContext++; });
+    expect(visibleContext).toBe(contextCount);
+    const before = visualState(root);
+    const all = computeVisibleBounds(root, true)!;
+    const fit = computeVisibleBounds(root, true, true)!;
+    const corners = [fit.min.toArray(), fit.max.toArray()];
+    for (let edge = 0; edge < 2; edge++) for (let axis = 0; axis < 3; axis++)
+      expect(corners[edge][axis]).toBeCloseTo(expected[index][edge][axis], 6);
+    expect(all.containsBox(fit)).toBe(true);
+    expect(all.equals(fit)).toBe(false);
+    expect(visualState(root)).toEqual(before);
+  }
+  const full = gltf.scenes[3];
+  expect(computeVisibleBounds(full, true, true)!.equals(computeVisibleBounds(full, true)!)).toBe(true);
+  const c70Bytes = readFileSync(process.env.YLIS_C70_GLB!);
+  expect(createHash('sha256').update(c70Bytes).digest('hex')).toBe(C70_SHA);
+  const c70 = await new GLTFLoader().parseAsync(Uint8Array.from(c70Bytes).buffer, '');
+  for (const index of [33, 62, 52, 58])
+    expect(computeVisibleBounds(c70.scenes[index], true, true)!.equals(computeVisibleBounds(c70.scenes[index], true)!)).toBe(true);
+});
 
 // Public, tiny bootstrap fixture. Private C70 bytes are only supplied on trusted
 // main or locally and are selected through the real browser file-input path.
@@ -514,3 +567,4 @@ for (const width of [1280, 390]) test(`actual C70 P1 source-only alternatives us
     browser: 'REAL_GLTFLOADER_WEBGL2',
   }));
 });
+

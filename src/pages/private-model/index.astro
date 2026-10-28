@@ -5395,7 +5395,7 @@ const title = 'Private 3D viewer';
         if (mainViewScope && 'isC70SourceScene' in mainViewScope) sceneRoot = mainViewScope.selectedScene;
         if (!sceneRoot) return false;
 
-        const box = computeVisibleBounds(sceneRoot, true);
+        const box = computeVisibleBounds(sceneRoot, true, true);
         if (!box) return false;
 
         box.getCenter(modelCenter);

@@ -18,6 +18,7 @@ on:
       - src/scripts/d_floor_router.mjs
       - src/scripts/privateModelC70Contract.json
       - src/scripts/privateModelMainViewScope.ts
+      - src/scripts/privateModelVisibleBounds.ts
       - src/scripts/privateModelSourceCards.ts
       - src/scripts/privateModelSharedBoundaryClip.mjs
       - src/scripts/privateModelSharedCdMaterialClip.mjs
@@ -89,6 +90,9 @@ jobs:
             ('c70', '1hHD39DHJCE8mR-R-RW16Za00dAfEvYI9', 1281693,
              '4e901bd4cdcaf4e2258af543f86accb238aeab0b6031a69a1910c7d1cf4a5be2',
              '75b586aaf774bce34cf1dceba5d19e6ae41c112b8717f4cce5ce64458fddc491'),
+            ('c80', '1x5Ahnl16RVa1OSqzlgLkHYbOD5CMm4m7', 1740505,
+             '499daab0353005537f6e7d64cbc79e4778e9d4915030e8e6ddb2abbc982b725c',
+             'c8230e1877a2fc2cd0c633c5247a92975b4669ae685f491fad9f45092fc11b8d'),
           ]
           for name, file_id, size, zip_sha, glb_sha in locks:
             request = urllib.request.Request(
@@ -110,6 +114,7 @@ jobs:
           YLIS_R4E_GLB: ${{ runner.temp }}/r4e.glb
           YLIS_SCENE28_GLB: ${{ runner.temp }}/scene28.glb
           YLIS_C70_GLB: ${{ runner.temp }}/c70.glb
+          YLIS_C80_GLB: ${{ runner.temp }}/c80.glb
           YLIS_REQUIRE_REAL: '1'
           D_VIEW_TESTED_COMMIT: ${{ github.event.workflow_run.head_sha || github.sha }}
           PLAYWRIGHT_JSON_OUTPUT_FILE: test-results/d-view-report.json
@@ -158,3 +163,4 @@ jobs:
           path: ${{ runner.temp }}/d-view-evidence/
           if-no-files-found: warn
           retention-days: 3
+
