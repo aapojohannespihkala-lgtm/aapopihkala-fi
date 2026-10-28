@@ -5,6 +5,7 @@ import {
   snapshotEndpoint,
   snapshotResponseDiagnostic,
   snapshotRequestFailureDiagnostic,
+  snapshotBrowserReady,
   widgetBrowserResponseFailure,
   widgetBrowserRequestFailure,
   widgetBrowserReady,
@@ -50,6 +51,27 @@ test('Snapshot diagnostics ignore unrelated, insecure and spoofed endpoints', ()
     assert.equal(snapshotResponseDiagnostic(url, 503), null);
     assert.equal(snapshotRequestFailureDiagnostic(url, 'failed'), null);
   }
+});
+
+test('Snapshot browser smoke rejects hidden failures even with LIVE DATA / OK', () => {
+  const healthy = {
+    status: 'LIVE DATA / OK',
+    failures: [],
+    httpResponses: [{ endpoint: '/api/current/electricity', httpStatus: 200 }],
+  };
+  assert.equal(snapshotBrowserReady(healthy), true);
+  for (const degraded of [
+    { status: 'LOADING' },
+    { failures: ['pageerror: TypeError'] },
+    { failures: ['requestfailed: net::ERR_FAILED'] },
+    { httpResponses: [{ endpoint: '/api/current/markets', httpStatus: 503 }] },
+    { httpResponses: null },
+  ]) {
+    assert.equal(snapshotBrowserReady({ ...healthy, ...degraded }), false);
+  }
+
+  const workflow = readFileSync(new URL('../workflows/current-snapshot-browser-smoke.yml', import.meta.url), 'utf8');
+  assert.match(workflow, /snapshotBrowserReady\(\{ \.\.\.lastDiagnostics, failures, httpResponses \}\)/);
 });
 
 test('Widget browser smoke detects only Widget v2 5xx and network failures', () => {

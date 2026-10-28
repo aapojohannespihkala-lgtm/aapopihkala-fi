@@ -198,7 +198,7 @@ jobs:
 
           node --input-type=module <<'NODE'
           import { chromium } from '@playwright/test';
-          import { snapshotResponseDiagnostic, snapshotRequestFailureDiagnostic } from './.github/scripts/snapshot-http-diagnostics.mjs';
+          import { snapshotResponseDiagnostic, snapshotRequestFailureDiagnostic, snapshotBrowserReady } from './.github/scripts/snapshot-http-diagnostics.mjs';
 
           const url = `https://aapopihkala.fi/current/snapshot/?live_smoke=${process.env.GITHUB_RUN_ID}`;
           const browser = await chromium.launch({ headless: true });
@@ -264,7 +264,7 @@ jobs:
               console.log(JSON.stringify(lastDiagnostics, null, 2));
               console.log(`Snapshot source HTTP statuses: ${JSON.stringify(httpResponses)}`);
 
-              if (lastDiagnostics.status === 'LIVE DATA / OK') {
+              if (snapshotBrowserReady({ ...lastDiagnostics, failures, httpResponses })) {
                 console.log('Production Snapshot verified: all 5 sources reached fulfilled state.');
                 verified = true;
                 break;
