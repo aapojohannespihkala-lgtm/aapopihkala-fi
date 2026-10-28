@@ -156,13 +156,13 @@ jobs:
             -----END PUBLIC KEY-----
           D_VIEW_EVIDENCE_AUDIT_PUBLIC_KEY: |
             -----BEGIN PUBLIC KEY-----
-            MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA2xDOCDvl/fYM2Tz8QE1B
-            kFm1enTz/6T3eforeiejjTyHwylo2ZaBWPWTMvneozVMYO4LxCURurGm54rvvWz4
-            X38pMQqMckZ4dNKW2lqaQX8MVDjkYWJFUlWD3lTEbNhfdKyF08TNkxu+STtkuV8Y
-            bbTtshp02eZgol+xIWnFDNf7WM4QV+j3sr0XHxWhGvedQVhqVVAfhJybukhtGwon
-            pp1VvesNRtKW97y/rnSeav09pcxUBUcIAITn705b5q9r2m//08qesMNCms7hSxQD
-            2fbqCqzXE5mVtZ185m2hndgItsZ9ytlRTNaj9jsFNuknGl0tFH1A159db2ZSRo+d
-            TwIDAQAB
+            MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA3ESZIMNJuROzIHqFrXHg
+            DWv4hMegavJQFfYnZhW4leW7g8puLJ+rMPJ9mEIuqtbghNGlKehxMFUYEbOa9pz9
+            YEzi7VvHTl/rb1ot5S9JUPuE5goK0EIT/vVJ1ZdY69PeGWsaVdKjIx+5orBCgT3X
+            G1OtjwUjulR681J8i04eOPIAE/7bPM0s8ar2Le6/ktNHIjLETWD1Q+4Ht2mnqrXW
+            r0b80t5UzkGNOmeuE92HEdJZD6JU27/6cULh5fzNbfb32/9GDKdW+IOknAAaqZ7n
+            cWF3HfTIGuA4aOSQNmhivajR278Le2t4JY2pFo4DIcOs5dVqmVW/Y6x8aLMxHW3u
+            0QIDAQAB
             -----END PUBLIC KEY-----
         shell: bash
         run: |
