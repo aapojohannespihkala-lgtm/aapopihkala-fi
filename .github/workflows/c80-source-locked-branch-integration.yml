@@ -61,7 +61,8 @@ jobs:
         run: |
           set -euo pipefail
           mainsha=a0aa685524bc859482d70ca1964e9142e39db3fe
-          test "$(git rev-parse HEAD^)" = "$mainsha"
+          test "$(git merge-base HEAD "$mainsha")" = "$mainsha"
+          test "$(git diff --name-only "$mainsha" HEAD)" = ".github/workflows/c80-source-locked-branch-integration.yml"
           git worktree add --detach /tmp/c80-main-exact "$mainsha"
           args=(--repo /tmp/c80-main-exact --joint-zip /tmp/c80-immutable-inputs/joint.zip --high6-zip /tmp/c80-immutable-inputs/high6.zip --composer-zip /tmp/c80-immutable-inputs/composer.zip --g1-zip /tmp/c80-immutable-inputs/g1.zip)
           python3 /tmp/c80-immutable-inputs/apply_joint_high6.py "${args[@]}" --check
@@ -91,7 +92,8 @@ jobs:
         run: |
           set -euo pipefail
           test "$(git branch --show-current)" = "c80/high6-g1-visibility-final-20261028"
-          test "$(git rev-parse HEAD^)" = a0aa685524bc859482d70ca1964e9142e39db3fe
+          test "$(git merge-base HEAD a0aa685524bc859482d70ca1964e9142e39db3fe)" = a0aa685524bc859482d70ca1964e9142e39db3fe
+          test "$(git diff --name-only a0aa685524bc859482d70ca1964e9142e39db3fe HEAD)" = ".github/workflows/c80-source-locked-branch-integration.yml"
           git add src/pages/private-model/index.astro src/scripts/c80_k17_viewer_bridge_adapter.mjs src/scripts/c80_k17_visibility_policy.mjs src/scripts/c80FloorShellFocus.mjs src/scripts/c80RoofVisibility.mjs src/scripts/c80VisibilityComposer.mjs src/scripts/c80_g1_main_view_adapter.mjs src/scripts/c80_g1_side_context_overlay.mjs
           git diff --cached --check
           test "$(git diff --cached --name-only | wc -l)" -eq 8
