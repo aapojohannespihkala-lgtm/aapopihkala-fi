@@ -527,6 +527,41 @@ test('Widget serves last-known-good payload when a refresh returns 503', async (
   });
 });
 
+test('Widget preserves last-known-good when the live refresh rejects', async () => {
+  const entries = new Map<string, Response>();
+  const cache = {
+    match: async (request: Request) => entries.get(request.url)?.clone(),
+    put: async (request: Request, response: Response) => {
+      entries.set(request.url, response.clone());
+    },
+  };
+  const request = new Request('https://aapopihkala.fi/api/current/widget-v2?channel=prod');
+  await serveWidgetWithLastKnownGood(
+    request,
+    async () => Response.json({ schemaVersion: 2, generatedAt: '2026-10-28T06:00:00.000Z' }),
+    cache,
+  );
+
+  const degraded = await serveWidgetWithLastKnownGood(
+    request,
+    async () => { throw new Error('upstream connection failed'); },
+    cache,
+    20,
+  );
+  expect(degraded.status).toBe(200);
+  expect(degraded.headers.get('x-widget-fallback')).toBe('last-known-good');
+  expect(degraded.headers.get('cache-control')).toBe('private, no-store');
+  expect(await degraded.json()).toMatchObject({ generatedAt: '2026-10-28T06:00:00.000Z' });
+
+  // Without a cached response, keep the original failure visible.
+  await expect(serveWidgetWithLastKnownGood(
+    request,
+    async () => { throw new Error('upstream connection failed'); },
+    { match: async () => undefined, put: async () => undefined },
+    20,
+  )).rejects.toThrow('upstream connection failed');
+});
+
 test('Widget serves last-known-good payload when a live refresh exceeds its wait budget', async () => {
   const entries = new Map<string, Response>();
   const cache = {

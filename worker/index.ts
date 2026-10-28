@@ -160,7 +160,8 @@ export const serveWidgetWithLastKnownGood = async (
   const keys = widgetCacheKeys(request);
   let timeout: ReturnType<typeof setTimeout> | undefined;
   const response = await Promise.race<Response | null>([
-    loadPromise,
+    // A rejected upstream request should still allow a cached fallback.
+    loadPromise.catch(() => null),
     new Promise<null>((resolve) => {
       timeout = setTimeout(() => resolve(null), liveWaitMs);
     }),
