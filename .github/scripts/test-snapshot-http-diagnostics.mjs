@@ -103,6 +103,11 @@ test('Widget v2 production smoke rejects stale, future and malformed 200 payload
     schemaVersion: 2,
     channel: 'prod',
     generatedAt: '2026-10-27T02:59:00.000Z',
+    layouts: {
+      compact: ['weather', 'electricity', 'markets', 'rates'],
+      medium: ['weather', 'electricity', 'markets', 'rates'],
+      large: ['weather', 'electricity', 'markets', 'rates'],
+    },
     sections: ['weather', 'electricity', 'markets', 'rates'].map((id) => ({
       id, label: id.toUpperCase(), primary: 'LIVE',
     })),
@@ -118,6 +123,11 @@ test('Widget v2 production smoke rejects stale, future and malformed 200 payload
     { sections: [...healthy.sections.slice(0, 3), healthy.sections[0]] },
     { sections: [{ ...healthy.sections[0], primary: '' }, ...healthy.sections.slice(1)] },
     { sections: [{ ...healthy.sections[0], label: '' }, ...healthy.sections.slice(1)] },
+    { layouts: undefined },
+    { layouts: { ...healthy.layouts, compact: ['weather', 'electricity', 'markets'] } },
+    { layouts: { ...healthy.layouts, medium: ['weather', 'electricity', 'markets', 'markets'] } },
+    { layouts: { ...healthy.layouts, large: ['weather', 'electricity', 'markets', 'unknown'] } },
+    { layouts: { ...healthy.layouts, large: ['weather', 'electricity', 'markets', 'liiga'] } },
   ]) {
     assert.notEqual(widgetV2ProductionPayloadError({ ...healthy, ...bad }, now), null);
   }
