@@ -109,7 +109,7 @@ jobs:
 
           node --input-type=module <<'NODE'
           import { chromium } from '@playwright/test';
-          import { widgetBrowserResponseFailure, widgetBrowserRequestFailure, widgetBrowserReady } from './.github/scripts/snapshot-http-diagnostics.mjs';
+          import { widgetBrowserResponseFailure, widgetBrowserRequestFailure, widgetBrowserReady, widgetBrowserRenderableSections } from './.github/scripts/snapshot-http-diagnostics.mjs';
 
           const url = `https://aapopihkala.fi/current/widget/?live_smoke=${process.env.GITHUB_RUN_ID}`;
           const browser = await chromium.launch({ headless: true });
@@ -152,8 +152,16 @@ jobs:
                 const root = document.querySelector('[data-widget-root]');
                 const status = document.querySelector('[data-status]');
                 const sections = [...document.querySelectorAll('[data-section]')]
-                  .map((section) => section.getAttribute('data-section'))
-                  .filter(Boolean);
+                  .map((section) => {
+                    const bounds = section.getBoundingClientRect();
+                    const style = window.getComputedStyle(section);
+                    return {
+                      id: section.getAttribute('data-section'),
+                      visible: bounds.width > 0 && bounds.height > 0 &&
+                        style.display !== 'none' && style.visibility === 'visible',
+                      primary: section.querySelector('.android-primary, .metric-primary')?.textContent?.trim() ?? '',
+                    };
+                  });
                 return {
                   loadState: root?.getAttribute('data-load-state') ?? null,
                   status: status?.textContent?.trim() ?? '',
@@ -161,9 +169,10 @@ jobs:
                   unavailable: document.querySelector('[data-widget]')?.textContent?.includes('UNAVAILABLE') ?? false,
                 };
               });
-              console.log(JSON.stringify({ attempt, ...diagnostics, failures: failures.slice(0, 10) }, null, 2));
+              const renderedSections = widgetBrowserRenderableSections(diagnostics.sections);
+              console.log(JSON.stringify({ attempt, ...diagnostics, sections: renderedSections, failures: failures.slice(0, 10) }, null, 2));
 
-              if (widgetBrowserReady({ ...diagnostics, failures })) {
+              if (widgetBrowserReady({ ...diagnostics, sections: renderedSections, failures })) {
                 verified = true;
                 break;
               }
@@ -173,7 +182,7 @@ jobs:
 
             if (!verified) {
               console.error('Production standalone Widget did not pass browser verification.');
-              console.error(JSON.stringify({ ...diagnostics, failures: failures.slice(0, 10) }, null, 2));
+              console.error(JSON.stringify({ ...diagnostics, sections: widgetBrowserRenderableSections(diagnostics?.sections), failures: failures.slice(0, 10) }, null, 2));
               process.exitCode = 1;
             }
           } finally {

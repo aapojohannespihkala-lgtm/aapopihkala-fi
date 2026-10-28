@@ -42,6 +42,19 @@ export const widgetBrowserRequestFailure = (rawUrl, error, method = 'GET') => {
   return diagnostic?.endpoint === '/api/current/widget-v2' ? diagnostic : null;
 };
 
+// Only count actual, visible cards with a nonempty primary value. DOM nodes alone are not proof of rendering.
+export const widgetBrowserRenderableSections = (sections) => {
+  if (!Array.isArray(sections)) return [];
+  const ids = new Set();
+  for (const section of sections) {
+    if (!section || typeof section.id !== 'string' || !section.id.trim() ||
+        section.visible !== true || typeof section.primary !== 'string' ||
+        !section.primary.trim()) continue;
+    ids.add(section.id);
+  }
+  return [...ids];
+};
+
 // A stale fallback is usable but degraded, never a fresh production success.
 export const widgetBrowserReady = ({ loadState, sections, unavailable, failures }) =>
   loadState === 'ready' &&
