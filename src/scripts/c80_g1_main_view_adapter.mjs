@@ -6,6 +6,12 @@
 import {createC80G1SideContextOverlay,C80_SOURCE_SHA256} from './c80_g1_side_context_overlay.mjs';
 const reject=s=>{throw Error('C80_G1_MAIN_ADAPTER_FAIL_CLOSED: '+s)};
 
+/**
+ * Optional at the type boundary because this adapter fails closed at runtime
+ * unless a verified C80 session, live bridge and DOM host are all present.
+ * @param {{session?: any, bridge?: any, readMountedScene?: (() => any),
+ *   uiHost?: HTMLElement | null, refreshEdges?: (() => void)}} [options]
+ */
 export function createC80G1MainViewAdapter({session,bridge,readMountedScene,uiHost,refreshEdges=()=>{}}={}){
   if(session?.contract?.model!=='D_C80'||session.verification?.glbSha256!==C80_SOURCE_SHA256||
      session.contract?.glbSha256!==C80_SOURCE_SHA256 || session.contract.canPublish!==false ||
