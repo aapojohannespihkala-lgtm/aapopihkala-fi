@@ -9,7 +9,7 @@ permissions:
   id-token: write
 jobs:
   stage-c80:
-    if: github.repository == 'aapojohannespihkala-lgtm/aapopihkala-fi' && github.event.head_commit.message == 'chore(d-view): stage verified C80 one-pass integration'
+    if: "${{ github.repository == 'aapojohannespihkala-lgtm/aapopihkala-fi' && github.event.head_commit.message == 'chore(d-view): stage verified C80 one-pass integration' }}"
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
