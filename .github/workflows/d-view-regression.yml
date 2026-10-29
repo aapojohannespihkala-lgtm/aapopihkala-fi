@@ -54,6 +54,13 @@ jobs:
          github.event.workflow_run.event == 'workflow_dispatch') &&
         github.event.workflow_run.head_repository.full_name == github.repository &&
         github.event.workflow_run.head_branch == 'main'))
+    # Preserve every exact-source and legacy check, while giving each published
+    # viewer its own bounded run instead of starving HI12 behind source software rendering.
+    strategy:
+      fail-fast: false
+      matrix:
+        mode: [source, c70-production, c80-production, hi12-production]
+    name: Exact WebGL / ${{ matrix.mode }}
     # Match the build job's supported, stable browser dependency environment.
     runs-on: ubuntu-24.04
     timeout-minutes: 30
@@ -119,6 +126,7 @@ jobs:
             print(name + ': ZIP/CRC/GLB SHA PASS ' + glb_sha)
           PY
       - name: Actual R4E/C70/C80 source checks, WebGL2 pixels and lifecycle
+        if: matrix.mode == 'source'
         env:
           YLIS_R4E_GLB: ${{ runner.temp }}/r4e.glb
           YLIS_SCENE28_GLB: ${{ runner.temp }}/scene28.glb
@@ -130,6 +138,7 @@ jobs:
           PLAYWRIGHT_JSON_OUTPUT_FILE: test-results/d-view-report.json
         run: npx playwright test tests/e2e/private-model-d-runtime-integration.spec.ts tests/e2e/private-model-d-viewport-resize.spec.ts tests/e2e/private-model-c70-integration.spec.ts tests/e2e/private-model-hi12-integration.spec.ts --workers=1 --trace=off --reporter=line,json
       - name: Published protected viewer C70 local preview, desktop and mobile
+        if: matrix.mode == 'c70-production'
         env:
           YLIS_C70_GLB: ${{ runner.temp }}/c70.glb
           YLIS_REQUIRE_REAL: '1'
@@ -140,6 +149,7 @@ jobs:
           PLAYWRIGHT_JSON_OUTPUT_FILE: test-results/c70-published-report.json
         run: npx playwright test tests/e2e/private-model-c70-integration.spec.ts --grep 'actual C70' --workers=1 --trace=off --output=test-results/c70-published --reporter=line,json
       - name: Published protected original C80, desktop and mobile
+        if: matrix.mode == 'c80-production'
         env:
           YLIS_C70_GLB: ${{ runner.temp }}/c70.glb
           YLIS_C80_GLB: ${{ runner.temp }}/c80.glb
@@ -151,6 +161,7 @@ jobs:
           PLAYWRIGHT_JSON_OUTPUT_FILE: test-results/c80-published-report.json
         run: npx playwright test tests/e2e/private-model-c70-integration.spec.ts --grep 'actual C80 protected' --workers=1 --trace=off --output=test-results/c80-published --reporter=line,json
       - name: Published protected HI12, desktop and mobile
+        if: matrix.mode == 'hi12-production'
         env:
           YLIS_HI12_GLB: ${{ runner.temp }}/hi12.glb
           YLIS_REQUIRE_REAL: '1'
@@ -175,13 +186,13 @@ jobs:
             -----END PUBLIC KEY-----
           D_VIEW_EVIDENCE_AUDIT_PUBLIC_KEY: |
             -----BEGIN PUBLIC KEY-----
-            MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA3ESZIMNJuROzIHqFrXHg
-            DWv4hMegavJQFfYnZhW4leW7g8puLJ+rMPJ9mEIuqtbghNGlKehxMFUYEbOa9pz9
-            YEzi7VvHTl/rb1ot5S9JUPuE5goK0EIT/vVJ1ZdY69PeGWsaVdKjIx+5orBCgT3X
-            G1OtjwUjulR681J8i04eOPIAE/7bPM0s8ar2Le6/ktNHIjLETWD1Q+4Ht2mnqrXW
-            r0b80t5UzkGNOmeuE92HEdJZD6JU27/6cULh5fzNbfb32/9GDKdW+IOknAAaqZ7n
-            cWF3HfTIGuA4aOSQNmhivajR278Le2t4JY2pFo4DIcOs5dVqmVW/Y6x8aLMxHW3u
-            0QIDAQAB
+            MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEArG5ZmPrkwOGDqpbKU3RF
+            qJwdDxV3od6p1g8n3/CPXZYdg2jsbzZhtwmQiepEr1s3u8+FRgDpslrR25oPUz4C
+            zP/kZoqrTLNJ+XjHg+j/jNrH+GxgH4AZIjikvEkLGWM4WfgjUg1B15otPxK15kX+
+            yw5cyjaZEvuNfv88dolbnikY6IWgPUzqiUIJ6nZmOcr4eX7AE0EO87HKqjt3zOwM
+            B2BBGTh2j1/3glXEYX3RjLzaERTpRuvIVdV8G1kDX/+xByK7uktf9hCTXY8hKYO2
+            ThZ+WPMHK1oNjW3WzoFT73LHt6UhhH4fHJq58OOupqYISU6PtUl/L1Hpl6Kc7gaC
+            2QIDAQAB
             -----END PUBLIC KEY-----
         shell: bash
         run: |
@@ -205,7 +216,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: d-view-exact-source-webgl-${{ github.sha }}
+          name: d-view-exact-source-webgl-${{ github.event.workflow_run.head_sha || github.sha }}-${{ matrix.mode }}
           path: ${{ runner.temp }}/d-view-evidence/
           if-no-files-found: warn
           retention-days: 3
