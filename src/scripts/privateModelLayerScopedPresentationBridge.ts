@@ -98,24 +98,24 @@ export const createViewerScopedLayerPresentation = (
         const gate = frame.gates.get(root);
         // A scene switch, stale/reparented root, absent metadata, or an
         // unknown scope/floor/source permission must never reveal geometry.
-      const allowed =
-        frame.activeSceneRoot === sceneRoot &&
-        isWithin(root, sceneRoot) &&
-        available.has(id) &&
-        gate?.sourceAllowed === true;
-      const scopeAllowed = allowed && gate?.scopeAllowed === true;
-      const floorAllowed = allowed && gate?.floorAllowed === true;
-      const mode = resolveScopedViewerLayerMode(
-        getViewerLayerEffectiveMode(modes, id),
-        scopeAllowed,
-        floorAllowed,
-      );
-      const effective = adapter.apply(mode, {
-        scopeAllowed: scopeAllowed && floorAllowed,
-        opacity: frame.ghostOpacity,
-        preferEdges: frame.preferEdges,
-        isSelected: frame.isSelected,
-      });
+        const allowed =
+          frame.activeSceneRoot === sceneRoot &&
+          isWithin(root, sceneRoot) &&
+          available.has(id) &&
+          gate?.sourceAllowed === true;
+        const scopeAllowed = allowed && gate?.scopeAllowed === true;
+        const floorAllowed = allowed && gate?.floorAllowed === true;
+        const mode = resolveScopedViewerLayerMode(
+          getViewerLayerEffectiveMode(modes, id),
+          scopeAllowed,
+          floorAllowed,
+        );
+        const effective = adapter.apply(mode, {
+          scopeAllowed: scopeAllowed && floorAllowed,
+          opacity: frame.ghostOpacity,
+          preferEdges: frame.preferEdges,
+          isSelected: frame.isSelected,
+        });
         return { id, mode: effective };
       });
     } catch (error) {
