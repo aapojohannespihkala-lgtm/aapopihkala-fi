@@ -6420,13 +6420,18 @@ const title = 'Private 3D viewer';
         // The exact HI12 GLB contains distinct scene0 (D BOTH) and scene3
         // (FULL_CONTEXT) in the SAME version. Surface this distinction instead
         // of letting the whole-building preset look like an outdated model.
-        if (c70PreviewSession?.contract.glbSha256 === c80Hi12Contract.glbSha256 &&
+        if (mainViewScope && 'sourceModel' in mainViewScope &&
+            mainViewScope.sourceModel === 'D_C80' &&
+            mainViewScope.sourceSha256 === c80Hi12Contract.glbSha256 &&
             sourcePreviewContract.glbSha256 === c80Hi12Contract.glbSha256) {
           const expectedScene = preset === 'whole-building' ? c80Hi12Contract.viewerWholeScene :
             preset === 'd-apartment' ? 0 : preset === 'd-1f' ? 1 :
             preset === 'd-2f' ? 2 : null;
           if (expectedScene !== null) {
-            if (modelRoot.children[0] !== c70PreviewSession.gltf.scenes[expectedScene])
+            const actualSceneIndex = mainViewScope.active
+              ? mainViewScope.sceneIndex : c80Hi12Contract.viewerWholeScene;
+            const expectedMounted = mainViewScope.active ? mainViewScope.selectedScene : fullModelScene;
+            if (actualSceneIndex !== expectedScene || modelRoot.children[0] !== expectedMounted)
               throw new Error('C80_HI12_PRESET_SCENE_MISMATCH');
             canvas.dataset.c80Hi12PresetScene = String(expectedScene);
             canvas.dataset.c80Hi12PresetRole = preset === 'whole-building'
