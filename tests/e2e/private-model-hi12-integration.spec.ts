@@ -119,6 +119,18 @@ const settle = (page: Page) => page.evaluate(() => new Promise<void>(resolve => 
 }));
 const pose = (page: Page) => page.locator('#ai-navigator-readout').getAttribute('data-world-pose').then(raw => JSON.parse(raw!));
 const distance = (a: number[], b: number[]) => Math.hypot(...a.map((v, i) => v - b[i]));
+// An orbit leaves angular damping after pointer-up. Observe the actual pose over
+// full render-frame intervals before treating the following gesture as pure pan.
+const stableOrbitPose = async (page: Page) => {
+  let current = await pose(page);
+  await expect(async () => {
+    const before = current;
+    await settle(page);
+    current = await pose(page);
+    expect(distance(before.direction, current.direction)).toBeLessThan(.000001);
+  }).toPass({ timeout: 90_000, intervals: [0] });
+  return current;
+};
 const frame = (page: Page) => page.locator('#private-model-canvas').evaluate((node: HTMLCanvasElement) =>
   new Promise<{ colored: number; error: number }>(resolve => requestAnimationFrame(() => {
     const gl = node.getContext('webgl2');
@@ -269,7 +281,7 @@ for (const width of [1280, 390]) test.describe('HI12 WebGL ' + width, () => {
       await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x, y, id: 0 }] });
       for (let n = 1; n <= 10; n++) await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: x + n * 2, y: y + n, id: 0 }] });
       await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] }); await settle(page);
-      const orbit = await pose(page);
+      const orbit = await stableOrbitPose(page);
       expect(distance(start.direction, orbit.direction)).toBeGreaterThan(.001);
       const touch = (points: Array<{ x: number; y: number }>, type: 'touchStart' | 'touchMove' | 'touchEnd') => cdp.send('Input.dispatchTouchEvent', {
         type, touchPoints: points.map((point, id) => ({ ...point, id })) });
