@@ -76,6 +76,7 @@ export const createViewerLayerGhostPresentation = (root: Object3D) => {
     options: ViewerLayerGhostOptions = {},
   ): ViewerLayerPresentationMode => {
     if (disposed) throw new Error('Layer presentation adapter already disposed');
+    try {
     if (mode !== 'visible' && mode !== 'ghost' && mode !== 'hidden') {
       throw new TypeError('Unknown layer presentation mode');
     }
@@ -105,23 +106,30 @@ export const createViewerLayerGhostPresentation = (root: Object3D) => {
             material.opacity < 0.999 ||
             material.blending !== NormalBlending,
         );
-      const temporaryMaterials = sourceMaterials.map((material) => {
-        const copy = material.clone();
-        if (useEdges) {
-          // Children (the outline) remain drawable when the mesh face is not.
-          copy.visible = false;
-        } else {
-          copy.transparent = true;
-          copy.opacity = Math.min(material.opacity, opacity);
-          copy.depthWrite = false;
-          copy.depthTest = true;
-          copy.polygonOffset = true;
-          copy.polygonOffsetFactor = -1;
-          copy.polygonOffsetUnits = -1;
+      const temporaryMaterials: Material[] = [];
+      try {
+        for (const material of sourceMaterials) {
+          const copy = material.clone();
+          temporaryMaterials.push(copy);
+          if (useEdges) {
+            // Children (the outline) remain drawable when the mesh face is not.
+            copy.visible = false;
+          } else {
+            copy.transparent = true;
+            copy.opacity = Math.min(material.opacity, opacity);
+            copy.depthWrite = false;
+            copy.depthTest = true;
+            copy.polygonOffset = true;
+            copy.polygonOffsetFactor = -1;
+            copy.polygonOffsetUnits = -1;
+          }
+          copy.needsUpdate = true;
         }
-        copy.needsUpdate = true;
-        return copy;
-      });
+      } catch (error) {
+        // Failed multi-material construction is not yet in 'changed'.
+        temporaryMaterials.forEach((material) => material.dispose());
+        throw error;
+      }
 
       const snapshot: MeshSnapshot = {
         material: original,
@@ -157,7 +165,13 @@ export const createViewerLayerGhostPresentation = (root: Object3D) => {
         snapshot.outline = outline;
       }
     }
-    return effectiveMode;
+      return effectiveMode;
+    } catch (error) {
+      // A failed selection callback or clone must not expose a previously hidden
+      // source root or leave earlier meshes in transient ghost materials.
+      try { restoreMaterials(); } finally { root.visible = false; }
+      throw error;
+    }
   };
 
   const reset = () => {
