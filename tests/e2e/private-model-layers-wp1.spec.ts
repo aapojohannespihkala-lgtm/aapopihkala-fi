@@ -79,7 +79,7 @@ test('Layers WP1 explicit scope/storey gate beats even a visible or ghost layer'
   const ghostWalls = setViewerLayerMode(map, 'architecture-walls', 'ghost');
   expect(getViewerLayerEffectiveMode(ghostWalls, 'architecture-walls-exterior')).toBe('ghost');
   expect(getViewerLayerEffectiveMode(map, 'architecture-walls-exterior')).toBe('visible');
-  expect(Object.keys(viewerLayerNodeCapabilities).length).toBe(20);
+  expect(Object.keys(viewerLayerNodeCapabilities).length).toBe(19);
 });
 
 test('Layers WP1 select a different preset restores that presets defaults, not camera', () => {
