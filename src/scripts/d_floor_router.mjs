@@ -1,3 +1,4 @@
+import { c80Hi12ContractMatches } from './c80SourceProfiles.mjs';
 /**
  * D-asunto C70 1F/2F/BOTH WORK_TEST integration adapter (no Three.js dependency).
  * Requires byte-exact source model and explicit staging-preview opt-in.
@@ -16,7 +17,7 @@ const stringsEqual = (a,b)=>JSON.stringify(a)===JSON.stringify(b);
 const valid = (data,contract) => {
   if(contract?.schema!=='ylisrinne.d-floor-selector.v1' || !['D_C70','D_C80'].includes(contract.model)) fail('Invalid contract');
   const c80=contract.model==='D_C80', sceneCount=c80?4:70, defaultScene=c80?0:33;
-  if(c80 && (contract.glbSha256!=='c8230e1877a2fc2cd0c633c5247a92975b4669ae685f491fad9f45092fc11b8d' ||
+  if(c80 && !c80Hi12ContractMatches(contract) && (contract.glbSha256!=='c8230e1877a2fc2cd0c633c5247a92975b4669ae685f491fad9f45092fc11b8d' ||
       contract.glbByteLength!==10044500 || contract.viewerWholeScene!==3 || contract.wholeScene?.sceneIndex!==3)) fail('Different C80 source contract');
   if(c80 && (contract.modes.length!==3 || new Set(contract.modes.map(row=>row.floor)).size!==3 ||
       contract.modes.some(row=>row.sceneIndex!==({BOTH:0,'1F':1,'2F':2})[row.floor] ||

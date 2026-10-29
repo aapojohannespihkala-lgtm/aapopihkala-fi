@@ -108,6 +108,8 @@ D2F:n varmennetut versiosidonnat ovat erillinen aineisto alkuperäisen korttikoo
 
 KPH:n kytkin- ja peilikaappikorttien versiosidonnat varmentavat lisäksi valitun osan oman ryhmäjuuren lähde- ja donor-tiedot. Uudemman kytkinversion himmennystoiminto perustuu kirjattuun omistajahavaintoon, kun taas kehyksen fyysiset mitat, tuote ja tarkka asennuspaikka pysyvät avoimina. Alkuperäinen korttimoduuli säilyttää oman versionsa tiedot. KPH-auditointiskripti vertaa 22 kohteen geometriaa, maailmamuunnoksia ja metatietomuutoksia alkuperäiseen SHARED302:een sekä testaa oikeiden GLB:ien ajonaikaisen korttikohdistuksen. Ennakkoon varmennettu poimintasidonta ei rekisteröi tai julkaise mallia.
 
+HI12 on alkuperäisen C80:n rinnalla erikseen SHA-lukittu WORK_TEST-lähde nykyisessä katselimessa (`?hi12=1`). C70/default ja `?c80=1` säilyttävät omat sopimuksensa. Vastaanotto tarkistaa kaikki neljä alkuperäistä sceneä, GLTFLoaderin aktiivisten solmujen parent-polut ja primitiivit sekä HI12:n omat K17- ja SITE-ryhmät. Historiallisia käyttämättömiä nodeja ei ladata sidontaa varten. Lähdekontekstin piilotus jättää K17:n ja SITE:n näkyviin, eikä muuta kameraa. SITE rajataan sisätilan fit-laskennasta. Korvatut umpinaiset G1-massat eivät palaa. Vanhoja lähdekortteja ei siirretä uuteen SHA:han; mallin omat native sourceLinks -viitteet säilyvät.
+
 ## Animation Lab
 
 Animation Lab sijaitsee `src/pages/lab/`-reitissä. Uusien interaktiivisten animaatiotutkielmien pariteettisääntö on määritelty `AGENTS.md`-tiedostossa.
