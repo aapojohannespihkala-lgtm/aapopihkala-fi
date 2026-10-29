@@ -123,13 +123,12 @@ test('selected material and picking are preserved, while other meshes ghost', ()
 test('multi-material mesh is restored exactly and repeat reset/dispose is harmless', () => {
   const originals = [new MeshBasicMaterial(), new MeshBasicMaterial()];
   const root = new Group();
-  const mesh = makeMesh();
-  mesh.material = originals;
+  const mesh = new Mesh(new BoxGeometry(1, 1, 1), originals);
   root.add(mesh);
   const adapter = createViewerLayerGhostPresentation(root);
 
   adapter.apply('ghost');
-  const clones = mesh.material as MeshBasicMaterial[];
+  const clones = mesh.material;
   expect(clones).toHaveLength(2);
   expect(clones[0]).not.toBe(originals[0]);
   expect(clones[1]).not.toBe(originals[1]);
