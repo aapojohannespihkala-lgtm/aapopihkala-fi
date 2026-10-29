@@ -179,3 +179,43 @@ test('WP3 ghost keeps selection intact and applies parent ghost mode only inside
   expect(foreign.root.visible).toBe(true);
   expect(() => bridge.apply(state, f)).toThrow(/disposed/);
 });
+
+test('WP3 presentation failure hides all roots and restores any earlier ghost materials', () => {
+  const scene = new Scene();
+  const first = makeRoot(scene);
+  const second = makeRoot(scene);
+  const bridge = createViewerScopedLayerPresentation(scene, [
+    { id: 'roof', root: first.root },
+    { id: 'architecture-walls-party', root: second.root },
+  ]);
+  let state = applyViewerLayerPreset(createViewerInteractionState(), 'whole-building');
+  state = setViewerInteractionLayerMode(state, 'roof', 'ghost');
+  state = setViewerInteractionLayerMode(state, 'architecture-walls', 'ghost');
+  const gates = new Map([[first.root, allow()], [second.root, allow()]]);
+  const frame = {
+    ...frameFor(scene, gates, ['roof', 'architecture-walls-party']),
+    isSelected: (mesh: Mesh) => {
+      if (mesh === second.mesh) throw new Error('selection callback failed');
+      return false;
+    },
+  };
+
+  expect(() => bridge.apply(state, frame)).toThrow('selection callback failed');
+  expect(first.root.visible).toBe(false);
+  expect(second.root.visible).toBe(false);
+  expect(first.mesh.material).toBe(first.material);
+  expect(second.mesh.material).toBe(second.material);
+  expect(Object.prototype.hasOwnProperty.call(first.mesh, 'raycast')).toBe(false);
+
+  // After failure, a verified later frame may explicitly re-enable a root.
+  const recovered = bridge.apply(state, { ...frame, isSelected: () => false });
+  expect(recovered).toEqual([
+    { id: 'roof', mode: 'ghost' },
+    { id: 'architecture-walls-party', mode: 'ghost' },
+  ]);
+  expect(first.root.visible).toBe(true);
+  expect(second.root.visible).toBe(true);
+  bridge.dispose();
+  expect(first.mesh.material).toBe(first.material);
+  expect(second.mesh.material).toBe(second.material);
+});

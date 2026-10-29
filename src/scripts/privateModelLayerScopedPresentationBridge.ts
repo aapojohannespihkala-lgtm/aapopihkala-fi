@@ -90,30 +90,47 @@ export const createViewerScopedLayerPresentation = (
     if (disposed) throw new Error('Scoped layer presentation already disposed');
     const available = new Set(frame.availableNodeIds.filter(isLayerNodeId));
     const modes = state.layerPresetState?.modes ?? createViewerLayerModeMap(state.layers);
-    return entries.map(({ id, root, adapter }) => {
-      const gate = frame.gates.get(root);
-      // A scene switch, stale/reparented root, absent metadata, or an
-      // unknown scope/floor/source permission must never reveal geometry.
-      const allowed =
-        frame.activeSceneRoot === sceneRoot &&
-        isWithin(root, sceneRoot) &&
-        available.has(id) &&
-        gate?.sourceAllowed === true;
-      const scopeAllowed = allowed && gate?.scopeAllowed === true;
-      const floorAllowed = allowed && gate?.floorAllowed === true;
-      const mode = resolveScopedViewerLayerMode(
-        getViewerLayerEffectiveMode(modes, id),
-        scopeAllowed,
-        floorAllowed,
-      );
-      const effective = adapter.apply(mode, {
-        scopeAllowed: scopeAllowed && floorAllowed,
-        opacity: frame.ghostOpacity,
-        preferEdges: frame.preferEdges,
-        isSelected: frame.isSelected,
+    // An error while presenting a later root must not leave earlier roots
+    // exposed (or ghosted with temporary materials). In particular, a
+    // selection callback may throw after a previous root has been updated.
+    try {
+      return entries.map(({ id, root, adapter }) => {
+        const gate = frame.gates.get(root);
+        // A scene switch, stale/reparented root, absent metadata, or an
+        // unknown scope/floor/source permission must never reveal geometry.
+        const allowed =
+          frame.activeSceneRoot === sceneRoot &&
+          isWithin(root, sceneRoot) &&
+          available.has(id) &&
+          gate?.sourceAllowed === true;
+        const scopeAllowed = allowed && gate?.scopeAllowed === true;
+        const floorAllowed = allowed && gate?.floorAllowed === true;
+        const mode = resolveScopedViewerLayerMode(
+          getViewerLayerEffectiveMode(modes, id),
+          scopeAllowed,
+          floorAllowed,
+        );
+        const effective = adapter.apply(mode, {
+          scopeAllowed: scopeAllowed && floorAllowed,
+          opacity: frame.ghostOpacity,
+          preferEdges: frame.preferEdges,
+          isSelected: frame.isSelected,
+        });
+        return { id, mode: effective };
       });
-      return { id, mode: effective };
-    });
+    } catch (error) {
+      // Fail CLOSED across every bound root, including roots already handled
+      // in this frame. Hidden mode does not invoke isSelected or build edges.
+      for (const { root, adapter } of entries) {
+        try {
+          adapter.apply('hidden', { scopeAllowed: false });
+        } catch {
+          // Even if material restoration fails, do not display stale data.
+        }
+        root.visible = false;
+      }
+      throw error;
+    }
   };
 
   const reset = () => {
