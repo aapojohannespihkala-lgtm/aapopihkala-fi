@@ -2356,6 +2356,9 @@ const title = 'Private 3D viewer';
       import { createC80G1MainViewAdapter } from '../../scripts/c80_g1_main_view_adapter.mjs';
       import c70WorkTestContract from '../../scripts/privateModelC70Contract.json';
       import c80WorkTestContract from '../../scripts/privateModelC80Contract.json';
+      import c80Hi12Contract from '../../scripts/privateModelC80Hi12Contract.json';
+      // @ts-ignore - exact HI12 source-scene presentation in the existing bridge.
+      import { createC80Hi12VisibilityAdapter } from '../../scripts/c80Hi12Visibility.mjs';
       import { createOtherFloorReference } from '../../scripts/privateModelOtherFloorReference';
       import {
         createViewerLayerStateForModelLoad,
@@ -7124,7 +7127,9 @@ const title = 'Private 3D viewer';
             })
           : createDViewRuntime(gltf, renderer);
         // C80 only: adapt the verified source-scene bridge; C70/CURRENT untouched.
-        if (c70PreviewSession?.contract.model === 'D_C80')
+        if (c70PreviewSession?.contract.glbSha256 === c80Hi12Contract.glbSha256)
+          mainViewScope = createC80Hi12VisibilityAdapter({ bridge: mainViewScope, session: c70PreviewSession }) as any;
+        else if (c70PreviewSession?.contract.model === 'D_C80')
           mainViewScope = createC80G1MainViewAdapter({
             session: c70PreviewSession,
             bridge: createC80VisibilityComposer({
@@ -7176,14 +7181,16 @@ const title = 'Private 3D viewer';
         }
       };
 
-      // A STAGING_HOLD model is never uploaded, catalogued or activated on the
-      // server. This explicit local-file path uses the actual protected viewer.
+      // Protected WORK_TEST sources are explicitly opted in and SHA-verified.
+      // They never replace the default/CURRENT model or gain as-built approval.
       const c70Search = new URLSearchParams(window.location.search);
-      const c80DirectRequested = c70Search.get('c80') === '1' ||
-        c70Search.get('review') === 'ylisrinne-d-c80-source-only-20261028-review';
-      const c70DirectRequested = !c80DirectRequested && (c70Search.get('c70') === '1' ||
+      const hi12DirectRequested = c70Search.get('hi12') === '1' ||
+        c70Search.get('review') === 'ylisrinne-d-c80-hi12-work-test-20261029-review';
+      const c80DirectRequested = !hi12DirectRequested && (c70Search.get('c80') === '1' ||
+        c70Search.get('review') === 'ylisrinne-d-c80-source-only-20261028-review');
+      const c70DirectRequested = !hi12DirectRequested && !c80DirectRequested && (c70Search.get('c70') === '1' ||
         c70Search.get('review') === 'ylisrinne-d-c70-source-only-20261027-review');
-      const c70PreviewEnabled = c80DirectRequested || c70DirectRequested || c70Search.get('c70-preview') === '1';
+      const c70PreviewEnabled = hi12DirectRequested || c80DirectRequested || c70DirectRequested || c70Search.get('c70-preview') === '1';
       const c70PreviewControls = document.querySelector<HTMLElement>('#c70-preview-controls')!;
       const c70PreviewButton = document.querySelector<HTMLButtonElement>('#c70-preview-button')!;
       const c70PreviewInput = document.querySelector<HTMLInputElement>('#c70-preview-input')!;
@@ -7255,11 +7262,13 @@ const title = 'Private 3D viewer';
           setViewerToolMode('navigate');
           sourcePreviewContract = contract;
           c70VariantSelect.value = contract.model === 'D_C80' ? '0' : '62';
-          applyLoadedModel(session.gltf, 'work-test', `${sourceLabel} WORK_TEST`, null, session);
+          applyLoadedModel(session.gltf, 'work-test', contract.glbSha256 === c80Hi12Contract.glbSha256
+            ? 'C80R2 HI12 WORK_TEST' : `${sourceLabel} WORK_TEST`, null, session);
           applyStandardViewPreset(contract.model === 'D_C80' ? 'd-apartment' : 'd-1f');
           canvas.dataset[`${sourceKey}Preview`] = 'ready';
           canvas.dataset[`${sourceKey}SourceSha256`] = session.verification.glbSha256;
           canvas.dataset[`${sourceKey}SourceTransport`] = transport;
+          if (contract.glbSha256 === c80Hi12Contract.glbSha256) canvas.dataset.c80Version = 'HI12';
           closeToolbarMenus();
         } catch {
           canvas.dataset[`${sourceKey}Preview`] = 'rejected';
@@ -7304,6 +7313,7 @@ const title = 'Private 3D viewer';
       }, 'protected-work-test', contract);
 
       const loadProtectedC70 = () => loadProtectedSource(c70WorkTestContract, '/private-model/work-test/ylisrinne-d-c70-source-only-20261027.glb');
+      const loadProtectedHi12 = () => loadProtectedSource(c80Hi12Contract, '/private-model/work-test/ylisrinne-d-c80-hi12-work-test-20261029.glb');
       const loadProtectedC80 = () => loadProtectedSource(c80WorkTestContract, '/private-model/work-test/ylisrinne-d-c80-source-only-20261028.glb');
 
       const p139nPlanSceneName =
@@ -13555,7 +13565,11 @@ const title = 'Private 3D viewer';
         if (!mainViewScope || (mainViewScope as any).sourceModel !== 'D_C80') return;
         const result = (mainViewScope as any).setSourceContextVisible(c80ContextVisibleInput.checked);
         canvas.dataset.c80SourceContextVisible = String(c80ContextVisibleInput.checked);
-        if (result.applied) { clearSelection(); refreshEdgeRendering(modelRoot.children[0] ?? null); fitModel(); }
+        if (result.applied) {
+          clearSelection(); refreshEdgeRendering(modelRoot.children[0] ?? null);
+          // HI12 source visibility is independent of camera fit (High37).
+          if (sourcePreviewContract.glbSha256 !== c80Hi12Contract.glbSha256) fitModel();
+        }
       });
       c80RoofInput.addEventListener('change', () => {
         if (!mainViewScope?.active || (mainViewScope as any).sourceModel !== 'D_C80' ||
@@ -13805,6 +13819,7 @@ const title = 'Private 3D viewer';
       void (async () => {
         // Exact P137E, P186E and R1125 one-link reviews load separate WORK_TEST
         // GLBs; do not make their autoload depend on the unrelated CURRENT GLB.
+        if (hi12DirectRequested) { await loadProtectedHi12(); return; }
         if (c80DirectRequested) { await loadProtectedC80(); return; }
         if (c70DirectRequested) {
           await loadProtectedC70();

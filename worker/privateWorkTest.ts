@@ -3416,7 +3416,18 @@ const D_C80_SOURCE_ONLY_PREVIEW_CANDIDATE = {
   expectedSha256: 'c8230e1877a2fc2cd0c633c5247a92975b4669ae685f491fad9f45092fc11b8d',
 } as const satisfies PrivateWorkTestCandidate;
 
+// Exact successor, independent of the original C80 and C70 bindings.
+const D_C80_HI12_WORK_TEST_CANDIDATE = {
+  id: 'ylisrinne-d-c80-hi12-work-test-20261029',
+  label: 'D C80R2 HI12 WORK_TEST / SOURCE_ONLY / HOST_HOLD - ei nykytila',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/ylisrinne-d-c80-hi12-work-test-20261029.glb`,
+  objectKey: 'work-test/ylisrinne-d-c80-hi12-work-test-20261029.glb',
+  expectedSize: 11800768,
+  expectedSha256: '4e5ed14c710c7e04484a8b0a1975afb9933115ca6734b0de772ef096e51fb0f7',
+} as const satisfies PrivateWorkTestCandidate;
+
 const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
+  D_C80_HI12_WORK_TEST_CANDIDATE,
   D_C80_SOURCE_ONLY_PREVIEW_CANDIDATE,
   D_C70_SOURCE_ONLY_PREVIEW_CANDIDATE,
   ...PRIVATE_WORK_TEST_CANDIDATES,

@@ -1,3 +1,5 @@
+// @ts-ignore - private exact-source runtime identity, no model metadata mutation.
+import { c80Hi12FitContext } from './c80SourceProfiles.mjs';
 import { THREE } from './threeRuntime';
 
 export const computeVisibleBounds = (
@@ -21,6 +23,7 @@ export const computeVisibleBounds = (
       object.isMesh ||
       (includeNonMeshGeometry && (object.isLine || object.isLineSegments || object.isPoints));
     if (!boundsEligible || !object.visible || !object.geometry) return;
+    if (excludeSourceContextFromFit && c80Hi12FitContext(root, object)) return;
     if (fitC80Content && object.name.startsWith('C80_SOURCE_CONTEXT__')) return;
 
     let current = object.parent;
