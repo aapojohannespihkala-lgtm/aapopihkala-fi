@@ -6417,6 +6417,35 @@ const title = 'Private 3D viewer';
             (preset === 'd-apartment' || preset === 'd-1f' || preset === 'd-2f')) {
           activateMainModelScope(preset === 'd-1f' ? '1F' : preset === 'd-2f' ? '2F' : 'BOTH');
         } else activateStandardViewCamera(preset);
+        // The exact HI12 GLB contains distinct scene0 (D BOTH) and scene3
+        // (FULL_CONTEXT) in the SAME version. Surface this distinction instead
+        // of letting the whole-building preset look like an outdated model.
+        if (mainViewScope && 'sourceModel' in mainViewScope &&
+            mainViewScope.sourceModel === 'D_C80' &&
+            mainViewScope.sourceSha256 === c80Hi12Contract.glbSha256 &&
+            sourcePreviewContract.glbSha256 === c80Hi12Contract.glbSha256) {
+          const expectedScene = preset === 'whole-building' ? c80Hi12Contract.viewerWholeScene :
+            preset === 'd-apartment' ? 0 : preset === 'd-1f' ? 1 :
+            preset === 'd-2f' ? 2 : null;
+          if (expectedScene !== null) {
+            const actualSceneIndex = mainViewScope.active
+              ? mainViewScope.sceneIndex : c80Hi12Contract.viewerWholeScene;
+            const expectedMounted = mainViewScope.active ? mainViewScope.selectedScene : fullModelScene;
+            if (actualSceneIndex !== expectedScene || modelRoot.children[0] !== expectedMounted)
+              throw new Error('C80_HI12_PRESET_SCENE_MISMATCH');
+            canvas.dataset.c80Hi12PresetScene = String(expectedScene);
+            canvas.dataset.c80Hi12PresetRole = preset === 'whole-building'
+              ? 'FULL_CONTEXT_WORK_TEST' : 'D_FLOOR_WORK_TEST';
+            if (preset === 'whole-building')
+              status.textContent = 'Koko rakennus - C80R2 HI12 WORK_TEST, FULL_CONTEXT (scene3, viitteellistä lähdekontekstia). D-asunto / molemmat käyttää scene0:aa. Ei CURRENT/as-built.';
+          } else {
+            delete canvas.dataset.c80Hi12PresetScene;
+            delete canvas.dataset.c80Hi12PresetRole;
+          }
+        } else {
+          delete canvas.dataset.c80Hi12PresetScene;
+          delete canvas.dataset.c80Hi12PresetRole;
+        }
         refreshEdgeRendering(modelRoot.children[0] ?? null);
       };
 
@@ -7195,19 +7224,34 @@ const title = 'Private 3D viewer';
       const c70PreviewButton = document.querySelector<HTMLButtonElement>('#c70-preview-button')!;
       const c70PreviewInput = document.querySelector<HTMLInputElement>('#c70-preview-input')!;
       c70PreviewControls.hidden = !c70PreviewEnabled;
-      for (const row of sourcePreviewContract.modes) {
-        const option = document.createElement('option');
-        option.value = String(row.sceneIndex);
-        const floorLabel = row.floor === '1F' ? 'D 1F' : row.floor === '2F' ? 'D 2F' : 'D molemmat';
-        const doorLabel = row.doorMode === 'HIST_2015_OPEN' ? '2015 ovet auki' :
-          row.doorMode === 'HIST_2015_CLOSED' ? '2015 ovet kiinni' : 'WORK_TEST';
-        const gableLabel = row.floor === 'BOTH' ?
-          (row.gable === 'K13_ORIGINAL' ? 'K13 alkuperäinen pääty' : 'K14 220 mm pääty') : '';
-        option.textContent = [floorLabel, doorLabel, gableLabel,
-          row.k9Reference ? 'K9 viitteellinen' : ''].filter(Boolean).join(' / ');
-        c70VariantSelect.add(option);
-      }
-      c70VariantSelect.value = '62';
+      // Rebuild variant options on each protected-source change. C70 has source
+      // scenes 52/58/62, but C80/HI12 has 0/1/2. A stale C70-only select
+      // silently rejects scene 0 and can suggest a historical K14 gable in HI12.
+      const setSourcePreviewOptions = (contract: any) => {
+        const options = contract.modes.map((row: any) => {
+          const option = document.createElement('option');
+          option.value = String(row.sceneIndex);
+          const floorLabel = row.floor === '1F' ? 'D 1F' : row.floor === '2F' ? 'D 2F' : 'D molemmat';
+          if (contract.model === 'D_C80') {
+            const version = contract.glbSha256 === c80Hi12Contract.glbSha256 ? 'C80R2 HI12' : 'C80';
+            option.textContent = [floorLabel, version, 'WORK_TEST'].join(' / ');
+          } else {
+            const doorLabel = row.doorMode === 'HIST_2015_OPEN' ? '2015 ovet auki' :
+              row.doorMode === 'HIST_2015_CLOSED' ? '2015 ovet kiinni' : 'WORK_TEST';
+            const gableLabel = row.floor === 'BOTH' ?
+              (row.gable === 'K13_ORIGINAL' ? 'K13 alkuperäinen pääty' : 'K14 220 mm pääty') : '';
+            option.textContent = [floorLabel, doorLabel, gableLabel,
+              row.k9Reference ? 'K9 viitteellinen' : ''].filter(Boolean).join(' / ');
+          }
+          return option;
+        });
+        const baseline = contract.modes.find((row: any) => row.sceneIndex ===
+          (contract.model === 'D_C80' ? 0 : 62));
+        if (!baseline) throw new Error('C80_PREVIEW_BASELINE_SCENE_MISSING');
+        c70VariantSelect.replaceChildren(...options);
+        c70VariantSelect.value = String(baseline.sceneIndex);
+      };
+      setSourcePreviewOptions(sourcePreviewContract);
       c70VariantSelect.addEventListener('change', () => {
         const selected = sourcePreviewContract.modes.find(
           (row: any) => String(row.sceneIndex) === c70VariantSelect.value);
@@ -7261,9 +7305,9 @@ const title = 'Private 3D viewer';
           clearPointMeasure();
           setViewerToolMode('navigate');
           sourcePreviewContract = contract;
-          c70VariantSelect.value = contract.model === 'D_C80' ? '0' : '62';
           applyLoadedModel(session.gltf, 'work-test', contract.glbSha256 === c80Hi12Contract.glbSha256
             ? 'C80R2 HI12 WORK_TEST' : `${sourceLabel} WORK_TEST`, null, session);
+          setSourcePreviewOptions(contract);
           applyStandardViewPreset(contract.model === 'D_C80' ? 'd-apartment' : 'd-1f');
           canvas.dataset[`${sourceKey}Preview`] = 'ready';
           canvas.dataset[`${sourceKey}SourceSha256`] = session.verification.glbSha256;
