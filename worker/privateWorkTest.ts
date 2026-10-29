@@ -3426,7 +3426,17 @@ const D_C80_HI12_WORK_TEST_CANDIDATE = {
   expectedSha256: '4e5ed14c710c7e04484a8b0a1975afb9933115ca6734b0de772ef096e51fb0f7',
 } as const satisfies PrivateWorkTestCandidate;
 
+const D_C80_HI13_WORK_TEST_CANDIDATE = {
+  id: 'ylisrinne-d-c80-hi13-work-test-20261029',
+  label: 'D C80R2 HI13 WORK_TEST / SOURCE_ONLY / HOST_HOLD - ei nykytila',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/ylisrinne-d-c80-hi13-work-test-20261029.glb`,
+  objectKey: 'work-test/ylisrinne-d-c80-hi13-work-test-20261029.glb',
+  expectedSize: 12060676,
+  expectedSha256: '145398c5fee2fccbedb820c4049117795fa1035265696511c854ba617ffe7b71',
+} as const satisfies PrivateWorkTestCandidate;
+
 const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
+  D_C80_HI13_WORK_TEST_CANDIDATE,
   D_C80_HI12_WORK_TEST_CANDIDATE,
   D_C80_SOURCE_ONLY_PREVIEW_CANDIDATE,
   D_C70_SOURCE_ONLY_PREVIEW_CANDIDATE,
@@ -4357,5 +4367,6 @@ export const handlePrivateWorkTestRequest = async (
 
   return privateWorkTestCandidateResponse(request, bucket, candidate, true);
 };
+
 
 

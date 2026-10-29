@@ -1,9 +1,9 @@
 /** HI12 policy in the existing C70/C80 scene bridge. Reversible visible bits only. */
-import { c80Hi12Source, C80_HI12_SHA } from './c80SourceProfiles.mjs';
+import { c80Hi12Source } from './c80SourceProfiles.mjs';
 const fail = why => { throw Error('C80_HI12_VISIBILITY_FAIL_CLOSED: ' + why); };
 export function createC80Hi12VisibilityAdapter({ bridge, session }) {
   const { profile, sourceObjects } = c80Hi12Source(session);
-  if (bridge?.sourceModel !== 'D_C80' || bridge.sourceSha256 !== C80_HI12_SHA || bridge.active || !bridge.available)
+  if (bridge?.sourceModel !== 'D_C80' || bridge.sourceSha256 !== session.verification.glbSha256 || bridge.active || !bridge.available)
     fail('inactive verified source bridge required');
   let visible = true, roof = false, shell = 'FOCUS', disposed = false;
   const baseline = new Map();
@@ -51,3 +51,4 @@ export function createC80Hi12VisibilityAdapter({ bridge, session }) {
   });
   return Object.freeze(facade);
 }
+

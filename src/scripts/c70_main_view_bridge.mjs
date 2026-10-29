@@ -1,4 +1,4 @@
-import { prepareC80Hi12Source, C80_HI12_SHA } from './c80SourceProfiles.mjs';
+import { prepareC80Hi12Source, isC80SuccessorSHA } from './c80SourceProfiles.mjs';
 /**
  * C70 -> current src/pages/private-model/index.astro mainViewScope bridge.
  * Explicit browser-local WORK_TEST staging preview, never CURRENT.
@@ -22,7 +22,7 @@ export async function prepareC70Preview({glbBytes,contract,loader,baseUrl,previe
   if(!gltf||!Array.isArray(gltf.scenes)||gltf.scenes.length!==verification.sceneCount ||
      gltf.scene!==gltf.scenes[contract.glbDefaultScene]||gltf.parser?.json?.scene!==contract.glbDefaultScene||
      gltf.parser?.json?.scenes?.length!==verification.sceneCount)reject('Parsed model does not match verified source');
-  if (verification.glbSha256 === C80_HI12_SHA) await prepareC80Hi12Source(gltf);
+  if (isC80SuccessorSHA(verification.glbSha256)) await prepareC80Hi12Source(gltf, verification.glbSha256);
   const router=createC70Router(contract,verification);
   return Object.freeze({gltf,router,contract,verification});
 }
@@ -141,4 +141,5 @@ export function createC70MainViewBridge({session,setScene,readMountedScene,previ
     get selectedScene(){return active&&!poisoned?gltf.scenes[activeSceneIndex]:wholeScene},
   });
 }
+
 
