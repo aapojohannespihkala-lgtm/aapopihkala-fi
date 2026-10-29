@@ -110,12 +110,13 @@ test('selected material and picking are preserved, while other meshes ghost', ()
   root.add(selected, other);
   const selectedRaycast = selected.raycast;
   const selectedMaterial = selected.material;
+  const otherMaterial = other.material;
   const adapter = createViewerLayerGhostPresentation(root);
 
   adapter.apply('ghost', { isSelected: (mesh) => mesh === selected });
   expect(selected.material).toBe(selectedMaterial);
   expect(selected.raycast).toBe(selectedRaycast);
-  expect(other.material).not.toBe(selectedMaterial);
+  expect(other.material).not.toBe(otherMaterial);
   adapter.dispose();
 });
 
