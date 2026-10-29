@@ -131,6 +131,52 @@ const frame = (page: Page) => page.locator('#private-model-canvas').evaluate((no
     resolve({ colored, error: gl.getError() });
   })));
 
+// Click actual unobstructed rendered model pixels, as in the C70 viewer proof.
+const pickSourceLinkedMesh = async (page: Page, bytes: Buffer) => {
+  const jsonLength = bytes.readUInt32LE(12);
+  const model = JSON.parse(bytes.subarray(20, 20 + jsonLength).toString('utf8'));
+  const allowed = new Set<string>();
+  const visit = (value: any) => {
+    if (!value || typeof value !== 'object') return;
+    if (Array.isArray(value.sourceLinks)) for (const record of value.sourceLinks)
+      if (typeof record?.link === 'string') allowed.add(record.link.trim());
+    for (const child of Object.values(value)) if (typeof child === 'object') visit(child);
+  };
+  visit(model);
+  const canvas = page.locator('#private-model-canvas');
+  const points = await canvas.evaluate((element: HTMLCanvasElement) => new Promise<Array<{ x: number; y: number; contrast: number }>>(resolve => requestAnimationFrame(() => {
+    const gl = element.getContext('webgl2')!;
+    const w = gl.drawingBufferWidth, h = gl.drawingBufferHeight;
+    const pixels = new Uint8Array(w * h * 4);
+    gl.readPixels(0, 0, w, h, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
+    const rect = element.getBoundingClientRect();
+    const points: Array<{ x: number; y: number; contrast: number }> = [];
+    for (let row = 1; row < 30; row++) for (let col = 1; col < 24; col++) {
+      const x = Math.floor(col * w / 24), y = Math.floor(row * h / 30);
+      const i = ((h - 1 - y) * w + x) * 4;
+      const contrast = Math.abs(pixels[i] - pixels[0]) + Math.abs(pixels[i + 1] - pixels[1]) + Math.abs(pixels[i + 2] - pixels[2]);
+      const clientX = rect.left + x * rect.width / w, clientY = rect.top + y * rect.height / h;
+      if (contrast > 40 && document.elementFromPoint(clientX, clientY) === element) points.push({ x: clientX, y: clientY, contrast });
+    }
+    resolve(points.sort((a, b) => b.contrast - a.contrast).slice(0, 100));
+  })));
+  expect(points.length).toBeGreaterThan(0);
+  await page.locator('#selection-tool-button').click();
+  await expect(page.locator('#selection-tool-button')).toHaveAttribute('aria-pressed', 'true');
+  for (const point of points) {
+    if (await page.locator('#selection-panel').isVisible()) await page.locator('#clear-selection-button').click();
+    await page.mouse.click(point.x, point.y);
+    await page.evaluate(() => new Promise<void>(resolve => requestAnimationFrame(() => resolve())));
+    if (await page.locator('#selection-panel').isVisible() && await page.locator('#selection-source-links-list a').count()) break;
+  }
+  await expect(page.locator('#selection-panel')).toBeVisible();
+  const links = await page.locator('#selection-source-links-list a').evaluateAll(nodes => nodes.map(node => (node as HTMLAnchorElement).href));
+  expect(links.length).toBeGreaterThan(0);
+  for (const link of links) expect(allowed.has(link), 'Selected native source link must occur in this exact HI12 source').toBe(true);
+  await menu(page, '#selection-source-links');
+  return { mesh: await page.locator('#selection-mesh').innerText(), links };
+};
+
 for (const width of [1280, 390]) test.describe('HI12 WebGL ' + width, () => {
   test.use({ viewport: { width, height: 900 }, hasTouch: width === 390, isMobile: width === 390,
     deviceScaleFactor: width === 390 ? 2 : 1 });
@@ -200,6 +246,12 @@ for (const width of [1280, 390]) test.describe('HI12 WebGL ' + width, () => {
       }
       await page.locator('#close-layers-button').click();
     }
+    const selection = await pickSourceLinkedMesh(page, bytes);
+    await page.screenshot({ path: info.outputPath('hi12-' + width + '-source-selection.png') });
+    await menu(page, '#preset-menu'); await page.locator('#main-view-floor').selectOption('1F');
+    await expect(page.locator('#selection-panel')).toBeHidden();
+    await page.locator('#selection-tool-button').click();
+    await expect(page.locator('#selection-tool-button')).toHaveAttribute('aria-pressed', 'false');
     await menu(page, '#preset-menu'); await page.locator('#main-view-area').selectOption('WHOLE');
     await expect(canvas).toHaveAttribute('data-c80-scene-index', '3');
     await menu(page, '#preset-menu'); await page.locator('#main-view-area').selectOption('D'); await expect(canvas).toHaveAttribute('data-c80-scene-index', '0');
@@ -217,10 +269,30 @@ for (const width of [1280, 390]) test.describe('HI12 WebGL ' + width, () => {
       await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x, y, id: 0 }] });
       for (let n = 1; n <= 10; n++) await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: x + n * 2, y: y + n, id: 0 }] });
       await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] }); await settle(page);
-      expect(distance(start.direction, (await pose(page)).direction)).toBeGreaterThan(.001); await cdp.detach();
+      const orbit = await pose(page);
+      expect(distance(start.direction, orbit.direction)).toBeGreaterThan(.001);
+      const touch = (points: Array<{ x: number; y: number }>, type: 'touchStart' | 'touchMove' | 'touchEnd') => cdp.send('Input.dispatchTouchEvent', {
+        type, touchPoints: points.map((point, id) => ({ ...point, id })) });
+      await touch([{ x: x - 25, y }, { x: x + 25, y }], 'touchStart');
+      for (let n = 1; n <= 10; n++) await touch([{ x: x - 25 + n, y: y + n }, { x: x + 25 + n, y: y + n }], 'touchMove');
+      await touch([], 'touchEnd'); await settle(page);
+      const pan = await pose(page);
+      expect(distance(orbit.target, pan.target)).toBeGreaterThan(.001);
+      expect(distance(orbit.direction, pan.direction)).toBeLessThan(.0001);
+      await touch([{ x: x - 25, y }, { x: x + 25, y }], 'touchStart');
+      for (let n = 1; n <= 10; n++) await touch([{ x: x - 25 - n, y }, { x: x + 25 + n, y }], 'touchMove');
+      await touch([], 'touchEnd'); await settle(page);
+      const zoom = await pose(page);
+      expect(distance(zoom.position, zoom.target)).toBeLessThan(distance(pan.position, pan.target));
+      await cdp.detach();
     }
     await menu(page, '#more-menu'); await page.locator('#fit-button').click(); await settle(page);
     expect((await frame(page)).colored).toBeGreaterThan(100);
+    await menu(page, '#more-menu'); await page.locator('#reset-view-defaults-button').click();
+    await expect(canvas).toHaveAttribute('data-main-view-area', 'WHOLE');
+    await expect(canvas).toHaveAttribute('data-c80-scene-index', '3');
+    await expect(canvas).toHaveAttribute('data-c80-source-sha256', SHA);
+    await settle(page); expect((await frame(page)).error).toBe(0);
     // The separate C70/C80 suite verifies their complete lifecycle/default return.
     // Here the real linked fallback must load C70 rather than retaining HI12.
     if (production || process.env.YLIS_C70_GLB) {
@@ -231,6 +303,7 @@ for (const width of [1280, 390]) test.describe('HI12 WebGL ' + width, () => {
     expect(writes).toEqual([]); expect(errors).toEqual([]);
     if (production) expect(identities.length).toBeGreaterThan(0);
     console.log('HI12_WEBGL_RESULT ' + JSON.stringify({ width, production, sourceSha256: SHA, observations, identities,
-      realWebGL2: true, bundles, testedCommit: process.env.D_VIEW_TESTED_COMMIT, humanReview: 'NOT_RUN' }));
+      realWebGL2: true, bundles, selection, reset: 'FULL_CONTEXT', mobilePanZoom: width === 390 ? 'PASS' : 'NOT_APPLICABLE', testedCommit: process.env.D_VIEW_TESTED_COMMIT, humanReview: 'NOT_RUN' }));
   });
 });
+
