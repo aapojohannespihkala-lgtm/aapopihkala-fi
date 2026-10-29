@@ -8,13 +8,19 @@ import { c80Hi12Source, prepareC80Hi12Source } from '../../src/scripts/c80Source
 import { createC80Hi12VisibilityAdapter } from '../../src/scripts/c80Hi12Visibility.mjs';
 import { computeVisibleBounds } from '../../src/scripts/privateModelVisibleBounds';
 import { selectionSourceLinks } from '../../src/scripts/privateModelSelectionMetadata';
-import contract from '../../src/scripts/privateModelC80Hi12Contract.json' with { type: 'json' };
+import hi12Contract from '../../src/scripts/privateModelC80Hi12Contract.json' with { type: 'json' };
+import hi13Contract from '../../src/scripts/privateModelC80Hi13Contract.json' with { type: 'json' };
+const isHi13 = process.env.YLIS_C80_SUCCESSOR === 'HI13';
+const contract = isHi13 ? hi13Contract : hi12Contract;
+const version = isHi13 ? 'HI13' : 'HI12';
+const sourcePath = isHi13 ? process.env.YLIS_HI13_GLB : process.env.YLIS_HI12_GLB;
+const meshCounts = isHi13 ? [1465, 978, 496, 2182] : [1414, 928, 495, 2182];
 import { getPrivateWorkTestCandidateById } from '../../worker/privateWorkTest';
-const ID = 'ylisrinne-d-c80-hi12-work-test-20261029';
+const ID = isHi13 ? 'ylisrinne-d-c80-hi13-work-test-20261029' : 'ylisrinne-d-c80-hi12-work-test-20261029';
 const PATH = '/private-model/work-test/' + ID + '.glb';
-const SHA = '4e5ed14c710c7e04484a8b0a1975afb9933115ca6734b0de772ef096e51fb0f7';
-const production = process.env.YLIS_HI12_PRODUCTION === '1';
-const source = () => readFileSync(process.env.YLIS_HI12_GLB!);
+const SHA = contract.glbSha256;
+const production = (isHi13 ? process.env.YLIS_HI13_PRODUCTION : process.env.YLIS_HI12_PRODUCTION) === '1';
+const source = () => readFileSync(sourcePath!);
 const prepare = (bytes: Buffer = source()) => prepareC70Preview({ glbBytes: bytes, contract,
   loader: new GLTFLoader(), baseUrl: '/private-model/', previewGate: 'EXPLICIT_WORK_TEST_PREVIEW', sourceKind: 'work-test' });
 const fingerprint = (gltf: any) => gltf.scenes.map((root: any) => {
@@ -27,7 +33,7 @@ const fingerprint = (gltf: any) => gltf.scenes.map((root: any) => {
 test('HI12 protected candidate keeps exact Drive/SHA and legacy candidates', async () => {
   test.skip(production, 'Source-free gate runs before production.');
   const candidate = getPrivateWorkTestCandidateById(ID)!;
-  expect(candidate.expectedSize).toBe(11800768); expect(candidate.expectedSha256).toBe(SHA);
+  expect(candidate.expectedSize).toBe(contract.glbByteLength); expect(candidate.expectedSha256).toBe(SHA);
   expect(candidate.path).toBe(PATH);
   const registry = JSON.parse(readFileSync('.github/work-test-candidates.json', 'utf8'));
   expect(registry.candidates[ID]).toEqual({ driveFileId: contract.sourceDriveFileId });
@@ -38,7 +44,7 @@ test('HI12 protected candidate keeps exact Drive/SHA and legacy candidates', asy
     .toBe('75b586aaf774bce34cf1dceba5d19e6ae41c112b8717f4cce5ce64458fddc491');
   expect(contract.current).toBe(false); expect(contract.canApplyToViewer).toBe(false);
   let parses = 0;
-  await expect(prepareC70Preview({ glbBytes: Buffer.alloc(11800768), contract,
+  await expect(prepareC70Preview({ glbBytes: Buffer.alloc(contract.glbByteLength), contract,
     loader: { parseAsync: () => { parses++; } }, baseUrl: '/private-model/',
     previewGate: 'EXPLICIT_WORK_TEST_PREVIEW', sourceKind: 'work-test' })).rejects.toThrow();
   expect(parses).toBe(0);
@@ -46,8 +52,8 @@ test('HI12 protected candidate keeps exact Drive/SHA and legacy candidates', asy
 
 test('actual HI12 cached nodes, primitives, native links and reversible K17/SITE lifecycle', async () => {
   test.skip(production, 'Run once with trusted private source.');
-  if (process.env.YLIS_REQUIRE_REAL === '1') expect(process.env.YLIS_HI12_GLB).toBeTruthy();
-  test.skip(!process.env.YLIS_HI12_GLB, 'Private HI12 absent: real GLTFLoader NOT_RUN.');
+  if (process.env.YLIS_REQUIRE_REAL === '1') expect(sourcePath).toBeTruthy();
+  test.skip(!sourcePath, 'Private HI12 absent: real GLTFLoader NOT_RUN.');
   const session = await prepare(); const gltf = session.gltf;
   const { profile, sourceObjects, associations } = c80Hi12Source(session);
   expect(session.verification.glbSha256).toBe(SHA);
@@ -65,7 +71,7 @@ test('actual HI12 cached nodes, primitives, native links and reversible K17/SITE
       const native = selectionSourceLinks(o, gltf.scenes[si]);
       if (native.length) { selections++; links += native.length; }
     } });
-    expect(meshes).toBe([1414, 928, 495, 2182][si]);
+    expect(meshes).toBe(meshCounts[si]);
     const expected = profile.scenes[si], objects = sourceObjects[si];
     expect(objects.get(expected.k17Root).children).toHaveLength(14);
     for (const record of expected.records) expect(associations.get(objects.get(record.node))!.nodes).toBe(record.node);
@@ -95,14 +101,14 @@ test('actual HI12 cached nodes, primitives, native links and reversible K17/SITE
 });
 
 test('HI12 real runtime rejects wrong K17 paths/world and missing SITE primitive', async () => {
-  test.skip(production || !process.env.YLIS_HI12_GLB, 'Trusted-source negative runtime gate.');
+  test.skip(production || !sourcePath, 'Trusted-source negative runtime gate.');
   for (const mutate of [
     (g: any, b: any) => b.sourceObjects[1].get(5240).position.x += .01,
     (g: any, b: any) => b.sourceObjects[0].get(5100).remove(b.sourceObjects[0].get(5100).children[1]),
     (g: any, b: any) => g.scenes[1].add(b.sourceObjects[1].get(5240)),
   ]) {
     const session = await prepare(); mutate(session.gltf, c80Hi12Source(session));
-    await expect(prepareC80Hi12Source(session.gltf)).rejects.toThrow();
+    await expect(prepareC80Hi12Source(session.gltf, SHA)).rejects.toThrow();
   }
   const b = source(); b[b.length - 1] ^= 1;
   await expect(prepare(b)).rejects.toThrow(/SHA256/);
@@ -193,8 +199,8 @@ for (const width of [1280, 390]) test.describe('HI12 WebGL ' + width, () => {
   test.use({ viewport: { width, height: 900 }, hasTouch: width === 390, isMobile: width === 390,
     deviceScaleFactor: width === 390 ? 2 : 1 });
   test('protected HI12 floors/context, gestures, fit and legacy return', async ({ page, context }, info) => {
-    if (process.env.YLIS_REQUIRE_REAL === '1') expect(process.env.YLIS_HI12_GLB).toBeTruthy();
-    test.skip(!process.env.YLIS_HI12_GLB, 'Private source absent: real browser NOT_RUN.');
+    if (process.env.YLIS_REQUIRE_REAL === '1') expect(sourcePath).toBeTruthy();
+    test.skip(!sourcePath, 'Private source absent: real browser NOT_RUN.');
     test.setTimeout(540_000);
     const bytes = source(); expect(createHash('sha256').update(bytes).digest('hex')).toBe(SHA);
     const writes: string[] = [], errors: string[] = [], bundles: any[] = [], identities: any[] = [];
@@ -210,13 +216,13 @@ for (const width of [1280, 390]) test.describe('HI12 WebGL ' + width, () => {
         expect(response.status()).not.toBeGreaterThanOrEqual(300); // redirects/errors never reach the viewer
         if (new URL(route.request().url()).pathname === PATH && response.ok()) {
           const actual = await response.body();
-          expect(actual.length).toBe(11800768); expect(createHash('sha256').update(actual).digest('hex')).toBe(SHA);
+          expect(actual.length).toBe(contract.glbByteLength); expect(createHash('sha256').update(actual).digest('hex')).toBe(SHA);
           identities.push({ sha256: SHA, byteLength: actual.length });
         }
         await route.fulfill({ response });
       });
       await expect(async () => {
-        await page.goto('https://aapopihkala.fi/private-model/?hi12=1');
+        await page.goto('https://aapopihkala.fi/private-model/?' + version.toLowerCase() + '=1');
         const urls = await page.locator('script[type="module"][src]').evaluateAll(nodes => nodes.map(n => (n as HTMLScriptElement).src));
         const own = urls.filter(src => new URL(src).origin === 'https://aapopihkala.fi' && new URL(src).pathname.startsWith('/_astro/'));
         expect(own.length).toBeGreaterThan(0); bundles.length = 0;
@@ -233,11 +239,11 @@ for (const width of [1280, 390]) test.describe('HI12 WebGL ' + width, () => {
       await page.route('**/private-model/work-test/catalog.json', r => r.fulfill({ json: { candidates: [] } }));
       for (const [id, env] of [['ylisrinne-d-c70-source-only-20261027', 'YLIS_C70_GLB'], ['ylisrinne-d-c80-source-only-20261028', 'YLIS_C80_GLB']])
         if (process.env[env]) await page.route('**/private-model/work-test/' + id + '.glb', r => r.fulfill({ body: readFileSync(process.env[env]!) }));
-      await page.goto('/private-model/?hi12=1');
+      await page.goto('/private-model/?' + version.toLowerCase() + '=1');
     }
     const canvas = page.locator('#private-model-canvas');
     await expect(canvas).toHaveAttribute('data-c80-preview', 'ready', { timeout: 120_000 });
-    await expect(canvas).toHaveAttribute('data-c80-version', 'HI12');
+    await expect(canvas).toHaveAttribute('data-c80-version', version);
     await expect(canvas).toHaveAttribute('data-c80-source-sha256', SHA);
     await expect(canvas).toHaveAttribute('data-c80-source-transport', 'protected-work-test');
     const observations: any[] = [];
@@ -245,9 +251,9 @@ for (const width of [1280, 390]) test.describe('HI12 WebGL ' + width, () => {
       await menu(page, '#preset-menu'); await page.locator('#main-view-floor').selectOption(floor);
       await closeMenu(page, '#preset-menu'); await settle(page);
       await expect(canvas).toHaveAttribute('data-c80-scene-index', String(si));
-      await expect(canvas).toHaveAttribute('data-c80-mesh-count', String([1414, 928, 495][si]));
+      await expect(canvas).toHaveAttribute('data-c80-mesh-count', String(meshCounts[si]));
       const pixels = await frame(page); expect(pixels.error).toBe(0); expect(pixels.colored).toBeGreaterThan(100);
-      await page.screenshot({ path: info.outputPath('hi12-' + width + '-' + floor + '.png') });
+      await page.screenshot({ path: info.outputPath(version.toLowerCase() + '-' + width + '-' + floor + '.png') });
       observations.push({ floor, si, pixels });
       await page.locator('#layers-button').click(); await settle(page);
       const before = await pose(page);
@@ -259,7 +265,7 @@ for (const width of [1280, 390]) test.describe('HI12 WebGL ' + width, () => {
       await page.locator('#close-layers-button').click();
     }
     const selection = await pickSourceLinkedMesh(page, bytes);
-    await page.screenshot({ path: info.outputPath('hi12-' + width + '-source-selection.png') });
+    await page.screenshot({ path: info.outputPath(version.toLowerCase() + '-' + width + '-source-selection.png') });
     await menu(page, '#preset-menu'); await page.locator('#main-view-floor').selectOption('1F');
     await expect(page.locator('#selection-panel')).toBeHidden();
     await page.locator('#navigate-tool-button').click();
@@ -314,8 +320,9 @@ for (const width of [1280, 390]) test.describe('HI12 WebGL ' + width, () => {
     }
     expect(writes).toEqual([]); expect(errors).toEqual([]);
     if (production) expect(identities.length).toBeGreaterThan(0);
-    console.log('HI12_WEBGL_RESULT ' + JSON.stringify({ width, production, sourceSha256: SHA, observations, identities,
+    console.log(version + '_WEBGL_RESULT ' + JSON.stringify({ width, production, sourceSha256: SHA, observations, identities,
       realWebGL2: true, bundles, selection, reset: 'FULL_CONTEXT', mobilePanZoom: width === 390 ? 'PASS' : 'NOT_APPLICABLE', testedCommit: process.env.D_VIEW_TESTED_COMMIT, humanReview: 'NOT_RUN' }));
   });
 });
+
 

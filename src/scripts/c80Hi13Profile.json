@@ -1,0 +1,3767 @@
+{
+  "schema": "ylisrinne.c80-receiver.independent-k17-site.v2",
+  "candidate": "ylisrinne-d-c80-hi13-work-test-20261029",
+  "parentGLBSHA256": "4e5ed14c710c7e04484a8b0a1975afb9933115ca6734b0de772ef096e51fb0f7",
+  "originalC80SHA256": "c8230e1877a2fc2cd0c633c5247a92975b4669ae685f491fad9f45092fc11b8d",
+  "roofNodeIds": [
+    4969,
+    4970,
+    4971
+  ],
+  "g1Targets": [],
+  "g1Policy": "EXPECTED_SUPERSEDED_MASSES_ABSENT_ONLY_FOR_THIS_EXACT_SHA",
+  "scenePrimitiveCounts": {
+    "0": 1466,
+    "1": 979,
+    "2": 496,
+    "3": 2182
+  },
+  "handoff": "Drive:1reQ5WcQI3jQw9t6YE_cfrs-v67JzqrnN",
+  "scenes": {
+    "0": {
+      "sceneName": "C80R2_HI13_BOTH_WORK_TEST_HOST_HOLD",
+      "rootNodes": [
+        5623,
+        455,
+        485,
+        530,
+        556,
+        757,
+        759,
+        5390,
+        1245,
+        1246,
+        5049,
+        1248,
+        5050,
+        1250,
+        5051,
+        1252,
+        5052,
+        1268,
+        1336,
+        5391,
+        5140,
+        5223,
+        5314,
+        5228,
+        5230,
+        5232,
+        5234,
+        5236,
+        5238,
+        5270,
+        5272,
+        5274,
+        5276,
+        5278,
+        5280,
+        5282,
+        5284,
+        5288,
+        5295,
+        5307,
+        5316,
+        5318,
+        5320,
+        5322,
+        5324,
+        5326,
+        5341,
+        5342,
+        5343,
+        5392,
+        5393,
+        5394,
+        5630,
+        5682
+      ],
+      "contextRoot": 5391,
+      "contextNodeIds": [
+        4955,
+        4960,
+        4961,
+        4962,
+        4966,
+        4967,
+        4968,
+        4969,
+        4970,
+        4971,
+        5360,
+        5361,
+        5362,
+        5363,
+        5364,
+        5365,
+        5366,
+        5367,
+        5368
+      ],
+      "k17Root": 1268,
+      "k17NodeIds": [
+        1254,
+        1255,
+        1256,
+        1257,
+        1258,
+        1259,
+        1260,
+        1261,
+        1262,
+        1263,
+        1264,
+        1265,
+        1266,
+        1267
+      ],
+      "siteRoots": [
+        5140
+      ],
+      "supersededG1ObjectKeysExpectedAbsent": [
+        "C80_CONTEXT:1F_G1_NORTH_AND_SOUTH_CONTEXT:1F",
+        "C80_CONTEXT:2F_G1_NORTH_AND_SOUTH_CONTEXT:2F"
+      ],
+      "records": [
+        {
+          "node": 4955,
+          "name": "C80_SOURCE_CONTEXT__1F_G1_GROUND_REFERENCE",
+          "parentPath": [
+            5391,
+            4955
+          ],
+          "mesh": 1485,
+          "primitiveIndices": [
+            0
+          ],
+          "worldMatrix": [
+            1.0000000000000002,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            -1.0000000000000002,
+            0.0,
+            0.0,
+            1.0000000000000002,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        },
+        {
+          "node": 4960,
+          "name": "C80_SOURCE_CONTEXT__1F_K14_GABLE_CONTEXT",
+          "parentPath": [
+            5391,
+            4960
+          ],
+          "mesh": 1490,
+          "primitiveIndices": [
+            0
+          ],
+          "worldMatrix": [
+            1.0000000000000002,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            -1.0000000000000002,
+            0.0,
+            0.0,
+            1.0000000000000002,
+            0.0,
+            0.0,
+            0.22000000000000006,
+            0.0,
+            0.0,
+            1.0
+          ]
+        },
+        {
+          "node": 4961,
+          "name": "C80_SOURCE_CONTEXT__1F_K3_SHARED_DC_CONTEXT",
+          "parentPath": [
+            5391,
+            4961
+          ],
+          "mesh": 1657,
+          "primitiveIndices": [
+            0
+          ],
+          "worldMatrix": [
+            0.25,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            6.15,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            10.81,
+            0.0,
+            6.375,
+            3.075,
+            -5.405,
+            1.0
+          ]
+        },
+        {
+          "node": 4962,
+          "name": "C80_SOURCE_CONTEXT__1F_K3_BALCONY_BOUNDARY_CONTEXT",
+          "parentPath": [
+            5391,
+            4962
+          ],
+          "mesh": 1492,
+          "primitiveIndices": [
+            0
+          ],
+          "worldMatrix": [
+            0.25,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            2.9099999999999997,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.75,
+            0.0,
+            6.375,
+            1.305,
+            0.875,
+            1.0
+          ]
+        },
+        {
+          "node": 4966,
+          "name": "C80_SOURCE_CONTEXT__1F_STORAGE_COPY_ASSUMPTION_3753",
+          "parentPath": [
+            5391,
+            4966
+          ],
+          "mesh": 1496,
+          "primitiveIndices": [
+            0
+          ],
+          "worldMatrix": [
+            1.0000000000000002,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            -1.0000000000000002,
+            0.0,
+            0.0,
+            1.0000000000000002,
+            0.0,
+            0.0,
+            1.7763568394002505e-15,
+            0.0,
+            0.0,
+            1.0
+          ]
+        },
+        {
+          "node": 4967,
+          "name": "C80_SOURCE_CONTEXT__1F_STORAGE_COPY_ASSUMPTION_3754",
+          "parentPath": [
+            5391,
+            4967
+          ],
+          "mesh": 1497,
+          "primitiveIndices": [
+            0
+          ],
+          "worldMatrix": [
+            1.0000000000000002,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            -1.0000000000000002,
+            0.0,
+            0.0,
+            1.0000000000000002,
+            0.0,
+            0.0,
+            1.7763568394002505e-15,
+            0.0,
+            0.0,
+            1.0
+          ]
+        },
+        {
+          "node": 4968,
+          "name": "C80_SOURCE_CONTEXT__1F_STORAGE_COPY_ASSUMPTION_3755",
+          "parentPath": [
+            5391,
+            4968
+          ],
+          "mesh": 1498,
+          "primitiveIndices": [
+            0
+          ],
+          "worldMatrix": [
+            1.0000000000000002,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            -1.0000000000000002,
+            0.0,
+            0.0,
+            1.0000000000000002,
+            0.0,
+            0.0,
+            1.7763568394002505e-15,
+            0.0,
+            0.0,
+            1.0
+          ]
+        },
+        {
+          "node": 4969,
+          "name": "C80_SOURCE_CONTEXT__ATTIC_K14_GABLE_CONTEXT",
+          "parentPath": [
+            5391,
+            4969
+          ],
+          "mesh": 1721,
+          "primitiveIndices": [
+            0
+          ],
+          "worldMatrix": [
+            1.0000000000000002,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            -1.0000000000000002,
+            0.0,
+            0.0,
+            1.0000000000000002,
+            0.0,
+            0.0,
+            0.22000000000000006,
+            0.0,
+            0.0,
+            1.0
+          ]
+        },
+        {
+          "node": 4970,
+          "name": "C80_SOURCE_CONTEXT__ATTIC_SHARED_DC_CONTEXT",
+          "parentPath": [
+            5391,
+            4970
+          ],
+          "mesh": 1500,
+          "primitiveIndices": [
+            0
+          ],
+          "worldMatrix": [
+            0.25,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            6.15,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            10.81,
+            0.0,
+            6.375,
+            3.075,
+            -5.405,
+            1.0
+          ]
+        },
+        {
+          "node": 4971,
+          "name": "C80_SOURCE_CONTEXT__ROOF_K14_EXISTING_SURFACES",
+          "parentPath": [
+            5391,
+            4971
+          ],
+          "mesh": 1501,
+          "primitiveIndices": [
+            0
+          ],
+          "worldMatrix": [
+            1.0000000000000002,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            -1.0000000000000002,
+            0.0,
+            0.0,
+            1.0000000000000002,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        },
+        {
+          "node": 5360,
+          "name": "HI09_SOURCE_CONTEXT__HI08_R2_NORTH_HISTORICAL_REMAINDER__D2015_1F_NEW_WALL_WET_CORE_WEST_NORTH_REFERENCE",
+          "parentPath": [
+            5391,
+            5360
+          ],
+          "mesh": 1579,
+          "primitiveIndices": [
+            0
+          ],
+          "worldMatrix": [
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            -2.220446049250314e-16,
+            -1.0000000000000007,
+            0.0,
+            0.0,
+            1.0000000000000007,
+            -2.220446049250314e-16,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        },
+        {
+          "node": 5361,
+          "name": "HI09_SOURCE_CONTEXT__K11_XMIRROR_R989_FLOOR_INTEGRATION_DERIVED_CLONE_2985_PRESENTATION_CLONE_2569_SOURCE136_KPH07_A_MEASURE_GUIDE_derived_30mm_left_margin_visual_proxy",
+          "parentPath": [
+            5391,
+            5361
+          ],
+          "mesh": 860,
+          "primitiveIndices": [
+            0
+          ],
+          "worldMatrix": [
+            -1.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            0.0,
+            6.53,
+            0.0,
+            0.0,
+            1.0
+          ]
+        },
+        {
+          "node": 5362,
+          "name": "HI09_SOURCE_CONTEXT__K11_XMIRROR_R989_FLOOR_INTEGRATION_DERIVED_CLONE_2986_PRESENTATION_CLONE_2570_SOURCE136_KPH07_A_MEASURE_GUIDE_derived_30mm_right_margin_visual_proxy",
+          "parentPath": [
+            5391,
+            5362
+          ],
+          "mesh": 861,
+          "primitiveIndices": [
+            0
+          ],
+          "worldMatrix": [
+            -1.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            0.0,
+            6.53,
+            0.0,
+            0.0,
+            1.0
+          ]
+        },
+        {
+          "node": 5363,
+          "name": "HI09_SOURCE_CONTEXT__K11_XMIRROR_R989_FLOOR_INTEGRATION_DERIVED_CLONE_2987_PRESENTATION_CLONE_2571_SOURCE136_KPH07_A_MEASURE_GUIDE_work_assumption_upper_reference_marker_not_outer_height",
+          "parentPath": [
+            5391,
+            5363
+          ],
+          "mesh": 862,
+          "primitiveIndices": [
+            0
+          ],
+          "worldMatrix": [
+            -1.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            0.0,
+            6.53,
+            0.0,
+            0.0,
+            1.0
+          ]
+        },
+        {
+          "node": 5364,
+          "name": "HI09_SOURCE_CONTEXT__K11_XMIRROR_R989_FLOOR_INTEGRATION_DERIVED_CLONE_2988_PRESENTATION_CLONE_2572_SOURCE136_KPH07_A_MEASURE_GUIDE_measured_clear_opening_width_710mm_marker",
+          "parentPath": [
+            5391,
+            5364
+          ],
+          "mesh": 863,
+          "primitiveIndices": [
+            0
+          ],
+          "worldMatrix": [
+            -1.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            0.0,
+            6.53,
+            0.0,
+            0.0,
+            1.0
+          ]
+        },
+        {
+          "node": 5365,
+          "name": "HI09_SOURCE_CONTEXT__K11_XMIRROR_R989_FLOOR_INTEGRATION_DERIVED_CLONE_2990_PRESENTATION_CLONE_2574_SOURCE136_KPH07_B_MEASURE_GUIDE_derived_30mm_left_margin_visual_proxy",
+          "parentPath": [
+            5391,
+            5365
+          ],
+          "mesh": 864,
+          "primitiveIndices": [
+            0
+          ],
+          "worldMatrix": [
+            -1.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            0.0,
+            6.53,
+            0.0,
+            0.0,
+            1.0
+          ]
+        },
+        {
+          "node": 5366,
+          "name": "HI09_SOURCE_CONTEXT__K11_XMIRROR_R989_FLOOR_INTEGRATION_DERIVED_CLONE_2991_PRESENTATION_CLONE_2575_SOURCE136_KPH07_B_MEASURE_GUIDE_derived_30mm_right_margin_visual_proxy",
+          "parentPath": [
+            5391,
+            5366
+          ],
+          "mesh": 865,
+          "primitiveIndices": [
+            0
+          ],
+          "worldMatrix": [
+            -1.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            0.0,
+            6.53,
+            0.0,
+            0.0,
+            1.0
+          ]
+        },
+        {
+          "node": 5367,
+          "name": "HI09_SOURCE_CONTEXT__K11_XMIRROR_R989_FLOOR_INTEGRATION_DERIVED_CLONE_2992_PRESENTATION_CLONE_2576_SOURCE136_KPH07_B_MEASURE_GUIDE_work_assumption_upper_reference_marker_not_outer_height",
+          "parentPath": [
+            5391,
+            5367
+          ],
+          "mesh": 866,
+          "primitiveIndices": [
+            0
+          ],
+          "worldMatrix": [
+            -1.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            0.0,
+            6.53,
+            0.0,
+            0.0,
+            1.0
+          ]
+        },
+        {
+          "node": 5368,
+          "name": "HI09_SOURCE_CONTEXT__K11_XMIRROR_R989_FLOOR_INTEGRATION_DERIVED_CLONE_2993_PRESENTATION_CLONE_2577_SOURCE136_KPH07_B_MEASURE_GUIDE_measured_clear_opening_width_710mm_marker",
+          "parentPath": [
+            5391,
+            5368
+          ],
+          "mesh": 867,
+          "primitiveIndices": [
+            0
+          ],
+          "worldMatrix": [
+            -1.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            0.0,
+            6.53,
+            0.0,
+            0.0,
+            1.0
+          ]
+        },
+        {
+          "node": 1254,
+          "name": "C74_K17_STEP_01_SOURCE_EXACT_MAIN_COW",
+          "parentPath": [
+            1268,
+            1254
+          ],
+          "mesh": 1388,
+          "primitiveIndices": [
+            0
+          ],
+          "worldMatrix": [
+            0.25000000000000006,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            -0.9500000000000002,
+            0.0,
+            0.0,
+            0.055000000000000014,
+            0.0,
+            0.0,
+            2.3550000000000004,
+            0.15650000000000003,
+            -5.597,
+            1.0
+          ]
+        },
+        {
+          "node": 1255,
+          "name": "C74_K17_STEP_02_SOURCE_EXACT_MAIN_COW",
+          "parentPath": [
+            1268,
+            1255
+          ],
+          "mesh": 1388,
+          "primitiveIndices": [
+            0
+          ],
+          "worldMatrix": [
+            0.25000000000000006,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            -0.9500000000000002,
+            0.0,
+            0.0,
+            0.055000000000000014,
+            0.0,
+            0.0,
+            2.1050000000000004,
+            0.3405,
+            -5.597,
+            1.0
+          ]
+        },
+        {
+          "node": 1256,
+          "name": "C74_K17_STEP_03_SOURCE_EXACT_MAIN_COW",
+          "parentPath": [
+            1268,
+            1256
+          ],
+          "mesh": 1388,
+          "primitiveIndices": [
+            0
+          ],
+          "worldMatrix": [
+            0.25000000000000006,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            -0.9500000000000002,
+            0.0,
+            0.0,
+            0.055000000000000014,
+            0.0,
+            0.0,
+            1.8550000000000004,
+            0.5245000000000002,
+            -5.597,
+            1.0
+          ]
+        },
+        {
+          "node": 1257,
+          "name": "C74_K17_STEP_04_SOURCE_EXACT_MAIN_COW",
+          "parentPath": [
+            1268,
+            1257
+          ],
+          "mesh": 1388,
+          "primitiveIndices": [
+            0
+          ],
+          "worldMatrix": [
+            0.25000000000000006,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            -0.9500000000000002,
+            0.0,
+            0.0,
+            0.055000000000000014,
+            0.0,
+            0.0,
+            1.6050000000000004,
+            0.7085000000000001,
+            -5.597,
+            1.0
+          ]
+        },
+        {
+          "node": 1258,
+          "name": "C74_K17_STEP_05_SOURCE_EXACT_MAIN_COW",
+          "parentPath": [
+            1268,
+            1258
+          ],
+          "mesh": 1388,
+          "primitiveIndices": [
+            0
+          ],
+          "worldMatrix": [
+            0.25000000000000006,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            -0.9500000000000002,
+            0.0,
+            0.0,
+            0.055000000000000014,
+            0.0,
+            0.0,
+            1.3550000000000002,
+            0.8925000000000002,
+            -5.597,
+            1.0
+          ]
+        },
+        {
+          "node": 1259,
+          "name": "C74_K17_STEP_06_SOURCE_EXACT_MAIN_COW",
+          "parentPath": [
+            1268,
+            1259
+          ],
+          "mesh": 1389,
+          "primitiveIndices": [
+            0
+          ],
+          "worldMatrix": [
+            1.0000000000000002,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            -1.0000000000000002,
+            0.0,
+            0.0,
+            1.0000000000000002,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        },
+        {
+          "node": 1260,
+          "name": "C74_K17_STEP_07_SOURCE_EXACT_MAIN_COW",
+          "parentPath": [
+            1268,
+            1260
+          ],
+          "mesh": 1390,
+          "primitiveIndices": [
+            0
+          ],
+          "worldMatrix": [
+            1.0000000000000002,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            -1.0000000000000002,
+            0.0,
+            0.0,
+            1.0000000000000002,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        },
+        {
+          "node": 1261,
+          "name": "C74_K17_STEP_08_SOURCE_EXACT_MAIN_COW",
+          "parentPath": [
+            1268,
+            1261
+          ],
+          "mesh": 1391,
+          "primitiveIndices": [
+            0
+          ],
+          "worldMatrix": [
+            1.0000000000000002,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            -1.0000000000000002,
+            0.0,
+            0.0,
+            1.0000000000000002,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        },
+        {
+          "node": 1262,
+          "name": "C74_K17_STEP_09_SOURCE_EXACT_MAIN_COW",
+          "parentPath": [
+            1268,
+            1262
+          ],
+          "mesh": 1392,
+          "primitiveIndices": [
+            0
+          ],
+          "worldMatrix": [
+            1.0000000000000002,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            -1.0000000000000002,
+            0.0,
+            0.0,
+            1.0000000000000002,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        },
+        {
+          "node": 1263,
+          "name": "C74_K17_STEP_10_SOURCE_EXACT_MAIN_COW",
+          "parentPath": [
+            1268,
+            1263
+          ],
+          "mesh": 1388,
+          "primitiveIndices": [
+            0
+          ],
+          "worldMatrix": [
+            0.25000000000000006,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            -0.9500000000000002,
+            0.0,
+            0.0,
+            0.055000000000000014,
+            0.0,
+            0.0,
+            1.3550000000000002,
+            1.8125000000000002,
+            -6.747000000000002,
+            1.0
+          ]
+        },
+        {
+          "node": 1264,
+          "name": "C74_K17_STEP_11_SOURCE_EXACT_MAIN_COW",
+          "parentPath": [
+            1268,
+            1264
+          ],
+          "mesh": 1388,
+          "primitiveIndices": [
+            0
+          ],
+          "worldMatrix": [
+            0.25000000000000006,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            -0.9500000000000002,
+            0.0,
+            0.0,
+            0.055000000000000014,
+            0.0,
+            0.0,
+            1.6050000000000004,
+            1.9965000000000004,
+            -6.747000000000002,
+            1.0
+          ]
+        },
+        {
+          "node": 1265,
+          "name": "C74_K17_STEP_12_SOURCE_EXACT_MAIN_COW",
+          "parentPath": [
+            1268,
+            1265
+          ],
+          "mesh": 1388,
+          "primitiveIndices": [
+            0
+          ],
+          "worldMatrix": [
+            0.25000000000000006,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            -0.9500000000000002,
+            0.0,
+            0.0,
+            0.055000000000000014,
+            0.0,
+            0.0,
+            1.8550000000000004,
+            2.1805000000000008,
+            -6.747000000000002,
+            1.0
+          ]
+        },
+        {
+          "node": 1266,
+          "name": "C74_K17_STEP_13_SOURCE_EXACT_MAIN_COW",
+          "parentPath": [
+            1268,
+            1266
+          ],
+          "mesh": 1388,
+          "primitiveIndices": [
+            0
+          ],
+          "worldMatrix": [
+            0.25000000000000006,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            -0.9500000000000002,
+            0.0,
+            0.0,
+            0.055000000000000014,
+            0.0,
+            0.0,
+            2.1050000000000004,
+            2.3645000000000005,
+            -6.747000000000002,
+            1.0
+          ]
+        },
+        {
+          "node": 1267,
+          "name": "C74_K17_STEP_14_SOURCE_EXACT_MAIN_COW",
+          "parentPath": [
+            1268,
+            1267
+          ],
+          "mesh": 1388,
+          "primitiveIndices": [
+            0
+          ],
+          "worldMatrix": [
+            0.25000000000000006,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            -0.9500000000000002,
+            0.0,
+            0.0,
+            0.055000000000000014,
+            0.0,
+            0.0,
+            2.3550000000000004,
+            2.5485000000000007,
+            -6.747000000000002,
+            1.0
+          ]
+        },
+        {
+          "node": 5140,
+          "name": "C80R1_SCALGO_SITE_CONTEXT_SCENE0",
+          "parentPath": [
+            5140
+          ],
+          "mesh": null,
+          "primitiveIndices": [],
+          "worldMatrix": [
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        },
+        {
+          "node": 5100,
+          "name": "HI12_SITE_V7_SCALGO_TERRAIN_SCENE0_WORK_TEST",
+          "parentPath": [
+            5140,
+            5100
+          ],
+          "mesh": 1547,
+          "primitiveIndices": [
+            0,
+            1
+          ],
+          "worldMatrix": [
+            1.0000000000000002,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            -1.0000000000000002,
+            0.0,
+            0.0,
+            1.0000000000000002,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        },
+        {
+          "node": 5101,
+          "name": "HI12_SITE_V7_UNDERDECK_SOIL_SCENE0_WORK_TEST",
+          "parentPath": [
+            5140,
+            5101
+          ],
+          "mesh": 1548,
+          "primitiveIndices": [
+            0
+          ],
+          "worldMatrix": [
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        },
+        {
+          "node": 5104,
+          "name": "C80_SOURCE_CONTEXT__SITE_TREE_3821_SCENE0",
+          "parentPath": [
+            5140,
+            5104
+          ],
+          "mesh": null,
+          "primitiveIndices": [],
+          "worldMatrix": [
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            0.0,
+            6.4,
+            -0.009539221744339701,
+            -14.3,
+            1.0
+          ]
+        },
+        {
+          "node": 5107,
+          "name": "C80_SOURCE_CONTEXT__SITE_TREE_3824_SCENE0",
+          "parentPath": [
+            5140,
+            5107
+          ],
+          "mesh": null,
+          "primitiveIndices": [],
+          "worldMatrix": [
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            0.0,
+            6.05,
+            0.5921914088965172,
+            -16.9,
+            1.0
+          ]
+        },
+        {
+          "node": 5113,
+          "name": "C80_SOURCE_CONTEXT__SITE_TREE_3830_SCENE0",
+          "parentPath": [
+            5140,
+            5113
+          ],
+          "mesh": null,
+          "primitiveIndices": [],
+          "worldMatrix": [
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            0.0,
+            21.9,
+            -0.9178824842618015,
+            -18.8,
+            1.0
+          ]
+        },
+        {
+          "node": 5126,
+          "name": "C80_SOURCE_CONTEXT__SITE_TREE_3843_SCENE0",
+          "parentPath": [
+            5140,
+            5126
+          ],
+          "mesh": null,
+          "primitiveIndices": [],
+          "worldMatrix": [
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            0.0,
+            54.5,
+            -1.639529751140085,
+            4.4,
+            1.0
+          ]
+        },
+        {
+          "node": 5139,
+          "name": "C80_SOURCE_CONTEXT__SITE_TREE_3856_SCENE0",
+          "parentPath": [
+            5140,
+            5139
+          ],
+          "mesh": null,
+          "primitiveIndices": [],
+          "worldMatrix": [
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            0.0,
+            28.399999,
+            -0.1365673303958642,
+            -17.2,
+            1.0
+          ]
+        }
+      ]
+    },
+    "1": {
+      "sceneName": "C80R2_HI13_1F_WORK_TEST_HOST_HOLD",
+      "rootNodes": [
+        5406,
+        1509,
+        1539,
+        1562,
+        1663,
+        5407,
+        2145,
+        5063,
+        2147,
+        5064,
+        2149,
+        5065,
+        2151,
+        5066,
+        2220,
+        5408,
+        5181,
+        5224,
+        5231,
+        5233,
+        5237,
+        5254,
+        5271,
+        5273,
+        5275,
+        5277,
+        5279,
+        5281,
+        5283,
+        5285,
+        5357,
+        5358,
+        5359,
+        5409,
+        5410,
+        5411,
+        5733
+      ],
+      "contextRoot": 5408,
+      "contextNodeIds": [
+        4974,
+        4975,
+        4976,
+        4977,
+        4978,
+        4979,
+        4980,
+        5369,
+        5370,
+        5371,
+        5372,
+        5373,
+        5374,
+        5375,
+        5376,
+        5377
+      ],
+      "k17Root": 5254,
+      "k17NodeIds": [
+        5240,
+        5241,
+        5242,
+        5243,
+        5244,
+        5245,
+        5246,
+        5247,
+        5248,
+        5249,
+        5250,
+        5251,
+        5252,
+        5253
+      ],
+      "siteRoots": [
+        5181
+      ],
+      "supersededG1ObjectKeysExpectedAbsent": [],
+      "records": [
+        {
+          "node": 4974,
+          "name": "C80_SOURCE_CONTEXT__1F_G1_GROUND_REFERENCE",
+          "parentPath": [
+            5408,
+            4974
+          ],
+          "mesh": 1485,
+          "primitiveIndices": [
+            0
+          ],
+          "worldMatrix": [
+            1.0000000000000002,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            -1.0000000000000002,
+            0.0,
+            0.0,
+            1.0000000000000002,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        },
+        {
+          "node": 4975,
+          "name": "C80_SOURCE_CONTEXT__1F_K14_GABLE_CONTEXT",
+          "parentPath": [
+            5408,
+            4975
+          ],
+          "mesh": 1490,
+          "primitiveIndices": [
+            0
+          ],
+          "worldMatrix": [
+            1.0000000000000002,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            -1.0000000000000002,
+            0.0,
+            0.0,
+            1.0000000000000002,
+            0.0,
+            0.0,
+            0.22000000000000006,
+            0.0,
+            0.0,
+            1.0
+          ]
+        },
+        {
+          "node": 4976,
+          "name": "C80_SOURCE_CONTEXT__1F_K3_SHARED_DC_CONTEXT",
+          "parentPath": [
+            5408,
+            4976
+          ],
+          "mesh": 1657,
+          "primitiveIndices": [
+            0
+          ],
+          "worldMatrix": [
+            0.25,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            6.15,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            10.81,
+            0.0,
+            6.375,
+            3.075,
+            -5.405,
+            1.0
+          ]
+        },
+        {
+          "node": 4977,
+          "name": "C80_SOURCE_CONTEXT__1F_K3_BALCONY_BOUNDARY_CONTEXT",
+          "parentPath": [
+            5408,
+            4977
+          ],
+          "mesh": 1492,
+          "primitiveIndices": [
+            0
+          ],
+          "worldMatrix": [
+            0.25,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            2.9099999999999997,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.75,
+            0.0,
+            6.375,
+            1.305,
+            0.875,
+            1.0
+          ]
+        },
+        {
+          "node": 4978,
+          "name": "C80_SOURCE_CONTEXT__1F_STORAGE_COPY_ASSUMPTION_3753",
+          "parentPath": [
+            5408,
+            4978
+          ],
+          "mesh": 1496,
+          "primitiveIndices": [
+            0
+          ],
+          "worldMatrix": [
+            1.0000000000000002,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            -1.0000000000000002,
+            0.0,
+            0.0,
+            1.0000000000000002,
+            0.0,
+            0.0,
+            1.7763568394002505e-15,
+            0.0,
+            0.0,
+            1.0
+          ]
+        },
+        {
+          "node": 4979,
+          "name": "C80_SOURCE_CONTEXT__1F_STORAGE_COPY_ASSUMPTION_3754",
+          "parentPath": [
+            5408,
+            4979
+          ],
+          "mesh": 1497,
+          "primitiveIndices": [
+            0
+          ],
+          "worldMatrix": [
+            1.0000000000000002,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            -1.0000000000000002,
+            0.0,
+            0.0,
+            1.0000000000000002,
+            0.0,
+            0.0,
+            1.7763568394002505e-15,
+            0.0,
+            0.0,
+            1.0
+          ]
+        },
+        {
+          "node": 4980,
+          "name": "C80_SOURCE_CONTEXT__1F_STORAGE_COPY_ASSUMPTION_3755",
+          "parentPath": [
+            5408,
+            4980
+          ],
+          "mesh": 1498,
+          "primitiveIndices": [
+            0
+          ],
+          "worldMatrix": [
+            1.0000000000000002,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            -1.0000000000000002,
+            0.0,
+            0.0,
+            1.0000000000000002,
+            0.0,
+            0.0,
+            1.7763568394002505e-15,
+            0.0,
+            0.0,
+            1.0
+          ]
+        },
+        {
+          "node": 5369,
+          "name": "HI09_SOURCE_CONTEXT__HI08_R2_NORTH_HISTORICAL_REMAINDER__D2015_1F_NEW_WALL_WET_CORE_WEST_NORTH_REFERENCE",
+          "parentPath": [
+            5408,
+            5369
+          ],
+          "mesh": 1579,
+          "primitiveIndices": [
+            0
+          ],
+          "worldMatrix": [
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            -2.220446049250314e-16,
+            -1.0000000000000007,
+            0.0,
+            0.0,
+            1.0000000000000007,
+            -2.220446049250314e-16,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        },
+        {
+          "node": 5370,
+          "name": "HI09_SOURCE_CONTEXT__K11_XMIRROR_R989_FLOOR_INTEGRATION_DERIVED_CLONE_2985_PRESENTATION_CLONE_2569_SOURCE136_KPH07_A_MEASURE_GUIDE_derived_30mm_left_margin_visual_proxy",
+          "parentPath": [
+            5408,
+            5370
+          ],
+          "mesh": 860,
+          "primitiveIndices": [
+            0
+          ],
+          "worldMatrix": [
+            -1.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            0.0,
+            6.53,
+            0.0,
+            0.0,
+            1.0
+          ]
+        },
+        {
+          "node": 5371,
+          "name": "HI09_SOURCE_CONTEXT__K11_XMIRROR_R989_FLOOR_INTEGRATION_DERIVED_CLONE_2986_PRESENTATION_CLONE_2570_SOURCE136_KPH07_A_MEASURE_GUIDE_derived_30mm_right_margin_visual_proxy",
+          "parentPath": [
+            5408,
+            5371
+          ],
+          "mesh": 861,
+          "primitiveIndices": [
+            0
+          ],
+          "worldMatrix": [
+            -1.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            0.0,
+            6.53,
+            0.0,
+            0.0,
+            1.0
+          ]
+        },
+        {
+          "node": 5372,
+          "name": "HI09_SOURCE_CONTEXT__K11_XMIRROR_R989_FLOOR_INTEGRATION_DERIVED_CLONE_2987_PRESENTATION_CLONE_2571_SOURCE136_KPH07_A_MEASURE_GUIDE_work_assumption_upper_reference_marker_not_outer_height",
+          "parentPath": [
+            5408,
+            5372
+          ],
+          "mesh": 862,
+          "primitiveIndices": [
+            0
+          ],
+          "worldMatrix": [
+            -1.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            0.0,
+            6.53,
+            0.0,
+            0.0,
+            1.0
+          ]
+        },
+        {
+          "node": 5373,
+          "name": "HI09_SOURCE_CONTEXT__K11_XMIRROR_R989_FLOOR_INTEGRATION_DERIVED_CLONE_2988_PRESENTATION_CLONE_2572_SOURCE136_KPH07_A_MEASURE_GUIDE_measured_clear_opening_width_710mm_marker",
+          "parentPath": [
+            5408,
+            5373
+          ],
+          "mesh": 863,
+          "primitiveIndices": [
+            0
+          ],
+          "worldMatrix": [
+            -1.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            0.0,
+            6.53,
+            0.0,
+            0.0,
+            1.0
+          ]
+        },
+        {
+          "node": 5374,
+          "name": "HI09_SOURCE_CONTEXT__K11_XMIRROR_R989_FLOOR_INTEGRATION_DERIVED_CLONE_2990_PRESENTATION_CLONE_2574_SOURCE136_KPH07_B_MEASURE_GUIDE_derived_30mm_left_margin_visual_proxy",
+          "parentPath": [
+            5408,
+            5374
+          ],
+          "mesh": 864,
+          "primitiveIndices": [
+            0
+          ],
+          "worldMatrix": [
+            -1.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            0.0,
+            6.53,
+            0.0,
+            0.0,
+            1.0
+          ]
+        },
+        {
+          "node": 5375,
+          "name": "HI09_SOURCE_CONTEXT__K11_XMIRROR_R989_FLOOR_INTEGRATION_DERIVED_CLONE_2991_PRESENTATION_CLONE_2575_SOURCE136_KPH07_B_MEASURE_GUIDE_derived_30mm_right_margin_visual_proxy",
+          "parentPath": [
+            5408,
+            5375
+          ],
+          "mesh": 865,
+          "primitiveIndices": [
+            0
+          ],
+          "worldMatrix": [
+            -1.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            0.0,
+            6.53,
+            0.0,
+            0.0,
+            1.0
+          ]
+        },
+        {
+          "node": 5376,
+          "name": "HI09_SOURCE_CONTEXT__K11_XMIRROR_R989_FLOOR_INTEGRATION_DERIVED_CLONE_2992_PRESENTATION_CLONE_2576_SOURCE136_KPH07_B_MEASURE_GUIDE_work_assumption_upper_reference_marker_not_outer_height",
+          "parentPath": [
+            5408,
+            5376
+          ],
+          "mesh": 866,
+          "primitiveIndices": [
+            0
+          ],
+          "worldMatrix": [
+            -1.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            0.0,
+            6.53,
+            0.0,
+            0.0,
+            1.0
+          ]
+        },
+        {
+          "node": 5377,
+          "name": "HI09_SOURCE_CONTEXT__K11_XMIRROR_R989_FLOOR_INTEGRATION_DERIVED_CLONE_2993_PRESENTATION_CLONE_2577_SOURCE136_KPH07_B_MEASURE_GUIDE_measured_clear_opening_width_710mm_marker",
+          "parentPath": [
+            5408,
+            5377
+          ],
+          "mesh": 867,
+          "primitiveIndices": [
+            0
+          ],
+          "worldMatrix": [
+            -1.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            0.0,
+            6.53,
+            0.0,
+            0.0,
+            1.0
+          ]
+        },
+        {
+          "node": 5240,
+          "name": "HI05_K17_14_TREAD_01_SCENE1_SOURCE_DERIVED_WORK_TEST",
+          "parentPath": [
+            5254,
+            5240
+          ],
+          "mesh": 1502,
+          "primitiveIndices": [
+            0
+          ],
+          "worldMatrix": [
+            0.25000000000000006,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            -0.9500000000000002,
+            0.0,
+            0.0,
+            0.055000000000000014,
+            0.0,
+            0.0,
+            2.3550000000000004,
+            0.15650000000000003,
+            -5.597,
+            1.0
+          ]
+        },
+        {
+          "node": 5241,
+          "name": "HI05_K17_14_TREAD_02_SCENE1_SOURCE_DERIVED_WORK_TEST",
+          "parentPath": [
+            5254,
+            5241
+          ],
+          "mesh": 1503,
+          "primitiveIndices": [
+            0
+          ],
+          "worldMatrix": [
+            0.25000000000000006,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            -0.9500000000000002,
+            0.0,
+            0.0,
+            0.055000000000000014,
+            0.0,
+            0.0,
+            2.1050000000000004,
+            0.3405,
+            -5.597,
+            1.0
+          ]
+        },
+        {
+          "node": 5242,
+          "name": "HI05_K17_14_TREAD_03_SCENE1_SOURCE_DERIVED_WORK_TEST",
+          "parentPath": [
+            5254,
+            5242
+          ],
+          "mesh": 1504,
+          "primitiveIndices": [
+            0
+          ],
+          "worldMatrix": [
+            0.25000000000000006,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            -0.9500000000000002,
+            0.0,
+            0.0,
+            0.055000000000000014,
+            0.0,
+            0.0,
+            1.8550000000000004,
+            0.5245000000000002,
+            -5.597,
+            1.0
+          ]
+        },
+        {
+          "node": 5243,
+          "name": "HI05_K17_14_TREAD_04_SCENE1_SOURCE_DERIVED_WORK_TEST",
+          "parentPath": [
+            5254,
+            5243
+          ],
+          "mesh": 1505,
+          "primitiveIndices": [
+            0
+          ],
+          "worldMatrix": [
+            0.25000000000000006,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            -0.9500000000000002,
+            0.0,
+            0.0,
+            0.055000000000000014,
+            0.0,
+            0.0,
+            1.6050000000000004,
+            0.7085000000000001,
+            -5.597,
+            1.0
+          ]
+        },
+        {
+          "node": 5244,
+          "name": "HI05_K17_14_TREAD_05_SCENE1_SOURCE_DERIVED_WORK_TEST",
+          "parentPath": [
+            5254,
+            5244
+          ],
+          "mesh": 1506,
+          "primitiveIndices": [
+            0
+          ],
+          "worldMatrix": [
+            0.25000000000000006,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            -0.9500000000000002,
+            0.0,
+            0.0,
+            0.055000000000000014,
+            0.0,
+            0.0,
+            1.3550000000000002,
+            0.8925000000000002,
+            -5.597,
+            1.0
+          ]
+        },
+        {
+          "node": 5245,
+          "name": "HI05_K17_14_TREAD_06_SCENE1_SOURCE_DERIVED_WORK_TEST",
+          "parentPath": [
+            5254,
+            5245
+          ],
+          "mesh": 1507,
+          "primitiveIndices": [
+            0
+          ],
+          "worldMatrix": [
+            1.0000000000000002,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            -1.0000000000000002,
+            0.0,
+            0.0,
+            1.0000000000000002,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        },
+        {
+          "node": 5246,
+          "name": "HI05_K17_14_TREAD_07_SCENE1_SOURCE_DERIVED_WORK_TEST",
+          "parentPath": [
+            5254,
+            5246
+          ],
+          "mesh": 1508,
+          "primitiveIndices": [
+            0
+          ],
+          "worldMatrix": [
+            1.0000000000000002,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            -1.0000000000000002,
+            0.0,
+            0.0,
+            1.0000000000000002,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        },
+        {
+          "node": 5247,
+          "name": "HI05_K17_14_TREAD_08_SCENE1_SOURCE_DERIVED_WORK_TEST",
+          "parentPath": [
+            5254,
+            5247
+          ],
+          "mesh": 1509,
+          "primitiveIndices": [
+            0
+          ],
+          "worldMatrix": [
+            1.0000000000000002,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            -1.0000000000000002,
+            0.0,
+            0.0,
+            1.0000000000000002,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        },
+        {
+          "node": 5248,
+          "name": "HI05_K17_14_TREAD_09_SCENE1_SOURCE_DERIVED_WORK_TEST",
+          "parentPath": [
+            5254,
+            5248
+          ],
+          "mesh": 1510,
+          "primitiveIndices": [
+            0
+          ],
+          "worldMatrix": [
+            1.0000000000000002,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            -1.0000000000000002,
+            0.0,
+            0.0,
+            1.0000000000000002,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        },
+        {
+          "node": 5249,
+          "name": "HI05_K17_14_TREAD_10_SCENE1_SOURCE_DERIVED_WORK_TEST",
+          "parentPath": [
+            5254,
+            5249
+          ],
+          "mesh": 1511,
+          "primitiveIndices": [
+            0
+          ],
+          "worldMatrix": [
+            0.25000000000000006,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            -0.9500000000000002,
+            0.0,
+            0.0,
+            0.055000000000000014,
+            0.0,
+            0.0,
+            1.3550000000000002,
+            1.8125000000000002,
+            -6.747000000000002,
+            1.0
+          ]
+        },
+        {
+          "node": 5250,
+          "name": "HI05_K17_14_TREAD_11_SCENE1_SOURCE_DERIVED_WORK_TEST",
+          "parentPath": [
+            5254,
+            5250
+          ],
+          "mesh": 1512,
+          "primitiveIndices": [
+            0
+          ],
+          "worldMatrix": [
+            0.25000000000000006,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            -0.9500000000000002,
+            0.0,
+            0.0,
+            0.055000000000000014,
+            0.0,
+            0.0,
+            1.6050000000000004,
+            1.9965000000000004,
+            -6.747000000000002,
+            1.0
+          ]
+        },
+        {
+          "node": 5251,
+          "name": "HI05_K17_14_TREAD_12_SCENE1_SOURCE_DERIVED_WORK_TEST",
+          "parentPath": [
+            5254,
+            5251
+          ],
+          "mesh": 1513,
+          "primitiveIndices": [
+            0
+          ],
+          "worldMatrix": [
+            0.25000000000000006,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            -0.9500000000000002,
+            0.0,
+            0.0,
+            0.055000000000000014,
+            0.0,
+            0.0,
+            1.8550000000000004,
+            2.1805000000000008,
+            -6.747000000000002,
+            1.0
+          ]
+        },
+        {
+          "node": 5252,
+          "name": "HI05_K17_14_TREAD_13_SCENE1_SOURCE_DERIVED_WORK_TEST",
+          "parentPath": [
+            5254,
+            5252
+          ],
+          "mesh": 1514,
+          "primitiveIndices": [
+            0
+          ],
+          "worldMatrix": [
+            0.25000000000000006,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            -0.9500000000000002,
+            0.0,
+            0.0,
+            0.055000000000000014,
+            0.0,
+            0.0,
+            2.1050000000000004,
+            2.3645000000000005,
+            -6.747000000000002,
+            1.0
+          ]
+        },
+        {
+          "node": 5253,
+          "name": "HI05_K17_14_TREAD_14_SCENE1_SOURCE_DERIVED_WORK_TEST",
+          "parentPath": [
+            5254,
+            5253
+          ],
+          "mesh": 1515,
+          "primitiveIndices": [
+            0
+          ],
+          "worldMatrix": [
+            0.25000000000000006,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            -0.9500000000000002,
+            0.0,
+            0.0,
+            0.055000000000000014,
+            0.0,
+            0.0,
+            2.3550000000000004,
+            2.5485000000000007,
+            -6.747000000000002,
+            1.0
+          ]
+        },
+        {
+          "node": 5181,
+          "name": "C80R1_SCALGO_SITE_CONTEXT_SCENE1",
+          "parentPath": [
+            5181
+          ],
+          "mesh": null,
+          "primitiveIndices": [],
+          "worldMatrix": [
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        },
+        {
+          "node": 5141,
+          "name": "HI12_SITE_V7_SCALGO_TERRAIN_SCENE1_WORK_TEST",
+          "parentPath": [
+            5181,
+            5141
+          ],
+          "mesh": 1547,
+          "primitiveIndices": [
+            0,
+            1
+          ],
+          "worldMatrix": [
+            1.0000000000000002,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            -1.0000000000000002,
+            0.0,
+            0.0,
+            1.0000000000000002,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        },
+        {
+          "node": 5142,
+          "name": "HI12_SITE_V7_UNDERDECK_SOIL_SCENE1_WORK_TEST",
+          "parentPath": [
+            5181,
+            5142
+          ],
+          "mesh": 1548,
+          "primitiveIndices": [
+            0
+          ],
+          "worldMatrix": [
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        },
+        {
+          "node": 5145,
+          "name": "C80_SOURCE_CONTEXT__SITE_TREE_3821_SCENE1",
+          "parentPath": [
+            5181,
+            5145
+          ],
+          "mesh": null,
+          "primitiveIndices": [],
+          "worldMatrix": [
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            0.0,
+            6.4,
+            -0.009539221744339701,
+            -14.3,
+            1.0
+          ]
+        },
+        {
+          "node": 5148,
+          "name": "C80_SOURCE_CONTEXT__SITE_TREE_3824_SCENE1",
+          "parentPath": [
+            5181,
+            5148
+          ],
+          "mesh": null,
+          "primitiveIndices": [],
+          "worldMatrix": [
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            0.0,
+            6.05,
+            0.5921914088965172,
+            -16.9,
+            1.0
+          ]
+        },
+        {
+          "node": 5154,
+          "name": "C80_SOURCE_CONTEXT__SITE_TREE_3830_SCENE1",
+          "parentPath": [
+            5181,
+            5154
+          ],
+          "mesh": null,
+          "primitiveIndices": [],
+          "worldMatrix": [
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            0.0,
+            21.9,
+            -0.9178824842618015,
+            -18.8,
+            1.0
+          ]
+        },
+        {
+          "node": 5167,
+          "name": "C80_SOURCE_CONTEXT__SITE_TREE_3843_SCENE1",
+          "parentPath": [
+            5181,
+            5167
+          ],
+          "mesh": null,
+          "primitiveIndices": [],
+          "worldMatrix": [
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            0.0,
+            54.5,
+            -1.639529751140085,
+            4.4,
+            1.0
+          ]
+        },
+        {
+          "node": 5180,
+          "name": "C80_SOURCE_CONTEXT__SITE_TREE_3856_SCENE1",
+          "parentPath": [
+            5181,
+            5180
+          ],
+          "mesh": null,
+          "primitiveIndices": [],
+          "worldMatrix": [
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            0.0,
+            28.399999,
+            -0.1365673303958642,
+            -17.2,
+            1.0
+          ]
+        }
+      ]
+    },
+    "2": {
+      "sceneName": "C80R2_HI13_2F_WORK_TEST_HOST_HOLD",
+      "rootNodes": [
+        5628,
+        2506,
+        2529,
+        2555,
+        2656,
+        2658,
+        2661,
+        5315,
+        5229,
+        5235,
+        5239,
+        5269,
+        5289,
+        5301,
+        5313,
+        5317,
+        5319,
+        5321,
+        5323,
+        5325,
+        5327,
+        5629,
+        5631
+      ],
+      "contextRoot": 5629,
+      "contextNodeIds": [],
+      "k17Root": 5269,
+      "k17NodeIds": [
+        5255,
+        5256,
+        5257,
+        5258,
+        5259,
+        5260,
+        5261,
+        5262,
+        5263,
+        5264,
+        5265,
+        5266,
+        5267,
+        5268
+      ],
+      "siteRoots": [],
+      "supersededG1ObjectKeysExpectedAbsent": [],
+      "records": [
+        {
+          "node": 5255,
+          "name": "HI05_K17_14_TREAD_01_SCENE2_SOURCE_DERIVED_WORK_TEST",
+          "parentPath": [
+            5269,
+            5255
+          ],
+          "mesh": 1502,
+          "primitiveIndices": [
+            0
+          ],
+          "worldMatrix": [
+            0.25000000000000006,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            -0.9500000000000002,
+            0.0,
+            0.0,
+            0.055000000000000014,
+            0.0,
+            0.0,
+            2.3550000000000004,
+            0.15650000000000003,
+            -5.597,
+            1.0
+          ]
+        },
+        {
+          "node": 5256,
+          "name": "HI05_K17_14_TREAD_02_SCENE2_SOURCE_DERIVED_WORK_TEST",
+          "parentPath": [
+            5269,
+            5256
+          ],
+          "mesh": 1503,
+          "primitiveIndices": [
+            0
+          ],
+          "worldMatrix": [
+            0.25000000000000006,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            -0.9500000000000002,
+            0.0,
+            0.0,
+            0.055000000000000014,
+            0.0,
+            0.0,
+            2.1050000000000004,
+            0.3405,
+            -5.597,
+            1.0
+          ]
+        },
+        {
+          "node": 5257,
+          "name": "HI05_K17_14_TREAD_03_SCENE2_SOURCE_DERIVED_WORK_TEST",
+          "parentPath": [
+            5269,
+            5257
+          ],
+          "mesh": 1504,
+          "primitiveIndices": [
+            0
+          ],
+          "worldMatrix": [
+            0.25000000000000006,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            -0.9500000000000002,
+            0.0,
+            0.0,
+            0.055000000000000014,
+            0.0,
+            0.0,
+            1.8550000000000004,
+            0.5245000000000002,
+            -5.597,
+            1.0
+          ]
+        },
+        {
+          "node": 5258,
+          "name": "HI05_K17_14_TREAD_04_SCENE2_SOURCE_DERIVED_WORK_TEST",
+          "parentPath": [
+            5269,
+            5258
+          ],
+          "mesh": 1505,
+          "primitiveIndices": [
+            0
+          ],
+          "worldMatrix": [
+            0.25000000000000006,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            -0.9500000000000002,
+            0.0,
+            0.0,
+            0.055000000000000014,
+            0.0,
+            0.0,
+            1.6050000000000004,
+            0.7085000000000001,
+            -5.597,
+            1.0
+          ]
+        },
+        {
+          "node": 5259,
+          "name": "HI05_K17_14_TREAD_05_SCENE2_SOURCE_DERIVED_WORK_TEST",
+          "parentPath": [
+            5269,
+            5259
+          ],
+          "mesh": 1506,
+          "primitiveIndices": [
+            0
+          ],
+          "worldMatrix": [
+            0.25000000000000006,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            -0.9500000000000002,
+            0.0,
+            0.0,
+            0.055000000000000014,
+            0.0,
+            0.0,
+            1.3550000000000002,
+            0.8925000000000002,
+            -5.597,
+            1.0
+          ]
+        },
+        {
+          "node": 5260,
+          "name": "HI05_K17_14_TREAD_06_SCENE2_SOURCE_DERIVED_WORK_TEST",
+          "parentPath": [
+            5269,
+            5260
+          ],
+          "mesh": 1507,
+          "primitiveIndices": [
+            0
+          ],
+          "worldMatrix": [
+            1.0000000000000002,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            -1.0000000000000002,
+            0.0,
+            0.0,
+            1.0000000000000002,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        },
+        {
+          "node": 5261,
+          "name": "HI05_K17_14_TREAD_07_SCENE2_SOURCE_DERIVED_WORK_TEST",
+          "parentPath": [
+            5269,
+            5261
+          ],
+          "mesh": 1508,
+          "primitiveIndices": [
+            0
+          ],
+          "worldMatrix": [
+            1.0000000000000002,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            -1.0000000000000002,
+            0.0,
+            0.0,
+            1.0000000000000002,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        },
+        {
+          "node": 5262,
+          "name": "HI05_K17_14_TREAD_08_SCENE2_SOURCE_DERIVED_WORK_TEST",
+          "parentPath": [
+            5269,
+            5262
+          ],
+          "mesh": 1509,
+          "primitiveIndices": [
+            0
+          ],
+          "worldMatrix": [
+            1.0000000000000002,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            -1.0000000000000002,
+            0.0,
+            0.0,
+            1.0000000000000002,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        },
+        {
+          "node": 5263,
+          "name": "HI05_K17_14_TREAD_09_SCENE2_SOURCE_DERIVED_WORK_TEST",
+          "parentPath": [
+            5269,
+            5263
+          ],
+          "mesh": 1510,
+          "primitiveIndices": [
+            0
+          ],
+          "worldMatrix": [
+            1.0000000000000002,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            -1.0000000000000002,
+            0.0,
+            0.0,
+            1.0000000000000002,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        },
+        {
+          "node": 5264,
+          "name": "HI05_K17_14_TREAD_10_SCENE2_SOURCE_DERIVED_WORK_TEST",
+          "parentPath": [
+            5269,
+            5264
+          ],
+          "mesh": 1511,
+          "primitiveIndices": [
+            0
+          ],
+          "worldMatrix": [
+            0.25000000000000006,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            -0.9500000000000002,
+            0.0,
+            0.0,
+            0.055000000000000014,
+            0.0,
+            0.0,
+            1.3550000000000002,
+            1.8125000000000002,
+            -6.747000000000002,
+            1.0
+          ]
+        },
+        {
+          "node": 5265,
+          "name": "HI05_K17_14_TREAD_11_SCENE2_SOURCE_DERIVED_WORK_TEST",
+          "parentPath": [
+            5269,
+            5265
+          ],
+          "mesh": 1512,
+          "primitiveIndices": [
+            0
+          ],
+          "worldMatrix": [
+            0.25000000000000006,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            -0.9500000000000002,
+            0.0,
+            0.0,
+            0.055000000000000014,
+            0.0,
+            0.0,
+            1.6050000000000004,
+            1.9965000000000004,
+            -6.747000000000002,
+            1.0
+          ]
+        },
+        {
+          "node": 5266,
+          "name": "HI05_K17_14_TREAD_12_SCENE2_SOURCE_DERIVED_WORK_TEST",
+          "parentPath": [
+            5269,
+            5266
+          ],
+          "mesh": 1513,
+          "primitiveIndices": [
+            0
+          ],
+          "worldMatrix": [
+            0.25000000000000006,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            -0.9500000000000002,
+            0.0,
+            0.0,
+            0.055000000000000014,
+            0.0,
+            0.0,
+            1.8550000000000004,
+            2.1805000000000008,
+            -6.747000000000002,
+            1.0
+          ]
+        },
+        {
+          "node": 5267,
+          "name": "HI05_K17_14_TREAD_13_SCENE2_SOURCE_DERIVED_WORK_TEST",
+          "parentPath": [
+            5269,
+            5267
+          ],
+          "mesh": 1514,
+          "primitiveIndices": [
+            0
+          ],
+          "worldMatrix": [
+            0.25000000000000006,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            -0.9500000000000002,
+            0.0,
+            0.0,
+            0.055000000000000014,
+            0.0,
+            0.0,
+            2.1050000000000004,
+            2.3645000000000005,
+            -6.747000000000002,
+            1.0
+          ]
+        },
+        {
+          "node": 5268,
+          "name": "HI05_K17_14_TREAD_14_SCENE2_SOURCE_DERIVED_WORK_TEST",
+          "parentPath": [
+            5269,
+            5268
+          ],
+          "mesh": 1515,
+          "primitiveIndices": [
+            0
+          ],
+          "worldMatrix": [
+            0.25000000000000006,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            -0.9500000000000002,
+            0.0,
+            0.0,
+            0.055000000000000014,
+            0.0,
+            0.0,
+            2.3550000000000004,
+            2.5485000000000007,
+            -6.747000000000002,
+            1.0
+          ]
+        }
+      ]
+    },
+    "3": {
+      "sceneName": "C80R2_HI13_FULL_CONTEXT_WORK_TEST_HOST_HOLD",
+      "rootNodes": [
+        5618,
+        3695,
+        3698,
+        3706,
+        3736,
+        3737,
+        3738,
+        3739,
+        3740,
+        3741,
+        3742,
+        3743,
+        3744,
+        3745,
+        3746,
+        3747,
+        3748,
+        3749,
+        3750,
+        3751,
+        3752,
+        3753,
+        3754,
+        3755,
+        3756,
+        3806,
+        3818,
+        3911,
+        3937,
+        3940,
+        4141,
+        4160,
+        4165,
+        4169,
+        4652,
+        4671,
+        4690,
+        4709,
+        4712,
+        4717,
+        4718,
+        5096,
+        4720,
+        5097,
+        4722,
+        5098,
+        4724,
+        5099,
+        4822,
+        4831,
+        4840,
+        4851,
+        4862,
+        4866,
+        4870,
+        4885,
+        4953,
+        5222,
+        5225
+      ],
+      "contextRoot": null,
+      "contextNodeIds": [],
+      "k17Root": 4885,
+      "k17NodeIds": [
+        4871,
+        4872,
+        4873,
+        4874,
+        4875,
+        4876,
+        4877,
+        4878,
+        4879,
+        4880,
+        4881,
+        4882,
+        4883,
+        4884
+      ],
+      "siteRoots": [
+        5222
+      ],
+      "supersededG1ObjectKeysExpectedAbsent": [],
+      "records": [
+        {
+          "node": 4871,
+          "name": "C74_K17_STEP_01_SOURCE_EXACT_MAIN_COW",
+          "parentPath": [
+            4885,
+            4871
+          ],
+          "mesh": 1388,
+          "primitiveIndices": [
+            0
+          ],
+          "worldMatrix": [
+            0.25000000000000006,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            -0.9500000000000002,
+            0.0,
+            0.0,
+            0.055000000000000014,
+            0.0,
+            0.0,
+            2.3550000000000004,
+            0.15650000000000003,
+            -5.597,
+            1.0
+          ]
+        },
+        {
+          "node": 4872,
+          "name": "C74_K17_STEP_02_SOURCE_EXACT_MAIN_COW",
+          "parentPath": [
+            4885,
+            4872
+          ],
+          "mesh": 1388,
+          "primitiveIndices": [
+            0
+          ],
+          "worldMatrix": [
+            0.25000000000000006,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            -0.9500000000000002,
+            0.0,
+            0.0,
+            0.055000000000000014,
+            0.0,
+            0.0,
+            2.1050000000000004,
+            0.3405,
+            -5.597,
+            1.0
+          ]
+        },
+        {
+          "node": 4873,
+          "name": "C74_K17_STEP_03_SOURCE_EXACT_MAIN_COW",
+          "parentPath": [
+            4885,
+            4873
+          ],
+          "mesh": 1388,
+          "primitiveIndices": [
+            0
+          ],
+          "worldMatrix": [
+            0.25000000000000006,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            -0.9500000000000002,
+            0.0,
+            0.0,
+            0.055000000000000014,
+            0.0,
+            0.0,
+            1.8550000000000004,
+            0.5245000000000002,
+            -5.597,
+            1.0
+          ]
+        },
+        {
+          "node": 4874,
+          "name": "C74_K17_STEP_04_SOURCE_EXACT_MAIN_COW",
+          "parentPath": [
+            4885,
+            4874
+          ],
+          "mesh": 1388,
+          "primitiveIndices": [
+            0
+          ],
+          "worldMatrix": [
+            0.25000000000000006,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            -0.9500000000000002,
+            0.0,
+            0.0,
+            0.055000000000000014,
+            0.0,
+            0.0,
+            1.6050000000000004,
+            0.7085000000000001,
+            -5.597,
+            1.0
+          ]
+        },
+        {
+          "node": 4875,
+          "name": "C74_K17_STEP_05_SOURCE_EXACT_MAIN_COW",
+          "parentPath": [
+            4885,
+            4875
+          ],
+          "mesh": 1388,
+          "primitiveIndices": [
+            0
+          ],
+          "worldMatrix": [
+            0.25000000000000006,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            -0.9500000000000002,
+            0.0,
+            0.0,
+            0.055000000000000014,
+            0.0,
+            0.0,
+            1.3550000000000002,
+            0.8925000000000002,
+            -5.597,
+            1.0
+          ]
+        },
+        {
+          "node": 4876,
+          "name": "C74_K17_STEP_06_SOURCE_EXACT_MAIN_COW",
+          "parentPath": [
+            4885,
+            4876
+          ],
+          "mesh": 1389,
+          "primitiveIndices": [
+            0
+          ],
+          "worldMatrix": [
+            1.0000000000000002,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            -1.0000000000000002,
+            0.0,
+            0.0,
+            1.0000000000000002,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        },
+        {
+          "node": 4877,
+          "name": "C74_K17_STEP_07_SOURCE_EXACT_MAIN_COW",
+          "parentPath": [
+            4885,
+            4877
+          ],
+          "mesh": 1390,
+          "primitiveIndices": [
+            0
+          ],
+          "worldMatrix": [
+            1.0000000000000002,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            -1.0000000000000002,
+            0.0,
+            0.0,
+            1.0000000000000002,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        },
+        {
+          "node": 4878,
+          "name": "C74_K17_STEP_08_SOURCE_EXACT_MAIN_COW",
+          "parentPath": [
+            4885,
+            4878
+          ],
+          "mesh": 1391,
+          "primitiveIndices": [
+            0
+          ],
+          "worldMatrix": [
+            1.0000000000000002,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            -1.0000000000000002,
+            0.0,
+            0.0,
+            1.0000000000000002,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        },
+        {
+          "node": 4879,
+          "name": "C74_K17_STEP_09_SOURCE_EXACT_MAIN_COW",
+          "parentPath": [
+            4885,
+            4879
+          ],
+          "mesh": 1392,
+          "primitiveIndices": [
+            0
+          ],
+          "worldMatrix": [
+            1.0000000000000002,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            -1.0000000000000002,
+            0.0,
+            0.0,
+            1.0000000000000002,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        },
+        {
+          "node": 4880,
+          "name": "C74_K17_STEP_10_SOURCE_EXACT_MAIN_COW",
+          "parentPath": [
+            4885,
+            4880
+          ],
+          "mesh": 1388,
+          "primitiveIndices": [
+            0
+          ],
+          "worldMatrix": [
+            0.25000000000000006,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            -0.9500000000000002,
+            0.0,
+            0.0,
+            0.055000000000000014,
+            0.0,
+            0.0,
+            1.3550000000000002,
+            1.8125000000000002,
+            -6.747000000000002,
+            1.0
+          ]
+        },
+        {
+          "node": 4881,
+          "name": "C74_K17_STEP_11_SOURCE_EXACT_MAIN_COW",
+          "parentPath": [
+            4885,
+            4881
+          ],
+          "mesh": 1388,
+          "primitiveIndices": [
+            0
+          ],
+          "worldMatrix": [
+            0.25000000000000006,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            -0.9500000000000002,
+            0.0,
+            0.0,
+            0.055000000000000014,
+            0.0,
+            0.0,
+            1.6050000000000004,
+            1.9965000000000004,
+            -6.747000000000002,
+            1.0
+          ]
+        },
+        {
+          "node": 4882,
+          "name": "C74_K17_STEP_12_SOURCE_EXACT_MAIN_COW",
+          "parentPath": [
+            4885,
+            4882
+          ],
+          "mesh": 1388,
+          "primitiveIndices": [
+            0
+          ],
+          "worldMatrix": [
+            0.25000000000000006,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            -0.9500000000000002,
+            0.0,
+            0.0,
+            0.055000000000000014,
+            0.0,
+            0.0,
+            1.8550000000000004,
+            2.1805000000000008,
+            -6.747000000000002,
+            1.0
+          ]
+        },
+        {
+          "node": 4883,
+          "name": "C74_K17_STEP_13_SOURCE_EXACT_MAIN_COW",
+          "parentPath": [
+            4885,
+            4883
+          ],
+          "mesh": 1388,
+          "primitiveIndices": [
+            0
+          ],
+          "worldMatrix": [
+            0.25000000000000006,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            -0.9500000000000002,
+            0.0,
+            0.0,
+            0.055000000000000014,
+            0.0,
+            0.0,
+            2.1050000000000004,
+            2.3645000000000005,
+            -6.747000000000002,
+            1.0
+          ]
+        },
+        {
+          "node": 4884,
+          "name": "C74_K17_STEP_14_SOURCE_EXACT_MAIN_COW",
+          "parentPath": [
+            4885,
+            4884
+          ],
+          "mesh": 1388,
+          "primitiveIndices": [
+            0
+          ],
+          "worldMatrix": [
+            0.25000000000000006,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            -0.9500000000000002,
+            0.0,
+            0.0,
+            0.055000000000000014,
+            0.0,
+            0.0,
+            2.3550000000000004,
+            2.5485000000000007,
+            -6.747000000000002,
+            1.0
+          ]
+        },
+        {
+          "node": 5222,
+          "name": "C80R1_SCALGO_SITE_CONTEXT_SCENE3",
+          "parentPath": [
+            5222
+          ],
+          "mesh": null,
+          "primitiveIndices": [],
+          "worldMatrix": [
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        },
+        {
+          "node": 5182,
+          "name": "C80_SOURCE_CONTEXT__SCALGO_440_SCENE3",
+          "parentPath": [
+            5222,
+            5182
+          ],
+          "mesh": 1547,
+          "primitiveIndices": [
+            0,
+            1
+          ],
+          "worldMatrix": [
+            1.0000000000000002,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            -1.0000000000000002,
+            0.0,
+            0.0,
+            1.0000000000000002,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        },
+        {
+          "node": 5183,
+          "name": "C80_SOURCE_CONTEXT__SCALGO_442_SCENE3",
+          "parentPath": [
+            5222,
+            5183
+          ],
+          "mesh": 1548,
+          "primitiveIndices": [
+            0
+          ],
+          "worldMatrix": [
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        },
+        {
+          "node": 5186,
+          "name": "C80_SOURCE_CONTEXT__SITE_TREE_3821_SCENE3",
+          "parentPath": [
+            5222,
+            5186
+          ],
+          "mesh": null,
+          "primitiveIndices": [],
+          "worldMatrix": [
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            0.0,
+            6.4,
+            -0.009539221744339701,
+            -14.3,
+            1.0
+          ]
+        },
+        {
+          "node": 5189,
+          "name": "C80_SOURCE_CONTEXT__SITE_TREE_3824_SCENE3",
+          "parentPath": [
+            5222,
+            5189
+          ],
+          "mesh": null,
+          "primitiveIndices": [],
+          "worldMatrix": [
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            0.0,
+            6.05,
+            0.5921914088965172,
+            -16.9,
+            1.0
+          ]
+        },
+        {
+          "node": 5195,
+          "name": "C80_SOURCE_CONTEXT__SITE_TREE_3830_SCENE3",
+          "parentPath": [
+            5222,
+            5195
+          ],
+          "mesh": null,
+          "primitiveIndices": [],
+          "worldMatrix": [
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            0.0,
+            21.9,
+            -0.9178824842618015,
+            -18.8,
+            1.0
+          ]
+        },
+        {
+          "node": 5208,
+          "name": "C80_SOURCE_CONTEXT__SITE_TREE_3843_SCENE3",
+          "parentPath": [
+            5222,
+            5208
+          ],
+          "mesh": null,
+          "primitiveIndices": [],
+          "worldMatrix": [
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            0.0,
+            54.5,
+            -1.639529751140085,
+            4.4,
+            1.0
+          ]
+        },
+        {
+          "node": 5221,
+          "name": "C80_SOURCE_CONTEXT__SITE_TREE_3856_SCENE3",
+          "parentPath": [
+            5222,
+            5221
+          ],
+          "mesh": null,
+          "primitiveIndices": [],
+          "worldMatrix": [
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            0.0,
+            28.399999,
+            -0.1365673303958642,
+            -17.2,
+            1.0
+          ]
+        }
+      ]
+    }
+  }
+}

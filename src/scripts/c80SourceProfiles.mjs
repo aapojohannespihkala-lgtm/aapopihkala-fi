@@ -1,17 +1,25 @@
 /** Exact HI12 successor of C80. No filename, name-suffix or inferred-SHA binding. */
 import contract from './privateModelC80Hi12Contract.json' with { type: 'json' };
 import profile from './c80Hi12Profile.json' with { type: 'json' };
+import hi13Contract from './privateModelC80Hi13Contract.json' with { type: 'json' };
+import hi13Profile from './c80Hi13Profile.json' with { type: 'json' };
 
 const freeze = value => {
   if (value && typeof value === 'object') { for (const child of Object.values(value)) freeze(child); Object.freeze(value); }
 };
-freeze(contract); freeze(profile);
+freeze(contract); freeze(profile); freeze(hi13Contract); freeze(hi13Profile);
+const successors = new Map([[contract.glbSha256, { contract, profile }], [hi13Contract.glbSha256, { contract: hi13Contract, profile: hi13Profile }]]);
+export const isC80SuccessorSHA = sha => successors.has(sha);
 export const C80_HI12_SHA = contract.glbSha256;
 const fail = reason => { throw Error('C80_HI12_SOURCE_FAIL_CLOSED: ' + reason); };
 const stable = v => Array.isArray(v) ? v.map(stable) : v && typeof v === 'object'
   ? Object.fromEntries(Object.keys(v).sort().map(k => [k, stable(v[k])])) : v;
 const equal = (a, b) => JSON.stringify(stable(a)) === JSON.stringify(stable(b));
 export const c80Hi12ContractMatches = value => equal(value, contract);
+export const c80SuccessorContractMatches = value => {
+  const source = successors.get(value?.glbSha256);
+  return Boolean(source && equal(value, source.contract));
+};
 const sessions = new WeakMap();
 const fitExcluded = new WeakMap();
 
@@ -27,7 +35,10 @@ export function c80Hi12FitContext(root, object) {
  * GLTFLoader prunes associations between scenes; reconstruct a PRIVATE map from
  * its original cached node objects and canonical mesh primitive geometries.
  */
-export async function prepareC80Hi12Source(gltf) {
+export async function prepareC80Hi12Source(gltf, verifiedSHA = C80_HI12_SHA) {
+  const source = successors.get(verifiedSHA);
+  if (!source) fail('unregistered successor SHA');
+  const profile = source.profile;
   const parser = gltf?.parser, json = parser?.json;
   if (!parser?.getDependency || gltf.scenes?.length !== 4 || json?.scene !== 0)
     fail('original GLTFLoader source required');
@@ -115,15 +126,16 @@ export async function prepareC80Hi12Source(gltf) {
     }
     sourceObjects.push(map);
   }
-  const result = Object.freeze({ profile, sourceObjects, associations });
+  const result = Object.freeze({ profile, sourceObjects, associations, sourceSha256: verifiedSHA });
   sessions.set(gltf, result);
   return result;
 }
 
 export function c80Hi12Source(session) {
-  if (session?.verification?.verified !== true || session.verification.glbSha256 !== C80_HI12_SHA ||
-      session.verification.safeForProduction !== false || !c80Hi12ContractMatches(session.contract)) fail('verified HI12 session required');
+  if (session?.verification?.verified !== true || !isC80SuccessorSHA(session.verification.glbSha256) ||
+      session.verification.safeForProduction !== false || !c80SuccessorContractMatches(session.contract)) fail('verified HI12 session required');
   const binding = sessions.get(session.gltf);
-  if (!binding) fail('runtime source was not bound');
+  if (!binding || binding.sourceSha256 !== session.verification.glbSha256) fail('runtime source was not bound');
   return binding;
 }
+

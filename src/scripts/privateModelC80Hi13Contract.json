@@ -1,0 +1,60 @@
+{
+  "schema": "ylisrinne.d-floor-selector.v1",
+  "model": "D_C80",
+  "sourceDriveFileId": "1reQ5WcQI3jQw9t6YE_cfrs-v67JzqrnN",
+  "sourceZipSha256": "b5f8c80cab86f8ca5789e654b318aaffefebb7ce8c589a0fe453c91b843b7dd4",
+  "glbSha256": "145398c5fee2fccbedb820c4049117795fa1035265696511c854ba617ffe7b71",
+  "glbByteLength": 12060676,
+  "sourceSceneCount": 4,
+  "glbDefaultScene": 0,
+  "viewerWholeScene": 3,
+  "stage": "WORK_TEST",
+  "classification": "SOURCE_ONLY/STAGING_HOLD",
+  "current": false,
+  "asBuilt": false,
+  "canonical": false,
+  "productionReady": false,
+  "canPublish": false,
+  "canApplyToViewer": false,
+  "physicalHost": "HOST_HOLD",
+  "humanReview": "NOT_RUN",
+  "modes": [
+    {
+      "floor": "BOTH",
+      "doorMode": "WORK_TEST",
+      "gable": "NONE",
+      "k9Reference": false,
+      "sceneIndex": 0,
+      "rootCount": 54,
+      "sceneName": "C80R2_HI13_BOTH_WORK_TEST_HOST_HOLD",
+      "rootSha256": "64b706a7265ad1c38a11cf78a4a4accac24049973074997610f56d9a6d47df0f"
+    },
+    {
+      "floor": "1F",
+      "doorMode": "WORK_TEST",
+      "gable": "NONE",
+      "k9Reference": false,
+      "sceneIndex": 1,
+      "rootCount": 37,
+      "sceneName": "C80R2_HI13_1F_WORK_TEST_HOST_HOLD",
+      "rootSha256": "23e91630ca689ff87f7174d14bd22cbcf11dd84819cb693f5543f5754bb4d24f"
+    },
+    {
+      "floor": "2F",
+      "doorMode": "WORK_TEST",
+      "gable": "NONE",
+      "k9Reference": false,
+      "sceneIndex": 2,
+      "rootCount": 23,
+      "sceneName": "C80R2_HI13_2F_WORK_TEST_HOST_HOLD",
+      "rootSha256": "50a9e21469bc515e216ab4662acbac8e6677fe23879808e4c4d429404925a564"
+    }
+  ],
+  "wholeScene": {
+    "sceneIndex": 3,
+    "rootCount": 59,
+    "sceneName": "C80R2_HI13_FULL_CONTEXT_WORK_TEST_HOST_HOLD",
+    "rootSha256": "6fcbded02817684589dc555e21495b40f1cc0d6120791afe47b9d8174ce29f0c"
+  },
+  "sourceZipByteLength": 2064045
+}
