@@ -250,7 +250,7 @@ for (const width of [1280, 390]) test.describe('HI12 WebGL ' + width, () => {
     await page.screenshot({ path: info.outputPath('hi12-' + width + '-source-selection.png') });
     await menu(page, '#preset-menu'); await page.locator('#main-view-floor').selectOption('1F');
     await expect(page.locator('#selection-panel')).toBeHidden();
-    await page.locator('#selection-tool-button').click();
+    await page.locator('#navigate-tool-button').click();
     await expect(page.locator('#selection-tool-button')).toHaveAttribute('aria-pressed', 'false');
     await menu(page, '#preset-menu'); await page.locator('#main-view-area').selectOption('WHOLE');
     await expect(canvas).toHaveAttribute('data-c80-scene-index', '3');
