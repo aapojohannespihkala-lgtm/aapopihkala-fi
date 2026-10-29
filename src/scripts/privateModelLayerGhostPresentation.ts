@@ -59,7 +59,7 @@ export const createViewerLayerGhostPresentation = (root: Object3D) => {
         mesh.raycast = saved.raycast;
       } else {
         // Restore prototype raycast rather than installing an own-property hook.
-        delete (mesh as Mesh & { raycast?: Mesh['raycast'] }).raycast;
+        delete (mesh as unknown as { raycast?: Mesh['raycast'] }).raycast;
       }
       if (saved.outline) {
         mesh.remove(saved.outline);
