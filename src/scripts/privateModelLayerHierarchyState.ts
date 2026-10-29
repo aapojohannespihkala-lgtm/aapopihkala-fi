@@ -379,3 +379,78 @@ export const viewerArchitecturalParentVisibilityState = (
   if (visibleCount === childNodeIds.length) return 'all';
   return 'mixed';
 };
+
+
+/**
+ * WP1: semantic layer presentation modes. These modes describe desired
+ * appearance only. The final scope/storey/source gate remains authoritative.
+ * Legacy boolean controls are deliberately kept unchanged for old viewers.
+ */
+export type ViewerLayerVisibilityMode = 'visible' | 'ghost' | 'hidden';
+export type ViewerLayerParentMode = ViewerLayerVisibilityMode | 'mixed';
+export type ViewerLayerModeMap = Record<ViewerLayerNodeId, ViewerLayerVisibilityMode>;
+
+const viewerLayerOwnVisible = (
+  controls: ViewerLayerControlsState,
+  nodeId: ViewerLayerNodeId,
+): boolean => {
+  if (nodeId === 'roof') return controls.roofVisible;
+  if (nodeId === 'locus') return controls.locusVisible;
+  if (isViewerArchitecturalLayerNodeId(nodeId)) {
+    return controls[architecturalVisibilityKey(nodeId)] as boolean;
+  }
+  return controls[childVisibilityKey(nodeId)];
+};
+
+/** Uses only existing, explicitly supported nodes; never invents sublayers. */
+export const createViewerLayerModeMap = (
+  legacy: ViewerLayerControlsState,
+): ViewerLayerModeMap => {
+  const modes = {} as ViewerLayerModeMap;
+  for (const nodeId of Object.keys(viewerLayerNodeCapabilities) as ViewerLayerNodeId[]) {
+    modes[nodeId] = viewerLayerOwnVisible(legacy, nodeId) ? 'visible' : 'hidden';
+  }
+  return modes;
+};
+
+/** A parent gate cannot expose a hidden child, and does not erase its preference. */
+export const getViewerLayerEffectiveMode = (
+  modes: ViewerLayerModeMap,
+  nodeId: ViewerLayerNodeId,
+): ViewerLayerVisibilityMode => {
+  const ownMode = modes[nodeId];
+  if (ownMode === 'hidden') return 'hidden';
+  const parentId = viewerLayerNodeCapabilities[nodeId].parent;
+  if (parentId === null) return ownMode;
+  const parentMode = getViewerLayerEffectiveMode(modes, parentId);
+  if (parentMode === 'hidden') return 'hidden';
+  return ownMode === 'ghost' || parentMode === 'ghost' ? 'ghost' : 'visible';
+};
+
+/** A parent's mixed state is a read-only aggregation of current children. */
+export const getViewerLayerParentMode = (
+  modes: ViewerLayerModeMap,
+  parentId: ViewerLayerNodeId,
+  children: readonly ViewerLayerNodeId[],
+): ViewerLayerParentMode => {
+  if (modes[parentId] === 'hidden') return 'hidden';
+  if (children.length === 0) return getViewerLayerEffectiveMode(modes, parentId);
+  const first = getViewerLayerEffectiveMode(modes, children[0]);
+  return children.every((child) => getViewerLayerEffectiveMode(modes, child) === first)
+    ? first
+    : 'mixed';
+};
+
+export const setViewerLayerMode = (
+  modes: ViewerLayerModeMap,
+  nodeId: ViewerLayerNodeId,
+  mode: ViewerLayerVisibilityMode,
+): ViewerLayerModeMap => ({ ...modes, [nodeId]: mode });
+
+/** Ordered fail-closed decision: scope > storey > presentation layer. */
+export const resolveScopedViewerLayerMode = (
+  mode: ViewerLayerVisibilityMode,
+  scopeAllowed: boolean,
+  storeyAllowed: boolean,
+): ViewerLayerVisibilityMode =>
+  scopeAllowed && storeyAllowed ? mode : 'hidden';
