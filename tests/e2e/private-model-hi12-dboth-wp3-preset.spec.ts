@@ -32,7 +32,7 @@ test('HI12 whole-building FULL_CONTEXT and D BOTH use distinct exact scenes', as
   await expect(canvas).toHaveAttribute('data-c80-scene-index', String(contract.viewerWholeScene));
   await expect(canvas).toHaveAttribute('data-c80-hi12-preset-scene', String(contract.viewerWholeScene));
   await expect(canvas).toHaveAttribute('data-c80-hi12-preset-role', 'FULL_CONTEXT_WORK_TEST');
-  await expect(page.locator('#private-model-status')).toContainText('FULL_CONTEXT');
+  await expect(page.locator('#viewer-status')).toContainText('FULL_CONTEXT');
 
   await openPresets();
   await page.locator('#d-overview-preset-button').click();
