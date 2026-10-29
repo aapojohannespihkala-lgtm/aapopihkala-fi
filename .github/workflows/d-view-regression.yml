@@ -158,7 +158,8 @@ jobs:
           CF_ACCESS_VIEWER_PROBE_CLIENT_ID: ${{ secrets.CF_ACCESS_VIEWER_PROBE_CLIENT_ID }}
           CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET: ${{ secrets.CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET }}
           D_VIEW_TESTED_COMMIT: ${{ github.event.workflow_run.head_sha || github.sha }}
-        run: npx playwright test tests/e2e/private-model-hi12-integration.spec.ts --workers=1 --trace=off --reporter=line
+          PLAYWRIGHT_JSON_OUTPUT_FILE: test-results/hi12-published-report.json
+        run: npx playwright test tests/e2e/private-model-hi12-integration.spec.ts --workers=1 --trace=off --output=test-results/hi12-published --reporter=line,json
       - name: Encrypt private model screenshots before artifact storage
         if: always()
         env:

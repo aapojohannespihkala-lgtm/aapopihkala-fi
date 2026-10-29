@@ -111,6 +111,9 @@ test('HI12 real runtime rejects wrong K17 paths/world and missing SITE primitive
 const menu = async (page: Page, id: string) => {
   if (await page.locator(id).getAttribute('open') === null) await page.locator(id + ' > summary').click();
 };
+const closeMenu = async (page: Page, id: string) => {
+  if (await page.locator(id).getAttribute('open') !== null) await page.locator(id + ' > summary').click();
+};
 const settle = (page: Page) => page.evaluate(() => new Promise<void>(resolve => {
   let frames = 0; const tick = () => ++frames >= 65 ? resolve() : requestAnimationFrame(tick); requestAnimationFrame(tick);
 }));
@@ -182,13 +185,13 @@ for (const width of [1280, 390]) test.describe('HI12 WebGL ' + width, () => {
     const observations: any[] = [];
     for (const [floor, si] of [['BOTH', 0], ['1F', 1], ['2F', 2]] as const) {
       await menu(page, '#preset-menu'); await page.locator('#main-view-floor').selectOption(floor);
-      await page.locator('#preset-menu > summary').click(); await settle(page);
+      await closeMenu(page, '#preset-menu'); await settle(page);
       await expect(canvas).toHaveAttribute('data-c80-scene-index', String(si));
       await expect(canvas).toHaveAttribute('data-c80-mesh-count', String([1414, 928, 495][si]));
       const pixels = await frame(page); expect(pixels.error).toBe(0); expect(pixels.colored).toBeGreaterThan(100);
       await page.screenshot({ path: info.outputPath('hi12-' + width + '-' + floor + '.png') });
       observations.push({ floor, si, pixels });
-      await page.locator('#layers-button').click();
+      await page.locator('#layers-button').click(); await settle(page);
       const before = await pose(page);
       for (const checked of [false, true]) {
         await page.locator('#c80-source-context-visible').setChecked(checked); await settle(page);
@@ -199,8 +202,8 @@ for (const width of [1280, 390]) test.describe('HI12 WebGL ' + width, () => {
     }
     await menu(page, '#preset-menu'); await page.locator('#main-view-area').selectOption('WHOLE');
     await expect(canvas).toHaveAttribute('data-c80-scene-index', '3');
-    await page.locator('#main-view-area').selectOption('D'); await expect(canvas).toHaveAttribute('data-c80-scene-index', '0');
-    await page.locator('#preset-menu > summary').click(); await settle(page);
+    await menu(page, '#preset-menu'); await page.locator('#main-view-area').selectOption('D'); await expect(canvas).toHaveAttribute('data-c80-scene-index', '0');
+    await closeMenu(page, '#preset-menu'); await settle(page);
     const box = (await canvas.boundingBox())!, x = box.x + box.width * .5, y = box.y + box.height * .5;
     const start = await pose(page);
     if (width === 1280) {
