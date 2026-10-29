@@ -419,7 +419,9 @@ export const getViewerLayerEffectiveMode = (
   nodeId: ViewerLayerNodeId,
 ): ViewerLayerVisibilityMode => {
   const ownMode = modes[nodeId];
-  if (ownMode === 'hidden') return 'hidden';
+  // External/persisted mode maps can be incomplete or malformed at runtime.
+  // Never reinterpret an unrecognized state as visible in a scoped viewer.
+  if (ownMode !== 'visible' && ownMode !== 'ghost') return 'hidden';
   const parentId = viewerLayerNodeCapabilities[nodeId].parent;
   if (parentId === null) return ownMode;
   const parentMode = getViewerLayerEffectiveMode(modes, parentId);
@@ -433,7 +435,7 @@ export const getViewerLayerParentMode = (
   parentId: ViewerLayerNodeId,
   children: readonly ViewerLayerNodeId[],
 ): ViewerLayerParentMode => {
-  if (modes[parentId] === 'hidden') return 'hidden';
+  if (getViewerLayerEffectiveMode(modes, parentId) === 'hidden') return 'hidden';
   if (children.length === 0) return getViewerLayerEffectiveMode(modes, parentId);
   const first = getViewerLayerEffectiveMode(modes, children[0]);
   return children.every((child) => getViewerLayerEffectiveMode(modes, child) === first)
@@ -453,4 +455,6 @@ export const resolveScopedViewerLayerMode = (
   scopeAllowed: boolean,
   storeyAllowed: boolean,
 ): ViewerLayerVisibilityMode =>
-  scopeAllowed && storeyAllowed ? mode : 'hidden';
+  scopeAllowed && storeyAllowed && (mode === 'visible' || mode === 'ghost')
+    ? mode
+    : 'hidden';
