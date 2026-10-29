@@ -188,10 +188,8 @@ export const setViewerCameraView = (
 export const patchViewerLayerControls = (
   current: ViewerInteractionState,
   next: Partial<ViewerLayerControlsState>,
-): ViewerInteractionState => ({
-  ...current,
-  layers: mergeViewerLayerControlsState(current.layers, next),
-});
+): ViewerInteractionState =>
+  patchViewerLayerControlsWithPresets(current, next);
 
 export const patchViewerPresentationStyle = (
   current: ViewerInteractionState,
