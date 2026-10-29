@@ -3,6 +3,12 @@ import {
   createViewerLayerControlsState,
   mergeViewerLayerControlsState,
   type ViewerLayerControlsState,
+  type ViewerLayerNodeId,
+  type ViewerLayerVisibilityMode,
+  type ViewerLayerModeMap,
+  createViewerLayerModeMap,
+  setViewerLayerMode,
+  setViewerLayerNodeVisible,
 } from './privateModelLayerHierarchyState';
 
 export type { ViewerLayerControlsState } from './privateModelLayerHierarchyState';
@@ -53,6 +59,7 @@ export type ViewerInteractionState = {
   cameraView: ViewerCameraView;
   layers: ViewerLayerControlsState;
   presentation: ViewerPresentationStyleState;
+  layerPresetState?: ViewerLayerPresetState;
 };
 
 export type ViewerResearchPresetDefinition = {
@@ -196,3 +203,149 @@ export const patchViewerPresentationStyle = (
     ...next,
   },
 });
+
+
+/** WP1 layer presets do not set camera, unlike legacy research presets. */
+export type ViewerLayerPreset = Exclude<ViewerResearchPreset, 'drainage' | 'electrical'>;
+export type ViewerLayerPresetState = {
+  selected: ViewerLayerPreset;
+  customized: boolean;
+  modes: ViewerLayerModeMap;
+};
+export type ViewerLayerPresetScope = {
+  area: 'WHOLE' | 'D' | 'SITE' | 'INFRA';
+  floor: 'BOTH' | '1F' | '2F';
+};
+export const viewerLayerPresetScopes: Record<ViewerLayerPreset, ViewerLayerPresetScope> = {
+  'whole-building': { area: 'WHOLE', floor: 'BOTH' },
+  'd-apartment': { area: 'D', floor: 'BOTH' },
+  'd-1f': { area: 'D', floor: '1F' },
+  'd-2f': { area: 'D', floor: '2F' },
+  site: { area: 'SITE', floor: 'BOTH' },
+  infra: { area: 'INFRA', floor: 'BOTH' },
+};
+
+const legacyToLayerPreset = (preset: ViewerResearchPreset): ViewerLayerPreset =>
+  preset === 'drainage' || preset === 'electrical' ? 'whole-building' : preset;
+
+const defaultLayerModesForPreset = (preset: ViewerLayerPreset): ViewerLayerModeMap => {
+  const modes = createViewerLayerModeMap(viewerResearchPresetDefinitions[preset].layers);
+  // Desired C80 D 2F roof presentation. The existing roofVisible=false
+  // remains a safe legacy fallback until WP2/WP3 can render/source-gate ghost.
+  if (preset === 'd-2f') modes.roof = 'ghost';
+  return modes;
+};
+
+const hasLayerPresetCustomization = (
+  preset: ViewerLayerPreset,
+  modes: ViewerLayerModeMap,
+  layers: ViewerLayerControlsState,
+): boolean => {
+  const defaults = defaultLayerModesForPreset(preset);
+  return (
+    (Object.keys(defaults) as ViewerLayerNodeId[]).some(
+      (id) => modes[id] !== defaults[id],
+    ) ||
+    layers.roofOpacity !== viewerResearchPresetDefinitions[preset].layers.roofOpacity
+  );
+};
+
+const createLayerPresetState = (preset: ViewerLayerPreset): ViewerLayerPresetState => ({
+  selected: preset,
+  customized: false,
+  modes: defaultLayerModesForPreset(preset),
+});
+
+/**
+ * Preset changes only content/presentation state. It never switches camera.
+ * Existing research-preset actions retain their legacy camera behavior.
+ */
+export const applyViewerLayerPreset = (
+  current: ViewerInteractionState,
+  preset: ViewerLayerPreset,
+): ViewerInteractionState => ({
+  ...current,
+  researchPreset: preset,
+  layers: { ...viewerResearchPresetDefinitions[preset].layers },
+  layerPresetState: createLayerPresetState(preset),
+});
+
+export const resetViewerLayerPresetToDefaults = (
+  current: ViewerInteractionState,
+): ViewerInteractionState =>
+  applyViewerLayerPreset(
+    current,
+    current.layerPresetState?.selected ?? legacyToLayerPreset(current.researchPreset),
+  );
+
+/** An explicit mode updates the legacy boolean where safe, not scene membership. */
+export const setViewerInteractionLayerMode = (
+  current: ViewerInteractionState,
+  nodeId: ViewerLayerNodeId,
+  mode: ViewerLayerVisibilityMode,
+): ViewerInteractionState => {
+  const active = current.layerPresetState ??
+    createLayerPresetState(legacyToLayerPreset(current.researchPreset));
+  const modes = setViewerLayerMode(active.modes, nodeId, mode);
+  // Keep the current roof fallback when requesting ghost. This avoids making
+  // a previously hidden roof opaque before the rendering adapter exists.
+  const layers = nodeId === 'roof' && mode === 'ghost'
+    ? current.layers
+    : setViewerLayerNodeVisible(current.layers, nodeId, mode !== 'hidden');
+  return {
+    ...current,
+    layers,
+    layerPresetState: {
+      selected: active.selected,
+      customized: hasLayerPresetCustomization(active.selected, modes, layers),
+      modes,
+    },
+  };
+};
+
+/** Legacy checkbox edits must override stale ghost intentions deterministically. */
+const legacyVisibilityFields = {
+  roof: 'roofVisible',
+  locus: 'locusVisible',
+  'locus-water': 'locusWaterVisible',
+  'locus-wastewater': 'locusWastewaterVisible',
+  'p161-kvv-2017': 'p161KvvVisible',
+  'p161-iv-1974-plan': 'p161IvPlanVisible',
+  'p161-iv-1974-section': 'p161IvSectionVisible',
+  architecture: 'architectureVisible',
+  'architecture-walls': 'architectureWallsVisible',
+  'architecture-walls-exterior': 'architectureExteriorWallsVisible',
+  'architecture-walls-party': 'architecturePartyWallsVisible',
+  'architecture-walls-interior': 'architectureInteriorWallsVisible',
+  'architecture-doors': 'architectureDoorsVisible',
+  'architecture-windows': 'architectureWindowsVisible',
+  'architecture-review-helpers': 'architectureReviewHelpersVisible',
+  'architecture-floors': 'architectureFloorsVisible',
+  'architecture-ceilings': 'architectureCeilingsVisible',
+  'architecture-fixtures': 'architectureFixturesVisible',
+  'architecture-other': 'architectureOtherVisible',
+} as const satisfies Record<ViewerLayerNodeId, keyof ViewerLayerControlsState>;
+
+export const patchViewerLayerControlsWithPresets = (
+  current: ViewerInteractionState,
+  next: Partial<ViewerLayerControlsState>,
+): ViewerInteractionState => {
+  const merged = mergeViewerLayerControlsState(current.layers, next);
+  const active = current.layerPresetState;
+  if (!active) return { ...current, layers: merged };
+  const modes = { ...active.modes };
+  for (const id of Object.keys(legacyVisibilityFields) as ViewerLayerNodeId[]) {
+    const key = legacyVisibilityFields[id];
+    const flag = next[key];
+    if (typeof flag === 'boolean') modes[id] = flag ? 'visible' : 'hidden';
+  }
+  return {
+    ...current,
+    layers: merged,
+    layerPresetState: {
+      selected: active.selected,
+      customized: hasLayerPresetCustomization(active.selected, modes, merged),
+      modes,
+    },
+  };
+};
