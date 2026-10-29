@@ -271,7 +271,7 @@ for (const width of [1280, 390]) test.describe('HI12 WebGL ' + width, () => {
       await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] }); await settle(page);
       const orbit = await pose(page);
       expect(distance(start.direction, orbit.direction)).toBeGreaterThan(.001);
-      const touch = (points: Array<{ x: number; y: number }>, type: string) => cdp.send('Input.dispatchTouchEvent', {
+      const touch = (points: Array<{ x: number; y: number }>, type: 'touchStart' | 'touchMove' | 'touchEnd') => cdp.send('Input.dispatchTouchEvent', {
         type, touchPoints: points.map((point, id) => ({ ...point, id })) });
       await touch([{ x: x - 25, y }, { x: x + 25, y }], 'touchStart');
       for (let n = 1; n <= 10; n++) await touch([{ x: x - 25 + n, y: y + n }, { x: x + 25 + n, y: y + n }], 'touchMove');
