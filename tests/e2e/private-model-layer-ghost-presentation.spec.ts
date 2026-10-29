@@ -152,3 +152,41 @@ test('originally hidden root is never shown by a preset', () => {
   adapter.reset();
   expect(root.visible).toBe(false);
 });
+
+
+test('ghost selection callback failure cannot reveal hidden scoped root', () => {
+  const root = new Group();
+  const source = new MeshBasicMaterial();
+  const mesh = makeMesh(source);
+  root.add(mesh);
+  const adapter = createViewerLayerGhostPresentation(root);
+  adapter.apply('hidden');
+  expect(root.visible).toBe(false);
+  expect(() => adapter.apply('ghost', { isSelected: () => { throw new Error('selection unavailable'); } }))
+    .toThrow('selection unavailable');
+  expect(root.visible).toBe(false);
+  expect(mesh.material).toBe(source);
+  expect(mesh.children).toHaveLength(0);
+  expect(adapter.apply('visible', { scopeAllowed: true })).toBe('visible');
+  adapter.dispose();
+});
+
+test('late ghost material clone failure rolls back earlier meshes and hides root', () => {
+  const firstSource = new MeshBasicMaterial({ color: 0x112233 });
+  const badSource = new MeshBasicMaterial({ color: 0x445566 });
+  badSource.clone = () => { throw new Error('material clone failed'); };
+  const first = makeMesh(firstSource);
+  const second = makeMesh(badSource);
+  const firstRaycast = first.raycast;
+  const root = new Group();
+  root.add(first, second);
+  const adapter = createViewerLayerGhostPresentation(root);
+  expect(() => adapter.apply('ghost')).toThrow('material clone failed');
+  expect(root.visible).toBe(false);
+  expect(first.material).toBe(firstSource);
+  expect(second.material).toBe(badSource);
+  expect(first.raycast).toBe(firstRaycast);
+  expect(first.children).toHaveLength(0);
+  expect(adapter.apply('hidden')).toBe('hidden');
+  adapter.dispose();
+});
