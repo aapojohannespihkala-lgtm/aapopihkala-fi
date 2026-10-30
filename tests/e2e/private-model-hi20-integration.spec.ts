@@ -5,6 +5,8 @@ import { GLTFLoader } from '../../src/scripts/threeRuntime';
 import { prepareC70Preview, createC70MainViewBridge } from '../../src/scripts/c70_main_view_bridge.mjs';
 import { verifyC70GLB } from '../../src/scripts/d_floor_router.mjs';
 import contract from '../../src/scripts/privateModelC80Hi20Contract.json' with { type: 'json' };
+import hi19Contract from '../../src/scripts/privateModelC80Hi19Contract.json' with { type: 'json' };
+import hi18Contract from '../../src/scripts/privateModelC80Hi18Contract.json' with { type: 'json' };
 import { getPrivateWorkTestCandidateById } from '../../worker/privateWorkTest';
 
 const ID = 'ylisrinne-d-c80-hi20-work-test-20261030';
@@ -42,6 +44,9 @@ test('HI20 immutable receiver contract and Worker allowlist', () => {
 // The router's exact 26-scene map is validated before byte-length/SHA parsing.
 test('HI20 26-scene floor route cannot be rejected as a legacy C80 floor map', async () => {
   await expect(verifyC70GLB(new Uint8Array(0), contract)).rejects.toThrow('GLB length changed');
+  // Existing verified HI18/HI19 maps must retain their own accepted scene counts.
+  await expect(verifyC70GLB(new Uint8Array(0), hi19Contract)).rejects.toThrow('GLB length changed');
+  await expect(verifyC70GLB(new Uint8Array(0), hi18Contract)).rejects.toThrow('GLB length changed');
   expect(contract.modes.map((x: any) => [x.floor, x.sceneIndex])).toEqual([
     ['BOTH',25], ['1F',20], ['2F',24],
   ]);
