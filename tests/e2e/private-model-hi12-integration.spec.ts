@@ -78,7 +78,12 @@ test('actual HI12 cached nodes, primitives, native links and reversible K17/SITE
     expect(objects.get(expected.k17Root).children).toHaveLength(14);
     for (const record of expected.records) expect(associations.get(objects.get(record.node))!.nodes).toBe(record.node);
     if (expected.siteRoots.length) {
-      const site = objects.get(expected.siteRoots[0]); expect(site.children).toHaveLength(isHi14 ? 8 : 7);
+      const site = objects.get(expected.siteRoots[0]);
+      // HI14 rebuilds exact parser-JSON source edges; the old in-memory 8-child
+      // assumption included a GLTFLoader-reparented child absent from this scene.
+      // Verify the immutable, SHA-bound source topology instead of a guessed count.
+      const sourceChildren = gltf.parser.json.nodes[expected.siteRoots[0]].children ?? [];
+      expect(site.children).toHaveLength(isHi14 ? sourceChildren.length : 7);
       expect(site.children[0].isGroup).toBe(true); expect(site.children[0].children).toHaveLength(2);
       expect(site.children[0].children.map((o: any) => associations.get(o)!.primitives)).toEqual([0, 1]);
     }
@@ -106,11 +111,20 @@ test('actual HI12 cached nodes, primitives, native links and reversible K17/SITE
 test('HI12 real runtime rejects wrong K17 paths/world and missing SITE primitive', async () => {
   test.skip(production || !sourcePath, 'Trusted-source negative runtime gate.');
   for (const mutate of [
-    (g: any, b: any) => b.sourceObjects[1].get(5240).position.x += .01,
-    (g: any, b: any) => b.sourceObjects[0].get(5100).remove(b.sourceObjects[0].get(5100).children[1]),
-    (g: any, b: any) => g.scenes[1].add(b.sourceObjects[1].get(5240)),
+    async (g: any, b: any) => {
+      // HI14 source scenes are rehydrated from immutable parser-cached nodes.
+      // Tampering with a disposable scene clone is repaired by design, so
+      // exercise the canonical input that the fail-closed validator must reject.
+      const node = isHi14 ? await g.parser.getDependency('node', 5240) : b.sourceObjects[1].get(5240);
+      node.position.x += .01;
+    },
+    async (g: any, b: any) => {
+      const node = isHi14 ? await g.parser.getDependency('node', 5100) : b.sourceObjects[0].get(5100);
+      node.remove(node.children[1]);
+    },
+    async (g: any, b: any) => g.scenes[1].add(b.sourceObjects[1].get(5240)),
   ]) {
-    const session = await prepare(); mutate(session.gltf, c80Hi12Source(session));
+    const session = await prepare(); await mutate(session.gltf, c80Hi12Source(session));
     await expect(prepareC80Hi12Source(session.gltf, SHA)).rejects.toThrow();
   }
   const b = source(); b[b.length - 1] ^= 1;
