@@ -3445,7 +3445,18 @@ const D_C80_HI14_WORK_TEST_CANDIDATE = {
   expectedSha256: '73a13e653b3f28679c3e6aae42a60432a84b30204e1a94844a0cbb59114a959c',
 } as const satisfies PrivateWorkTestCandidate;
 
+// HI18 is a separate exact-source 20-scene opt-in, never a CURRENT replacement.
+const D_C80_HI18_WORK_TEST_CANDIDATE = {
+  id: 'ylisrinne-d-c80-hi18-work-test-20261030',
+  label: 'D C80R2 HI18 WC5 WORK_TEST / SOURCE_ONLY / HOST_HOLD - ei nykytila',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/ylisrinne-d-c80-hi18-work-test-20261030.glb`,
+  objectKey: 'work-test/ylisrinne-d-c80-hi18-work-test-20261030.glb',
+  expectedSize: 13969984,
+  expectedSha256: 'b4f409bbd9094f86bc7b1ef766ca230f092ed36bcd31902272edb0e3117f4b19',
+} as const satisfies PrivateWorkTestCandidate;
+
 const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
+  D_C80_HI18_WORK_TEST_CANDIDATE,
   D_C80_HI14_WORK_TEST_CANDIDATE,
   D_C80_HI13_WORK_TEST_CANDIDATE,
   D_C80_HI12_WORK_TEST_CANDIDATE,
