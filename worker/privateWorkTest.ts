@@ -3455,7 +3455,18 @@ const D_C80_HI18_WORK_TEST_CANDIDATE = {
   expectedSha256: 'b4f409bbd9094f86bc7b1ef766ca230f092ed36bcd31902272edb0e3117f4b19',
 } as const satisfies PrivateWorkTestCandidate;
 
+// HI19 exact Drive source with 24 scenes. Never CURRENT; always protected WORK_TEST.
+const D_C80_HI19_WORK_TEST_CANDIDATE = {
+  id: 'ylisrinne-d-c80-hi19-work-test-20261030',
+  label: 'D C80R2 HI19 C34 / ROOF GHOST / P6 WORK_TEST HOST_HOLD - ei nykytila',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/ylisrinne-d-c80-hi19-work-test-20261030.glb`,
+  objectKey: 'work-test/ylisrinne-d-c80-hi19-work-test-20261030.glb',
+  expectedSize: 14036016,
+  expectedSha256: 'b4b31503e64f1228d723f27fe8fe5f68beb0d9d8e6af8c7e64ec06647202882d',
+} as const satisfies PrivateWorkTestCandidate;
+
 const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
+  D_C80_HI19_WORK_TEST_CANDIDATE,
   D_C80_HI18_WORK_TEST_CANDIDATE,
   D_C80_HI14_WORK_TEST_CANDIDATE,
   D_C80_HI13_WORK_TEST_CANDIDATE,
