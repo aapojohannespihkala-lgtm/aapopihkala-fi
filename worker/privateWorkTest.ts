@@ -3465,7 +3465,18 @@ const D_C80_HI19_WORK_TEST_CANDIDATE = {
   expectedSha256: 'b4b31503e64f1228d723f27fe8fe5f68beb0d9d8e6af8c7e64ec06647202882d',
 } as const satisfies PrivateWorkTestCandidate;
 
+// Exact HI20 source, independent protected 26-scene opt-in. Never CURRENT.
+const D_C80_HI20_WORK_TEST_CANDIDATE = {
+  id: 'ylisrinne-d-c80-hi20-work-test-20261030',
+  label: 'D C80R2 HI20 C17/C21/C23 WORK_TEST HOST_HOLD - ei nykytila',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/ylisrinne-d-c80-hi20-work-test-20261030.glb`,
+  objectKey: 'work-test/ylisrinne-d-c80-hi20-work-test-20261030.glb',
+  expectedSize: 14057136,
+  expectedSha256: '8ddb398d9eb981d92ed444afcfad93ceb2224b1ce9898599553ede9b4136b87d',
+} as const satisfies PrivateWorkTestCandidate;
+
 const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
+  D_C80_HI20_WORK_TEST_CANDIDATE,
   D_C80_HI19_WORK_TEST_CANDIDATE,
   D_C80_HI18_WORK_TEST_CANDIDATE,
   D_C80_HI14_WORK_TEST_CANDIDATE,
