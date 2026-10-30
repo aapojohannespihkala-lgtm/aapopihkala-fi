@@ -61,7 +61,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        mode: [source, c70-production, c80-production, hi12-production, hi13-source, hi13-production]
+        mode: [source, c70-production, c80-production, hi12-production, hi13-source, hi13-production, hi14-source, hi14-production]
     name: Exact WebGL / ${{ matrix.mode }}
     # Match the build job's supported, stable browser dependency environment.
     runs-on: ubuntu-24.04
@@ -105,6 +105,9 @@ jobs:
             ('c70', '1hHD39DHJCE8mR-R-RW16Za00dAfEvYI9', 1281693,
              '4e901bd4cdcaf4e2258af543f86accb238aeab0b6031a69a1910c7d1cf4a5be2',
              '75b586aaf774bce34cf1dceba5d19e6ae41c112b8717f4cce5ce64458fddc491'),
+            ('hi14', '1i3ZXB3oZ0cMusvlZJshU4xnak03kXGCd', 1466840,
+             '0bccd595f0dcb6bc91fda21050e409442663f4aff12fe99ca0a4a70d448f9a66',
+             '73a13e653b3f28679c3e6aae42a60432a84b30204e1a94844a0cbb59114a959c'),
             ('hi13', '1reQ5WcQI3jQw9t6YE_cfrs-v67JzqrnN', 2064045,
              'b5f8c80cab86f8ca5789e654b318aaffefebb7ce8c589a0fe453c91b843b7dd4',
              '145398c5fee2fccbedb820c4049117795fa1035265696511c854ba617ffe7b71'),
@@ -124,7 +127,7 @@ jobs:
             assert len(data) == size and hashlib.sha256(data).hexdigest() == zip_sha, 'Source ZIP mismatch: ' + name
             with zipfile.ZipFile(io.BytesIO(data)) as archive:
               assert archive.testzip() is None, 'ZIP CRC: ' + name
-              assert archive.getinfo('model.glb').file_size <= (12060676 if name == 'hi13' else 11999999)
+              assert archive.getinfo('model.glb').file_size <= (12116996 if name == 'hi14' else 12060676 if name == 'hi13' else 11999999)
               glb = archive.read('model.glb')
             assert hashlib.sha256(glb).hexdigest() == glb_sha, 'GLB source mismatch: ' + name
             pathlib.Path(os.environ['RUNNER_TEMP'], name + '.glb').write_bytes(glb)
@@ -199,6 +202,29 @@ jobs:
           D_VIEW_TESTED_COMMIT: ${{ github.event.workflow_run.head_sha || github.sha }}
           PLAYWRIGHT_JSON_OUTPUT_FILE: test-results/hi13-published-report.json
         run: npx playwright test tests/e2e/private-model-hi12-integration.spec.ts --workers=1 --trace=off --output=test-results/hi13-published --reporter=line,json
+      - name: HI14 exact successor source and browser lifecycle
+        if: matrix.mode == 'hi14-source'
+        env:
+          YLIS_C80_SUCCESSOR: HI14
+          YLIS_HI14_GLB: ${{ runner.temp }}/hi14.glb
+          YLIS_C70_GLB: ${{ runner.temp }}/c70.glb
+          YLIS_C80_GLB: ${{ runner.temp }}/c80.glb
+          YLIS_REQUIRE_REAL: '1'
+          D_VIEW_TESTED_COMMIT: ${{ github.event.workflow_run.head_sha || github.sha }}
+          PLAYWRIGHT_JSON_OUTPUT_FILE: test-results/hi14-source-report.json
+        run: npx playwright test tests/e2e/private-model-hi12-integration.spec.ts --workers=1 --trace=off --output=test-results/hi14-source --reporter=line,json
+      - name: Published protected HI14, desktop and mobile
+        if: matrix.mode == 'hi14-production'
+        env:
+          YLIS_C80_SUCCESSOR: HI14
+          YLIS_HI14_GLB: ${{ runner.temp }}/hi14.glb
+          YLIS_HI14_PRODUCTION: '1'
+          YLIS_REQUIRE_REAL: '1'
+          CF_ACCESS_VIEWER_PROBE_CLIENT_ID: ${{ secrets.CF_ACCESS_VIEWER_PROBE_CLIENT_ID }}
+          CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET: ${{ secrets.CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET }}
+          D_VIEW_TESTED_COMMIT: ${{ github.event.workflow_run.head_sha || github.sha }}
+          PLAYWRIGHT_JSON_OUTPUT_FILE: test-results/hi14-published-report.json
+        run: npx playwright test tests/e2e/private-model-hi12-integration.spec.ts --workers=1 --trace=off --output=test-results/hi14-published --reporter=line,json
       - name: Encrypt private model screenshots before artifact storage
         if: always()
         env:
