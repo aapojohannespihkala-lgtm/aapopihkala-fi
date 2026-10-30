@@ -1,0 +1,47 @@
+{
+  "schema": "ylisrinne.c80-receiver.hi18-incremental.v1",
+  "candidate": "ylisrinne-d-c80-hi18-work-test-20261030",
+  "handoff": "Drive:1_TI-uh22pyJzB8UW806BaPiFFUXsPl-m",
+  "baselineProfile": "c80Hi14Profile.json",
+  "baselineScenes": [
+    0,
+    1,
+    2,
+    3
+  ],
+  "baselineGLBSHA256": "73a13e653b3f28679c3e6aae42a60432a84b30204e1a94844a0cbb59114a959c",
+  "stage": "WORK_TEST/SOURCE_ONLY/HOST_HOLD/NONCURRENT",
+  "physicalHost": "HOST_HOLD",
+  "current": false,
+  "asBuilt": false,
+  "canonical": false,
+  "humanReview": "NOT_RUN",
+  "scenePrimitiveCounts": {
+    "12": 985,
+    "17": 533,
+    "18": 1509,
+    "19": 36
+  },
+  "scenes": {
+    "12": {
+      "sceneName": "HI17_C80-033_035_028_029_1F_WORK_TEST_HOST_HOLD",
+      "rootCount": 42,
+      "rootSha256": "0ffca40c164bdb2825c6a8c32515ff12f488e9d22df441c7fbda87e00d7da08e"
+    },
+    "17": {
+      "sceneName": "HI18_C80_018_2F_FULL_C80_020_WC5_WORK_TEST_HOST_HOLD",
+      "rootCount": 34,
+      "rootSha256": "b339f7d5f2f1fba2d9a0eef23d58777ca9bc5d972f1386cdffbbb146b4b89a0b"
+    },
+    "18": {
+      "sceneName": "HI18_C80_018_BOTH_FULL_C80_020_033_035_028_029_WC5_WORK_TEST_HOST_HOLD",
+      "rootCount": 70,
+      "rootSha256": "628e940adec30efabdcc8e7ffd75ee0b3a8c29197f0664f4897ab46d355bd871"
+    },
+    "19": {
+      "sceneName": "HI18_C80_018_WC_ONLY_2015_REFERENCE_WORK_TEST_HOST_HOLD",
+      "rootCount": 10,
+      "rootSha256": "d8a5dd2bec3a1f6aba67f9dc048fe1087a6e25c36a4b3ba8aa83ab212422bbf0"
+    }
+  }
+}
