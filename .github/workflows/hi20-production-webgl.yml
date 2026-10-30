@@ -1,0 +1,110 @@
+name: HI20 protected production WebGL proof
+
+# Main-only, one-time exact PR source trigger. The source SHA is immutable, and
+# the workflow_run job reads this workflow from main, never an untrusted PR branch.
+on:
+  workflow_run:
+    workflows: ["Build check"]
+    types: [completed]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: hi20-exact-production-webgl-proof
+  cancel-in-progress: false
+
+jobs:
+  chromium-hi20:
+    if: >-
+      github.repository == 'aapojohannespihkala-lgtm/aapopihkala-fi' &&
+      github.ref == 'refs/heads/main' &&
+      ((github.event_name == 'workflow_run' &&
+        github.event.workflow_run.event == 'pull_request' &&
+        github.event.workflow_run.conclusion == 'success' &&
+        github.event.workflow_run.head_sha == 'a381ecd7a83084896d38ada11e59dc89c20db2cf') ||
+       (github.event_name == 'workflow_dispatch' &&
+        github.actor == 'aapojohannespihkala-lgtm'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      CI: '1'
+      YLIS_HI20_PRODUCTION: '1'
+      YLIS_REQUIRE_REAL: '1'
+      CF_ACCESS_VIEWER_PROBE_CLIENT_ID: ${{ secrets.CF_ACCESS_VIEWER_PROBE_CLIENT_ID }}
+      CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET: ${{ secrets.CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET }}
+    steps:
+      - name: Checkout trusted exact main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          persist-credentials: false
+
+      - name: Verify canonical HI20 source and secrets are configured
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$CF_ACCESS_VIEWER_PROBE_CLIENT_ID"
+          test -n "$CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET"
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          c = json.loads(Path("src/scripts/privateModelC80Hi20Contract.json").read_text())
+          assert c["glbSha256"] == "8ddb398d9eb981d92ed444afcfad93ceb2224b1ce9898599553ede9b4136b87d"
+          assert c["sourceDriveFileId"] == "1KVt6coeXtd2H3h5M-1eiDpdB6X5TmeFn"
+          assert c["sourceSceneCount"] == 26 and not c["current"] and not c["asBuilt"]
+          assert {r["floor"]: r["sceneIndex"] for r in c["modes"]} == {"BOTH":25, "1F":20, "2F":24}
+          print("HI20 main contract exact and NONCURRENT")
+          PY
+
+      - name: Download protected exact production GLB for immutable browser test
+        shell: bash
+        run: |
+          set -euo pipefail
+          out="$RUNNER_TEMP/hi20-exact-production.glb"
+          curl --fail --location --silent --show-error --connect-timeout 12 --max-time 90 \
+            -H "CF-Access-Client-Id: $CF_ACCESS_VIEWER_PROBE_CLIENT_ID" \
+            -H "CF-Access-Client-Secret: $CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET" \
+            --output "$out" \
+            "https://aapopihkala.fi/private-model/work-test/verify/ylisrinne-d-c80-hi20-work-test-20261030.glb"
+          test "$(wc -c < "$out" | tr -d ' ')" = '14057136'
+          actual="$(sha256sum "$out" | cut -d' ' -f1)"
+          test "$actual" = '8ddb398d9eb981d92ed444afcfad93ceb2224b1ce9898599553ede9b4136b87d'
+          printf 'YLIS_HI20_GLB=%s\n' "$out" >> "$GITHUB_ENV"
+          echo "HI20 production GLB SHA256 + byte length verified"
+
+      - name: Install current project browser runtime
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24.20.0'
+          cache: npm
+
+      - run: npm ci
+      - run: npm run build
+      - run: npx playwright install --with-deps chromium
+
+      - name: Real authenticated HI20 WebGL, 2F/BOTH, 1280/390, SHA and pixels
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx playwright test tests/e2e/private-model-hi20-integration.spec.ts --workers=1
+
+      - name: Upload genuine browser screenshots and errors
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: hi20-authenticated-production-webgl-pixels
+          path: |
+            test-results/**/hi20-1280-2F.png
+            test-results/**/hi20-1280-BOTH.png
+            test-results/**/hi20-390-2F.png
+            test-results/**/error-context.md
+            test-results/**/trace.zip
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Delete temporary protected GLB
+        if: always()
+        shell: bash
+        run: rm -f "$RUNNER_TEMP/hi20-exact-production.glb"
