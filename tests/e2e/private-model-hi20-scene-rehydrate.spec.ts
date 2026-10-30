@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { BoxGeometry, Group, Mesh, MeshBasicMaterial } from 'three';
+import { BoxGeometry, Group, Mesh, MeshBasicMaterial, Object3D } from 'three';
 import { rehydrateHI20SourceScenes } from '../../src/scripts/c80SourceProfiles.mjs';
 
 function sharedParentFixture() {
@@ -22,7 +22,7 @@ function sharedParentFixture() {
     [0, new Map([[1, [1]], [0, [1, 0]]])],
     [1, new Map([[2, [2]], [0, [2, 0]]])],
   ]);
-  const cached = new Map([[0, shared], [1, first], [2, second]]);
+  const cached = new Map<number, Object3D>([[0, shared], [1, first], [2, second]]);
   return { shared, scenes, json, paths, cached };
 }
 
