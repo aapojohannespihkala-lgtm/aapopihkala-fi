@@ -2346,6 +2346,7 @@ const title = 'Private 3D viewer';
         resolveP183P160ClosureIntegrationRoot,
       } from '../../scripts/privateModelP183ReviewPresentation';
       import { createHorizontalClippingController } from '../../scripts/privateModelHorizontalClipping';
+      import { findCoplanarTJunctionBoundaryIndexes } from '../../scripts/privateModelHi20CoplanarTJunctionEdges';
       import { type MainViewFloor } from '../../scripts/privateModelMainViewScope';
       import { createDViewRuntime } from '../../scripts/privateModelDViewRuntime';
       import { prepareC70Preview, createC70MainViewBridge } from '../../scripts/c70_main_view_bridge.mjs';
@@ -4297,10 +4298,33 @@ const title = 'Private 3D viewer';
         for (const mesh of meshes) addUnifiedMeshEdges(mesh, edgeMap);
 
         const creaseCos = Math.cos(THREE.MathUtils.degToRad(8));
+        const boundaries = [...edgeMap.values()].filter((record) => record.normals.length === 1);
+        // HI20 C80-044: shared coplanar T-junction edges from separately
+        // triangulated wall parts are not architectural contours. The default
+        // edgeMode=none from PR #1582 is unchanged; this affects manual unified/
+        // visible edge overlays only, and never the actual GLB geometry.
+        const isHi20TwoFloorPreview = activeHi20SourceVerified &&
+          (canvas.dataset.standardViewPreset === 'd-2f' ||
+            canvas.dataset.standardViewPreset === 'd-apartment');
+        const suppressedIndexes = isHi20TwoFloorPreview
+          ? findCoplanarTJunctionBoundaryIndexes(
+              boundaries.map((record) => ({
+                a: record.a, b: record.b, normal: record.normals[0],
+              })),
+              8,
+            )
+          : new Set<number>();
+        const suppressedBoundaries = new Set(
+          [...suppressedIndexes].map((index) => boundaries[index]),
+        );
+        canvas.dataset.edgeTJunctionSuppressedCount = String(suppressedBoundaries.size);
+
         const points: any[] = [];
         for (const record of edgeMap.values()) {
-          let keep = record.normals.length === 1;
-          if (!keep) {
+          let keep = record.normals.length === 1
+            ? !suppressedBoundaries.has(record)
+            : false;
+          if (record.normals.length > 1) {
             const reference = record.normals[0];
             keep = record.normals
               .slice(1)
@@ -4349,6 +4373,7 @@ const title = 'Private 3D viewer';
         }
 
         let segmentCount = 0;
+        canvas.dataset.edgeTJunctionSuppressedCount = '0';
         const depthTest = edgeMode === 'visible';
 
         if (edgeMode === 'object') {
