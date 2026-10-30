@@ -9,12 +9,14 @@ import hi18Contract from './privateModelC80Hi18Contract.json' with { type: 'json
 import hi18Profile from './c80Hi18Profile.json' with { type: 'json' };
 import hi19Contract from './privateModelC80Hi19Contract.json' with { type: 'json' };
 import hi19Profile from './c80Hi19Profile.json' with { type: 'json' };
+import hi20Contract from './privateModelC80Hi20Contract.json' with { type: 'json' };
+import hi20Profile from './c80Hi20Profile.json' with { type: 'json' };
 
 const freeze = value => {
   if (value && typeof value === 'object') { for (const child of Object.values(value)) freeze(child); Object.freeze(value); }
 };
-freeze(contract); freeze(profile); freeze(hi13Contract); freeze(hi13Profile); freeze(hi14Contract); freeze(hi14Profile); freeze(hi18Contract); freeze(hi18Profile); freeze(hi19Contract); freeze(hi19Profile);
-const successors = new Map([[contract.glbSha256, { contract, profile }], [hi13Contract.glbSha256, { contract: hi13Contract, profile: hi13Profile }], [hi14Contract.glbSha256, { contract: hi14Contract, profile: hi14Profile }], [hi18Contract.glbSha256, { contract: hi18Contract, profile: hi14Profile, extension: hi18Profile }], [hi19Contract.glbSha256, { contract: hi19Contract, profile: hi14Profile, extension: hi19Profile }]]);
+freeze(contract); freeze(profile); freeze(hi13Contract); freeze(hi13Profile); freeze(hi14Contract); freeze(hi14Profile); freeze(hi18Contract); freeze(hi18Profile); freeze(hi19Contract); freeze(hi19Profile); freeze(hi20Contract); freeze(hi20Profile);
+const successors = new Map([[contract.glbSha256, { contract, profile }], [hi13Contract.glbSha256, { contract: hi13Contract, profile: hi13Profile }], [hi14Contract.glbSha256, { contract: hi14Contract, profile: hi14Profile }], [hi18Contract.glbSha256, { contract: hi18Contract, profile: hi14Profile, extension: hi18Profile }], [hi19Contract.glbSha256, { contract: hi19Contract, profile: hi14Profile, extension: hi19Profile }], [hi20Contract.glbSha256, { contract: hi20Contract, profile: hi14Profile, extension: hi20Profile }]]);
 export const isC80SuccessorSHA = sha => successors.has(sha);
 export const C80_HI12_SHA = contract.glbSha256;
 const fail = reason => { throw Error('C80_HI12_SOURCE_FAIL_CLOSED: ' + reason); };
@@ -53,10 +55,14 @@ export async function prepareC80Hi12Source(gltf, verifiedSHA = C80_HI12_SHA) {
   if (!parser?.getDependency || gltf.scenes?.length !== source.contract.sourceSceneCount || json?.scene !== 0)
     fail('original GLTFLoader source required');
   if (extension) {
+    const hi20 = verifiedSHA === hi20Contract.glbSha256;
     const hi19 = verifiedSHA === hi19Contract.glbSha256;
-    const allowedIndices = hi19 ? [20, 21, 22, 23] : [12, 17, 18, 19];
-    const candidate = hi19 ? 'ylisrinne-d-c80-hi19-work-test-20261030' : 'ylisrinne-d-c80-hi18-work-test-20261030';
-    if (extension.baselineGLBSHA256 !== hi14Contract.glbSha256 || extension.candidate !== candidate || Object.keys(extension.scenes).length !== 4) fail('extension identity');
+    const allowedIndices = hi20 ? [20, 21, 22, 23, 24, 25] : hi19 ? [20, 21, 22, 23] : [12, 17, 18, 19];
+    const candidate = hi20 ? 'ylisrinne-d-c80-hi20-work-test-20261030' :
+      hi19 ? 'ylisrinne-d-c80-hi19-work-test-20261030' : 'ylisrinne-d-c80-hi18-work-test-20261030';
+    if (extension.baselineGLBSHA256 !== hi14Contract.glbSha256 || extension.candidate !== candidate ||
+        Object.keys(extension.scenes).length !== (hi20 ? 6 : 4) ||
+        (hi20 && extension.parentGLBSHA256 !== hi19Contract.glbSha256)) fail('extension identity');
     for (const [key, expected] of Object.entries(extension.scenes)) {
       const si = Number(key), scene = json.scenes[si];
       if (!scene || scene.name !== expected.sceneName || scene.nodes.length !== expected.rootCount) fail('extension scene ' + key);
