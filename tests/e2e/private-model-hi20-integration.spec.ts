@@ -17,6 +17,27 @@ const prepare = (bytes: Buffer) => prepareC70Preview({
   previewGate: 'EXPLICIT_WORK_TEST_PREVIEW', sourceKind: 'work-test',
 });
 
+// Unconditionally run this gate on every PR, even when protected Drive bytes are unavailable.
+test('HI20 immutable receiver contract and Worker allowlist', () => {
+  const candidate = getPrivateWorkTestCandidateById(ID)!;
+  expect(candidate).toBeTruthy();
+  expect(candidate.expectedSize).toBe(14057136);
+  expect(candidate.expectedSha256).toBe(contract.glbSha256);
+  expect(candidate.path).toBe(PATH);
+  expect(contract.current).toBe(false);
+  expect(contract.asBuilt).toBe(false);
+  expect(contract.canPublish).toBe(false);
+  expect(contract.canApplyToViewer).toBe(false);
+  expect(contract.glbDefaultScene).toBe(0);
+  expect(contract.sourceSceneCount).toBe(26);
+  expect(contract.viewerWholeScene).toBe(23);
+  expect(contract.modes.map((row: any) => [row.floor, row.sceneIndex]))
+    .toEqual([['BOTH', 25], ['1F', 20], ['2F', 24]]);
+  const registry = JSON.parse(readFileSync('.github/work-test-candidates.json', 'utf8'));
+  expect(registry.candidates[ID]).toEqual({ driveFileId: contract.sourceDriveFileId });
+  expect(registry.candidates[ID]).not.toHaveProperty('extractScene');
+});
+
 test('HI20 candidate, immutable scene roots, and baseline source provenance', async () => {
   test.skip(production, 'Trusted main source-only gate.');
   const candidate = getPrivateWorkTestCandidateById(ID)!;
