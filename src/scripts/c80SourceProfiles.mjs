@@ -23,6 +23,23 @@ const fail = reason => { throw Error('C80_HI12_SOURCE_FAIL_CLOSED: ' + reason); 
 const stable = v => Array.isArray(v) ? v.map(stable) : v && typeof v === 'object'
   ? Object.fromEntries(Object.keys(v).sort().map(k => [k, stable(v[k])])) : v;
 const equal = (a, b) => JSON.stringify(stable(a)) === JSON.stringify(stable(b));
+/** GLTFLoader clones nodes reused by more than one glTF parent. Never compare
+ * only names or drop source-parent checks: prove a deep in-memory clone, including
+ * source metadata, local transforms, topology and original mesh resources. */
+export function isExactGLTFLoaderClone(actual, reference) {
+  if (actual === reference) return true;
+  if (!actual?.isObject3D || !reference?.isObject3D ||
+      actual.type !== reference.type || actual.visible !== reference.visible ||
+      !equal(actual.userData, reference.userData) ||
+      !equal(actual.matrix?.elements, reference.matrix?.elements) ||
+      !equal(actual.position?.toArray(), reference.position?.toArray()) ||
+      !equal(actual.quaternion?.toArray(), reference.quaternion?.toArray()) ||
+      !equal(actual.scale?.toArray(), reference.scale?.toArray()) ||
+      actual.geometry !== reference.geometry || actual.material !== reference.material ||
+      actual.children?.length !== reference.children?.length) return false;
+  return actual.children.every((child, index) =>
+    isExactGLTFLoaderClone(child, reference.children[index]));
+}
 export const c80Hi12ContractMatches = value => equal(value, contract);
 export const c80SuccessorContractMatches = value => {
   const source = successors.get(value?.glbSha256);
@@ -69,6 +86,17 @@ export async function prepareC80Hi12Source(gltf, verifiedSHA = C80_HI12_SHA) {
       // The source contract separately SHA-locks its routed root arrays and the full GLB.
       if (!allowedIndices.includes(si)) fail('extension scene not allowlisted');
     }
+  }
+  // Only the exact SHA-bound HI20 source may need shared-parent GLTFLoader
+  // clones. Count genuine references from immutable parser JSON, not names.
+  const parentUseCount = new Uint32Array(json.nodes.length);
+  if (verifiedSHA === hi20Contract.glbSha256) {
+    for (const entry of json.nodes)
+      for (const child of entry.children ?? []) {
+        if (!Number.isInteger(child) || child < 0 || child >= parentUseCount.length)
+          fail('invalid shared node reference');
+        parentUseCount[child]++;
+      }
   }
   const indices = new Set(), paths = [];
   for (let si = 0; si < 4; si++) {
@@ -127,10 +155,43 @@ export async function prepareC80Hi12Source(gltf, verifiedSHA = C80_HI12_SHA) {
             if (many && !equal(part.userData[key], value)) fail('primitive metadata ' + id + ':' + pi);
         });
       }
-      const children = (source.children ?? []).map(id => nodes.get(id));
+      const childIds = source.children ?? [];
+      const children = childIds.map(childId => nodes.get(childId));
       const runtimeChildren = object.children.filter(o => reverse.has(o));
-      if (children.length !== runtimeChildren.length || children.some((o, i) => o !== runtimeChildren[i]))
-        fail('source child set ' + id);
+      if (children.length !== runtimeChildren.length || children.some((o, i) => o !== runtimeChildren[i])) {
+        // Shared glTF node references (notably HI20 scene0/root5623) become
+        // independent Three.js clones. A missing canonical identity is safe
+        // only if every clone occupies its original child index, is deeply
+        // equivalent to the parser-cached source, and the original JSON
+        // explicitly references that child from multiple parents.
+        const cloneSafe = verifiedSHA === hi20Contract.glbSha256 &&
+          source.mesh === undefined && object.children.length === children.length &&
+          childIds.every((childId, i) => {
+            const actual = object.children[i], cached = children[i];
+            return actual === cached ||
+              (parentUseCount[childId] > 1 && isExactGLTFLoaderClone(actual, cached));
+          });
+        if (!cloneSafe) fail('source child set ' + id);
+        const bindClone = (actual, cached) => {
+          if (actual === cached) return;
+          const sourceId = reverse.get(cached);
+          if (sourceId !== undefined) {
+            const node = json.nodes[sourceId], meshId = node.mesh;
+            const primitives = meshId === undefined ? null : json.meshes[meshId]?.primitives;
+            if (meshId !== undefined && (!primitives?.length ||
+                (primitives.length > 1 && (!actual.isGroup || actual.children.length < primitives.length))))
+              fail('cloned primitive mismatch ' + sourceId);
+            associations.set(actual, primitives?.length === 1
+              ? { nodes: sourceId, meshes: meshId, primitives: 0 }
+              : { nodes: sourceId });
+            if (primitives?.length > 1)
+              primitives.forEach((_, pi) =>
+                associations.set(actual.children[pi], { meshes: meshId, primitives: pi }));
+          }
+          actual.children.forEach((child, i) => bindClone(child, cached.children[i]));
+        };
+        childIds.forEach((_, i) => bindClone(object.children[i], children[i]));
+      }
     }
     const expected = profile.scenes[si];
     for (const record of expected.records) {
