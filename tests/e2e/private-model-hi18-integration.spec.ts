@@ -1,0 +1,123 @@
+import { expect, test } from '@playwright/test';
+import { createHash } from 'node:crypto';
+import { readFileSync } from 'node:fs';
+import { GLTFLoader } from '../../src/scripts/threeRuntime';
+import { prepareC70Preview, createC70MainViewBridge } from '../../src/scripts/c70_main_view_bridge.mjs';
+import contract from '../../src/scripts/privateModelC80Hi18Contract.json' with { type: 'json' };
+import { getPrivateWorkTestCandidateById } from '../../worker/privateWorkTest';
+
+const ID = 'ylisrinne-d-c80-hi18-work-test-20261030';
+const PATH = '/private-model/work-test/' + ID + '.glb';
+const sourcePath = process.env.YLIS_HI18_GLB;
+const production = process.env.YLIS_HI18_PRODUCTION === '1';
+const source = () => readFileSync(sourcePath!);
+const sha = (bytes: Buffer | string) => createHash('sha256').update(bytes).digest('hex');
+const prepare = (bytes: Buffer) => prepareC70Preview({
+  glbBytes: bytes, contract, loader: new GLTFLoader(), baseUrl: '/private-model/',
+  previewGate: 'EXPLICIT_WORK_TEST_PREVIEW', sourceKind: 'work-test',
+});
+
+test('HI18 candidate, immutable scene roots, and baseline source provenance', async () => {
+  test.skip(production, 'Trusted main source-only gate.');
+  const candidate = getPrivateWorkTestCandidateById(ID)!;
+  expect(candidate.expectedSize).toBe(13969984);
+  expect(candidate.expectedSha256).toBe(contract.glbSha256);
+  expect(candidate.path).toBe(PATH);
+  const registry = JSON.parse(readFileSync('.github/work-test-candidates.json', 'utf8'));
+  expect(registry.candidates[ID]).toEqual({ driveFileId: contract.sourceDriveFileId });
+  expect(registry.candidates[ID]).not.toHaveProperty('extractScene');
+  expect(contract.current).toBe(false);
+  expect(contract.canPublish).toBe(false);
+  expect(contract.canApplyToViewer).toBe(false);
+  if (process.env.YLIS_REQUIRE_REAL === '1') expect(sourcePath).toBeTruthy();
+  test.skip(!sourcePath, 'Exact GLB source not available.');
+  const bytes = source();
+  expect(bytes.length).toBe(contract.glbByteLength);
+  expect(sha(bytes)).toBe(contract.glbSha256);
+  const session = await prepare(bytes);
+  const gltf = session.gltf;
+  expect(gltf.scenes).toHaveLength(20);
+  expect(gltf.parser.json.scene).toBe(0);
+  let mounted: any = gltf.scenes[3];
+  const bridge = createC70MainViewBridge({ session,
+    setScene: (root: any) => { mounted = root; },
+    readMountedScene: () => mounted,
+    previewGate: 'EXPLICIT_WORK_TEST_PREVIEW', sourceKind: 'work-test' });
+  for (const row of contract.modes) {
+    const sc = gltf.parser.json.scenes[row.sceneIndex];
+    expect(sc.name).toBe(row.sceneName);
+    expect(sc.nodes.length).toBe(row.rootCount);
+    expect(sha(JSON.stringify(sc.nodes))).toBe(row.rootSha256);
+    bridge.restore();
+    expect(bridge.apply(row.floor).sceneIndex).toBe(row.sceneIndex);
+    expect(mounted).toBe(gltf.scenes[row.sceneIndex]);
+  }
+  bridge.restore();
+  expect(mounted).toBe(gltf.scenes[3]);
+  const tampered = Buffer.from(bytes);
+  tampered[tampered.length-1] ^= 1;
+  await expect(prepare(tampered)).rejects.toThrow(/SHA256/);
+});
+
+for (const width of [1280, 390]) test.describe('HI18 protected WebGL ' + width, () => {
+  test.use({ viewport: { width, height: 900 }, hasTouch: width === 390, isMobile: width === 390,
+    deviceScaleFactor: width === 390 ? 2 : 1 });
+  test('real 1F/2F/BOTH + SHA + legacy scene reset', async ({ page }, info) => {
+    if (process.env.YLIS_REQUIRE_REAL === '1') expect(sourcePath).toBeTruthy();
+    test.skip(!sourcePath, 'Exact GLB source not available.');
+    test.setTimeout(540_000);
+    const bytes = source();
+    expect(sha(bytes)).toBe(contract.glbSha256);
+    const errors: string[] = [];
+    page.on('pageerror', error => errors.push(error.message));
+    if (production) {
+      const id = process.env.CF_ACCESS_VIEWER_PROBE_CLIENT_ID;
+      const secret = process.env.CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET;
+      expect(Boolean(id && secret)).toBe(true);
+      await page.route('https://aapopihkala.fi/private-model/**', async route => {
+        const response = await route.fetch({ maxRedirects: 0, headers: {
+          ...route.request().headers(), 'cf-access-client-id': id!,
+          'cf-access-client-secret': secret!,
+        } });
+        expect(response.status()).toBeLessThan(300);
+        if (new URL(route.request().url()).pathname === PATH && response.ok()) {
+          const body = await response.body();
+          expect(body.length).toBe(contract.glbByteLength);
+          expect(sha(body)).toBe(contract.glbSha256);
+        }
+        await route.fulfill({ response });
+      });
+      await page.goto('https://aapopihkala.fi/private-model/?hi18=1');
+    } else {
+      await page.route('**' + PATH, route => route.fulfill({
+        contentType: 'model/gltf-binary', body: bytes,
+      }));
+      await page.route('**/private-model/source-cards.json', route => route.fulfill({ json: { modules: {} } }));
+      await page.route('**/private-model/work-test/catalog.json', route => route.fulfill({ json: { candidates: [] } }));
+      await page.goto('/private-model/?hi18=1');
+    }
+    const canvas = page.locator('#private-model-canvas');
+    await expect(canvas).toHaveAttribute('data-c80-preview', 'ready', { timeout: 120_000 });
+    await expect(canvas).toHaveAttribute('data-c80-version', 'HI18');
+    await expect(canvas).toHaveAttribute('data-c80-source-sha256', contract.glbSha256);
+    await expect(canvas).toHaveAttribute('data-c80-source-transport', 'protected-work-test');
+    for (const [floor, index] of [['BOTH', 18], ['1F', 12], ['2F', 17]] as const) {
+      const menu = page.locator('#preset-menu');
+      if (await menu.getAttribute('open') === null) await menu.locator('summary').click();
+      await page.locator('#main-view-floor').selectOption(floor);
+      await expect(canvas).toHaveAttribute('data-c80-scene-index', String(index));
+      expect(Number(await canvas.getAttribute('data-c80-mesh-count'))).toBeGreaterThan(100);
+      const error = await canvas.evaluate((node: HTMLCanvasElement) => node.getContext('webgl2')?.getError());
+      expect(error).toBe(0);
+      await page.screenshot({ path: info.outputPath('hi18-' + width + '-' + floor + '.png') });
+    }
+    const menu = page.locator('#preset-menu');
+    if (await menu.getAttribute('open') === null) await menu.locator('summary').click();
+    await page.locator('#main-view-area').selectOption('WHOLE');
+    await expect(canvas).toHaveAttribute('data-c80-scene-index', '3');
+    if (await menu.getAttribute('open') === null) await menu.locator('summary').click();
+    await page.locator('#main-view-area').selectOption('D');
+    await expect(canvas).toHaveAttribute('data-c80-scene-index', '18');
+    expect(errors).toEqual([]);
+  });
+});

@@ -22,6 +22,8 @@ on:
       - src/scripts/c80Hi13Profile.json
       - src/scripts/privateModelC80Hi14Contract.json
       - src/scripts/c80Hi14Profile.json
+      - src/scripts/privateModelC80Hi18Contract.json
+      - src/scripts/c80Hi18Profile.json
       - src/scripts/privateModelC80Hi13Contract.json
       - src/scripts/c80SourceProfiles.mjs
       - src/scripts/c80Hi12Visibility.mjs
@@ -36,6 +38,7 @@ on:
       - tests/e2e/private-model-d-viewport-resize.spec.ts
       - tests/e2e/private-model-c70-integration.spec.ts
       - tests/e2e/private-model-hi12-integration.spec.ts
+      - tests/e2e/private-model-hi18-integration.spec.ts
       - tests/e2e/private-model-p186e-one-link-autoload.spec.ts
       - .github/workflows/d-view-regression.yml
 
@@ -64,7 +67,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        mode: [source, c70-production, c80-production, hi12-production, hi13-source, hi13-production, hi14-source, hi14-production]
+        mode: [source, c70-production, c80-production, hi12-production, hi13-source, hi13-production, hi14-source, hi14-production, hi18-source, hi18-production]
     name: Exact WebGL / ${{ matrix.mode }}
     # Match the build job's supported, stable browser dependency environment.
     runs-on: ubuntu-24.04
@@ -108,6 +111,9 @@ jobs:
             ('c70', '1hHD39DHJCE8mR-R-RW16Za00dAfEvYI9', 1281693,
              '4e901bd4cdcaf4e2258af543f86accb238aeab0b6031a69a1910c7d1cf4a5be2',
              '75b586aaf774bce34cf1dceba5d19e6ae41c112b8717f4cce5ce64458fddc491'),
+            ('hi18', '1_TI-uh22pyJzB8UW806BaPiFFUXsPl-m', 1808454,
+             '9c4ec079314397049ede46677230dfc347f43cdf43cf1d5f8066107e52379fa4',
+             'b4f409bbd9094f86bc7b1ef766ca230f092ed36bcd31902272edb0e3117f4b19'),
             ('hi14', '1i3ZXB3oZ0cMusvlZJshU4xnak03kXGCd', 1466840,
              '0bccd595f0dcb6bc91fda21050e409442663f4aff12fe99ca0a4a70d448f9a66',
              '73a13e653b3f28679c3e6aae42a60432a84b30204e1a94844a0cbb59114a959c'),
@@ -130,7 +136,7 @@ jobs:
             assert len(data) == size and hashlib.sha256(data).hexdigest() == zip_sha, 'Source ZIP mismatch: ' + name
             with zipfile.ZipFile(io.BytesIO(data)) as archive:
               assert archive.testzip() is None, 'ZIP CRC: ' + name
-              assert archive.getinfo('model.glb').file_size <= (12116996 if name == 'hi14' else 12060676 if name == 'hi13' else 11999999)
+              assert archive.getinfo('model.glb').file_size <= (13969984 if name == 'hi18' else 12116996 if name == 'hi14' else 12060676 if name == 'hi13' else 11999999)
               glb = archive.read('model.glb')
             assert hashlib.sha256(glb).hexdigest() == glb_sha, 'GLB source mismatch: ' + name
             pathlib.Path(os.environ['RUNNER_TEMP'], name + '.glb').write_bytes(glb)
@@ -228,6 +234,29 @@ jobs:
           D_VIEW_TESTED_COMMIT: ${{ github.event.workflow_run.head_sha || github.sha }}
           PLAYWRIGHT_JSON_OUTPUT_FILE: test-results/hi14-published-report.json
         run: npx playwright test tests/e2e/private-model-hi12-integration.spec.ts --workers=1 --trace=off --output=test-results/hi14-published --reporter=line,json
+      - name: HI18 exact successor source and browser lifecycle
+        if: matrix.mode == 'hi18-source'
+        env:
+          YLIS_C80_SUCCESSOR: HI18
+          YLIS_HI18_GLB: ${{ runner.temp }}/hi18.glb
+          YLIS_C70_GLB: ${{ runner.temp }}/c70.glb
+          YLIS_C80_GLB: ${{ runner.temp }}/c80.glb
+          YLIS_REQUIRE_REAL: '1'
+          D_VIEW_TESTED_COMMIT: ${{ github.event.workflow_run.head_sha || github.sha }}
+          PLAYWRIGHT_JSON_OUTPUT_FILE: test-results/hi18-source-report.json
+        run: npx playwright test tests/e2e/private-model-hi18-integration.spec.ts --workers=1 --trace=off --output=test-results/hi18-source --reporter=line,json
+      - name: Published protected HI18, desktop and mobile
+        if: matrix.mode == 'hi18-production'
+        env:
+          YLIS_C80_SUCCESSOR: HI18
+          YLIS_HI18_GLB: ${{ runner.temp }}/hi18.glb
+          YLIS_HI18_PRODUCTION: '1'
+          YLIS_REQUIRE_REAL: '1'
+          CF_ACCESS_VIEWER_PROBE_CLIENT_ID: ${{ secrets.CF_ACCESS_VIEWER_PROBE_CLIENT_ID }}
+          CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET: ${{ secrets.CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET }}
+          D_VIEW_TESTED_COMMIT: ${{ github.event.workflow_run.head_sha || github.sha }}
+          PLAYWRIGHT_JSON_OUTPUT_FILE: test-results/hi18-published-report.json
+        run: npx playwright test tests/e2e/private-model-hi18-integration.spec.ts --workers=1 --trace=off --output=test-results/hi18-published --reporter=line,json
       - name: Encrypt private model screenshots before artifact storage
         if: always()
         env:
