@@ -3,7 +3,7 @@ import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { GLTFLoader } from '../../src/scripts/threeRuntime';
 import { prepareC70Preview, createC70MainViewBridge } from '../../src/scripts/c70_main_view_bridge.mjs';
-import contract from '../../src/scripts/privateModelC80Hi19Contract.json' with { type: 'json' };
+import contract from '../../src/scripts/privateModelC80Hi20Contract.json' with { type: 'json' };
 import { getPrivateWorkTestCandidateById } from '../../worker/privateWorkTest';
 
 const ID = 'ylisrinne-d-c80-hi20-work-test-20261030';
