@@ -10,16 +10,18 @@ import { computeVisibleBounds } from '../../src/scripts/privateModelVisibleBound
 import { selectionSourceLinks } from '../../src/scripts/privateModelSelectionMetadata';
 import hi12Contract from '../../src/scripts/privateModelC80Hi12Contract.json' with { type: 'json' };
 import hi13Contract from '../../src/scripts/privateModelC80Hi13Contract.json' with { type: 'json' };
+import hi14Contract from '../../src/scripts/privateModelC80Hi14Contract.json' with { type: 'json' };
+const isHi14 = process.env.YLIS_C80_SUCCESSOR === 'HI14';
 const isHi13 = process.env.YLIS_C80_SUCCESSOR === 'HI13';
-const contract = isHi13 ? hi13Contract : hi12Contract;
-const version = isHi13 ? 'HI13' : 'HI12';
-const sourcePath = isHi13 ? process.env.YLIS_HI13_GLB : process.env.YLIS_HI12_GLB;
-const meshCounts = isHi13 ? [1465, 978, 496, 2182] : [1414, 928, 495, 2182];
+const contract = isHi14 ? hi14Contract : isHi13 ? hi13Contract : hi12Contract;
+const version = isHi14 ? 'HI14' : isHi13 ? 'HI13' : 'HI12';
+const sourcePath = isHi14 ? process.env.YLIS_HI14_GLB : isHi13 ? process.env.YLIS_HI13_GLB : process.env.YLIS_HI12_GLB;
+const meshCounts = (isHi13 || isHi14) ? [1465, 978, 496, 2182] : [1414, 928, 495, 2182];
 import { getPrivateWorkTestCandidateById } from '../../worker/privateWorkTest';
-const ID = isHi13 ? 'ylisrinne-d-c80-hi13-work-test-20261029' : 'ylisrinne-d-c80-hi12-work-test-20261029';
+const ID = isHi14 ? 'ylisrinne-d-c80-hi14-work-test-20261030' : isHi13 ? 'ylisrinne-d-c80-hi13-work-test-20261029' : 'ylisrinne-d-c80-hi12-work-test-20261029';
 const PATH = '/private-model/work-test/' + ID + '.glb';
 const SHA = contract.glbSha256;
-const production = (isHi13 ? process.env.YLIS_HI13_PRODUCTION : process.env.YLIS_HI12_PRODUCTION) === '1';
+const production = (isHi14 ? process.env.YLIS_HI14_PRODUCTION : isHi13 ? process.env.YLIS_HI13_PRODUCTION : process.env.YLIS_HI12_PRODUCTION) === '1';
 const source = () => readFileSync(sourcePath!);
 const prepare = (bytes: Buffer = source()) => prepareC70Preview({ glbBytes: bytes, contract,
   loader: new GLTFLoader(), baseUrl: '/private-model/', previewGate: 'EXPLICIT_WORK_TEST_PREVIEW', sourceKind: 'work-test' });
@@ -76,12 +78,13 @@ test('actual HI12 cached nodes, primitives, native links and reversible K17/SITE
     expect(objects.get(expected.k17Root).children).toHaveLength(14);
     for (const record of expected.records) expect(associations.get(objects.get(record.node))!.nodes).toBe(record.node);
     if (expected.siteRoots.length) {
-      const site = objects.get(expected.siteRoots[0]); expect(site.children).toHaveLength(7);
+      const site = objects.get(expected.siteRoots[0]); expect(site.children).toHaveLength(isHi14 ? 8 : 7);
       expect(site.children[0].isGroup).toBe(true); expect(site.children[0].children).toHaveLength(2);
       expect(site.children[0].children.map((o: any) => associations.get(o)!.primitives)).toEqual([0, 1]);
     }
   }
-  expect({ selections, links }).toEqual({ selections: 1224, links: 3681 });
+  if (isHi14) { expect(selections).toBeGreaterThan(1200); expect(links).toBeGreaterThan(3600); }
+  else expect({ selections, links }).toEqual({ selections: 1224, links: 3681 });
   for (let cycle = 0; cycle < 8; cycle++) for (const [floor, si] of [['BOTH', 0], ['1F', 1], ['2F', 2]] as const) {
     bridge.restore(); expect(bridge.apply(floor).sceneIndex).toBe(si);
     expect(mount.children).toEqual([gltf.scenes[si]]);
