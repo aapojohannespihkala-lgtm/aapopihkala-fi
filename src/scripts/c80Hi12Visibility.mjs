@@ -18,7 +18,8 @@ export function createC80Hi12VisibilityAdapter({ bridge, session }) {
     if (!bridge.active) return;
     const si = bridge.sceneIndex, expected = profile.scenes[si], objects = sourceObjects[si];
     if (((session.contract.sourceSceneCount === 20 && [12, 17, 18].includes(si)) ||
-         (session.contract.sourceSceneCount === 24 && [20, 21, 22].includes(si))) &&
+         (session.contract.sourceSceneCount === 24 && [20, 21, 22].includes(si)) ||
+         (session.contract.sourceSceneCount === 26 && [20, 24, 25].includes(si))) &&
         bridge.selectedScene === session.gltf.scenes[si]) return;
     if (![0, 1, 2].includes(si) || bridge.selectedScene !== session.gltf.scenes[si]) fail('wrong scene');
     // Only architectural context leaves are hidden. Independent K17 and SITE
