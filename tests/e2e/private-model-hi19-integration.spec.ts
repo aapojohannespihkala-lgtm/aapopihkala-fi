@@ -73,6 +73,7 @@ for (const width of [1280, 390]) test.describe('HI19 protected WebGL ' + width, 
     const bytes = source();
     expect(sha(bytes)).toBe(contract.glbSha256);
     const errors: string[] = [];
+    let fetchedVerified = false;
     page.on('pageerror', error => errors.push(error.message));
     if (production) {
       const id = process.env.CF_ACCESS_VIEWER_PROBE_CLIENT_ID;
@@ -106,7 +107,6 @@ for (const width of [1280, 390]) test.describe('HI19 protected WebGL ' + width, 
     await expect(canvas).toHaveAttribute('data-c80-version', 'HI19');
     await expect(canvas).toHaveAttribute('data-c80-source-sha256', contract.glbSha256);
     await expect(canvas).toHaveAttribute('data-c80-source-transport', 'protected-work-test');
-    let fetchedVerified = false;
     for (const [floor, index] of [['BOTH', 22], ['1F', 20], ['2F', 21]] as const) {
       const menu = page.locator('#preset-menu');
       if (await menu.getAttribute('open') === null) await menu.locator('summary').click();
