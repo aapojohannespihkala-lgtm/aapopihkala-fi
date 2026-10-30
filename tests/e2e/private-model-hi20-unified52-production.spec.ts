@@ -59,7 +59,15 @@ test('authenticated protected original HI20 52scene 1F/2F/BOTH WebGL2 pixels and
   await page.locator('#main-view-area').selectOption('D');
   const seenHashes = new Set<string>();
   for (const [floor,index] of [['1F',50],['2F',48],['BOTH',51]] as const) {
-    await page.locator('#main-view-floor').selectOption(floor);
+    // The real viewer intentionally closes its <details> menu when the area
+    // or floor changes; reopen it before each user-visible selection.
+    if (await menu.getAttribute('open') === null) {
+      await menu.locator(':scope > summary').click();
+    }
+    const floorSelect = page.locator('#main-view-floor');
+    await expect(floorSelect).toBeVisible({timeout:10000});
+    await expect(floorSelect).toBeEnabled();
+    await floorSelect.selectOption(floor,{timeout:10000});
     await expect(canvas).toHaveAttribute('data-main-view-floor',floor);
     await expect(canvas).toHaveAttribute('data-main-view-source-scene-index',String(index));
     await expect(canvas).toHaveAttribute('data-content-scene','C80R2_HI20_UNIFIED52_WORK_TEST');
