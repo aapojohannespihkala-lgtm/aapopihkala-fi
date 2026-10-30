@@ -3499,7 +3499,43 @@ const D_C80_HI20_B72_SC45_WORK_TEST_CANDIDATE = {
   expectedSha256: '973b536d157c2a7bd7ed66dd01fa5939b0f70951ced53c3662979631a75110ad',
 } as const satisfies PrivateWorkTestCandidate;
 
+// Source immutable G2b 52scene, extracted by the canonical exact-scene publisher.
+// Review-only 1F/2F/BOTH, not CURRENT, as-built, or HUMAN_REVIEW.
+const D_C80_HI20_REVIEW52_1F_WORK_TEST_CANDIDATE = {
+  id: 'ylisrinne-d-c80-hi20-review52-sc50-1f-work-test-20261030',
+  label: 'D HI20 52scene 1F scene50 WORK_TEST HOST_HOLD NONCURRENT - katselmusehdokas',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/ylisrinne-d-c80-hi20-review52-sc50-1f-work-test-20261030.glb`,
+  objectKey: 'work-test/ylisrinne-d-c80-hi20-review52-sc50-1f-work-test-20261030.glb',
+  expectedSize: 4118332,
+  expectedSha256: 'bce1e87ce1dcf1b593d526601526b43df08c2ed8a578078553aead3d7724bcb4',
+} as const satisfies PrivateWorkTestCandidate;
+
+// Source immutable G2b 52scene, extracted by the canonical exact-scene publisher.
+// Review-only 1F/2F/BOTH, not CURRENT, as-built, or HUMAN_REVIEW.
+const D_C80_HI20_REVIEW52_2F_WORK_TEST_CANDIDATE = {
+  id: 'ylisrinne-d-c80-hi20-review52-sc48-2f-work-test-20261030',
+  label: 'D HI20 52scene 2F scene48 WORK_TEST HOST_HOLD NONCURRENT - katselmusehdokas',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/ylisrinne-d-c80-hi20-review52-sc48-2f-work-test-20261030.glb`,
+  objectKey: 'work-test/ylisrinne-d-c80-hi20-review52-sc48-2f-work-test-20261030.glb',
+  expectedSize: 3115996,
+  expectedSha256: '09d3d2153812ca60b88535d44c1303498322fd015fde499723c37384b42513f6',
+} as const satisfies PrivateWorkTestCandidate;
+
+// Source immutable G2b 52scene, extracted by the canonical exact-scene publisher.
+// Review-only 1F/2F/BOTH, not CURRENT, as-built, or HUMAN_REVIEW.
+const D_C80_HI20_REVIEW52_BOTH_WORK_TEST_CANDIDATE = {
+  id: 'ylisrinne-d-c80-hi20-review52-sc51-both-work-test-20261030',
+  label: 'D HI20 52scene BOTH scene51 WORK_TEST HOST_HOLD NONCURRENT - katselmusehdokas',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/ylisrinne-d-c80-hi20-review52-sc51-both-work-test-20261030.glb`,
+  objectKey: 'work-test/ylisrinne-d-c80-hi20-review52-sc51-both-work-test-20261030.glb',
+  expectedSize: 7436424,
+  expectedSha256: '8e18f6feb4960817024715c311d7e84894cd99cbe503d2bfe0d4d9033cf2b858',
+} as const satisfies PrivateWorkTestCandidate;
+
 const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
+  D_C80_HI20_REVIEW52_1F_WORK_TEST_CANDIDATE,
+  D_C80_HI20_REVIEW52_2F_WORK_TEST_CANDIDATE,
+  D_C80_HI20_REVIEW52_BOTH_WORK_TEST_CANDIDATE,
   D_C80_HI20_K17_SC49_WORK_TEST_CANDIDATE,
   D_C80_HI20_B72_SC45_WORK_TEST_CANDIDATE,
   D_C80_HI20_WORK_TEST_CANDIDATE,
