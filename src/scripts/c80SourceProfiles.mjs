@@ -135,17 +135,6 @@ export async function prepareC80Hi12Source(gltf, verifiedSHA = C80_HI12_SHA) {
       if (!allowedIndices.includes(si)) fail('extension scene not allowlisted');
     }
   }
-  // Only the exact SHA-bound HI20 source may need shared-parent GLTFLoader
-  // clones. Count genuine references from immutable parser JSON, not names.
-  const parentUseCount = new Uint32Array(json.nodes.length);
-  if (verifiedSHA === hi20Contract.glbSha256) {
-    for (const entry of json.nodes)
-      for (const child of entry.children ?? []) {
-        if (!Number.isInteger(child) || child < 0 || child >= parentUseCount.length)
-          fail('invalid shared node reference');
-        parentUseCount[child]++;
-      }
-  }
   const indices = new Set(), paths = [];
   for (let si = 0; si < 4; si++) {
     const expected = profile.scenes[si], scene = json.scenes[si];
@@ -232,7 +221,7 @@ export async function prepareC80Hi12Source(gltf, verifiedSHA = C80_HI12_SHA) {
         });
       }
       const childIds = source.children ?? [];
-      const children = childIds.map(childId => nodes.get(childId));
+      const children = childIds.map(scopedNode);
       const runtimeChildren = object.children.filter(o => reverse.has(o));
       if (children.length !== runtimeChildren.length || children.some((o, i) => o !== runtimeChildren[i]))
         fail('source child set ' + id);
@@ -258,6 +247,26 @@ export async function prepareC80Hi12Source(gltf, verifiedSHA = C80_HI12_SHA) {
       fitExcluded.set(scene, excluded);
     }
     sourceObjects.push(map);
+  }
+  if (reconstructed) {
+    // The private bound map and GLTFLoader's association table both retain
+    // the original glTF node/mesh/primitive identity on reconstructed views.
+    // This runs only AFTER all baseline source/profile gates have passed.
+    for (const objects of reconstructed.values())
+      for (const [id, object] of objects) {
+        const sourceNode = json.nodes[id], meshId = sourceNode.mesh;
+        parser.associations.set(object, { nodes: id });
+        if (meshId === undefined) continue;
+        const definitions = json.meshes[meshId]?.primitives;
+        if (!definitions?.length) fail('rehydrate missing mesh ' + id);
+        if (definitions.length === 1) {
+          parser.associations.set(object, { nodes: id, meshes: meshId, primitives: 0 });
+        } else {
+          if (object.children.length !== definitions.length) fail('rehydrate primitive set ' + id);
+          object.children.forEach((part, pi) =>
+            parser.associations.set(part, { meshes: meshId, primitives: pi }));
+        }
+      }
   }
   const result = Object.freeze({ profile, sourceObjects, associations, sourceSha256: verifiedSHA });
   sessions.set(gltf, result);
