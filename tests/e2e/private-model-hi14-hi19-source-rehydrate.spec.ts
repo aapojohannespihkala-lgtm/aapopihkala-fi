@@ -9,8 +9,9 @@ import hi19 from '../../src/scripts/privateModelC80Hi19Contract.json' with { typ
 import hi20 from '../../src/scripts/privateModelC80Hi20Contract.json' with { type: 'json' };
 
 test('Only exact HI14/HI18/HI19 and HI20 SHA allow scene graph rehydration', () => {
-  for (const c of [hi14, hi18, hi19])
-    expect(c80SourceRehydrationIndices(c.glbSha256)).toEqual([0, 1, 2, 3]);
+  expect(c80SourceRehydrationIndices(hi14.glbSha256)).toEqual([0, 1, 2, 3]);
+  expect(c80SourceRehydrationIndices(hi18.glbSha256)).toEqual([0, 1, 2, 3, 12, 17, 18, 19]);
+  expect(c80SourceRehydrationIndices(hi19.glbSha256)).toEqual([0, 1, 2, 3, 20, 21, 22, 23]);
   expect(c80SourceRehydrationIndices(hi20.glbSha256)).toEqual([0, 1, 2, 3, 20, 23, 24, 25]);
   for (const sha of [hi12.glbSha256, hi13.glbSha256, '', '0'.repeat(64)])
     expect(c80SourceRehydrationIndices(sha)).toBeNull();
