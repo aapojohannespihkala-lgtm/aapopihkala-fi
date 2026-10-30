@@ -1,0 +1,42 @@
+{
+  "schema": "ylisrinne.c80-receiver.hi19-incremental.v1",
+  "candidate": "ylisrinne-d-c80-hi19-work-test-20261030",
+  "handoff": "Drive:1RjinV-gLUVYB2amQzxGXRu4bdyTB0moZ",
+  "baselineProfile": "c80Hi14Profile.json",
+  "baselineScenes": [
+    0,
+    1,
+    2,
+    3
+  ],
+  "baselineGLBSHA256": "73a13e653b3f28679c3e6aae42a60432a84b30204e1a94844a0cbb59114a959c",
+  "parentGLBSHA256": "b4f409bbd9094f86bc7b1ef766ca230f092ed36bcd31902272edb0e3117f4b19",
+  "stage": "WORK_TEST/SOURCE_ONLY/HOST_HOLD/NONCURRENT",
+  "physicalHost": "HOST_HOLD",
+  "current": false,
+  "asBuilt": false,
+  "canonical": false,
+  "humanReview": "NOT_RUN",
+  "scenes": {
+    "20": {
+      "sceneName": "HI19_1F_C80-034_220MM_APERTURED_WALL_WORK_TEST_HOST_HOLD",
+      "rootCount": 42,
+      "rootSha256": "f1aa854453e51a065611427bb1b9a5c2a8414ba2013ef3b4552dd676fa3f98cf"
+    },
+    "21": {
+      "sceneName": "HI19_2F_WC5_C80-019_025_20PCT_ROOF_GHOST_WORK_TEST_HOST_HOLD",
+      "rootCount": 35,
+      "rootSha256": "6bbdea2cc224bd63a474643fb9e745e958f6e8866f88cec04a5873e04d282712"
+    },
+    "22": {
+      "sceneName": "HI19_BOTH_C80-034_C80-019_025_WC5_ROOF_GHOST_WORK_TEST_HOST_HOLD",
+      "rootCount": 71,
+      "rootSha256": "fbd2ff175a5f0082c8c54bcda308b0e0ae7f02cdbf0f56669dc17276c345ea46"
+    },
+    "23": {
+      "sceneName": "HI19_C80-038_P6_10POST_TERRAIN_CONTACT_FULL_CONTEXT_OPTIN_WORK_TEST_HOST_HOLD",
+      "rootCount": 59,
+      "rootSha256": "67878f65a9b7e9d0ef5067fad21794f7ae3fe8f1e1b7525bbe41e4c71600dae1"
+    }
+  }
+}

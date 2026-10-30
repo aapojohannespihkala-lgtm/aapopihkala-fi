@@ -2360,6 +2360,7 @@ const title = 'Private 3D viewer';
       import c80Hi13Contract from '../../scripts/privateModelC80Hi13Contract.json';
       import c80Hi14Contract from '../../scripts/privateModelC80Hi14Contract.json';
       import c80Hi18Contract from '../../scripts/privateModelC80Hi18Contract.json';
+      import c80Hi19Contract from '../../scripts/privateModelC80Hi19Contract.json';
       // @ts-ignore - allowlisted byte-exact successor profiles only.
       import { isC80SuccessorSHA } from '../../scripts/c80SourceProfiles.mjs';
       // @ts-ignore - exact HI12 source-scene presentation in the existing bridge.
@@ -6310,7 +6311,9 @@ const title = 'Private 3D viewer';
             // incompatible opt-in rather than silently using another scene.
             const baseline = sourcePreviewContract.modes.find(
               (row: any) => row.sceneIndex === (sourcePreviewContract.model === 'D_C80'
-                ? (sourcePreviewContract.glbSha256 === c80Hi18Contract.glbSha256
+                ? (sourcePreviewContract.glbSha256 === c80Hi19Contract.glbSha256
+                  ? (floor === '1F' ? 20 : floor === '2F' ? 21 : 22)
+                  : sourcePreviewContract.glbSha256 === c80Hi18Contract.glbSha256
                   ? (floor === '1F' ? 12 : floor === '2F' ? 17 : 18)
                   : (floor === '1F' ? 1 : floor === '2F' ? 2 : 0))
                 : (floor === '1F' ? 62 : floor === '2F' ? 52 : 58)));
@@ -7191,9 +7194,11 @@ const title = 'Private 3D viewer';
       // Protected WORK_TEST sources are explicitly opted in and SHA-verified.
       // They never replace the default/CURRENT model or gain as-built approval.
       const c70Search = new URLSearchParams(window.location.search);
-      const hi18DirectRequested = c70Search.get('hi18') === '1' ||
-        c70Search.get('review') === 'ylisrinne-d-c80-hi18-work-test-20261030-review';
-      const hi14DirectRequested = !hi18DirectRequested && (c70Search.get('hi14') === '1' ||
+      const hi19DirectRequested = c70Search.get('hi19') === '1' ||
+        c70Search.get('review') === 'ylisrinne-d-c80-hi19-work-test-20261030-review';
+      const hi18DirectRequested = !hi19DirectRequested && (c70Search.get('hi18') === '1' ||
+        c70Search.get('review') === 'ylisrinne-d-c80-hi18-work-test-20261030-review');
+      const hi14DirectRequested = !hi19DirectRequested && !hi18DirectRequested && (c70Search.get('hi14') === '1' ||
         c70Search.get('review') === 'ylisrinne-d-c80-hi14-work-test-20261030-review');
       const hi13DirectRequested = !hi14DirectRequested && (c70Search.get('hi13') === '1' ||
         c70Search.get('review') === 'ylisrinne-d-c80-hi13-work-test-20261029-review');
@@ -7203,7 +7208,7 @@ const title = 'Private 3D viewer';
         c70Search.get('review') === 'ylisrinne-d-c80-source-only-20261028-review');
       const c70DirectRequested = !hi13DirectRequested && !hi12DirectRequested && !c80DirectRequested && (c70Search.get('c70') === '1' ||
         c70Search.get('review') === 'ylisrinne-d-c70-source-only-20261027-review');
-      const c70PreviewEnabled = hi18DirectRequested || hi14DirectRequested || hi13DirectRequested || hi12DirectRequested || c80DirectRequested || c70DirectRequested || c70Search.get('c70-preview') === '1';
+      const c70PreviewEnabled = hi19DirectRequested || hi18DirectRequested || hi14DirectRequested || hi13DirectRequested || hi12DirectRequested || c80DirectRequested || c70DirectRequested || c70Search.get('c70-preview') === '1';
       const c70PreviewControls = document.querySelector<HTMLElement>('#c70-preview-controls')!;
       const c70PreviewButton = document.querySelector<HTMLButtonElement>('#c70-preview-button')!;
       const c70PreviewInput = document.querySelector<HTMLInputElement>('#c70-preview-input')!;
@@ -7274,21 +7279,23 @@ const title = 'Private 3D viewer';
           clearPointMeasure();
           setViewerToolMode('navigate');
           sourcePreviewContract = contract;
-          if (contract.glbSha256 === c80Hi18Contract.glbSha256) {
-            // New HI18 1F/2F/BOTH modes are 12/17/18, never legacy 0/1/2.
+          if (contract.glbSha256 === c80Hi19Contract.glbSha256 || contract.glbSha256 === c80Hi18Contract.glbSha256) {
+            // HI18 / HI19 use their own exact 1F/2F/BOTH scenes, never legacy 0/1/2.
             // Rebuild this existing selector only for the exact successor.
             c70VariantSelect.replaceChildren();
             for (const row of contract.modes) {
               const option = document.createElement('option');
               option.value = String(row.sceneIndex);
-              option.textContent = row.floor === '1F' ? 'HI18 D 1F' :
-                row.floor === '2F' ? 'HI18 D 2F / WC5' : 'HI18 D molemmat / WC5';
+              const name = contract.glbSha256 === c80Hi19Contract.glbSha256 ? 'HI19' : 'HI18';
+              option.textContent = row.floor === '1F' ? name + ' D 1F' :
+                row.floor === '2F' ? name + ' D 2F / WC5' : name + ' D molemmat / WC5';
               c70VariantSelect.add(option);
             }
           }
-          c70VariantSelect.value = contract.glbSha256 === c80Hi18Contract.glbSha256
-            ? '18' : contract.model === 'D_C80' ? '0' : '62';
-          applyLoadedModel(session.gltf, 'work-test', contract.glbSha256 === c80Hi18Contract.glbSha256
+          c70VariantSelect.value = contract.glbSha256 === c80Hi19Contract.glbSha256 ? '22'
+            : contract.glbSha256 === c80Hi18Contract.glbSha256 ? '18' : contract.model === 'D_C80' ? '0' : '62';
+          applyLoadedModel(session.gltf, 'work-test', contract.glbSha256 === c80Hi19Contract.glbSha256
+            ? 'C80R2 HI19 WORK_TEST' : contract.glbSha256 === c80Hi18Contract.glbSha256
             ? 'C80R2 HI18 WC5 WORK_TEST' : contract.glbSha256 === c80Hi14Contract.glbSha256
             ? 'C80R2 HI14 WORK_TEST' : contract.glbSha256 === c80Hi13Contract.glbSha256
             ? 'C80R2 HI13 WORK_TEST' : contract.glbSha256 === c80Hi12Contract.glbSha256
@@ -7297,7 +7304,8 @@ const title = 'Private 3D viewer';
           canvas.dataset[`${sourceKey}Preview`] = 'ready';
           canvas.dataset[`${sourceKey}SourceSha256`] = session.verification.glbSha256;
           canvas.dataset[`${sourceKey}SourceTransport`] = transport;
-          if (contract.glbSha256 === c80Hi18Contract.glbSha256) canvas.dataset.c80Version = 'HI18';
+          if (contract.glbSha256 === c80Hi19Contract.glbSha256) canvas.dataset.c80Version = 'HI19';
+          else if (contract.glbSha256 === c80Hi18Contract.glbSha256) canvas.dataset.c80Version = 'HI18';
           else if (contract.glbSha256 === c80Hi14Contract.glbSha256) canvas.dataset.c80Version = 'HI14';
           else if (contract.glbSha256 === c80Hi13Contract.glbSha256) canvas.dataset.c80Version = 'HI13';
           else if (contract.glbSha256 === c80Hi12Contract.glbSha256) canvas.dataset.c80Version = 'HI12';
@@ -7345,6 +7353,7 @@ const title = 'Private 3D viewer';
       }, 'protected-work-test', contract);
 
       const loadProtectedC70 = () => loadProtectedSource(c70WorkTestContract, '/private-model/work-test/ylisrinne-d-c70-source-only-20261027.glb');
+      const loadProtectedHi19 = () => loadProtectedSource(c80Hi19Contract, '/private-model/work-test/ylisrinne-d-c80-hi19-work-test-20261030.glb');
       const loadProtectedHi18 = () => loadProtectedSource(c80Hi18Contract, '/private-model/work-test/ylisrinne-d-c80-hi18-work-test-20261030.glb');
       const loadProtectedHi14 = () => loadProtectedSource(c80Hi14Contract, '/private-model/work-test/ylisrinne-d-c80-hi14-work-test-20261030.glb');
       const loadProtectedHi13 = () => loadProtectedSource(c80Hi13Contract, '/private-model/work-test/ylisrinne-d-c80-hi13-work-test-20261029.glb');
@@ -13854,6 +13863,7 @@ const title = 'Private 3D viewer';
       void (async () => {
         // Exact P137E, P186E and R1125 one-link reviews load separate WORK_TEST
         // GLBs; do not make their autoload depend on the unrelated CURRENT GLB.
+        if (hi19DirectRequested) { await loadProtectedHi19(); return; }
         if (hi18DirectRequested) { await loadProtectedHi18(); return; }
         if (hi14DirectRequested) { await loadProtectedHi14(); return; }
         if (hi13DirectRequested) { await loadProtectedHi13(); return; }

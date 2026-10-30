@@ -20,7 +20,7 @@ const valid = (data,contract) => {
   if(c80 && !c80SuccessorContractMatches(contract) && (contract.glbSha256!=='c8230e1877a2fc2cd0c633c5247a92975b4669ae685f491fad9f45092fc11b8d' ||
       contract.glbByteLength!==10044500 || contract.viewerWholeScene!==3 || contract.wholeScene?.sceneIndex!==3)) fail('Different C80 source contract');
   if(c80 && (contract.modes.length!==3 || new Set(contract.modes.map(row=>row.floor)).size!==3 ||
-      contract.modes.some(row=>row.sceneIndex!==(contract.sourceSceneCount===20 && c80SuccessorContractMatches(contract) ? {BOTH:18,'1F':12,'2F':17} : {BOTH:0,'1F':1,'2F':2})[row.floor] ||
+      contract.modes.some(row=>row.sceneIndex!==(contract.sourceSceneCount===24 && c80SuccessorContractMatches(contract) ? {BOTH:22,'1F':20,'2F':21} : contract.sourceSceneCount===20 && c80SuccessorContractMatches(contract) ? {BOTH:18,'1F':12,'2F':17} : {BOTH:0,'1F':1,'2F':2})[row.floor] ||
         row.doorMode!=='WORK_TEST'||row.gable!=='NONE'||row.k9Reference!==false))) fail('Different C80 floor map');
   if(contract.current!==false || contract.asBuilt!==false || contract.canPublish!==false || contract.productionReady!==false || contract.canApplyToViewer!==false) fail('Unsafe status policy');
   const b=toBytes(data);

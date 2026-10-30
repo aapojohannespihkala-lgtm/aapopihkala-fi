@@ -8,7 +8,7 @@ const reviewId=candidateId+'-review';
 
 // Execute the actual final viewer bootstrap, including its awaited call order.
 // Browser cases below also exercise the real URL predicate and page startup.
-async function sourceBootstrap(exactP186e:boolean,exactC70=false,exactC80=false,exactHi12=false,exactHi13=false,exactHi14=false){
+async function sourceBootstrap(exactP186e:boolean,exactC70=false,exactC80=false,exactHi12=false,exactHi13=false,exactHi14=false,exactHi18=false,exactHi19=false){
   const source=readFileSync('src/pages/private-model/index.astro','utf8');
   const tail=source.slice(source.lastIndexOf('      void (async () => {'));
   const end='      })();';
@@ -21,11 +21,15 @@ async function sourceBootstrap(exactP186e:boolean,exactC70=false,exactC80=false,
   const candidate=exactP186e?{id:candidateId}:null;
   await runInNewContext(jsProgram,{
     window:{location:{search:exactP186e?'?review='+reviewId:''}},
+    hi19DirectRequested:exactHi19,
+    hi18DirectRequested:exactHi18,
     hi14DirectRequested:exactHi14,
     hi13DirectRequested:exactHi13,
     hi12DirectRequested:exactHi12,
     c70DirectRequested:exactC70,
     c80DirectRequested:exactC80,
+    loadProtectedHi19:async()=>{calls.push('HI19_WORK_TEST');},
+    loadProtectedHi18:async()=>{calls.push('HI18_WORK_TEST');},
     loadProtectedHi14:async()=>{calls.push('HI14_WORK_TEST');},
     loadProtectedHi13:async()=>{calls.push('HI13_WORK_TEST');},
     loadProtectedHi12:async()=>{calls.push('HI12_WORK_TEST');},
@@ -101,6 +105,16 @@ test('source bootstrap gives HI14 precedence over HI13, HI12, C80, C70 and CURRE
     expect(result.calls).toEqual(['HI14_WORK_TEST']);
     expect(result.dataset.workTestReviewAutoload).toBeUndefined();
   }
+});
+
+test('HI18 bootstrap takes precedence over legacy versions and CURRENT',async()=>{
+  const result=await sourceBootstrap(false,true,true,true,true,true,true);
+  expect(result.calls).toEqual(['HI18_WORK_TEST']);
+});
+
+test('HI19 bootstrap takes precedence over HI18 and legacy versions',async()=>{
+  const result=await sourceBootstrap(false,true,true,true,true,true,true,true);
+  expect(result.calls).toEqual(['HI19_WORK_TEST']);
 });
 
 for (const suffix of ['?hi12=1','?review=ylisrinne-d-c80-hi12-work-test-20261029-review']) {
