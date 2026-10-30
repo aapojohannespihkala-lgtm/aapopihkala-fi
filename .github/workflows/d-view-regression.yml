@@ -38,6 +38,7 @@ on:
       - tests/e2e/private-model-d-viewport-resize.spec.ts
       - tests/e2e/private-model-c70-integration.spec.ts
       - tests/e2e/private-model-hi12-integration.spec.ts
+      - tests/e2e/private-model-hi18-integration.spec.ts
       - tests/e2e/private-model-p186e-one-link-autoload.spec.ts
       - .github/workflows/d-view-regression.yml
 
@@ -243,7 +244,7 @@ jobs:
           YLIS_REQUIRE_REAL: '1'
           D_VIEW_TESTED_COMMIT: ${{ github.event.workflow_run.head_sha || github.sha }}
           PLAYWRIGHT_JSON_OUTPUT_FILE: test-results/hi18-source-report.json
-        run: npx playwright test tests/e2e/private-model-hi12-integration.spec.ts --workers=1 --trace=off --output=test-results/hi18-source --reporter=line,json
+        run: npx playwright test tests/e2e/private-model-hi18-integration.spec.ts --workers=1 --trace=off --output=test-results/hi18-source --reporter=line,json
       - name: Published protected HI18, desktop and mobile
         if: matrix.mode == 'hi18-production'
         env:
@@ -255,7 +256,7 @@ jobs:
           CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET: ${{ secrets.CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET }}
           D_VIEW_TESTED_COMMIT: ${{ github.event.workflow_run.head_sha || github.sha }}
           PLAYWRIGHT_JSON_OUTPUT_FILE: test-results/hi18-published-report.json
-        run: npx playwright test tests/e2e/private-model-hi12-integration.spec.ts --workers=1 --trace=off --output=test-results/hi18-published --reporter=line,json
+        run: npx playwright test tests/e2e/private-model-hi18-integration.spec.ts --workers=1 --trace=off --output=test-results/hi18-published --reporter=line,json
       - name: Encrypt private model screenshots before artifact storage
         if: always()
         env:
