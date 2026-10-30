@@ -3077,6 +3077,8 @@ const title = 'Private 3D viewer';
       let fullModelScene: any = null;
       let modelLoadVersion = 0;
       let sourcePreviewContract: any = c70WorkTestContract;
+      // Set only from the already byte/SHA-verified HI20 source session.
+      let activeHi20SourceVerified = false;
       // Only exact SHA-verified HI20 changes the historical C80 WHOLE scene 3.
       const c80WholeSceneIndex = (contract: any) =>
         contract?.model === 'D_C80' && contract.glbSha256 === c80Hi20Contract.glbSha256
@@ -6427,7 +6429,15 @@ const title = 'Private 3D viewer';
         if (researchPreset) setActiveResearchPreset(researchPreset);
         canvas.dataset.standardViewPreset = preset;
         if (!standardViewLayerDefaultsInitialized) {
-          applyViewerLayerState(standardViewLayerDefaults[preset], `preset:${preset}`);
+          const baseline = standardViewLayerDefaults[preset];
+          // C80-044: HI20 2F/BOTH starts without viewer-derived technical mesh seams.
+          // Source geometry, physical silhouettes, and manual edge controls stay intact.
+          const noHi20TechnicalEdges = activeHi20SourceVerified &&
+            (preset === 'd-apartment' || preset === 'd-2f');
+          applyViewerLayerState(
+            noHi20TechnicalEdges ? { ...baseline, edgeMode: 'none' } : baseline,
+            `preset:${preset}`,
+          );
           standardViewLayerDefaultsInitialized = true;
         }
 
@@ -6538,7 +6548,9 @@ const title = 'Private 3D viewer';
             roofVisible: resetState.layers.roofVisible,
             roofOpacity: resetState.layers.roofOpacity,
             locusVisible: resetState.layers.locusVisible,
-            edgeMode: resetState.presentation.edgeMode,
+            edgeMode: activeHi20SourceVerified &&
+              (canvas.dataset.contentFloor === 'BOTH' || canvas.dataset.contentFloor === '2F')
+              ? 'none' : resetState.presentation.edgeMode,
           },
           `reset:${activeResearchPreset}`,
         );
@@ -7142,6 +7154,10 @@ const title = 'Private 3D viewer';
         if (c70PreviewSession && (sourceKind !== 'work-test' ||
             c70PreviewSession.gltf !== gltf || gltf.scene !== gltf.scenes?.[c70PreviewSession.contract.glbDefaultScene]))
           throw new Error('C70_WORK_TEST_SESSION_CHANGED');
+        activeHi20SourceVerified = sourceKind === 'work-test' &&
+          c70PreviewSession?.contract?.model === 'D_C80' &&
+          c70PreviewSession?.contract?.glbSha256 === c80Hi20Contract.glbSha256 &&
+          c70PreviewSession?.verification?.glbSha256 === c80Hi20Contract.glbSha256;
         mainViewScope = c70PreviewSession
           ? createC70MainViewBridge({
               session: c70PreviewSession, setScene: setModelScene,

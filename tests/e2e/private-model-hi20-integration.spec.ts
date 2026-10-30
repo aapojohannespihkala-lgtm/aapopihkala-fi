@@ -175,6 +175,12 @@ for (const width of [1280, 390]) test.describe('HI20 protected WebGL ' + width, 
       await page.locator('#main-view-floor').selectOption(floor);
       await expect(canvas).toHaveAttribute('data-c80-scene-index', String(index));
       expect(Number(await canvas.getAttribute('data-c80-mesh-count'))).toBeGreaterThan(100);
+      // C80-044 / HI20 WP7: no artificial per-mesh seams in D BOTH and D 2F.
+      // The source meshes and physical silhouettes remain rendered and pixel-tested below.
+      if (floor === 'BOTH' || floor === '2F') {
+        await expect(canvas).toHaveAttribute('data-edge-mode', 'none');
+        await expect(canvas).toHaveAttribute('data-edge-overlay-segment-count', '0');
+      }
       const error = await canvas.evaluate((node: HTMLCanvasElement) => node.getContext('webgl2')?.getError());
       expect(error).toBe(0);
       const colors = await canvas.evaluate((node: HTMLCanvasElement) => new Promise<number>(resolve => requestAnimationFrame(() => {
