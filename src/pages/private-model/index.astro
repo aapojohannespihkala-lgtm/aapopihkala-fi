@@ -6219,7 +6219,8 @@ const title = 'Private 3D viewer';
       const resolveActiveResearchContentScene = () => {
         if (mainViewScope?.active) {
           mainViewScope.enforce();
-          return 'isSourceScene' in mainViewScope ? mainViewScope.selectedScene : fullModelScene;
+          return 'isSourceScene' in mainViewScope || 'isUnified52' in mainViewScope
+            ? mainViewScope.selectedScene : fullModelScene;
         }
         if (activeResearchPreset === 'd-apartment') {
           delete canvas.dataset.contentFloor;
