@@ -37,6 +37,7 @@ test('HI19 candidate, immutable scene roots, and baseline source provenance', as
   expect(sha(bytes)).toBe(contract.glbSha256);
   const session = await prepare(bytes);
   const gltf = session.gltf;
+  const src = gltf.parser.json;
   expect(gltf.scenes).toHaveLength(24);
   expect(gltf.parser.json.scene).toBe(0);
   let mounted: any = gltf.scenes[23];
