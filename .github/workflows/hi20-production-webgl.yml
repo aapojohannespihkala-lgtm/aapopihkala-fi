@@ -36,6 +36,9 @@ jobs:
       YLIS_REQUIRE_REAL: '1'
       CF_ACCESS_VIEWER_PROBE_CLIENT_ID: ${{ secrets.CF_ACCESS_VIEWER_PROBE_CLIENT_ID }}
       CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET: ${{ secrets.CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET }}
+      # Readback's protected /verify/ endpoint has a different Access policy.
+      CF_ACCESS_READBACK_CLIENT_ID: ${{ secrets.CF_ACCESS_READBACK_CLIENT_ID }}
+      CF_ACCESS_READBACK_CLIENT_SECRET: ${{ secrets.CF_ACCESS_READBACK_CLIENT_SECRET }}
     steps:
       - name: Require original HI20 build job succeeded even if an already-merged PR replay fails its merge job
         if: github.event_name == 'workflow_run'
@@ -73,6 +76,8 @@ jobs:
           set -euo pipefail
           test -n "$CF_ACCESS_VIEWER_PROBE_CLIENT_ID"
           test -n "$CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET"
+          test -n "$CF_ACCESS_READBACK_CLIENT_ID"
+          test -n "$CF_ACCESS_READBACK_CLIENT_SECRET"
           python3 - <<'PY'
           import json
           from pathlib import Path
@@ -90,8 +95,8 @@ jobs:
           set -euo pipefail
           out="$RUNNER_TEMP/hi20-exact-production.glb"
           curl --fail --location --silent --show-error --connect-timeout 12 --max-time 90 \
-            -H "CF-Access-Client-Id: $CF_ACCESS_VIEWER_PROBE_CLIENT_ID" \
-            -H "CF-Access-Client-Secret: $CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET" \
+            -H "CF-Access-Client-Id: $CF_ACCESS_READBACK_CLIENT_ID" \
+            -H "CF-Access-Client-Secret: $CF_ACCESS_READBACK_CLIENT_SECRET" \
             --output "$out" \
             "https://aapopihkala.fi/private-model/work-test/verify/ylisrinne-d-c80-hi20-work-test-20261030.glb"
           test "$(wc -c < "$out" | tr -d ' ')" = '14057136'
