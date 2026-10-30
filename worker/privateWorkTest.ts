@@ -3481,28 +3481,6 @@ const D_C80_HI20_WORK_TEST_CANDIDATE = {
 // Exact 50-scene HI20 K17 + WP6/WP8/G3 + C043 WHITE G2b source.
 // The trusted main-only publisher extracts scene49 and verifies geometry equality.
 // WORK_TEST/HOST_HOLD/NONCURRENT only, never CURRENT/as-built/HUMAN_REVIEW.
-// Exact 52-scene G2b source scene 50; independent WORK_TEST/HOST_HOLD/NONCURRENT review.
-// Publish-work-test main-only extractor preserves geometry bytes and sourceLinks; no CURRENT/as-built claim.
-const D_C80_HI20_UNIFIED52_1F_WORK_TEST_CANDIDATE = {
-  id: 'ylisrinne-d-c80-hi20-unified52-1f-sc50-work-test-20261030',
-  label: 'D HI20 52scene 1F scene50 P6 + K17 1125 + WP6/WP8 + C043 + C027/C045/K14 WORK_TEST HOST_HOLD - ei nykytila',
-  path: `${PRIVATE_WORK_TEST_PREFIX}/ylisrinne-d-c80-hi20-unified52-1f-sc50-work-test-20261030.glb`,
-  objectKey: 'work-test/ylisrinne-d-c80-hi20-unified52-1f-sc50-work-test-20261030.glb',
-  expectedSize: 4118332,
-  expectedSha256: 'bce1e87ce1dcf1b593d526601526b43df08c2ed8a578078553aead3d7724bcb4',
-} as const satisfies PrivateWorkTestCandidate;
-
-// Exact 52-scene G2b source scene 48; independent WORK_TEST/HOST_HOLD/NONCURRENT review.
-// Publish-work-test main-only extractor preserves geometry bytes and sourceLinks; no CURRENT/as-built claim.
-const D_C80_HI20_UNIFIED52_2F_WORK_TEST_CANDIDATE = {
-  id: 'ylisrinne-d-c80-hi20-unified52-2f-sc48-work-test-20261030',
-  label: 'D HI20 52scene 2F scene48 P6 + K17 1125 + WP6/WP8 + C043 + C027/C045/K14 WORK_TEST HOST_HOLD - ei nykytila',
-  path: `${PRIVATE_WORK_TEST_PREFIX}/ylisrinne-d-c80-hi20-unified52-2f-sc48-work-test-20261030.glb`,
-  objectKey: 'work-test/ylisrinne-d-c80-hi20-unified52-2f-sc48-work-test-20261030.glb',
-  expectedSize: 3115996,
-  expectedSha256: '09d3d2153812ca60b88535d44c1303498322fd015fde499723c37384b42513f6',
-} as const satisfies PrivateWorkTestCandidate;
-
 // Exact 52-scene G2b source scene 51; independent WORK_TEST/HOST_HOLD/NONCURRENT review.
 // Publish-work-test main-only extractor preserves geometry bytes and sourceLinks; no CURRENT/as-built claim.
 const D_C80_HI20_UNIFIED52_BOTH_WORK_TEST_CANDIDATE = {
@@ -3533,8 +3511,6 @@ const D_C80_HI20_B72_SC45_WORK_TEST_CANDIDATE = {
 } as const satisfies PrivateWorkTestCandidate;
 
 const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
-  D_C80_HI20_UNIFIED52_1F_WORK_TEST_CANDIDATE,
-  D_C80_HI20_UNIFIED52_2F_WORK_TEST_CANDIDATE,
   D_C80_HI20_UNIFIED52_BOTH_WORK_TEST_CANDIDATE,
   D_C80_HI20_K17_SC49_WORK_TEST_CANDIDATE,
   D_C80_HI20_B72_SC45_WORK_TEST_CANDIDATE,
