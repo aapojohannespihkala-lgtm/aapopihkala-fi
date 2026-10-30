@@ -2351,7 +2351,7 @@ const title = 'Private 3D viewer';
       import { type MainViewFloor } from '../../scripts/privateModelMainViewScope';
       import { createDViewRuntime } from '../../scripts/privateModelDViewRuntime';
       import {
-        HI20_UNIFIED52_ID, HI20_UNIFIED52_SHA,
+        HI20_UNIFIED52_SHA,
         resolveHi20Unified52Scenes, createHi20Unified52FloorRuntime,
       } from '../../scripts/privateModelUnified52Floor';
       import { prepareC70Preview, createC70MainViewBridge } from '../../scripts/c70_main_view_bridge.mjs';
@@ -11252,7 +11252,7 @@ const title = 'Private 3D viewer';
                 P137E_SCENE67_EXACT_ASSET_PATH.replace(/[^/]+$/, ''),
               )
             : await loadModelWithSourceCards(loader, candidate.path));
-          if (candidate.id === HI20_UNIFIED52_ID) {
+          if (candidate.id === 'ylisrinne-d-c80-hi20-unified52-both-sc51-work-test-20261030') {
             // Original 52-scene GLB, not the former scene51-only extraction.
             gltf.scene = resolveHi20Unified52Scenes(gltf, loadedModelSha256(gltf)).BOTH;
           }
