@@ -2,6 +2,8 @@ import { expect, test } from '@playwright/test';
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { getPrivateWorkTestCandidateById } from '../../worker/privateWorkTest';
+import { THREE } from '../../src/scripts/threeRuntime';
+import { HI20_UNIFIED52_SHA, resolveHi20Unified52Scenes } from '../../src/scripts/privateModelUnified52Floor';
 
 // Main publisher contract allows only one candidate per Drive ID.
 // The one protected candidate now transports the entire immutable 52-scene source.
@@ -67,4 +69,34 @@ test('52scene full source preserves exact original 1F/2F/BOTH scene roots (trust
   expect(doc.nodes).toHaveLength(6463);
   // Unmodified binary source includes all original scene roots and stairs.
   expect(doc.scenes[48].nodes).not.toEqual(doc.scenes[50].nodes);
+});
+
+test('original floor routing preserves complete roots; wrong scene or SHA fails closed', () => {
+  const definitions = [
+    [48, 39, 'D_C80R2_HI20_P6_C012_C029_C035_C046_C047_C048_C043_WHITE_WP6_WP8_G3_2F_WORK_TEST_HOST_HOLD_NONCURRENT_K17_1125MM_AB_UNVERIFIED_WORK_TEST'],
+    [50, 50, 'HI20_50SCENE_K17_WP6_WP8_G3_C043_C027_C045_C049_K14_COMBINED_1F_WORK_TEST_HOST_HOLD_NONCURRENT'],
+    [51, 84, 'HI20_50SCENE_K17_WP6_WP8_G3_C043_C027_C045_C049_K14_COMBINED_BOTH_WORK_TEST_HOST_HOLD_NONCURRENT'],
+  ] as const;
+  const scenes = Array.from({ length: 52 }, () => new THREE.Group());
+  const source = Array.from({ length: 52 }, () => ({ name: '', nodes: [] as number[], extras: { current: false, asBuilt: false, stage: 'WORK_TEST' } }));
+  for (const [index, count, name] of definitions) {
+    scenes[index].name = name;
+    source[index].name = name;
+    source[index].nodes = Array.from({ length: count }, (_, n) => n + index * 100);
+    for (let n = 0; n < count; n++) scenes[index].add(new THREE.Group());
+  }
+  const model = { scene: scenes[0], scenes, parser: { json: {
+    asset: { version: '2.0', extras: { current: false, asBuilt: false } },
+    scene: 0, scenes: source,
+  } } };
+  const selected = resolveHi20Unified52Scenes(model, HI20_UNIFIED52_SHA);
+  expect(selected['1F']).toBe(scenes[50]);
+  expect(selected['2F']).toBe(scenes[48]);
+  expect(selected.BOTH).toBe(scenes[51]);
+  expect(selected.BOTH.children).toHaveLength(84);
+  expect(selected['1F'].children).toHaveLength(50);
+  expect(selected['2F'].children).toHaveLength(39);
+  expect(() => resolveHi20Unified52Scenes(model, '0'.repeat(64))).toThrow('SHA mismatch');
+  source[50].nodes.pop();
+  expect(() => resolveHi20Unified52Scenes(model, HI20_UNIFIED52_SHA)).toThrow('1F original scene');
 });
