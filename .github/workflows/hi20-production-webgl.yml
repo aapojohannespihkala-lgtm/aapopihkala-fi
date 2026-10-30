@@ -119,7 +119,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          npx playwright test tests/e2e/private-model-hi20-integration.spec.ts --workers=1
+          npx playwright test tests/e2e/private-model-hi20-integration.spec.ts --workers=1 --trace=off
 
       - name: Upload genuine browser screenshots and errors
         if: always()
@@ -131,7 +131,6 @@ jobs:
             test-results/**/hi20-1280-BOTH.png
             test-results/**/hi20-390-2F.png
             test-results/**/error-context.md
-            test-results/**/trace.zip
           if-no-files-found: warn
           retention-days: 30
 
