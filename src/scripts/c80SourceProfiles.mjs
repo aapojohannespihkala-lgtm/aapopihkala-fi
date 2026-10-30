@@ -24,9 +24,9 @@ export const C80_HI12_SHA = contract.glbSha256;
  */
 export function c80SourceRehydrationIndices(sourceSHA) {
   if (sourceSHA === hi20Contract.glbSha256) return [0, 1, 2, 3, 20, 23, 24, 25];
-  if (sourceSHA === hi14Contract.glbSha256 ||
-      sourceSHA === hi18Contract.glbSha256 ||
-      sourceSHA === hi19Contract.glbSha256) return [0, 1, 2, 3];
+  if (sourceSHA === hi19Contract.glbSha256) return [0, 1, 2, 3, 20, 21, 22, 23];
+  if (sourceSHA === hi18Contract.glbSha256) return [0, 1, 2, 3, 12, 17, 18, 19];
+  if (sourceSHA === hi14Contract.glbSha256) return [0, 1, 2, 3];
   return null;
 }
 const fail = reason => { throw Error('C80_HI12_SOURCE_FAIL_CLOSED: ' + reason); };
@@ -160,12 +160,13 @@ export async function prepareC80Hi12Source(gltf, verifiedSHA = C80_HI12_SHA) {
     paths.push(map);
   }
   const hi20Source = verifiedSHA === hi20Contract.glbSha256;
+  const reconstructIndices = c80SourceRehydrationIndices(verifiedSHA);
   const sourcePaths = new Map(paths.map((path, si) => [si, path]));
-  if (hi20Source) {
-    // Only views that the HI20 receiver can mount need reconstruction.
-    // Source root-array checks remain enforced by the exact GLB contract,
-    // and 0..3 are independently checked against the immutable HI14 profile.
-    for (const si of [20, 23, 24, 25]) {
+  if (reconstructIndices) {
+    // Rebuild selected active scenes too, never just 0..3 source profiles:
+    // GLTFLoader can reparent children away from both source and mounted views.
+    // The immutable SHA gate limits each version to its exact allowed scene set.
+    for (const si of reconstructIndices.filter(index => index >= 4)) {
       const sc = json.scenes[si], map = new Map();
       if (!sc?.nodes?.length) fail('rehydrate selected scene ' + si);
       const visit = (id, path) => {
@@ -184,7 +185,6 @@ export async function prepareC80Hi12Source(gltf, verifiedSHA = C80_HI12_SHA) {
   // The immutable HI14 baseline is shared by HI18 and HI19. GLTFLoader may
   // reparent its source node 5623 children before provenance is checked.
   // Rehydrate only exact allowlisted SHA contracts, never inferred successors.
-  const reconstructIndices = c80SourceRehydrationIndices(verifiedSHA);
   const reconstructed = reconstructIndices
     ? rehydrateHI20SourceScenes(gltf, json, sourcePaths, nodes, reconstructIndices)
     : null;
