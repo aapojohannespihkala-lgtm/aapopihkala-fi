@@ -20,6 +20,8 @@ on:
       - src/scripts/privateModelC80Hi12Contract.json
       - src/scripts/c80Hi12Profile.json
       - src/scripts/c80Hi13Profile.json
+      - src/scripts/privateModelC80Hi14Contract.json
+      - src/scripts/c80Hi14Profile.json
       - src/scripts/privateModelC80Hi13Contract.json
       - src/scripts/c80SourceProfiles.mjs
       - src/scripts/c80Hi12Visibility.mjs
@@ -34,6 +36,7 @@ on:
       - tests/e2e/private-model-d-viewport-resize.spec.ts
       - tests/e2e/private-model-c70-integration.spec.ts
       - tests/e2e/private-model-hi12-integration.spec.ts
+      - tests/e2e/private-model-p186e-one-link-autoload.spec.ts
       - .github/workflows/d-view-regression.yml
 
 permissions:
