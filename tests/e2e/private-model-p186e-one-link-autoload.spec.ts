@@ -8,7 +8,7 @@ const reviewId=candidateId+'-review';
 
 // Execute the actual final viewer bootstrap, including its awaited call order.
 // Browser cases below also exercise the real URL predicate and page startup.
-async function sourceBootstrap(exactP186e:boolean,exactC70=false,exactC80=false,exactHi12=false){
+async function sourceBootstrap(exactP186e:boolean,exactC70=false,exactC80=false,exactHi12=false,exactHi13=false){
   const source=readFileSync('src/pages/private-model/index.astro','utf8');
   const tail=source.slice(source.lastIndexOf('      void (async () => {'));
   const end='      })();';
@@ -21,9 +21,11 @@ async function sourceBootstrap(exactP186e:boolean,exactC70=false,exactC80=false,
   const candidate=exactP186e?{id:candidateId}:null;
   await runInNewContext(jsProgram,{
     window:{location:{search:exactP186e?'?review='+reviewId:''}},
+    hi13DirectRequested:exactHi13,
     hi12DirectRequested:exactHi12,
     c70DirectRequested:exactC70,
     c80DirectRequested:exactC80,
+    loadProtectedHi13:async()=>{calls.push('HI13_WORK_TEST');},
     loadProtectedHi12:async()=>{calls.push('HI12_WORK_TEST');},
     loadProtectedC70:async()=>{calls.push('C70_WORK_TEST');},
     loadProtectedC80:async()=>{calls.push('C80_WORK_TEST');},
@@ -79,6 +81,14 @@ test('source bootstrap isolates HI12 before legacy sources and CURRENT',async()=
   for (const c70 of [false,true]) for (const c80 of [false,true]) {
     const result=await sourceBootstrap(false,c70,c80,true);
     expect(result.calls).toEqual(['HI12_WORK_TEST']);
+    expect(result.dataset.workTestReviewAutoload).toBeUndefined();
+  }
+});
+
+test('source bootstrap gives HI13 precedence over HI12, C80, C70 and CURRENT',async()=>{
+  for (const c70 of [false,true]) for (const c80 of [false,true]) for (const hi12 of [false,true]) {
+    const result=await sourceBootstrap(false,c70,c80,hi12,true);
+    expect(result.calls).toEqual(['HI13_WORK_TEST']);
     expect(result.dataset.workTestReviewAutoload).toBeUndefined();
   }
 });
