@@ -311,7 +311,7 @@ jobs:
           CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET: ${{ secrets.CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET }}
           D_VIEW_TESTED_COMMIT: ${{ github.event.workflow_run.head_sha || github.sha }}
         run: npx playwright test tests/e2e/private-model-hi20-unified52-production.spec.ts --workers=1 --trace=off --output=test-results/hi20-unified52-production --reporter=line
-      - name: Remove protected full model after screenshot encryption
+      - name: Remove temporary protected full model
         if: always() && matrix.mode == 'hi20-unified52-production'
         run: rm -f "$RUNNER_TEMP/hi20-unified52-production.glb"
       - name: Encrypt private model screenshots before artifact storage
