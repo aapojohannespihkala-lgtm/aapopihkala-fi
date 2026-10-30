@@ -2358,6 +2358,7 @@ const title = 'Private 3D viewer';
       import c80WorkTestContract from '../../scripts/privateModelC80Contract.json';
       import c80Hi12Contract from '../../scripts/privateModelC80Hi12Contract.json';
       import c80Hi13Contract from '../../scripts/privateModelC80Hi13Contract.json';
+      import c80Hi14Contract from '../../scripts/privateModelC80Hi14Contract.json';
       // @ts-ignore - allowlisted byte-exact successor profiles only.
       import { isC80SuccessorSHA } from '../../scripts/c80SourceProfiles.mjs';
       // @ts-ignore - exact HI12 source-scene presentation in the existing bridge.
@@ -7187,15 +7188,17 @@ const title = 'Private 3D viewer';
       // Protected WORK_TEST sources are explicitly opted in and SHA-verified.
       // They never replace the default/CURRENT model or gain as-built approval.
       const c70Search = new URLSearchParams(window.location.search);
-      const hi13DirectRequested = c70Search.get('hi13') === '1' ||
-        c70Search.get('review') === 'ylisrinne-d-c80-hi13-work-test-20261029-review';
+      const hi14DirectRequested = c70Search.get('hi14') === '1' ||
+        c70Search.get('review') === 'ylisrinne-d-c80-hi14-work-test-20261030-review';
+      const hi13DirectRequested = !hi14DirectRequested && (c70Search.get('hi13') === '1' ||
+        c70Search.get('review') === 'ylisrinne-d-c80-hi13-work-test-20261029-review');
       const hi12DirectRequested = !hi13DirectRequested && (c70Search.get('hi12') === '1' ||
         c70Search.get('review') === 'ylisrinne-d-c80-hi12-work-test-20261029-review');
       const c80DirectRequested = !hi13DirectRequested && !hi12DirectRequested && (c70Search.get('c80') === '1' ||
         c70Search.get('review') === 'ylisrinne-d-c80-source-only-20261028-review');
       const c70DirectRequested = !hi13DirectRequested && !hi12DirectRequested && !c80DirectRequested && (c70Search.get('c70') === '1' ||
         c70Search.get('review') === 'ylisrinne-d-c70-source-only-20261027-review');
-      const c70PreviewEnabled = hi13DirectRequested || hi12DirectRequested || c80DirectRequested || c70DirectRequested || c70Search.get('c70-preview') === '1';
+      const c70PreviewEnabled = hi14DirectRequested || hi13DirectRequested || hi12DirectRequested || c80DirectRequested || c70DirectRequested || c70Search.get('c70-preview') === '1';
       const c70PreviewControls = document.querySelector<HTMLElement>('#c70-preview-controls')!;
       const c70PreviewButton = document.querySelector<HTMLButtonElement>('#c70-preview-button')!;
       const c70PreviewInput = document.querySelector<HTMLInputElement>('#c70-preview-input')!;
@@ -7267,14 +7270,16 @@ const title = 'Private 3D viewer';
           setViewerToolMode('navigate');
           sourcePreviewContract = contract;
           c70VariantSelect.value = contract.model === 'D_C80' ? '0' : '62';
-          applyLoadedModel(session.gltf, 'work-test', contract.glbSha256 === c80Hi13Contract.glbSha256
+          applyLoadedModel(session.gltf, 'work-test', contract.glbSha256 === c80Hi14Contract.glbSha256
+            ? 'C80R2 HI14 WORK_TEST' : contract.glbSha256 === c80Hi13Contract.glbSha256
             ? 'C80R2 HI13 WORK_TEST' : contract.glbSha256 === c80Hi12Contract.glbSha256
             ? 'C80R2 HI12 WORK_TEST' : `${sourceLabel} WORK_TEST`, null, session);
           applyStandardViewPreset(contract.model === 'D_C80' ? 'd-apartment' : 'd-1f');
           canvas.dataset[`${sourceKey}Preview`] = 'ready';
           canvas.dataset[`${sourceKey}SourceSha256`] = session.verification.glbSha256;
           canvas.dataset[`${sourceKey}SourceTransport`] = transport;
-          if (contract.glbSha256 === c80Hi13Contract.glbSha256) canvas.dataset.c80Version = 'HI13';
+          if (contract.glbSha256 === c80Hi14Contract.glbSha256) canvas.dataset.c80Version = 'HI14';
+          else if (contract.glbSha256 === c80Hi13Contract.glbSha256) canvas.dataset.c80Version = 'HI13';
           else if (contract.glbSha256 === c80Hi12Contract.glbSha256) canvas.dataset.c80Version = 'HI12';
           closeToolbarMenus();
         } catch {
@@ -7320,6 +7325,7 @@ const title = 'Private 3D viewer';
       }, 'protected-work-test', contract);
 
       const loadProtectedC70 = () => loadProtectedSource(c70WorkTestContract, '/private-model/work-test/ylisrinne-d-c70-source-only-20261027.glb');
+      const loadProtectedHi14 = () => loadProtectedSource(c80Hi14Contract, '/private-model/work-test/ylisrinne-d-c80-hi14-work-test-20261030.glb');
       const loadProtectedHi13 = () => loadProtectedSource(c80Hi13Contract, '/private-model/work-test/ylisrinne-d-c80-hi13-work-test-20261029.glb');
       const loadProtectedHi12 = () => loadProtectedSource(c80Hi12Contract, '/private-model/work-test/ylisrinne-d-c80-hi12-work-test-20261029.glb');
       const loadProtectedC80 = () => loadProtectedSource(c80WorkTestContract, '/private-model/work-test/ylisrinne-d-c80-source-only-20261028.glb');
@@ -13827,6 +13833,7 @@ const title = 'Private 3D viewer';
       void (async () => {
         // Exact P137E, P186E and R1125 one-link reviews load separate WORK_TEST
         // GLBs; do not make their autoload depend on the unrelated CURRENT GLB.
+        if (hi14DirectRequested) { await loadProtectedHi14(); return; }
         if (hi13DirectRequested) { await loadProtectedHi13(); return; }
         if (hi12DirectRequested) { await loadProtectedHi12(); return; }
         if (c80DirectRequested) { await loadProtectedC80(); return; }

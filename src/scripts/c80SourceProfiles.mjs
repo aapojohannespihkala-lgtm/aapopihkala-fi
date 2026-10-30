@@ -3,12 +3,14 @@ import contract from './privateModelC80Hi12Contract.json' with { type: 'json' };
 import profile from './c80Hi12Profile.json' with { type: 'json' };
 import hi13Contract from './privateModelC80Hi13Contract.json' with { type: 'json' };
 import hi13Profile from './c80Hi13Profile.json' with { type: 'json' };
+import hi14Contract from './privateModelC80Hi14Contract.json' with { type: 'json' };
+import hi14Profile from './c80Hi14Profile.json' with { type: 'json' };
 
 const freeze = value => {
   if (value && typeof value === 'object') { for (const child of Object.values(value)) freeze(child); Object.freeze(value); }
 };
-freeze(contract); freeze(profile); freeze(hi13Contract); freeze(hi13Profile);
-const successors = new Map([[contract.glbSha256, { contract, profile }], [hi13Contract.glbSha256, { contract: hi13Contract, profile: hi13Profile }]]);
+freeze(contract); freeze(profile); freeze(hi13Contract); freeze(hi13Profile); freeze(hi14Contract); freeze(hi14Profile);
+const successors = new Map([[contract.glbSha256, { contract, profile }], [hi13Contract.glbSha256, { contract: hi13Contract, profile: hi13Profile }], [hi14Contract.glbSha256, { contract: hi14Contract, profile: hi14Profile }]]);
 export const isC80SuccessorSHA = sha => successors.has(sha);
 export const C80_HI12_SHA = contract.glbSha256;
 const fail = reason => { throw Error('C80_HI12_SOURCE_FAIL_CLOSED: ' + reason); };
@@ -40,7 +42,7 @@ export async function prepareC80Hi12Source(gltf, verifiedSHA = C80_HI12_SHA) {
   if (!source) fail('unregistered successor SHA');
   const profile = source.profile;
   const parser = gltf?.parser, json = parser?.json;
-  if (!parser?.getDependency || gltf.scenes?.length !== 4 || json?.scene !== 0)
+  if (!parser?.getDependency || gltf.scenes?.length !== source.contract.sourceSceneCount || json?.scene !== 0)
     fail('original GLTFLoader source required');
   const indices = new Set(), paths = [];
   for (let si = 0; si < 4; si++) {
