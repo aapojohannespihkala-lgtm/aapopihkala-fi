@@ -3080,10 +3080,13 @@ const title = 'Private 3D viewer';
       let sourcePreviewContract: any = c70WorkTestContract;
       // Set only from the already byte/SHA-verified HI20 source session.
       let activeHi20SourceVerified = false;
-      // Only exact SHA-verified HI20 changes the historical C80 WHOLE scene 3.
+      // Only SHA-verified HI19/HI20 use source-contract WHOLE scene 23.
+      // HI18 and all earlier C80 profiles preserve their legacy WHOLE scene 3.
       const c80WholeSceneIndex = (contract: any) =>
         contract?.model === 'D_C80' && contract.glbSha256 === c80Hi20Contract.glbSha256
-          ? c80Hi20Contract.viewerWholeScene : 3;
+          ? c80Hi20Contract.viewerWholeScene
+          : contract?.model === 'D_C80' && contract.glbSha256 === c80Hi19Contract.glbSha256
+          ? c80Hi19Contract.viewerWholeScene : 3;
       let mainViewScope: ReturnType<typeof createDViewRuntime> | ReturnType<typeof createC70MainViewBridge> | null = null;
       const otherFloorReference = createOtherFloorReference(scene);
       const otherFloorMode = document.querySelector<HTMLSelectElement>('#other-floor-mode')!;
@@ -7139,7 +7142,7 @@ const title = 'Private 3D viewer';
         fullModelScene = gltf.scene;
         if (c70PreviewSession?.contract.model === 'D_C80') {
           // Keep the host WHOLE scene aligned with the bridge restore target.
-          // HI19/earlier C80 still use legacy scene 3, while exact HI20 uses 23.
+          // Exact HI19/HI20 use contract WHOLE scene 23; HI18/earlier C80 use 3.
           fullModelScene = gltf.scenes[c80WholeSceneIndex(c70PreviewSession.contract)];
           if (!fullModelScene) throw new Error('C80 source WHOLE scene missing');
         }
