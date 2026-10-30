@@ -3435,7 +3435,18 @@ const D_C80_HI13_WORK_TEST_CANDIDATE = {
   expectedSha256: '145398c5fee2fccbedb820c4049117795fa1035265696511c854ba617ffe7b71',
 } as const satisfies PrivateWorkTestCandidate;
 
+// HI14 stays an explicit, SHA-locked WORK_TEST candidate. No CURRENT promotion.
+const D_C80_HI14_WORK_TEST_CANDIDATE = {
+  id: 'ylisrinne-d-c80-hi14-work-test-20261030',
+  label: 'D C80R2 HI14 WORK_TEST / SOURCE_ONLY / HOST_HOLD - ei nykytila',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/ylisrinne-d-c80-hi14-work-test-20261030.glb`,
+  objectKey: 'work-test/ylisrinne-d-c80-hi14-work-test-20261030.glb',
+  expectedSize: 12116996,
+  expectedSha256: '73a13e653b3f28679c3e6aae42a60432a84b30204e1a94844a0cbb59114a959c',
+} as const satisfies PrivateWorkTestCandidate;
+
 const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
+  D_C80_HI14_WORK_TEST_CANDIDATE,
   D_C80_HI13_WORK_TEST_CANDIDATE,
   D_C80_HI12_WORK_TEST_CANDIDATE,
   D_C80_SOURCE_ONLY_PREVIEW_CANDIDATE,
