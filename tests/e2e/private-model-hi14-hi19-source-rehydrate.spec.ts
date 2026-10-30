@@ -33,7 +33,7 @@ test('HI14 baseline shared-parent rehydration preserves both scene paths and pro
     [0, new Map([[1, [1]], [0, [1, 0]]])],
     [1, new Map([[2, [2]], [0, [2, 0]]])],
   ]);
-  const cached: Map<number, Object3D> = new Map([[0, shared], [1, first], [2, second]]);
+  const cached = new Map<number, Object3D>([[0, shared], [1, first], [2, second]]);
   expect(first.children).toHaveLength(0);
   const result = rehydrateHI20SourceScenes({ scenes }, json, paths, cached, [0, 1]);
   const a = result.get(0)!.get(0)! as Mesh;
