@@ -42,6 +42,7 @@ on:
       - tests/e2e/private-model-hi12-integration.spec.ts
       - tests/e2e/private-model-hi18-integration.spec.ts
       - tests/e2e/private-model-hi19-integration.spec.ts
+      - tests/e2e/private-model-hi20-unified52-production.spec.ts
       - tests/e2e/private-model-p186e-one-link-autoload.spec.ts
       - .github/workflows/d-view-regression.yml
 
@@ -70,7 +71,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        mode: [source, c70-production, c80-production, hi12-production, hi13-source, hi13-production, hi14-source, hi14-production, hi18-source, hi18-production, hi19-source, hi19-production]
+        mode: [source, c70-production, c80-production, hi12-production, hi13-source, hi13-production, hi14-source, hi14-production, hi18-source, hi18-production, hi19-source, hi19-production, hi20-unified52-production]
     name: Exact WebGL / ${{ matrix.mode }}
     # Match the build job's supported, stable browser dependency environment.
     runs-on: ubuntu-24.04
@@ -283,6 +284,36 @@ jobs:
           D_VIEW_TESTED_COMMIT: ${{ github.event.workflow_run.head_sha || github.sha }}
           PLAYWRIGHT_JSON_OUTPUT_FILE: test-results/hi19-published-report.json
         run: npx playwright test tests/e2e/private-model-hi19-integration.spec.ts --workers=1 --trace=off --output=test-results/hi19-published --reporter=line,json
+      - name: Read authenticated exact 52-scene published GLB from protected R2 endpoint
+        if: matrix.mode == 'hi20-unified52-production'
+        shell: bash
+        env:
+          CF_ACCESS_READBACK_CLIENT_ID: ${{ secrets.CF_ACCESS_READBACK_CLIENT_ID }}
+          CF_ACCESS_READBACK_CLIENT_SECRET: ${{ secrets.CF_ACCESS_READBACK_CLIENT_SECRET }}
+        run: |
+          set -euo pipefail
+          [[ -n "$CF_ACCESS_READBACK_CLIENT_ID" && -n "$CF_ACCESS_READBACK_CLIENT_SECRET" ]]
+          file="$RUNNER_TEMP/hi20-unified52-production.glb"
+          curl --fail --location --silent --show-error --connect-timeout 12 --max-time 90 \
+            -H "CF-Access-Client-Id: $CF_ACCESS_READBACK_CLIENT_ID" \
+            -H "CF-Access-Client-Secret: $CF_ACCESS_READBACK_CLIENT_SECRET" \
+            --output "$file" \
+            "https://aapopihkala.fi/private-model/work-test/verify/ylisrinne-d-c80-hi20-unified52-both-sc51-work-test-20261030.glb"
+          [[ "$(stat -c %s "$file")" = '15338932' ]]
+          [[ "$(sha256sum "$file" | cut -d' ' -f1)" = '15a13623be601b1cbc70aaced46e497146d50894da9a3a54b4c47b438b4acee9' ]]
+          printf 'YLIS_UNIFIED52_PRODUCTION_GLB=%s\n' "$file" >> "$GITHUB_ENV"
+          echo 'Protected original HI20 52-scene production byte/SHA readback PASS'
+      - name: Verify authentic protected 52-scene WebGL2 1F/2F/BOTH and three screenshots
+        if: matrix.mode == 'hi20-unified52-production'
+        env:
+          YLIS_UNIFIED52_PRODUCTION_BROWSER: '1'
+          CF_ACCESS_VIEWER_PROBE_CLIENT_ID: ${{ secrets.CF_ACCESS_VIEWER_PROBE_CLIENT_ID }}
+          CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET: ${{ secrets.CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET }}
+          D_VIEW_TESTED_COMMIT: ${{ github.event.workflow_run.head_sha || github.sha }}
+        run: npx playwright test tests/e2e/private-model-hi20-unified52-production.spec.ts --workers=1 --trace=off --output=test-results/hi20-unified52-production --reporter=line
+      - name: Remove temporary protected full model
+        if: always() && matrix.mode == 'hi20-unified52-production'
+        run: rm -f "$RUNNER_TEMP/hi20-unified52-production.glb"
       - name: Encrypt private model screenshots before artifact storage
         if: always()
         env:
