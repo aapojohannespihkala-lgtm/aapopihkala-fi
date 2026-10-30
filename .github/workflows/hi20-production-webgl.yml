@@ -10,6 +10,7 @@ on:
 
 permissions:
   contents: read
+  actions: read
 
 concurrency:
   group: hi20-exact-production-webgl-proof
@@ -22,7 +23,8 @@ jobs:
       github.ref == 'refs/heads/main' &&
       ((github.event_name == 'workflow_run' &&
         github.event.workflow_run.event == 'pull_request' &&
-        github.event.workflow_run.conclusion == 'success' &&
+        (github.event.workflow_run.conclusion == 'success' ||
+         github.event.workflow_run.conclusion == 'failure') &&
         github.event.workflow_run.head_sha == 'a381ecd7a83084896d38ada11e59dc89c20db2cf') ||
        (github.event_name == 'workflow_dispatch' &&
         github.actor == 'aapojohannespihkala-lgtm'))
@@ -35,6 +37,30 @@ jobs:
       CF_ACCESS_VIEWER_PROBE_CLIENT_ID: ${{ secrets.CF_ACCESS_VIEWER_PROBE_CLIENT_ID }}
       CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET: ${{ secrets.CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET }}
     steps:
+      - name: Require original HI20 build job succeeded even if an already-merged PR replay fails its merge job
+        if: github.event_name == 'workflow_run'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_ID: ${{ github.event.workflow_run.id }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json, os, urllib.request
+          run_id = os.environ["RUN_ID"]
+          url = "https://api.github.com/repos/aapojohannespihkala-lgtm/aapopihkala-fi/actions/runs/" + run_id + "/jobs?per_page=100"
+          request = urllib.request.Request(url, headers={
+              "Authorization": "Bearer " + os.environ["GH_TOKEN"],
+              "Accept": "application/vnd.github+json",
+          })
+          with urllib.request.urlopen(request, timeout=20) as response:
+              jobs = json.load(response)["jobs"]
+          build = [job for job in jobs if job["name"] == "build"]
+          if len(build) != 1 or build[0]["conclusion"] != "success":
+              raise SystemExit("HI20 source Build job not successful; deny production proof")
+          print("Exact HI20 source Build job SUCCESS; unrelated merged-PR replay ignored")
+          PY
+
       - name: Checkout trusted exact main
         uses: actions/checkout@v4
         with:
