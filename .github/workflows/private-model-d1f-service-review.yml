@@ -12,6 +12,7 @@ on:
           - service
           - shower-autoload
           - odensvik-autoload
+          - odensvik-winding-pixels
           - source156-autoload
           - source156-pixels
 
@@ -68,6 +69,14 @@ jobs:
           CF_ACCESS_VIEWER_PROBE_CLIENT_ID: ${{ secrets.CF_ACCESS_VIEWER_PROBE_CLIENT_ID }}
           CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET: ${{ secrets.CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET }}
         run: node .github/scripts/private-model-d1f-odensvik-autoload-probe.mjs
+      - name: Verify corrected ODENSVIK 116-scene three original object WebGL RGB pixels
+        if: inputs.review_mode == 'odensvik-winding-pixels'
+        env:
+          PROBE_MODE: d1f-odensvik-winding-pixels
+          D1F_ODENSVIK_VARIANT: ${{ matrix.variant }}
+          CF_ACCESS_VIEWER_PROBE_CLIENT_ID: ${{ secrets.CF_ACCESS_VIEWER_PROBE_CLIENT_ID }}
+          CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET: ${{ secrets.CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET }}
+        run: node .github/scripts/private-model-d1f-odensvik-winding-object-pixel-probe.mjs
       - name: Verify SOURCE156 original exact autoload and general WebGL (not seven object proof)
         if: inputs.review_mode == 'source156-autoload' && matrix.variant == 'WEST_ANCHOR_725_895_740'
         env:
@@ -105,6 +114,12 @@ jobs:
         with:
           name: d1f-shower-autoload-${{ matrix.variant }}
           path: test-results/d1f-shower-autoload-production/
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v4
+        if: always() && inputs.review_mode == 'odensvik-winding-pixels'
+        with:
+          name: d1f-odensvik-116-corrected-original-pixels-${{ matrix.variant }}
+          path: test-results/d1f-odensvik-winding-original-object-pixels/
           if-no-files-found: error
       - uses: actions/upload-artifact@v4
         if: always() && inputs.review_mode == 'odensvik-autoload'
