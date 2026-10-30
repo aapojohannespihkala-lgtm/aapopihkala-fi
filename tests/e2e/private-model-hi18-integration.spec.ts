@@ -103,7 +103,7 @@ for (const width of [1280, 390]) test.describe('HI18 protected WebGL ' + width, 
     await expect(canvas).toHaveAttribute('data-c80-source-transport', 'protected-work-test');
     for (const [floor, index] of [['BOTH', 18], ['1F', 12], ['2F', 17]] as const) {
       const menu = page.locator('#preset-menu');
-      if (await menu.getAttribute('open') === null) await menu.locator('summary').click();
+      if (await menu.getAttribute('open') === null) await menu.locator(':scope > summary').click();
       await page.locator('#main-view-floor').selectOption(floor);
       await expect(canvas).toHaveAttribute('data-c80-scene-index', String(index));
       expect(Number(await canvas.getAttribute('data-c80-mesh-count'))).toBeGreaterThan(100);
@@ -112,10 +112,10 @@ for (const width of [1280, 390]) test.describe('HI18 protected WebGL ' + width, 
       await page.screenshot({ path: info.outputPath('hi18-' + width + '-' + floor + '.png') });
     }
     const menu = page.locator('#preset-menu');
-    if (await menu.getAttribute('open') === null) await menu.locator('summary').click();
+    if (await menu.getAttribute('open') === null) await menu.locator(':scope > summary').click();
     await page.locator('#main-view-area').selectOption('WHOLE');
     await expect(canvas).toHaveAttribute('data-c80-scene-index', '3');
-    if (await menu.getAttribute('open') === null) await menu.locator('summary').click();
+    if (await menu.getAttribute('open') === null) await menu.locator(':scope > summary').click();
     await page.locator('#main-view-area').selectOption('D');
     await expect(canvas).toHaveAttribute('data-c80-scene-index', '18');
     expect(errors).toEqual([]);
