@@ -3478,6 +3478,18 @@ const D_C80_HI20_WORK_TEST_CANDIDATE = {
 // Source: G2b Drive1CYZhDPUy_JqXeoxL_oiIXPLpmit7ZF6R, exact 46-scene HI20 B72 ZIP.
 // The existing trusted publish-work-test extractor selects scene45 as the only/default
 // scene, preserving geometries and sourceLinks. Immutable WORK_TEST, never CURRENT.
+// Exact 50-scene HI20 K17 + WP6/WP8/G3 + C043 WHITE G2b source.
+// The trusted main-only publisher extracts scene49 and verifies geometry equality.
+// WORK_TEST/HOST_HOLD/NONCURRENT only, never CURRENT/as-built/HUMAN_REVIEW.
+const D_C80_HI20_K17_SC49_WORK_TEST_CANDIDATE = {
+  id: 'ylisrinne-d-c80-hi20-wp6-c043-k17-sc49-both-work-test-20261030',
+  label: 'D HI20 WP6/WP8/G3 + C043 WHITE + K17 1125mm BOTH scene49 WORK_TEST HOST_HOLD - ei nykytila',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/ylisrinne-d-c80-hi20-wp6-c043-k17-sc49-both-work-test-20261030.glb`,
+  objectKey: 'work-test/ylisrinne-d-c80-hi20-wp6-c043-k17-sc49-both-work-test-20261030.glb',
+  expectedSize: 7250936,
+  expectedSha256: '6ce0031ad0baf21f82a3aa599603f0515a22f398bc6336ac1492e31d59e9b8c6',
+} as const satisfies PrivateWorkTestCandidate;
+
 const D_C80_HI20_B72_SC45_WORK_TEST_CANDIDATE = {
   id: 'ylisrinne-d-c80-hi20-b72-sc45-both-work-test-20261030',
   label: 'D HI20 B72 1F+2F BOTH scene45 P6/C012/WP6/WP8/G3 WORK_TEST HOST_HOLD - ei nykytila',
@@ -3488,6 +3500,7 @@ const D_C80_HI20_B72_SC45_WORK_TEST_CANDIDATE = {
 } as const satisfies PrivateWorkTestCandidate;
 
 const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
+  D_C80_HI20_K17_SC49_WORK_TEST_CANDIDATE,
   D_C80_HI20_B72_SC45_WORK_TEST_CANDIDATE,
   D_C80_HI20_WORK_TEST_CANDIDATE,
   D_C80_HI19_WORK_TEST_CANDIDATE,
