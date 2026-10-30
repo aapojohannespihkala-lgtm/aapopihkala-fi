@@ -3077,6 +3077,10 @@ const title = 'Private 3D viewer';
       let fullModelScene: any = null;
       let modelLoadVersion = 0;
       let sourcePreviewContract: any = c70WorkTestContract;
+      // Only exact SHA-verified HI20 changes the historical C80 WHOLE scene 3.
+      const c80WholeSceneIndex = (contract: any) =>
+        contract?.model === 'D_C80' && contract.glbSha256 === c80Hi20Contract.glbSha256
+          ? c80Hi20Contract.viewerWholeScene : 3;
       let mainViewScope: ReturnType<typeof createDViewRuntime> | ReturnType<typeof createC70MainViewBridge> | null = null;
       const otherFloorReference = createOtherFloorReference(scene);
       const otherFloorMode = document.querySelector<HTMLSelectElement>('#other-floor-mode')!;
@@ -3128,7 +3132,8 @@ const title = 'Private 3D viewer';
         c80ShellRow.hidden = !(c80SelectedScene === 1 || c80SelectedScene === 2);
         canvas.dataset.mainViewArea = mainViewArea.value;
         if (mainViewScope && 'sourceModel' in mainViewScope && mainViewScope.sourceModel === 'D_C80') {
-          canvas.dataset.c80SceneIndex = String(mainViewScope.active ? mainViewScope.sceneIndex : 3);
+          canvas.dataset.c80SceneIndex = String(mainViewScope.active
+            ? mainViewScope.sceneIndex : c80WholeSceneIndex(sourcePreviewContract));
           canvas.dataset.c80MountedRootCount = String(modelRoot.children.length);
         }
         canvas.dataset.mainViewFloor = mainViewFloor.value;
@@ -7095,7 +7100,12 @@ const title = 'Private 3D viewer';
         otherFloorReference.clear();
         otherFloorMode.value = 'HIDDEN';
         fullModelScene = gltf.scene;
-        if (c70PreviewSession?.contract.model === 'D_C80') fullModelScene = gltf.scenes[3];
+        if (c70PreviewSession?.contract.model === 'D_C80') {
+          // Keep the host WHOLE scene aligned with the bridge restore target.
+          // HI19/earlier C80 still use legacy scene 3, while exact HI20 uses 23.
+          fullModelScene = gltf.scenes[c80WholeSceneIndex(c70PreviewSession.contract)];
+          if (!fullModelScene) throw new Error('C80 source WHOLE scene missing');
+        }
         resolveSelectionSources = sourceCardResolverForModel(gltf);
         dInteriorScene = dInteriorOverride ??
           findSourceNamedScene(gltf, 'D CURRENT INTERIOR - BABYLON Y-UP');
