@@ -2223,6 +2223,7 @@ const title = 'Private 3D viewer';
       import {
         loadModelWithSourceCards,
         loadedModelSha256,
+        sourceNodeModel,
         sourceCardResolverForModel,
         type SelectionSourceEvidence,
       } from '../../scripts/privateModelSourceCards';
@@ -7338,10 +7339,14 @@ const title = 'Private 3D viewer';
           });
         }
         prepareDReviewStyling();
+        // Exact-SHA presentations below select source nodes by glTF index.
+        // GLTFLoader drops those indices for multi-scene GLBs (HI20 52scene),
+        // so give them the structurally rebuilt, read-only node view.
+        const sourceNodeGltf = sourceKind === 'work-test' ? sourceNodeModel(gltf) : gltf;
         // C050's 16 SOURCE_ONLY KPH07 measurement guides and BOTH's original
         // 3-part W955 north-door gauge are not physical building geometry.
         hi20C050GuidesPresentation = createHi20C050GuidesPresentation(
-          gltf, sourceKind === 'work-test' ? loadedModelSha256(gltf) : '',
+          sourceNodeGltf, sourceKind === 'work-test' ? loadedModelSha256(gltf) : '',
         );
         hi20C050GuidesLayer.hidden = !hi20C050GuidesPresentation.available;
         hi20C050GuidesInput.checked = hi20C050GuidesPresentation.available;
@@ -7354,7 +7359,7 @@ const title = 'Private 3D viewer';
         // D1F-WP6 C80-030: existing 64scene 1F/BOTH roof reference,
         // shown by default and reversible without removing any source object.
         u64CeilingPresentation = createC80R2Unified64CeilingPresentation(
-          gltf, sourceKind === 'work-test' ? loadedModelSha256(gltf) : '',
+          sourceNodeGltf, sourceKind === 'work-test' ? loadedModelSha256(gltf) : '',
         );
         u64CeilingLayer.hidden = !u64CeilingPresentation.available;
         u64CeilingInput.checked = u64CeilingPresentation.available;
@@ -7363,7 +7368,7 @@ const title = 'Private 3D viewer';
           u64CeilingPresentation.available ? 'true' : 'unavailable';
         canvas.dataset.u64C030CeilingCount = String(u64CeilingPresentation.count);
         hi20C045Presentation = createHi20C045Presentation(
-          gltf, sourceKind === 'work-test' ? loadedModelSha256(gltf) : '',
+          sourceNodeGltf, sourceKind === 'work-test' ? loadedModelSha256(gltf) : '',
         );
         hi20C045WallLayer.hidden = !hi20C045Presentation.available;
         hi20C045WallInput.checked = hi20C045Presentation.available;
@@ -7374,7 +7379,7 @@ const title = 'Private 3D viewer';
         // C015: WHOLE23 alone omits the existing unified 2F/BOTH 63m² floor.
         // Exact HI20 SHA, scene root and mesh required. No new geometry.
         hi20C015WholeFloorPresentation = createHi20C015WholeFloorPresentation(
-          gltf, sourceKind === 'work-test' ? loadedModelSha256(gltf) : '',
+          sourceNodeGltf, sourceKind === 'work-test' ? loadedModelSha256(gltf) : '',
         );
         hi20C015WholeFloorLayer.hidden = !hi20C015WholeFloorPresentation.available;
         hi20C015WholeFloorInput.checked = hi20C015WholeFloorPresentation.available;
@@ -7389,7 +7394,7 @@ const title = 'Private 3D viewer';
         // The source node resolution may be async. Never mutate a newer load.
         const c029LoadVersion = modelLoadVersion;
         void createHi20C029RoofPresentation(
-          gltf, sourceKind === 'work-test' ? loadedModelSha256(gltf) : '',
+          sourceNodeGltf, sourceKind === 'work-test' ? loadedModelSha256(gltf) : '',
         ).then((presentation) => {
           if (c029LoadVersion !== modelLoadVersion) {
             presentation.dispose();
@@ -7414,7 +7419,7 @@ const title = 'Private 3D viewer';
         // This is only a reversible presentation contrast on 26 source-scene
         // glass instances (13 in 2F48 and 13 in BOTH51), SHA-locked.
         hi20BalconyGlassPresentation = createHi20BalconyGlassPresentation(
-          gltf, sourceKind === 'work-test' ? loadedModelSha256(gltf) : '',
+          sourceNodeGltf, sourceKind === 'work-test' ? loadedModelSha256(gltf) : '',
         );
         hi20BalconyGlassLayer.hidden = !hi20BalconyGlassPresentation.available;
         hi20BalconyGlassInput.checked = hi20BalconyGlassPresentation.available;
