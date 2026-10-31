@@ -1,3 +1,4 @@
+// C80-037 U64 source identity: 64 scenes, 1873 meshes, exact original nodes.
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createUnified64C037WasherTopPresentation } from '../src/scripts/privateModelUnified64C037WasherTopPresentation.mjs';
