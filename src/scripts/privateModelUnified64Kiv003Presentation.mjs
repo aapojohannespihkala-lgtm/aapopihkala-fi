@@ -1,3 +1,5 @@
+import { createUnified64C043WallsPresentation } from './privateModelUnified64C043WallsPresentation.mjs';
+
 // C80-042: existing C80R2 64scene source contains a KIV100 #003
 // WORK_TEST reference in a window opening. Hide only that unhosted root
 // in 1F60/BOTH63. Preserve actual GLB nodes, all nine other KIV vents,
@@ -58,20 +60,29 @@ export function createUnified64Kiv003Presentation(gltf,verifiedSha){
     found.push({obj:nObj,visible:nObj.visible});
   }
   if(found.length!==2 ||found[0].obj===found[1].obj)return no('shared-root');
+  // U64 C80-043: 52-scene wall-white fixes do not apply to the independent
+  // 64-scene source. Couple the exact-scene material COW to this already
+  // mounted 64-source presentation lifecycle, without touching index or
+  // privateModelUnified64Floor (reserved by parallel 64-scene work).
+  const whiteWalls=createUnified64C043WallsPresentation(gltf,verifiedSha);
   let corrected=false,disposed=false;
   const setCorrected=next=>{
     if(disposed)return false;
     corrected=Boolean(next);
     for(const {obj,visible} of found)obj.visible=corrected?false:visible;
+    if(whiteWalls.available)whiteWalls.setEnabled(corrected);
     return true;
   };
   return {
     available:true,reason:null,count:2,
+    get c043WhiteWallsApplied(){return whiteWalls.enabled;},
+    get c043WhiteWallsCount(){return whiteWalls.enabled?whiteWalls.count:0;},
     get corrected(){return corrected;},
     setCorrected,
     dispose(){
       if(disposed)return;
       setCorrected(false);
+      whiteWalls.dispose();
       disposed=true;
     },
   };
