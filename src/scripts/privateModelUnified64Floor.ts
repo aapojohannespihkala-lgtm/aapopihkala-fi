@@ -1,3 +1,4 @@
+import { createUnified64Kiv003Presentation } from './privateModelUnified64Kiv003Presentation.mjs';
 import type { Object3D } from 'three';
 import { loadedModelSha256 } from './privateModelSourceCards';
 import type { MainViewFloor } from './privateModelMainViewScope';
@@ -51,6 +52,9 @@ export function createC80R2Unified64FloorRuntime(args: {
 }) {
   const sha = loadedModelSha256(args.gltf);
   const scenes = resolveC80R2Unified64Scenes(args.gltf, sha);
+  // C80-042: exact-source reversible presentation only, no new GLB or mesh.
+  const kiv003 = createUnified64Kiv003Presentation(args.gltf, sha);
+  if (kiv003.available) kiv003.setCorrected(true);
   let active = false, disposed = false, floor: MainViewFloor = 'BOTH';
   const expectedMounted = () =>
     Object.values(scenes).some(scene => args.mounted() === scene);
@@ -59,6 +63,7 @@ export function createC80R2Unified64FloorRuntime(args: {
     isUnified64: true,
     sourceModel: 'D_C80' as const,
     sourceSha256: sha,
+    get kiv003WindowSourceStatus() { return kiv003.corrected ? 'HIDDEN_UNHOSTED_REFERENCE' : 'SOURCE_UNCHANGED'; },
     defaultScene: scenes.BOTH,
     get selectedScene() { return scenes[floor]; },
     get sceneIndex() { return C80R2_UNIFIED64_SCENES[floor]; },
@@ -84,6 +89,6 @@ export function createC80R2Unified64FloorRuntime(args: {
     },
     enforce() { /* Immutable source scene graph, never visibility inference. */ },
     referenceCandidates() { return []; },
-    dispose() { disposed = true; active = false; },
+    dispose() { kiv003.dispose(); disposed = true; active = false; },
   };
 }
