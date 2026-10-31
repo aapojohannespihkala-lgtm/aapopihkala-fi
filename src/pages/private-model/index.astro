@@ -1979,6 +1979,13 @@ const title = 'Private 3D viewer';
               <span>C80-lähdekonteksti (K17-viitteet säilyvät)</span>
             </label>
           </div>
+          <div id="hi20-c050-guides-layer" class="layer-section" hidden>
+            <label class="layer-row">
+              <input id="hi20-c050-guides-clean" type="checkbox" checked />
+              <span>Ei-fyysiset mittausoppaat pois (C80-050)</span>
+            </label>
+            <div class="layer-note">52-scene WORK_TEST: vain KPH07:n mittakaaviot sekä pohjoisoven 955 mm apuviivat. Poista valinta vertaillaksesi alkuperäiseen.</div>
+          </div>
           <div id="hi20-c045-wall-layer" class="layer-section" hidden>
             <label class="layer-row">
               <input id="hi20-c045-wall-corrected" type="checkbox" checked />
@@ -2142,6 +2149,9 @@ const title = 'Private 3D viewer';
       // @ts-ignore - isolate the genuine original 13 + numbered 7 source groups.
       import { createM5AR1125Scene64PixelIsolation }
         from '../../scripts/privateModelM5AR1125Scene64PixelIsolation.mjs';
+      // @ts-ignore - C050 SHA-locked source-only measurement guides display guard.
+      import { createHi20C050GuidesPresentation }
+        from '../../scripts/privateModelHi20C050GuidesPresentation.mjs';
       // @ts-ignore - C045 SHA-locked original-source duplicate wall display guard.
       import { createHi20C045Presentation } from '../../scripts/privateModelHi20C045Presentation.mjs';
       // @ts-ignore - exact-SHA presentation only, source GLB remains unchanged.
@@ -2655,6 +2665,9 @@ const title = 'Private 3D viewer';
       const c80ShellInput = document.querySelector<HTMLInputElement>('#c80-shell-focus')!;
       const c80ContextRow = document.querySelector<HTMLElement>('#c80-k17-context-layer')!;
       const c80ContextVisibleInput = document.querySelector<HTMLInputElement>('#c80-source-context-visible')!;
+      const hi20C050GuidesLayer = document.querySelector<HTMLElement>('#hi20-c050-guides-layer')!;
+      const hi20C050GuidesInput = document.querySelector<HTMLInputElement>('#hi20-c050-guides-clean')!;
+      let hi20C050GuidesPresentation: ReturnType<typeof createHi20C050GuidesPresentation> | null = null;
       const hi20C045WallLayer = document.querySelector<HTMLElement>('#hi20-c045-wall-layer')!;
       const hi20C045WallInput = document.querySelector<HTMLInputElement>('#hi20-c045-wall-corrected')!;
       let hi20C045Presentation: ReturnType<typeof createHi20C045Presentation> | null = null;
@@ -4372,6 +4385,7 @@ const title = 'Private 3D viewer';
       const refreshEdgeRendering = (root: any) => {
         restoreLegacyEdgeVisibility();
         mainViewScope?.enforce();
+        if (hi20C050GuidesPresentation?.cleaned) hi20C050GuidesPresentation.setCleaned(true);
         syncOtherFloorReference();
         clearEdgeOverlay();
 
@@ -7105,6 +7119,12 @@ const title = 'Private 3D viewer';
         c70PreviewSession: any = null,
       ) => {
         modelLoadVersion++;
+        hi20C050GuidesPresentation?.dispose();
+        hi20C050GuidesPresentation = null;
+        hi20C050GuidesLayer.hidden = true;
+        hi20C050GuidesInput.checked = false;
+        delete canvas.dataset.hi20C050GuidesClean;
+        delete canvas.dataset.hi20C050GuidesCount;
         hi20C045Presentation?.dispose();
         hi20C045Presentation = null;
         hi20C045WallLayer.hidden = true;
@@ -7237,6 +7257,16 @@ const title = 'Private 3D viewer';
           });
         }
         prepareDReviewStyling();
+        // C050's 16 SOURCE_ONLY KPH07 measurement guides and BOTH's original
+        // 3-part W955 north-door gauge are not physical building geometry.
+        hi20C050GuidesPresentation = createHi20C050GuidesPresentation(
+          gltf, sourceKind === 'work-test' ? loadedModelSha256(gltf) : '',
+        );
+        hi20C050GuidesLayer.hidden = !hi20C050GuidesPresentation.available;
+        hi20C050GuidesInput.checked = hi20C050GuidesPresentation.available;
+        hi20C050GuidesPresentation.setCleaned(hi20C050GuidesInput.checked);
+        canvas.dataset.hi20C050GuidesClean = hi20C050GuidesInput.checked ? 'true' : 'unavailable';
+        canvas.dataset.hi20C050GuidesCount = String(hi20C050GuidesPresentation.count);
         // C045 owner-confirmed correction already exists IN the source 52scene,
         // but the old full-length 3.635m root is simultaneously rendered.
         // Suppress only that old root (50/51) after exact source/mesh verification.
@@ -13789,6 +13819,16 @@ const title = 'Private 3D viewer';
         (mainViewScope as any).setFloorShellMode(c80ShellInput.checked ? 'FOCUS' : 'SOURCE');
         if (selectedObject && !isEffectivelyVisible(selectedObject,modelRoot)) clearSelection();
         refreshEdgeRendering((mainViewScope as any).selectedScene);
+      });
+      hi20C050GuidesInput.addEventListener('change', () => {
+        if (!hi20C050GuidesPresentation?.available) {
+          hi20C050GuidesInput.checked = false;
+          return;
+        }
+        hi20C050GuidesPresentation.setCleaned(hi20C050GuidesInput.checked);
+        canvas.dataset.hi20C050GuidesClean = String(hi20C050GuidesInput.checked);
+        refreshEdgeRendering(modelRoot.children[0] ?? null);
+        if (selectedObject && !isEffectivelyVisible(selectedObject, modelRoot)) clearSelection();
       });
       hi20C045WallInput.addEventListener('change', () => {
         if (!hi20C045Presentation?.available) {
