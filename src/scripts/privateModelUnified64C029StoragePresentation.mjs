@@ -51,7 +51,7 @@ export function createUnified64C029StoragePresentation(gltf,sha){
   if(sha!==U64_C029_SHA||j?.asset?.version!=='2.0'||
     j?.asset?.extras?.current!==false||j?.asset?.extras?.asBuilt!==false||
     j?.scene!==0||j?.scenes?.length!==64||scenes?.length!==64||
-    j?.nodes?.length!==6518||j?.meshes?.length!==1861||
+    j?.nodes?.length!==6518||j?.meshes?.length!==1873||
     typeof assoc?.get!=='function')return unavail('exact-source');
   if(j.meshes?.[1725]?.primitives?.[0]?.material!==281||
     j.meshes?.[1726]?.primitives?.[0]?.material!==281||
