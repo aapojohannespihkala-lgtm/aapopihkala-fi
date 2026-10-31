@@ -2148,6 +2148,7 @@ const title = 'Private 3D viewer';
 
     <script>
       import { THREE, OrbitControls, GLTFLoader } from '../../scripts/threeRuntime';
+      import { installMiddleMouseLookAround } from '../../scripts/privateModelMiddleMouseLookAround';
       // @ts-ignore - source-bound service model has focused browser coverage.
       import { loadD1FServiceModel, mountD1FServiceModel } from '../../scripts/privateModelD1FServiceRuntime.mjs';
       // @ts-ignore - exact-byte WORK_TEST entry covered by loader regressions.
@@ -2964,6 +2965,9 @@ const title = 'Private 3D viewer';
       controls.screenSpacePanning = true;
       // Zoom toward the point under the cursor instead of the fixed orbit target.
       controls.zoomToCursor = true;
+      // OrbitControls uses middle-dolly by default. Capture middle mouse for
+      // fixed-eye look around while leaving LMB orbit, RMB pan and wheel zoom intact.
+      installMiddleMouseLookAround({ camera, controls, canvas });
 
       // OrbitControls scales the camera-to-target distance on every wheel step, so
       // the step shrinks towards zero near the target and the camera gets stuck
