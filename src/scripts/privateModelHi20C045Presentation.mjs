@@ -1,3 +1,4 @@
+import { createHi20C048WallHeadsPresentation } from './privateModelHi20C048WallHeadPresentation.mjs';
 // C80-045: WORK_TEST presentation only, immutable original 52-scene GLB.
 // The 3.635 m old terrace wall must not be rendered together with the existing
 // 1.709 m replacement. Never change geometry, source links or default/C70.
@@ -42,10 +43,17 @@ export function createHi20C045Presentation(gltf, verifiedSha) {
       return unavailable('old-or-corrected-wall-not-exact');
     roots.push(old.obj);
   }
+  // C80-048 is an independent existing donor correction, applied in the same
+  // verified HI20 source lifecycle without modifying index.astro (reserved by
+  // the parallel C80-050 viewer task). It does NOT follow the C045 checkbox.
+  const whiteHeads=createHi20C048WallHeadsPresentation(gltf, verifiedSha);
+  const whiteHeadsApplied=whiteHeads.available && whiteHeads.setEnabled(true);
   const originals=roots.map(obj=>obj.visible);
   let corrected=false;
   return {
     available:true,reason:null,count:roots.length,
+    c048WhiteHeadsApplied:whiteHeadsApplied,
+    c048WhiteHeadsCount:whiteHeadsApplied?whiteHeads.count:0,
     get corrected(){return corrected;},
     setCorrected(next){
       const enabled=Boolean(next);
@@ -54,6 +62,7 @@ export function createHi20C045Presentation(gltf, verifiedSha) {
       return true;
     },
     dispose(){
+      whiteHeads.dispose();
       roots.forEach((root,i)=>{root.visible=originals[i];});
       corrected=false;
     },
