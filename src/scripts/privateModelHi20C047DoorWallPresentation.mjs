@@ -1,3 +1,5 @@
+import { createHi20C029SideWallsPresentation } from './privateModelHi20C029SideWallsPresentation.mjs';
+
 // C80-047: owner-approved 100 mm DISPLAY_ONLY storage door wall (31.10.2026).
 // Exact HI20 52-scene COW. Preserve external X=2.337, the original door opening,
 // all source links, both scenes, and noncurrent HOST_HOLD limitations.
@@ -50,13 +52,18 @@ export function createHi20C047DoorWallPresentation(gltf,sha) {
       return unavailable('wall-bounds');
     targets.push({obj,original:geo});
   }
+  // C80-029 WEST+NORTH original source planes, DISPLAY_ONLY 60mm helper.
+  // This remains independent of the C047 100mm door wall.
+  const sideWalls=createHi20C029SideWallsPresentation(gltf,sha);
   let enabled=false, clones=[];
   function setEnabled(next) {
     const want=Boolean(next);
     if(want===enabled) return true;
     if(!want) {
       targets.forEach((t,i)=>{t.obj.geometry=t.original;clones[i]?.dispose?.();});
-      clones=[]; enabled=false;return true;
+      clones=[]; enabled=false;
+      if(sideWalls.available) sideWalls.setEnabled(false);
+      return true;
     }
     const made=[];
     try {
@@ -76,8 +83,12 @@ export function createHi20C047DoorWallPresentation(gltf,sha) {
       made.forEach(g=>g.dispose?.());return false;
     }
     targets.forEach((t,i)=>{t.obj.geometry=made[i];});
-    clones=made;enabled=true;return true;
+    clones=made;enabled=true;
+    if(sideWalls.available) sideWalls.setEnabled(true);
+    return true;
   }
   return {available:true,reason:null,count:2,get enabled(){return enabled;},
-    setEnabled,dispose(){setEnabled(false);}};
+    get c029SideWallsAvailable(){return sideWalls.available;},
+    get c029SideWallsEnabled(){return sideWalls.enabled;},
+    setEnabled,dispose(){setEnabled(false);sideWalls.dispose();}};
 }
