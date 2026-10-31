@@ -58,5 +58,8 @@ test('restores after dispose without modifying other model scenes',()=>{
   const api=createUnified64C035LobbyPresentation(f.gltf,U64_C035_SHA);
   assert(api.setEnabled(true));api.dispose();
   assert.equal(other.material.color,'other');
+  // Changing the owner-white opening must not create a door or alter 2F roots.
+  assert.deepEqual(f.gltf.parser.json.scenes[62].nodes,[]);
+  assert.deepEqual(f.gltf.parser.json.nodes[6349].children,[6346,6347,6348]);
   assert(f.jambs.every(x=>x.mesh.material===x.original));
 });
