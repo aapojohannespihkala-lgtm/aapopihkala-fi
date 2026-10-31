@@ -20,13 +20,13 @@ function fixture(){
     [50,6349,6379,[6346,6347,6348]],
     [51,6400,6394,[6397,6398,6399]]
   ]){
-    nodes[root]={children:ids};
+    nodes[root]={name:'C80-035_D1F_LOBBY_CORRIDOR_DOORLESS_OWNER_CONFIRMED_OPTIN_ROOT',extras:{ownerCorrection:'2026-10-30 C80-035 + C80-048 passage has NO DOOR'},children:ids};
     nodes[ref]={mesh:1835};
     const r={name:'wall reference',isMesh:true,material:material(),parent:scenes[scene]};
     scenes[scene].children.push(r);associations.set(r,{nodes:ref});objects.set(ref,r);
     for(let i=0;i<3;i++){
       const id=ids[i], idx=1730+i;
-      nodes[id]={mesh:idx,extras:{sourceLinks:[{doc:'C80-035'}]}};
+      nodes[id]={name:'C80-035_HI16_WEST_JAMB_WORK_ASSUMPTION_C80-035_OWNER_DOORLESS_OPTIN',mesh:idx,extras:{workAssumption:true,sourceLinks:[{doc:'C80-035'}]}};
       meshes[idx]={primitives:[{material:224}]};
       const obj={isMesh:true,material:material(true),geometry:{identity:id},
         visible:true,parent:scenes[scene]};
