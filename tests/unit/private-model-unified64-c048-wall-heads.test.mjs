@@ -33,6 +33,8 @@ function fixture() {
   for(const mat of [65,66]) {
     materials[mat]={alphaMode:'BLEND',pbrMetallicRoughness:{baseColorFactor:[.93,.79,.51,.83]}};
   }
+  nodes[6491]={name:'K7D_V11_OPENING_HEADS_THREE_PLUS_WHITE_WALL_STAGING',children:[5353,1486,1487]};
+  nodes[6494]={name:'K7D_V11_OPENING_HEADS_THREE_PLUS_WHITE_WALL_STAGING',children:[5337,410,411]};
   for(const [scene,index] of [[60,6379],[63,6394]]) {
     nodes[index]={mesh:1835,name:'HI06_NORTH_APERTURED_FACADE'};
     const obj={name:nodes[index].name,isMesh:true,material:originalWhite,parent:scenes[scene]};
@@ -89,5 +91,8 @@ test('64-scene identity mismatch and mutated provenance fail closed',()=>{
   assert.equal(createUnified64C048WallHeadsPresentation(f.gltf,C048_U64_SOURCE_SHA).available,false);
   f.gltf.parser.json.scenes.push({});
   f.gltf.parser.json.nodes[1486].extras.sourceLinks=[];
+  assert.equal(createUnified64C048WallHeadsPresentation(f.gltf,C048_U64_SOURCE_SHA).available,false);
+  f.gltf.parser.json.nodes[1486].extras.sourceLinks=[{docId:'source1'},{docId:'source2'}];
+  f.gltf.parser.json.nodes[6491].children=[5353,1486];
   assert.equal(createUnified64C048WallHeadsPresentation(f.gltf,C048_U64_SOURCE_SHA).available,false);
 });
