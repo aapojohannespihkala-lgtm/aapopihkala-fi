@@ -1,3 +1,4 @@
+import { createUnified64C029StoragePresentation } from './privateModelUnified64C029StoragePresentation.mjs';
 import { createUnified64C024BalconyFloorPresentation } from './privateModelUnified64C024BalconyFloorPresentation.mjs';
 import { createUnified64C048WallHeadsPresentation } from './privateModelUnified64C048WallHeadsPresentation.mjs';
 import { createUnified64Kiv003Presentation } from './privateModelUnified64Kiv003Presentation.mjs';
@@ -68,6 +69,9 @@ export function createC80R2Unified64FloorRuntime(args: {
   // C80-048: owner-white 1F/BOTH V11 wall heads, immutable-source COW.
   const c048WhiteHeads = createUnified64C048WallHeadsPresentation(args.gltf, sha);
   if (c048WhiteHeads.available) c048WhiteHeads.setEnabled(true);
+  // C80-029: reuse the original storage WEST/NORTH and ROOF source roots,
+  // absent from U64 1F/BOTH; the existing C047 doorwall is never replaced.
+  const c029Storage = createUnified64C029StoragePresentation(args.gltf, sha);
   let active = false, disposed = false, floor: MainViewFloor = 'BOTH';
   const expectedMounted = () =>
     Object.values(scenes).some(scene => args.mounted() === scene);
@@ -82,6 +86,8 @@ export function createC80R2Unified64FloorRuntime(args: {
     get c024BalconyFloorStatus() { return c024BalconyFloor.enabled ? 'DARK_PHOTO_FINISH_WORK_TEST' : 'SOURCE_UNCHANGED'; },
     get c048WhiteHeadsStatus() { return c048WhiteHeads.enabled ? 'OWNER_WHITE_V11_HEADS_WORK_TEST' : 'SOURCE_UNCHANGED'; },
     get c048WhiteHeadsCount() { return c048WhiteHeads.enabled ? c048WhiteHeads.count : 0; },
+    get c029StorageStatus() { return c029Storage.enabled ? 'WEST_NORTH_ROOF_WORK_TEST' : 'SOURCE_UNCHANGED'; },
+    get c029StorageCount() { return c029Storage.enabled ? c029Storage.count : 0; },
     defaultScene: scenes.BOTH,
     get selectedScene() { return scenes[floor]; },
     get sceneIndex() { return C80R2_UNIFIED64_SCENES[floor]; },
@@ -107,6 +113,6 @@ export function createC80R2Unified64FloorRuntime(args: {
     },
     enforce() { /* Immutable source scene graph, never visibility inference. */ },
     referenceCandidates() { return []; },
-    dispose() { c048WhiteHeads.dispose(); c024BalconyFloor.dispose(); c026Terrain.dispose(); kiv003.dispose(); disposed = true; active = false; },
+    dispose() { c029Storage.dispose(); c048WhiteHeads.dispose(); c024BalconyFloor.dispose(); c026Terrain.dispose(); kiv003.dispose(); disposed = true; active = false; },
   };
 }
