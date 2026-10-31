@@ -9,6 +9,7 @@ import { createHi20C020WhiteSideWallPresentation } from './privateModelHi20C020W
 import { createHi20C020BoardPresentation } from './privateModelHi20C020BoardPresentation.mjs';
 import { createHi20C026TerrainPresentation } from './privateModelHi20C026TerrainPresentation.mjs';
 import { createHi20C027ContourPresentation } from './privateModelHi20C027ContourPresentation.mjs';
+import { createHi20C049FenceJunctionPresentation } from './privateModelHi20C049FenceJunctionPresentation.mjs';
 // C80-045: WORK_TEST presentation only, immutable original 52-scene GLB.
 // The 3.635 m old terrace wall must not be rendered together with the existing
 // 1.709 m replacement. Never change geometry, source links or default/C70.
@@ -95,6 +96,11 @@ export function createHi20C045Presentation(gltf, verifiedSha) {
   // Independent reversible COW, no duplicate terrain geometry.
   const contours=createHi20C027ContourPresentation(gltf,verifiedSha);
   const contoursApplied=contours.available && contours.setEnabled(true);
+  // C80-049 D/C wall is already 46mm shorter. Its last source-only endcap
+  // still competes with the exact screenpost bottom at world Z=1.704m.
+  // Copy-on-write trims only the post-covered endcap, NOT the wall or posts.
+  const fenceJunction=createHi20C049FenceJunctionPresentation(gltf,verifiedSha);
+  const fenceJunctionApplied=fenceJunction.available && fenceJunction.setEnabled(true);
   const originals=roots.map(obj=>obj.visible);
   let corrected=false;
   return {
@@ -121,6 +127,8 @@ export function createHi20C045Presentation(gltf, verifiedSha) {
     c026TerrainCount:terrainApplied?terrain.count:0,
     c027ContoursApplied:contoursApplied,
     c027ContoursCount:contoursApplied?contours.count:0,
+    c049FenceJunctionApplied:fenceJunctionApplied,
+    c049FenceJunctionCount:fenceJunctionApplied?fenceJunction.count:0,
     get corrected(){return corrected;},
     setCorrected(next){
       const enabled=Boolean(next);
@@ -129,6 +137,7 @@ export function createHi20C045Presentation(gltf, verifiedSha) {
       return true;
     },
     dispose(){
+      fenceJunction.dispose();
       contours.dispose();
       terrain.dispose();
       r5WhiteDoor.dispose();
