@@ -53,6 +53,11 @@ test('C025 exact source: only two source roofs in 2F/BOTH, opt-in OFF, reversibl
   for(const i of [48,51]) assert.equal(gltf.scenes[i].children[0].visible,true);
   p.setVisible(false);
   for(const i of [48,51]) assert.equal(gltf.scenes[i].children[0].visible,false);
+  // Re-entry would overlay two transparent copies and recreate flicker.
+  const duplicate=await createHi20C025RoofGhostPresentation(gltf,C025_SOURCE_SHA);
+  assert.equal(duplicate.available,false);
+  assert.equal(duplicate.reason,'roof-provenance-or-scene-membership');
+  assert.equal(gltf.scenes[48].children.length,1);
   p.dispose();
   for(const i of [48,51]) assert.equal(gltf.scenes[i].children.length,0);
   assert.equal(p.setVisible(true),false);
