@@ -1,4 +1,5 @@
 import { createUnified64C043WallsPresentation } from './privateModelUnified64C043WallsPresentation.mjs';
+import { createUnified64C035LobbyPresentation } from './privateModelUnified64C035LobbyPresentation.mjs';
 
 // C80-042: existing C80R2 64scene source contains a KIV100 #003
 // WORK_TEST reference in a window opening. Hide only that unhosted root
@@ -63,23 +64,29 @@ export function createUnified64Kiv003Presentation(gltf,verifiedSha){
   // U64 C80-043: original 52scene white-wall fixes cannot affect this 64scene source.
   // Mount independent source-locked material-only COW in the existing U64 lifecycle.
   const whiteWalls=createUnified64C043WallsPresentation(gltf,verifiedSha);
+  // Reuse the completed C80-035 white doorless opening, now in unified64 1F/BOTH.
+  const whiteLobby=createUnified64C035LobbyPresentation(gltf,verifiedSha);
   let corrected=false,disposed=false;
   const setCorrected=next=>{
     if(disposed)return false;
     corrected=Boolean(next);
     for(const {obj,visible} of found)obj.visible=corrected?false:visible;
     if(whiteWalls.available)whiteWalls.setEnabled(corrected);
+    if(whiteLobby.available)whiteLobby.setEnabled(corrected);
     return true;
   };
   return {
     available:true,reason:null,count:2,
     get c043WhiteWallsApplied(){return whiteWalls.enabled;},
     get c043WhiteWallsCount(){return whiteWalls.enabled?whiteWalls.count:0;},
+    get c035DoorlessLobbyApplied(){return whiteLobby.enabled;},
+    get c035DoorlessLobbyCount(){return whiteLobby.enabled?whiteLobby.count:0;},
     get corrected(){return corrected;},
     setCorrected,
     dispose(){
       if(disposed)return;
       setCorrected(false);
+      whiteLobby.dispose();
       whiteWalls.dispose();
       disposed=true;
     },
