@@ -2,8 +2,6 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createUnified64C048WallHeadsPresentation, C048_U64_SOURCE_SHA }
   from '../../src/scripts/privateModelUnified64C048WallHeadsPresentation.mjs';
-import { createHi20C045Presentation }
-  from '../../src/scripts/privateModelHi20C045Presentation.mjs';
 
 const heads = [
   [60,1486,425,65,'D1F_V11_OPENING_HEAD_VH_WEST'],
@@ -48,20 +46,6 @@ function fixture() {
     associations.set(mesh,{nodes:id});
     scenes[si].children.push(mesh);
     selected.push(mesh);
-  }
-  // C045 helper expects source-scene roots. Keep its controls independent.
-  for(const spec of [
-    [60,6380,1843,'C80-028_WEST_X0_TERRACE_SIDE_WALL_1F_WORK_TEST_OPTIN__D1F_C048_COW_WHITE',3.635],
-    [60,6457,1858,'HI20_C045_CLIPPED_OWNER_WHITE_C048_1F_OPTIN',1.709],
-    [63,6395,1843,'C80-028_WEST_X0_TERRACE_SIDE_WALL_BOTH_WORK_TEST_OPTIN__D1F_C048_COW_WHITE',3.635],
-    [63,6460,1858,'HI20_C045_CLIPPED_OWNER_WHITE_C048_BOTH_OPTIN',1.709],
-  ]) {
-    const [si,id,mi,name,length]=spec;
-    nodes[id]={mesh:mi,name};
-    const obj={name,isMesh:true,visible:true,parent:scenes[si],
-      geometry:{boundingBox:{min:{z:0},max:{z:length}},computeBoundingBox(){}}};
-    scenes[si].children.push(obj);
-    associations.set(obj,{nodes:id});
   }
   return {gltf:{scenes,parser:{associations,json:{
     asset:{version:'2.0',extras:{current:false,asBuilt:false}},
