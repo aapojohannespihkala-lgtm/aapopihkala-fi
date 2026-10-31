@@ -29,7 +29,8 @@ function source() {
     mesh:1795,name:root.name,extras:{
       stage:'WORK_TEST',physicalHost:'HOST_HOLD',current:false,asBuilt:false,
       areaM2:63.006272305026044,addedStripAreaM2:0.15479991851807995,
-      sourceFloorNode:5869,sourceLinks:['C80-017 HI20 floor'],
+      sourceFloorNode:5869,sourceMesh:1787,humanReview:'NOT_RUN',
+      sourceHI20GLBSHA256:'8ddb398d9eb981d92ed444afcfad93ceb2224b1ce9898599553ede9b4136b87d',sourceLinks:['C80-017 HI20 floor'],
     },
   };
   const meshes=Array.from({length:1796},()=>({}));
