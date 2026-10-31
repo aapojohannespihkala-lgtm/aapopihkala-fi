@@ -1,6 +1,6 @@
 // C80-020 / D2F-WP3 U64: source-locked pale INNER, dark OUTER balcony boards.
 // This ports the already proven 52-scene split to exact 64-scene 2F62/BOTH63, without new geometry. Reversible WORK_TEST, not a physical color survey.
-export const C020_U64_BOARD_SOURCE_SHA='15a13623be601b1cbc70aaced46e497146d50894da9a3a54b4c47b438b4acee9';
+export const C020_U64_BOARD_SOURCE_SHA='22ddaac08a290bcaa38d2b9985e9e851c25d92d3da111134062dae13a96685e8';
 const TARGETS=[
   {scene:62,node:5795,name:'C80_020_HI14_2F_BOARDING_WORK_TEST_NONCURRENT'},
   {scene:63,node:5797,name:'C80_020_HI14_BOTH_BOARDING_WORK_TEST_NONCURRENT'},
