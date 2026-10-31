@@ -13,7 +13,7 @@
 
 const sanitize = (name) => String(name).replace(/\s/g, '_').replace(/[[\].:/]/g, '');
 
-const nameMatches = (object, nodeDef) => {
+export const nameMatches = (object, nodeDef) => {
   if (typeof nodeDef?.name !== 'string' || nodeDef.name === '') return true;
   const expected = sanitize(nodeDef.name);
   const actual = String(object?.name ?? '');
