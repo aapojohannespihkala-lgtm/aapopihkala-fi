@@ -9,6 +9,7 @@ import { createHi20C020WhiteSideWallPresentation } from './privateModelHi20C020W
 import { createHi20C020BoardPresentation } from './privateModelHi20C020BoardPresentation.mjs';
 import { createHi20C026TerrainPresentation } from './privateModelHi20C026TerrainPresentation.mjs';
 import { createHi20C027ContourPresentation } from './privateModelHi20C027ContourPresentation.mjs';
+import { createHi20C049FenceJunctionPresentation } from './privateModelHi20C049FenceJunctionPresentation.mjs';
 import { createHi20C016NorthWallPresentation } from './privateModelHi20C016NorthWallPresentation.mjs';
 // C80-045: WORK_TEST presentation only, immutable original 52-scene GLB.
 // The 3.635 m old terrace wall must not be rendered together with the existing
@@ -100,6 +101,10 @@ export function createHi20C045Presentation(gltf, verifiedSha) {
   // Source-bound reversible clone; original 52-scene GLB remains immutable.
   const northWall=createHi20C016NorthWallPresentation(gltf,verifiedSha);
   const northWallApplied=northWall.available && northWall.setEnabled(true);
+  // C80-049: source-only D/C wall endcap is still coplanar with the existing
+  // screenpost bottom after the prior 46 mm wall trim. Independent COW.
+  const fenceJunction=createHi20C049FenceJunctionPresentation(gltf,verifiedSha);
+  const fenceJunctionApplied=fenceJunction.available && fenceJunction.setEnabled(true);
   const originals=roots.map(obj=>obj.visible);
   let corrected=false;
   return {
@@ -126,6 +131,8 @@ export function createHi20C045Presentation(gltf, verifiedSha) {
     c026TerrainCount:terrainApplied?terrain.count:0,
     c027ContoursApplied:contoursApplied,
     c027ContoursCount:contoursApplied?contours.count:0,
+    c049FenceJunctionApplied:fenceJunctionApplied,
+    c049FenceJunctionCount:fenceJunctionApplied?fenceJunction.count:0,
     c016NorthWallApplied:northWallApplied,
     c016NorthWallCount:northWallApplied?northWall.count:0,
     get corrected(){return corrected;},
@@ -136,6 +143,7 @@ export function createHi20C045Presentation(gltf, verifiedSha) {
       return true;
     },
     dispose(){
+      fenceJunction.dispose();
       northWall.dispose();
       contours.dispose();
       terrain.dispose();
