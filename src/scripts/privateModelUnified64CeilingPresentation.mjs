@@ -28,7 +28,7 @@ export function createC80R2Unified64CeilingPresentation(gltf, verifiedSha){
      json?.asset?.version!=='2.0' || json?.scene!==0 ||
      json?.asset?.extras?.asBuilt!==false || json?.asset?.extras?.current!==false ||
      json?.scenes?.length!==64 || gltf?.scenes?.length!==64 ||
-     json?.nodes?.length!==6518 || json?.meshes?.length!==1861 ||
+     json?.nodes?.length!==6518 || json?.meshes?.length!==1873 ||
      typeof association?.get!=='function')
     return unavailable('exact-source');
   const matched=[];
