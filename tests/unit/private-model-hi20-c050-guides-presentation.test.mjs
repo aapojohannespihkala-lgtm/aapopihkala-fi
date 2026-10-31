@@ -58,3 +58,20 @@ test('reject changed source SHA, scene count, node identity, mesh, or parent',()
   assert.equal(createHi20C050GuidesPresentation(f.gltf,C050_SOURCE_SHA).available,false);
   assert.equal(f.objects.get(484).visible,true);
 });
+
+test('originally hidden guides stay hidden after reversible cleanup and unmount',()=>{
+  const f=fixture();
+  f.objects.get(5746).visible=false;
+  f.objects.get(484).visible=false;
+  const api=createHi20C050GuidesPresentation(f.gltf,C050_SOURCE_SHA);
+  assert.equal(api.available,true);
+  assert.equal(api.setCleaned(true),true);
+  assert.equal(api.setCleaned(true),true); // animation-loop idempotence
+  api.setCleaned(false);
+  assert.equal(f.objects.get(5746).visible,false);
+  assert.equal(f.objects.get(484).visible,false);
+  assert.equal(f.objects.get(485).visible,true); // physical door owner untouched
+  api.dispose();
+  assert.equal(f.objects.get(5746).visible,false);
+  assert.equal(f.objects.get(484).visible,false);
+});
