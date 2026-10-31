@@ -18,7 +18,7 @@ const SCENES = {
 type Loaded = {
   scene: Object3D;
   scenes: Object3D[];
-  parser?: { json?: any };
+  parser?: { json?: any; associations?: Map<Object3D, { nodes?: number }> };
 };
 const fail = (reason: string): never => { throw new Error('HI20_UNIFIED52_FAIL_CLOSED: ' + reason); };
 
@@ -46,6 +46,99 @@ export function resolveHi20Unified52Scenes(gltf: Loaded, sha: string | null) {
   return resolved;
 }
 
+
+const BALCONY_GLASS_DISPLAY_OPACITY = 0.58; // Viewer-only WORK_TEST contrast, not a source material claim.
+const BALCONY_GLASS_MESH = 205;
+const BALCONY_GLASS_MATERIAL = 18;
+const BALCONY_GLASS_NODES = Object.freeze({
+  '2F': [...Array.from({ length: 8 }, (_, i) => 2221 + i), ...Array.from({ length: 5 }, (_, i) => 5943 + i)],
+  BOTH: [...Array.from({ length: 8 }, (_, i) => i), ...Array.from({ length: 5 }, (_, i) => 5943 + i)],
+});
+
+// C80-020: the exact 52scene source already contains 8 upper and 5 lower panes.
+// Do not construct a replacement mesh or mutate shared source materials. All
+// panes must bind in BOTH scene48 and scene51 before any viewer-only styling.
+export function applyHi20BalconyGlassVisibility(
+  gltf: Loaded,
+  scenes: Record<MainViewFloor, Object3D>,
+  sha: string | null,
+) {
+  if (sha !== HI20_UNIFIED52_SHA) fail('balcony presentation source SHA mismatch');
+  const source = gltf.parser?.json;
+  const sourceMaterial = source?.materials?.[BALCONY_GLASS_MATERIAL];
+  const sourceMesh = source?.meshes?.[BALCONY_GLASS_MESH];
+  const rgba = sourceMaterial?.pbrMetallicRoughness?.baseColorFactor;
+  if (sourceMaterial?.alphaMode !== 'BLEND' || sourceMaterial?.doubleSided !== true ||
+      !Array.isArray(rgba) || rgba.length !== 4 ||
+      Math.abs(rgba[3] - 0.24) > 0.0001 ||
+      !Array.isArray(sourceMesh?.primitives) || sourceMesh.primitives.length !== 1 ||
+      sourceMesh.primitives[0]?.material !== BALCONY_GLASS_MATERIAL)
+    fail('balcony source material/mesh changed');
+  const associations = gltf.parser?.associations;
+  const staged = new Set<any>();
+  const counts: Record<'2F' | 'BOTH', number> = { '2F': 0, BOTH: 0 };
+  for (const floor of ['2F', 'BOTH'] as const) {
+    const expected = new Map<number, string>();
+    for (const id of BALCONY_GLASS_NODES[floor]) {
+      const node = source?.nodes?.[id];
+      const name = node?.name;
+      if (node?.mesh !== BALCONY_GLASS_MESH || typeof name !== 'string' ||
+          !(name.startsWith('G2_D_2F_BALCONY_GLASS_FIELD_20261024_PANEL_') ||
+            name.startsWith('C80_020_D2F_WP3_LOWER_INNER_GLAZING_PANEL_')))
+        fail(floor + ' source balcony node contract mismatch at ' + id);
+      expected.set(id, name);
+    }
+    const seen = new Set<number>();
+    scenes[floor].traverse((object: any) => {
+      if (!object?.isMesh) return;
+      let ancestor: any = object;
+      let index: number | undefined;
+      while (ancestor && index === undefined) {
+        const candidate = associations?.get(ancestor)?.nodes;
+        if (Number.isInteger(candidate)) index = candidate;
+        ancestor = ancestor.parent;
+      }
+      // Loader clones may not retain parser associations. Name fallback is
+      // allowed ONLY inside the exact-SHA and exact-scene/node roster.
+      if (index === undefined) {
+        const matches = [...expected].filter(([, name]) =>
+          object.name === name || object.name.startsWith(name + '_'));
+        if (matches.length === 1) index = matches[0][0];
+      }
+      if (index === undefined || !expected.has(index)) return;
+      const name = expected.get(index)!;
+      if (!(object.name === name || object.name.startsWith(name + '_')))
+        return;
+      if (seen.has(index)) fail(floor + ' duplicated balcony pane ' + index);
+      seen.add(index);
+      staged.add(object);
+    });
+    counts[floor] = seen.size;
+  }
+  // Incomplete mapping is not grounds to hide an existing pane or block the
+  // original model: fall back to untouched source, leave visual review open.
+  if (counts['2F'] !== 13 || counts.BOTH !== 13)
+    return { applied: false, counts, opacity: null };
+  for (const mesh of staged) {
+    const material = mesh.material;
+    if (Array.isArray(material) || !material ||
+        typeof material.clone !== 'function' ||
+        typeof material.opacity !== 'number' ||
+        Math.abs(material.opacity - 0.24) > 0.0001 ||
+        !material.transparent)
+      return { applied: false, counts, opacity: null };
+  }
+  for (const mesh of staged) {
+    const material = mesh.material.clone();
+    material.opacity = BALCONY_GLASS_DISPLAY_OPACITY;
+    material.transparent = true;
+    material.depthWrite = false;
+    material.needsUpdate = true;
+    mesh.material = material; // Copy-on-write, geometry/sourceLinks untouched.
+  }
+  return { applied: true, counts, opacity: BALCONY_GLASS_DISPLAY_OPACITY };
+}
+
 export function createHi20Unified52FloorRuntime(args: {
   gltf: Loaded;
   mount: (scene: Object3D) => void;
@@ -53,6 +146,7 @@ export function createHi20Unified52FloorRuntime(args: {
 }) {
   const sha = loadedModelSha256(args.gltf);
   const scenes = resolveHi20Unified52Scenes(args.gltf, sha);
+  const balconyGlassPresentation = applyHi20BalconyGlassVisibility(args.gltf, scenes, sha);
   let active = false, disposed = false, floor: MainViewFloor = 'BOTH';
   const expectedMounted = () =>
     Object.values(scenes).some(scene => args.mounted() === scene);
@@ -61,6 +155,7 @@ export function createHi20Unified52FloorRuntime(args: {
     isUnified52: true,
     sourceModel: 'D_C80' as const,
     sourceSha256: sha,
+    balconyGlassPresentation,
     defaultScene: scenes.BOTH,
     get selectedScene() { return scenes[floor]; },
     get sceneIndex() { return HI20_UNIFIED52_SCENES[floor]; },
