@@ -28,6 +28,8 @@ export async function createHi20C025RoofGhostPresentation(gltf,sha){
       !json.scenes[item.sourceScene]?.nodes?.includes(item.sourceNode)||
       json.scenes[item.targetScene]?.nodes?.includes(item.sourceNode)||
       !gltf.scenes[item.targetScene]?.isScene||
+      gltf.scenes[item.targetScene].children.some(child=>
+        child?.name===node.name&&child?.userData?.sourceDriveId===meta.sourceDriveId)||
       json.nodes.some(parent=>parent.children?.includes(item.sourceNode)))
       return fail('roof-provenance-or-scene-membership');
   }
