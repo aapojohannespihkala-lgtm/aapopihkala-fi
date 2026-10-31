@@ -2014,6 +2014,13 @@ const title = 'Private 3D viewer';
             </label>
             <div class="layer-note">Vain lasien esityspeittävyys, 24 % / 60 %. Vertaa alkuperäiseen poistamalla valinta. GLB ei muutu.</div>
           </div>
+          <div id="u64-c030-ceiling-layer" class="layer-section" hidden>
+            <label class="layer-row">
+              <input id="u64-c030-ceiling-visible" type="checkbox" checked />
+              <span>Alakerran viitekatto (C80-030, WORK_TEST)</span>
+            </label>
+            <div class="layer-note">Neljä olemassa olevaa kevyttä sisäkattopintaa, 1F ja BOTH. Ei muuta vesikattoa, geometriaa tai 2F-näkymää.</div>
+          </div>
           <label class="layer-row">
             <input id="roof-layer-visible" type="checkbox" checked />
             <span>Vesikatto</span>
@@ -2405,6 +2412,9 @@ const title = 'Private 3D viewer';
         C80R2_UNIFIED64_SHA,
         resolveC80R2Unified64Scenes, createC80R2Unified64FloorRuntime,
       } from '../../scripts/privateModelUnified64Floor';
+      // @ts-ignore - exact-SHA nonphysical ceiling presentation, 64scene only.
+      import { createC80R2Unified64CeilingPresentation }
+        from '../../scripts/privateModelUnified64CeilingPresentation.mjs';
       import { prepareC70Preview, createC70MainViewBridge } from '../../scripts/c70_main_view_bridge.mjs';
       import { createC80K17ViewerBridgeAdapter } from '../../scripts/c80_k17_viewer_bridge_adapter.mjs';
       // @ts-ignore - source-SHA-locked presentation policies only.
@@ -2702,6 +2712,9 @@ const title = 'Private 3D viewer';
       const hi20BalconyGlassLayer = document.querySelector<HTMLElement>('#hi20-balcony-glass-contrast-layer')!;
       const hi20BalconyGlassInput = document.querySelector<HTMLInputElement>('#hi20-balcony-glass-contrast')!;
       let hi20BalconyGlassPresentation: ReturnType<typeof createHi20BalconyGlassPresentation> | null = null;
+      const u64CeilingLayer = document.querySelector<HTMLElement>('#u64-c030-ceiling-layer')!;
+      const u64CeilingInput = document.querySelector<HTMLInputElement>('#u64-c030-ceiling-visible')!;
+      let u64CeilingPresentation: ReturnType<typeof createC80R2Unified64CeilingPresentation> | null = null;
       const roofLayerVisibleInput = document.querySelector<HTMLInputElement>('#roof-layer-visible');
       const roofLayerOpacityInput = document.querySelector<HTMLInputElement>('#roof-layer-opacity');
       const roofLayerOpacityValue = document.querySelector<HTMLOutputElement>('#roof-layer-opacity-value');
@@ -7170,6 +7183,12 @@ const title = 'Private 3D viewer';
         hi20C015WholeFloorInput.checked = false;
         delete canvas.dataset.hi20C015WholeFloorVisible;
         delete canvas.dataset.hi20C015WholeFloorCount;
+        u64CeilingPresentation?.dispose();
+        u64CeilingPresentation = null;
+        u64CeilingLayer.hidden = true;
+        u64CeilingInput.checked = false;
+        delete canvas.dataset.u64C030CeilingVisible;
+        delete canvas.dataset.u64C030CeilingCount;
         hi20C045Presentation?.dispose();
         hi20C045Presentation = null;
         hi20C045WallLayer.hidden = true;
@@ -7315,6 +7334,17 @@ const title = 'Private 3D viewer';
         // C045 owner-confirmed correction already exists IN the source 52scene,
         // but the old full-length 3.635m root is simultaneously rendered.
         // Suppress only that old root (50/51) after exact source/mesh verification.
+        // D1F-WP6 C80-030: existing 64scene 1F/BOTH roof reference,
+        // shown by default and reversible without removing any source object.
+        u64CeilingPresentation = createC80R2Unified64CeilingPresentation(
+          gltf, sourceKind === 'work-test' ? loadedModelSha256(gltf) : '',
+        );
+        u64CeilingLayer.hidden = !u64CeilingPresentation.available;
+        u64CeilingInput.checked = u64CeilingPresentation.available;
+        u64CeilingPresentation.setEnabled(u64CeilingInput.checked);
+        canvas.dataset.u64C030CeilingVisible =
+          u64CeilingPresentation.available ? 'true' : 'unavailable';
+        canvas.dataset.u64C030CeilingCount = String(u64CeilingPresentation.count);
         hi20C045Presentation = createHi20C045Presentation(
           gltf, sourceKind === 'work-test' ? loadedModelSha256(gltf) : '',
         );
@@ -13943,6 +13973,16 @@ const title = 'Private 3D viewer';
         hi20C015WholeFloorPresentation.setEnabled(hi20C015WholeFloorInput.checked);
         canvas.dataset.hi20C015WholeFloorVisible =
           String(hi20C015WholeFloorInput.checked);
+        refreshEdgeRendering(modelRoot.children[0] ?? null);
+        if (selectedObject && !isEffectivelyVisible(selectedObject, modelRoot)) clearSelection();
+      });
+      u64CeilingInput.addEventListener('change', () => {
+        if (!u64CeilingPresentation?.available) {
+          u64CeilingInput.checked = false;
+          return;
+        }
+        u64CeilingPresentation.setEnabled(u64CeilingInput.checked);
+        canvas.dataset.u64C030CeilingVisible = String(u64CeilingInput.checked);
         refreshEdgeRendering(modelRoot.children[0] ?? null);
         if (selectedObject && !isEffectivelyVisible(selectedObject, modelRoot)) clearSelection();
       });
