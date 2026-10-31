@@ -3,6 +3,7 @@ import { createHi20C046StoragePresentation } from './privateModelHi20C046Storage
 import { createHi20C035LobbyPresentation } from './privateModelHi20C035LobbyPresentation.mjs';
 import { createHi20K17WhitePresentation } from './privateModelHi20K17WhitePresentation.mjs';
 import { createHi20C002StorageRoofPresentation } from './privateModelHi20C002StorageRoofPresentation.mjs';
+import { createHi20C047DoorWallPresentation } from './privateModelHi20C047DoorWallPresentation.mjs';
 // C80-045: WORK_TEST presentation only, immutable original 52-scene GLB.
 // The 3.635 m old terrace wall must not be rendered together with the existing
 // 1.709 m replacement. Never change geometry, source links or default/C70.
@@ -66,6 +67,9 @@ export function createHi20C045Presentation(gltf, verifiedSha) {
   // 5mm display-only separation, independent of the C045 terrace toggle.
   const storageRoofs=createHi20C002StorageRoofPresentation(gltf,verifiedSha);
   const storageRoofsApplied=storageRoofs.available && storageRoofs.setEnabled(true);
+  // Independent 31.10 owner-approved 100 mm storage door-wall work assumption.
+  const doorWall=createHi20C047DoorWallPresentation(gltf,verifiedSha);
+  const doorWallApplied=doorWall.available && doorWall.setEnabled(true);
   const originals=roots.map(obj=>obj.visible);
   let corrected=false;
   return {
@@ -80,6 +84,8 @@ export function createHi20C045Presentation(gltf, verifiedSha) {
     k17WhiteCount:k17WhiteApplied?k17White.count:0,
     c002StorageRoofsApplied:storageRoofsApplied,
     c002StorageRoofsCount:storageRoofsApplied?storageRoofs.count:0,
+    c047StorageDoorWallApplied:doorWallApplied,
+    c047StorageDoorWallCount:doorWallApplied?doorWall.count:0,
     get corrected(){return corrected;},
     setCorrected(next){
       const enabled=Boolean(next);
@@ -88,6 +94,7 @@ export function createHi20C045Presentation(gltf, verifiedSha) {
       return true;
     },
     dispose(){
+      doorWall.dispose();
       storageRoofs.dispose();
       k17White.dispose();
       lobby.dispose();
