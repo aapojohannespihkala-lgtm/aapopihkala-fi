@@ -1,3 +1,4 @@
+import { createUnified64C029StoragePresentation } from './privateModelUnified64C029StoragePresentation.mjs';
 import { createUnified64C024BalconyFloorPresentation } from './privateModelUnified64C024BalconyFloorPresentation.mjs';
 import { createUnified64Kiv003Presentation } from './privateModelUnified64Kiv003Presentation.mjs';
 import { createUnified64C026TerrainPresentation } from './privateModelUnified64C026TerrainPresentation.mjs';
@@ -64,6 +65,9 @@ export function createC80R2Unified64FloorRuntime(args: {
   // C80-024: owner-photo dark finish on existing 2F/BOTH balcony floor only.
   const c024BalconyFloor = createUnified64C024BalconyFloorPresentation(args.gltf, sha);
   if (c024BalconyFloor.available) c024BalconyFloor.setEnabled(true);
+  // D1F-WP3 C80-029: original storage west/north/roof source roots were
+  // missing from the active U64 1F/BOTH scenegraph; preserve C047 east doorwall.
+  const c029Storage = createUnified64C029StoragePresentation(args.gltf, sha);
   let active = false, disposed = false, floor: MainViewFloor = 'BOTH';
   const expectedMounted = () =>
     Object.values(scenes).some(scene => args.mounted() === scene);
@@ -76,6 +80,8 @@ export function createC80R2Unified64FloorRuntime(args: {
     get c026TerrainSourceStatus() { return c026Terrain.enabled ? 'G2B_C026_DONOR_PATCHES_1F_BOTH' : 'SOURCE_UNCHANGED'; },
     get c026TerrainPatchCount() { return c026Terrain.enabled ? c026Terrain.count : 0; },
     get c024BalconyFloorStatus() { return c024BalconyFloor.enabled ? 'DARK_PHOTO_FINISH_WORK_TEST' : 'SOURCE_UNCHANGED'; },
+    get c029StorageStatus() { return c029Storage.enabled ? 'ORIGINAL_WEST_NORTH_ROOF_WORK_TEST' : 'SOURCE_UNCHANGED'; },
+    get c029StorageCount() { return c029Storage.enabled ? c029Storage.count : 0; },
     defaultScene: scenes.BOTH,
     get selectedScene() { return scenes[floor]; },
     get sceneIndex() { return C80R2_UNIFIED64_SCENES[floor]; },
@@ -101,6 +107,6 @@ export function createC80R2Unified64FloorRuntime(args: {
     },
     enforce() { /* Immutable source scene graph, never visibility inference. */ },
     referenceCandidates() { return []; },
-    dispose() { c024BalconyFloor.dispose(); c026Terrain.dispose(); kiv003.dispose(); disposed = true; active = false; },
+    dispose() { c029Storage.dispose(); c024BalconyFloor.dispose(); c026Terrain.dispose(); kiv003.dispose(); disposed = true; active = false; },
   };
 }
