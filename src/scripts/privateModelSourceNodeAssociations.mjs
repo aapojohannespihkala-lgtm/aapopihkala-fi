@@ -13,13 +13,29 @@
 
 const sanitize = (name) => String(name).replace(/\s/g, '_').replace(/[[\].:/]/g, '');
 
-export const nameMatches = (object, nodeDef) => {
-  if (typeof nodeDef?.name !== 'string' || nodeDef.name === '') return true;
-  const expected = sanitize(nodeDef.name);
-  const actual = String(object?.name ?? '');
-  return actual === expected || (actual.startsWith(expected + '_') &&
-    /^\d+$/.test(actual.slice(expected.length + 1)));
+/**
+ * GLTFLoader sanitizes node names and suffixes repeats with `_N` across the
+ * whole file, so a node reused by name in another scene renders as `NAME_1`.
+ * True when `actual` is exactly the loader's rendering of source `jsonName`.
+ */
+export const sameSourceName = (actual, jsonName) => {
+  if (typeof jsonName !== 'string') return false;
+  const expected = sanitize(jsonName);
+  const name = String(actual ?? '');
+  return name === jsonName || name === expected || (name.startsWith(expected + '_') &&
+    /^\d+$/.test(name.slice(expected.length + 1)));
 };
+
+export const nameMatches = (object, nodeDef) =>
+  typeof nodeDef?.name !== 'string' || nodeDef.name === '' ||
+  sameSourceName(object?.name, nodeDef.name);
+
+/**
+ * GLTFLoader (r185) returns each gltf.scenes[i] as a Group, not a Scene, and
+ * the viewer may mount it under its own model root. Callers pass gltf.scenes[i].
+ */
+export const isSourceSceneRoot = (object) =>
+  object?.isScene === true || object?.isGroup === true;
 
 /** Map<Object3D, {nodes:number}> for every structurally verified scene object. */
 export function buildSourceNodeAssociations(gltf) {

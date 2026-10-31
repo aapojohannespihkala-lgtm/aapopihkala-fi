@@ -1,4 +1,5 @@
 import { createHi20C025RoofGhostPresentation } from './privateModelHi20C025RoofGhostPresentation.mjs';
+import { isSourceSceneRoot } from './privateModelSourceNodeAssociations.mjs';
 // C80-029 / D1F-WP3: reuse the source 52-scene GLB's existing orphan
 // D storage roof roots in the 1F/BOTH viewer scenes. NO mesh, material,
 // binary, geometry or sourceLinks are invented or changed. WORK_TEST only.
@@ -38,7 +39,7 @@ export async function createHi20C029RoofPresentation(gltf, verifiedSha) {
         typeof node.name !== 'string' || !/ROOF/i.test(node.name) ||
         node.extras?.presentationOnly !== true ||
         typeof node.extras?.sourceDriveId !== 'string' ||
-        !gltf.scenes[target.scene]?.isScene ||
+        !isSourceSceneRoot(gltf.scenes[target.scene]) ||
         json.scenes[target.scene]?.nodes?.includes(target.node) ||
         json.nodes.some((parent) => parent.children?.includes(target.node)))
       return unavailable('source-roof-orphan-identity');

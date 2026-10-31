@@ -1,3 +1,4 @@
+import { isSourceSceneRoot } from './privateModelSourceNodeAssociations.mjs';
 // C80-011/019/025: exact HI20 SOURCE_ONLY two-hole roof, viewer preview only.
 // No source GLB, geometry, world transform, roof-visibility default or host change.
 export const C025_SOURCE_SHA='15a13623be601b1cbc70aaced46e497146d50894da9a3a54b4c47b438b4acee9';
@@ -27,7 +28,7 @@ export async function createHi20C025RoofGhostPresentation(gltf,sha){
       typeof meta?.sourceDriveId!=='string'||meta?.sourceLinksPreserved!==true||
       !json.scenes[item.sourceScene]?.nodes?.includes(item.sourceNode)||
       json.scenes[item.targetScene]?.nodes?.includes(item.sourceNode)||
-      !gltf.scenes[item.targetScene]?.isScene||
+      !isSourceSceneRoot(gltf.scenes[item.targetScene])||
       gltf.scenes[item.targetScene].children.some(child=>
         child?.name===node.name&&child?.userData?.sourceDriveId===meta.sourceDriveId)||
       json.nodes.some(parent=>parent.children?.includes(item.sourceNode)))
