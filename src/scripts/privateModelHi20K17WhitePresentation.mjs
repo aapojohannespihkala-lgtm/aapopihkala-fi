@@ -1,3 +1,4 @@
+import { createHi20C037WasherTopPresentation } from './privateModelHi20C037WasherTopPresentation.mjs';
 import { createHi20C043LegacyWallWhitePresentation } from './privateModelHi20C043LegacyWallWhitePresentation.mjs';
 // C80-043 / K17: keep the owner's 1125 mm low stair-wall geometry,
 // but use the same white WORK_TEST wall material as adjacent physical walls.
@@ -85,6 +86,11 @@ export function createHi20K17WhitePresentation(gltf, verifiedSha) {
   // The independent helper is fail-closed and never changes K17 geometry.
   const legacyWhite=createHi20C043LegacyWallWhitePresentation(gltf,verifiedSha);
   const legacyWhiteApplied=legacyWhite.available && legacyWhite.setEnabled(true);
+  // C80-037 is an independent 1F/BOTH exact-SHA presentation fix.
+  // Reuse the already tested PR1602 geometry guard and reversible COW index,
+  // without altering the source GLB, the 2F scene, or the K17 wall.
+  const washerTop=createHi20C037WasherTopPresentation(gltf,verifiedSha);
+  const washerTopApplied=washerTop.available && washerTop.setEnabled(true);
   let enabled=false;
   const restore=()=>{
     if(!enabled) return;
@@ -97,6 +103,8 @@ export function createHi20K17WhitePresentation(gltf, verifiedSha) {
   };
   return {
     available:true, reason:null, count:4,
+    c037WasherTopApplied:washerTopApplied,
+    c037WasherTopCount:washerTopApplied?washerTop.count:0,
     c043LegacyWallWhiteApplied:legacyWhiteApplied,
     c043LegacyWallWhiteCount:legacyWhiteApplied?legacyWhite.count:0,
     get enabled(){return enabled;},
@@ -118,6 +126,6 @@ export function createHi20K17WhitePresentation(gltf, verifiedSha) {
       enabled=true;
       return true;
     },
-    dispose(){restore();legacyWhite.dispose();},
+    dispose(){restore();legacyWhite.dispose();washerTop.dispose();},
   };
 }
