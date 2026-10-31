@@ -15,7 +15,7 @@ const names={
 };
 function fixture(){
  const nodes=Array.from({length:6518},()=>({}));
- const meshes=Array.from({length:1861},()=>({}));
+ const meshes=Array.from({length:1873},()=>({}));
  const materials=Array.from({length:344},()=>({}));
  for(const [id,alpha] of [[338,.18],[339,.10],[343,.12]]){
    materials[id]={alphaMode:'BLEND',doubleSided:true,
