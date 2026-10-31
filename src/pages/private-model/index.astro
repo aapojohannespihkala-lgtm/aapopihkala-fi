@@ -2000,6 +2000,13 @@ const title = 'Private 3D viewer';
             </label>
             <div class="layer-note">Vain lasien esityspeittävyys, 24 % / 60 %. Vertaa alkuperäiseen poistamalla valinta. GLB ei muutu.</div>
           </div>
+          <div id="hi20-c037-washer-top-layer" class="layer-section" hidden>
+            <label class="layer-row">
+              <input id="hi20-c037-washer-top-clean" type="checkbox" checked />
+              <span>Pesukoneen yläpinnan kaksoispinta pois (C80-037)</span>
+            </label>
+            <div class="layer-note">1F/BOTH, vain kaksi rungon ja erillisen kannen tarkasti päällekkäistä kolmiota pois. Palauta alkuperäinen poistamalla valinta.</div>
+          </div>
           <label class="layer-row">
             <input id="roof-layer-visible" type="checkbox" checked />
             <span>Vesikatto</span>
@@ -2157,6 +2164,9 @@ const title = 'Private 3D viewer';
       // @ts-ignore - exact-SHA presentation only, source GLB remains unchanged.
       import { createHi20BalconyGlassPresentation }
         from '../../scripts/privateModelHi20Unified52BalconyGlassPresentation.mjs';
+      // @ts-ignore - exact 52-scene source cabinet-cover top COW, WORK_TEST only.
+      import { createHi20C037WasherTopPresentation }
+        from '../../scripts/privateModelHi20C037WasherTopPresentation.mjs';
       // @ts-ignore - source150 exact two-pull glass source, noncanonical review only.
       import { isD1FScene150ReviewRequested, loadD1FScene150Review }
         from '../../scripts/privateModelD1FScene150Review.mjs';
@@ -2674,6 +2684,9 @@ const title = 'Private 3D viewer';
       const hi20BalconyGlassLayer = document.querySelector<HTMLElement>('#hi20-balcony-glass-contrast-layer')!;
       const hi20BalconyGlassInput = document.querySelector<HTMLInputElement>('#hi20-balcony-glass-contrast')!;
       let hi20BalconyGlassPresentation: ReturnType<typeof createHi20BalconyGlassPresentation> | null = null;
+      const hi20C037WasherLayer = document.querySelector<HTMLElement>('#hi20-c037-washer-top-layer')!;
+      const hi20C037WasherInput = document.querySelector<HTMLInputElement>('#hi20-c037-washer-top-clean')!;
+      let hi20C037WasherPresentation: ReturnType<typeof createHi20C037WasherTopPresentation> | null = null;
       const roofLayerVisibleInput = document.querySelector<HTMLInputElement>('#roof-layer-visible');
       const roofLayerOpacityInput = document.querySelector<HTMLInputElement>('#roof-layer-opacity');
       const roofLayerOpacityValue = document.querySelector<HTMLOutputElement>('#roof-layer-opacity-value');
@@ -7137,6 +7150,12 @@ const title = 'Private 3D viewer';
         hi20BalconyGlassInput.checked = false;
         delete canvas.dataset.hi20BalconyGlassCount;
         delete canvas.dataset.hi20BalconyGlassContrast;
+        hi20C037WasherPresentation?.dispose();
+        hi20C037WasherPresentation = null;
+        hi20C037WasherLayer.hidden = true;
+        hi20C037WasherInput.checked = false;
+        delete canvas.dataset.hi20C037WasherTopClean;
+        delete canvas.dataset.hi20C037WasherTopTriangles;
         delete canvas.dataset.c70Preview;
         delete canvas.dataset.c70SourceSha256;
         delete canvas.dataset.c70SourceTransport;
@@ -7290,6 +7309,16 @@ const title = 'Private 3D viewer';
         hi20BalconyGlassPresentation.setEnabled(hi20BalconyGlassInput.checked);
         canvas.dataset.hi20BalconyGlassCount = String(hi20BalconyGlassPresentation.count);
         canvas.dataset.hi20BalconyGlassContrast = hi20BalconyGlassInput.checked ? 'enabled' : 'not-applied';
+        // C80-037: original model has 2 coplanar cabinet/TOP_COVER triangles
+        // in each source scene. COW only cabinet's index on exact SHA/parent.
+        hi20C037WasherPresentation = createHi20C037WasherTopPresentation(
+          gltf, sourceKind === 'work-test' ? loadedModelSha256(gltf) : '',
+        );
+        hi20C037WasherLayer.hidden = !hi20C037WasherPresentation.available;
+        hi20C037WasherInput.checked = hi20C037WasherPresentation.available;
+        hi20C037WasherPresentation.setEnabled(hi20C037WasherInput.checked);
+        canvas.dataset.hi20C037WasherTopClean = hi20C037WasherInput.checked ? 'enabled' : 'not-applied';
+        canvas.dataset.hi20C037WasherTopTriangles = String(hi20C037WasherPresentation.count);
 
         // Layer setup clones ARCH_BASE materials. Capture those final viewer
         // materials so the T04 adapter never replaces a layer's newer owner.
@@ -13847,6 +13876,15 @@ const title = 'Private 3D viewer';
         }
         hi20BalconyGlassPresentation.setEnabled(hi20BalconyGlassInput.checked);
         canvas.dataset.hi20BalconyGlassContrast = hi20BalconyGlassInput.checked ? 'enabled' : 'source';
+        refreshEdgeRendering(modelRoot.children[0] ?? null);
+      });
+      hi20C037WasherInput.addEventListener('change', () => {
+        if (!hi20C037WasherPresentation?.available) {
+          hi20C037WasherInput.checked = false;
+          return;
+        }
+        const ok = hi20C037WasherPresentation.setEnabled(hi20C037WasherInput.checked);
+        canvas.dataset.hi20C037WasherTopClean = ok && hi20C037WasherInput.checked ? 'enabled' : 'source';
         refreshEdgeRendering(modelRoot.children[0] ?? null);
       });
       layersButton.addEventListener('click', () => setLayersPanelOpen(layersPanel.hidden));
