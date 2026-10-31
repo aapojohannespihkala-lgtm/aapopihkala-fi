@@ -3,8 +3,8 @@
 // This never changes the exact source GLB or a physical roof/door.
 export const C046_SOURCE_SHA = '15a13623be601b1cbc70aaced46e497146d50894da9a3a54b4c47b438b4acee9';
 const TARGETS = [
-  {scene:50, infill:1488, preview:5756, repaired:6345},
-  {scene:51, infill:412, preview:5777, repaired:6396},
+  {scene:50, infill:1488, parent:5354, preview:5756, repaired:6345},
+  {scene:51, infill:412, parent:5338, preview:5777, repaired:6396},
 ];
 const unavailable = (reason) => ({
   available:false, reason, count:0, cleaned:false,
@@ -34,9 +34,20 @@ export function createHi20C046StoragePresentation(gltf, verifiedSha) {
     const preview=json.nodes?.[t.preview];
     const repaired=json.nodes?.[t.repaired];
     // The expected replacement must already exist. Do not create a wall.
-    if (!infill || !/K7D.*VARASTO.*INFILL/i.test(infill.name || '') ||
-        !preview || !/C80[_-]029/i.test(preview.name || '') ||
-        !repaired || !/C0?47|C80[_-]047/i.test(repaired.name || ''))
+    if (!infill || infill.mesh !== 633 ||
+        !/K7D.*VARASTO.*INFILL/i.test(infill.name || '') ||
+        infill.extras?.representationKind !== 'wallContinuationVisualProxy' ||
+        !json.nodes?.[t.parent]?.children?.includes(t.infill) ||
+        json.meshes?.[633]?.primitives?.[0]?.material !== 72 ||
+        !preview || preview.mesh !== 1727 ||
+        !/C80[_-]029/i.test(preview.name || '') ||
+        preview.extras?.representationKind !== 'SOURCE_CONTEXT' ||
+        json.meshes?.[1727]?.primitives?.[0]?.material !== 281 ||
+        !repaired || repaired.mesh !== 1820 ||
+        !/C80[_-]047/i.test(repaired.name || '') ||
+        repaired.extras?.representationKind !== 'DISPLAY_VOLUME_NOT_PHYSICAL_STRUCTURE' ||
+        !Array.isArray(repaired.extras?.sourceLinks) ||
+        json.meshes?.[1820]?.primitives?.[0]?.material !== 333)
       return unavailable('source-identity');
     const objects=[t.infill,t.preview,t.repaired].map(id=>
       sourceObject(scene,id,associations));
