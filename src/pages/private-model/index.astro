@@ -14059,6 +14059,10 @@ const title = 'Private 3D viewer';
 
       renderer.setAnimationLoop(() => {
         mainViewScope?.enforce();
+        // The floor-scoping runtime may reset object.visible each frame.
+        // Keep exact-source C045/C050 user-visible corrections after that pass.
+        if (hi20C045Presentation?.corrected) hi20C045Presentation.setCorrected(true);
+        if (hi20C050GuidesPresentation?.cleaned) hi20C050GuidesPresentation.setCleaned(true);
         updateSize();
         controls.update();
         planControls.update();
