@@ -60,7 +60,7 @@ test('source-locked 2F and BOTH material split changes only inner 16 triangles, 
 test('wrong SHA or scene topology rejects before writing',()=>{
   const {gltf,objects}=fixture(),original=objects[0].geometry;
   assert.equal(createUnified64C020BoardPresentation(gltf,'not-the-source').available,false);
-  gltf.scenes[48].objects=[];
+  gltf.scenes[62].objects=[];
   assert.equal(createUnified64C020BoardPresentation(gltf,C020_U64_BOARD_SOURCE_SHA).available,false);
   assert.equal(objects[0].geometry,original);
 });
@@ -114,4 +114,11 @@ test('existing U64 C024 lifecycle activates C020 board finish and disposes witho
    assert.equal(o.material,originals[i].material);
    assert.equal(o.geometry,originals[i].geometry);
  });
+});
+
+test('source-lock equals real 64-scene GLB, not earlier 52-scene model',()=>{
+  assert.equal(C020_U64_BOARD_SOURCE_SHA,'22ddaac08a290bcaa38d2b9985e9e851c25d92d3da111134062dae13a96685e8');
+  assert.notEqual(C020_U64_BOARD_SOURCE_SHA,'15a13623be601b1cbc70aaced46e497146d50894da9a3a54b4c47b438b4acee9');
+  const {gltf}=fixture();
+  assert.equal(createUnified64C020BoardPresentation(gltf,'15a13623be601b1cbc70aaced46e497146d50894da9a3a54b4c47b438b4acee9').available,false);
 });
