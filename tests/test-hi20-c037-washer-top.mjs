@@ -70,3 +70,14 @@ test('stale parent, missing provenance or altered top prevents partial patch',()
   assert.equal(x.siblings[0][0].geometry.index.count,36,bad);
  }
 });
+
+test('C80-037 is actually mounted into and disposed with the existing 52-scene viewer lifecycle', async () => {
+  const { readFileSync } = await import('node:fs');
+  const source = readFileSync(
+    new URL('../src/scripts/privateModelHi20K17WhitePresentation.mjs', import.meta.url),
+    'utf8',
+  );
+  assert.match(source, /createHi20C037WasherTopPresentation\(gltf,verifiedSha\)/);
+  assert.match(source, /washerTop\.available && washerTop\.setEnabled\(true\)/);
+  assert.match(source, /washerTop\.dispose\(\)/);
+});
