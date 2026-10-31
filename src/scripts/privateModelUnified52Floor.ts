@@ -1,5 +1,6 @@
 import type { Object3D } from 'three';
 import { loadedModelSha256 } from './privateModelSourceCards';
+import { nameMatches } from './privateModelSourceNodeAssociations.mjs';
 import type { MainViewFloor } from './privateModelMainViewScope';
 
 // One original, exact 52-scene source and one protected candidate.
@@ -20,6 +21,12 @@ type Loaded = {
   scenes: Object3D[];
   parser?: { json?: any };
 };
+// Exact-SHA presentations (e.g. C026 terrain) append their own meshes to the
+// scene root after loading. The original source roots must still lead the
+// scene in exact JSON order and name; appended presentation objects are allowed.
+const originalRootsLeadScene = (scene: Object3D, roots: number[], nodes: any[]) =>
+  scene.children.length >= roots.length &&
+  roots.every((id, i) => nameMatches(scene.children[i], nodes?.[id]));
 const fail = (reason: string): never => { throw new Error('HI20_UNIFIED52_FAIL_CLOSED: ' + reason); };
 
 export function resolveHi20Unified52Scenes(gltf: Loaded, sha: string | null) {
@@ -37,7 +44,7 @@ export function resolveHi20Unified52Scenes(gltf: Loaded, sha: string | null) {
     if (!scene || source?.name !== contract.name || scene.name !== contract.name ||
         !Array.isArray(source.nodes) || source.nodes.length !== contract.roots ||
         new Set(source.nodes).size !== contract.roots ||
-        scene.children.length !== contract.roots ||
+        !originalRootsLeadScene(scene, source.nodes, json.nodes) ||
         source.extras?.current !== false || source.extras?.asBuilt !== false ||
         source.extras?.stage !== 'WORK_TEST')
       fail(floor + ' original scene/roots/status mismatch');
