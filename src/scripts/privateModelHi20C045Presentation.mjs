@@ -7,6 +7,7 @@ import { createHi20C047DoorWallPresentation } from './privateModelHi20C047DoorWa
 import { createHi20C036R5DoorPresentation } from './privateModelHi20C036R5DoorPresentation.mjs';
 import { createHi20C020WhiteSideWallPresentation } from './privateModelHi20C020WhiteSideWallPresentation.mjs';
 import { createHi20C020BoardPresentation } from './privateModelHi20C020BoardPresentation.mjs';
+import { createHi20C016NorthWallPresentation } from './privateModelHi20C016NorthWallPresentation.mjs';
 // C80-045: WORK_TEST presentation only, immutable original 52-scene GLB.
 // The 3.635 m old terrace wall must not be rendered together with the existing
 // 1.709 m replacement. Never change geometry, source links or default/C70.
@@ -84,6 +85,10 @@ export function createHi20C045Presentation(gltf, verifiedSha) {
   // Independent reversible COW, no added overlapping geometry.
   const balconyBoards=createHi20C020BoardPresentation(gltf,verifiedSha);
   const balconyBoardsApplied=balconyBoards.available && balconyBoards.setEnabled(true);
+  // C80-016: existing G2-sourced north internal wall overshoots by 260 mm.
+  // Independent source-SHA-gated COW of two active 2F/BOTH instances only.
+  const northWall=createHi20C016NorthWallPresentation(gltf,verifiedSha);
+  const northWallApplied=northWall.available && northWall.setEnabled(true);
   const originals=roots.map(obj=>obj.visible);
   let corrected=false;
   return {
@@ -106,6 +111,8 @@ export function createHi20C045Presentation(gltf, verifiedSha) {
     c020WhiteSideWallCount:whiteSideWallApplied?whiteSideWall.count:0,
     c020BalconyBoardsApplied:balconyBoardsApplied,
     c020BalconyBoardsCount:balconyBoardsApplied?balconyBoards.count:0,
+    c016NorthWallApplied:northWallApplied,
+    c016NorthWallCount:northWallApplied?northWall.count:0,
     get corrected(){return corrected;},
     setCorrected(next){
       const enabled=Boolean(next);
@@ -114,6 +121,7 @@ export function createHi20C045Presentation(gltf, verifiedSha) {
       return true;
     },
     dispose(){
+      northWall.dispose();
       r5WhiteDoor.dispose();
       balconyBoards.dispose();
       whiteSideWall.dispose();
