@@ -3,9 +3,9 @@
 // Geometry, source GLB/materials, door openings and sourceLinks never change.
 export const C048_U64_SOURCE_SHA = '22ddaac08a290bcaa38d2b9985e9e851c25d92d3da111134062dae13a96685e8';
 const TARGETS = [
-  {scene:60, whiteNode:6379, nodes:[{id:1486,mesh:425,material:65},
+  {scene:60, whiteNode:6379, parentNode:6491, nodes:[{id:1486,mesh:425,material:65},
                                     {id:1487,mesh:426,material:66}]},
-  {scene:63, whiteNode:6394, nodes:[{id:410,mesh:425,material:65},
+  {scene:63, whiteNode:6394, parentNode:6494, nodes:[{id:410,mesh:425,material:65},
                                     {id:411,mesh:426,material:66}]},
 ];
 const unavailable = (reason) => ({
@@ -42,6 +42,12 @@ export function createUnified64C048WallHeadsPresentation(gltf, verifiedSha) {
   for (const target of TARGETS) {
     const scene = gltf.scenes[target.scene];
     const refNode = json.nodes?.[target.whiteNode];
+    const sourceParent = json.nodes?.[target.parentNode];
+    if (sourceParent?.name !== 'K7D_V11_OPENING_HEADS_THREE_PLUS_WHITE_WALL_STAGING' ||
+        !Array.isArray(sourceParent.children) ||
+        sourceParent.children.length !== 3 ||
+        target.nodes.some(item => !sourceParent.children.includes(item.id)))
+      return unavailable('source-parent-identity');
     if (!scene || refNode?.mesh !== 1835 ||
         json.meshes?.[1835]?.primitives?.length !== 1 ||
         json.meshes[1835].primitives[0].material !== 335)
