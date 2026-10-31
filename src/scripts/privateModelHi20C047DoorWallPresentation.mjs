@@ -1,3 +1,5 @@
+import { createHi20C029SideWallsPresentation } from './privateModelHi20C029SideWallsPresentation.mjs';
+
 // C80-047: owner-approved 100 mm DISPLAY_ONLY storage door wall (31.10.2026).
 // Exact HI20 52-scene COW. Preserve external X=2.337, the original door opening,
 // all source links, both scenes, and noncurrent HOST_HOLD limitations.
@@ -50,13 +52,19 @@ export function createHi20C047DoorWallPresentation(gltf,sha) {
       return unavailable('wall-bounds');
     targets.push({obj,original:geo});
   }
+  // The earlier C029 west+north wall correction was only a separate local
+  // scene donor. Reuse its 60 mm WORK_ASSUMPTION as independent source COW
+  // whenever this existing 52-scene door-wall presentation is enabled.
+  const sideWalls=createHi20C029SideWallsPresentation(gltf,sha);
   let enabled=false, clones=[];
   function setEnabled(next) {
     const want=Boolean(next);
     if(want===enabled) return true;
     if(!want) {
       targets.forEach((t,i)=>{t.obj.geometry=t.original;clones[i]?.dispose?.();});
-      clones=[]; enabled=false;return true;
+      clones=[]; enabled=false;
+      if(sideWalls.available) sideWalls.setEnabled(false);
+      return true;
     }
     const made=[];
     try {
@@ -76,8 +84,14 @@ export function createHi20C047DoorWallPresentation(gltf,sha) {
       made.forEach(g=>g.dispose?.());return false;
     }
     targets.forEach((t,i)=>{t.obj.geometry=made[i];});
-    clones=made;enabled=true;return true;
+    clones=made;enabled=true;
+    // Preserve C047 100 mm independently if C029 is unavailable in a
+    // legacy/mock session. Never create a duplicate side-wall root.
+    if(sideWalls.available) sideWalls.setEnabled(true);
+    return true;
   }
   return {available:true,reason:null,count:2,get enabled(){return enabled;},
-    setEnabled,dispose(){setEnabled(false);}};
+    get c029SideWallsAvailable(){return sideWalls.available;},
+    get c029SideWallsEnabled(){return sideWalls.enabled;},
+    setEnabled,dispose(){setEnabled(false);sideWalls.dispose();}};
 }
