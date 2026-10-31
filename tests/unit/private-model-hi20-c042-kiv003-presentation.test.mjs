@@ -75,3 +75,21 @@ test('C80-042 actual 52-scene viewer lifecycle enables source-locked hide and re
   assert.match(source,/kiv003\.available && kiv003\.setEnabled\(true\)/);
   assert.match(source,/kiv003\.dispose\(\)/);
 });
+
+test('source-locked KIV003 hide toggles are idempotent in BOTH scene and preserve other vent objects',()=>{
+  const {gltf,objects}=fixture();
+  const original=objects.map(x=>x.targetObj.visible);
+  const api=createHi20C042Kiv003Presentation(gltf,C042_KIV003_SOURCE_SHA);
+  assert.equal(api.available,true);
+  assert.equal(api.setEnabled(true),true);
+  assert.equal(api.setEnabled(true),true);
+  assert.equal(api.enabled,true);
+  for(const {targetObj,parentObj} of objects){
+    assert.equal(targetObj.visible,false);
+    assert.equal(parentObj.children.filter(x=>x!==targetObj).every(x=>x.visible!==false),true);
+  }
+  assert.equal(api.setEnabled(false),true);
+  assert.equal(api.setEnabled(false),true);
+  objects.forEach((x,i)=>assert.equal(x.targetObj.visible,original[i]));
+  api.dispose();
+});
