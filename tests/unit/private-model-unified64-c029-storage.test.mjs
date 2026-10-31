@@ -17,7 +17,7 @@ function fixture(){
  const model={asset:{version:'2.0',extras:{current:false,asBuilt:false}},
     scene:0,scenes:Array.from({length:64},()=>({nodes:[]})),
     nodes:Array.from({length:6518},()=>({})),
-    meshes:Array.from({length:1861},()=>({primitives:[]})),
+    meshes:Array.from({length:1873},()=>({primitives:[]})),
     materials:Array.from({length:334},()=>({}))};
  const assoc=new Map();
  for(const [mesh,material] of [[1725,281],[1726,281],[514,85],[1820,333]]){
@@ -135,4 +135,19 @@ test('idempotent dispose, independent 2F and no hidden old wall behind new',()=>
  assert.equal(again.available,false);
  p.dispose();p.dispose();
  assert.equal(gltf.scenes[60].children.some(o=>o.userData.c029U64Clone),false);
+});
+
+test('C80-029 exact U64 mesh roster: 1873 accepted, mistaken PR1646 1861 rejected',()=>{
+ const valid=fixture().gltf;
+ const ok=createUnified64C029StoragePresentation(valid,U64_C029_SHA);
+ assert.equal(ok.available,true,ok.reason);
+ assert.equal(ok.count,6);
+ ok.dispose();
+ const old=fixture().gltf;
+ old.parser.json.meshes.length=1861;
+ const denied=createUnified64C029StoragePresentation(old,U64_C029_SHA);
+ assert.equal(denied.available,false);
+ assert.equal(denied.reason,'exact-source');
+ assert.equal(old.scenes[60].children.length,49);
+ assert.equal(old.scenes[63].children.length,84);
 });
