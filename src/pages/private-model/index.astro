@@ -2383,6 +2383,10 @@ const title = 'Private 3D viewer';
         HI20_UNIFIED52_SHA,
         resolveHi20Unified52Scenes, createHi20Unified52FloorRuntime,
       } from '../../scripts/privateModelUnified52Floor';
+      import {
+        C80R2_UNIFIED64_ID, C80R2_UNIFIED64_SHA,
+        resolveC80R2Unified64Scenes, createC80R2Unified64FloorRuntime,
+      } from '../../scripts/privateModelUnified64Floor';
       import { prepareC70Preview, createC70MainViewBridge } from '../../scripts/c70_main_view_bridge.mjs';
       import { createC80K17ViewerBridgeAdapter } from '../../scripts/c80_k17_viewer_bridge_adapter.mjs';
       // @ts-ignore - source-SHA-locked presentation policies only.
@@ -6259,7 +6263,7 @@ const title = 'Private 3D viewer';
       const resolveActiveResearchContentScene = () => {
         if (mainViewScope?.active) {
           mainViewScope.enforce();
-          return 'isSourceScene' in mainViewScope || 'isUnified52' in mainViewScope
+          return 'isSourceScene' in mainViewScope || 'isUnified52' in mainViewScope || 'isUnified64' in mainViewScope
             ? (mainViewScope as any).selectedScene : fullModelScene;
         }
         if (activeResearchPreset === 'd-apartment') {
@@ -6415,7 +6419,9 @@ const title = 'Private 3D viewer';
           resetHorizontalClipping();
           horizontalClipping.configureRange(mainViewScope.selectedScene);
         }
-        if ('isUnified52' in mainViewScope && mainViewScope.isUnified52 === true) {
+        if (('isUnified52' in mainViewScope && mainViewScope.isUnified52 === true) ||
+            ('isUnified64' in mainViewScope && mainViewScope.isUnified64 === true)) {
+          const is64 = 'isUnified64' in mainViewScope && mainViewScope.isUnified64 === true;
           // Use the original floor scene, not an object-visibility storey filter.
           resetHorizontalClipping();
           horizontalClipping.configureRange((mainViewScope as any).selectedScene);
@@ -6425,15 +6431,18 @@ const title = 'Private 3D viewer';
           mainViewExceptionList.replaceChildren();
           const sceneIndex = (mainViewScope as any).sceneIndex;
           canvas.dataset.mainViewSourceSceneIndex = String(sceneIndex);
-          canvas.dataset.mainViewScopeStatus = 'C80R2_HI20_UNIFIED52_ORIGINAL_SCENE_HOST_HOLD';
-          canvas.dataset.contentScene = 'C80R2_HI20_UNIFIED52_WORK_TEST';
+          canvas.dataset.mainViewScopeStatus = is64
+            ? 'C80R2_UNIFIED64_ORIGINAL_SCENE_HOST_HOLD'
+            : 'C80R2_HI20_UNIFIED52_ORIGINAL_SCENE_HOST_HOLD';
+          canvas.dataset.contentScene = is64 ? 'C80R2_UNIFIED64_WORK_TEST' : 'C80R2_HI20_UNIFIED52_WORK_TEST';
           canvas.dataset.contentFloor = floor;
           const floorLabel = floor === '1F' ? 'alakerta' : floor === '2F' ? 'yläkerta' : 'molemmat kerrokset';
-          mainViewScopeNote.textContent = 'HI20 52scene WORK_TEST: ' +
+          const modelLabel = is64 ? 'C80R2 64scene' : 'HI20 52scene';
+          mainViewScopeNote.textContent = modelLabel + ' WORK_TEST: ' +
             floorLabel + ', alkuperäinen scene ' + sceneIndex +
             '. Portaat ja yhteiset lähdejuuret säilyvät. HOST_HOLD, ei nykytila.';
           fitModel();
-          status.textContent = 'D-asunto HI20 - ' + floorLabel + ' - WORK_TEST';
+          status.textContent = 'D-asunto ' + modelLabel + ' - ' + floorLabel + ' - WORK_TEST';
           return;
         }
         if ('isSourceScene' in mainViewScope && mainViewScope.isSourceScene === true) {
@@ -7300,10 +7309,17 @@ const title = 'Private 3D viewer';
             c70PreviewSession.gltf !== gltf || gltf.scene !== gltf.scenes?.[c70PreviewSession.contract.glbDefaultScene]))
           throw new Error('C70_WORK_TEST_SESSION_CHANGED');
         activeHi20SourceVerified = sourceKind === 'work-test' &&
-          c70PreviewSession?.contract?.model === 'D_C80' &&
-          c70PreviewSession?.contract?.glbSha256 === c80Hi20Contract.glbSha256 &&
-          c70PreviewSession?.verification?.glbSha256 === c80Hi20Contract.glbSha256;
+          ((c70PreviewSession?.contract?.model === 'D_C80' &&
+            c70PreviewSession?.contract?.glbSha256 === c80Hi20Contract.glbSha256 &&
+            c70PreviewSession?.verification?.glbSha256 === c80Hi20Contract.glbSha256) ||
+            loadedModelSha256(gltf) === C80R2_UNIFIED64_SHA);
         mainViewScope = sourceKind === 'work-test' &&
+          loadedModelSha256(gltf) === C80R2_UNIFIED64_SHA
+          ? createC80R2Unified64FloorRuntime({
+              gltf, mount: setModelScene,
+              mounted: () => modelRoot.children[0] ?? null,
+            }) as any
+          : sourceKind === 'work-test' &&
           loadedModelSha256(gltf) === HI20_UNIFIED52_SHA
           ? createHi20Unified52FloorRuntime({
               gltf, mount: setModelScene,
@@ -11342,7 +11358,11 @@ const title = 'Private 3D viewer';
                 P137E_SCENE67_EXACT_ASSET_PATH.replace(/[^/]+$/, ''),
               )
             : await loadModelWithSourceCards(loader, candidate.path));
-          if (candidate.id === 'ylisrinne-d-c80-hi20-unified52-both-sc51-work-test-20261030') {
+          if (candidate.id === C80R2_UNIFIED64_ID) {
+            // G2b 64-scene exact source: one candidate with the original
+            // 1F60/2F62/BOTH63 roots. Never remount generic filtered geometry.
+            gltf.scene = resolveC80R2Unified64Scenes(gltf, loadedModelSha256(gltf)).BOTH;
+          } else if (candidate.id === 'ylisrinne-d-c80-hi20-unified52-both-sc51-work-test-20261030') {
             // Original 52-scene GLB, not the former scene51-only extraction.
             gltf.scene = resolveHi20Unified52Scenes(gltf, loadedModelSha256(gltf)).BOTH;
           }
