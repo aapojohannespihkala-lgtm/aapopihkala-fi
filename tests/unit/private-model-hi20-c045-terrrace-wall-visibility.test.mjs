@@ -12,14 +12,16 @@ function fixture() {
     [51,6460,1858,'HI20_C045_CLIPPED_OWNER_WHITE_C048_BOTH_OPTIN',1.709],
   ];
   const nodes=new Map();
+  const sourceNodes=Array.from({length:6461},()=>({}));
   for(const [scene,id,mesh,name,length] of defs){
     const o={name,isMesh:true,visible:true,geometry:{
       boundingBox:{min:{z:0},max:{z:length}},
       computeBoundingBox() {},
     }};
-    scenes[scene].children.push(o);assoc.set(o,{nodes:id,meshes:mesh});nodes.set(id,o);
+    scenes[scene].children.push(o);assoc.set(o,{nodes:id});nodes.set(id,o);
+    sourceNodes[id]={mesh};
   }
-  const gltf={scenes,parser:{json:{scenes:Array.from({length:52},()=>({}))},associations:assoc}};
+  const gltf={scenes,parser:{json:{scenes:Array.from({length:52},()=>({})),nodes:sourceNodes},associations:assoc}};
   return {gltf,nodes,assoc};
 }
 test('exact source 1F50/BOTH51 suppresses ONLY old 3.635m, preserves new 1.709m',()=>{
@@ -44,9 +46,9 @@ test('fails closed on other SHA, missing scene, wrong node and wrong physical ex
   f.gltf.scenes.pop();
   assert.equal(createHi20C045Presentation(f.gltf,C045_SOURCE_SHA).available,false);
   f.gltf.scenes.push({children:[]});
-  f.assoc.set(f.nodes.get(6380),{nodes:6380,meshes:777});
+  f.gltf.parser.json.nodes[6380].mesh=777;
   assert.equal(createHi20C045Presentation(f.gltf,C045_SOURCE_SHA).available,false);
-  f.assoc.set(f.nodes.get(6380),{nodes:6380,meshes:1843});
+  f.gltf.parser.json.nodes[6380].mesh=1843;
   f.nodes.get(6380).geometry.boundingBox.max.z=2.5;
   assert.equal(createHi20C045Presentation(f.gltf,C045_SOURCE_SHA).available,false);
   assert(f.nodes.get(6380).visible);
