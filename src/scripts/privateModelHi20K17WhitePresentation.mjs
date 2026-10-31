@@ -1,3 +1,4 @@
+import { createHi20C043LegacyWallWhitePresentation } from './privateModelHi20C043LegacyWallWhitePresentation.mjs';
 // C80-043 / K17: keep the owner's 1125 mm low stair-wall geometry,
 // but use the same white WORK_TEST wall material as adjacent physical walls.
 // Exact 52-scene HI20 only. No modifications to source GLB, sourceLinks,
@@ -80,6 +81,10 @@ export function createHi20K17WhitePresentation(gltf, verifiedSha) {
   if (targets.length!==4 ||
       new Set(targets.map(t=>t.obj)).size!==4)
     return unavailable('incomplete-k17-roster');
+  // Independent C80-043 baseline on six existing 2F WC/Room34 wall panels.
+  // The independent helper is fail-closed and never changes K17 geometry.
+  const legacyWhite=createHi20C043LegacyWallWhitePresentation(gltf,verifiedSha);
+  const legacyWhiteApplied=legacyWhite.available && legacyWhite.setEnabled(true);
   let enabled=false;
   const restore=()=>{
     if(!enabled) return;
@@ -92,6 +97,8 @@ export function createHi20K17WhitePresentation(gltf, verifiedSha) {
   };
   return {
     available:true, reason:null, count:4,
+    c043LegacyWallWhiteApplied:legacyWhiteApplied,
+    c043LegacyWallWhiteCount:legacyWhiteApplied?legacyWhite.count:0,
     get enabled(){return enabled;},
     setEnabled(next){
       if(!next){restore();return true;}
@@ -111,6 +118,6 @@ export function createHi20K17WhitePresentation(gltf, verifiedSha) {
       enabled=true;
       return true;
     },
-    dispose:restore,
+    dispose(){restore();legacyWhite.dispose();},
   };
 }
