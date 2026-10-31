@@ -101,7 +101,8 @@ test('real source WEST/NORTH/ROOF reused as six nonduplicated 1F+BOTH roots',()=
  p.dispose();
  assert.deepEqual(gltf.scenes.map(s=>s.children.length),before);
  assert.equal(p.setEnabled(true),false);
- assert.ok(source.every(o=>o.parent===gltf.scenes[o.name.includes('496')||o.name.includes('577')?9:8]));
+ assert.ok(source.slice(0,3).every(o=>o.parent===gltf.scenes[8]));
+ assert.ok(source.slice(3).every(o=>o.parent===gltf.scenes[9]));
 });
 test('source SHA/parent/host and active scene target guards fail closed',()=>{
  for(const edit of [
