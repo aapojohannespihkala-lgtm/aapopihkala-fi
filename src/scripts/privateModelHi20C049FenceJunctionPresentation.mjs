@@ -48,7 +48,7 @@ export function createHi20C049FenceJunctionPresentation(gltf,sha) {
     j?.scenes?.length!==52||gltf?.scenes?.length!==52||
     typeof assoc?.get!=='function')return unavailable('source-sha-or-scenes');
  const p=j.meshes?.[1728]?.primitives?.[0];
- if(j.meshes?.[1728]?.name!=='C80-028_D_C_TERRACE_SOURCE_OPAQUE_OPTIN_REVIEW'||
+ if(j.meshes?.[1728]?.name!=='C80-028_D_C_K3_EXISTING_SOURCE_MESH_OPAQUE_OPTIN_REVIEW'||
     j.meshes[1728].primitives?.length!==1||
     p?.attributes?.POSITION!==2567||p?.indices!==2568||p?.material!==282||
     j.materials?.[282]?.name!=='C80-028_D_C_BOUNDARY_OPAQUE_REVIEW_MATERIAL_SOURCE_ONLY'||
