@@ -4,7 +4,9 @@ import { createHi20C035LobbyPresentation } from './privateModelHi20C035LobbyPres
 import { createHi20K17WhitePresentation } from './privateModelHi20K17WhitePresentation.mjs';
 import { createHi20C002StorageRoofPresentation } from './privateModelHi20C002StorageRoofPresentation.mjs';
 import { createHi20C047DoorWallPresentation } from './privateModelHi20C047DoorWallPresentation.mjs';
+import { createHi20C036R5DoorPresentation } from './privateModelHi20C036R5DoorPresentation.mjs';
 import { createHi20C020WhiteSideWallPresentation } from './privateModelHi20C020WhiteSideWallPresentation.mjs';
+import { createHi20C020BoardPresentation } from './privateModelHi20C020BoardPresentation.mjs';
 // C80-045: WORK_TEST presentation only, immutable original 52-scene GLB.
 // The 3.635 m old terrace wall must not be rendered together with the existing
 // 1.709 m replacement. Never change geometry, source links or default/C70.
@@ -71,10 +73,17 @@ export function createHi20C045Presentation(gltf, verifiedSha) {
   // Independent 31.10 owner-approved 100 mm storage door-wall work assumption.
   const doorWall=createHi20C047DoorWallPresentation(gltf,verifiedSha);
   const doorWallApplied=doorWall.available && doorWall.setEnabled(true);
+  // C80-036: source-bounded R5 WC door white presentation, independent of terrace toggle.
+  const r5WhiteDoor=createHi20C036R5DoorPresentation(gltf,verifiedSha);
+  const r5WhiteDoorApplied=r5WhiteDoor.available && r5WhiteDoor.setEnabled(true);
   // Owner C80-043 white baseline on the existing 220 mm balcony endwall.
   // Independent of the C045 terrace wall toggle; no geometry change.
   const whiteSideWall=createHi20C020WhiteSideWallPresentation(gltf,verifiedSha);
   const whiteSideWallApplied=whiteSideWall.available && whiteSideWall.setEnabled(true);
+  // C80-020: eight existing balcony boards, pale inner and dark outer faces.
+  // Independent reversible COW, no added overlapping geometry.
+  const balconyBoards=createHi20C020BoardPresentation(gltf,verifiedSha);
+  const balconyBoardsApplied=balconyBoards.available && balconyBoards.setEnabled(true);
   const originals=roots.map(obj=>obj.visible);
   let corrected=false;
   return {
@@ -91,8 +100,12 @@ export function createHi20C045Presentation(gltf, verifiedSha) {
     c002StorageRoofsCount:storageRoofsApplied?storageRoofs.count:0,
     c047StorageDoorWallApplied:doorWallApplied,
     c047StorageDoorWallCount:doorWallApplied?doorWall.count:0,
+    c036R5WhiteDoorApplied:r5WhiteDoorApplied,
+    c036R5WhiteDoorCount:r5WhiteDoorApplied?r5WhiteDoor.count:0,
     c020WhiteSideWallApplied:whiteSideWallApplied,
     c020WhiteSideWallCount:whiteSideWallApplied?whiteSideWall.count:0,
+    c020BalconyBoardsApplied:balconyBoardsApplied,
+    c020BalconyBoardsCount:balconyBoardsApplied?balconyBoards.count:0,
     get corrected(){return corrected;},
     setCorrected(next){
       const enabled=Boolean(next);
@@ -101,6 +114,8 @@ export function createHi20C045Presentation(gltf, verifiedSha) {
       return true;
     },
     dispose(){
+      r5WhiteDoor.dispose();
+      balconyBoards.dispose();
       whiteSideWall.dispose();
       doorWall.dispose();
       storageRoofs.dispose();
