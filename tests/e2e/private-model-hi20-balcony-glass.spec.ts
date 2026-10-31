@@ -14,9 +14,9 @@ function fixture({missingOne = false} = {}) {
           String(i>=2221?i-2220:i+1).padStart(2,'0'),
     mesh: 205,
   };
-  const materials = Array.from({length:19}, () => ({}));
+  const materials: any[] = Array.from({length:19}, () => ({}));
   materials[18] = {alphaMode:'BLEND', doubleSided:true, pbrMetallicRoughness:{baseColorFactor:[.65,.82,.9,.24]}};
-  const meshes = Array.from({length:206}, () => ({}));
+  const meshes: any[] = Array.from({length:206}, () => ({}));
   meshes[205] = {primitives:[{material:18}]};
   const associations = new Map<any, any>();
   const makeFloor = (ids: number[]) => {
