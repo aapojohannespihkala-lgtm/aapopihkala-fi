@@ -1979,6 +1979,13 @@ const title = 'Private 3D viewer';
               <span>C80-lähdekonteksti (K17-viitteet säilyvät)</span>
             </label>
           </div>
+          <div id="hi20-c045-wall-layer" class="layer-section" hidden>
+            <label class="layer-row">
+              <input id="hi20-c045-wall-corrected" type="checkbox" checked />
+              <span>Terassin vanha kaksoisseinä pois (C80-045)</span>
+            </label>
+            <div class="layer-note">52-scene WORK_TEST: alkuperäinen 3,635 m seinä pois näkyvistä, valmis 1,709 m seinä säilyy. Poista valinta nähdäksesi alkuperäisen.</div>
+          </div>
           <div id="hi20-balcony-glass-contrast-layer" class="layer-section" hidden>
             <label class="layer-row">
               <input id="hi20-balcony-glass-contrast" type="checkbox" checked />
@@ -2135,7 +2142,7 @@ const title = 'Private 3D viewer';
       // @ts-ignore - isolate the genuine original 13 + numbered 7 source groups.
       import { createM5AR1125Scene64PixelIsolation }
         from '../../scripts/privateModelM5AR1125Scene64PixelIsolation.mjs';
-      // @ts-ignore - exact-SHA presentation only, source GLB remains unchanged.
+      // @ts-ignore - C045 SHA-locked original-source duplicate wall display guard.\n      import { createHi20C045Presentation } from '../../scripts/privateModelHi20C045Presentation.mjs';\n      // @ts-ignore - exact-SHA presentation only, source GLB remains unchanged.
       import { createHi20BalconyGlassPresentation }
         from '../../scripts/privateModelHi20Unified52BalconyGlassPresentation.mjs';
       // @ts-ignore - source150 exact two-pull glass source, noncanonical review only.
@@ -2646,6 +2653,9 @@ const title = 'Private 3D viewer';
       const c80ShellInput = document.querySelector<HTMLInputElement>('#c80-shell-focus')!;
       const c80ContextRow = document.querySelector<HTMLElement>('#c80-k17-context-layer')!;
       const c80ContextVisibleInput = document.querySelector<HTMLInputElement>('#c80-source-context-visible')!;
+      const hi20C045WallLayer = document.querySelector<HTMLElement>('#hi20-c045-wall-layer')!;
+      const hi20C045WallInput = document.querySelector<HTMLInputElement>('#hi20-c045-wall-corrected')!;
+      let hi20C045Presentation: ReturnType<typeof createHi20C045Presentation> | null = null;
       const hi20BalconyGlassLayer = document.querySelector<HTMLElement>('#hi20-balcony-glass-contrast-layer')!;
       const hi20BalconyGlassInput = document.querySelector<HTMLInputElement>('#hi20-balcony-glass-contrast')!;
       let hi20BalconyGlassPresentation: ReturnType<typeof createHi20BalconyGlassPresentation> | null = null;
@@ -7093,6 +7103,12 @@ const title = 'Private 3D viewer';
         c70PreviewSession: any = null,
       ) => {
         modelLoadVersion++;
+        hi20C045Presentation?.dispose();
+        hi20C045Presentation = null;
+        hi20C045WallLayer.hidden = true;
+        hi20C045WallInput.checked = false;
+        delete canvas.dataset.hi20C045WallCorrected;
+        delete canvas.dataset.hi20C045WallCount;
         hi20BalconyGlassPresentation?.dispose();
         hi20BalconyGlassPresentation = null;
         hi20BalconyGlassLayer.hidden = true;
@@ -7219,6 +7235,18 @@ const title = 'Private 3D viewer';
           });
         }
         prepareDReviewStyling();
+        // C045 owner-confirmed correction already exists IN the source 52scene,
+        // but the old full-length 3.635m root is simultaneously rendered.
+        // Suppress only that old root (50/51) after exact source/mesh verification.
+        hi20C045Presentation = createHi20C045Presentation(
+          gltf, sourceKind === 'work-test' ? loadedModelSha256(gltf) : '',
+        );
+        hi20C045WallLayer.hidden = !hi20C045Presentation.available;
+        hi20C045WallInput.checked = hi20C045Presentation.available;
+        hi20C045Presentation.setCorrected(hi20C045WallInput.checked);
+        canvas.dataset.hi20C045WallCorrected =
+          hi20C045WallInput.checked ? 'true' : 'unavailable';
+        canvas.dataset.hi20C045WallCount = String(hi20C045Presentation.count);
         // The original 52-scene material is alpha 0.24 and remains unchanged.
         // This is only a reversible presentation contrast on 26 source-scene
         // glass instances (13 in 2F48 and 13 in BOTH51), SHA-locked.
@@ -13759,6 +13787,16 @@ const title = 'Private 3D viewer';
         (mainViewScope as any).setFloorShellMode(c80ShellInput.checked ? 'FOCUS' : 'SOURCE');
         if (selectedObject && !isEffectivelyVisible(selectedObject,modelRoot)) clearSelection();
         refreshEdgeRendering((mainViewScope as any).selectedScene);
+      });
+      hi20C045WallInput.addEventListener('change', () => {
+        if (!hi20C045Presentation?.available) {
+          hi20C045WallInput.checked = false;
+          return;
+        }
+        hi20C045Presentation.setCorrected(hi20C045WallInput.checked);
+        canvas.dataset.hi20C045WallCorrected = String(hi20C045WallInput.checked);
+        refreshEdgeRendering(modelRoot.children[0] ?? null);
+        if (selectedObject && !isEffectivelyVisible(selectedObject, modelRoot)) clearSelection();
       });
       hi20BalconyGlassInput.addEventListener('change', () => {
         if (!hi20BalconyGlassPresentation?.available) {
