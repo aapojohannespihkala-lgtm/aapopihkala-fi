@@ -1,6 +1,7 @@
 import { createUnified64C024BalconyFloorPresentation } from './privateModelUnified64C024BalconyFloorPresentation.mjs';
 import { createUnified64Kiv003Presentation } from './privateModelUnified64Kiv003Presentation.mjs';
 import { createUnified64C026TerrainPresentation } from './privateModelUnified64C026TerrainPresentation.mjs';
+import { createUnified64C004SourceContextPresentation } from './privateModelUnified64C004SourceContextPresentation.mjs';
 import type { Object3D } from 'three';
 import { loadedModelSha256 } from './privateModelSourceCards';
 import type { MainViewFloor } from './privateModelMainViewScope';
@@ -54,6 +55,9 @@ export function createC80R2Unified64FloorRuntime(args: {
 }) {
   const sha = loadedModelSha256(args.gltf);
   const scenes = resolveC80R2Unified64Scenes(args.gltf, sha);
+  // The existing C80 SOURCE_CONTEXT checkbox must not call an absent method.
+  // Select only six source-verified architectural BLEND references, not site/trees.
+  const c004SourceContext = createUnified64C004SourceContextPresentation(args.gltf, sha);
   // C80-042: exact-source reversible presentation only, no new GLB or mesh.
   const kiv003 = createUnified64Kiv003Presentation(args.gltf, sha);
   if (kiv003.available) kiv003.setCorrected(true);
@@ -73,6 +77,8 @@ export function createC80R2Unified64FloorRuntime(args: {
     sourceModel: 'D_C80' as const,
     sourceSha256: sha,
     get kiv003WindowSourceStatus() { return kiv003.corrected ? 'HIDDEN_UNHOSTED_REFERENCE' : 'SOURCE_UNCHANGED'; },
+    get c004SourceContextStatus() { return c004SourceContext.available ? (c004SourceContext.visible ? 'VISIBLE' : 'HIDDEN_REFERENCES') : 'SOURCE_UNCHANGED'; },
+    setSourceContextVisible(next: boolean) { return c004SourceContext.setSourceContextVisible(next); },
     get c026TerrainSourceStatus() { return c026Terrain.enabled ? 'G2B_C026_DONOR_PATCHES_1F_BOTH' : 'SOURCE_UNCHANGED'; },
     get c026TerrainPatchCount() { return c026Terrain.enabled ? c026Terrain.count : 0; },
     get c024BalconyFloorStatus() { return c024BalconyFloor.enabled ? 'DARK_PHOTO_FINISH_WORK_TEST' : 'SOURCE_UNCHANGED'; },
@@ -101,6 +107,6 @@ export function createC80R2Unified64FloorRuntime(args: {
     },
     enforce() { /* Immutable source scene graph, never visibility inference. */ },
     referenceCandidates() { return []; },
-    dispose() { c024BalconyFloor.dispose(); c026Terrain.dispose(); kiv003.dispose(); disposed = true; active = false; },
+    dispose() { c004SourceContext.dispose(); c024BalconyFloor.dispose(); c026Terrain.dispose(); kiv003.dispose(); disposed = true; active = false; },
   };
 }
