@@ -37,7 +37,9 @@ export function createHi20C035LobbyPresentation(gltf,verifiedSha) {
     const scene=gltf.scenes[t.scene];
     const root=json.nodes?.[t.root];
     const ref=json.nodes?.[t.ref];
-    if(!scene || !root || !Array.isArray(root.children) ||
+    if(!scene || !root || !/C80-035_D1F_LOBBY_CORRIDOR_DOORLESS/.test(root.name || '') ||
+       !root.extras?.ownerCorrection?.includes('NO DOOR') ||
+       !Array.isArray(root.children) ||
        !t.nodes.every(id=>root.children.includes(id)) ||
        new Set(root.children).size!==root.children.length ||
        ref?.mesh!==1835 ||
@@ -52,7 +54,12 @@ export function createHi20C035LobbyPresentation(gltf,verifiedSha) {
     for(let i=0;i<3;i++){
       const id=t.nodes[i], meshIndex=1730+i, node=json.nodes?.[id];
       const primitives=json.meshes?.[meshIndex]?.primitives;
-      if(node?.mesh!==meshIndex || primitives?.length!==1 ||
+      if(node?.mesh!==meshIndex ||
+         !node?.name?.includes('C80-035_HI16_') ||
+         node?.extras?.workAssumption!==true ||
+         !Array.isArray(node?.extras?.sourceLinks) ||
+         node.extras.sourceLinks.length===0 ||
+         primitives?.length!==1 ||
          primitives[0].material!==224)
         return unavailable('opening-node-identity');
       const mesh=exactMesh(scene,id,associations);
