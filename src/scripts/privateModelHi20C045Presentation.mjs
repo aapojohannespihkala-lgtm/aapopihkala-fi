@@ -1,5 +1,10 @@
 import { createHi20C048WallHeadsPresentation } from './privateModelHi20C048WallHeadPresentation.mjs';
 import { createHi20C046StoragePresentation } from './privateModelHi20C046StoragePresentation.mjs';
+import { createHi20C035LobbyPresentation } from './privateModelHi20C035LobbyPresentation.mjs';
+import { createHi20K17WhitePresentation } from './privateModelHi20K17WhitePresentation.mjs';
+import { createHi20C002StorageRoofPresentation } from './privateModelHi20C002StorageRoofPresentation.mjs';
+import { createHi20C047DoorWallPresentation } from './privateModelHi20C047DoorWallPresentation.mjs';
+import { createHi20C020WhiteSideWallPresentation } from './privateModelHi20C020WhiteSideWallPresentation.mjs';
 // C80-045: WORK_TEST presentation only, immutable original 52-scene GLB.
 // The 3.635 m old terrace wall must not be rendered together with the existing
 // 1.709 m replacement. Never change geometry, source links or default/C70.
@@ -53,6 +58,23 @@ export function createHi20C045Presentation(gltf, verifiedSha) {
   // presentations only when the existing C047 door wall is already present.
   const storage=createHi20C046StoragePresentation(gltf, verifiedSha);
   const storageApplied=storage.available && storage.setCleaned(true);
+  // C80-035: independent existing doorless lobby opening, presentation-only.
+  const lobby=createHi20C035LobbyPresentation(gltf, verifiedSha);
+  const lobbyApplied=lobby.available && lobby.setEnabled(true);
+  // Independently apply the owner's white-wall baseline to the 1125 mm K17 low wall.
+  const k17White=createHi20K17WhitePresentation(gltf, verifiedSha);
+  const k17WhiteApplied=k17White.available && k17White.setEnabled(true);
+  // C80-002 FULL_CONTEXT scene3 storage roofs: previously reviewed
+  // 5mm display-only separation, independent of the C045 terrace toggle.
+  const storageRoofs=createHi20C002StorageRoofPresentation(gltf,verifiedSha);
+  const storageRoofsApplied=storageRoofs.available && storageRoofs.setEnabled(true);
+  // Independent 31.10 owner-approved 100 mm storage door-wall work assumption.
+  const doorWall=createHi20C047DoorWallPresentation(gltf,verifiedSha);
+  const doorWallApplied=doorWall.available && doorWall.setEnabled(true);
+  // Owner C80-043 white baseline on the existing 220 mm balcony endwall.
+  // Independent of the C045 terrace wall toggle; no geometry change.
+  const whiteSideWall=createHi20C020WhiteSideWallPresentation(gltf,verifiedSha);
+  const whiteSideWallApplied=whiteSideWall.available && whiteSideWall.setEnabled(true);
   const originals=roots.map(obj=>obj.visible);
   let corrected=false;
   return {
@@ -61,6 +83,16 @@ export function createHi20C045Presentation(gltf, verifiedSha) {
     c048WhiteHeadsCount:whiteHeadsApplied?whiteHeads.count:0,
     c046StorageApplied:storageApplied,
     c046StorageCount:storageApplied?storage.count:0,
+    c035LobbyApplied:lobbyApplied,
+    c035LobbyCount:lobbyApplied?lobby.count:0,
+    k17WhiteApplied,
+    k17WhiteCount:k17WhiteApplied?k17White.count:0,
+    c002StorageRoofsApplied:storageRoofsApplied,
+    c002StorageRoofsCount:storageRoofsApplied?storageRoofs.count:0,
+    c047StorageDoorWallApplied:doorWallApplied,
+    c047StorageDoorWallCount:doorWallApplied?doorWall.count:0,
+    c020WhiteSideWallApplied:whiteSideWallApplied,
+    c020WhiteSideWallCount:whiteSideWallApplied?whiteSideWall.count:0,
     get corrected(){return corrected;},
     setCorrected(next){
       const enabled=Boolean(next);
@@ -69,6 +101,11 @@ export function createHi20C045Presentation(gltf, verifiedSha) {
       return true;
     },
     dispose(){
+      whiteSideWall.dispose();
+      doorWall.dispose();
+      storageRoofs.dispose();
+      k17White.dispose();
+      lobby.dispose();
       storage.dispose();
       whiteHeads.dispose();
       roots.forEach((root,i)=>{root.visible=originals[i];});
