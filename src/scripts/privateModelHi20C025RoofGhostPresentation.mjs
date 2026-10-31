@@ -20,7 +20,10 @@ export async function createHi20C025RoofGhostPresentation(gltf,sha){
       !/^HI17_C80_019_025_ROOF_GHOST_ALPHA020_EXISTING_TWO_HOLES_SC(?:17|18)_OPTIN$/.test(node?.name||'')||
       meta?.sourceOnly!==true||meta?.presentationOnly!==true||
       meta?.explicitOptinRequired!==true||meta?.physicalHost!=='HOST_HOLD'||
-      meta?.current!==false||meta?.asBuilt!==false||meta?.K5SkylightIdentityVerified!==false||
+      meta?.current!==false||meta?.asBuilt!==false||meta?.humanReview!=='NOT_RUN'||
+      meta?.canPublish!==false||meta?.canApplyToViewer!==false||
+      meta?.sourceMetadata?.ylisScopeGate?.gate!=='HOLD_SOURCE_NOT_PROVEN'||
+      meta?.K5SkylightIdentityVerified!==false||
       typeof meta?.sourceDriveId!=='string'||meta?.sourceLinksPreserved!==true||
       !json.scenes[item.sourceScene]?.nodes?.includes(item.sourceNode)||
       json.scenes[item.targetScene]?.nodes?.includes(item.sourceNode)||
