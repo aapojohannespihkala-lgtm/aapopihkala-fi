@@ -5,7 +5,7 @@ import {createUnified64C035LobbyPresentation,U64_C035_SHA}
 function fixture(){
   const nodes=Array.from({length:6518},()=>({}));
   const scenes=Array.from({length:64},()=>({children:[],traverse(cb){
-    for(const o of this.children){cb(o);for(const child of o.children||[])cb(child);
+    for(const o of this.children){cb(o);for(const child of o.children||[])cb(child);}
   }}));
   const sources=Array.from({length:64},()=>({nodes:[]}));
   const materials=Array.from({length:350},()=>({alphaMode:'OPAQUE'}));
