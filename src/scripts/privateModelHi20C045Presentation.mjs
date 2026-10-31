@@ -5,6 +5,7 @@ import { createHi20K17WhitePresentation } from './privateModelHi20K17WhitePresen
 import { createHi20C002StorageRoofPresentation } from './privateModelHi20C002StorageRoofPresentation.mjs';
 import { createHi20C047DoorWallPresentation } from './privateModelHi20C047DoorWallPresentation.mjs';
 import { createHi20C020WhiteSideWallPresentation } from './privateModelHi20C020WhiteSideWallPresentation.mjs';
+import { createHi20C020BoardPresentation } from './privateModelHi20C020BoardPresentation.mjs';
 // C80-045: WORK_TEST presentation only, immutable original 52-scene GLB.
 // The 3.635 m old terrace wall must not be rendered together with the existing
 // 1.709 m replacement. Never change geometry, source links or default/C70.
@@ -75,6 +76,10 @@ export function createHi20C045Presentation(gltf, verifiedSha) {
   // Independent of the C045 terrace wall toggle; no geometry change.
   const whiteSideWall=createHi20C020WhiteSideWallPresentation(gltf,verifiedSha);
   const whiteSideWallApplied=whiteSideWall.available && whiteSideWall.setEnabled(true);
+  // C80-020: eight existing balcony boards, pale inner and dark outer faces.
+  // Independent reversible COW, no added overlapping geometry.
+  const balconyBoards=createHi20C020BoardPresentation(gltf,verifiedSha);
+  const balconyBoardsApplied=balconyBoards.available && balconyBoards.setEnabled(true);
   const originals=roots.map(obj=>obj.visible);
   let corrected=false;
   return {
@@ -93,6 +98,8 @@ export function createHi20C045Presentation(gltf, verifiedSha) {
     c047StorageDoorWallCount:doorWallApplied?doorWall.count:0,
     c020WhiteSideWallApplied:whiteSideWallApplied,
     c020WhiteSideWallCount:whiteSideWallApplied?whiteSideWall.count:0,
+    c020BalconyBoardsApplied:balconyBoardsApplied,
+    c020BalconyBoardsCount:balconyBoardsApplied?balconyBoards.count:0,
     get corrected(){return corrected;},
     setCorrected(next){
       const enabled=Boolean(next);
@@ -101,6 +108,7 @@ export function createHi20C045Presentation(gltf, verifiedSha) {
       return true;
     },
     dispose(){
+      balconyBoards.dispose();
       whiteSideWall.dispose();
       doorWall.dispose();
       storageRoofs.dispose();
