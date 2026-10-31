@@ -1,6 +1,7 @@
 import { createHi20C048WallHeadsPresentation } from './privateModelHi20C048WallHeadPresentation.mjs';
 import { createHi20C046StoragePresentation } from './privateModelHi20C046StoragePresentation.mjs';
 import { createHi20C035LobbyPresentation } from './privateModelHi20C035LobbyPresentation.mjs';
+import { createHi20K17WhitePresentation } from './privateModelHi20K17WhitePresentation.mjs';
 // C80-045: WORK_TEST presentation only, immutable original 52-scene GLB.
 // The 3.635 m old terrace wall must not be rendered together with the existing
 // 1.709 m replacement. Never change geometry, source links or default/C70.
@@ -57,6 +58,9 @@ export function createHi20C045Presentation(gltf, verifiedSha) {
   // C80-035: independent existing doorless lobby opening, presentation-only.
   const lobby=createHi20C035LobbyPresentation(gltf, verifiedSha);
   const lobbyApplied=lobby.available && lobby.setEnabled(true);
+  // Independently apply the owner's white-wall baseline to the 1125 mm K17 low wall.
+  const k17White=createHi20K17WhitePresentation(gltf, verifiedSha);
+  const k17WhiteApplied=k17White.available && k17White.setEnabled(true);
   const originals=roots.map(obj=>obj.visible);
   let corrected=false;
   return {
@@ -67,6 +71,8 @@ export function createHi20C045Presentation(gltf, verifiedSha) {
     c046StorageCount:storageApplied?storage.count:0,
     c035LobbyApplied:lobbyApplied,
     c035LobbyCount:lobbyApplied?lobby.count:0,
+    k17WhiteApplied,
+    k17WhiteCount:k17WhiteApplied?k17White.count:0,
     get corrected(){return corrected;},
     setCorrected(next){
       const enabled=Boolean(next);
@@ -75,6 +81,7 @@ export function createHi20C045Presentation(gltf, verifiedSha) {
       return true;
     },
     dispose(){
+      k17White.dispose();
       lobby.dispose();
       storage.dispose();
       whiteHeads.dispose();
