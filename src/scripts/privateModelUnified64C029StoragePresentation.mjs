@@ -57,7 +57,8 @@ export function createUnified64C029StoragePresentation(gltf,sha){
     j.meshes?.[1726]?.primitives?.[0]?.material!==281||
     j.meshes?.[514]?.primitives?.[0]?.material!==85||
     j.meshes?.[1820]?.primitives?.[0]?.material!==333||
-    j.materials?.[333]?.pbrMetallicRoughness?.baseColorFactor?.some((v,i)=>
+    j.materials?.[333]?.pbrMetallicRoughness?.baseColorFactor?.length!==4||
+    j.materials[333].pbrMetallicRoughness.baseColorFactor.some((v,i)=>
       !close(v,[.93,.93,.93,1][i],1e-6))||
     j.materials?.[85]?.alphaMode!=='BLEND'||
     !close(j.materials?.[85]?.pbrMetallicRoughness?.baseColorFactor?.[3],.58,1e-6))
@@ -69,7 +70,7 @@ export function createUnified64C029StoragePresentation(gltf,sha){
       !j.scenes[spec.scene]?.nodes?.includes(spec.door)||
       !target?.isScene||!sourceScene?.isScene||
       !identity(target.matrixWorld)||!identity(sourceScene.matrixWorld)||
-      target.children?.length!==spec.roots ||
+      target.children?.length<spec.roots ||
       target.children.some(o=>o?.userData?.c029U64Clone===true))
       return unavail('target-contract-or-duplicate');
     const dn=j.nodes[spec.door];
@@ -92,7 +93,7 @@ export function createUnified64C029StoragePresentation(gltf,sha){
         !j.scenes[spec.from]?.nodes?.includes(id)||
         j.scenes[spec.scene]?.nodes?.includes(id)||
         j.nodes.some(p=>p.children?.includes(id))||
-        !sourceMatrixMatches({elements:n.matrix},n.matrix))
+        n.matrix?.length!==16)
         return unavail('source-root-identity');
       if(kind==='ROOF' && (n.extras?.roofHostValidated!==false||
           n.extras?.sourceOnly!==true||
@@ -119,7 +120,7 @@ export function createUnified64C029StoragePresentation(gltf,sha){
           (kind==='WEST'&&(!close(b.min.y,8.928)||!close(b.max.y,10.810)))||
           (kind==='NORTH'&&(!close(b.min.x,0)||!close(b.max.x,2.337))))
           return unavail('source-plane-bounds');
-      }else if(!original.isMesh ||original.geometry!==original.geometry)
+      }else if(!original.isMesh ||!original.geometry || !original.material)
         return unavail('source-roof-mesh');
       candidates.push({target,original,door,kind,id});
     }
@@ -150,8 +151,7 @@ export function createUnified64C029StoragePresentation(gltf,sha){
       }else if(clone.geometry!==original.geometry||
         clone.material!==original.material)throw Error('roof-mesh-copy');
       clone.userData={...clone.userData,c029U64Clone:true,
-        c029SourceNode:id,c029SourceScene:candidates.find(x=>x.id===id)?.kind?(
-          id<5775?8:9):null,c029DisplayOnly:true,
+        c029SourceNode:id,c029SourceScene:id<5775?8:9,c029DisplayOnly:true,
         c029WallThicknessM:kind==='ROOF'?null:.060,
         physicalHost:'HOST_HOLD',current:false,asBuilt:false};
       clone.visible=true;target.add(clone);
