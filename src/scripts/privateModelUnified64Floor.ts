@@ -1,4 +1,5 @@
 import { createUnified64Kiv003Presentation } from './privateModelUnified64Kiv003Presentation.mjs';
+import { createUnified64C026TerrainPresentation } from './privateModelUnified64C026TerrainPresentation.mjs';
 import type { Object3D } from 'three';
 import { loadedModelSha256 } from './privateModelSourceCards';
 import type { MainViewFloor } from './privateModelMainViewScope';
@@ -55,6 +56,10 @@ export function createC80R2Unified64FloorRuntime(args: {
   // C80-042: exact-source reversible presentation only, no new GLB or mesh.
   const kiv003 = createUnified64Kiv003Presentation(args.gltf, sha);
   if (kiv003.available) kiv003.setCorrected(true);
+  // Reuse the two existing G2b-verified C80-026 patches in 1F60/BOTH63.
+  // Source-only WORK_TEST, no changes to shared GLB or any C042 KIV root.
+  const c026Terrain = createUnified64C026TerrainPresentation(args.gltf, sha);
+  if (c026Terrain.available) c026Terrain.setEnabled(true);
   let active = false, disposed = false, floor: MainViewFloor = 'BOTH';
   const expectedMounted = () =>
     Object.values(scenes).some(scene => args.mounted() === scene);
@@ -64,6 +69,8 @@ export function createC80R2Unified64FloorRuntime(args: {
     sourceModel: 'D_C80' as const,
     sourceSha256: sha,
     get kiv003WindowSourceStatus() { return kiv003.corrected ? 'HIDDEN_UNHOSTED_REFERENCE' : 'SOURCE_UNCHANGED'; },
+    get c026TerrainSourceStatus() { return c026Terrain.enabled ? 'G2B_C026_DONOR_PATCHES_1F_BOTH' : 'SOURCE_UNCHANGED'; },
+    get c026TerrainPatchCount() { return c026Terrain.enabled ? c026Terrain.count : 0; },
     defaultScene: scenes.BOTH,
     get selectedScene() { return scenes[floor]; },
     get sceneIndex() { return C80R2_UNIFIED64_SCENES[floor]; },
@@ -89,6 +96,6 @@ export function createC80R2Unified64FloorRuntime(args: {
     },
     enforce() { /* Immutable source scene graph, never visibility inference. */ },
     referenceCandidates() { return []; },
-    dispose() { kiv003.dispose(); disposed = true; active = false; },
+    dispose() { c026Terrain.dispose(); kiv003.dispose(); disposed = true; active = false; },
   };
 }
