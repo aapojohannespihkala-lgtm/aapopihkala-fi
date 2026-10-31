@@ -19,15 +19,27 @@ function fixture(){
   }));
   const objects=new Map();
   for(const [scene,id,name] of targets){
-    nodes[id]={name,mesh:id};
+    const mesh=[1488,412].includes(id)?633:[5756,5777].includes(id)?1727:1820;
+    const extras=mesh===633
+      ? {representationKind:'wallContinuationVisualProxy'}
+      : mesh===1727
+        ? {representationKind:'SOURCE_CONTEXT'}
+        : {representationKind:'DISPLAY_VOLUME_NOT_PHYSICAL_STRUCTURE',
+           sourceLinks:[{role:'ownerObservation'}]};
+    nodes[id]={name,mesh,extras};
     const obj={name,visible:true,isMesh:true,parent:scenes[scene]};
     scenes[scene].children.push(obj);
     associations.set(obj,{nodes:id});
     objects.set(id,obj);
   }
+  nodes[5354]={children:[1488]};
+  nodes[5338]={children:[412]};
+  const meshes=Array.from({length:1821},()=>({primitives:[]}));
+  for(const [id,material] of [[633,72],[1727,281],[1820,333]])
+    meshes[id]={primitives:[{material}]};
   const gltf={scenes,parser:{associations,json:{
     asset:{version:'2.0',extras:{current:false,asBuilt:false}},
-    scene:0,scenes:Array(52).fill({}),nodes,
+    scene:0,scenes:Array(52).fill({}),nodes,meshes,
   }}};
   return {gltf,objects};
 }
