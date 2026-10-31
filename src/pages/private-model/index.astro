@@ -7353,6 +7353,7 @@ const title = 'Private 3D viewer';
         hi20C050GuidesPresentation.setCleaned(hi20C050GuidesInput.checked);
         canvas.dataset.hi20C050GuidesClean = hi20C050GuidesInput.checked ? 'true' : 'unavailable';
         canvas.dataset.hi20C050GuidesCount = String(hi20C050GuidesPresentation.count);
+        canvas.dataset.hi20C050GuidesReason = hi20C050GuidesPresentation.reason ?? '';
         // C045 owner-confirmed correction already exists IN the source 52scene,
         // but the old full-length 3.635m root is simultaneously rendered.
         // Suppress only that old root (50/51) after exact source/mesh verification.
@@ -7376,6 +7377,7 @@ const title = 'Private 3D viewer';
         canvas.dataset.hi20C045WallCorrected =
           hi20C045WallInput.checked ? 'true' : 'unavailable';
         canvas.dataset.hi20C045WallCount = String(hi20C045Presentation.count);
+        canvas.dataset.hi20C045WallReason = hi20C045Presentation.reason ?? '';
         // C015: WHOLE23 alone omits the existing unified 2F/BOTH 63m² floor.
         // Exact HI20 SHA, scene root and mesh required. No new geometry.
         hi20C015WholeFloorPresentation = createHi20C015WholeFloorPresentation(
@@ -7388,6 +7390,7 @@ const title = 'Private 3D viewer';
           hi20C015WholeFloorPresentation.available ? 'true' : 'unavailable';
         canvas.dataset.hi20C015WholeFloorCount =
           String(hi20C015WholeFloorPresentation.count);
+        canvas.dataset.hi20C015WholeFloorReason = hi20C015WholeFloorPresentation.reason ?? '';
         // C029 was already scene-root/GLB/EGL checked in separate 54-scene
         // WORK_TEST. Reuse its existing orphan mesh514 roof roots in this
         // byte-verified original 52-scene presentation, without editing GLB.
@@ -7408,6 +7411,7 @@ const title = 'Private 3D viewer';
           canvas.dataset.hi20C029RoofVisible =
             presentation.available ? 'true' : 'unavailable';
           canvas.dataset.hi20C029RoofCount = String(presentation.count);
+          canvas.dataset.hi20C029RoofReason = presentation.reason ?? '';
           refreshEdgeRendering(modelRoot.children[0] ?? null);
         }).catch(() => {
           if (c029LoadVersion === modelLoadVersion) {
@@ -7425,6 +7429,7 @@ const title = 'Private 3D viewer';
         hi20BalconyGlassInput.checked = hi20BalconyGlassPresentation.available;
         hi20BalconyGlassPresentation.setEnabled(hi20BalconyGlassInput.checked);
         canvas.dataset.hi20BalconyGlassCount = String(hi20BalconyGlassPresentation.count);
+        canvas.dataset.hi20BalconyGlassReason = hi20BalconyGlassPresentation.reason ?? '';
         canvas.dataset.hi20BalconyGlassContrast = hi20BalconyGlassInput.checked ? 'enabled' : 'not-applied';
 
         // Layer setup clones ARCH_BASE materials. Capture those final viewer
