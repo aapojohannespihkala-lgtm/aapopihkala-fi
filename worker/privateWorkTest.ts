@@ -3483,6 +3483,18 @@ const D_C80_HI20_WORK_TEST_CANDIDATE = {
 // WORK_TEST/HOST_HOLD/NONCURRENT only, never CURRENT/as-built/HUMAN_REVIEW.
 // Exact full 52-scene G2b source with original 1F scene50 / 2F scene48 / BOTH scene51.
 // Publish-work-test main-only extractor preserves geometry bytes and sourceLinks; no CURRENT/as-built claim.
+// Exact G2b full 64-scene source, not a scene63 extraction.
+// Existing protected viewer presents original 1F60/2F62/BOTH63 only after
+// SHA, stage and node-root verification. SOURCE_ONLY/HOST_HOLD/NONCURRENT.
+const D_C80R2_UNIFIED64_C018_WORK_TEST_CANDIDATE = {
+  id: 'ylisrinne-d-c80r2-unified64-c018-c050-1f2fboth-work-test-20261031',
+  label: 'D C80R2 64scene C018+C050+C030+C045 C020 - 1F/2F/BOTH WORK_TEST HOST_HOLD, ei nykytila',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/ylisrinne-d-c80r2-unified64-c018-c050-1f2fboth-work-test-20261031.glb`,
+  objectKey: 'work-test/ylisrinne-d-c80r2-unified64-c018-c050-1f2fboth-work-test-20261031.glb',
+  expectedSize: 15545612,
+  expectedSha256: '22ddaac08a290bcaa38d2b9985e9e851c25d92d3da111134062dae13a96685e8',
+} as const satisfies PrivateWorkTestCandidate;
+
 const D_C80_HI20_UNIFIED52_BOTH_WORK_TEST_CANDIDATE = {
   id: 'ylisrinne-d-c80-hi20-unified52-both-sc51-work-test-20261030',
   label: 'D HI20 52scene BOTH scene51 P6 + K17 1125 + WP6/WP8 + C043 + C027/C045/K14 WORK_TEST HOST_HOLD - ei nykytila',
@@ -3511,6 +3523,7 @@ const D_C80_HI20_B72_SC45_WORK_TEST_CANDIDATE = {
 } as const satisfies PrivateWorkTestCandidate;
 
 const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
+  D_C80R2_UNIFIED64_C018_WORK_TEST_CANDIDATE,
   D_C80_HI20_UNIFIED52_BOTH_WORK_TEST_CANDIDATE,
   D_C80_HI20_K17_SC49_WORK_TEST_CANDIDATE,
   D_C80_HI20_B72_SC45_WORK_TEST_CANDIDATE,
