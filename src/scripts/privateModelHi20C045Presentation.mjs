@@ -25,7 +25,7 @@ export function createHi20C045Presentation(gltf, verifiedSha) {
       const found=scene?.children?.filter(obj=>
         obj?.name===name && obj?.isMesh===true &&
         association.get(obj)?.nodes===id &&
-        association.get(obj)?.meshes===meshIndex);
+        gltf.parser.json.nodes?.[id]?.mesh===meshIndex);
       if (found?.length!==1) return null;
       const obj=found[0];
       obj.geometry?.computeBoundingBox?.();
