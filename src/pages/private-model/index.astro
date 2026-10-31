@@ -2408,6 +2408,9 @@ const title = 'Private 3D viewer';
         HI20_UNIFIED52_SHA,
         resolveHi20Unified52Scenes, createHi20Unified52FloorRuntime,
       } from '../../scripts/privateModelUnified52Floor';
+      // @ts-ignore - pure C80-044 preset-edge guard, no GLB mutation.
+      import { shouldApplyC044SeamlessEdgeDefault }
+        from '../../scripts/privateModelHi20C044EdgePreset.mjs';
       import {
         C80R2_UNIFIED64_SHA,
         resolveC80R2Unified64Scenes, createC80R2Unified64FloorRuntime,
@@ -3300,6 +3303,8 @@ const title = 'Private 3D viewer';
       let electricalLayerVisible = true;
       // Preset layer defaults initialize once per real model load; later view changes preserve user state.
       let standardViewLayerDefaultsInitialized = false;
+      // Preserve an explicit edge-overlay choice across HI20/64scene preset switches.
+      let edgeModeManuallySelected = false;
       let archBaseMaterialCloneCount = 0;
       let activeModelSourceKind: 'current' | 'work-test' = 'current';
       const dReviewEmphasisMeshes = new Set<any>();
@@ -6580,6 +6585,13 @@ const title = 'Private 3D viewer';
           );
           standardViewLayerDefaultsInitialized = true;
         }
+        // C80-044: initial layer defaults may have been consumed by an earlier
+        // whole-building/1F preset. On later HI20 or exact-U64 2F/BOTH entry,
+        // hide only viewer-generated technical seams unless user chose edges.
+        if (shouldApplyC044SeamlessEdgeDefault({
+          sourceVerified: activeHi20SourceVerified, preset,
+          edgeModeManuallySelected, edgeMode,
+        })) applyViewerLayerState({ edgeMode: 'none' }, `preset:${preset}`);
 
         if (mainViewScope?.available &&
             (preset === 'd-apartment' || preset === 'd-1f' || preset === 'd-2f')) {
@@ -7306,6 +7318,7 @@ const title = 'Private 3D viewer';
         delete canvas.dataset.contentFloor;
         activeModelSourceKind = sourceKind;
         standardViewLayerDefaultsInitialized = false;
+        edgeModeManuallySelected = false;
         setInfraProfileAvailable(false);
 
         initializeFullModelArchBase();
@@ -14015,6 +14028,7 @@ const title = 'Private 3D viewer';
       edgeModeSelect.addEventListener('change', () => {
         const requestedMode = edgeModeSelect.value as EdgeMode;
         if (!['none', 'object', 'unified', 'visible'].includes(requestedMode)) return;
+        edgeModeManuallySelected = true;
         applyViewerLayerState({ edgeMode: requestedMode }, 'manual');
       });
       profileButton.addEventListener('click', () => setProfilePanelOpen(profilePanel.hidden));
