@@ -1986,6 +1986,13 @@ const title = 'Private 3D viewer';
             </label>
             <div class="layer-note">52-scene WORK_TEST: vain KPH07:n mittakaaviot sekä pohjoisoven 955 mm apuviivat. Poista valinta vertaillaksesi alkuperäiseen.</div>
           </div>
+          <div id="hi20-c029-roof-layer" class="layer-section" hidden>
+            <label class="layer-row">
+              <input id="hi20-c029-roof-visible" type="checkbox" checked />
+              <span>Ulkovaraston olemassa oleva viitekatto näkyviin (C80-029)</span>
+            </label>
+            <div class="layer-note">52-scene 1F/BOTH, SOURCE_ONLY / HOST_HOLD / WORK_TEST. Sama alkuperäinen katto ilman uutta geometriaa. Poista valinta nähdäksesi alkuperäisen.</div>
+          </div>
           <div id="hi20-c045-wall-layer" class="layer-section" hidden>
             <label class="layer-row">
               <input id="hi20-c045-wall-corrected" type="checkbox" checked />
@@ -2154,6 +2161,8 @@ const title = 'Private 3D viewer';
         from '../../scripts/privateModelHi20C050GuidesPresentation.mjs';
       // @ts-ignore - C045 SHA-locked original-source duplicate wall display guard.
       import { createHi20C045Presentation } from '../../scripts/privateModelHi20C045Presentation.mjs';
+      // @ts-ignore - C029 reuses exact orphan source roof nodes, no new mesh.
+      import { createHi20C029RoofPresentation } from '../../scripts/privateModelHi20C029RoofPresentation.mjs';
       // @ts-ignore - exact-SHA presentation only, source GLB remains unchanged.
       import { createHi20BalconyGlassPresentation }
         from '../../scripts/privateModelHi20Unified52BalconyGlassPresentation.mjs';
@@ -2675,6 +2684,9 @@ const title = 'Private 3D viewer';
       const hi20C045WallLayer = document.querySelector<HTMLElement>('#hi20-c045-wall-layer')!;
       const hi20C045WallInput = document.querySelector<HTMLInputElement>('#hi20-c045-wall-corrected')!;
       let hi20C045Presentation: ReturnType<typeof createHi20C045Presentation> | null = null;
+      const hi20C029RoofLayer = document.querySelector<HTMLElement>('#hi20-c029-roof-layer')!;
+      const hi20C029RoofInput = document.querySelector<HTMLInputElement>('#hi20-c029-roof-visible')!;
+      let hi20C029RoofPresentation: Awaited<ReturnType<typeof createHi20C029RoofPresentation>> | null = null;
       const hi20BalconyGlassLayer = document.querySelector<HTMLElement>('#hi20-balcony-glass-contrast-layer')!;
       const hi20BalconyGlassInput = document.querySelector<HTMLInputElement>('#hi20-balcony-glass-contrast')!;
       let hi20BalconyGlassPresentation: ReturnType<typeof createHi20BalconyGlassPresentation> | null = null;
@@ -7134,6 +7146,12 @@ const title = 'Private 3D viewer';
         hi20C050GuidesInput.checked = false;
         delete canvas.dataset.hi20C050GuidesClean;
         delete canvas.dataset.hi20C050GuidesCount;
+        hi20C029RoofPresentation?.dispose();
+        hi20C029RoofPresentation = null;
+        hi20C029RoofLayer.hidden = true;
+        hi20C029RoofInput.checked = false;
+        delete canvas.dataset.hi20C029RoofVisible;
+        delete canvas.dataset.hi20C029RoofCount;
         hi20C045Presentation?.dispose();
         hi20C045Presentation = null;
         hi20C045WallLayer.hidden = true;
@@ -7288,6 +7306,33 @@ const title = 'Private 3D viewer';
         canvas.dataset.hi20C045WallCorrected =
           hi20C045WallInput.checked ? 'true' : 'unavailable';
         canvas.dataset.hi20C045WallCount = String(hi20C045Presentation.count);
+        // C029 was already scene-root/GLB/EGL checked in separate 54-scene
+        // WORK_TEST. Reuse its existing orphan mesh514 roof roots in this
+        // byte-verified original 52-scene presentation, without editing GLB.
+        // The source node resolution may be async. Never mutate a newer load.
+        const c029LoadVersion = modelLoadVersion;
+        void createHi20C029RoofPresentation(
+          gltf, sourceKind === 'work-test' ? loadedModelSha256(gltf) : '',
+        ).then((presentation) => {
+          if (c029LoadVersion !== modelLoadVersion) {
+            presentation.dispose();
+            return;
+          }
+          hi20C029RoofPresentation?.dispose();
+          hi20C029RoofPresentation = presentation;
+          hi20C029RoofLayer.hidden = !presentation.available;
+          hi20C029RoofInput.checked = presentation.available;
+          presentation.setVisible(hi20C029RoofInput.checked);
+          canvas.dataset.hi20C029RoofVisible =
+            presentation.available ? 'true' : 'unavailable';
+          canvas.dataset.hi20C029RoofCount = String(presentation.count);
+          refreshEdgeRendering(modelRoot.children[0] ?? null);
+        }).catch(() => {
+          if (c029LoadVersion === modelLoadVersion) {
+            hi20C029RoofLayer.hidden = true;
+            canvas.dataset.hi20C029RoofVisible = 'unavailable';
+          }
+        });
         // The original 52-scene material is alpha 0.24 and remains unchanged.
         // This is only a reversible presentation contrast on 26 source-scene
         // glass instances (13 in 2F48 and 13 in BOTH51), SHA-locked.
@@ -13847,6 +13892,16 @@ const title = 'Private 3D viewer';
         }
         hi20C050GuidesPresentation.setCleaned(hi20C050GuidesInput.checked);
         canvas.dataset.hi20C050GuidesClean = String(hi20C050GuidesInput.checked);
+        refreshEdgeRendering(modelRoot.children[0] ?? null);
+        if (selectedObject && !isEffectivelyVisible(selectedObject, modelRoot)) clearSelection();
+      });
+      hi20C029RoofInput.addEventListener('change', () => {
+        if (!hi20C029RoofPresentation?.available) {
+          hi20C029RoofInput.checked = false;
+          return;
+        }
+        hi20C029RoofPresentation.setVisible(hi20C029RoofInput.checked);
+        canvas.dataset.hi20C029RoofVisible = String(hi20C029RoofInput.checked);
         refreshEdgeRendering(modelRoot.children[0] ?? null);
         if (selectedObject && !isEffectivelyVisible(selectedObject, modelRoot)) clearSelection();
       });
