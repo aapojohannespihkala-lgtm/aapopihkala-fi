@@ -35,7 +35,11 @@ export function createHi20C015WholeFloorPresentation(gltf, verifiedSha) {
       Math.abs(node.extras?.areaM2 - 63.006272305026044) > 1e-5 ||
       node.extras?.addedStripAreaM2 !== 0.15479991851807995 ||
       node.extras?.sourceFloorNode !== 5869 ||
+      node.extras?.sourceMesh !== 1787 ||
+      node.extras?.humanReview !== 'NOT_RUN' ||
+      node.extras?.sourceHI20GLBSHA256 !== '8ddb398d9eb981d92ed444afcfad93ceb2224b1ce9898599553ede9b4136b87d' ||
       !Array.isArray(node.extras?.sourceLinks) ||
+      !node.extras.sourceLinks.includes('C80-017 HI20 floor') ||
       mesh?.name !== 'HI20_WP2_C80-017_NORTH_86MM_GAP_FILLED_ONE_TOPOLOGIC_FLOOR' ||
       mesh?.primitives?.length !== 1 || mesh.primitives[0].material !== 216 ||
       mesh.extras?.physicalHost !== 'HOST_HOLD' ||
