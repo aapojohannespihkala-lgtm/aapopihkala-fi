@@ -1979,6 +1979,13 @@ const title = 'Private 3D viewer';
               <span>C80-lähdekonteksti (K17-viitteet säilyvät)</span>
             </label>
           </div>
+          <div id="hi20-balcony-glass-contrast-layer" class="layer-section" hidden>
+            <label class="layer-row">
+              <input id="hi20-balcony-glass-contrast" type="checkbox" checked />
+              <span>Parvekelasit näkyvämmiksi (HI20 WORK_TEST)</span>
+            </label>
+            <div class="layer-note">Vain lasien esityspeittävyys, 24 % / 60 %. Vertaa alkuperäiseen poistamalla valinta. GLB ei muutu.</div>
+          </div>
           <label class="layer-row">
             <input id="roof-layer-visible" type="checkbox" checked />
             <span>Vesikatto</span>
@@ -2128,6 +2135,9 @@ const title = 'Private 3D viewer';
       // @ts-ignore - isolate the genuine original 13 + numbered 7 source groups.
       import { createM5AR1125Scene64PixelIsolation }
         from '../../scripts/privateModelM5AR1125Scene64PixelIsolation.mjs';
+      // @ts-ignore - exact-SHA presentation only, source GLB remains unchanged.
+      import { createHi20BalconyGlassPresentation }
+        from '../../scripts/privateModelHi20Unified52BalconyGlassPresentation.mjs';
       // @ts-ignore - source150 exact two-pull glass source, noncanonical review only.
       import { isD1FScene150ReviewRequested, loadD1FScene150Review }
         from '../../scripts/privateModelD1FScene150Review.mjs';
@@ -2636,6 +2646,9 @@ const title = 'Private 3D viewer';
       const c80ShellInput = document.querySelector<HTMLInputElement>('#c80-shell-focus')!;
       const c80ContextRow = document.querySelector<HTMLElement>('#c80-k17-context-layer')!;
       const c80ContextVisibleInput = document.querySelector<HTMLInputElement>('#c80-source-context-visible')!;
+      const hi20BalconyGlassLayer = document.querySelector<HTMLElement>('#hi20-balcony-glass-contrast-layer')!;
+      const hi20BalconyGlassInput = document.querySelector<HTMLInputElement>('#hi20-balcony-glass-contrast')!;
+      let hi20BalconyGlassPresentation: ReturnType<typeof createHi20BalconyGlassPresentation> | null = null;
       const roofLayerVisibleInput = document.querySelector<HTMLInputElement>('#roof-layer-visible');
       const roofLayerOpacityInput = document.querySelector<HTMLInputElement>('#roof-layer-opacity');
       const roofLayerOpacityValue = document.querySelector<HTMLOutputElement>('#roof-layer-opacity-value');
@@ -7080,6 +7093,12 @@ const title = 'Private 3D viewer';
         c70PreviewSession: any = null,
       ) => {
         modelLoadVersion++;
+        hi20BalconyGlassPresentation?.dispose();
+        hi20BalconyGlassPresentation = null;
+        hi20BalconyGlassLayer.hidden = true;
+        hi20BalconyGlassInput.checked = false;
+        delete canvas.dataset.hi20BalconyGlassCount;
+        delete canvas.dataset.hi20BalconyGlassContrast;
         delete canvas.dataset.c70Preview;
         delete canvas.dataset.c70SourceSha256;
         delete canvas.dataset.c70SourceTransport;
@@ -7200,6 +7219,17 @@ const title = 'Private 3D viewer';
           });
         }
         prepareDReviewStyling();
+        // The original 52-scene material is alpha 0.24 and remains unchanged.
+        // This is only a reversible presentation contrast on 26 source-scene
+        // glass instances (13 in 2F48 and 13 in BOTH51), SHA-locked.
+        hi20BalconyGlassPresentation = createHi20BalconyGlassPresentation(
+          gltf, sourceKind === 'work-test' ? loadedModelSha256(gltf) : '',
+        );
+        hi20BalconyGlassLayer.hidden = !hi20BalconyGlassPresentation.available;
+        hi20BalconyGlassInput.checked = hi20BalconyGlassPresentation.available;
+        hi20BalconyGlassPresentation.setEnabled(hi20BalconyGlassInput.checked);
+        canvas.dataset.hi20BalconyGlassCount = String(hi20BalconyGlassPresentation.count);
+        canvas.dataset.hi20BalconyGlassContrast = hi20BalconyGlassInput.checked ? 'enabled' : 'not-applied';
 
         // Layer setup clones ARCH_BASE materials. Capture those final viewer
         // materials so the T04 adapter never replaces a layer's newer owner.
@@ -13729,6 +13759,15 @@ const title = 'Private 3D viewer';
         (mainViewScope as any).setFloorShellMode(c80ShellInput.checked ? 'FOCUS' : 'SOURCE');
         if (selectedObject && !isEffectivelyVisible(selectedObject,modelRoot)) clearSelection();
         refreshEdgeRendering((mainViewScope as any).selectedScene);
+      });
+      hi20BalconyGlassInput.addEventListener('change', () => {
+        if (!hi20BalconyGlassPresentation?.available) {
+          hi20BalconyGlassInput.checked = false;
+          return;
+        }
+        hi20BalconyGlassPresentation.setEnabled(hi20BalconyGlassInput.checked);
+        canvas.dataset.hi20BalconyGlassContrast = hi20BalconyGlassInput.checked ? 'enabled' : 'source';
+        refreshEdgeRendering(modelRoot.children[0] ?? null);
       });
       layersButton.addEventListener('click', () => setLayersPanelOpen(layersPanel.hidden));
       closeLayersButton.addEventListener('click', () => setLayersPanelOpen(false, true));
