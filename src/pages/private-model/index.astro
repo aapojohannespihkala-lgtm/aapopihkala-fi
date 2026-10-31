@@ -2384,7 +2384,7 @@ const title = 'Private 3D viewer';
         resolveHi20Unified52Scenes, createHi20Unified52FloorRuntime,
       } from '../../scripts/privateModelUnified52Floor';
       import {
-        C80R2_UNIFIED64_ID, C80R2_UNIFIED64_SHA,
+        C80R2_UNIFIED64_SHA,
         resolveC80R2Unified64Scenes, createC80R2Unified64FloorRuntime,
       } from '../../scripts/privateModelUnified64Floor';
       import { prepareC70Preview, createC70MainViewBridge } from '../../scripts/c70_main_view_bridge.mjs';
@@ -11358,7 +11358,7 @@ const title = 'Private 3D viewer';
                 P137E_SCENE67_EXACT_ASSET_PATH.replace(/[^/]+$/, ''),
               )
             : await loadModelWithSourceCards(loader, candidate.path));
-          if (candidate.id === C80R2_UNIFIED64_ID) {
+          if (candidate.id === 'ylisrinne-d-c80r2-unified64-c018-c050-1f2fboth-work-test-20261031') {
             // G2b 64-scene exact source: one candidate with the original
             // 1F60/2F62/BOTH63 roots. Never remount generic filtered geometry.
             gltf.scene = resolveC80R2Unified64Scenes(gltf, loadedModelSha256(gltf)).BOTH;
