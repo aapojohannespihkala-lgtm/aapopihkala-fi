@@ -67,3 +67,11 @@ test('wrong scene, parent, child mesh or source provenance fails closed',()=>{
     objects.forEach(({targetObj})=>assert.equal(targetObj.visible,true));
   }
 });
+
+test('C80-042 actual 52-scene viewer lifecycle enables source-locked hide and restores on disposal', async()=>{
+  const {readFileSync}=await import('node:fs');
+  const source=readFileSync(new URL('../../src/scripts/privateModelHi20C045Presentation.mjs',import.meta.url),'utf8');
+  assert.match(source,/createHi20C042Kiv003Presentation\(gltf,verifiedSha\)/);
+  assert.match(source,/kiv003\.available && kiv003\.setEnabled\(true\)/);
+  assert.match(source,/kiv003\.dispose\(\)/);
+});
