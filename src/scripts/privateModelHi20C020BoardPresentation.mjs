@@ -1,3 +1,4 @@
+import { createHi20C024BalconyFloorPresentation } from './privateModelHi20C024BalconyFloorPresentation.mjs';
 // C80-020 / D2F-WP3: source-locked pale INNER, dark OUTER balcony boards.
 // This is reversible WORK_TEST presentation only, not a physical color survey.
 export const C020_BOARD_SOURCE_SHA='15a13623be601b1cbc70aaced46e497146d50894da9a3a54b4c47b438b4acee9';
@@ -100,5 +101,11 @@ export function createHi20C020BoardPresentation(gltf,sha){
     });
     clones=made;enabled=true;return true;
   }
-  return {available:true,reason:null,count:2,get enabled(){return enabled;},setEnabled,dispose:disable};
+  // Independent C80-024 floor photo finish on the existing board-view lifecycle.
+  // Do not couple its state to the optional C80-020 board face toggle.
+  const balconyFloor=createHi20C024BalconyFloorPresentation(gltf,sha);
+  const balconyFloorApplied=balconyFloor.available && balconyFloor.setEnabled(true);
+  return {available:true,reason:null,count:2,get enabled(){return enabled;},setEnabled,
+    balconyFloorApplied,balconyFloorCount:balconyFloorApplied?balconyFloor.count:0,
+    dispose(){disable();balconyFloor.dispose();}};
 }
