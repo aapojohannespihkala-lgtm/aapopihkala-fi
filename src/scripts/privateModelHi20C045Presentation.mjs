@@ -8,6 +8,7 @@ import { createHi20C036R5DoorPresentation } from './privateModelHi20C036R5DoorPr
 import { createHi20C020WhiteSideWallPresentation } from './privateModelHi20C020WhiteSideWallPresentation.mjs';
 import { createHi20C020BoardPresentation } from './privateModelHi20C020BoardPresentation.mjs';
 import { createHi20C026TerrainPresentation } from './privateModelHi20C026TerrainPresentation.mjs';
+import { createHi20C027ContourPresentation } from './privateModelHi20C027ContourPresentation.mjs';
 // C80-045: WORK_TEST presentation only, immutable original 52-scene GLB.
 // The 3.635 m old terrace wall must not be rendered together with the existing
 // 1.709 m replacement. Never change geometry, source links or default/C70.
@@ -90,6 +91,10 @@ export function createHi20C045Presentation(gltf, verifiedSha) {
   // The remaining white source-clip region stays unfilled (HOST_HOLD).
   const terrain=createHi20C026TerrainPresentation(gltf,verifiedSha);
   const terrainApplied=terrain.available && terrain.setEnabled(true);
+  // C80-027: source-locked 1m major / 0.5m minor contour display.
+  // Independent reversible COW, no duplicate terrain geometry.
+  const contours=createHi20C027ContourPresentation(gltf,verifiedSha);
+  const contoursApplied=contours.available && contours.setEnabled(true);
   const originals=roots.map(obj=>obj.visible);
   let corrected=false;
   return {
@@ -114,6 +119,8 @@ export function createHi20C045Presentation(gltf, verifiedSha) {
     c020BalconyBoardsCount:balconyBoardsApplied?balconyBoards.count:0,
     c026TerrainApplied:terrainApplied,
     c026TerrainCount:terrainApplied?terrain.count:0,
+    c027ContoursApplied:contoursApplied,
+    c027ContoursCount:contoursApplied?contours.count:0,
     get corrected(){return corrected;},
     setCorrected(next){
       const enabled=Boolean(next);
@@ -122,6 +129,7 @@ export function createHi20C045Presentation(gltf, verifiedSha) {
       return true;
     },
     dispose(){
+      contours.dispose();
       terrain.dispose();
       r5WhiteDoor.dispose();
       balconyBoards.dispose();
