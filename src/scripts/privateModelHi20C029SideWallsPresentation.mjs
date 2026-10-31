@@ -33,7 +33,7 @@ export function createHi20C029SideWallsPresentation(gltf,sha) {
   if(sha!==C029_SOURCE_SHA || json?.asset?.version!=='2.0' || json?.scene!==0 ||
      json?.asset?.extras?.current!==false || json?.asset?.extras?.asBuilt!==false ||
      json?.scenes?.length!==52 || gltf?.scenes?.length!==52 ||
-     typeof association?.get!=='function) return unavailable('sha-or-loader');
+     typeof association?.get!=='function') return unavailable('sha-or-loader');
   const targets=[];
   for(const t of TARGETS) {
     const n=json.nodes?.[t.node], mesh=json.meshes?.[t.mesh];
