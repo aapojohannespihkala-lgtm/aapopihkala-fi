@@ -19,7 +19,7 @@ class Geometry {
 }
 function fixture() {
  const json={asset:{version:'2.0',extras:{current:false,asBuilt:false}},
-   scene:0,scenes:Array.from({length:64},()=>({nodes:[]})),nodes:Array.from({length:5734},()=>({})),meshes:Array.from({length:1667},()=>({primitives:[]}))};
+   scene:0,scenes:Array.from({length:64},()=>({nodes:[]})),nodes:Array.from({length:5734},()=>({})),meshes:Array.from({length:1873},()=>({primitives:[]}))};
  json.meshes[1665].primitives=[{material:228}];json.meshes[1666].primitives=[{material:229}];
  const associations=new Map(),scenes=Array.from({length:64},()=>({traverse:()=>{}}));
  const siblings=[];
