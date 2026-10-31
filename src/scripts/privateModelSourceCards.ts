@@ -1,3 +1,5 @@
+import { buildSourceNodeAssociations, createSourceNodeView } from './privateModelSourceNodeAssociations.mjs';
+
 type RecordData = Record<string, any>;
 
 export type SourceCardBundle = {
@@ -414,6 +416,14 @@ const sessions = new WeakMap<object, (object: SourceNode) => SelectionSourceEvid
 const loadedDigests = new WeakMap<object, string>();
 /** The digest of the exact GLB bytes parsed in this load session, never catalog metadata. */
 export const loadedModelSha256 = (gltf: object) => loadedDigests.get(gltf) ?? null;
+const loadedNodeAssociations = new WeakMap<object, Map<object, { nodes: number }>>();
+/**
+ * The parsed model with source node indices restored for every scene object.
+ * GLTFLoader keeps none for multi-scene GLBs; the map is captured from the
+ * pristine parse, so later viewer helpers cannot shift the structure.
+ */
+export const sourceNodeModel = <T extends object>(gltf: T): T =>
+  createSourceNodeView(gltf, loadedNodeAssociations.get(gltf)) as T;
 let bundleRequest: Promise<{ bundle: SourceCardBundle | null; failure?: string }> | undefined;
 const getBundle = () => bundleRequest ??= (async () => {
   try {
@@ -441,6 +451,7 @@ export const loadModelWithSourceCards = async <T extends GltfSource & object>(
   try { identity = await sourceCardIdentity(gltf); } catch { /* Cards fail closed, model loading remains available. */ }
   sessions.set(gltf, createSourceCardResolver(identity, digest, cards.bundle, cards.failure));
   if (digest) loadedDigests.set(gltf, digest);
+  try { loadedNodeAssociations.set(gltf, buildSourceNodeAssociations(gltf)); } catch { /* Presentations fail closed. */ }
   return gltf;
 };
 
