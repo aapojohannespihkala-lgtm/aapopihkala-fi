@@ -68,3 +68,50 @@ test('source geometry with wrong triangle count fails closed',()=>{
   const {gltf,objects}=fixture();objects[1].geometry.index.count=9;
   assert.equal(createUnified64C020BoardPresentation(gltf,C020_U64_BOARD_SOURCE_SHA).available,false);
 });
+
+import {createUnified64C024BalconyFloorPresentation} from '../../src/scripts/privateModelUnified64C024BalconyFloorPresentation.mjs';
+
+test('existing U64 C024 lifecycle activates C020 board finish and disposes without changing source objects',()=>{
+ const {gltf,objects}=fixture(),j=gltf.parser.json;
+ j.meshes[1664]={
+   name:'C80_024_D_BALCONY_2F_FLOOR_FINISH_SURFACE_G1_WORK_TEST',
+   extras:{surfaceOnly:true,thicknessM:null,asBuilt:false,current:false,layerOwnership:'D2F_BALCONY_C80_024'},
+   primitives:[{attributes:{POSITION:2799},indices:2800,material:216}],
+ };
+ j.materials[216]={
+   name:'HI02_C80-015_2F_FLOOR_PALE_NEUTRAL_WORK_TEST',alphaMode:'OPAQUE',
+   doubleSided:true,extras:{presentationColorOnly:true},
+   pbrMetallicRoughness:{baseColorFactor:[.78,.76,.72,1]}
+ };
+ const corners=[[.22,2.76,0],[6.24,2.76,0],[6.24,2.76,1.565],[.22,2.76,1.565]],ids=[0,2,1,0,3,2];
+ for(const [scene,id,name] of [
+   [62,5631,'C80_024_D2F_WP3_BALCONY_FINISH_FLOOR_SCENE2_WORK_TEST'],
+   [63,5630,'C80_024_D2F_WP3_BALCONY_FINISH_FLOOR_SCENE0_WORK_TEST']
+ ]){
+   j.nodes[id]={name,mesh:1664,extras:{
+     changeId:'C80-024-D2F-WP3-HI12-BALCONY-FLOOR-20261029',stage:'WORK_TEST',
+     sourceOnly:false,current:false,asBuilt:false,
+     hostQuality:'WORK_ASSUMPTION_HISTORICAL_PLAN_AND_KNOWN_GLAZING_ENVELOPE',
+     sourceLinks:[{docId:'1wSF0UmWRf7mhtwr-mTDugJNJoAZmH82Wys6V-D4yeYI'},{driveId:'1Re8SKp3Uwxnb3jh-DZdDBlpOdJRQLECG'}],
+   }};
+   j.scenes[scene].nodes.push(id);
+   const material={color:{setRGB(...v){this.rgb=v;}},clone(){return {color:{setRGB(...v){this.rgb=v;}},dispose(){this.disposed=true;}}}};
+   const obj={isMesh:true,visible:true,name,material,
+     geometry:{index:{count:6,getX:i=>ids[i]},getAttribute:k=>k==='position'?
+       {count:4,getX:i=>corners[i][0],getY:i=>corners[i][1],getZ:i=>corners[i][2]}:null}};
+   gltf.scenes[scene].objects.push(obj);
+   gltf.parser.associations.set(obj,{nodes:id});
+ }
+ const originals=objects.map(o=>({material:o.material,geometry:o.geometry}));
+ const presentation=createUnified64C024BalconyFloorPresentation(gltf,C020_U64_BOARD_SOURCE_SHA);
+ assert.equal(presentation.available,true);
+ assert.equal(presentation.c020PaleInnerBoardsApplied,true);
+ assert.equal(presentation.c020PaleInnerBoardsCount,2);
+ objects.forEach(o=>assert.equal(Array.isArray(o.material),true));
+ assert.equal(presentation.setEnabled(true),true);
+ presentation.dispose();
+ objects.forEach((o,i)=>{
+   assert.equal(o.material,originals[i].material);
+   assert.equal(o.geometry,originals[i].geometry);
+ });
+});
