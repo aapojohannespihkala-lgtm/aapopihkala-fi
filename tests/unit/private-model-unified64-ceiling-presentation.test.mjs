@@ -70,6 +70,17 @@ test('fails closed for wrong SHA, missing selected ceiling or material mismatch'
  gltf.parser.json.materials[343].pbrMetallicRoughness.baseColorFactor[3]=1;
  assert.equal(createC80R2Unified64CeilingPresentation(gltf,C030_U64_SOURCE_SHA).available,false);
 });
+test('rejects one stale BOTH-scene ceiling node atomically without hiding valid 1F',()=>{
+  const gltf=fixture();
+  gltf.parser.json.nodes[6423].name='OUTDATED_CEILING_NODE';
+  const before1F=gltf.scenes[60].children.map(x=>x.visible);
+  const beforeBOTH=gltf.scenes[63].children.map(x=>x.visible);
+  const state=createC80R2Unified64CeilingPresentation(gltf,C030_U64_SOURCE_SHA);
+  assert.equal(state.available,false);
+  assert.equal(state.setEnabled(false),false);
+  assert.deepEqual(gltf.scenes[60].children.map(x=>x.visible),before1F);
+  assert.deepEqual(gltf.scenes[63].children.map(x=>x.visible),beforeBOTH);
+});
 test('does not allow hidden physical sources to be toggled as C030 ceiling',()=>{
  const gltf=fixture();
  gltf.parser.json.nodes[6497].extras.physical=true;
