@@ -93,3 +93,15 @@ test('source-locked KIV003 hide toggles are idempotent in BOTH scene and preserv
   objects.forEach((x,i)=>assert.equal(x.targetObj.visible,original[i]));
   api.dispose();
 });
+
+test('KIV003 opt-in presentation never mutates source node and sourceLinks JSON',()=>{
+  const {gltf}=fixture();
+  const sourceBefore=JSON.stringify(gltf.parser.json);
+  const api=createHi20C042Kiv003Presentation(gltf,C042_KIV003_SOURCE_SHA);
+  assert.equal(api.available,true);
+  assert.equal(api.setEnabled(true),true);
+  assert.equal(JSON.stringify(gltf.parser.json),sourceBefore);
+  assert.equal(api.setEnabled(false),true);
+  api.dispose();
+  assert.equal(JSON.stringify(gltf.parser.json),sourceBefore);
+});
