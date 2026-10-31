@@ -1,3 +1,4 @@
+import { createUnified64C037WasherTopPresentation } from './privateModelUnified64C037WasherTopPresentation.mjs';
 import { createUnified64C029StoragePresentation } from './privateModelUnified64C029StoragePresentation.mjs';
 import { createUnified64C024BalconyFloorPresentation } from './privateModelUnified64C024BalconyFloorPresentation.mjs';
 import { createUnified64C048WallHeadsPresentation } from './privateModelUnified64C048WallHeadsPresentation.mjs';
@@ -74,6 +75,10 @@ export function createC80R2Unified64FloorRuntime(args: {
   // C80-029: reuse the original storage WEST/NORTH and ROOF source roots,
   // absent from U64 1F/BOTH; the existing C047 doorwall is never replaced.
   const c029Storage = createUnified64C029StoragePresentation(args.gltf, sha);
+  // C80-037: source-exact Bosch cabinet top has two faces duplicating TOP_COVER.
+  // Existing U64 1F/BOTH geometry only, corrected by reversible index COW.
+  const c037WasherTop = createUnified64C037WasherTopPresentation(args.gltf, sha);
+  if (c037WasherTop.available) c037WasherTop.setEnabled(true);
   let active = false, disposed = false, floor: MainViewFloor = 'BOTH';
   const expectedMounted = () =>
     Object.values(scenes).some(scene => args.mounted() === scene);
@@ -90,6 +95,8 @@ export function createC80R2Unified64FloorRuntime(args: {
     get c024BalconyFloorStatus() { return c024BalconyFloor.enabled ? 'DARK_PHOTO_FINISH_WORK_TEST' : 'SOURCE_UNCHANGED'; },
     get c048WhiteHeadsStatus() { return c048WhiteHeads.enabled ? 'OWNER_WHITE_V11_HEADS_WORK_TEST' : 'SOURCE_UNCHANGED'; },
     get c048WhiteHeadsCount() { return c048WhiteHeads.enabled ? c048WhiteHeads.count : 0; },
+    get c037WasherTopStatus() { return c037WasherTop.enabled ? 'DUPLICATE_TOP_TRIANGLES_REMOVED_WORK_TEST' : 'SOURCE_UNCHANGED'; },
+    get c037WasherTopCount() { return c037WasherTop.enabled ? c037WasherTop.count : 0; },
     get c029StorageStatus() { return c029Storage.enabled ? 'WEST_NORTH_ROOF_WORK_TEST' : 'SOURCE_UNCHANGED'; },
     get c029StorageCount() { return c029Storage.enabled ? c029Storage.count : 0; },
     defaultScene: scenes.BOTH,
@@ -117,6 +124,6 @@ export function createC80R2Unified64FloorRuntime(args: {
     },
     enforce() { /* Immutable source scene graph, never visibility inference. */ },
     referenceCandidates() { return []; },
-    dispose() { c004SourceContext.dispose(); c029Storage.dispose(); c048WhiteHeads.dispose(); c024BalconyFloor.dispose(); c026Terrain.dispose(); kiv003.dispose(); disposed = true; active = false; },
+    dispose() { c037WasherTop.dispose(); c004SourceContext.dispose(); c029Storage.dispose(); c048WhiteHeads.dispose(); c024BalconyFloor.dispose(); c026Terrain.dispose(); kiv003.dispose(); disposed = true; active = false; },
   };
 }
