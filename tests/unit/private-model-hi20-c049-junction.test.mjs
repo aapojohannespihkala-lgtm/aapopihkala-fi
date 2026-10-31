@@ -15,7 +15,7 @@ function geo(){
   i&1?.5:-.5, i&2?.5:-.5, i&4?.5:-.5]).concat(cap.map(x=>[...x]));
  const p=attr(v); const index={count:36,getX:i=>i};
  return {index,getAttribute:n=>n==='position'?p:null,
-  clone(){return {index,getAttribute:n=>n==='position'?p.clone():null,
+  clone(){const cp=p.clone();return {index,getAttribute:n=>n==='position'?cp:null,
    computeBoundingBox(){},computeBoundingSphere(){},dispose(){this.disposed=true;}};},
   dispose(){this.disposed=true;}};
 }
