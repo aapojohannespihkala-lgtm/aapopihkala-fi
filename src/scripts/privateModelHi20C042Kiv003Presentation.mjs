@@ -1,3 +1,4 @@
+import { sameSourceName } from './privateModelSourceNodeAssociations.mjs';
 // C80-042 / D1F-WP7: hide only the unhosted #003 KIV-100 in the window
 // in HI20's active 1F/BOTH presentations. The KIV object, geometry and
 // metadata remain intact for later measured wall-host placement.
@@ -9,7 +10,7 @@ const TARGETS = [
 ];
 const unavailable=reason=>({available:false,reason,count:0,enabled:false,setEnabled:()=>false,dispose:()=>{}});
 function exactChild(sceneRoot, id, name, assoc) {
-  const found=sceneRoot?.children?.filter(o=>o?.name===name && assoc.get(o)?.nodes===id);
+  const found=sceneRoot?.children?.filter(o=>sameSourceName(o?.name,name) && assoc.get(o)?.nodes===id);
   return found?.length===1 ? found[0] : null;
 }
 export function createHi20C042Kiv003Presentation(gltf, verifiedSha) {

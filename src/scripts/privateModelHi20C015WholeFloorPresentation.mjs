@@ -1,3 +1,4 @@
+import { isSourceSceneRoot } from './privateModelSourceNodeAssociations.mjs';
 // C80-015 / DBOTH-WP3: the exact HI20 WHOLE23 scene has the 1F floor
 // but omits the unified 2F floor already present in its BOTH51 source scene.
 // Restore only that existing mesh1795 as a reversible WORK_TEST view copy.
@@ -24,7 +25,7 @@ export function createHi20C015WholeFloorPresentation(gltf, verifiedSha) {
   const both = gltf.scenes[51];
   const node = json.nodes?.[floorId];
   const mesh = json.meshes?.[1795];
-  if (!whole?.isScene || !both?.isScene ||
+  if (!isSourceSceneRoot(whole) || !isSourceSceneRoot(both) ||
       !json.scenes[51]?.nodes?.includes(floorId) ||
       json.scenes[23]?.nodes?.includes(floorId) ||
       node?.name !== floorName || node.mesh !== 1795 ||

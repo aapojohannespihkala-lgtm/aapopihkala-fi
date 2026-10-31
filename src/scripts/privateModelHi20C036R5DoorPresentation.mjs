@@ -1,3 +1,4 @@
+import { sameSourceName } from './privateModelSourceNodeAssociations.mjs';
 // C80-036 / 31.10.2026 owner photo: white WC door surfaces AND frames.
 // Exact HI20 52scene, reversible WORK_TEST material only. No new door, host,
 // geometry, handing or physical dimension assertion. Distinct from C80-035
@@ -56,7 +57,7 @@ export function createHi20C036R5DoorPresentation(gltf,sha){
       return unavailable('source-node-parent-links');
     const found=[];
     gltf.scenes[t.scene]?.traverse?.(o=>{
-      if(o?.isMesh===true&&o.name===NAME&&assoc.get(o)?.nodes===t.node &&
+      if(o?.isMesh===true&&sameSourceName(o.name,NAME)&&assoc.get(o)?.nodes===t.node &&
          assoc.get(o.parent)?.nodes===t.parent)found.push(o);
     });
     if(found.length!==1)return unavailable('rendered-node-parent');
@@ -80,7 +81,7 @@ export function createHi20C036R5DoorPresentation(gltf,sha){
        !json.scenes[t.scene]?.nodes?.includes(t.node))
       return unavailable('source-frame-node-scene');
     const found=gltf.scenes[t.scene]?.children?.filter(o=>
-      o?.isMesh===true && o.name===expectedName && assoc.get(o)?.nodes===t.node);
+      o?.isMesh===true && sameSourceName(o.name,expectedName) && assoc.get(o)?.nodes===t.node);
     if(found?.length!==1)return unavailable('rendered-frame-node');
     if(!matchesColor(found[0].material,FRAME_COLOR))return unavailable('rendered-frame-material');
     matches.push({obj:found[0],original:found[0].material});

@@ -1,3 +1,4 @@
+import { sameSourceName } from './privateModelSourceNodeAssociations.mjs';
 // C80-016: reversible 260 mm north-wall correction from the already QA-verified donor.
 // Exact immutable HI20 52-scene source; G1 source geometry +Y = north, GLB rendered Y-up.
 export const C016_SOURCE_SHA='15a13623be601b1cbc70aaced46e497146d50894da9a3a54b4c47b438b4acee9';
@@ -31,7 +32,7 @@ export function createHi20C016NorthWallPresentation(gltf,verifiedSha){
     return no('node-mesh-parent-source');
   const matches=[];
   gltf.scenes[t.scene]?.traverse?.(o=>{
-   if(o.isMesh&&o.name===NAME&&assoc.get(o)?.nodes===t.node)matches.push(o);
+   if(o.isMesh&&sameSourceName(o.name,NAME)&&assoc.get(o)?.nodes===t.node)matches.push(o);
   });
   if(matches.length!==1)return no('scene-instance');
   const obj=matches[0],geo=obj.geometry,p=geo?.getAttribute?.('position');

@@ -106,3 +106,16 @@ test('C045 gate opens on the exact 52scene layout only through the node view', (
   api.dispose();
   assert.equal(walls.get(6380).visible, true);
 });
+
+test('loader name and scene-root rendering helpers', async () => {
+  const { sameSourceName, isSourceSceneRoot } = await import('../../src/scripts/privateModelSourceNodeAssociations.mjs');
+  assert.equal(sameSourceName('KPH07_GUIDE', 'KPH07_GUIDE'), true);
+  assert.equal(sameSourceName('KPH07_GUIDE_1', 'KPH07_GUIDE'), true);
+  assert.equal(sameSourceName('Room_A', 'Room A'), true);
+  assert.equal(sameSourceName('KPH07_GUIDE_X', 'KPH07_GUIDE'), false);
+  assert.equal(sameSourceName('KPH07_GUIDE_1', 'KPH07_GUIDE_2'), false);
+  assert.equal(sameSourceName('OTHER', 'KPH07_GUIDE'), false);
+  assert.equal(isSourceSceneRoot({ isGroup: true, parent: { isGroup: true } }), true);
+  assert.equal(isSourceSceneRoot({ isScene: true }), true);
+  assert.equal(isSourceSceneRoot({ isMesh: true }), false);
+});
