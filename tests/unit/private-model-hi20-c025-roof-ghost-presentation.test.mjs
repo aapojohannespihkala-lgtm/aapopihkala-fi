@@ -17,6 +17,8 @@ function fixture(){
     nodes[id]={mesh:1776,name,extras:{
       sourceOnly:true,presentationOnly:true,explicitOptinRequired:true,
       physicalHost:'HOST_HOLD',current:false,asBuilt:false,
+      humanReview:'NOT_RUN',canPublish:false,canApplyToViewer:false,
+      sourceMetadata:{ylisScopeGate:{gate:'HOLD_SOURCE_NOT_PROVEN'}},
       K5SkylightIdentityVerified:false,sourceDriveId:'roof-source',
       sourceLinksPreserved:true
     }};
@@ -59,6 +61,10 @@ test('C025 source guard refuses SHA/material/host/duplicate drift',async()=>{
   let g=fixture();
   assert.equal((await createHi20C025RoofGhostPresentation(g,'wrong')).available,false);
   g=fixture();g.parser.json.nodes[5846].extras.K5SkylightIdentityVerified=true;
+  assert.equal((await createHi20C025RoofGhostPresentation(g,C025_SOURCE_SHA)).available,false);
+  g=fixture();g.parser.json.nodes[5846].extras.canPublish=true;
+  assert.equal((await createHi20C025RoofGhostPresentation(g,C025_SOURCE_SHA)).available,false);
+  g=fixture();g.parser.json.nodes[5847].extras.sourceMetadata.ylisScopeGate.gate='VERIFIED';
   assert.equal((await createHi20C025RoofGhostPresentation(g,C025_SOURCE_SHA)).available,false);
   g=fixture();g.parser.json.materials[323].pbrMetallicRoughness.baseColorFactor[3]=1;
   assert.equal((await createHi20C025RoofGhostPresentation(g,C025_SOURCE_SHA)).available,false);
