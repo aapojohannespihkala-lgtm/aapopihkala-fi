@@ -1,3 +1,4 @@
+import { createUnified64C020BoardPresentation } from './privateModelUnified64C020BoardPresentation.mjs';
 // Existing 52scene C80-024 owner-photo material correction, ported ONLY to exact unified64 source.
 // Same source mesh1664, node5631/5630, material216; no GLB geometry or shared material update.
 // C80-024 / D2F-WP3 - photo-directed, reversible, display-only floor
@@ -91,6 +92,12 @@ export function createUnified64C024BalconyFloorPresentation(gltf,sha){
   targets.forEach((t,i)=>{t.obj.material=newMaterials[i];});
   clones=newMaterials;enabled=true;return true;
  }
+ // C80-020 pale inward board faces are independently source-guarded. The existing
+ // U64 floor runtime already invokes this lifecycle, so do not touch the shared Floor.ts.
+ const c020Boards=createUnified64C020BoardPresentation(gltf,sha);
+ const c020BoardsApplied=c020Boards.available && c020Boards.setEnabled(true);
  return {available:true,reason:null,count:2,get enabled(){return enabled;},
-   setEnabled,dispose(){setEnabled(false);}};
+   get c020PaleInnerBoardsApplied(){return c020BoardsApplied && c020Boards.enabled;},
+   get c020PaleInnerBoardsCount(){return c020Boards.enabled?c020Boards.count:0;},
+   setEnabled,dispose(){setEnabled(false);c020Boards.dispose();}};
 }
