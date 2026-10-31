@@ -95,3 +95,19 @@ test('C025 user checkbox is opt-in and removed on dispose',async()=>{
     p.dispose();assert.equal(mounted.removed,true);
   }finally{globalThis.document=original;}
 });
+
+test('C025 source loader rejection leaves both live scenes and source JSON untouched',async()=>{
+  const gltf=fixture();
+  const original=gltf.parser.getDependency;
+  gltf.parser.getDependency=async(type,id)=>{
+    if(id===5847)throw Error('source unavailable');
+    return original(type,id);
+  };
+  const p=await createHi20C025RoofGhostPresentation(gltf,C025_SOURCE_SHA);
+  assert.equal(p.available,false);
+  assert.equal(p.reason,'roof-loader');
+  assert.equal(gltf.scenes[48].children.length,0);
+  assert.equal(gltf.scenes[51].children.length,0);
+  assert.deepEqual(gltf.parser.json.scenes[24].nodes,[5846]);
+  assert.deepEqual(gltf.parser.json.scenes[25].nodes,[5847]);
+});
