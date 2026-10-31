@@ -1,4 +1,5 @@
 import { buildSourceNodeAssociations, createSourceNodeView } from './privateModelSourceNodeAssociations.mjs';
+import { rehydrateHi20Unified52SourceScenes } from './privateModelHi20Unified52SourceScenes.mjs';
 
 type RecordData = Record<string, any>;
 
@@ -449,6 +450,15 @@ export const loadModelWithSourceCards = async <T extends GltfSource & object>(
   ]);
   let identity: GltfSource = gltf;
   try { identity = await sourceCardIdentity(gltf); } catch { /* Cards fail closed, model loading remains available. */ }
+  // After the full node cache is loaded: getDependencies('node') above moves
+  // shared children into orphan parents, and later lookups can no longer steal
+  // the rehydrated per-scene copies. Exact HI20 52scene SHA only.
+  try {
+    const staged = await rehydrateHi20Unified52SourceScenes(gltf, digest);
+    const cardMap = identity !== gltf ? identity.parser?.associations : undefined;
+    if (staged && cardMap) for (const objects of staged.values())
+      for (const [id, object] of objects) cardMap.set(object, { ...cardMap.get(object), nodes: id });
+  } catch { /* Keep the loader graph; exact presentations fail closed. */ }
   sessions.set(gltf, createSourceCardResolver(identity, digest, cards.bundle, cards.failure));
   if (digest) loadedDigests.set(gltf, digest);
   try { loadedNodeAssociations.set(gltf, buildSourceNodeAssociations(gltf)); } catch { /* Presentations fail closed. */ }
