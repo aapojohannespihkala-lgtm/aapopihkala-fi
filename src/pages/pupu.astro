@@ -148,7 +148,7 @@
       const controls=new OrbitControls(camera,renderer.domElement);
       controls.target.set(0,1.34,0);controls.enableDamping=true;controls.dampingFactor=.07;
       controls.minDistance=2.2;controls.maxDistance=11;controls.enablePan=true;
-      const reset=(x,y,z)=>{camera.position.set(x,y,z);controls.target.set(0,1.34,0);controls.update()};
+      const reset=(x:number,y:number,z:number)=>{camera.position.set(x,y,z);controls.target.set(0,1.34,0);controls.update()};
       document.getElementById('pupu-front')?.addEventListener('click',()=>reset(0,2.2,6));
       document.getElementById('pupu-back')?.addEventListener('click',()=>reset(0,2.2,-6));
       document.getElementById('pupu-side')?.addEventListener('click',()=>reset(-6,2.2,0));
