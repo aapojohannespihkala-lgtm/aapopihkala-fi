@@ -1,6 +1,7 @@
 import { buildSourceNodeAssociations, createSourceNodeView } from './privateModelSourceNodeAssociations.mjs';
 import { rehydrateHi20Unified52SourceScenes } from './privateModelHi20Unified52SourceScenes.mjs';
-import { rehydrateIncompleteDefaultScene } from './privateModelSourceSceneRehydrate.mjs';
+import { rehydrateIncompleteScene } from './privateModelSourceSceneRehydrate.mjs';
+import { resolveC80R2ChainFloorScenes } from './privateModelC80R2ChainScenes.mjs';
 
 type RecordData = Record<string, any>;
 
@@ -460,12 +461,18 @@ export const loadModelWithSourceCards = async <T extends GltfSource & object>(
     if (staged && cardMap) for (const objects of staged.values())
       for (const [id, object] of objects) cardMap.set(object, { ...cardMap.get(object), nodes: id });
   } catch { /* Keep the loader graph; exact presentations fail closed. */ }
-  try {
-    const rebuilt = await rehydrateIncompleteDefaultScene(gltf);
-    const cardMap = identity !== gltf ? identity.parser?.associations : undefined;
-    if (rebuilt && cardMap) for (const [object, id] of rebuilt)
-      cardMap.set(object, { ...cardMap.get(object), nodes: id });
-  } catch { /* Keep the loader graph. */ }
+  // Default scene, plus the three C80R2 successor floor scenes when present.
+  const json = gltf.parser?.json;
+  const chain = resolveC80R2ChainFloorScenes(json);
+  const rehydrate = new Set<number>([json?.scene ?? 0, ...(chain ? [chain['1F'], chain['2F'], chain.BOTH] : [])]);
+  for (const sceneIndex of rehydrate) {
+    try {
+      const rebuilt = await rehydrateIncompleteScene(gltf, sceneIndex);
+      const cardMap = identity !== gltf ? identity.parser?.associations : undefined;
+      if (rebuilt && cardMap) for (const [object, id] of rebuilt)
+        cardMap.set(object, { ...cardMap.get(object), nodes: id });
+    } catch { /* Keep the loader graph for this scene. */ }
+  }
   sessions.set(gltf, createSourceCardResolver(identity, digest, cards.bundle, cards.failure));
   if (digest) loadedDigests.set(gltf, digest);
   try { loadedNodeAssociations.set(gltf, buildSourceNodeAssociations(gltf)); } catch { /* Presentations fail closed. */ }

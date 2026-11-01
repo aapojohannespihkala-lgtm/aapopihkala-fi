@@ -15,11 +15,15 @@
 const isPrimitive = (o) => o?.isMesh === true || o?.isLine === true || o?.isPoints === true;
 
 /** Returns Map<copy, nodeIndex> for the rebuilt default scene, or null. */
-export async function rehydrateIncompleteDefaultScene(gltf) {
+export const rehydrateIncompleteDefaultScene = (gltf) =>
+  rehydrateIncompleteScene(gltf, gltf?.parser?.json?.scene ?? 0);
+
+/** Same for one explicit scene index (e.g. the C80R2 floor scenes). */
+export async function rehydrateIncompleteScene(gltf, sceneIndex) {
   const parser = gltf?.parser, json = parser?.json;
   if (typeof parser?.getDependency !== 'function' || !Array.isArray(json?.nodes) ||
-      !Array.isArray(json?.scenes) || json.skins?.length || json.animations?.length) return null;
-  const sceneIndex = json.scene ?? 0;
+      !Array.isArray(json?.scenes) || json.skins?.length || json.animations?.length ||
+      !Number.isInteger(sceneIndex)) return null;
   const sceneDef = json.scenes[sceneIndex], scene = gltf.scenes?.[sceneIndex];
   if (!Array.isArray(sceneDef?.nodes) || !sceneDef.nodes.length || !scene?.isObject3D) return null;
   const parents = new Uint32Array(json.nodes.length);

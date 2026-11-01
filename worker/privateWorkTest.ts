@@ -3504,6 +3504,17 @@ const D_C80_HI20_UNIFIED52_BOTH_WORK_TEST_CANDIDATE = {
   expectedSha256: '15a13623be601b1cbc70aaced46e497146d50894da9a3a54b4c47b438b4acee9',
 } as const satisfies PrivateWorkTestCandidate;
 
+// Newest C80R2 successor chain GLB (G2b 1.11.2026 MAT01, 108 scenes, unchanged
+// bytes). The viewer mounts its latest C80R2 1F/2F/BOTH scenes; WORK_TEST/HOST_HOLD.
+const D_C80R2_108SCENE_K17_MAT01_WORK_TEST_CANDIDATE = {
+  id: 'ylisrinne-d-c80r2-108scene-k17-mat01-work-test-20261101',
+  label: 'D C80R2 108scene uusin päämalli (K17 puuaskelmat, parveke BZ01) - 1F/2F/BOTH WORK_TEST HOST_HOLD, ei nykytila',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/ylisrinne-d-c80r2-108scene-k17-mat01-work-test-20261101.glb`,
+  objectKey: 'work-test/ylisrinne-d-c80r2-108scene-k17-mat01-work-test-20261101.glb',
+  expectedSize: 15937344,
+  expectedSha256: 'd4d16b8f371b7426043eb33f97a3f590bcf1507b6ed33709057099ee39e9fe3d',
+} as const satisfies PrivateWorkTestCandidate;
+
 const D_C80_HI20_K17_SC49_WORK_TEST_CANDIDATE = {
   id: 'ylisrinne-d-c80-hi20-wp6-c043-k17-sc49-both-work-test-20261030',
   label: 'D HI20 WP6/WP8/G3 + C043 WHITE + K17 1125mm BOTH scene49 WORK_TEST HOST_HOLD - ei nykytila',
@@ -3525,6 +3536,7 @@ const D_C80_HI20_B72_SC45_WORK_TEST_CANDIDATE = {
 const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
   D_C80R2_UNIFIED64_C018_WORK_TEST_CANDIDATE,
   D_C80_HI20_UNIFIED52_BOTH_WORK_TEST_CANDIDATE,
+  D_C80R2_108SCENE_K17_MAT01_WORK_TEST_CANDIDATE,
   D_C80_HI20_K17_SC49_WORK_TEST_CANDIDATE,
   D_C80_HI20_B72_SC45_WORK_TEST_CANDIDATE,
   D_C80_HI20_WORK_TEST_CANDIDATE,
