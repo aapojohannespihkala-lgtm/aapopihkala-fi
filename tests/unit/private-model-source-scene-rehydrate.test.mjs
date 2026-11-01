@@ -91,3 +91,14 @@ test('complete scenes, tree-only files and skinned files are left alone', async 
   skinned.gltf.parser.json.skins = [{}];
   assert.equal(await rehydrateIncompleteDefaultScene(skinned.gltf), null);
 });
+
+test('rehydrates an explicit non-default scene index', async () => {
+  const { rehydrateIncompleteScene } = await import('../../src/scripts/privateModelSourceSceneRehydrate.mjs');
+  const { gltf } = model();
+  // Scene 0 (W0) lost SHARED to the orphan as well.
+  assert.deepEqual(meshes(gltf.scenes[0]), []);
+  const map = await rehydrateIncompleteScene(gltf, 0);
+  assert.deepEqual(meshes(gltf.scenes[0]), ['SHARED']);
+  assert.equal(map.get(gltf.scenes[0].children[0]), 0);
+  assert.equal(await rehydrateIncompleteScene(gltf, 'x'), null);
+});

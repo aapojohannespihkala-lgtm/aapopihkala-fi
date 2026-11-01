@@ -2417,6 +2417,8 @@ const title = 'Private 3D viewer';
         C80R2_UNIFIED64_SHA,
         resolveC80R2Unified64Scenes, createC80R2Unified64FloorRuntime,
       } from '../../scripts/privateModelUnified64Floor';
+      import { resolveC80R2ChainScenes, createC80R2ChainFloorRuntime }
+        from '../../scripts/privateModelC80R2ChainFloor';
       // @ts-ignore - exact-SHA nonphysical ceiling presentation, 64scene only.
       import { createC80R2Unified64CeilingPresentation }
         from '../../scripts/privateModelUnified64CeilingPresentation.mjs';
@@ -6310,7 +6312,8 @@ const title = 'Private 3D viewer';
       const resolveActiveResearchContentScene = () => {
         if (mainViewScope?.active) {
           mainViewScope.enforce();
-          return 'isSourceScene' in mainViewScope || 'isUnified52' in mainViewScope || 'isUnified64' in mainViewScope
+          return 'isSourceScene' in mainViewScope || 'isUnified52' in mainViewScope ||
+            'isUnified64' in mainViewScope || 'isC80R2Chain' in mainViewScope
             ? (mainViewScope as any).selectedScene : fullModelScene;
         }
         if (activeResearchPreset === 'd-apartment') {
@@ -6467,8 +6470,10 @@ const title = 'Private 3D viewer';
           horizontalClipping.configureRange(mainViewScope.selectedScene);
         }
         if (('isUnified52' in mainViewScope && mainViewScope.isUnified52 === true) ||
-            ('isUnified64' in mainViewScope && mainViewScope.isUnified64 === true)) {
+            ('isUnified64' in mainViewScope && mainViewScope.isUnified64 === true) ||
+            ('isC80R2Chain' in mainViewScope && mainViewScope.isC80R2Chain === true)) {
           const is64 = 'isUnified64' in mainViewScope && mainViewScope.isUnified64 === true;
+          const chainLabel: string | null = 'isC80R2Chain' in mainViewScope ? (mainViewScope as any).chainLabel : null;
           // Use the original floor scene, not an object-visibility storey filter.
           resetHorizontalClipping();
           horizontalClipping.configureRange((mainViewScope as any).selectedScene);
@@ -6481,10 +6486,13 @@ const title = 'Private 3D viewer';
           canvas.dataset.mainViewScopeStatus = is64
             ? 'C80R2_UNIFIED64_ORIGINAL_SCENE_HOST_HOLD'
             : 'C80R2_HI20_UNIFIED52_ORIGINAL_SCENE_HOST_HOLD';
-          canvas.dataset.contentScene = is64 ? 'C80R2_UNIFIED64_WORK_TEST' : 'C80R2_HI20_UNIFIED52_WORK_TEST';
+          canvas.dataset.contentScene = chainLabel ? 'C80R2_CHAIN_WORK_TEST'
+            : is64 ? 'C80R2_UNIFIED64_WORK_TEST' : 'C80R2_HI20_UNIFIED52_WORK_TEST';
           canvas.dataset.contentFloor = floor;
+          if (chainLabel) canvas.dataset.c80r2ChainSceneName =
+            String((mainViewScope as any).floorSceneNames?.[floor] ?? '');
           const floorLabel = floor === '1F' ? 'alakerta' : floor === '2F' ? 'yläkerta' : 'molemmat kerrokset';
-          const modelLabel = is64 ? 'C80R2 64scene' : 'HI20 52scene';
+          const modelLabel = chainLabel ?? (is64 ? 'C80R2 64scene' : 'HI20 52scene');
           mainViewScopeNote.textContent = modelLabel + ' WORK_TEST: ' +
             floorLabel + ', alkuperäinen scene ' + sceneIndex +
             '. Portaat ja yhteiset lähdejuuret säilyvät. HOST_HOLD, ei nykytila.';
@@ -7454,6 +7462,12 @@ const title = 'Private 3D viewer';
           : sourceKind === 'work-test' &&
           loadedModelSha256(gltf) === HI20_UNIFIED52_SHA
           ? createHi20Unified52FloorRuntime({
+              gltf, mount: setModelScene,
+              mounted: () => modelRoot.children[0] ?? null,
+            }) as any
+          : sourceKind === 'work-test' && !c70PreviewSession &&
+          resolveC80R2ChainScenes(gltf)?.scenes.BOTH === gltf.scene
+          ? createC80R2ChainFloorRuntime({
               gltf, mount: setModelScene,
               mounted: () => modelRoot.children[0] ?? null,
             }) as any
@@ -11497,6 +11511,11 @@ const title = 'Private 3D viewer';
           } else if (candidate.id === 'ylisrinne-d-c80-hi20-unified52-both-sc51-work-test-20261030') {
             // Original 52-scene GLB, not the former scene51-only extraction.
             gltf.scene = resolveHi20Unified52Scenes(gltf, loadedModelSha256(gltf)).BOTH;
+          } else {
+            // Newest C80R2 successor: open its own latest BOTH scene, not the
+            // historical default scene 0 (1F/2F switch via the floor runtime).
+            const c80r2Chain = resolveC80R2ChainScenes(gltf);
+            if (c80r2Chain) gltf.scene = c80r2Chain.scenes.BOTH;
           }
           loadFailurePhase = 'review-runtime-failed';
           const isP143aScalgoTerrainReview =
