@@ -3842,6 +3842,28 @@ const AUTO_YLISRINNE_D_C80R2_V17_UPSTAIRS_FLOOR_DOORS_FRAME_RADIATORS_KITCHEN_WO
   expectedSha256: '716c111f5ef651d586a33f717288e6bb435d3c4aca6e47f1a95da62e03849860',
 } as const satisfies PrivateWorkTestCandidate;
 
+// Auto-registered 2026-11-01 from Drive queue file 1MQwo99RTBJyWiPWuCI2ajRwZJhUTr6EF
+// by auto-publish-work-test. WORK_TEST, never as-built.
+const AUTO_YLISRINNE_D_C80R2_V18C_UNDERSTAIR_RECESS_OPEN_SIDE_WORK_TEST_HOST_HOLD_20261101_1MQWO99R_CANDIDATE = {
+  id: 'auto-ylisrinne-d-c80r2-v18c-understair-recess-open-side-work-test-host-hold-20261101-1mqwo99r',
+  label: 'Auto: Ylisrinne D C80R2 V18C UNDERSTAIR RECESS OPEN SIDE WORK TEST HOST HOLD 20261101 (scene157) - WORK_TEST',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/auto-ylisrinne-d-c80r2-v18c-understair-recess-open-side-work-test-host-hold-20261101-1mqwo99r.glb`,
+  objectKey: 'work-test/auto-ylisrinne-d-c80r2-v18c-understair-recess-open-side-work-test-host-hold-20261101-1mqwo99r.glb',
+  expectedSize: 22930864,
+  expectedSha256: '8fd2a4c63b90736c80a076094aa06012b2a788a991537d4ba9b58c162c2e688c',
+} as const satisfies PrivateWorkTestCandidate;
+
+// Auto-registered 2026-11-01 from Drive queue file 1zHW0dviahcr7xwDCzawNJlO5qKBuFYNt
+// by auto-publish-work-test. WORK_TEST, never as-built.
+const AUTO_YLISRINNE_D_C80R2_V17_LOBBY_ILP_KIV2_R3_SCENE_MAP_WORK_TEST_HOST_HOLD_20261101_1ZHW0DVI_CANDIDATE = {
+  id: 'auto-ylisrinne-d-c80r2-v17-lobby-ilp-kiv2-r3-scene-map-work-test-host-hold-20261101-1zhw0dvi',
+  label: 'Auto: Ylisrinne D C80R2 V17 LOBBY ILP KIV2 R3 SCENE MAP WORK TEST HOST HOLD 20261101 (scene156) - WORK_TEST',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/auto-ylisrinne-d-c80r2-v17-lobby-ilp-kiv2-r3-scene-map-work-test-host-hold-20261101-1zhw0dvi.glb`,
+  objectKey: 'work-test/auto-ylisrinne-d-c80r2-v17-lobby-ilp-kiv2-r3-scene-map-work-test-host-hold-20261101-1zhw0dvi.glb',
+  expectedSize: 23022920,
+  expectedSha256: '6c87948783e6ac0decd03d5039c6dd0d7ce172729da79fcea3b7c163abcee897',
+} as const satisfies PrivateWorkTestCandidate;
+
 const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
   D_C80R2_UNIFIED64_C018_WORK_TEST_CANDIDATE,
   D_C80_HI20_UNIFIED52_BOTH_WORK_TEST_CANDIDATE,
@@ -4147,6 +4169,8 @@ const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
   AUTO_YLISRINNE_D_C80R2_V15_ENTRY_TECH_BOXOUT_DOOR_SHIFT_WORK_TEST_HOST_HOLD_20261101_1I8Q28FU_CANDIDATE,
   AUTO_YLISRINNE_D_C80R2_V16_ROUND2_KITCHEN_GUTTER_SAUNA_TILES_WORK_TEST_HOST_HOLD_20261101_1H5SK02J_CANDIDATE,
   AUTO_YLISRINNE_D_C80R2_V17_UPSTAIRS_FLOOR_DOORS_FRAME_RADIATORS_KITCHEN_WORK_TEST_HOST_HOLD_20261101_1XGQ3NGT_CANDIDATE,
+  AUTO_YLISRINNE_D_C80R2_V18C_UNDERSTAIR_RECESS_OPEN_SIDE_WORK_TEST_HOST_HOLD_20261101_1MQWO99R_CANDIDATE,
+  AUTO_YLISRINNE_D_C80R2_V17_LOBBY_ILP_KIV2_R3_SCENE_MAP_WORK_TEST_HOST_HOLD_20261101_1ZHW0DVI_CANDIDATE,
 ] as const satisfies readonly PrivateWorkTestCandidate[];
 
 type PrivateWorkTestObjectMetadata = {
