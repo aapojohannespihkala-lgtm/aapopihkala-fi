@@ -6,7 +6,7 @@ test('Pupu position under Windows display scale and browser zoom', async ({brows
     const context=await browser.newContext({viewport:{width:1638,height:775},deviceScaleFactor:dpr});
     const page=await context.newPage();
     for(const scale of [1,1.25]) {
-      await page.goto('https://aapopihkala.fi/pupu/',{waitUntil:'networkidle',timeout:30000});
+      await page.goto('/pupu/',{waitUntil:'networkidle',timeout:30000});
       await page.addStyleTag({content:'body{zoom:'+scale+'}'});
       await page.waitForTimeout(600);
       const png=(await page.screenshot()).toString('base64');
@@ -26,6 +26,7 @@ test('Pupu position under Windows display scale and browser zoom', async ({brows
         const frame=document.querySelector('#pupu-canvas-frame')!.getBoundingClientRect();
         return {dpr:devicePixelRatio,zoom:getComputedStyle(document.body).zoom,innerWidth,shotWidth:cn.width,frame:[frame.x,frame.width],pixels:{count,meanX:sum/count,minX,maxX},meta:document.querySelector('meta[name="pupu-viewer-version"]')?.getAttribute('content')};
       },png);
+      expect(data.meta).toBe('pixelratio-fixed-r5-20261101');
       console.log('DPR_RESULT',JSON.stringify(data));
       expect(data.pixels.count).toBeGreaterThan(150);
       // The Windows DPI failure shifted the colored face well to the right
