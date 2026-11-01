@@ -3622,6 +3622,28 @@ const AUTO_YLISRINNE_D_C80R2_WEST_ROOF_S_GUTTER_PW26_KVIK_JOINT3_WORK_TEST_HOST_
   expectedSha256: 'db6cb1b824e1d1664b27498620687f7667c5ee9c82f74544840f4f804aae2ef5',
 } as const satisfies PrivateWorkTestCandidate;
 
+// Auto-registered 2026-11-01 from Drive queue file 1pykdLowXVkmIxiS_3vTkK1gv59qCA3fe
+// by auto-publish-work-test. WORK_TEST, never as-built.
+const AUTO_YLISRINNE_D_C80R2_D1F_TERRASSI_SOKKELI_KAIKKI_SEINAT_WORK_TEST_20261101_1PYKDLOW_CANDIDATE = {
+  id: 'auto-ylisrinne-d-c80r2-d1f-terrassi-sokkeli-kaikki-seinat-work-test-20261101-1pykdlow',
+  label: 'Auto: Ylisrinne D C80R2 D1F TERRASSI SOKKELI KAIKKI SEINAT WORK TEST 20261101 (scene127) - WORK_TEST',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/auto-ylisrinne-d-c80r2-d1f-terrassi-sokkeli-kaikki-seinat-work-test-20261101-1pykdlow.glb`,
+  objectKey: 'work-test/auto-ylisrinne-d-c80r2-d1f-terrassi-sokkeli-kaikki-seinat-work-test-20261101-1pykdlow.glb',
+  expectedSize: 18181268,
+  expectedSha256: 'c5e28d1c036f5f9dda60a3e824f3c1bcb744a4c7cf976b168b1200b7e3a126cb',
+} as const satisfies PrivateWorkTestCandidate;
+
+// Auto-registered 2026-11-01 from Drive queue file 1R3FOUsPqkwxn1uRew-ErnxbFGc6tkTyu
+// by auto-publish-work-test. WORK_TEST, never as-built.
+const AUTO_YLISRINNE_C80R2_K17_FREEPOST_WHITELOWWALL_NINE_RISERS_COMBINED_WORK_TEST_HOST_HOLD_20261101_1R3FOUSP_CANDIDATE = {
+  id: 'auto-ylisrinne-c80r2-k17-freepost-whitelowwall-nine-risers-combined-work-test-host-hold-20261101-1r3fousp',
+  label: 'Auto: Ylisrinne C80R2 K17 FREEPOST WHITELOWWALL NINE RISERS COMBINED WORK TEST HOST HOLD 20261101 (scene132) - WORK_TEST',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/auto-ylisrinne-c80r2-k17-freepost-whitelowwall-nine-risers-combined-work-test-host-hold-20261101-1r3fousp.glb`,
+  objectKey: 'work-test/auto-ylisrinne-c80r2-k17-freepost-whitelowwall-nine-risers-combined-work-test-host-hold-20261101-1r3fousp.glb',
+  expectedSize: 16173232,
+  expectedSha256: '0b6c88f7190e1c59e9397b41080b53f4ced6a8b42007e697c5379e2ad97b5854',
+} as const satisfies PrivateWorkTestCandidate;
+
 const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
   D_C80R2_UNIFIED64_C018_WORK_TEST_CANDIDATE,
   D_C80_HI20_UNIFIED52_BOTH_WORK_TEST_CANDIDATE,
@@ -3907,6 +3929,8 @@ const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
   AUTO_YLISRINNE_D_C80R2_REVIEW123_BALCONY_FRAME_TERRAIN_REF_CEILINGS_WORK_TEST_HOST_HOLD_20261101_1OIGBVGY_CANDIDATE,
   AUTO_YLISRINNE_D_C80R2_DP01_WEST_ROOF_S_GUTTER_PW26_PINK_INTEGRATED_WORK_TEST_HOST_HOLD_20261101_1INOZ4XM_CANDIDATE,
   AUTO_YLISRINNE_D_C80R2_WEST_ROOF_S_GUTTER_PW26_KVIK_JOINT3_WORK_TEST_HOST_HOLD_20261101_1AH9IZB4_CANDIDATE,
+  AUTO_YLISRINNE_D_C80R2_D1F_TERRASSI_SOKKELI_KAIKKI_SEINAT_WORK_TEST_20261101_1PYKDLOW_CANDIDATE,
+  AUTO_YLISRINNE_C80R2_K17_FREEPOST_WHITELOWWALL_NINE_RISERS_COMBINED_WORK_TEST_HOST_HOLD_20261101_1R3FOUSP_CANDIDATE,
 ] as const satisfies readonly PrivateWorkTestCandidate[];
 
 type PrivateWorkTestObjectMetadata = {
