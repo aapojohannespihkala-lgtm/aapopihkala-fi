@@ -3798,6 +3798,17 @@ const AUTO_YLISRINNE_D_C80R2_V13_K17ALL4_BALCONY_DEDUP_WORK_TEST_HOST_HOLD_20261
   expectedSha256: '22d2a76b3a54fc5efb22a58b28cd3dc65894a53f5a3e5de9691e30e846591a32',
 } as const satisfies PrivateWorkTestCandidate;
 
+// Auto-registered 2026-11-01 from Drive queue file 1tNnUXr2NH3buzkchOgLz_ix_eIS8xFsT
+// by auto-publish-work-test. WORK_TEST, never as-built.
+const AUTO_YLISRINNE_D_C80R2_V14B_K17_UNDERSTAIR_RECESS_PHOTO_FIT_WORK_TEST_HOST_HOLD_20261101_1TNNUXR2_CANDIDATE = {
+  id: 'auto-ylisrinne-d-c80r2-v14b-k17-understair-recess-photo-fit-work-test-host-hold-20261101-1tnnuxr2',
+  label: 'Auto: Ylisrinne D C80R2 V14B K17 UNDERSTAIR RECESS PHOTO FIT WORK TEST HOST HOLD 20261101 (scene145) - WORK_TEST',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/auto-ylisrinne-d-c80r2-v14b-k17-understair-recess-photo-fit-work-test-host-hold-20261101-1tnnuxr2.glb`,
+  objectKey: 'work-test/auto-ylisrinne-d-c80r2-v14b-k17-understair-recess-photo-fit-work-test-host-hold-20261101-1tnnuxr2.glb',
+  expectedSize: 22510676,
+  expectedSha256: 'dfbda28c48459a41d50633fd70568815e9f215063a04721e5b505b861acbf171',
+} as const satisfies PrivateWorkTestCandidate;
+
 const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
   D_C80R2_UNIFIED64_C018_WORK_TEST_CANDIDATE,
   D_C80_HI20_UNIFIED52_BOTH_WORK_TEST_CANDIDATE,
@@ -4099,6 +4110,7 @@ const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
   AUTO_YLISRINNE_D_C80R2_MERGE1_V11_KITCHEN2026_HOB40_CUR26_PF26_WORK_TEST_HOST_HOLD_20261101_1JURACOC_CANDIDATE,
   AUTO_YLISRINNE_D_C80R2_V12_MERGE1_SIDING150_WORK_TEST_HOST_HOLD_20261101_1YR2B3VD_CANDIDATE,
   AUTO_YLISRINNE_D_C80R2_V13_K17ALL4_BALCONY_DEDUP_WORK_TEST_HOST_HOLD_20261101_1MUKKRJS_CANDIDATE,
+  AUTO_YLISRINNE_D_C80R2_V14B_K17_UNDERSTAIR_RECESS_PHOTO_FIT_WORK_TEST_HOST_HOLD_20261101_1TNNUXR2_CANDIDATE,
 ] as const satisfies readonly PrivateWorkTestCandidate[];
 
 type PrivateWorkTestObjectMetadata = {
