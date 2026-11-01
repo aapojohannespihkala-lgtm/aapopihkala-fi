@@ -1,0 +1,172 @@
+---
+/* Erillinen julkinen pehmolelukatselin. Ei koske suojattuun Ylisrinne-GLB-putkeen. */
+---
+<!doctype html>
+<html lang="fi">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="Valokuvista rakennettu pyöriteltävä 3D-malli vaaleanpunaisesta pehmopupusta." />
+    <title>Pupu 3D | Aapo Pihkala</title>
+    <style>
+      :root{font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#453e43;background:#f9f6f3}
+      *{box-sizing:border-box}html,body{margin:0;height:100%;min-height:100%;}body{display:flex;flex-direction:column;min-height:100dvh}
+      header{display:flex;gap:1rem;align-items:baseline;flex-wrap:wrap;padding:18px 22px 6px}
+      header a{color:#7c6773;text-decoration:none;font-size:.85rem}header a:hover{text-decoration:underline}
+      h1{font-size:1.35rem;letter-spacing:-.02em;margin:0;font-weight:650}
+      main{position:relative;min-height:330px;flex:1;touch-action:none;overflow:hidden}
+      canvas{width:100%;height:100%;display:block}
+      .hint{position:absolute;inset:auto 14px 12px;text-align:center;pointer-events:none;color:#756d70;font-size:.8rem;text-shadow:0 1px white}
+      footer{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;padding:12px 12px 16px}
+      button{border:1px solid #d8ced0;border-radius:22px;padding:9px 15px;background:white;color:#51444d;font:inherit;font-size:.85rem;cursor:pointer}
+      button:hover{background:#ffebe9}button:focus-visible{outline:3px solid #ae7584;outline-offset:2px}
+      .note{margin:0;padding:0 16px 12px;font-size:.72rem;text-align:center;color:#81767d}
+      @media(max-width:550px){header{padding-top:14px}.hint{font-size:.75rem}button{padding:10px 12px}}
+    </style>
+  </head>
+  <body>
+    <header><a href="/" aria-label="Takaisin etusivulle">Aapo Pihkala</a><h1>Pupu 3D</h1></header>
+    <main id="pupu-viewer" aria-label="Pyöriteltävä vaaleanpunainen pupun 3D-malli">
+      <div class="hint">Vedä tai pyyhkäise pyörittääksesi, zoomaa rullalla tai nipistämällä</div>
+    </main>
+    <footer>
+      <button id="pupu-front" type="button">Edestä</button>
+      <button id="pupu-back" type="button">Takaa</button>
+      <button id="pupu-side" type="button">Sivulta</button>
+      <button id="pupu-spin" type="button" aria-pressed="false">Automaattipyöritys</button>
+      <button id="pupu-download" type="button">Lataa GLB</button>
+    </footer>
+    <p class="note">Viiden valokuvan pohjalta muotoiltu havainnollinen malli, ei tarkka 3D-skannaus.</p>
+    <script>
+      import { THREE, OrbitControls } from '../scripts/threeRuntime';
+      const root=document.getElementById('pupu-viewer');
+      if(!(root instanceof HTMLElement))throw new Error('Pupun katselinaluetta ei löytynyt');
+      const scene=new THREE.Scene();scene.background=new THREE.Color(0xf9f6f3);
+      const camera=new THREE.PerspectiveCamera(38,1,0.05,100);
+      camera.position.set(3.3,2.6,5.1);
+      const renderer=new THREE.WebGLRenderer({antialias:true});
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));
+      renderer.outputColorSpace=THREE.SRGBColorSpace;
+      renderer.toneMapping=THREE.ACESFilmicToneMapping;
+      renderer.toneMappingExposure=1.25;
+      root.prepend(renderer.domElement);
+      scene.add(new THREE.HemisphereLight(0xffffff,0xe0c3b6,2.45));
+      const keyLight=new THREE.DirectionalLight(0xffffff,2.8);keyLight.position.set(-4,7,7);scene.add(keyLight);
+      const backLight=new THREE.DirectionalLight(0xffffff,1.2);backLight.position.set(5,3,-5);scene.add(backLight);
+      const c={fur:0xf9f2dc,furShadow:0xebe3ce,fabric:0xf4bec2,fabricLight:0xfad0cd,fabricSeam:0xda9fa7,nose:0xff7c85,red:0xe0432a,dots:0xffb89c,white:0xfffcef,blue:0x269ad3,blueLight:0x4bc1e6,black:0x14141c};
+      const mat=Object.fromEntries(Object.entries(c).map(([k,v])=>[k,new THREE.MeshStandardMaterial({color:v,roughness:k==='nose'?.40:1,metalness:0,side:THREE.DoubleSide})]));
+      const model=new THREE.Group();model.name='Pupu';scene.add(model);
+      const ball=(name,loc,size,material,rotation=0)=>{
+        const mesh=new THREE.Mesh(new THREE.SphereGeometry(1,32,24),mat[material]);
+        mesh.name=name;mesh.position.set(...loc);mesh.scale.set(...size);mesh.rotation.z=rotation;model.add(mesh);return mesh;
+      };
+      const thread=(name,points,r,material)=>{
+        const curve=new THREE.CatmullRomCurve3(points.map(p=>new THREE.Vector3(...p)));
+        const mesh=new THREE.Mesh(new THREE.TubeGeometry(curve,Math.max(8,points.length*5),r,7,false),mat[material]);
+        mesh.name=name;model.add(mesh);
+      };
+      // Runko, vaaleanpunainen haalari ja tassut.
+      ball('Haalari',[0,1.025,-.015],[.55,.675,.43],'fabric');
+      ball('Vatsa',[0,.89,.275],[.485,.47,.30],'fabricLight');
+      ball('Takapuoli',[0,.63,-.18],[.53,.31,.42],'fabric');
+      ball('Kaula',[0,1.60,.055],[.31,.205,.29],'fabricLight');
+      for(const side of [-1,1]){
+        const n=side<0?'vasen':'oikea';
+        ball(n+' jalka',[side*.37,.43,.225],[.34,.375,.385],'fabric');
+        ball(n+' jalkaterä',[side*.405,.32,.515],[.315,.20,.185],'fur');
+        ball(n+' varpaat',[side*.41,.30,.62],[.275,.12,.092],'furShadow');
+        ball(n+' hiha',[side*.593,1.34,.065],[.26,.18,.22],'fabric',side*.36);
+        ball(n+' pehmeä käpälä',[side*.845,1.28,.14],[.185,.18,.19],'fur');
+        ball(n+' hihansuu',[side*.725,1.31,.115],[.095,.16,.165],'fabricLight');
+      }
+      // Pää ja pehmeä kuono.
+      ball('Suuri valkoinen pää',[0,2.02,-.005],[.605,.585,.52],'fur');
+      ball('Leuka',[0,1.71,.15],[.465,.24,.41],'fur');
+      for(const side of [-1,1])ball('Poski '+side,[side*.39,1.88,.30],[.24,.26,.27],'fur');
+      ball('Kuono',[0,1.934,.495],[.34,.252,.305],'fur');
+      ball('Kuonon vasen tyyny',[-.17,1.91,.595],[.18,.185,.175],'fur');
+      ball('Kuonon oikea tyyny',[.17,1.91,.595],[.18,.185,.175],'fur');
+      thread('Kuonon keskisauma',[[0,1.88,.794],[0,1.815,.79],[0,1.77,.761]],.006,'furShadow');
+      ball('Pinkki nenä',[0,2.055,.784],[.153,.102,.112],'nose');
+      ball('Nenän kiilto',[-.043,2.096,.875],[.043,.016,.009],'white');
+      // Silmät ja sininen yläluomi, suuret ripset.
+      for(const side of [-1,1]){
+        const x=side*.255;
+        ball('Silmän valkuainen '+side,[x,2.22,.478],[.164,.177,.082],'white');
+        ball('Sininen luomi '+side,[x,2.31,.514],[.157,.115,.074],'blue');
+        ball('Musta silmäterä '+side,[x-side*.006,2.199,.56],[.102,.137,.063],'black');
+        ball('Silmän suuri heijastus '+side,[x-side*.030,2.247,.618],[.039,.054,.016],'white');
+        ball('Silmän pieni heijastus '+side,[x+side*.038,2.173,.616],[.022,.025,.012],'white');
+        const eyelid=Array.from({length:11},(_,i)=>{
+          const angle=Math.PI*(.1+.8*i/10);
+          return [x+.151*Math.cos(angle),2.302+.082*Math.sin(angle),.575];
+        });
+        thread('Sininen silmäkaari '+side,eyelid,.010,'blueLight');
+        for(const [i,dx] of [-.095,-.035,.04,.11].entries()){
+          const yy=2.385-.05*Math.abs(dx)/.12;
+          thread('Ripsi '+side+' '+i,[[x+dx,yy,.568],[x+dx*1.10,yy+.044,.570]],.009,'black');
+        }
+      }
+      // Luppakorvat: taivutetut loft-pinnat, reunoilla valkoista ja edessä pilkullista punaista.
+      const center=(t,side)=>new THREE.Vector3(side*(.435+.24*t+.16*Math.sin(Math.PI*t)),2.425-.98*t+.12*Math.sin(Math.PI*t),-.065+.18*t+.02*Math.sin(2*Math.PI*t));
+      const earWidth=t=>.02+.265*Math.sin(Math.PI*(.045+.9*t))**.80;
+      const earPoint=(t,u,side,depth=0)=>{const p=center(t,side),w=earWidth(t);p.x+=u*w;p.y+=side*u*w*.12;p.z+=.071*Math.sqrt(Math.max(0,1-u*u))+depth;return p};
+      function earSkin(name,side,inner){
+        const rows=36,steps=inner?12:20, vertices=[],triangles=[];
+        for(let i=0;i<=rows;i++){
+          const t=inner?.09+.84*i/rows:i/rows;
+          for(let j=0;j<=steps;j++){
+            let p;
+            if(inner){p=earPoint(t,-.78+1.56*j/steps,side,.009)}
+            else {const a=2*Math.PI*j/steps;const c=center(t,side),u=Math.cos(a),w=earWidth(t);p=new THREE.Vector3(c.x+w*u,c.y+side*w*u*.12,c.z+.071*Math.sin(a))}
+            vertices.push(p.x,p.y,p.z);
+          }
+        }
+        for(let i=0;i<rows;i++)for(let j=0;j<steps;j++){
+          const a=i*(steps+1)+j,b=a+1,d=a+steps+1;
+          triangles.push(a,b,d,b,d+1,d);
+        }
+        const g=new THREE.BufferGeometry();
+        g.setAttribute('position',new THREE.Float32BufferAttribute(vertices,3));
+        g.setIndex(triangles);g.computeVertexNormals();
+        const mesh=new THREE.Mesh(g,mat[inner?'red':'fur']);mesh.name=name;model.add(mesh);
+      }
+      for(const side of [-1,1]){
+        earSkin('Valkoinen luppakorva '+side,side,false);
+        earSkin('Pilkullinen punainen korvan sisus '+side,side,true);
+        for(let i=0;i<7;i++)for(let k=0;k<3;k++){
+          const t=.16+.106*i,u=[-.52,0,.52][k]+(i%2?.10:-.07);
+          const p=earPoint(t,u,side,.022);
+          ball('Korvan pilkku '+side+' '+i+' '+k,p.toArray(),[.018,.016,.008],'dots');
+        }
+      }
+      thread('Selän pystysauma',[[0,1.53,-.415],[0,1.19,-.442],[0,.93,-.428],[0,.69,-.476],[0,.41,-.498]],.008,'fabricSeam');
+      for(const side of [-1,1]){
+        const pts=Array.from({length:14},(_,i)=>{const t=i/13;return [side*.60*t,.72-.21*t,.51-.24*t]});
+        thread('Lahkeen ommel '+side,pts,.007,'fabricSeam');
+      }
+      const controls=new OrbitControls(camera,renderer.domElement);
+      controls.target.set(0,1.34,0);controls.enableDamping=true;controls.dampingFactor=.07;
+      controls.minDistance=2.2;controls.maxDistance=11;controls.enablePan=true;
+      const reset=(x,y,z)=>{camera.position.set(x,y,z);controls.target.set(0,1.34,0);controls.update()};
+      document.getElementById('pupu-front')?.addEventListener('click',()=>reset(0,2.2,6));
+      document.getElementById('pupu-back')?.addEventListener('click',()=>reset(0,2.2,-6));
+      document.getElementById('pupu-side')?.addEventListener('click',()=>reset(-6,2.2,0));
+      const spin=document.getElementById('pupu-spin');
+      spin?.addEventListener('click',()=>{controls.autoRotate=!controls.autoRotate;spin.setAttribute('aria-pressed',String(controls.autoRotate))});
+      document.getElementById('pupu-download')?.addEventListener('click',async()=>{
+        const {GLTFExporter}=await import('three/examples/jsm/exporters/GLTFExporter.js');
+        const bytes=await new GLTFExporter().parseAsync(model,{binary:true});
+        const url=URL.createObjectURL(new Blob([bytes],{type:'model/gltf-binary'}));
+        const a=document.createElement('a');a.href=url;a.download='Pupu_3D_malli.glb';a.click();
+        window.setTimeout(()=>URL.revokeObjectURL(url),3000);
+      });
+      const resize=()=>{const w=root.clientWidth,h=root.clientHeight;if(w>0&&h>0){renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix()}};
+      const observer=new ResizeObserver(resize);observer.observe(root);resize();
+      let frame=0;
+      function draw(){frame=requestAnimationFrame(draw);if(document.hidden)return;controls.update();renderer.render(scene,camera)}
+      draw();
+      window.addEventListener('pagehide',()=>{cancelAnimationFrame(frame);observer.disconnect();controls.dispose();renderer.dispose()},{once:true});
+    </script>
+  </body>
+</html>
