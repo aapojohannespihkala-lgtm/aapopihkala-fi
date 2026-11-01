@@ -3831,6 +3831,17 @@ const AUTO_YLISRINNE_D_C80R2_V16_ROUND2_KITCHEN_GUTTER_SAUNA_TILES_WORK_TEST_HOS
   expectedSha256: '89ab9f59ab4640daae8f4c8dfbfc1167904c260a7496fcb27294dcb2da206f2c',
 } as const satisfies PrivateWorkTestCandidate;
 
+// Auto-registered 2026-11-01 from Drive queue file 1xGQ3ngT4zdUZvs-3FBaxuPjrVccSENUy
+// by auto-publish-work-test. WORK_TEST, never as-built.
+const AUTO_YLISRINNE_D_C80R2_V17_UPSTAIRS_FLOOR_DOORS_FRAME_RADIATORS_KITCHEN_WORK_TEST_HOST_HOLD_20261101_1XGQ3NGT_CANDIDATE = {
+  id: 'auto-ylisrinne-d-c80r2-v17-upstairs-floor-doors-frame-radiators-kitchen-work-test-host-hold-20261101-1xgq3ngt',
+  label: 'Auto: Ylisrinne D C80R2 V17 UPSTAIRS FLOOR DOORS FRAME RADIATORS KITCHEN WORK TEST HOST HOLD 20261101 (scene154) - WORK_TEST',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/auto-ylisrinne-d-c80r2-v17-upstairs-floor-doors-frame-radiators-kitchen-work-test-host-hold-20261101-1xgq3ngt.glb`,
+  objectKey: 'work-test/auto-ylisrinne-d-c80r2-v17-upstairs-floor-doors-frame-radiators-kitchen-work-test-host-hold-20261101-1xgq3ngt.glb',
+  expectedSize: 22885656,
+  expectedSha256: '716c111f5ef651d586a33f717288e6bb435d3c4aca6e47f1a95da62e03849860',
+} as const satisfies PrivateWorkTestCandidate;
+
 const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
   D_C80R2_UNIFIED64_C018_WORK_TEST_CANDIDATE,
   D_C80_HI20_UNIFIED52_BOTH_WORK_TEST_CANDIDATE,
@@ -4135,6 +4146,7 @@ const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
   AUTO_YLISRINNE_D_C80R2_V14B_K17_UNDERSTAIR_RECESS_PHOTO_FIT_WORK_TEST_HOST_HOLD_20261101_1TNNUXR2_CANDIDATE,
   AUTO_YLISRINNE_D_C80R2_V15_ENTRY_TECH_BOXOUT_DOOR_SHIFT_WORK_TEST_HOST_HOLD_20261101_1I8Q28FU_CANDIDATE,
   AUTO_YLISRINNE_D_C80R2_V16_ROUND2_KITCHEN_GUTTER_SAUNA_TILES_WORK_TEST_HOST_HOLD_20261101_1H5SK02J_CANDIDATE,
+  AUTO_YLISRINNE_D_C80R2_V17_UPSTAIRS_FLOOR_DOORS_FRAME_RADIATORS_KITCHEN_WORK_TEST_HOST_HOLD_20261101_1XGQ3NGT_CANDIDATE,
 ] as const satisfies readonly PrivateWorkTestCandidate[];
 
 type PrivateWorkTestObjectMetadata = {
