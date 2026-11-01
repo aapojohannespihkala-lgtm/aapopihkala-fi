@@ -3533,6 +3533,17 @@ const D_C80_HI20_B72_SC45_WORK_TEST_CANDIDATE = {
   expectedSha256: '973b536d157c2a7bd7ed66dd01fa5939b0f70951ced53c3662979631a75110ad',
 } as const satisfies PrivateWorkTestCandidate;
 
+// Auto-registered 2026-11-01 from Drive queue file 14ZSgZu__l_ihEYMoe4DWd9jimP4iAQo-
+// by auto-publish-work-test. WORK_TEST, never as-built.
+const AUTO_YLISRINNE_D_C80R2_K11_EAST_RESTORED_CL01_TRIM_WORK_TEST_HOST_HOLD_20261101_14ZSGZUL_CANDIDATE = {
+  id: 'auto-ylisrinne-d-c80r2-k11-east-restored-cl01-trim-work-test-host-hold-20261101-14zsgzul',
+  label: 'Auto: Ylisrinne D C80R2 K11 EAST RESTORED CL01 TRIM WORK TEST HOST HOLD 20261101 (scene113) - WORK_TEST',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/auto-ylisrinne-d-c80r2-k11-east-restored-cl01-trim-work-test-host-hold-20261101-14zsgzul.glb`,
+  objectKey: 'work-test/auto-ylisrinne-d-c80r2-k11-east-restored-cl01-trim-work-test-host-hold-20261101-14zsgzul.glb',
+  expectedSize: 7698324,
+  expectedSha256: 'f62694e96ff2bad919dbf74551b5e0f25cf75d20b001676b7b4c1b05774415d6',
+} as const satisfies PrivateWorkTestCandidate;
+
 const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
   D_C80R2_UNIFIED64_C018_WORK_TEST_CANDIDATE,
   D_C80_HI20_UNIFIED52_BOTH_WORK_TEST_CANDIDATE,
@@ -3810,6 +3821,7 @@ const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
   AUTO_YLISRINNE_D_KOKOAVA_K4_K5_K85_AUKOT_WORK_TEST_20261025_1YQGCIVY_CANDIDATE,
   AUTO_YLISRINNE_D_KOKOAVA_OMISTAJA_K6_PUUT5_WORK_TEST_20261025_1YKAYHVI_CANDIDATE,
   AUTO_YLISRINNE_D_KOKOAVA_OMISTAJA_K6_K12_VALMIS_WORK_TEST_20261026_1TUQSJLP_CANDIDATE,
+  AUTO_YLISRINNE_D_C80R2_K11_EAST_RESTORED_CL01_TRIM_WORK_TEST_HOST_HOLD_20261101_14ZSGZUL_CANDIDATE,
 ] as const satisfies readonly PrivateWorkTestCandidate[];
 
 type PrivateWorkTestObjectMetadata = {
