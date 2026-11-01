@@ -231,6 +231,13 @@ class ApplyTests(unittest.TestCase):
         self.assertRegex(runtime, r"\b" + symbol.group(1) + r"\b")
         self.assertEqual(new_worker.count(module.RUNTIME_MARKER), 1)
 
+    def test_c80r2_chain_file_is_published_whole(self):
+        worker = (ROOT / "worker/privateWorkTest.ts").read_text(encoding="utf-8")
+        name = "Ylisrinne_D_C80R2_K17_PHOTO_WOOD_TREAD_WORK_TEST_HOST_HOLD_20261101__scene107.zip"
+        cid, reg, _ = module.apply(registry(), worker, FILE_ID, name, 1234, SHA, "2026-11-01")
+        self.assertEqual(reg["candidates"][cid], {"driveFileId": FILE_ID})
+        self.assertIn("(scene107)", module.candidate_label(name))
+
     def test_apply_rejects_duplicate_file(self):
         reg = registry()
         reg["candidates"]["x"] = {"driveFileId": FILE_ID}
