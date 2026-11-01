@@ -56,12 +56,12 @@
       const c={fur:0xf9f2dc,furShadow:0xebe3ce,fabric:0xf4bec2,fabricLight:0xfad0cd,fabricSeam:0xda9fa7,nose:0xff7c85,red:0xe0432a,dots:0xffb89c,white:0xfffcef,blue:0x269ad3,blueLight:0x4bc1e6,black:0x14141c};
       const mat=Object.fromEntries(Object.entries(c).map(([k,v])=>[k,new THREE.MeshStandardMaterial({color:v,roughness:k==='nose'?.40:1,metalness:0,side:THREE.DoubleSide})]));
       const model=new THREE.Group();model.name='Pupu';scene.add(model);
-      const ball=(name,loc,size,material,rotation=0)=>{
+      const ball=(name:string,loc:number[],size:number[],material:keyof typeof c,rotation=0)=>{
         const mesh=new THREE.Mesh(new THREE.SphereGeometry(1,32,24),mat[material]);
-        mesh.name=name;mesh.position.set(...loc);mesh.scale.set(...size);mesh.rotation.z=rotation;model.add(mesh);return mesh;
+        mesh.name=name;mesh.position.set(loc[0],loc[1],loc[2]);mesh.scale.set(size[0],size[1],size[2]);mesh.rotation.z=rotation;model.add(mesh);return mesh;
       };
-      const thread=(name,points,r,material)=>{
-        const curve=new THREE.CatmullRomCurve3(points.map(p=>new THREE.Vector3(...p)));
+      const thread=(name:string,points:number[][],r:number,material:keyof typeof c)=>{
+        const curve=new THREE.CatmullRomCurve3(points.map(p=>new THREE.Vector3(p[0],p[1],p[2])));
         const mesh=new THREE.Mesh(new THREE.TubeGeometry(curve,Math.max(8,points.length*5),r,7,false),mat[material]);
         mesh.name=name;model.add(mesh);
       };
@@ -108,10 +108,10 @@
         }
       }
       // Luppakorvat: taivutetut loft-pinnat, reunoilla valkoista ja edessä pilkullista punaista.
-      const center=(t,side)=>new THREE.Vector3(side*(.435+.24*t+.16*Math.sin(Math.PI*t)),2.425-.98*t+.12*Math.sin(Math.PI*t),-.065+.18*t+.02*Math.sin(2*Math.PI*t));
-      const earWidth=t=>.02+.265*Math.sin(Math.PI*(.045+.9*t))**.80;
-      const earPoint=(t,u,side,depth=0)=>{const p=center(t,side),w=earWidth(t);p.x+=u*w;p.y+=side*u*w*.12;p.z+=.071*Math.sqrt(Math.max(0,1-u*u))+depth;return p};
-      function earSkin(name,side,inner){
+      const center=(t:number,side:number)=>new THREE.Vector3(side*(.435+.24*t+.16*Math.sin(Math.PI*t)),2.425-.98*t+.12*Math.sin(Math.PI*t),-.065+.18*t+.02*Math.sin(2*Math.PI*t));
+      const earWidth=(t:number)=>.02+.265*Math.sin(Math.PI*(.045+.9*t))**.80;
+      const earPoint=(t:number,u:number,side:number,depth=0)=>{const p=center(t,side),w=earWidth(t);p.x+=u*w;p.y+=side*u*w*.12;p.z+=.071*Math.sqrt(Math.max(0,1-u*u))+depth;return p};
+      function earSkin(name:string,side:number,inner:boolean){
         const rows=36,steps=inner?12:20, vertices=[],triangles=[];
         for(let i=0;i<=rows;i++){
           const t=inner ? .09+.84*i/rows : i/rows;
