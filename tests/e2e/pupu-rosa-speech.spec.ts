@@ -10,9 +10,13 @@ test('Rosa Pupu introduces herself on click and on rotation, then hides the bubb
   await expect(speech).toBeHidden();
   await expect(page.locator('footer, button')).toHaveCount(0);
 
-  await canvas.click();
+  // The click action can outlast a transient bubble on a busy CI GPU.
+  // Assert visibility while the click is happening, not after it resolves.
+  await Promise.all([
+    canvas.click(),
+    expect(speech).toBeVisible({ timeout: 15_000 }),
+  ]);
   await expect(speech).toHaveText('Minä olen Rosa Pupu');
-  await expect(speech).toBeVisible();
   await expect(speech).toBeHidden({ timeout: 6_000 });
 
   const rect = await canvas.boundingBox();
@@ -20,10 +24,14 @@ test('Rosa Pupu introduces herself on click and on rotation, then hides the bubb
   const x = rect!.x + rect!.width / 2;
   const y = rect!.y + rect!.height / 2;
   await page.mouse.move(x, y);
-  await page.mouse.down();
-  await page.mouse.move(x + 65, y + 20, { steps: 5 });
-  await page.mouse.up();
-  await expect(speech).toBeVisible();
+  await Promise.all([
+    (async () => {
+      await page.mouse.down();
+      await page.mouse.move(x + 65, y + 20, { steps: 5 });
+      await page.mouse.up();
+    })(),
+    expect(speech).toBeVisible({ timeout: 15_000 }),
+  ]);
   await expect(speech).toBeHidden({ timeout: 6_000 });
 });
 
