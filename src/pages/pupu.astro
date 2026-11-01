@@ -114,7 +114,7 @@
       function earSkin(name,side,inner){
         const rows=36,steps=inner?12:20, vertices=[],triangles=[];
         for(let i=0;i<=rows;i++){
-          const t=inner?.09+.84*i/rows:i/rows;
+          const t=inner ? .09+.84*i/rows : i/rows;
           for(let j=0;j<=steps;j++){
             let p;
             if(inner){p=earPoint(t,-.78+1.56*j/steps,side,.009)}
@@ -157,6 +157,7 @@
       document.getElementById('pupu-download')?.addEventListener('click',async()=>{
         const {GLTFExporter}=await import('three/examples/jsm/exporters/GLTFExporter.js');
         const bytes=await new GLTFExporter().parseAsync(model,{binary:true});
+        if(!(bytes instanceof ArrayBuffer))return;
         const url=URL.createObjectURL(new Blob([bytes],{type:'model/gltf-binary'}));
         const a=document.createElement('a');a.href=url;a.download='Pupu_3D_malli.glb';a.click();
         window.setTimeout(()=>URL.revokeObjectURL(url),3000);
