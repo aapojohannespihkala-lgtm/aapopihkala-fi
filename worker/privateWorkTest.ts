@@ -3754,6 +3754,28 @@ const AUTO_YLISRINNE_D_C80R2_REVIEW132_TERRACE_WINDOWS_V11_BROWN_CONTOURS_WALLS_
   expectedSha256: '70777e634b501376d28fd10f7246dcc56c0d68e7922605ca8b2a85f4f171fb82',
 } as const satisfies PrivateWorkTestCandidate;
 
+// Auto-registered 2026-11-01 from Drive queue file 1hikxREeY0CLkJqWc0MlSR9FbSHT7mZm9
+// by auto-publish-work-test. WORK_TEST, never as-built.
+const AUTO_YLISRINNE_D_C80R2_JOINT16_R9GREY_RAD26_SAVO26_3SPOT_2BELL_SOK26BLUE_KVIK3X3_K17_BD01OFF_WORK_TEST_HO_1HIKXREE_CANDIDATE = {
+  id: 'auto-ylisrinne-d-c80r2-joint16-r9grey-rad26-savo26-3spot-2bell-sok26blue-kvik3x3-k17-bd01off-work-test-ho-1hikxree',
+  label: 'Auto: Ylisrinne D C80R2 JOINT16 R9GREY RAD26 SAVO26 3SPOT 2BELL SOK26BLUE KVIK3X3 K17 BD01OFF WORK TEST HOST HOLD 20 (scene146) - WORK_TEST',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/auto-ylisrinne-d-c80r2-joint16-r9grey-rad26-savo26-3spot-2bell-sok26blue-kvik3x3-k17-bd01off-work-test-ho-1hikxree.glb`,
+  objectKey: 'work-test/auto-ylisrinne-d-c80r2-joint16-r9grey-rad26-savo26-3spot-2bell-sok26blue-kvik3x3-k17-bd01off-work-test-ho-1hikxree.glb',
+  expectedSize: 16670944,
+  expectedSha256: '6c5fbb1f04a414ac96b7b3e9f6f7c51ff7049190fa0f43919658fe257861a6d1',
+} as const satisfies PrivateWorkTestCandidate;
+
+// Auto-registered 2026-11-01 from Drive queue file 1J_URAcOCr3vZqTCRRwcTgrwfCoViQc_u
+// by auto-publish-work-test. WORK_TEST, never as-built.
+const AUTO_YLISRINNE_D_C80R2_MERGE1_V11_KITCHEN2026_HOB40_CUR26_PF26_WORK_TEST_HOST_HOLD_20261101_1JURACOC_CANDIDATE = {
+  id: 'auto-ylisrinne-d-c80r2-merge1-v11-kitchen2026-hob40-cur26-pf26-work-test-host-hold-20261101-1juracoc',
+  label: 'Auto: Ylisrinne D C80R2 MERGE1 V11 KITCHEN2026 HOB40 CUR26 PF26 WORK TEST HOST HOLD 20261101 (scene136) - WORK_TEST',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/auto-ylisrinne-d-c80r2-merge1-v11-kitchen2026-hob40-cur26-pf26-work-test-host-hold-20261101-1juracoc.glb`,
+  objectKey: 'work-test/auto-ylisrinne-d-c80r2-merge1-v11-kitchen2026-hob40-cur26-pf26-work-test-host-hold-20261101-1juracoc.glb',
+  expectedSize: 22411356,
+  expectedSha256: 'f5f7c34a67cabdaafcfc57f180aee7df505ca6321c150c965a95c23d4e9ecd29',
+} as const satisfies PrivateWorkTestCandidate;
+
 const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
   D_C80R2_UNIFIED64_C018_WORK_TEST_CANDIDATE,
   D_C80_HI20_UNIFIED52_BOTH_WORK_TEST_CANDIDATE,
@@ -4051,6 +4073,8 @@ const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
   AUTO_YLISRINNE_D_C80R2_HOB31_OWNER2026_SINK3X3_BD01_POIS_S_GUTTER_BLUE_PLINTH_WORK_TEST_HOST_HOLD_2026110_1ISHTTZP_CANDIDATE,
   AUTO_YLISRINNE_D_C80R2_JOINT12_2026_KVIK3X3_K17_ALL4_WHITE_ISLAND_BELL2_SPOT3_BD01_OFF_WORK_TEST_HOST_HOL_1UM8D50A_CANDIDATE,
   AUTO_YLISRINNE_D_C80R2_REVIEW132_TERRACE_WINDOWS_V11_BROWN_CONTOURS_WALLS_WORK_TEST_HOST_HOLD_20261101_1Q51JX1F_CANDIDATE,
+  AUTO_YLISRINNE_D_C80R2_JOINT16_R9GREY_RAD26_SAVO26_3SPOT_2BELL_SOK26BLUE_KVIK3X3_K17_BD01OFF_WORK_TEST_HO_1HIKXREE_CANDIDATE,
+  AUTO_YLISRINNE_D_C80R2_MERGE1_V11_KITCHEN2026_HOB40_CUR26_PF26_WORK_TEST_HOST_HOLD_20261101_1JURACOC_CANDIDATE,
 ] as const satisfies readonly PrivateWorkTestCandidate[];
 
 type PrivateWorkTestObjectMetadata = {
