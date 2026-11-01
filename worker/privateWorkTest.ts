@@ -3776,6 +3776,28 @@ const AUTO_YLISRINNE_D_C80R2_MERGE1_V11_KITCHEN2026_HOB40_CUR26_PF26_WORK_TEST_H
   expectedSha256: 'f5f7c34a67cabdaafcfc57f180aee7df505ca6321c150c965a95c23d4e9ecd29',
 } as const satisfies PrivateWorkTestCandidate;
 
+// Auto-registered 2026-11-01 from Drive queue file 1yR2b3VDezdNU3z_4C-QEtWv8anguwJ0h
+// by auto-publish-work-test. WORK_TEST, never as-built.
+const AUTO_YLISRINNE_D_C80R2_V12_MERGE1_SIDING150_WORK_TEST_HOST_HOLD_20261101_1YR2B3VD_CANDIDATE = {
+  id: 'auto-ylisrinne-d-c80r2-v12-merge1-siding150-work-test-host-hold-20261101-1yr2b3vd',
+  label: 'Auto: Ylisrinne D C80R2 V12 MERGE1 SIDING150 WORK TEST HOST HOLD 20261101 (scene139) - WORK_TEST',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/auto-ylisrinne-d-c80r2-v12-merge1-siding150-work-test-host-hold-20261101-1yr2b3vd.glb`,
+  objectKey: 'work-test/auto-ylisrinne-d-c80r2-v12-merge1-siding150-work-test-host-hold-20261101-1yr2b3vd.glb',
+  expectedSize: 22477220,
+  expectedSha256: 'cb7e016423b8d0168867ed1669e0bbe0b84839ef62465641a2d941efecb99766',
+} as const satisfies PrivateWorkTestCandidate;
+
+// Auto-registered 2026-11-01 from Drive queue file 1MukkRJSz1PtId9pT6DinbwZMYs0FIeMO
+// by auto-publish-work-test. WORK_TEST, never as-built.
+const AUTO_YLISRINNE_D_C80R2_V13_K17ALL4_BALCONY_DEDUP_WORK_TEST_HOST_HOLD_20261101_1MUKKRJS_CANDIDATE = {
+  id: 'auto-ylisrinne-d-c80r2-v13-k17all4-balcony-dedup-work-test-host-hold-20261101-1mukkrjs',
+  label: 'Auto: Ylisrinne D C80R2 V13 K17ALL4 BALCONY DEDUP WORK TEST HOST HOLD 20261101 (scene142) - WORK_TEST',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/auto-ylisrinne-d-c80r2-v13-k17all4-balcony-dedup-work-test-host-hold-20261101-1mukkrjs.glb`,
+  objectKey: 'work-test/auto-ylisrinne-d-c80r2-v13-k17all4-balcony-dedup-work-test-host-hold-20261101-1mukkrjs.glb',
+  expectedSize: 22492376,
+  expectedSha256: '22d2a76b3a54fc5efb22a58b28cd3dc65894a53f5a3e5de9691e30e846591a32',
+} as const satisfies PrivateWorkTestCandidate;
+
 const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
   D_C80R2_UNIFIED64_C018_WORK_TEST_CANDIDATE,
   D_C80_HI20_UNIFIED52_BOTH_WORK_TEST_CANDIDATE,
@@ -4075,6 +4097,8 @@ const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
   AUTO_YLISRINNE_D_C80R2_REVIEW132_TERRACE_WINDOWS_V11_BROWN_CONTOURS_WALLS_WORK_TEST_HOST_HOLD_20261101_1Q51JX1F_CANDIDATE,
   AUTO_YLISRINNE_D_C80R2_JOINT16_R9GREY_RAD26_SAVO26_3SPOT_2BELL_SOK26BLUE_KVIK3X3_K17_BD01OFF_WORK_TEST_HO_1HIKXREE_CANDIDATE,
   AUTO_YLISRINNE_D_C80R2_MERGE1_V11_KITCHEN2026_HOB40_CUR26_PF26_WORK_TEST_HOST_HOLD_20261101_1JURACOC_CANDIDATE,
+  AUTO_YLISRINNE_D_C80R2_V12_MERGE1_SIDING150_WORK_TEST_HOST_HOLD_20261101_1YR2B3VD_CANDIDATE,
+  AUTO_YLISRINNE_D_C80R2_V13_K17ALL4_BALCONY_DEDUP_WORK_TEST_HOST_HOLD_20261101_1MUKKRJS_CANDIDATE,
 ] as const satisfies readonly PrivateWorkTestCandidate[];
 
 type PrivateWorkTestObjectMetadata = {
