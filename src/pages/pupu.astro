@@ -8,6 +8,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="description" content="Valokuvista rakennettu pyöriteltävä 3D-malli vaaleanpunaisesta pehmopupusta." />
     <title>Pupu 3D | Aapo Pihkala</title>
+    <meta name="pupu-viewer-version" content="centered-viewport-r2-20261101" />
     <style>
       :root{font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#453e43;background:#f9f6f3}
       *{box-sizing:border-box}html,body{margin:0;height:100%;min-height:100%;}body{display:flex;flex-direction:column;min-height:100dvh}
@@ -148,15 +149,33 @@
       // Keskitä koko pehmoeläin myös GLB-viennissä ja pyöritä sitä omasta keskipisteestään.
       const modelBounds=new THREE.Box3().setFromObject(model);
       const modelCenter=modelBounds.getCenter(new THREE.Vector3());
+      const modelSize=modelBounds.getSize(new THREE.Vector3());
       model.position.sub(modelCenter);
       const controls=new OrbitControls(camera,renderer.domElement);
       controls.target.set(0,0,0);controls.enableDamping=true;controls.dampingFactor=.07;
-      controls.minDistance=2.2;controls.maxDistance=11;controls.enablePan=true;
-      const reset=(x:number,y:number,z:number)=>{camera.position.set(x,y,z);controls.target.set(0,0,0);controls.update()};
-      reset(3.3,1.26,5.1);
-      document.getElementById('pupu-front')?.addEventListener('click',()=>reset(0,.86,6));
-      document.getElementById('pupu-back')?.addEventListener('click',()=>reset(0,.86,-6));
-      document.getElementById('pupu-side')?.addEventListener('click',()=>reset(-6,.86,0));
+      // Panorointi siirtäisi pyöritysakselin pois pupusta.
+      controls.minDistance=2.2;controls.maxDistance=30;controls.enablePan=false;
+      // Sovita koko pupu myös kapealle puhelinnäytölle ja pidä se ruudun keskellä.
+      const fitDistance=()=>{
+        const halfFov=Math.tan(THREE.MathUtils.degToRad(camera.fov)/2);
+        const fitY=modelSize.y/(2*halfFov);
+        const fitX=modelSize.x/(2*halfFov*Math.max(camera.aspect,.1));
+        return 1.22*(Math.max(fitX,fitY)+modelSize.z/2);
+      };
+      type View='front'|'back'|'side';
+      let selectedView:View='front',userRotated=false;
+      controls.addEventListener('start',()=>{userRotated=true});
+      const reset=(view:View)=>{
+        selectedView=view;userRotated=false;
+        const d=fitDistance();
+        if(view==='back')camera.position.set(0,0,-d);
+        else if(view==='side')camera.position.set(-d,0,0);
+        else camera.position.set(0,0,d);
+        controls.target.set(0,0,0);controls.update();
+      };
+      document.getElementById('pupu-front')?.addEventListener('click',()=>reset('front'));
+      document.getElementById('pupu-back')?.addEventListener('click',()=>reset('back'));
+      document.getElementById('pupu-side')?.addEventListener('click',()=>reset('side'));
       const spin=document.getElementById('pupu-spin');
       spin?.addEventListener('click',()=>{controls.autoRotate=!controls.autoRotate;spin.setAttribute('aria-pressed',String(controls.autoRotate))});
       document.getElementById('pupu-download')?.addEventListener('click',async()=>{
@@ -167,7 +186,7 @@
         const a=document.createElement('a');a.href=url;a.download='Pupu_3D_malli.glb';a.click();
         window.setTimeout(()=>URL.revokeObjectURL(url),3000);
       });
-      const resize=()=>{const w=root.clientWidth,h=root.clientHeight;if(w>0&&h>0){renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix()}};
+      const resize=()=>{const w=root.clientWidth,h=root.clientHeight;if(w>0&&h>0){renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();if(!userRotated)reset(selectedView)}};
       const observer=new ResizeObserver(resize);observer.observe(root);resize();
       let frame=0;
       function draw(){frame=requestAnimationFrame(draw);if(document.hidden)return;controls.update();renderer.render(scene,camera)}
