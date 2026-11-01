@@ -26,7 +26,7 @@ test('Pupu position under Windows display scale and browser zoom', async ({brows
         const frame=document.querySelector('#pupu-canvas-frame')!.getBoundingClientRect();
         return {dpr:devicePixelRatio,zoom:getComputedStyle(document.body).zoom,innerWidth,shotWidth:cn.width,frame:[frame.x,frame.width],pixels:{count,meanX:sum/count,minX,maxX},meta:document.querySelector('meta[name="pupu-viewer-version"]')?.getAttribute('content')};
       },png);
-      expect(data.meta).toBe('pixelratio-fixed-r5-20261101');
+      expect(data.meta).toBe('rosa-speech-r6-20261102');
       console.log('DPR_RESULT',JSON.stringify(data));
       expect(data.pixels.count).toBeGreaterThan(150);
       // The Windows DPI failure shifted the colored face well to the right
