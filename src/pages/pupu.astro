@@ -8,7 +8,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="description" content="Valokuvista rakennettu pyöriteltävä 3D-malli vaaleanpunaisesta pehmopupusta." />
     <title>Pupu 3D | Aapo Pihkala</title>
-    <meta name="pupu-viewer-version" content="centered-viewport-r2-20261101" />
+    <meta name="pupu-viewer-version" content="centered-canvas-r3-20261101" />
     <style>
       :root{font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#453e43;background:#f9f6f3}
       *{box-sizing:border-box}html,body{margin:0;height:100%;min-height:100%;}body{display:flex;flex-direction:column;min-height:100dvh}
@@ -16,7 +16,8 @@
       header a{color:#7c6773;text-decoration:none;font-size:.85rem}header a:hover{text-decoration:underline}
       h1{font-size:1.35rem;letter-spacing:-.02em;margin:0;font-weight:650}
       main{position:relative;min-height:330px;flex:1;touch-action:none;overflow:hidden}
-      canvas{width:100%;height:100%;display:block}
+      .pupu-canvas-frame{position:absolute;top:0;bottom:0;left:50%;width:min(100%,800px);transform:translateX(-50%);overflow:hidden}
+      .pupu-canvas-frame canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
       .hint{position:absolute;inset:auto 14px 12px;text-align:center;pointer-events:none;color:#756d70;font-size:.8rem;text-shadow:0 1px white}
       footer{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;padding:12px 12px 16px}
       button{border:1px solid #d8ced0;border-radius:22px;padding:9px 15px;background:white;color:#51444d;font:inherit;font-size:.85rem;cursor:pointer}
@@ -28,6 +29,7 @@
   <body>
     <header><a href="/" aria-label="Takaisin etusivulle">Aapo Pihkala</a><h1>Pupu 3D</h1></header>
     <main id="pupu-viewer" aria-label="Pyöriteltävä vaaleanpunainen pupun 3D-malli">
+      <div id="pupu-canvas-frame" class="pupu-canvas-frame"></div>
       <div class="hint">Vedä tai pyyhkäise pyörittääksesi, zoomaa rullalla tai nipistämällä</div>
     </main>
     <footer>
@@ -42,6 +44,8 @@
       import { THREE, OrbitControls } from '../scripts/threeRuntime';
       const root=document.getElementById('pupu-viewer');
       if(!(root instanceof HTMLElement))throw new Error('Pupun katselinaluetta ei löytynyt');
+      const viewport=document.getElementById('pupu-canvas-frame');
+      if(!(viewport instanceof HTMLElement))throw new Error('Pupun keskitettyä 3D-kehystä ei löytynyt');
       const scene=new THREE.Scene();scene.background=new THREE.Color(0xf9f6f3);
       const camera=new THREE.PerspectiveCamera(38,1,0.05,100);
       camera.position.set(3.3,2.6,5.1);
@@ -50,7 +54,7 @@
       renderer.outputColorSpace=THREE.SRGBColorSpace;
       renderer.toneMapping=THREE.ACESFilmicToneMapping;
       renderer.toneMappingExposure=1.25;
-      root.prepend(renderer.domElement);
+      viewport.append(renderer.domElement);
       scene.add(new THREE.HemisphereLight(0xffffff,0xe0c3b6,2.45));
       const keyLight=new THREE.DirectionalLight(0xffffff,2.8);keyLight.position.set(-4,7,7);scene.add(keyLight);
       const backLight=new THREE.DirectionalLight(0xffffff,1.2);backLight.position.set(5,3,-5);scene.add(backLight);
@@ -171,7 +175,7 @@
         if(view==='back')camera.position.set(0,0,-d);
         else if(view==='side')camera.position.set(-d,0,0);
         else camera.position.set(0,0,d);
-        controls.target.set(0,0,0);controls.update();
+        controls.target.set(0,0,0);camera.lookAt(0,0,0);controls.update();
       };
       document.getElementById('pupu-front')?.addEventListener('click',()=>reset('front'));
       document.getElementById('pupu-back')?.addEventListener('click',()=>reset('back'));
@@ -186,8 +190,8 @@
         const a=document.createElement('a');a.href=url;a.download='Pupu_3D_malli.glb';a.click();
         window.setTimeout(()=>URL.revokeObjectURL(url),3000);
       });
-      const resize=()=>{const w=root.clientWidth,h=root.clientHeight;if(w>0&&h>0){renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();if(!userRotated)reset(selectedView)}};
-      const observer=new ResizeObserver(resize);observer.observe(root);resize();
+      const resize=()=>{const w=viewport.clientWidth,h=viewport.clientHeight;if(w>0&&h>0){renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();if(!userRotated)reset(selectedView)}};
+      const observer=new ResizeObserver(resize);observer.observe(viewport);resize();
       let frame=0;
       function draw(){frame=requestAnimationFrame(draw);if(document.hidden)return;controls.update();renderer.render(scene,camera)}
       draw();
