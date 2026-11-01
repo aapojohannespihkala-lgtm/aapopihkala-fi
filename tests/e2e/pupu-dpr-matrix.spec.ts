@@ -28,6 +28,9 @@ test('Pupu position under Windows display scale and browser zoom', async ({brows
       },png);
       console.log('DPR_RESULT',JSON.stringify(data));
       expect(data.pixels.count).toBeGreaterThan(150);
+      // The Windows DPI failure shifted the colored face well to the right
+      // while a DPR=1 screenshot stayed centered. Keep it centered at all DPRs.
+      expect(Math.abs(data.pixels.meanX - data.shotWidth / 2)).toBeLessThan(data.shotWidth * .065);
     }
     await context.close();
   }
