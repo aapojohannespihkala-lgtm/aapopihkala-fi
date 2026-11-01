@@ -3600,6 +3600,28 @@ const AUTO_YLISRINNE_D_C80R2_REVIEW123_BALCONY_FRAME_TERRAIN_REF_CEILINGS_WORK_T
   expectedSha256: '7fdc3177aa6d5cee0d3b284f32600337acc35ee0788c36c2bb2faae5ddd9f9bf',
 } as const satisfies PrivateWorkTestCandidate;
 
+// Auto-registered 2026-11-01 from Drive queue file 1inoz4XMBnjB9OWCXV7XgGvxfIZydWauP
+// by auto-publish-work-test. WORK_TEST, never as-built.
+const AUTO_YLISRINNE_D_C80R2_DP01_WEST_ROOF_S_GUTTER_PW26_PINK_INTEGRATED_WORK_TEST_HOST_HOLD_20261101_1INOZ4XM_CANDIDATE = {
+  id: 'auto-ylisrinne-d-c80r2-dp01-west-roof-s-gutter-pw26-pink-integrated-work-test-host-hold-20261101-1inoz4xm',
+  label: 'Auto: Ylisrinne D C80R2 DP01 WEST ROOF S GUTTER PW26 PINK INTEGRATED WORK TEST HOST HOLD 20261101 (scene123) - WORK_TEST',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/auto-ylisrinne-d-c80r2-dp01-west-roof-s-gutter-pw26-pink-integrated-work-test-host-hold-20261101-1inoz4xm.glb`,
+  objectKey: 'work-test/auto-ylisrinne-d-c80r2-dp01-west-roof-s-gutter-pw26-pink-integrated-work-test-host-hold-20261101-1inoz4xm.glb',
+  expectedSize: 16875932,
+  expectedSha256: '09e84acc22253f69f31fd124ede0dfaec5ab4750859fcc8a93eaa8f04828741a',
+} as const satisfies PrivateWorkTestCandidate;
+
+// Auto-registered 2026-11-01 from Drive queue file 1ah9IZB4AoQ__dYhxqVPB0_YjfSYeeVxB
+// by auto-publish-work-test. WORK_TEST, never as-built.
+const AUTO_YLISRINNE_D_C80R2_WEST_ROOF_S_GUTTER_PW26_KVIK_JOINT3_WORK_TEST_HOST_HOLD_20261101_1AH9IZB4_CANDIDATE = {
+  id: 'auto-ylisrinne-d-c80r2-west-roof-s-gutter-pw26-kvik-joint3-work-test-host-hold-20261101-1ah9izb4',
+  label: 'Auto: Ylisrinne D C80R2 WEST ROOF S GUTTER PW26 KVIK JOINT3 WORK TEST HOST HOLD 20261101 (scene125) - WORK_TEST',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/auto-ylisrinne-d-c80r2-west-roof-s-gutter-pw26-kvik-joint3-work-test-host-hold-20261101-1ah9izb4.glb`,
+  objectKey: 'work-test/auto-ylisrinne-d-c80r2-west-roof-s-gutter-pw26-kvik-joint3-work-test-host-hold-20261101-1ah9izb4.glb',
+  expectedSize: 17036852,
+  expectedSha256: 'db6cb1b824e1d1664b27498620687f7667c5ee9c82f74544840f4f804aae2ef5',
+} as const satisfies PrivateWorkTestCandidate;
+
 const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
   D_C80R2_UNIFIED64_C018_WORK_TEST_CANDIDATE,
   D_C80_HI20_UNIFIED52_BOTH_WORK_TEST_CANDIDATE,
@@ -3883,6 +3905,8 @@ const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
   AUTO_YLISRINNE_D_C80R2_REVIEW120_EAST_UNIFIED_REF_CEILINGS_WORK_TEST_HOST_HOLD_20261101_1DGZI9KX_CANDIDATE,
   AUTO_YLISRINNE_C80R2_SAVO_WHITE_FULL_LENGTH_HIST2024_WORK_TEST_20261101_1HPZCMSY_CANDIDATE,
   AUTO_YLISRINNE_D_C80R2_REVIEW123_BALCONY_FRAME_TERRAIN_REF_CEILINGS_WORK_TEST_HOST_HOLD_20261101_1OIGBVGY_CANDIDATE,
+  AUTO_YLISRINNE_D_C80R2_DP01_WEST_ROOF_S_GUTTER_PW26_PINK_INTEGRATED_WORK_TEST_HOST_HOLD_20261101_1INOZ4XM_CANDIDATE,
+  AUTO_YLISRINNE_D_C80R2_WEST_ROOF_S_GUTTER_PW26_KVIK_JOINT3_WORK_TEST_HOST_HOLD_20261101_1AH9IZB4_CANDIDATE,
 ] as const satisfies readonly PrivateWorkTestCandidate[];
 
 type PrivateWorkTestObjectMetadata = {
