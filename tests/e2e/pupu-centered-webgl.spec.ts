@@ -7,7 +7,8 @@ test('Pupu is visible, centered and unclipped on desktop and mobile', async ({ p
   for (const [width, height] of [[1654, 928], [390, 844]]) {
     await page.setViewportSize({ width, height });
     await page.goto('/pupu/');
-    await expect(page.locator('meta[name="pupu-viewer-version"]')).toHaveAttribute('content', 'centered-canvas-r3-20261101');
+    await expect(page.locator('meta[name="pupu-viewer-version"]')).toHaveAttribute('content', 'centered-no-transform-r4-20261101');
+    await expect(page.locator('#pupu-canvas-frame')).toHaveCSS('transform', 'none');
     const canvas = page.locator('#pupu-canvas-frame canvas');
     await expect(canvas).toBeVisible();
     const rect = await canvas.boundingBox();
