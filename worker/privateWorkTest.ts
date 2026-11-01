@@ -3540,8 +3540,9 @@ const AUTO_YLISRINNE_D_C80R2_K11_EAST_RESTORED_CL01_TRIM_WORK_TEST_HOST_HOLD_202
   label: 'Auto: Ylisrinne D C80R2 K11 EAST RESTORED CL01 TRIM WORK TEST HOST HOLD 20261101 (scene113) - WORK_TEST',
   path: `${PRIVATE_WORK_TEST_PREFIX}/auto-ylisrinne-d-c80r2-k11-east-restored-cl01-trim-work-test-host-hold-20261101-14zsgzul.glb`,
   objectKey: 'work-test/auto-ylisrinne-d-c80r2-k11-east-restored-cl01-trim-work-test-host-hold-20261101-14zsgzul.glb',
-  expectedSize: 7698324,
-  expectedSha256: 'f62694e96ff2bad919dbf74551b5e0f25cf75d20b001676b7b4c1b05774415d6',
+  // Whole 114-scene GLB (the auto run hashed a scene113-only extraction).
+  expectedSize: 15983176,
+  expectedSha256: '4a75f5aeaef638fa9943329f71f1db60bebfa9b7a9113d3406e5aadb682e8c00',
 } as const satisfies PrivateWorkTestCandidate;
 
 const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [

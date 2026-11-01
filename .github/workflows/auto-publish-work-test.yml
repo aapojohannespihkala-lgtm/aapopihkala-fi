@@ -154,6 +154,9 @@ jobs:
                       raise SystemExit("invalid Drive file id")
                   stem = re.sub(r"\.(glb|zip)$", "", item["name"], flags=re.IGNORECASE)
                   match = scene_re.search(stem)
+                  # C80R2 main-model files are published whole (see helper apply()).
+                  if re.search(r"(^|_)C80R2_", item["name"], re.IGNORECASE):
+                      match = None
                   out.write(f"{n}\t{item['file_id']}\t{match.group(1) if match else ''}\n")
           PY
           : > "$RUNNER_TEMP/derived.tsv"
