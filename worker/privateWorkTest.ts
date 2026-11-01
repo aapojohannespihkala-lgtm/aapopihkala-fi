@@ -3699,6 +3699,50 @@ const AUTO_YLISRINNE_D_C80R2_HOB30_BD01_POIS_WORK_TEST_HOST_HOLD_20261101_1TZUSA
   expectedSha256: '4cb3b2f1f4b2dc351acaff318958977274bda94a1ba48bd74157de285e5ded59',
 } as const satisfies PrivateWorkTestCandidate;
 
+// Auto-registered 2026-11-01 from Drive queue file 1H1YwXvoZCl8iSS8EI9C8XlrSAWAAcCso
+// by auto-publish-work-test. WORK_TEST, never as-built.
+const AUTO_YLISRINNE_D_C80R2_HOB31_HOB30_BD01_POIS_SINK_OWNER2026_3X3_HOB25_LIESI_WORK_TEST_HOST_HOLD_20261101_1H1YWXVO_CANDIDATE = {
+  id: 'auto-ylisrinne-d-c80r2-hob31-hob30-bd01-pois-sink-owner2026-3x3-hob25-liesi-work-test-host-hold-20261101-1h1ywxvo',
+  label: 'Auto: Ylisrinne D C80R2 HOB31 HOB30 BD01 POIS SINK OWNER2026 3X3 HOB25 LIESI WORK TEST HOST HOLD 20261101 (scene135) - WORK_TEST',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/auto-ylisrinne-d-c80r2-hob31-hob30-bd01-pois-sink-owner2026-3x3-hob25-liesi-work-test-host-hold-20261101-1h1ywxvo.glb`,
+  objectKey: 'work-test/auto-ylisrinne-d-c80r2-hob31-hob30-bd01-pois-sink-owner2026-3x3-hob25-liesi-work-test-host-hold-20261101-1h1ywxvo.glb',
+  expectedSize: 17273176,
+  expectedSha256: 'c663d8388ab1dccba4167c65e7d700f494f7193b43563c2ba76bb61b5591a53d',
+} as const satisfies PrivateWorkTestCandidate;
+
+// Auto-registered 2026-11-01 from Drive queue file 1Poj6SWpbJ3Z6pMF2SWLZQBG2abb4fuK_
+// by auto-publish-work-test. WORK_TEST, never as-built.
+const AUTO_YLISRINNE_D_C80R2_REVIEW132_TERRACE_WINDOWS_BROWN_CONTOURS_WALLS_WORK_TEST_HOST_HOLD_20261101_1POJ6SWP_CANDIDATE = {
+  id: 'auto-ylisrinne-d-c80r2-review132-terrace-windows-brown-contours-walls-work-test-host-hold-20261101-1poj6swp',
+  label: 'Auto: Ylisrinne D C80R2 REVIEW132 TERRACE WINDOWS BROWN CONTOURS WALLS WORK TEST HOST HOLD 20261101 (scene133) - WORK_TEST',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/auto-ylisrinne-d-c80r2-review132-terrace-windows-brown-contours-walls-work-test-host-hold-20261101-1poj6swp.glb`,
+  objectKey: 'work-test/auto-ylisrinne-d-c80r2-review132-terrace-windows-brown-contours-walls-work-test-host-hold-20261101-1poj6swp.glb',
+  expectedSize: 21568184,
+  expectedSha256: '53b1d1fddec5210247e7c2d7b69354d843ac0d88f016ad8f8a1f2f6eb590b5a7',
+} as const satisfies PrivateWorkTestCandidate;
+
+// Auto-registered 2026-11-01 from Drive queue file 1IsHTtzpOa0wGfrWt5ytyA1x_SNdDbKTm
+// by auto-publish-work-test. WORK_TEST, never as-built.
+const AUTO_YLISRINNE_D_C80R2_HOB31_OWNER2026_SINK3X3_BD01_POIS_S_GUTTER_BLUE_PLINTH_WORK_TEST_HOST_HOLD_2026110_1ISHTTZP_CANDIDATE = {
+  id: 'auto-ylisrinne-d-c80r2-hob31-owner2026-sink3x3-bd01-pois-s-gutter-blue-plinth-work-test-host-hold-2026110-1ishttzp',
+  label: 'Auto: Ylisrinne D C80R2 HOB31 OWNER2026 SINK3X3 BD01 POIS S GUTTER BLUE PLINTH WORK TEST HOST HOLD 20261101 (scene136) - WORK_TEST',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/auto-ylisrinne-d-c80r2-hob31-owner2026-sink3x3-bd01-pois-s-gutter-blue-plinth-work-test-host-hold-2026110-1ishttzp.glb`,
+  objectKey: 'work-test/auto-ylisrinne-d-c80r2-hob31-owner2026-sink3x3-bd01-pois-s-gutter-blue-plinth-work-test-host-hold-2026110-1ishttzp.glb',
+  expectedSize: 17283284,
+  expectedSha256: 'fe21b97596fce5b4b74aa7874640f16288e4203a53bbe35efe1e8f4e85813853',
+} as const satisfies PrivateWorkTestCandidate;
+
+// Auto-registered 2026-11-01 from Drive queue file 1UM8d50A_fKlduFRg7jq1DkWu-k9u--fp
+// by auto-publish-work-test. WORK_TEST, never as-built.
+const AUTO_YLISRINNE_D_C80R2_JOINT12_2026_KVIK3X3_K17_ALL4_WHITE_ISLAND_BELL2_SPOT3_BD01_OFF_WORK_TEST_HOST_HOL_1UM8D50A_CANDIDATE = {
+  id: 'auto-ylisrinne-d-c80r2-joint12-2026-kvik3x3-k17-all4-white-island-bell2-spot3-bd01-off-work-test-host-hol-1um8d50a',
+  label: 'Auto: Ylisrinne D C80R2 JOINT12 2026 KVIK3X3 K17 ALL4 WHITE ISLAND BELL2 SPOT3 BD01 OFF WORK TEST HOST HOLD 20261101 (scene142) - WORK_TEST',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/auto-ylisrinne-d-c80r2-joint12-2026-kvik3x3-k17-all4-white-island-bell2-spot3-bd01-off-work-test-host-hol-1um8d50a.glb`,
+  objectKey: 'work-test/auto-ylisrinne-d-c80r2-joint12-2026-kvik3x3-k17-all4-white-island-bell2-spot3-bd01-off-work-test-host-hol-1um8d50a.glb',
+  expectedSize: 16500340,
+  expectedSha256: 'f89709a0edf3af4bef3aa26b49a9006acba857c5ac3645d073d6b90e5d40a0c2',
+} as const satisfies PrivateWorkTestCandidate;
+
 const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
   D_C80R2_UNIFIED64_C018_WORK_TEST_CANDIDATE,
   D_C80_HI20_UNIFIED52_BOTH_WORK_TEST_CANDIDATE,
@@ -3991,6 +4035,10 @@ const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
   AUTO_YLISRINNE_C80R2_K17_PS1_RS9_WHITE_LOWWALL_FREEPOST_ALL4_INTEGRATED_WORK_TEST_HOST_HOLD_20261101_19MGA3RF_CANDIDATE,
   AUTO_YLISRINNE_D_C80R2_D1F_ENTRY_20261101_TWO_WHITE_WALL_UTILITY_BOXES_WORK_TEST_HOST_HOLD_1SUHAFEQ_CANDIDATE,
   AUTO_YLISRINNE_D_C80R2_HOB30_BD01_POIS_WORK_TEST_HOST_HOLD_20261101_1TZUSAEQ_CANDIDATE,
+  AUTO_YLISRINNE_D_C80R2_HOB31_HOB30_BD01_POIS_SINK_OWNER2026_3X3_HOB25_LIESI_WORK_TEST_HOST_HOLD_20261101_1H1YWXVO_CANDIDATE,
+  AUTO_YLISRINNE_D_C80R2_REVIEW132_TERRACE_WINDOWS_BROWN_CONTOURS_WALLS_WORK_TEST_HOST_HOLD_20261101_1POJ6SWP_CANDIDATE,
+  AUTO_YLISRINNE_D_C80R2_HOB31_OWNER2026_SINK3X3_BD01_POIS_S_GUTTER_BLUE_PLINTH_WORK_TEST_HOST_HOLD_2026110_1ISHTTZP_CANDIDATE,
+  AUTO_YLISRINNE_D_C80R2_JOINT12_2026_KVIK3X3_K17_ALL4_WHITE_ISLAND_BELL2_SPOT3_BD01_OFF_WORK_TEST_HOST_HOL_1UM8D50A_CANDIDATE,
 ] as const satisfies readonly PrivateWorkTestCandidate[];
 
 type PrivateWorkTestObjectMetadata = {
