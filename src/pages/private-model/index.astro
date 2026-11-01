@@ -6483,8 +6483,8 @@ const title = 'Private 3D viewer';
           mainViewExceptionList.replaceChildren();
           const sceneIndex = (mainViewScope as any).sceneIndex;
           canvas.dataset.mainViewSourceSceneIndex = String(sceneIndex);
-          canvas.dataset.mainViewScopeStatus = is64
-            ? 'C80R2_UNIFIED64_ORIGINAL_SCENE_HOST_HOLD'
+          canvas.dataset.mainViewScopeStatus = chainLabel ? 'C80R2_CHAIN_ORIGINAL_SCENE_HOST_HOLD'
+            : is64 ? 'C80R2_UNIFIED64_ORIGINAL_SCENE_HOST_HOLD'
             : 'C80R2_HI20_UNIFIED52_ORIGINAL_SCENE_HOST_HOLD';
           canvas.dataset.contentScene = chainLabel ? 'C80R2_CHAIN_WORK_TEST'
             : is64 ? 'C80R2_UNIFIED64_WORK_TEST' : 'C80R2_HI20_UNIFIED52_WORK_TEST';
