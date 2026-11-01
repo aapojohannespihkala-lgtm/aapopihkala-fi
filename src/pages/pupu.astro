@@ -174,6 +174,7 @@
       };
       let userRotated=false;
       renderer.domElement.addEventListener('pointerdown',showSpeech);
+      renderer.domElement.addEventListener('click',showSpeech);
       controls.addEventListener('start',()=>{userRotated=true;showSpeech()});
       const reset=()=>{
         userRotated=false;
@@ -185,7 +186,7 @@
       let frame=0;
       function draw(){frame=requestAnimationFrame(draw);if(document.hidden)return;controls.update();renderer.render(scene,camera)}
       draw();
-      window.addEventListener('pagehide',()=>{cancelAnimationFrame(frame);observer.disconnect();if(speechTimer!==undefined)window.clearTimeout(speechTimer);renderer.domElement.removeEventListener('pointerdown',showSpeech);controls.dispose();renderer.dispose()},{once:true});
+      window.addEventListener('pagehide',()=>{cancelAnimationFrame(frame);observer.disconnect();if(speechTimer!==undefined)window.clearTimeout(speechTimer);renderer.domElement.removeEventListener('pointerdown',showSpeech);renderer.domElement.removeEventListener('click',showSpeech);controls.dispose();renderer.dispose()},{once:true});
     </script>
   </body>
 </html>
