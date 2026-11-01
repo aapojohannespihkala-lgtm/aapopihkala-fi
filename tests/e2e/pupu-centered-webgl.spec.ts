@@ -7,7 +7,7 @@ test('Pupu is visible, centered and unclipped on desktop and mobile', async ({ p
   for (const [width, height] of [[1654, 928], [390, 844]]) {
     await page.setViewportSize({ width, height });
     await page.goto('/pupu/');
-    await expect(page.locator('meta[name="pupu-viewer-version"]')).toHaveAttribute('content', 'pixelratio-fixed-r5-20261101');
+    await expect(page.locator('meta[name="pupu-viewer-version"]')).toHaveAttribute('content', 'rosa-speech-r6-20261102');
     await expect(page.locator('#pupu-canvas-frame')).toHaveCSS('transform', 'none');
     const canvas = page.locator('#pupu-canvas-frame canvas');
     await expect(canvas).toBeVisible();
@@ -41,8 +41,9 @@ test('Pupu is visible, centered and unclipped on desktop and mobile', async ({ p
     expect(Math.abs(pixels.centerX - pixels.width / 2)).toBeLessThan(pixels.width * .20);
     expect(pixels.minX).toBeGreaterThan(pixels.width * .03);
     expect(pixels.maxX).toBeLessThan(pixels.width * .97);
-    await page.getByRole('button', { name: 'Sivulta' }).click();
-    await page.getByRole('button', { name: 'Edestä' }).click();
+    await expect(page.locator('#pupu-front, #pupu-back, #pupu-side, #pupu-spin, #pupu-download')).toHaveCount(0);
+    await canvas.click({ position: { x: rect!.width / 2, y: rect!.height / 2 } });
+    await expect(page.locator('#pupu-speech')).toBeVisible();
     const again = await pixelProbe();
     expect(again.count).toBeGreaterThan(250);
     expect(Math.abs(again.centerX - again.width / 2)).toBeLessThan(again.width * .20);

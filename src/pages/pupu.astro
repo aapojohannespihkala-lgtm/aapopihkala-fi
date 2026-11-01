@@ -8,7 +8,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="description" content="Valokuvista rakennettu pyöriteltävä 3D-malli vaaleanpunaisesta pehmopupusta." />
     <title>Pupu 3D | Aapo Pihkala</title>
-    <meta name="pupu-viewer-version" content="pixelratio-fixed-r5-20261101" />
+    <meta name="pupu-viewer-version" content="rosa-speech-r6-20261102" />
     <style>
       :root{font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#453e43;background:#f9f6f3}
       *{box-sizing:border-box}html,body{margin:0;height:100%;min-height:100%;}body{display:flex;flex-direction:column;min-height:100dvh}
@@ -19,9 +19,9 @@
       .pupu-canvas-frame{position:relative;flex:0 1 800px;min-width:0;width:100%;overflow:hidden}
       .pupu-canvas-frame canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
       .hint{position:absolute;inset:auto 14px 12px;text-align:center;pointer-events:none;color:#756d70;font-size:.8rem;text-shadow:0 1px white}
-      footer{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;padding:12px 12px 16px}
-      button{border:1px solid #d8ced0;border-radius:22px;padding:9px 15px;background:white;color:#51444d;font:inherit;font-size:.85rem;cursor:pointer}
-      button:hover{background:#ffebe9}button:focus-visible{outline:3px solid #ae7584;outline-offset:2px}
+      .pupu-speech{position:absolute;z-index:2;top:6%;left:50%;transform:translateX(-50%);max-width:calc(100% - 24px);padding:13px 20px;background:white;border:1px solid #efc5cd;border-radius:20px;box-shadow:0 5px 22px #5b3d4c18;color:#65434e;font-size:clamp(.95rem,2.4vw,1.2rem);font-weight:600;text-align:center;white-space:nowrap;pointer-events:none}
+      .pupu-speech[hidden]{display:none}
+      .pupu-speech::after{content:'';position:absolute;top:100%;left:50%;transform:translateX(-50%);border:11px solid transparent;border-top-color:white}
       .note{margin:0;padding:0 16px 12px;font-size:.72rem;text-align:center;color:#81767d}
       @media(max-width:550px){header{padding-top:14px}.hint{font-size:.75rem}button{padding:10px 12px}}
     </style>
@@ -29,23 +29,26 @@
   <body>
     <header><a href="/" aria-label="Takaisin etusivulle">Aapo Pihkala</a><h1>Pupu 3D</h1></header>
     <main id="pupu-viewer" aria-label="Pyöriteltävä vaaleanpunainen pupun 3D-malli">
-      <div id="pupu-canvas-frame" class="pupu-canvas-frame"></div>
+      <div id="pupu-canvas-frame" class="pupu-canvas-frame">
+        <div id="pupu-speech" class="pupu-speech" role="status" aria-live="polite" hidden>Minä olen Rosa Pupu</div>
+      </div>
       <div class="hint">Vedä tai pyyhkäise pyörittääksesi, zoomaa rullalla tai nipistämällä</div>
     </main>
-    <footer>
-      <button id="pupu-front" type="button">Edestä</button>
-      <button id="pupu-back" type="button">Takaa</button>
-      <button id="pupu-side" type="button">Sivulta</button>
-      <button id="pupu-spin" type="button" aria-pressed="false">Automaattipyöritys</button>
-      <button id="pupu-download" type="button">Lataa GLB</button>
-    </footer>
-    <p class="note">Viiden valokuvan pohjalta muotoiltu havainnollinen malli, ei tarkka 3D-skannaus. <span aria-label="Katselimen versio">r5</span></p>
+    <p class="note">Viiden valokuvan pohjalta muotoiltu havainnollinen malli, ei tarkka 3D-skannaus. <span aria-label="Katselimen versio">r6</span></p>
     <script>
       import { THREE, OrbitControls } from '../scripts/threeRuntime';
       const root=document.getElementById('pupu-viewer');
       if(!(root instanceof HTMLElement))throw new Error('Pupun katselinaluetta ei löytynyt');
       const viewport=document.getElementById('pupu-canvas-frame');
       if(!(viewport instanceof HTMLElement))throw new Error('Pupun keskitettyä 3D-kehystä ei löytynyt');
+      const speech=document.getElementById('pupu-speech');
+      if(!(speech instanceof HTMLElement))throw new Error('Rosan puhekuplaa ei löytynyt');
+      let speechTimer:number|undefined;
+      const showSpeech=()=>{
+        speech.hidden=false;
+        if(speechTimer!==undefined)window.clearTimeout(speechTimer);
+        speechTimer=window.setTimeout(()=>{speech.hidden=true;speechTimer=undefined},2800);
+      };
       const scene=new THREE.Scene();scene.background=new THREE.Color(0xf9f6f3);
       const camera=new THREE.PerspectiveCamera(38,1,0.05,100);
       camera.position.set(3.3,2.6,5.1);
@@ -169,36 +172,21 @@
         const fitX=modelSize.x/(2*halfFov*Math.max(camera.aspect,.1));
         return 1.22*(Math.max(fitX,fitY)+modelSize.z/2);
       };
-      type View='front'|'back'|'side';
-      let selectedView:View='front',userRotated=false;
-      controls.addEventListener('start',()=>{userRotated=true});
-      const reset=(view:View)=>{
-        selectedView=view;userRotated=false;
-        const d=fitDistance();
-        if(view==='back')camera.position.set(0,0,-d);
-        else if(view==='side')camera.position.set(-d,0,0);
-        else camera.position.set(0,0,d);
+      let userRotated=false;
+      renderer.domElement.addEventListener('pointerdown',showSpeech);
+      renderer.domElement.addEventListener('click',showSpeech);
+      controls.addEventListener('start',()=>{userRotated=true;showSpeech()});
+      const reset=()=>{
+        userRotated=false;
+        camera.position.set(0,0,fitDistance());
         controls.target.set(0,0,0);camera.lookAt(0,0,0);controls.update();
       };
-      document.getElementById('pupu-front')?.addEventListener('click',()=>reset('front'));
-      document.getElementById('pupu-back')?.addEventListener('click',()=>reset('back'));
-      document.getElementById('pupu-side')?.addEventListener('click',()=>reset('side'));
-      const spin=document.getElementById('pupu-spin');
-      spin?.addEventListener('click',()=>{controls.autoRotate=!controls.autoRotate;spin.setAttribute('aria-pressed',String(controls.autoRotate))});
-      document.getElementById('pupu-download')?.addEventListener('click',async()=>{
-        const {GLTFExporter}=await import('three/examples/jsm/exporters/GLTFExporter.js');
-        const bytes=await new GLTFExporter().parseAsync(model,{binary:true});
-        if(!(bytes instanceof ArrayBuffer))return;
-        const url=URL.createObjectURL(new Blob([bytes],{type:'model/gltf-binary'}));
-        const a=document.createElement('a');a.href=url;a.download='Pupu_3D_malli.glb';a.click();
-        window.setTimeout(()=>URL.revokeObjectURL(url),3000);
-      });
-      const resize=()=>{const w=viewport.clientWidth,h=viewport.clientHeight;if(w>0&&h>0){renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();if(!userRotated)reset(selectedView)}};
+      const resize=()=>{const w=viewport.clientWidth,h=viewport.clientHeight;if(w>0&&h>0){renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();if(!userRotated)reset()}};
       const observer=new ResizeObserver(resize);observer.observe(viewport);resize();
       let frame=0;
       function draw(){frame=requestAnimationFrame(draw);if(document.hidden)return;controls.update();renderer.render(scene,camera)}
       draw();
-      window.addEventListener('pagehide',()=>{cancelAnimationFrame(frame);observer.disconnect();controls.dispose();renderer.dispose()},{once:true});
+      window.addEventListener('pagehide',()=>{cancelAnimationFrame(frame);observer.disconnect();if(speechTimer!==undefined)window.clearTimeout(speechTimer);renderer.domElement.removeEventListener('pointerdown',showSpeech);renderer.domElement.removeEventListener('click',showSpeech);controls.dispose();renderer.dispose()},{once:true});
     </script>
   </body>
 </html>
