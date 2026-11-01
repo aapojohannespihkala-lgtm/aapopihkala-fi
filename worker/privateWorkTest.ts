@@ -3589,6 +3589,17 @@ const AUTO_YLISRINNE_C80R2_SAVO_WHITE_FULL_LENGTH_HIST2024_WORK_TEST_20261101_1H
   expectedSha256: '17779cccdf8214efebad0fc620980b5032f97704d50e02b2df5ee13349726fff',
 } as const satisfies PrivateWorkTestCandidate;
 
+// Auto-registered 2026-11-01 from Drive queue file 1OIGbvgyRX3C_b6oXCMXkYEEhOQM8rAfA
+// by auto-publish-work-test. WORK_TEST, never as-built.
+const AUTO_YLISRINNE_D_C80R2_REVIEW123_BALCONY_FRAME_TERRAIN_REF_CEILINGS_WORK_TEST_HOST_HOLD_20261101_1OIGBVGY_CANDIDATE = {
+  id: 'auto-ylisrinne-d-c80r2-review123-balcony-frame-terrain-ref-ceilings-work-test-host-hold-20261101-1oigbvgy',
+  label: 'Auto: Ylisrinne D C80R2 REVIEW123 BALCONY FRAME TERRAIN REF CEILINGS WORK TEST HOST HOLD 20261101 (scene125) - WORK_TEST',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/auto-ylisrinne-d-c80r2-review123-balcony-frame-terrain-ref-ceilings-work-test-host-hold-20261101-1oigbvgy.glb`,
+  objectKey: 'work-test/auto-ylisrinne-d-c80r2-review123-balcony-frame-terrain-ref-ceilings-work-test-host-hold-20261101-1oigbvgy.glb',
+  expectedSize: 18174184,
+  expectedSha256: '7fdc3177aa6d5cee0d3b284f32600337acc35ee0788c36c2bb2faae5ddd9f9bf',
+} as const satisfies PrivateWorkTestCandidate;
+
 const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
   D_C80R2_UNIFIED64_C018_WORK_TEST_CANDIDATE,
   D_C80_HI20_UNIFIED52_BOTH_WORK_TEST_CANDIDATE,
@@ -3871,6 +3882,7 @@ const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
   AUTO_YLISRINNE_D_C80R2_WEST_BRICK_UNIFIED_PIER_ROOF_WORK_TEST_HOST_HOLD_20261101_1GYIGM6L_CANDIDATE,
   AUTO_YLISRINNE_D_C80R2_REVIEW120_EAST_UNIFIED_REF_CEILINGS_WORK_TEST_HOST_HOLD_20261101_1DGZI9KX_CANDIDATE,
   AUTO_YLISRINNE_C80R2_SAVO_WHITE_FULL_LENGTH_HIST2024_WORK_TEST_20261101_1HPZCMSY_CANDIDATE,
+  AUTO_YLISRINNE_D_C80R2_REVIEW123_BALCONY_FRAME_TERRAIN_REF_CEILINGS_WORK_TEST_HOST_HOLD_20261101_1OIGBVGY_CANDIDATE,
 ] as const satisfies readonly PrivateWorkTestCandidate[];
 
 type PrivateWorkTestObjectMetadata = {
