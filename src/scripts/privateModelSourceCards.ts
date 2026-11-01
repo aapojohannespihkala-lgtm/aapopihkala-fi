@@ -1,5 +1,6 @@
 import { buildSourceNodeAssociations, createSourceNodeView } from './privateModelSourceNodeAssociations.mjs';
 import { rehydrateHi20Unified52SourceScenes } from './privateModelHi20Unified52SourceScenes.mjs';
+import { rehydrateIncompleteDefaultScene } from './privateModelSourceSceneRehydrate.mjs';
 
 type RecordData = Record<string, any>;
 
@@ -459,6 +460,12 @@ export const loadModelWithSourceCards = async <T extends GltfSource & object>(
     if (staged && cardMap) for (const objects of staged.values())
       for (const [id, object] of objects) cardMap.set(object, { ...cardMap.get(object), nodes: id });
   } catch { /* Keep the loader graph; exact presentations fail closed. */ }
+  try {
+    const rebuilt = await rehydrateIncompleteDefaultScene(gltf);
+    const cardMap = identity !== gltf ? identity.parser?.associations : undefined;
+    if (rebuilt && cardMap) for (const [object, id] of rebuilt)
+      cardMap.set(object, { ...cardMap.get(object), nodes: id });
+  } catch { /* Keep the loader graph. */ }
   sessions.set(gltf, createSourceCardResolver(identity, digest, cards.bundle, cards.failure));
   if (digest) loadedDigests.set(gltf, digest);
   try { loadedNodeAssociations.set(gltf, buildSourceNodeAssociations(gltf)); } catch { /* Presentations fail closed. */ }
