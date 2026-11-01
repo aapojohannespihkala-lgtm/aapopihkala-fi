@@ -11511,13 +11511,14 @@ const title = 'Private 3D viewer';
           } else if (candidate.id === 'ylisrinne-d-c80-hi20-unified52-both-sc51-work-test-20261030') {
             // Original 52-scene GLB, not the former scene51-only extraction.
             gltf.scene = resolveHi20Unified52Scenes(gltf, loadedModelSha256(gltf)).BOTH;
-          } else {
+          }
+          loadFailurePhase = 'review-runtime-failed';
+          {
             // Newest C80R2 successor: open its own latest BOTH scene, not the
             // historical default scene 0 (1F/2F switch via the floor runtime).
             const c80r2Chain = resolveC80R2ChainScenes(gltf);
             if (c80r2Chain) gltf.scene = c80r2Chain.scenes.BOTH;
           }
-          loadFailurePhase = 'review-runtime-failed';
           const isP143aScalgoTerrainReview =
             candidate.id === p143aCandidateId && isP143aScalgoTerrainReviewRequested();
           const isP143dScalgoInfraReview =
