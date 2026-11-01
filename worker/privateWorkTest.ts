@@ -3908,6 +3908,17 @@ const AUTO_YLISRINNE_D_C80R2_V23_STAIR_RAIL_REBUILD_WORK_TEST_HOST_HOLD_20261102
   expectedSha256: 'db74a1d30f5f7e7500acd371d37d357dccad5441ae0d9b46e5bcd832676a2aa8',
 } as const satisfies PrivateWorkTestCandidate;
 
+// Auto-registered 2026-11-01 from Drive queue file 1jG-LT7nOO-6i8yWdwaXXZajHw83CVbgX
+// by auto-publish-work-test. WORK_TEST, never as-built.
+const AUTO_YLISRINNE_D_C80R2_V26_STAIR_RAIL_LANDING_END_PLYWOOD_WORK_TEST_HOST_HOLD_20261102_1JGLT7NO_CANDIDATE = {
+  id: 'auto-ylisrinne-d-c80r2-v26-stair-rail-landing-end-plywood-work-test-host-hold-20261102-1jglt7no',
+  label: 'Auto: Ylisrinne D C80R2 V26 STAIR RAIL LANDING END PLYWOOD WORK TEST HOST HOLD 20261102 (scene175) - WORK_TEST',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/auto-ylisrinne-d-c80r2-v26-stair-rail-landing-end-plywood-work-test-host-hold-20261102-1jglt7no.glb`,
+  objectKey: 'work-test/auto-ylisrinne-d-c80r2-v26-stair-rail-landing-end-plywood-work-test-host-hold-20261102-1jglt7no.glb',
+  expectedSize: 24205548,
+  expectedSha256: 'cff2dbead53b7836747e10ef359637114ff723690ec380e313cec817e4f71d31',
+} as const satisfies PrivateWorkTestCandidate;
+
 const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
   D_C80R2_UNIFIED64_C018_WORK_TEST_CANDIDATE,
   D_C80_HI20_UNIFIED52_BOTH_WORK_TEST_CANDIDATE,
@@ -4219,6 +4230,7 @@ const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
   AUTO_YLISRINNE_D_C80R2_V20_X491_TILE_RISERS_FLOOR_ISLAND_KIV_WORK_TEST_HOST_HOLD_20261102_1VHDW2SY_CANDIDATE,
   AUTO_YLISRINNE_D_C80R2_V21_V20_PLUS_WOOD_TREAD_FRONTS_WORK_TEST_HOST_HOLD_20261102_1PURBJHX_CANDIDATE,
   AUTO_YLISRINNE_D_C80R2_V23_STAIR_RAIL_REBUILD_WORK_TEST_HOST_HOLD_20261102_1OAXVSGA_CANDIDATE,
+  AUTO_YLISRINNE_D_C80R2_V26_STAIR_RAIL_LANDING_END_PLYWOOD_WORK_TEST_HOST_HOLD_20261102_1JGLT7NO_CANDIDATE,
 ] as const satisfies readonly PrivateWorkTestCandidate[];
 
 type PrivateWorkTestObjectMetadata = {
