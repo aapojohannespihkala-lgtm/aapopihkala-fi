@@ -18,7 +18,9 @@ export const createViewerLayerStateForModelLoad = (
   edgeMode: 'visible',
 });
 
-export const clampViewerLayerOpacity = (value: number) => Math.max(0, Math.min(1, value));
+/** Reject NaN before it can poison material opacity in either layer-state path. */
+export const clampViewerLayerOpacity = (value: number) =>
+  Number.isNaN(value) ? 1 : Math.max(0, Math.min(1, value));
 
 export const mergeViewerLayerState = (
   current: ViewerLayerState,

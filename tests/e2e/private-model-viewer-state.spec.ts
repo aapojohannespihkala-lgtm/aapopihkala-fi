@@ -196,6 +196,24 @@ test('VUX-E1A layer changes preserve camera and presentation lanes', () => {
   expect(clampedLow.layers.roofOpacity).toBe(0);
 });
 
+test('VUX-E1A malformed roof opacity cannot poison legacy or WP1 layer state', () => {
+  const initial = createViewerLayerStateForModelLoad();
+  const legacy = mergeViewerLayerState(initial, { roofOpacity: Number.NaN });
+  expect(legacy.roofOpacity).toBe(1);
+  expect(Number.isFinite(legacy.roofOpacity)).toBe(true);
+
+  const initialViewer = createViewerInteractionState('d-2f');
+  const updatedViewer = patchViewerLayerControls(initialViewer, {
+    roofOpacity: Number.NaN,
+  });
+  expect(updatedViewer.layers.roofOpacity).toBe(1);
+  expect(Number.isFinite(updatedViewer.layers.roofOpacity)).toBe(true);
+
+  // Preserve the existing range-clamping behavior for numeric inputs.
+  expect(mergeViewerLayerState(initial, { roofOpacity: -Infinity }).roofOpacity).toBe(0);
+  expect(mergeViewerLayerState(initial, { roofOpacity: Infinity }).roofOpacity).toBe(1);
+});
+
 test('VUX-E1A presentation changes preserve content, camera, and layer lanes', () => {
   const infra = setViewerCameraView(createViewerInteractionState('infra'), 'isometric');
   const updated = patchViewerPresentationStyle(infra, { edgeMode: 'object' });
