@@ -111,10 +111,13 @@ export const createViewerLayerGhostPresentation = (root: Object3D) => {
     // Snapshot before inserting helper edges so they cannot be traversed as data.
     const targets: Mesh[] = [];
     const lineAndPointTargets: Array<Line | Points> = [];
-    root.traverse((child) => {
-      if (child instanceof Mesh && child.visible && !options.isSelected?.(child)) {
+    // Only rendered descendants belong to this ghost pass. A hidden Group
+    // can contain nominally visible meshes; traversing them may invoke a
+    // broken clone/selection callback and hide the entire visible layer.
+    root.traverseVisible((child) => {
+      if (child instanceof Mesh && !options.isSelected?.(child)) {
         targets.push(child);
-      } else if ((child instanceof Line || child instanceof Points) && child.visible && !options.isSelected?.(child)) {
+      } else if ((child instanceof Line || child instanceof Points) && !options.isSelected?.(child)) {
         lineAndPointTargets.push(child);
       }
     });

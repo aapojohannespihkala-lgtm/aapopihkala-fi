@@ -1,5 +1,10 @@
 export type EdgeMode = 'none' | 'object' | 'unified' | 'visible';
 
+/** TypeScript does not validate URL, storage or other runtime-provided values. */
+export const isViewerEdgeMode = (value: unknown): value is EdgeMode =>
+  value === 'none' || value === 'object' ||
+  value === 'unified' || value === 'visible';
+
 export type ViewerLayerState = {
   roofVisible: boolean;
   roofOpacity: number;
@@ -34,5 +39,5 @@ export const mergeViewerLayerState = (
       : current.roofOpacity,
   locusVisible:
     typeof next.locusVisible === 'boolean' ? next.locusVisible : current.locusVisible,
-  edgeMode: next.edgeMode ?? current.edgeMode,
+  edgeMode: isViewerEdgeMode(next.edgeMode) ? next.edgeMode : current.edgeMode,
 });

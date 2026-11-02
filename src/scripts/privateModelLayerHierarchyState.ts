@@ -333,6 +333,11 @@ export const setViewerLayerNodeVisible = (
   nodeId: ViewerLayerNodeId,
   visible: boolean,
 ): ViewerLayerControlsState => {
+  // Runtime callers can supply an unrecognized ID despite the static type.
+  // Do not let childVisibilityKey's final branch toggle the 1974 IV section.
+  if (!Object.prototype.hasOwnProperty.call(viewerLayerNodeCapabilities, nodeId)) {
+    return current;
+  }
   if (isTechnicalNode(nodeId)) {
     return mergeViewerLayerControlsState(current, { [technicalVisibilityKeys[nodeId]]: visible });
   }
