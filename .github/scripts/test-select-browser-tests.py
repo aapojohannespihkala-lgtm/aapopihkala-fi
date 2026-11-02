@@ -92,7 +92,7 @@ class SelectionTests(unittest.TestCase):
         source = 'src/scripts/privateModelLayerGhostPresentation.ts'
         bridge = 'src/scripts/privateModelLayerScopedPresentationBridge.ts'
         self.assertEqual(selected(source), [ghost, scoped])
-        self.assertEqual(selected(bridge), [scoped])
+        self.assertEqual(selected(bridge), [ghost, scoped])
         # Mixed changes never duplicate existing guards, including bridge and WP3.
         self.assertEqual(selected(source, bridge, source,
                                   'src/scripts/privateModelLayersPresetControls.ts'),
