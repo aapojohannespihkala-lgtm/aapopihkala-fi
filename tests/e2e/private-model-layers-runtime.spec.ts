@@ -50,6 +50,27 @@ test('Layers frame narrows the scope mask and restores source materials and rayc
   expect(wall.raycast).toBe(originalRaycast);
 });
 
+test('failed Layers frame cannot be re-exposed by legacy state', () => {
+  const scene = new Scene();
+  const wall = new Mesh(new BoxGeometry(), new MeshBasicMaterial());
+  scene.add(wall);
+  const runtime = createViewerLayersRuntime({ sceneRoot: scene, sourceSha256: sha,
+    bindings: [{ id: 'architecture-walls', root: wall }] });
+  const state = applyViewerLayerPreset(createViewerInteractionState(), 'whole-building');
+  const frame = { activeSceneRoot: scene, availableNodeIds: runtime.availableNodeIds,
+    gates: new Map([[wall, { sourceAllowed: true, scopeAllowed: true, floorAllowed: true }]]) };
+  runtime.apply(state, frame);
+  const ghost = setViewerInteractionLayerMode(state, 'architecture-walls', 'ghost');
+  expect(() => runtime.apply(ghost, { ...frame,
+    isSelected: () => { throw Error('selection failure'); } })).toThrow('selection failure');
+  wall.visible = true;
+  runtime.enforce(scene, sha);
+  expect(wall.visible).toBe(false);
+  runtime.apply(state, frame);
+  expect(wall.visible).toBe(true);
+  runtime.dispose();
+});
+
 test('Layers frame rejects a replaced scene or source without changing siblings', () => {
   const scene = new Scene();
   const wall = new Mesh(new BoxGeometry(), new MeshBasicMaterial());
