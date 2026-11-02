@@ -394,3 +394,63 @@ test('uniformly hidden children are mixed under visible parent in mobile DOM', a
   expect(await page.evaluate(() => (window as any).events)).toEqual([]);
   await page.evaluate(() => (window as any).panel.destroy());
 });
+
+test('mobile Layers list keeps its scroll position after a mode update', async ({ page }) => {
+  const output = await build({
+    entryPoints: ['src/scripts/privateModelLayersPresetControls.ts'],
+    absWorkingDir: process.cwd(), bundle: true, platform: 'browser',
+    format: 'iife', globalName: 'YlisrinneLayersWP3', write: false,
+  });
+  await page.setViewportSize({ width: 375, height: 667 });
+  await page.setContent(
+    '<div id="viewport" style="width:300px;height:310px;overflow-y:auto">' +
+    '<div id="layers"></div></div>',
+  );
+  await page.addStyleTag({
+    content: readFileSync('src/styles/privateModelLayersPresetControls.css', 'utf8'),
+  });
+  await page.addScriptTag({ content: output.outputFiles[0].text });
+
+  const available = [
+    'architecture', 'architecture-walls', 'architecture-walls-exterior',
+    'architecture-walls-party', 'architecture-walls-interior',
+    'architecture-floors', 'architecture-ceilings', 'roof',
+    'architecture-doors', 'architecture-windows', 'architecture-review-helpers',
+    'architecture-fixtures', 'architecture-other',
+    'technical', 'technical-ventilation', 'technical-heating',
+    'technical-electrical', 'locus', 'locus-water', 'locus-wastewater',
+    'p161-kvv-2017', 'p161-iv-1974-plan', 'p161-iv-1974-section',
+  ];
+  const initial = applyViewerLayerPreset(createViewerInteractionState(), 'd-apartment');
+  await page.evaluate(({ state, ids }) => {
+    const mount = (window as any).YlisrinneLayersWP3.mountViewerLayerPresetPanel;
+    (window as any).scrollEvents = [];
+    (window as any).scrollPanel = mount(document.getElementById('layers'), state, ids, {
+      onReset: () => (window as any).scrollEvents.push('reset'),
+      onPresetChange: () => (window as any).scrollEvents.push('preset'),
+      onLayerModeChange: () => (window as any).scrollEvents.push('mode'),
+    });
+  }, { state: initial, ids: available });
+  const control = page.locator('[data-layer-node="architecture-other"] select');
+  await control.focus();
+  await expect(control).toBeFocused();
+  const before = await page.locator('#viewport').evaluate(element => element.scrollTop);
+  expect(before).toBeGreaterThan(300);
+
+  const changed = setViewerInteractionLayerMode(initial, 'architecture-walls-party', 'hidden');
+  await page.evaluate(({ state, ids }) => (window as any).scrollPanel.update(state, ids),
+    { state: changed, ids: available });
+  await expect(control).toBeFocused();
+  const after = await page.locator('#viewport').evaluate(element => element.scrollTop);
+  expect(after).toBeCloseTo(before, 0);
+  await expect(page.locator('[data-layer-node="architecture"] select')).toHaveValue('mixed');
+  expect(await page.evaluate(() => (window as any).scrollEvents)).toEqual([]);
+
+  // Source metadata may shrink the list, in which case scroll naturally clamps.
+  await page.evaluate((state) => (window as any).scrollPanel.update(state, ['architecture-walls']), changed);
+  const position = await page.locator('#viewport').evaluate(element => ({
+    top: element.scrollTop, max: element.scrollHeight - element.clientHeight,
+  }));
+  expect(position.top).toBeLessThanOrEqual(position.max + 1);
+  await page.evaluate(() => (window as any).scrollPanel.destroy());
+});
