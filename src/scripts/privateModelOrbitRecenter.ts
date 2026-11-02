@@ -1,4 +1,4 @@
-import { Raycaster, Vector2, type Object3D, type PerspectiveCamera, type Mesh, type Material } from 'three';
+import { Raycaster, Vector2, type Object3D, type PerspectiveCamera, type Mesh, type Material, type Plane } from 'three';
 import type { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 
 /**
@@ -33,17 +33,18 @@ export function visibleOrbitFocus(
   raycaster.setFromCamera(new Vector2(0, 0), camera);
   const hit = raycaster.intersectObjects(meshes, false).find((entry) => {
     if (!Number.isFinite(entry.distance) || entry.distance <= 0.01) return false;
-    const material = Array.isArray(entry.object.material)
-      ? entry.object.material[entry.face?.materialIndex ?? 0]
-      : entry.object.material;
+    const intersectedMesh = entry.object as Mesh;
+    const material = Array.isArray(intersectedMesh.material)
+      ? intersectedMesh.material[entry.face?.materialIndex ?? 0]
+      : intersectedMesh.material;
     if (!renderable(material)) return false;
     const planes = material.clippingPlanes;
     if (!planes?.length) return true;
     // Three.js clips the positive half-space of a Plane. For
     // clipIntersection, every clipping plane must reject this point.
     const clipped = material.clipIntersection
-      ? planes.every((plane) => plane.distanceToPoint(entry.point) > 0)
-      : planes.some((plane) => plane.distanceToPoint(entry.point) > 0);
+      ? planes.every((plane: Plane) => plane.distanceToPoint(entry.point) > 0)
+      : planes.some((plane: Plane) => plane.distanceToPoint(entry.point) > 0);
     return !clipped;
   });
   return hit ? { point: hit.point.clone(), distance: hit.distance } : null;
