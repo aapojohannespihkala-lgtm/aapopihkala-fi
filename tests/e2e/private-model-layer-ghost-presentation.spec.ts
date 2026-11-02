@@ -151,6 +151,17 @@ test('selected technical line and point retain source appearance and picking whe
   expect((peer.material as LineBasicMaterial).opacity).toBeCloseTo(0.16);
   expect(peer.raycast).not.toBe(peerRaycast);
 
+  // Re-applying after a selection change must restore the previously ghosted
+  // source without letting the old selection retain full strength.
+  adapter.apply('ghost', {
+    opacity: 0.16,
+    isSelected: object => object === peer,
+  });
+  expect(peer.material).toBe(peerMaterial);
+  expect(peer.raycast).toBe(peerRaycast);
+  expect(selectedLine.material).not.toBe(selectedLineMaterial);
+  expect(selectedPoint.material).not.toBe(selectedPointMaterial);
+
   adapter.apply('visible');
   expect(peer.material).toBe(peerMaterial);
   expect(peer.raycast).toBe(peerRaycast);
