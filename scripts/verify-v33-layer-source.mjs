@@ -65,6 +65,36 @@ for (const [key, profile] of Object.entries(V33_BUILDING_SCENES)) {
     }
   }
 }
+
+/**
+ * PR1753 Kvik sink fronts: exact V33 2F/BOTH source routes, not the
+ * interleaved GRIP_SHADOW_PROXY nodes. The inherited V29 classifications
+ * must exist, not just the V33 path allowlist.
+ */
+const kvikFronts = {
+  192: { roots: [9243, 9242, 8309], leaves: [8049, 8051, 8053, 8055, 8057, 8059, 8061, 8063, 8065] },
+  193: { roots: [9253, 9246, 8421], leaves: [8109, 8111, 8113, 8115, 8117, 8119, 8121, 8123, 8125] },
+};
+let kvikChecked = 0;
+for (const [sceneId, { roots, leaves }] of Object.entries(kvikFronts)) {
+  for (const leaf of leaves) {
+    const part = V33_BUILDING_PARTS[leaf];
+    assert.equal(part?.id, 'architecture-fixtures', 'Kvik category ' + leaf);
+    assert.match(part?.name ?? '', /^KVIK_SINK_OWNER20261101_.*_FRONT3x3_/,
+      'Kvik front exact identity ' + leaf);
+    assert.deepEqual(V33_BUILDING_SCENES[sceneId].paths[leaf], [[...roots, leaf]],
+      'Kvik exact scene/parent route ' + sceneId + '/' + leaf);
+    kvikChecked++;
+  }
+}
+assert.equal(kvikChecked, 18, '9+9 Kvik fronts classified and bound');
+for (const sceneId of [192, 193]) {
+  const leaves = Object.keys(V33_BUILDING_SCENES[sceneId].paths).map(Number);
+  assert.ok(!leaves.some(n => n >= (sceneId === 192 ? 8050 : 8110) &&
+    n <= (sceneId === 192 ? 8066 : 8126) && n % 2 === 0),
+    'GRIP_SHADOW_PROXY must not be classified as front');
+}
+
 const newParts = {
   9256: { id: 'architecture-floors', scenes: [191, 193] },
   9257: { id: 'architecture-floors', scenes: [192, 193] },
