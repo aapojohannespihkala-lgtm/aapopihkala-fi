@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { createViewerLayerStateForModelLoad, mergeViewerLayerState, type EdgeMode } from '../../src/scripts/privateModelLayerState';
 import {
   createViewerLayerModeMap,
   getViewerLayerEffectiveMode,
@@ -12,11 +13,42 @@ import {
   applyViewerLayerPreset,
   createViewerInteractionState,
   patchViewerLayerControls,
+  patchViewerPresentationStyle,
   resetViewerLayerPresetToDefaults,
   setViewerCameraView,
   setViewerInteractionLayerMode,
   viewerLayerPresetScopes,
 } from '../../src/scripts/privateModelViewerState';
+
+test('invalid runtime edge modes preserve valid legacy and viewer presentation state', () => {
+  const legacy = createViewerLayerStateForModelLoad();
+  const viewer = createViewerInteractionState('d-2f');
+  const invalidModes: unknown[] = ['unsupported', '', undefined, null, 0, { edgeMode: 'none' }];
+  for (const invalid of invalidModes) {
+    const value = invalid as EdgeMode;
+    const merged = mergeViewerLayerState(legacy, { edgeMode: value });
+    const patched = patchViewerPresentationStyle(viewer, { edgeMode: value });
+    expect(merged.edgeMode).toBe('visible');
+    expect(patched.presentation.edgeMode).toBe('visible');
+    expect(patched.cameraView).toBe(viewer.cameraView);
+    expect(patched.layers).toEqual(viewer.layers);
+  }
+  for (const valid of ['none', 'object', 'unified', 'visible'] as const) {
+    expect(mergeViewerLayerState(legacy, { edgeMode: valid }).edgeMode).toBe(valid);
+    expect(patchViewerPresentationStyle(viewer, { edgeMode: valid }).presentation.edgeMode).toBe(valid);
+  }
+  // A malformed patch must also preserve explicitly customized source state.
+  const customLegacy = mergeViewerLayerState(legacy, { edgeMode: 'none' });
+  const customViewer = patchViewerPresentationStyle(viewer, { edgeMode: 'object' });
+  expect(mergeViewerLayerState(customLegacy, {
+    edgeMode: 'unsupported' as EdgeMode,
+  }).edgeMode).toBe('none');
+  expect(patchViewerPresentationStyle(customViewer, {
+    edgeMode: undefined,
+  }).presentation.edgeMode).toBe('object');
+  expect(legacy.edgeMode).toBe('visible');
+  expect(viewer.presentation.edgeMode).toBe('visible');
+});
 
 test('Layers WP1 presets preserve camera while selecting explicit area and floor', () => {
   const customCamera = setViewerCameraView(createViewerInteractionState(), 'elev-neg-y');

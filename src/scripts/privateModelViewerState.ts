@@ -1,4 +1,4 @@
-import type { EdgeMode } from './privateModelLayerState';
+import { isViewerEdgeMode, type EdgeMode } from './privateModelLayerState';
 import {
   createViewerLayerControlsState,
   mergeViewerLayerControlsState,
@@ -199,6 +199,10 @@ export const patchViewerPresentationStyle = (
   presentation: {
     ...current.presentation,
     ...next,
+    // Never replace a valid presentation mode with malformed runtime state.
+    edgeMode: isViewerEdgeMode(next.edgeMode)
+      ? next.edgeMode
+      : current.presentation.edgeMode,
   },
 });
 
