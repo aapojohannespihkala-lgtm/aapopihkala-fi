@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { BoxGeometry, Group, Mesh, MeshBasicMaterial, PerspectiveCamera } from 'three';
+import { BoxGeometry, Group, Mesh, MeshBasicMaterial, PerspectiveCamera, Plane, Vector3 } from 'three';
 import { visibleOrbitFocus } from '../../src/scripts/privateModelOrbitRecenter';
 
 const length = (a: number[], b: number[]) => Math.hypot(...a.map((x, i) => x - b[i]));
@@ -117,4 +117,51 @@ test('real viewer: after middle-look/wheel, actual left drag reanchors to visibl
   // The target is the actual cube front surface, not the previous far look point.
   expect(Math.min(...after.target.map(x => Math.abs(Math.abs(x) - 8)))).toBeLessThan(0.08);
   expect(length(after.position, looked.position)).toBeGreaterThan(0.02);
+});
+
+
+test('focus ignores GPU-clipped surfaces instead of orbiting an invisible foreground wall', () => {
+  const camera = new PerspectiveCamera(40, 1, 0.01, 100);
+  camera.position.set(0, 0, 10);
+  camera.lookAt(0, 0, 0);
+  const root = new Group();
+  const foregroundMaterial = new MeshBasicMaterial({
+    side: 2, clippingPlanes: [new Plane(new Vector3(0, 0, 1), -1)],
+  });
+  const foreground = new Mesh(new BoxGeometry(2, 2, 2), foregroundMaterial);
+  foreground.position.z = 3; // z=2..4, entirely in the clipped positive half-space
+  const background = new Mesh(new BoxGeometry(2, 2, 2), new MeshBasicMaterial({ side: 2 }));
+  root.add(foreground, background);
+  expect(visibleOrbitFocus(root, camera)?.point.z).toBeCloseTo(1, 5);
+
+  // With clipping disabled, the exact same geometry is now a valid near hit.
+  foregroundMaterial.clippingPlanes = [];
+  expect(visibleOrbitFocus(root, camera)?.point.z).toBeCloseTo(4, 5);
+  // A non-rendered foreground material must never steal the orbit centre.
+  foregroundMaterial.visible = false;
+  expect(visibleOrbitFocus(root, camera)?.point.z).toBeCloseTo(1, 5);
+});
+
+test('focus respects clipping intersection and the intersected mesh face material', () => {
+  const camera = new PerspectiveCamera(40, 1, 0.01, 100);
+  camera.position.set(0, 0, 10);
+  camera.lookAt(0, 0, 0);
+  const root = new Group();
+  const materials = Array.from({ length: 6 }, () => new MeshBasicMaterial({ side: 2 }));
+  const cube = new Mesh(new BoxGeometry(2, 2, 2), materials);
+  cube.position.z = 3;
+  root.add(cube);
+
+  // BoxGeometry +Z face (material 4) is in front of the rendered -Z face.
+  materials[4].visible = false;
+  expect(visibleOrbitFocus(root, camera)?.point.z).toBeCloseTo(2, 5);
+  materials[4].visible = true;
+
+  const positiveZ = new Plane(new Vector3(0, 0, 1), -1);
+  const positiveY = new Plane(new Vector3(0, 1, 0), -0.1);
+  materials[4].clippingPlanes = [positiveZ, positiveY];
+  materials[4].clipIntersection = true; // at y=0, NOT clipped by both planes
+  expect(visibleOrbitFocus(root, camera)?.point.z).toBeCloseTo(4, 5);
+  materials[4].clipIntersection = false; // clipped by positive Z alone
+  expect(visibleOrbitFocus(root, camera)?.point.z).toBeCloseTo(2, 5);
 });
