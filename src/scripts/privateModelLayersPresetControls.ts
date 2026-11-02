@@ -125,10 +125,15 @@ export const buildViewerLayerPanelModel = (
             }
             return false;
           });
+        // The renderer treats missing/malformed modes as hidden. A leaf
+        // select must show the same safe state, never a blank option.
+        const ownMode = modes[id];
+        const safeOwnMode = ownMode === 'visible' || ownMode === 'ghost'
+          ? ownMode : 'hidden';
         return {
           id,
           label,
-          mode: descendants.length ? getViewerLayerParentMode(modes, id, descendants) : modes[id],
+          mode: descendants.length ? getViewerLayerParentMode(modes, id, descendants) : safeOwnMode,
           effectiveMode: getViewerLayerEffectiveMode(modes, id),
         };
       }),
