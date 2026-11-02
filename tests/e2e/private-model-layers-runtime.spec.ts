@@ -112,6 +112,13 @@ test('exact V26 viewer: D upstairs, ghost walls, supported IV, reset, floor chan
   await preset.selectOption('d-2f');
   await expect(canvas).toHaveAttribute('data-main-view-floor', '2F');
   await expect(canvas).toHaveAttribute('data-layers-source-scene-index', '162');
+  // An explicit camera action frames the selected floor before testing that
+  // Layers edits themselves preserve it. Do not inherit the site's wide fit.
+  await page.locator('#layers-button').click();
+  await page.locator('#more-menu > summary').click();
+  await page.locator('#fit-button').click();
+  await page.locator('#layers-button').click();
+  await expect(page.locator('[data-technical-layer-availability] [data-technical-layer="technical-ventilation"]')).toHaveAttribute('data-available', 'true');
   const walls = page.locator('[data-layer-node="architecture-walls"] select');
   const ventilation = page.locator('[data-layer-node="technical-ventilation"] select');
   const pose = await canvas.getAttribute('data-layers-camera-pose');
@@ -135,14 +142,23 @@ test('exact V26 viewer: D upstairs, ghost walls, supported IV, reset, floor chan
     await expect(canvas).toHaveAttribute('data-main-view-source-sha256', sha);
   }
   await page.setViewportSize({ width: 390, height: 844 });
+  await page.locator('#layers-button').click();
+  await page.locator('#more-menu > summary').click();
+  await page.locator('#fit-button').click();
+  await page.locator('#layers-button').click();
   await walls.selectOption('ghost');
   await ventilation.selectOption('visible');
   const bounds = await preset.boundingBox();
   expect(bounds!.x).toBeGreaterThanOrEqual(0);
   expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(390);
+  // Keep the actual model visible in the two mobile evidence frames. The
+  // controls and their state have already been exercised at this viewport.
+  await page.locator('#layers-button').click();
   await page.screenshot({ path: info.outputPath('layers-v26-2f-walls-ghost-mobile.png') });
+  await page.locator('#layers-button').click();
   await page.getByRole('button', { name: 'Palauta presetin asetukset' }).click();
   await expect(walls).toHaveValue('visible');
+  await page.locator('#layers-button').click();
   await page.screenshot({ path: info.outputPath('layers-v26-2f-restored-mobile.png') });
   const webgl = await canvas.evaluate((element: HTMLCanvasElement) => {
     const gl = element.getContext('webgl2');

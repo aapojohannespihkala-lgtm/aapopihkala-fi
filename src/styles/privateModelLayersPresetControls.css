@@ -6,6 +6,10 @@
   display: grid;
   gap: 9px;
   min-width: 0;
+  padding: 10px;
+  border-radius: 8px;
+  background: #fff;
+  color-scheme: light;
   color: var(--yl-ink);
   font-size: 13px;
   line-height: 1.4;
@@ -117,6 +121,8 @@
 }
 /* Parent panel remains the existing scrolling Layers panel. */
 #layers-panel:has([data-layer-preset-panel]) {
+  /* Keep opened controls above the coordinate HUD (z-index: 3). */
+  z-index: 4;
   min-width: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
