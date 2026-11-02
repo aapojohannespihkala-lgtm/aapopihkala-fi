@@ -47,8 +47,8 @@ const v26Parts = Object.freeze({
   "6564": {"id":"architecture-floors","mesh":1888,"name":"C80R2_INTEGRATED_K11R2_D2F_DARK_GRAPHITE_PHOTO_CURRENT_FLOOR_EXACT_SOURCE_GEOMETRY"},
   "8191": {"id":"architecture-floors","mesh":2581,"name":"C80R2_V20_D1F_GREY_450_TILE_FLOOR_ALL_INTERIOR_EXCEPT_KPH_SAUNA"},
   "8198": {"id":"architecture-floors","mesh":2588,"name":"C80R2_V20_D2F_WHOLE_FLOOR_PALE_PLANK_CONTINUOUS_EXCEPT_WC_STAIR"},
-  "6497": {"id":"architecture-ceilings","mesh":1860,"name":"C80_030_D1F_WP6_REMAINING_ROOMS_REFERENCE_CEILING_ALPHA012_1F_NONPHYSICAL_OPTIN"},
-  "6498": {"id":"architecture-ceilings","mesh":1860,"name":"C80_030_D1F_WP6_REMAINING_ROOMS_REFERENCE_CEILING_ALPHA012_BOTH_NONPHYSICAL_OPTIN"},
+  // 6497 (1F) and 6498 (BOTH) are nonphysical reference ceilings,
+  // deliberately not controlled by the physical ceiling Layers setting.
   "8003": {"id":"architecture-ceilings","mesh":2450,"name":"C80R2_V16_D2F_INNER_CEILING_WHITE_VISIBLE_FROM_BELOW_ONLY"},
   "7289": {"id":"architecture-doors","mesh":2214,"name":"D2015_1F_DOOR_LEAF_VH_NORTH_PLAN_PROXY_V8"},
   "7290": {"id":"architecture-doors","mesh":2215,"name":"D2015_1F_DOOR_LEAF_VARASTO_PLAN_PROXY_V8"},
