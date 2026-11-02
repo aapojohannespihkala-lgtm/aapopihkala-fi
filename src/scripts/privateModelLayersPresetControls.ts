@@ -257,6 +257,18 @@ export const mountViewerLayerPresetPanel = (
       && root.contains(focused) && focused.hasAttribute('data-layer-mode-control')
       ? focused.closest('[data-layer-node]')?.getAttribute('data-layer-node')
       : null;
+    // Rebuilding the long list briefly collapses its height. On mobile this
+    // clamps an ancestor's scrollTop to zero, even if focus is restored later.
+    // Keep only real scroll containers; do not touch page/window scrolling.
+    const scrollers: Array<{ element: HTMLElement; top: number }> = [];
+    for (let ancestor = groups.parentElement; ancestor && ancestor !== doc.body;
+      ancestor = ancestor.parentElement) {
+      const overflowY = doc.defaultView?.getComputedStyle(ancestor).overflowY;
+      if (/^(auto|scroll|overlay)$/.test(overflowY ?? '') &&
+          ancestor.scrollHeight > ancestor.clientHeight) {
+        scrollers.push({ element: ancestor, top: ancestor.scrollTop });
+      }
+    }
     presetSelect.value = model.selectedPreset ?? '';
     customizedText.textContent = model.customized
       ? 'Mukautettu'
@@ -346,6 +358,8 @@ export const mountViewerLayerPresetPanel = (
         ?.querySelector<HTMLSelectElement>('select[data-layer-mode-control]');
       restored?.focus({ preventScroll: true });
     }
+    // The browser naturally clamps this if fewer source-verified rows remain.
+    for (const { element, top } of scrollers) element.scrollTop = top;
   };
 
   update(state, availableNodeIds);

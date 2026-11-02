@@ -9,6 +9,16 @@ const sha = 'cff2dbead53b7836747e10ef359637114ff723690ec380e313cec817e4f71d31';
 const candidateId = 'auto-ylisrinne-d-c80r2-v26-stair-rail-landing-end-plywood-work-test-host-hold-20261102-1jglt7no';
 const modelPath = '/private-model/work-test/' + candidateId + '.glb';
 
+test('Layers reset uses visibility refresh rather than reapplying the same camera preset', () => {
+  const source = readFileSync('src/pages/private-model/index.astro', 'utf8');
+  const handler = source.match(/onReset: \(\) => \{([\s\S]*?)\n        \},/)?.[1];
+  expect(handler, 'The current Layers reset callback must be present').toBeDefined();
+  expect(handler).toContain('resetViewerLayerPresetToDefaults(layersState)');
+  expect(handler).toContain('refreshLayers()');
+  expect(handler).not.toContain('commitLayerPreset(');
+  expect(handler).not.toContain('applyStandardViewPreset(');
+});
+
 test('Layers frame narrows the scope mask and restores source materials and raycasts', () => {
   const scene = new Scene();
   const material = new MeshBasicMaterial();
