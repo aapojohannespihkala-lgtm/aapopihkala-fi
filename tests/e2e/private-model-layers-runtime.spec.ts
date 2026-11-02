@@ -94,6 +94,13 @@ test('a reparented GLB root stays hidden until its original source path returns'
   sourceParent.add(wall);
   runtime.apply(state, frame);
   expect(wall.visible).toBe(true);
+  otherParent.add(sourceParent); // A moved ancestor also invalidates the path.
+  wall.visible = true;
+  runtime.enforce(scene, sha);
+  expect(wall.visible).toBe(false);
+  scene.add(sourceParent);
+  runtime.apply(state, frame);
+  expect(wall.visible).toBe(true);
   runtime.dispose();
 });
 
