@@ -2470,6 +2470,7 @@ const title = 'Private 3D viewer';
       import { V27_SOURCE_SHA256 } from '../../scripts/privateModelC80R2V27LayerSourceProfile.mjs';
       import { V29_SOURCE_SHA256 } from '../../scripts/privateModelC80R2V29LayerSourceProfile.mjs';
       import { V33_SOURCE_SHA256 } from '../../scripts/privateModelC80R2V33LayerSourceProfile.mjs';
+      import { V34_SOURCE_SHA256 } from '../../scripts/privateModelC80R2V34LayerSourceProfile.mjs';
       import { createTechnicalSystemLayerInventory } from '../../scripts/privateModelTechnicalSystemsLayers';
       import { mountTechnicalLayerAvailability } from '../../scripts/privateModelTechnicalLayersAvailabilityUi';
       import '../../styles/privateModelTechnicalLayersAvailability.css';
@@ -14126,7 +14127,8 @@ const title = 'Private 3D viewer';
           layersLoadedSha === v26LayersSourceSha ||
           layersLoadedSha === V27_SOURCE_SHA256 ||
           layersLoadedSha === V29_SOURCE_SHA256 ||
-          layersLoadedSha === V33_SOURCE_SHA256
+          layersLoadedSha === V33_SOURCE_SHA256 ||
+          layersLoadedSha === V34_SOURCE_SHA256
             ? layersLoadedSha : null;
         layersExpectedSha = session?.contract?.glbSha256 ?? verifiedChainSourceSha;
         layersEnabled = verifiedChainSourceSha !== null;
