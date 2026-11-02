@@ -98,7 +98,12 @@ export const mountTechnicalLayerAvailability = (
     if (destroyed) throw new Error('Technical Layers availability display destroyed');
     const rows = buildTechnicalAvailabilityRows(items);
     const available = rows.filter(row => row.supported).length;
-    summary.textContent = `Teknisten järjestelmien saatavuus: ${available}/${rows.length} ryhmää. Näytä puuttuvan tuen syyt.`;
+    // An empty list means no current, source-verified inventory was supplied.
+    // In particular, never leave the previous model's availability displayed.
+    root.dataset.availabilityState = rows.length ? 'source-inventory' : 'unverified';
+    summary.textContent = rows.length
+      ? `Teknisten järjestelmien saatavuus: ${available}/${rows.length} ryhmää. Näytä puuttuvan tuen syyt.`
+      : 'Teknisten järjestelmien saatavuutta ei ole vielä varmennettu tässä näkymässä.';
     list.replaceChildren();
     for (const row of rows) {
       const item = doc.createElement('li');
