@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { build } from 'esbuild';
+import { readFileSync } from 'node:fs';
 import {
   buildViewerLayerPanelModel,
   viewerLayerPresetChoices,
@@ -51,6 +52,25 @@ test('parent reports mixed when explicit children differ, without changing child
     .toBe('visible');
 });
 
+test('technical device controls require available bindings and aggregate their own children', () => {
+  const start = applyViewerLayerPreset(createViewerInteractionState(), 'd-2f');
+  const state = setViewerInteractionLayerMode(start, 'technical-ventilation', 'hidden');
+  const model = buildViewerLayerPanelModel(state, [
+    'technical', 'technical-ventilation', 'technical-heating', 'unverified-electrical',
+  ]);
+  expect(model.groups).toHaveLength(1);
+  expect(model.groups[0].label).toBe('Tekniset järjestelmät');
+  expect(model.groups[0].items.map(({ id, label }) => [id, label])).toEqual([
+    ['technical', 'Tekniset laitteet'],
+    ['technical-ventilation', 'IV-laitteet ja venttiilit'],
+    ['technical-heating', 'Patterit ja ILP'],
+  ]);
+  expect(model.groups[0].items[0].mode).toBe('mixed');
+  expect(model.groups[0].items.some(({ id }) => id === 'technical-electrical')).toBe(false);
+  const electrical = buildViewerLayerPanelModel(start, ['technical-electrical']);
+  expect(electrical.groups[0].items[0].label).toBe('Sähkölaitteet ja valaisimet');
+});
+
 test('customized/reset and scope-independent camera state stay in WP1, not the DOM', () => {
   const initial = setViewerCameraView(createViewerInteractionState(), 'elev-neg-x');
   const d2 = applyViewerLayerPreset(initial, 'd-2f');
@@ -97,14 +117,14 @@ test('real browser DOM controls emit only explicit user actions and support mixe
   }, start);
 
   await expect(page.locator('[data-layer-preset-panel]')).toHaveCount(1);
-  await expect(page.getByRole('combobox', { name: 'Layer preset' })).toHaveValue('d-2f');
+  await expect(page.getByRole('combobox', { name: 'Näkymän esiasetus' })).toHaveValue('d-2f');
   await expect(page.locator('[data-layer-node="roof"] select')).toHaveValue('ghost');
   await expect(page.locator('[data-layer-node="unverified-electrical"]')).toHaveCount(0);
   await expect(page.getByText('Sähköt', { exact: true })).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'Palauta presetin asetukset' })).toBeDisabled();
 
   await page.locator('[data-layer-node="roof"] select').selectOption('visible');
-  await page.getByRole('combobox', { name: 'Layer preset' }).selectOption('site');
+  await page.getByRole('combobox', { name: 'Näkymän esiasetus' }).selectOption('site');
   expect(await page.evaluate(() => (window as any).layerEvents)).toEqual([
     ['mode', 'roof', 'visible'], ['preset', 'site'],
   ]);
@@ -116,11 +136,72 @@ test('real browser DOM controls emit only explicit user actions and support mixe
       'roof', 'architecture-walls', 'architecture-walls-party', 'architecture-walls-interior',
     ]);
   }, custom);
-  await expect(page.getByText('Mukautettu')).toBeVisible();
+  await expect(page.getByText('Mukautettu', { exact: true })).toBeVisible();
+  await expect(page.getByText('Osittainen: alaryhmillä eri näkyvyys')).toBeVisible();
   await expect(page.locator('[data-layer-node="architecture-walls"] select')).toHaveValue('mixed');
   await expect(page.getByRole('button', { name: 'Palauta presetin asetukset' })).toBeEnabled();
   await page.getByRole('button', { name: 'Palauta presetin asetukset' }).click();
   expect(await page.evaluate(() => (window as any).layerEvents)).toContainEqual(['reset']);
+
+  await page.evaluate((state) => {
+    (window as any).layerPanel.update(state, ['roof'], {
+      availablePresets: ['d-apartment', 'd-1f', 'd-2f'],
+    });
+  }, custom);
+  const preset = page.getByRole('combobox', { name: 'Näkymän esiasetus' });
+  await expect(preset.locator('option[value="site"]')).toBeDisabled();
+  await expect(preset.locator('option[value="infra"]')).toBeDisabled();
+  await expect(preset.locator('option[value="d-2f"]')).toBeEnabled();
+  // Normal updates retain the runtime's supported-scope restriction.
+  await page.evaluate((state) => (window as any).layerPanel.update(state, ['roof']), custom);
+  await expect(preset.locator('option[value="site"]')).toBeDisabled();
+  await page.evaluate((state) => {
+    (window as any).layerPanel.update(state, ['roof'], { disabled: true });
+  }, custom);
+  await expect(preset).toBeDisabled();
+  await expect(page.locator('[data-layer-node="roof"] select')).toBeDisabled();
+  await expect(page.getByRole('button', { name: 'Palauta presetin asetukset' })).toBeDisabled();
   await page.evaluate(() => (window as any).layerPanel.destroy());
   await expect(page.locator('[data-layer-preset-panel]')).toHaveCount(0);
+});
+
+test('keyboard focus survives state update, no metadata has an explicit explanation', async ({ page }) => {
+  const result = await build({
+    entryPoints: ['src/scripts/privateModelLayersPresetControls.ts'],
+    absWorkingDir: process.cwd(), bundle: true, platform: 'browser', format: 'iife',
+    globalName: 'YlisrinneLayersWP3', write: false,
+  });
+  await page.setViewportSize({ width: 375, height: 667 });
+  await page.setContent('<div id="layers-panel" style="position:relative; height:490px; width:300px; overflow-y:auto;"><div id="layers"></div></div>');
+  await page.addStyleTag({ content: readFileSync('src/styles/privateModelLayersPresetControls.css', 'utf8') });
+  await page.addScriptTag({ content: result.outputFiles[0].text });
+  const start = applyViewerLayerPreset(createViewerInteractionState(), 'd-apartment');
+  await page.evaluate((state) => {
+    const app = (window as any).YlisrinneLayersWP3;
+    (window as any).panel = app.mountViewerLayerPresetPanel(
+      document.querySelector('#layers'), state,
+      ['architecture-walls', 'architecture-walls-party', 'architecture-walls-interior', 'roof'],
+      { onPresetChange: () => {}, onLayerModeChange: () => {}, onReset: () => {} },
+    );
+  }, start);
+  const roof = page.locator('[data-layer-node="roof"] select');
+  await roof.focus();
+  await expect(roof).toBeFocused();
+  const custom = setViewerInteractionLayerMode(start, 'architecture-walls-party', 'hidden');
+  await page.evaluate((state) => {
+    (window as any).panel.update(state, [
+      'architecture-walls', 'architecture-walls-party', 'architecture-walls-interior', 'roof',
+    ]);
+  }, custom);
+  await expect(page.locator('[data-layer-node="roof"] select')).toBeFocused();
+  await expect(page.locator('[data-layer-node="architecture-walls"] select')).toHaveValue('mixed');
+  await expect(page.getByText('Himmeä = läpikuultava esitystapa, ei tiedon varmuustaso.')).toBeVisible();
+  const minTargetHeight = await roof.evaluate(el => el.getBoundingClientRect().height);
+  expect(minTargetHeight).toBeGreaterThanOrEqual(44);
+  const horizontalOverflow = await page.locator('#layers-panel').evaluate(el => el.scrollWidth > el.clientWidth);
+  expect(horizontalOverflow).toBe(false);
+  await page.evaluate((state) => (window as any).panel.update(state, []), custom);
+  await expect(page.getByText('Tasoryhmiä ei voi näyttää: mallista puuttuu vahvistettu tasometadata.')).toBeVisible();
+  await expect(page.locator('[data-layer-node]')).toHaveCount(0);
+  await page.evaluate(() => (window as any).panel.destroy());
 });

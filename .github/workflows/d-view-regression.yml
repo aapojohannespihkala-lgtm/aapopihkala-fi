@@ -71,7 +71,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        mode: [source, c70-production, c80-production, hi12-production, hi13-source, hi13-production, hi14-source, hi14-production, hi18-source, hi18-production, hi19-source, hi19-production, hi20-unified52-production]
+        mode: [source, c70-production, c80-production, hi12-production, hi13-source, hi13-production, hi14-source, hi14-production, hi18-source, hi18-production, hi19-source, hi19-production, hi20-unified52-production, layers-v26-production]
     name: Exact WebGL / ${{ matrix.mode }}
     # Match the build job's supported, stable browser dependency environment.
     runs-on: ubuntu-24.04
@@ -88,6 +88,7 @@ jobs:
       - run: npm run build
       - run: npx playwright install --with-deps chromium
       - name: Authenticate read-only Drive source access on trusted main
+        if: matrix.mode != 'layers-v26-production'
         id: google-auth
         uses: google-github-actions/auth@v3
         with:
@@ -98,6 +99,7 @@ jobs:
           create_credentials_file: false
           export_environment_variables: false
       - name: Fetch immutable sources and verify ZIP CRC and SHA
+        if: matrix.mode != 'layers-v26-production'
         env:
           GDRIVE_ACCESS_TOKEN: ${{ steps.google-auth.outputs.access_token }}
         shell: bash
@@ -311,12 +313,51 @@ jobs:
           CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET: ${{ secrets.CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET }}
           D_VIEW_TESTED_COMMIT: ${{ github.event.workflow_run.head_sha || github.sha }}
         run: npx playwright test tests/e2e/private-model-hi20-unified52-production.spec.ts --workers=1 --trace=off --output=test-results/hi20-unified52-production --reporter=line
+      - name: Read exact published V26 for Layers regression
+        if: matrix.mode == 'layers-v26-production'
+        shell: bash
+        env:
+          CF_ACCESS_READBACK_CLIENT_ID: ${{ secrets.CF_ACCESS_READBACK_CLIENT_ID }}
+          CF_ACCESS_READBACK_CLIENT_SECRET: ${{ secrets.CF_ACCESS_READBACK_CLIENT_SECRET }}
+        run: |
+          set -euo pipefail
+          [[ -n "$CF_ACCESS_READBACK_CLIENT_ID" && -n "$CF_ACCESS_READBACK_CLIENT_SECRET" ]]
+          file="$RUNNER_TEMP/layers-v26-production.glb"
+          curl --fail --location --silent --show-error --connect-timeout 12 --max-time 90 \
+            -H "CF-Access-Client-Id: $CF_ACCESS_READBACK_CLIENT_ID" \
+            -H "CF-Access-Client-Secret: $CF_ACCESS_READBACK_CLIENT_SECRET" \
+            --output "$file" \
+            "https://aapopihkala.fi/private-model/work-test/verify/auto-ylisrinne-d-c80r2-v26-stair-rail-landing-end-plywood-work-test-host-hold-20261102-1jglt7no.glb"
+          [[ "$(stat -c %s "$file")" = '24205548' ]]
+          [[ "$(sha256sum "$file" | cut -d' ' -f1)" = 'cff2dbead53b7836747e10ef359637114ff723690ec380e313cec817e4f71d31' ]]
+          printf 'YLIS_LAYERS_GLB=%s\n' "$file" >> "$GITHUB_ENV"
+      - name: Protected production Layers, actual V26, scope, camera, reset and mobile
+        if: matrix.mode == 'layers-v26-production'
+        env:
+          YLIS_LAYERS_PRODUCTION: '1'
+          CF_ACCESS_VIEWER_PROBE_CLIENT_ID: ${{ secrets.CF_ACCESS_VIEWER_PROBE_CLIENT_ID }}
+          CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET: ${{ secrets.CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET }}
+          D_VIEW_TESTED_COMMIT: ${{ github.event.workflow_run.head_sha || github.sha }}
+        run: npx playwright test tests/e2e/private-model-layers-runtime.spec.ts --workers=1 --trace=off --output=test-results/layers-v26-production --reporter=line
+      - name: Remove temporary protected V26 model
+        if: always() && matrix.mode == 'layers-v26-production'
+        run: rm -f "$RUNNER_TEMP/layers-v26-production.glb"
       - name: Remove temporary protected full model
         if: always() && matrix.mode == 'hi20-unified52-production'
         run: rm -f "$RUNNER_TEMP/hi20-unified52-production.glb"
       - name: Encrypt private model screenshots before artifact storage
         if: always()
         env:
+          LAYERS_REVIEW_PUBLIC_KEY: |
+            -----BEGIN PUBLIC KEY-----
+            MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAhCsUKydu8/wzG4CXtjcc
+            g9Kzi//Czu5dKRvyKtKev392mDn2jZrGJ+mrrcoWBzOosUZX+56kKW68/Vl5dhW6
+            7gQtwXCaumlDrVB/6X/00vvR5TMeEHe+SWb0N+zX/DupxsIjXlg0tr6mHz1q39tA
+            v7uwhciyYkTDomPuMPJSPoysRkI70QEGR/wHobOjPJe8TdlRTCEA2jzuiuYaccLh
+            Ve6Ui/4vub3Dp1kTXAapZm2Nh7FV8kc93B4ALyJDFZk2r0PPvu6YNqUS3uj5NCka
+            Utvlb2AYToaT+1A4Xu5nTb/Zr2E0I5du81m5NYZATjX0t7lhnClwHJyD80yGZ1XK
+            jwIDAQAB
+            -----END PUBLIC KEY-----
           D_VIEW_EVIDENCE_PUBLIC_KEY: |
             -----BEGIN PUBLIC KEY-----
             MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA2Wb28lKfJ8xHD91rtdd8
@@ -343,6 +384,9 @@ jobs:
           [[ -d test-results ]] || exit 0
           mkdir -p "$RUNNER_TEMP/d-view-evidence"
           printf '%s\n' "$D_VIEW_EVIDENCE_PUBLIC_KEY" > "$RUNNER_TEMP/d-view-evidence-public.pem"
+          if [[ '${{ matrix.mode }}' == 'layers-v26-production' ]]; then
+            D_VIEW_EVIDENCE_AUDIT_PUBLIC_KEY="$LAYERS_REVIEW_PUBLIC_KEY"
+          fi
           printf '%s\n' "$D_VIEW_EVIDENCE_AUDIT_PUBLIC_KEY" > "$RUNNER_TEMP/d-view-evidence-audit-public.pem"
           openssl rand -base64 48 > "$RUNNER_TEMP/d-view-evidence-password"
           tar -czf "$RUNNER_TEMP/d-view-evidence.tar.gz" test-results
