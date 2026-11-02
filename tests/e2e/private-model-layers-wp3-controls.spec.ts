@@ -244,7 +244,7 @@ test('real browser DOM controls emit only explicit user actions and support mixe
 
   await expect(page.locator('[data-layer-preset-panel]')).toHaveCount(1);
   await expect(page.getByRole('combobox', { name: 'Näkymän esiasetus' })).toHaveValue('d-2f');
-  await expect(page.locator('[data-layer-node="roof"] select')).toHaveValue('ghost');
+  await expect(page.locator('[data-layer-node="roof"] [data-layer-mode-choices]')).toHaveAttribute('data-selected-mode', 'ghost');
   await expect(page.locator('[data-layer-node="unverified-electrical"]')).toHaveCount(0);
   await expect(page.getByText('Sähköt', { exact: true })).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'Palauta presetin asetukset' })).toBeDisabled();
@@ -268,7 +268,7 @@ test('real browser DOM controls emit only explicit user actions and support mixe
       'architecture-walls-party', 'architecture-walls-interior', 'locus-water']);
   }, start);
   await expect(roofNotice).toBeHidden();
-  await expect(page.locator('[data-layer-node="roof"] select')).toHaveValue('ghost');
+  await expect(page.locator('[data-layer-node="roof"] [data-layer-mode-choices]')).toHaveAttribute('data-selected-mode', 'ghost');
 
   // A corrupted runtime map must render a meaningful hidden option,
   // never a blank selection that disagrees with fail-closed presentation.
@@ -288,9 +288,9 @@ test('real browser DOM controls emit only explicit user actions and support mixe
       'roof', 'architecture-walls', 'architecture-walls-party',
     ]);
   }, start);
-  await expect(page.locator('[data-layer-node="roof"] select')).toHaveValue('hidden');
-  await expect(page.locator('[data-layer-node="architecture-walls-party"] select')).toHaveValue('hidden');
-  await expect(page.locator('[data-layer-node="roof"] select')).toHaveAttribute('data-effective-mode', 'hidden');
+  await expect(page.locator('[data-layer-node="roof"] [data-layer-mode-choices]')).toHaveAttribute('data-selected-mode', 'hidden');
+  await expect(page.locator('[data-layer-node="architecture-walls-party"] [data-layer-mode-choices]')).toHaveAttribute('data-selected-mode', 'hidden');
+  await expect(page.locator('[data-layer-node="roof"] [data-layer-mode-choices]')).toHaveAttribute('data-effective-mode', 'hidden');
   expect(await page.evaluate(() => (window as any).layerEvents)).toEqual([]);
   await page.evaluate((state) => {
     (window as any).layerPanel.update(state, [
@@ -298,9 +298,9 @@ test('real browser DOM controls emit only explicit user actions and support mixe
       'architecture-walls-interior', 'locus-water',
     ]);
   }, start);
-  await expect(page.locator('[data-layer-node="roof"] select')).toHaveValue('ghost');
+  await expect(page.locator('[data-layer-node="roof"] [data-layer-mode-choices]')).toHaveAttribute('data-selected-mode', 'ghost');
 
-  await page.locator('[data-layer-node="roof"] select').selectOption('visible');
+  await page.locator('[data-layer-node="roof"] button[data-layer-mode="visible"]').click();
   await page.getByRole('combobox', { name: 'Näkymän esiasetus' }).selectOption('site');
   expect(await page.evaluate(() => (window as any).layerEvents)).toEqual([
     ['mode', 'roof', 'visible'], ['preset', 'site'],
@@ -315,7 +315,7 @@ test('real browser DOM controls emit only explicit user actions and support mixe
   }, custom);
   await expect(page.getByText('Mukautettu', { exact: true })).toBeVisible();
   await expect(page.getByText('Osittainen: ylätason ja alatasojen näkyvyys poikkeaa. Muuta alatasoja tarvittaessa erikseen.')).toBeVisible();
-  await expect(page.locator('[data-layer-node="architecture-walls"] select')).toHaveValue('mixed');
+  await expect(page.locator('[data-layer-node="architecture-walls"] [data-layer-mode-choices]')).toHaveAttribute('data-selected-mode', 'mixed');
   await expect(page.getByRole('button', { name: 'Palauta presetin asetukset' })).toBeEnabled();
   await page.getByRole('button', { name: 'Palauta presetin asetukset' }).click();
   expect(await page.evaluate(() => (window as any).layerEvents)).toContainEqual(['reset']);
@@ -336,7 +336,7 @@ test('real browser DOM controls emit only explicit user actions and support mixe
     (window as any).layerPanel.update(state, ['roof'], { disabled: true });
   }, custom);
   await expect(preset).toBeDisabled();
-  await expect(page.locator('[data-layer-node="roof"] select')).toBeDisabled();
+  await expect(page.locator('[data-layer-node="roof"] [data-layer-mode-choices]')).toHaveAttribute('aria-disabled', 'true');
   await expect(page.getByRole('button', { name: 'Palauta presetin asetukset' })).toBeDisabled();
   await page.evaluate(() => (window as any).layerPanel.destroy());
   await expect(page.locator('[data-layer-preset-panel]')).toHaveCount(0);
@@ -368,7 +368,7 @@ test('keyboard focus survives state update, no metadata has an explicit explanat
       { onPresetChange: () => {}, onLayerModeChange: () => {}, onReset: () => {} },
     );
   }, start);
-  const roof = page.locator('[data-layer-node="roof"] select');
+  const roof = page.locator('[data-layer-node="roof"] button[data-layer-mode="ghost"]');
   await roof.focus();
   await expect(roof).toBeFocused();
   const custom = setViewerInteractionLayerMode(start, 'architecture-walls-party', 'hidden');
@@ -377,8 +377,8 @@ test('keyboard focus survives state update, no metadata has an explicit explanat
       'architecture-walls', 'architecture-walls-party', 'architecture-walls-interior', 'roof',
     ]);
   }, custom);
-  await expect(page.locator('[data-layer-node="roof"] select')).toBeFocused();
-  await expect(page.locator('[data-layer-node="architecture-walls"] select')).toHaveValue('mixed');
+  await expect(page.locator('[data-layer-node="roof"] button[data-layer-mode="ghost"]')).toBeFocused();
+  await expect(page.locator('[data-layer-node="architecture-walls"] [data-layer-mode-choices]')).toHaveAttribute('data-selected-mode', 'mixed');
   await expect(page.getByText('Himmeä = läpikuultava esitystapa, ei tiedon varmuustaso.')).toBeVisible();
   const contrast = await page.locator('[data-layer-preset-panel]').evaluate(panel => {
     const luminance = (color: string) => {
@@ -445,15 +445,15 @@ test('parent visibility overrides are explained without changing child preferenc
   }, { state: initial, ids: available });
 
   const device = page.locator('[data-layer-node="technical-ventilation"]');
-  const select = device.locator('select');
-  await expect(select).toHaveValue('visible');
+  const select = device.locator('button[data-layer-mode="visible"]');
+  await expect(select).toHaveAttribute('aria-pressed', 'true');
   await expect(device.locator('[data-layer-parent-effect]')).toHaveCount(0);
   await select.focus();
   const hidden = setViewerInteractionLayerMode(initial, 'technical', 'hidden');
   await page.evaluate(({ state, ids }) =>
     (window as any).parentEffectPanel.update(state, ids), { state: hidden, ids: available });
   await expect(select).toBeFocused();
-  await expect(select).toHaveValue('visible');
+  await expect(select).toHaveAttribute('aria-pressed', 'true');
   await expect(select).toHaveAttribute('data-effective-mode', 'hidden');
   await expect(device.locator('[data-layer-parent-effect]')).toContainText('ei nyt näy');
   await expect(select).toHaveAttribute('aria-description', /oma asetus säilyy/);
@@ -464,13 +464,13 @@ test('parent visibility overrides are explained without changing child preferenc
   await page.evaluate(({ state, ids }) =>
     (window as any).parentEffectPanel.update(state, ids), { state: ghost, ids: available });
   await expect(select).toBeFocused();
-  await expect(select).toHaveValue('visible');
+  await expect(select).toHaveAttribute('aria-pressed', 'true');
   await expect(select).toHaveAttribute('data-effective-mode', 'ghost');
   await expect(device.locator('[data-layer-parent-effect]')).toContainText('näkyy himmeänä');
 
   await page.evaluate(({ state, ids }) =>
     (window as any).parentEffectPanel.update(state, ids), { state: initial, ids: available });
-  await expect(select).toHaveValue('visible');
+  await expect(select).toHaveAttribute('aria-pressed', 'true');
   await expect(select).toHaveAttribute('data-effective-mode', 'visible');
   await expect(device.locator('[data-layer-parent-effect]')).toHaveCount(0);
   await expect(select).not.toHaveAttribute('aria-description');
@@ -503,21 +503,21 @@ test('uniformly hidden children are mixed under visible parent in mobile DOM', a
     );
   }, { state: initial, ids: available });
   const parent = page.locator('[data-layer-node="architecture-walls"]');
-  const select = parent.locator('select');
-  await expect(select).toHaveValue('mixed');
+  const select = parent.locator('button[data-layer-mode="visible"]');
+  await expect(parent.locator('[data-layer-mode-choices]')).toHaveAttribute('data-selected-mode', 'mixed');
   await expect(parent.locator('.yl-layer-preset-mixed')).toContainText('Muuta alatasoja');
   await select.focus();
   const hiddenParent = setViewerInteractionLayerMode(initial, 'architecture-walls', 'hidden');
   await page.evaluate(({ state, ids }) => (window as any).panel.update(state, ids),
     { state: hiddenParent, ids: available });
   await expect(select).toBeFocused();
-  await expect(select).toHaveValue('hidden');
+  await expect(parent.locator('[data-layer-mode-choices]')).toHaveAttribute('data-selected-mode', 'hidden');
   const restored = setViewerInteractionLayerMode(hiddenParent, 'architecture-walls', 'visible');
   await page.evaluate(({ state, ids }) => (window as any).panel.update(state, ids),
     { state: restored, ids: available });
-  await expect(select).toHaveValue('mixed');
-  await expect(page.locator('[data-layer-node="architecture-walls-party"] select')).toHaveValue('hidden');
-  await expect(page.locator('[data-layer-node="architecture-walls-interior"] select')).toHaveValue('hidden');
+  await expect(parent.locator('[data-layer-mode-choices]')).toHaveAttribute('data-selected-mode', 'mixed');
+  await expect(page.locator('[data-layer-node="architecture-walls-party"] [data-layer-mode-choices]')).toHaveAttribute('data-selected-mode', 'hidden');
+  await expect(page.locator('[data-layer-node="architecture-walls-interior"] [data-layer-mode-choices]')).toHaveAttribute('data-selected-mode', 'hidden');
   expect(await page.locator('#viewport').evaluate(el => el.scrollWidth > el.clientWidth)).toBe(false);
   expect(await select.evaluate(el => el.getBoundingClientRect().height)).toBeGreaterThanOrEqual(44);
   expect(await page.evaluate(() => (window as any).events)).toEqual([]);
@@ -560,7 +560,7 @@ test('mobile Layers list keeps its scroll position after a mode update', async (
       onLayerModeChange: () => (window as any).scrollEvents.push('mode'),
     });
   }, { state: initial, ids: available });
-  const control = page.locator('[data-layer-node="architecture-other"] select');
+  const control = page.locator('[data-layer-node="architecture-other"] button[data-layer-mode="visible"]');
   await control.focus();
   await expect(control).toBeFocused();
   const before = await page.locator('#viewport').evaluate(element => element.scrollTop);
@@ -572,7 +572,7 @@ test('mobile Layers list keeps its scroll position after a mode update', async (
   await expect(control).toBeFocused();
   const after = await page.locator('#viewport').evaluate(element => element.scrollTop);
   expect(after).toBeCloseTo(before, 0);
-  await expect(page.locator('[data-layer-node="architecture"] select')).toHaveValue('mixed');
+  await expect(page.locator('[data-layer-node="architecture"] [data-layer-mode-choices]')).toHaveAttribute('data-selected-mode', 'mixed');
   expect(await page.evaluate(() => (window as any).scrollEvents)).toEqual([]);
 
   // Source metadata may shrink the list, in which case scroll naturally clamps.
