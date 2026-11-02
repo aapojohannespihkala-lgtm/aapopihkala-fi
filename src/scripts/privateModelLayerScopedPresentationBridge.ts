@@ -106,7 +106,7 @@ export const createViewerScopedLayerPresentation = (
         const scopeAllowed = allowed && gate?.scopeAllowed === true;
         const floorAllowed = allowed && gate?.floorAllowed === true;
         const mode = resolveScopedViewerLayerMode(
-          getViewerLayerEffectiveMode(modes, id),
+          getViewerLayerEffectiveMode(modes, id, state.layerPresetState?.visibilityTree === 'branch'),
           scopeAllowed,
           floorAllowed,
         );
