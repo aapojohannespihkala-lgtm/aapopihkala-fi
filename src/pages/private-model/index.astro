@@ -2471,6 +2471,7 @@ const title = 'Private 3D viewer';
       import { V29_SOURCE_SHA256 } from '../../scripts/privateModelC80R2V29LayerSourceProfile.mjs';
       import { V33_SOURCE_SHA256 } from '../../scripts/privateModelC80R2V33LayerSourceProfile.mjs';
       import { V34_SOURCE_SHA256 } from '../../scripts/privateModelC80R2V34LayerSourceProfile.mjs';
+      import { V35_SOURCE_SHA256 } from '../../scripts/privateModelC80R2V35LayerSourceProfile.mjs';
       import { createTechnicalSystemLayerInventory } from '../../scripts/privateModelTechnicalSystemsLayers';
       import { mountTechnicalLayerAvailability } from '../../scripts/privateModelTechnicalLayersAvailabilityUi';
       import '../../styles/privateModelTechnicalLayersAvailability.css';
@@ -14089,6 +14090,9 @@ const title = 'Private 3D viewer';
             ? ['whole-building', 'd-apartment', 'd-1f', 'd-2f'] : ['whole-building', 'site', 'infra'];
           layersPanelControls.update(layersState, layersAvailable, {
             availablePresets: layersPresetChoices, boundNodeIds: layersBoundIds, disabled: !verified,
+            sourceCoverageNote: verified && layersLoadedSha === V35_SOURCE_SHA256 && mainViewScope?.floor !== '1F'
+              ? 'WC:n lattia ja itäseinä ovat vielä yksi malliosa. Ne jäävät näiden ryhmävalintojen ulkopuolelle.'
+              : undefined,
           });
           canvas.dataset.layersCameraPose = JSON.stringify({ position: activeCamera.position.toArray(), quaternion: activeCamera.quaternion.toArray(), zoom: activeCamera.zoom, target: (activeCamera === planCamera ? planControls : activeCamera === isoCamera ? isoControls : controls).target.toArray() });
           canvas.dataset.layersRuntime = verified ? (layersEnabled ? 'active' : 'ready') : 'unavailable';
@@ -14128,7 +14132,8 @@ const title = 'Private 3D viewer';
           layersLoadedSha === V27_SOURCE_SHA256 ||
           layersLoadedSha === V29_SOURCE_SHA256 ||
           layersLoadedSha === V33_SOURCE_SHA256 ||
-          layersLoadedSha === V34_SOURCE_SHA256
+          layersLoadedSha === V34_SOURCE_SHA256 ||
+          layersLoadedSha === V35_SOURCE_SHA256
             ? layersLoadedSha : null;
         layersExpectedSha = session?.contract?.glbSha256 ?? verifiedChainSourceSha;
         layersEnabled = verifiedChainSourceSha !== null;

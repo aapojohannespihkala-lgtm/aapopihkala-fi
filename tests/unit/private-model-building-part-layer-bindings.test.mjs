@@ -503,15 +503,15 @@ import {
 
 // Synthetic graph exercises the actual resolver; the immutable raw-GLB
 // hash and each source path are separately checked by verify-v34-layer-source.
-function v34Fixture(sceneIndex) {
-  const profile = V34_BUILDING_SCENES[sceneIndex];
-  const scene = new Object3D('V34');
+function exactProfileFixture(sceneIndex, parts = V34_BUILDING_PARTS, profiles = V34_BUILDING_SCENES, sha = V34_SOURCE_SHA256, count = 197) {
+  const profile = profiles[sceneIndex];
+  const scene = new Object3D('exact-profile-test');
   const nodes = [], roots = [], objects = {}, associations = new Map();
   for (const [leaf, routes] of Object.entries(profile.paths)) for (const route of routes) {
     route.forEach((node, i) => {
       nodes[node] ??= { name: 'source-parent-' + node, children: [] };
       if (i === route.length - 1)
-        Object.assign(nodes[node], structuredClone(V34_BUILDING_PARTS[leaf]));
+        Object.assign(nodes[node], structuredClone(parts[leaf]));
       if (i === 0 && !roots.includes(node)) roots.push(node);
       if (i > 0 && !nodes[route[i-1]].children.includes(node))
         nodes[route[i-1]].children.push(node);
@@ -525,12 +525,12 @@ function v34Fixture(sceneIndex) {
     return obj;
   };
   roots.forEach(index => scene.add(make(index)));
-  const scenes = new Array(197), sourceScenes = new Array(197);
+  const scenes = new Array(count), sourceScenes = new Array(count);
   scenes[sceneIndex] = scene;
   sourceScenes[sceneIndex] = { name: profile.name, nodes: roots };
   const gltf = { scenes, parser: { json: { nodes, scenes: sourceScenes }, associations } };
   return { scene, objects, gltf, options: {
-    gltf, expectedSourceSha256: V34_SOURCE_SHA256, loadedSourceSha256: V34_SOURCE_SHA256,
+    gltf, expectedSourceSha256: sha, loadedSourceSha256: sha,
     sceneIndex, activeSceneRoot: scene, floor: profile.floor, area: 'D',
   } };
 }
@@ -542,7 +542,7 @@ test('V34 exact resolver binds 1F/2F/BOTH and the reparented Kvik 18 without res
     196: [8109,8111,8113,8115,8117,8119,8121,8123,8125],
   };
   for (const sceneIndex of [194,195,196]) {
-    const f = v34Fixture(sceneIndex), sourceBefore = JSON.stringify(f.gltf.parser.json);
+    const f = exactProfileFixture(sceneIndex), sourceBefore = JSON.stringify(f.gltf.parser.json);
     const result = resolveBuildingPartLayerBindings(f.options);
     assert.equal(result.sourceVerified, true);
     assert.equal(result.bindings.length, Object.keys(V34_BUILDING_SCENES[sceneIndex].paths).length);
@@ -560,7 +560,7 @@ test('V34 exact resolver binds 1F/2F/BOTH and the reparented Kvik 18 without res
 });
 
 test('V34 exact resolver rejects wrong SHA, scene, mesh, name and parent mutation', () => {
-  let f = v34Fixture(195);
+  let f = exactProfileFixture(195);
   assert.equal(resolveBuildingPartLayerBindings({
     ...f.options, loadedSourceSha256: V33_SOURCE_SHA256,
   }).bindings.length, 0);
@@ -568,16 +568,58 @@ test('V34 exact resolver rejects wrong SHA, scene, mesh, name and parent mutatio
   f.gltf.parser.json.scenes[195].name += '_INVALID';
   assert.equal(resolveBuildingPartLayerBindings(f.options).bindings.length, 0);
   for (const field of ['mesh','name']) {
-    f = v34Fixture(195);
+    f = exactProfileFixture(195);
     f.gltf.parser.json.nodes[8049][field] = field === 'mesh' ? 0 : 'INFERRED_KVIK_FRONT';
     assert.ok(!resolveBuildingPartLayerBindings(f.options).bindings.some(b => b.root === f.objects[8049]));
   }
-  f = v34Fixture(195);
+  f = exactProfileFixture(195);
   const leaf = f.objects[8049];
   leaf.parent.children = leaf.parent.children.filter(x => x !== leaf);
   f.scene.add(leaf);
   f.gltf.parser.json.scenes[195].nodes.push(8049);
   f.gltf.parser.json.nodes[8309].children =
     f.gltf.parser.json.nodes[8309].children.filter(x => x !== 8049);
+  assert.ok(!resolveBuildingPartLayerBindings(f.options).bindings.some(b => b.root === leaf));
+});
+
+
+import {
+  V35_SOURCE_SHA256, V35_BUILDING_PARTS, V35_BUILDING_SCENES,
+} from '../../src/scripts/privateModelC80R2V35LayerSourceProfile.mjs';
+const v35Fixture = sceneIndex => exactProfileFixture(
+  sceneIndex, V35_BUILDING_PARTS, V35_BUILDING_SCENES, V35_SOURCE_SHA256, 199,
+);
+
+test('V35 exact resolver binds current floors and preserves separate furniture ownership', () => {
+  for (const [sceneIndex, count] of [[194,17],[197,51],[198,65]]) {
+    const f = v35Fixture(sceneIndex);
+    const sourceBefore = JSON.stringify(f.gltf.parser.json);
+    const result = resolveBuildingPartLayerBindings(f.options);
+    assert.equal(result.bindings.length, count);
+    assert.ok(result.evidence.every(e => e.bindingKind === 'EXACT_V35_SOURCE_PROFILE'));
+    assert.ok(result.evidence.every(e => e.objectKey.startsWith(`V35:${sceneIndex}:`)));
+    if (sceneIndex !== 194) {
+      assert.ok(result.bindings.some(b => b.id === 'architecture-fixtures'));
+      assert.ok(result.bindings.some(b => b.id === 'architecture-floors'));
+    }
+    for (const oldOrMixed of [9275,9331])
+      assert.ok(!result.evidence.some(e => e.sourceNodeIndex === oldOrMixed));
+    assert.equal(JSON.stringify(f.gltf.parser.json), sourceBefore);
+  }
+});
+
+test('V35 resolver rejects predecessor route, SHA, scene count and reparented Kvik front', () => {
+  let f = v35Fixture(197);
+  assert.equal(resolveBuildingPartLayerBindings({ ...f.options, loadedSourceSha256: V34_SOURCE_SHA256 }).bindings.length, 0);
+  assert.equal(resolveBuildingPartLayerBindings({ ...f.options, floor:'1F' }).bindings.length, 0);
+  assert.equal(resolveBuildingPartLayerBindings({ ...f.options, sceneIndex:195 }).bindings.length, 0);
+  f.gltf.parser.json.scenes.length = 197;
+  assert.equal(resolveBuildingPartLayerBindings(f.options).bindings.length, 0);
+  f = v35Fixture(197);
+  const leaf = f.objects[8033];
+  leaf.parent.children = leaf.parent.children.filter(x => x !== leaf);
+  f.scene.add(leaf);
+  f.gltf.parser.json.scenes[197].nodes.push(8033);
+  f.gltf.parser.json.nodes[8036].children = f.gltf.parser.json.nodes[8036].children.filter(x => x !== 8033);
   assert.ok(!resolveBuildingPartLayerBindings(f.options).bindings.some(b => b.root === leaf));
 });

@@ -8,6 +8,10 @@ import {
   V26_TECHNICAL_SOURCE_SHA256,
 } from '../../src/scripts/privateModelTechnicalSystemsLayers';
 import { createViewerInteractionState, setViewerInteractionLayerMode } from '../../src/scripts/privateModelViewerState';
+import {
+  V35_SOURCE_SHA256,
+  V35_SOURCE_SCENE_COUNT,
+} from '../../src/scripts/privateModelC80R2V35LayerSourceProfile.mjs';
 
 const SHA = '8ddb398d9eb981d92ed444afcfad93ceb2224b1ce9898599553ede9b4136b87d';
 const makeFixture = (family: 'electric' | 'kvv' | 'iv') => {
@@ -275,4 +279,69 @@ test('V27 successor retains technical floor membership and rejects old V26 scene
     expect(createTechnicalSystemLayerInventory({...context,sourceSceneIndex:175}).bridgeBindings).toHaveLength(0);
     expect(createTechnicalSystemLayerInventory({...context,sourceJson:{...context.sourceJson,scenes:new Array(176)}}).bridgeBindings).toHaveLength(0);
   }
+});
+
+/** Every fixture is a valid source-bound graph in its stated scene, with no
+ * generic MEP metadata. Rejection therefore exercises the exact profile map,
+ * rather than a deliberately malformed source-node or parent association.
+ */
+const v35TechnicalFixture = (sceneIndex: number, name: string) => {
+  const f = v26Fixture(name);
+  const scenes = new Array(V35_SOURCE_SCENE_COUNT);
+  scenes[sceneIndex] = { nodes: [0] };
+  const context: TechnicalSystemsContext = {
+    ...f.context,
+    sourceSceneIndex: sceneIndex,
+    loadedGlbSha256: V35_SOURCE_SHA256,
+    expectedGlbSha256: V35_SOURCE_SHA256,
+    sourceNodes: f.context.sourceNodes.map((node) => ({
+      ...node, sceneIndex, glbSha256: V35_SOURCE_SHA256,
+    })),
+    sourceJson: { ...f.context.sourceJson, scenes },
+  };
+  return { ...f, context };
+};
+
+test('V35 exact source routes retain named devices in 1F194, 2F197 and BOTH198', () => {
+  for (const [sceneIndex, name, viewerScope, id] of [
+    [194, 'TOSHIBA_DAISEIKAI8_2026_OWNER_PHOTO_INDOOR_outer_enclosure', 'd-1f', 'technical-heating'],
+    [197, 'K10_R3_WORLD10_SC19_K10_R3_D2F_KIV100_ANCHOR_001_WORK_TEST_SLEEVE', 'd-2f', 'technical-ventilation'],
+    [198, 'D2F_KVIK_SINK_CEILING_RECESSED_SPOT_1_WHITE_TRIM_OWNERPHOTO20261101_WORK_TEST', 'd-apartment', 'technical-electrical'],
+  ] as const) {
+    const f = v35TechnicalFixture(sceneIndex, name);
+    const context = { ...f.context, viewerScope };
+    const before = JSON.stringify(context.sourceJson);
+    const inventory = createTechnicalSystemLayerInventory(context);
+    expect(inventory.bridgeBindings.map((binding) => binding.id)).toEqual([id]);
+    expect(inventory.boundObjects[0].sourceSceneIndex).toBe(sceneIndex);
+    expect(inventory.boundObjects[0].sourceGlbSha256).toBe(V35_SOURCE_SHA256);
+    expect(inventory.gates.get(f.mesh)).toEqual({ scopeAllowed: true, floorAllowed: true, sourceAllowed: true });
+    expect(JSON.stringify(context.sourceJson)).toBe(before);
+    expect(f.mesh.userData).toEqual({});
+  }
+});
+
+test('V35 rejects the old V34 2F195/BOTH196 routes and an incomplete source scene table', () => {
+  const name = 'K10_R3_WORLD10_SC19_K10_R3_D2F_KIV100_ANCHOR_001_WORK_TEST_SLEEVE';
+  for (const sceneIndex of [195, 196]) {
+    const f = v35TechnicalFixture(sceneIndex, name);
+    expect(createTechnicalSystemLayerInventory(f.context).bridgeBindings).toHaveLength(0);
+  }
+  const f = v35TechnicalFixture(197, name);
+  const truncatedScenes = f.context.sourceJson!.scenes!.slice(0, V35_SOURCE_SCENE_COUNT - 1);
+  expect(createTechnicalSystemLayerInventory({
+    ...f.context, sourceJson: { ...f.context.sourceJson, scenes: truncatedScenes },
+  }).bridgeBindings).toHaveLength(0);
+});
+
+test('V35 source scene and viewer floor gates cannot reveal another floor device', () => {
+  const name = 'K10_R3_WORLD10_SC19_K10_R3_D2F_KIV100_ANCHOR_001_WORK_TEST_SLEEVE';
+  const upstairs = v35TechnicalFixture(197, name);
+  expect(createTechnicalSystemLayerInventory({
+    ...upstairs.context, viewerScope: 'd-1f',
+  }).bridgeBindings).toHaveLength(0);
+  expect(createTechnicalSystemLayerInventory(v35TechnicalFixture(194, name).context).bridgeBindings).toHaveLength(0);
+  expect(createTechnicalSystemLayerInventory({
+    ...upstairs.context, allowSourceOnly: false,
+  }).bridgeBindings).toHaveLength(0);
 });
