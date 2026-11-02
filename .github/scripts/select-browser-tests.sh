@@ -73,9 +73,10 @@ for file in "$@"; do
       # materials/pickability; recheck both existing browser regressions.
       add private-model-layer-ghost-presentation private-model-layers-wp3-scoped-runtime ;;
     src/scripts/privateModelLayersPresetControls.ts|src/styles/privateModelLayersPresetControls.css)
-      # Reuse the existing real-DOM WP3 regression whenever Layers controls
-      # or their scoped responsive stylesheet changes.
-      add private-model-layers-wp3-controls ;;
+      # R1 branch commands can change source-bound ghost/hidden presentation.
+      # Exercise actual DOM dispatch, reversible ghost materials and the scoped
+      # source/floor gates together, not just the visible button state.
+      add private-model-layers-wp3-controls private-model-layer-ghost-presentation private-model-layers-wp3-scoped-runtime ;;
     src/scripts/privateModelTechnicalSystemsLayers.ts|src/scripts/privateModelTechnicalLayersAvailabilityUi.ts|src/styles/privateModelTechnicalLayersAvailability.css)
       # HIGH2 source bindings and source-availability UI share one verified
       # technical inventory. Re-run their existing browser and DOM guards.
