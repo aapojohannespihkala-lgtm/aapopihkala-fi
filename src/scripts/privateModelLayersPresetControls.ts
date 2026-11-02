@@ -111,14 +111,24 @@ export const buildViewerLayerPanelModel = (
     groups: layerGroups.map((group) => ({
       label: group.label,
       items: group.items.filter(([id]) => available.has(id)).map(([id, label]) => {
-        const children = (Object.keys(viewerLayerNodeCapabilities) as ViewerLayerNodeId[])
-          .filter((child) =>
-            available.has(child) && viewerLayerNodeCapabilities[child].parent === id,
-          );
+        // Include only source-confirmed descendants. The root reports "mixed"
+        // when a grandchild differs, even if its immediate child is visible.
+        const descendants = (Object.keys(viewerLayerNodeCapabilities) as ViewerLayerNodeId[])
+          .filter((child) => {
+            if (!available.has(child) || child === id) return false;
+            let ancestor = viewerLayerNodeCapabilities[child].parent;
+            const visited = new Set<ViewerLayerNodeId>();
+            while (ancestor && available.has(ancestor) && !visited.has(ancestor)) {
+              if (ancestor === id) return true;
+              visited.add(ancestor);
+              ancestor = viewerLayerNodeCapabilities[ancestor].parent;
+            }
+            return false;
+          });
         return {
           id,
           label,
-          mode: children.length ? getViewerLayerParentMode(modes, id, children) : modes[id],
+          mode: descendants.length ? getViewerLayerParentMode(modes, id, descendants) : modes[id],
           effectiveMode: getViewerLayerEffectiveMode(modes, id),
         };
       }),
