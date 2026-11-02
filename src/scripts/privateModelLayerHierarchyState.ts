@@ -467,17 +467,16 @@ export const getViewerLayerEffectiveMode = (
   return ownMode === 'ghost' || parentMode === 'ghost' ? 'ghost' : 'visible';
 };
 
-/** A parent's mixed state is a read-only aggregation of current children. */
+/** Parent and child modes are compared without rewriting child preferences. */
 export const getViewerLayerParentMode = (
   modes: ViewerLayerModeMap,
   parentId: ViewerLayerNodeId,
   children: readonly ViewerLayerNodeId[],
 ): ViewerLayerParentMode => {
-  if (getViewerLayerEffectiveMode(modes, parentId) === 'hidden') return 'hidden';
-  if (children.length === 0) return getViewerLayerEffectiveMode(modes, parentId);
-  const first = getViewerLayerEffectiveMode(modes, children[0]);
-  return children.every((child) => getViewerLayerEffectiveMode(modes, child) === first)
-    ? first
+  const parent = getViewerLayerEffectiveMode(modes, parentId);
+  if (parent === 'hidden' || children.length === 0) return parent;
+  return children.every((child) => getViewerLayerEffectiveMode(modes, child) === parent)
+    ? parent
     : 'mixed';
 };
 

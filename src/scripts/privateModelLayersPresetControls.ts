@@ -306,7 +306,7 @@ export const mountViewerLayerPresetPanel = (
         if (item.mode === 'mixed') {
           const mixedHelp = doc.createElement('small');
           mixedHelp.className = 'yl-layer-preset-mixed';
-          mixedHelp.textContent = 'Osittainen: alaryhmillä eri näkyvyys';
+          mixedHelp.textContent = 'Osittainen: ylätason ja alatasojen näkyvyys poikkeaa. Muuta alatasoja tarvittaessa erikseen.';
           field.append(mixedHelp);
         }
         if (parentEffect) {

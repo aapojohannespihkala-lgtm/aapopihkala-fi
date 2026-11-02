@@ -137,7 +137,7 @@ test('real browser DOM controls emit only explicit user actions and support mixe
     ]);
   }, custom);
   await expect(page.getByText('Mukautettu', { exact: true })).toBeVisible();
-  await expect(page.getByText('Osittainen: alaryhmillä eri näkyvyys')).toBeVisible();
+  await expect(page.getByText('Osittainen: ylätason ja alatasojen näkyvyys poikkeaa. Muuta alatasoja tarvittaessa erikseen.')).toBeVisible();
   await expect(page.locator('[data-layer-node="architecture-walls"] select')).toHaveValue('mixed');
   await expect(page.getByRole('button', { name: 'Palauta presetin asetukset' })).toBeEnabled();
   await page.getByRole('button', { name: 'Palauta presetin asetukset' }).click();
@@ -299,4 +299,50 @@ test('parent visibility overrides are explained without changing child preferenc
   await expect(select).not.toHaveAttribute('aria-description');
   expect(await page.evaluate(() => (window as any).actualModeEvents)).toEqual([]);
   await page.evaluate(() => (window as any).parentEffectPanel.destroy());
+});
+
+test('uniformly hidden children are mixed under visible parent in mobile DOM', async ({ page }) => {
+  const out = await build({
+    entryPoints: ['src/scripts/privateModelLayersPresetControls.ts'],
+    absWorkingDir: process.cwd(), bundle: true, platform: 'browser',
+    format: 'iife', globalName: 'YlisrinneLayersWP3', write: false,
+  });
+  await page.setViewportSize({ width: 375, height: 667 });
+  await page.setContent('<div id="viewport" style="width:300px;height:430px;overflow-y:auto"><div id="layers"></div></div>');
+  await page.addStyleTag({ content: readFileSync('src/styles/privateModelLayersPresetControls.css', 'utf8') });
+  await page.addScriptTag({ content: out.outputFiles[0].text });
+  const available = ['architecture-walls', 'architecture-walls-party', 'architecture-walls-interior'];
+  let initial = applyViewerLayerPreset(createViewerInteractionState(), 'd-2f');
+  initial = setViewerInteractionLayerMode(initial, 'architecture-walls-party', 'hidden');
+  initial = setViewerInteractionLayerMode(initial, 'architecture-walls-interior', 'hidden');
+  expect(buildViewerLayerPanelModel(initial, available).groups[0].items[0].mode).toBe('mixed');
+  await page.evaluate(({ state, ids }) => {
+    const app = (window as any).YlisrinneLayersWP3;
+    (window as any).events = [];
+    (window as any).panel = app.mountViewerLayerPresetPanel(
+      document.querySelector('#layers'), state, ids,
+      { onReset: () => {}, onPresetChange: () => {},
+        onLayerModeChange: (id: string, mode: string) => (window as any).events.push([id, mode]) },
+    );
+  }, { state: initial, ids: available });
+  const parent = page.locator('[data-layer-node="architecture-walls"]');
+  const select = parent.locator('select');
+  await expect(select).toHaveValue('mixed');
+  await expect(parent.locator('.yl-layer-preset-mixed')).toContainText('Muuta alatasoja');
+  await select.focus();
+  const hiddenParent = setViewerInteractionLayerMode(initial, 'architecture-walls', 'hidden');
+  await page.evaluate(({ state, ids }) => (window as any).panel.update(state, ids),
+    { state: hiddenParent, ids: available });
+  await expect(select).toBeFocused();
+  await expect(select).toHaveValue('hidden');
+  const restored = setViewerInteractionLayerMode(hiddenParent, 'architecture-walls', 'visible');
+  await page.evaluate(({ state, ids }) => (window as any).panel.update(state, ids),
+    { state: restored, ids: available });
+  await expect(select).toHaveValue('mixed');
+  await expect(page.locator('[data-layer-node="architecture-walls-party"] select')).toHaveValue('hidden');
+  await expect(page.locator('[data-layer-node="architecture-walls-interior"] select')).toHaveValue('hidden');
+  expect(await page.locator('#viewport').evaluate(el => el.scrollWidth > el.clientWidth)).toBe(false);
+  expect(await select.evaluate(el => el.getBoundingClientRect().height)).toBeGreaterThanOrEqual(44);
+  expect(await page.evaluate(() => (window as any).events)).toEqual([]);
+  await page.evaluate(() => (window as any).panel.destroy());
 });
