@@ -28,6 +28,14 @@ export const collectViewerLayerSourceNodes = (
     if (!Number.isInteger(nodeIndex) || !definition || !nameMatches(object, definition)) return;
     const parentNodeIndex = object.parent === root ? null : associations?.get(object.parent)?.nodes;
     if (object.parent !== root && !Number.isInteger(parentNodeIndex)) return;
+    // A parser index and matching name alone do not prove the current parent.
+    // Verify original glTF scene/child membership; a GLTFLoader primitive
+    // wrapper may legitimately share its parent's single source node index.
+    const sourceChildren = object.parent === root
+      ? json?.scenes?.[sceneIndex]?.nodes
+      : json?.nodes?.[parentNodeIndex]?.children;
+    if (parentNodeIndex !== nodeIndex &&
+        (!Array.isArray(sourceChildren) || !sourceChildren.includes(nodeIndex))) return;
     nodes.push({ object, sceneIndex, nodeIndex, parentNodeIndex,
       nodeName: object.name, glbSha256: sourceSha256, meshIndex: definition.mesh });
   });
