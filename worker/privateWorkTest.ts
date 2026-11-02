@@ -3963,6 +3963,17 @@ const AUTO_YLISRINNE_D_C80R2_V33_MERGE_V29_HJ_KIV8_AEG_RAIL_FLOORS_ISLAND_NE_WOR
   expectedSha256: 'ca1de571fa70e0fbcf1e36748ab0a43f840ff663b02dd2ff237aa99aac7c0210',
 } as const satisfies PrivateWorkTestCandidate;
 
+// Auto-registered 2026-11-02 from Drive queue file 1pTGtrS4Oe5Bga8JaIZ6aQMIChgOlu69h
+// by auto-publish-work-test. WORK_TEST, never as-built.
+const AUTO_YLISRINNE_D_C80R2_V34_V33_REVIEW_FIXES_CORNER_WC_HOB_LIGHTWELLS_PLINTH_WORK_TEST_HOST_HOLD_20261102_1PTGTRS4_CANDIDATE = {
+  id: 'auto-ylisrinne-d-c80r2-v34-v33-review-fixes-corner-wc-hob-lightwells-plinth-work-test-host-hold-20261102-1ptgtrs4',
+  label: 'Auto: Ylisrinne D C80R2 V34 V33 REVIEW FIXES CORNER WC HOB LIGHTWELLS PLINTH WORK TEST HOST HOLD 20261102 (scene196) - WORK_TEST',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/auto-ylisrinne-d-c80r2-v34-v33-review-fixes-corner-wc-hob-lightwells-plinth-work-test-host-hold-20261102-1ptgtrs4.glb`,
+  objectKey: 'work-test/auto-ylisrinne-d-c80r2-v34-v33-review-fixes-corner-wc-hob-lightwells-plinth-work-test-host-hold-20261102-1ptgtrs4.glb',
+  expectedSize: 29813768,
+  expectedSha256: '87bfd02ff7a1908c21279d1f663e5c5794994ff075784733e21d999dd694aaac',
+} as const satisfies PrivateWorkTestCandidate;
+
 const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
   C80R2_V27_D_TERRACE_165MM_WORK_TEST_CANDIDATE,
   D_C80R2_UNIFIED64_C018_WORK_TEST_CANDIDATE,
@@ -4279,6 +4290,7 @@ const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
   AUTO_YLISRINNE_D_C80R2_V26_AEG_HK654200FB_OWNER_APPROVED_VIEWER_FLOOR_SCENES_WORK_TEST_HOST_HOLD_20261102_1STMZPYZ_CANDIDATE,
   AUTO_YLISRINNE_D_C80R2_V29_WEST_FULL_FACADE_PLINTH_WORK_TEST_HOST_HOLD_20261102_1VFK15KE_CANDIDATE,
   AUTO_YLISRINNE_D_C80R2_V33_MERGE_V29_HJ_KIV8_AEG_RAIL_FLOORS_ISLAND_NE_WORK_TEST_HOST_HOLD_20261102_1XBJBWWP_CANDIDATE,
+  AUTO_YLISRINNE_D_C80R2_V34_V33_REVIEW_FIXES_CORNER_WC_HOB_LIGHTWELLS_PLINTH_WORK_TEST_HOST_HOLD_20261102_1PTGTRS4_CANDIDATE,
 ] as const satisfies readonly PrivateWorkTestCandidate[];
 
 type PrivateWorkTestObjectMetadata = {
