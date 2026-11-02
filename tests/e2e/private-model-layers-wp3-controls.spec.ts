@@ -172,7 +172,14 @@ test('keyboard focus survives state update, no metadata has an explicit explanat
     globalName: 'YlisrinneLayersWP3', write: false,
   });
   await page.setViewportSize({ width: 375, height: 667 });
-  await page.setContent('<div id="layers-panel" style="position:relative; height:490px; width:300px; overflow-y:auto;"><div id="layers"></div></div>');
+  await page.setContent(`<style>
+    #test-viewport { position:relative; width:340px; height:520px; }
+    #layers-panel { position:absolute; z-index:2; height:490px; width:300px;
+      overflow-y:auto; background:#1b242d; color:#f1f4f5; }
+    #coordinate-panel { position:absolute; right:8px; bottom:8px; z-index:3;
+      width:160px; height:180px; background:#1b242d; color:#f1f4f5; }
+    </style><div id="test-viewport"><div id="layers-panel"><div id="layers"></div></div>
+    <aside id="coordinate-panel">Koordinaatit</aside></div>`);
   await page.addStyleTag({ content: readFileSync('src/styles/privateModelLayersPresetControls.css', 'utf8') });
   await page.addScriptTag({ content: result.outputFiles[0].text });
   const start = applyViewerLayerPreset(createViewerInteractionState(), 'd-apartment');
@@ -196,6 +203,32 @@ test('keyboard focus survives state update, no metadata has an explicit explanat
   await expect(page.locator('[data-layer-node="roof"] select')).toBeFocused();
   await expect(page.locator('[data-layer-node="architecture-walls"] select')).toHaveValue('mixed');
   await expect(page.getByText('Himmeä = läpikuultava esitystapa, ei tiedon varmuustaso.')).toBeVisible();
+  const contrast = await page.locator('[data-layer-preset-panel]').evaluate(panel => {
+    const luminance = (color: string) => {
+      const rgb = color.match(/[\d.]+/g)!.slice(0, 3).map(Number).map(value => {
+        const channel = value / 255;
+        return channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4;
+      });
+      return rgb[0] * 0.2126 + rgb[1] * 0.7152 + rgb[2] * 0.0722;
+    };
+    const surface = getComputedStyle(panel).backgroundColor;
+    const background = luminance(surface);
+    const ratios = ['.yl-layer-preset-field > span', '.yl-layer-preset-help',
+      '[data-layer-preset-customized]', '.yl-layer-preset-group h3'].map(selector => {
+      const foreground = luminance(getComputedStyle(panel.querySelector(selector)!).color);
+      return (Math.max(foreground, background) + 0.05) /
+        (Math.min(foreground, background) + 0.05);
+    });
+    return { surface, ratios };
+  });
+  expect(contrast.surface).toBe('rgb(255, 255, 255)');
+  expect(Math.min(...contrast.ratios)).toBeGreaterThanOrEqual(4.5);
+  const stacking = await page.locator('#layers-panel').evaluate(panel => ({
+    layers: Number(getComputedStyle(panel).zIndex),
+    hud: Number(getComputedStyle(document.querySelector('#coordinate-panel')!).zIndex),
+  }));
+  expect(stacking.layers).toBeGreaterThan(stacking.hud);
+  await expect(page.locator('#coordinate-panel')).toBeVisible();
   const minTargetHeight = await roof.evaluate(el => el.getBoundingClientRect().height);
   expect(minTargetHeight).toBeGreaterThanOrEqual(44);
   const horizontalOverflow = await page.locator('#layers-panel').evaluate(el => el.scrollWidth > el.clientWidth);

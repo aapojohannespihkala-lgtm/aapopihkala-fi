@@ -2446,6 +2446,8 @@ const title = 'Private 3D viewer';
       import { createViewerLayersRuntime, availableViewerLayerIds, collectViewerLayerSourceNodes, type ViewerLayersRuntime } from '../../scripts/privateModelLayersRuntime';
       import { resolveBuildingPartLayerBindings } from '../../scripts/privateModelBuildingPartLayerBindings.mjs';
       import { createTechnicalSystemLayerInventory } from '../../scripts/privateModelTechnicalSystemsLayers';
+      import { mountTechnicalLayerAvailability } from '../../scripts/privateModelTechnicalLayersAvailabilityUi';
+      import '../../styles/privateModelTechnicalLayersAvailability.css';
       import type { ViewerScopedLayerRoot, ViewerScopedLayerGate } from '../../scripts/privateModelLayerScopedPresentationBridge';
       import { viewerLayerNodeCapabilities, type ViewerLayerNodeId } from '../../scripts/privateModelLayerHierarchyState';
 
@@ -13928,8 +13930,12 @@ const title = 'Private 3D viewer';
       layerBindingNote.className = 'layer-note';
       layerBindingNote.setAttribute('aria-live', 'polite');
       layerPresetHost.after(layerBindingNote);
+      const technicalAvailabilityHost = document.createElement('div');
+      layerBindingNote.after(technicalAvailabilityHost);
+      const technicalAvailability = mountTechnicalLayerAvailability(technicalAvailabilityHost);
 
       const disposeLayersPresentation = () => {
+        technicalAvailability.update([]);
         layersRuntime?.dispose();
         layersRuntime = null;
       };
@@ -13999,6 +14005,7 @@ const title = 'Private 3D viewer';
               viewerScope: layersState.layerPresetState!.selected,
               allowSourceOnly: true, allowHistoricalPlans: false,
             });
+            technicalAvailability.update(technical.summary);
             const technicalRoots = new Set(technical.bridgeBindings.map(binding => binding.root));
             const bindings: ViewerScopedLayerRoot[] = [
               ...building.bindings
