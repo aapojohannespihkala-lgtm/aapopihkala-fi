@@ -85,6 +85,12 @@ test('unknown runtime source role fails closed even when a binding claims AVAILA
   expect(row.count).toBe(0);
   expect(row.message).toContain('lähteen asemaa ei ole varmennettu');
   expect(row.provenance).toContain('Lähteen asema ei ole varmennettu');
+  const inheritedRole = item('AVAILABLE', {
+    sourceRole: 'toString' as TechnicalSystemSummary['sourceRole'],
+  });
+  const [inheritedRow] = buildTechnicalAvailabilityRows([inheritedRole]);
+  expect(inheritedRow.supported).toBe(false);
+  expect(inheritedRow.provenance).toBe('Lähteen asema ei ole varmennettu.');
 });
 
 test('empty inventory yields no fabricated support', () => {
