@@ -65,6 +65,13 @@ for file in "$@"; do
       # WP1 state, scope defaults and parent-child visibility feed both the
       # existing WP1 contract and the WP3 on-screen controls.
       add private-model-layers-wp1 private-model-viewer-state private-model-layers-wp3-controls ;;
+    src/scripts/privateModelLayerGhostPresentation.ts)
+      # WP2 material/pickability behaviour must also preserve scoped bridge behaviour.
+      add private-model-layer-ghost-presentation private-model-layers-wp3-scoped-runtime ;;
+    src/scripts/privateModelLayerScopedPresentationBridge.ts)
+      # Bridge changes affect both source-gated adapters and reversible ghost
+      # materials/pickability; recheck both existing browser regressions.
+      add private-model-layer-ghost-presentation private-model-layers-wp3-scoped-runtime ;;
     src/scripts/privateModelLayersPresetControls.ts|src/styles/privateModelLayersPresetControls.css)
       # Reuse the existing real-DOM WP3 regression whenever Layers controls
       # or their scoped responsive stylesheet changes.
