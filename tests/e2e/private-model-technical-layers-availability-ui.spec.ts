@@ -76,6 +76,7 @@ test('historical plans and reference layers keep their source status separate fr
 });
 
 test('unknown runtime source role fails closed even when a binding claims AVAILABLE', () => {
+  // Preserve the fail-closed contract for malformed runtime source roles.
   const unverifiedRole = item('AVAILABLE', {
     sourceRole: 'UNVERIFIED_FUTURE_ROLE' as TechnicalSystemSummary['sourceRole'],
   });
