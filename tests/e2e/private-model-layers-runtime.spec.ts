@@ -95,18 +95,24 @@ test('exact V26 viewer: D upstairs, ghost walls, supported IV, reset, floor chan
   }
   const canvas = page.locator('#private-model-canvas');
   const reviewUrl = origin + '/private-model/?review=' + candidateId + '-review';
+  const desktopViewport = page.viewportSize()!;
+  await page.setViewportSize({ width: 390, height: 844 });
   // A newly merged viewer can be ahead of its normal Cloudflare deployment.
   // Reload only the same authenticated viewer, never an alternate auth route.
   for (let attempt = 0; attempt < (production ? 12 : 1); attempt++) {
     await page.goto(reviewUrl, { waitUntil: 'domcontentloaded' });
     await expect(canvas).toHaveAttribute('data-work-test-review-autoload', 'true', { timeout: 120_000 });
     if (await canvas.getAttribute('data-layers-runtime') === 'active' &&
-        await page.locator('[data-technical-layer-availability]').count() === 1) break;
+        await page.locator('[data-technical-layer-availability]').count() === 1 &&
+        await page.locator('#preset-context-status').evaluate(el =>
+          getComputedStyle(el).textOverflow === 'ellipsis')) break;
     if (production && attempt < 11) await page.waitForTimeout(10_000);
   }
   expect(sourceVerified).toBe(true);
   await expect(canvas).toHaveAttribute('data-layers-source-sha256', sha);
   await expect(canvas).toHaveAttribute('data-layers-runtime', 'active');
+  await expect(page.locator('#preset-menu > summary')).toHaveCSS('width', '246px');
+  await page.setViewportSize(desktopViewport);
   await page.locator('#layers-button').click();
   const preset = page.getByRole('combobox', { name: 'Näkymän esiasetus', exact: true });
   await expect(preset).toBeVisible();
@@ -160,6 +166,24 @@ test('exact V26 viewer: D upstairs, ghost walls, supported IV, reset, floor chan
   await page.locator('#more-menu > summary').click();
   await page.locator('#fit-button').click();
   await page.locator('#layers-button').click();
+  const readLiveCamera = async () => {
+    // Read the existing render-frame HUD, not the Layers event snapshot.
+    await canvas.evaluate(() => new Promise<void>(resolve =>
+      requestAnimationFrame(() => requestAnimationFrame(() => resolve()))));
+    return JSON.parse((await page.locator('#ai-navigator-readout').getAttribute('data-world-pose'))!);
+  };
+  const mobileCamera = await readLiveCamera();
+  const mobileCanvas = await canvas.boundingBox();
+  const expectMobileCamera = async () => {
+    const after = await readLiveCamera();
+    expect(after.projection).toBe(mobileCamera.projection);
+    for (const key of ['position', 'target', 'direction']) {
+      for (let i = 0; i < mobileCamera[key].length; i++) {
+        expect(after[key][i]).toBeCloseTo(mobileCamera[key][i], 9);
+      }
+    }
+    expect(await canvas.boundingBox()).toEqual(mobileCanvas);
+  };
   await walls.selectOption('ghost');
   await ventilation.selectOption('visible');
   const bounds = await preset.boundingBox();
@@ -168,11 +192,13 @@ test('exact V26 viewer: D upstairs, ghost walls, supported IV, reset, floor chan
   // Keep the actual model visible in the two mobile evidence frames. The
   // controls and their state have already been exercised at this viewport.
   await page.locator('#layers-button').click();
+  await expectMobileCamera();
   await page.screenshot({ path: info.outputPath('layers-v26-2f-walls-ghost-mobile.png') });
   await page.locator('#layers-button').click();
   await page.getByRole('button', { name: 'Palauta presetin asetukset' }).click();
   await expect(walls).toHaveValue('visible');
   await page.locator('#layers-button').click();
+  await expectMobileCamera();
   await page.screenshot({ path: info.outputPath('layers-v26-2f-restored-mobile.png') });
   const webgl = await canvas.evaluate((element: HTMLCanvasElement) => {
     const gl = element.getContext('webgl2');
