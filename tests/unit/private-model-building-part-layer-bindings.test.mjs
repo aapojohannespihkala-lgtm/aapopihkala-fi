@@ -131,3 +131,13 @@ test('shared C/D boundary admitted only in D BOTH, not single-floor',()=>{
   const one=resolveBuildingPartLayerBindings({...f.options,floor:'1F'});
   assert.ok(!one.bindings.some(x=>x.root===target));
 });
+
+test('nested mesh descendants are not handed to non-overlapping bridge',()=>{
+  const f=fixture();
+  const inner=new Object3D('nested',true);
+  f.objects.wallD1.add(inner);
+  f.gltf.parser.associations.set(inner,{nodes:1});
+  const result=resolveBuildingPartLayerBindings(f.options);
+  assert.ok(!result.bindings.some(x=>x.root===f.objects.wallD1 || x.root===inner));
+  assert.ok(result.excluded.some(x=>x.reason==='NESTED_MESH_HIERARCHY'));
+});
