@@ -255,8 +255,30 @@ test('references open separately and no source-only routes enter the physical de
   expect(await page.locator('[data-layer-branch="technical"] [data-layer-node^="locus"]').count()).toBe(0);
   await expand(page, 'references');
   await expand(page, 'locus');
-  await expect(refs.getByText('Vesi, Locus', { exact: true })).toBeVisible();
-  await expect(refs.getByText('IV 1974, suunnitelma', { exact: true })).toBeVisible();
+  await expect(refs.getByRole('group', { name: 'Vesi, Locus, näkyvyys', exact: true })).toBeVisible();
+  await expect(refs.getByRole('group', { name: 'IV 1974, suunnitelma, näkyvyys', exact: true })).toBeVisible();
+  // Every depth keeps the same mode columns. The fixture's separate HUD
+  // may extend outside the content panel, but its controls must not do so.
+  const alignment = await refs.locator('.yl-layer-mode-controls').evaluateAll(controls => {
+    const panel = document.getElementById('layers-panel')!;
+    const standard = document.querySelector('[data-layer-node="technical"] .yl-layer-mode-controls')!;
+    return {
+      right: standard.getBoundingClientRect().right,
+      panelRight: panel.getBoundingClientRect().left + panel.clientWidth,
+      overflow: panel.scrollWidth > panel.clientWidth,
+      rows: controls.filter(control => control.getClientRects().length > 0).map(control => ({
+        right: control.getBoundingClientRect().right,
+        buttonEdges: Array.from(control.querySelectorAll('button'))
+          .map(button => button.getBoundingClientRect().right),
+      })),
+    };
+  });
+  expect(alignment.rows.length).toBeGreaterThan(3);
+  expect(alignment.overflow).toBe(false);
+  for (const control of alignment.rows) {
+    expect(control.right).toBeCloseTo(alignment.right, 0);
+    expect(Math.max(...control.buttonEdges)).toBeLessThanOrEqual(alignment.panelRight + 1);
+  }
   expect(await page.evaluate(() => (window as any).layerEvents)).toEqual([]);
   await page.evaluate(state => (window as any).layerPanel.update(state, []), initial());
   await expect(page.locator('[data-layer-node]')).toHaveCount(0);
