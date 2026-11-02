@@ -111,6 +111,14 @@
   color: #455d6b;
   font-size: 11px;
 }
+[data-layer-preset-panel] .yl-layer-preset-parent-effect {
+  grid-column: 1 / -1;
+  display: block;
+  min-width: 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: #455d6b;
+}
 [data-layer-preset-panel] .yl-layer-preset-empty {
   margin: 0;
   padding: 10px;
