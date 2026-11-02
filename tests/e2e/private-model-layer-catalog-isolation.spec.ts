@@ -201,7 +201,7 @@ export { createViewerInteractionState, applyViewerLayerPreset } from './src/scri
     '[data-layer-branch="architecture"] > .yl-layer-preset-row [data-layer-mode="hidden"]');
   await expect(button).toBeVisible();
   await expect(button).toBeDisabled();
-  await expect(page.evaluate(() => (window as any).events)).toEqual([]);
+  expect(await page.evaluate(() => (window as any).events)).toEqual([]);
 
   await page.evaluate(() => (window as any).panel.update(
     (window as any).sourceState,
