@@ -179,6 +179,8 @@ function v26Fixture(sceneIndex=162) {
     8199:{name:'C80R2_V20_D2F_PW26_PINK_WEST_WALL_CONTINUOUS_Y0P025_5P05',mesh:2589},
     8198:{name:'C80R2_V20_D2F_WHOLE_FLOOR_PALE_PLANK_CONTINUOUS_EXCEPT_WC_STAIR',mesh:2588},
     8003:{name:'C80R2_V16_D2F_INNER_CEILING_WHITE_VISIBLE_FROM_BELOW_ONLY',mesh:2450},
+    6497:{name:'C80_030_D1F_WP6_REMAINING_ROOMS_REFERENCE_CEILING_ALPHA012_1F_NONPHYSICAL_OPTIN',mesh:1860},
+    6498:{name:'C80_030_D1F_WP6_REMAINING_ROOMS_REFERENCE_CEILING_ALPHA012_BOTH_NONPHYSICAL_OPTIN',mesh:1860},
     6656:{name:'ARK3_1985_GABLE_ROOF_EXTENDED_TO_EAST_PLANE_WORK_TEST',mesh:1941},
     7723:{name:'source-roof-parent',children:[6656]},
   };
@@ -190,15 +192,17 @@ function v26Fixture(sceneIndex=162) {
     for(const child of def.children??[])object.add(create(child));
     return object;
   };
-  const roots=sceneIndex===175?[8199,8198,8003,7723]:[8199,8198,8003];
+  const roots=sceneIndex===175?[8199,8198,8003,7723,6498]
+    :sceneIndex===174?[6497]:[8199,8198,8003];
   for(const i of roots)scene.add(create(i));
   const scenes=new Array(176),sourceScenes=new Array(176);
   scenes[sceneIndex]=scene;
   sourceScenes[sceneIndex]={nodes:roots,name:sceneIndex===175
     ?'C80R2_V26_BOTH_STAIR_RAIL_LANDING_END_PLYWOOD_WORK_TEST_HOST_HOLD_20261102'
+    :sceneIndex===174?'C80R2_V26_D1F_STAIR_RAIL_LANDING_END_PLYWOOD_WORK_TEST_HOST_HOLD_20261102'
     :'C80R2_V20_D2F_FLOOR_PINK_POST_HOOD_ISLAND_KIV_WORK_TEST_HOST_HOLD_20261102'};
   const gltf={scenes,parser:{json:{nodes,scenes:sourceScenes},associations}};
-  const options={gltf,expectedSourceSha256:HASH,loadedSourceSha256:HASH,sceneIndex,activeSceneRoot:scene,area:'D',floor:sceneIndex===175?'BOTH':'2F'};
+  const options={gltf,expectedSourceSha256:HASH,loadedSourceSha256:HASH,sceneIndex,activeSceneRoot:scene,area:'D',floor:sceneIndex===175?'BOTH':sceneIndex===174?'1F':'2F'};
   return {objects,scene,gltf,options};
 }
 
@@ -211,6 +215,30 @@ test('V26 source profile admits actual current wall/floor/ceiling without preten
   assert.ok(result.evidence.every(e=>e.bindingKind==='EXACT_V26_SOURCE_PROFILE'));
   assert.equal(JSON.stringify(f.gltf.parser.json),before);
   assert.deepEqual(f.objects[8199].userData,{});
+});
+
+test('V26 nonphysical reference ceilings are excluded from physical ceiling Layers without source mutation',()=>{
+  for (const [sceneIndex, referenceIndex] of [[174,6497],[175,6498]]) {
+    const f=v26Fixture(sceneIndex);
+    const reference=f.objects[referenceIndex];
+    const originalMaterial=reference.material;
+    const originalVisible=reference.visible;
+    const originalSource=JSON.stringify(f.gltf.parser.json);
+    const result=resolveBuildingPartLayerBindings(f.options);
+    assert.equal(result.sourceVerified,true);
+    assert.ok(!result.bindings.some(binding=>binding.root===reference));
+    assert.ok(!result.evidence.some(item=>item.sourceNodeIndex===referenceIndex));
+    assert.ok(result.excluded.some(item=>
+      item.sourceNodeIndex===referenceIndex && item.reason==='UNCLASSIFIED_OR_REFERENCE'));
+    assert.strictEqual(reference.material,originalMaterial);
+    assert.equal(reference.visible,originalVisible);
+    assert.equal(JSON.stringify(f.gltf.parser.json),originalSource);
+    if (sceneIndex===175) assert.ok(result.bindings.some(binding=>
+      binding.root===f.objects[8003] && binding.id==='architecture-ceilings'));
+  }
+  const upstairs=v26Fixture(162);
+  assert.ok(resolveBuildingPartLayerBindings(upstairs.options).bindings.some(binding=>
+    binding.root===upstairs.objects[8003] && binding.id==='architecture-ceilings'));
 });
 
 test('V26 profile requires exact SHA, original scene, node mesh, name and source parent route',()=>{
