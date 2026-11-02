@@ -284,12 +284,16 @@ export const setViewerInteractionLayerMode = (
 ): ViewerInteractionState => {
   const active = current.layerPresetState ??
     createLayerPresetState(legacyToLayerPreset(current.researchPreset));
-  const modes = setViewerLayerMode(active.modes, nodeId, mode);
+  // Runtime inputs may be malformed even when TypeScript callers are typed.
+  // Fail closed in BOTH semantic modes and legacy visibility booleans.
+  const safeMode: ViewerLayerVisibilityMode =
+    mode === 'visible' || mode === 'ghost' ? mode : 'hidden';
+  const modes = setViewerLayerMode(active.modes, nodeId, safeMode);
   // Keep the current roof fallback when requesting ghost. This avoids making
   // a previously hidden roof opaque before the rendering adapter exists.
-  const layers = nodeId === 'roof' && mode === 'ghost'
+  const layers = nodeId === 'roof' && safeMode === 'ghost'
     ? current.layers
-    : setViewerLayerNodeVisible(current.layers, nodeId, mode !== 'hidden');
+    : setViewerLayerNodeVisible(current.layers, nodeId, safeMode !== 'hidden');
   return {
     ...current,
     layers,
