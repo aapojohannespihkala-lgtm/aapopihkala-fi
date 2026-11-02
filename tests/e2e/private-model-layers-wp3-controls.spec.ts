@@ -52,6 +52,33 @@ test('parent reports mixed when explicit children differ, without changing child
     .toBe('visible');
 });
 
+test('parent includes verified third-level conflicts without inferring absent layers', () => {
+  const base = applyViewerLayerPreset(createViewerInteractionState(), 'd-apartment');
+  const partyHidden = setViewerInteractionLayerMode(base, 'architecture-walls-party', 'hidden');
+  const available = [
+    'architecture', 'architecture-walls', 'architecture-walls-party',
+    'architecture-walls-interior', 'architecture-floors',
+  ];
+  const row = (state: typeof base, ids: readonly string[], id: string) =>
+    buildViewerLayerPanelModel(state, ids).groups.flatMap((group) => group.items)
+      .find((item) => item.id === id);
+
+  expect(row(partyHidden, available, 'architecture')?.mode).toBe('mixed');
+  expect(row(partyHidden, available, 'architecture-walls')?.mode).toBe('mixed');
+  expect(row(partyHidden, available, 'architecture')?.effectiveMode).toBe('visible');
+  expect(row(partyHidden, available, 'architecture-walls-party')?.mode).toBe('hidden');
+
+  const rootHidden = setViewerInteractionLayerMode(partyHidden, 'architecture', 'hidden');
+  expect(row(rootHidden, available, 'architecture')?.mode).toBe('hidden');
+  expect(row(rootHidden, available, 'architecture-walls-party')?.effectiveMode).toBe('hidden');
+
+  const withoutParty = available.filter((id) => id !== 'architecture-walls-party');
+  expect(row(partyHidden, withoutParty, 'architecture')?.mode).toBe('visible');
+  expect(row(partyHidden, ['architecture', 'architecture-walls-party', 'architecture-floors'],
+    'architecture')?.mode).toBe('visible'); // Missing intermediate binding stays fail-closed.
+  expect(row(base, available, 'architecture')?.mode).toBe('visible');
+});
+
 test('technical device controls require available bindings and aggregate their own children', () => {
   const start = applyViewerLayerPreset(createViewerInteractionState(), 'd-2f');
   const state = setViewerInteractionLayerMode(start, 'technical-ventilation', 'hidden');
