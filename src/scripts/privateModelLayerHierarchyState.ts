@@ -467,15 +467,21 @@ export const getViewerLayerEffectiveMode = (
   return ownMode === 'ghost' || parentMode === 'ghost' ? 'ghost' : 'visible';
 };
 
-/** Parent and child modes are compared without rewriting child preferences. */
+/**
+ * Report the parent's own selection and child preferences, not the modes
+ * flattened by an ancestor's ghost gate. A hidden parent remains authoritative.
+ * Rendering still uses getViewerLayerEffectiveMode (scope > parent > child).
+ */
 export const getViewerLayerParentMode = (
   modes: ViewerLayerModeMap,
   parentId: ViewerLayerNodeId,
   children: readonly ViewerLayerNodeId[],
 ): ViewerLayerParentMode => {
-  const parent = getViewerLayerEffectiveMode(modes, parentId);
-  if (parent === 'hidden' || children.length === 0) return parent;
-  return children.every((child) => getViewerLayerEffectiveMode(modes, child) === parent)
+  const parent = modes[parentId];
+  // Persisted maps may be incomplete: never expose an invalid parent mode.
+  if (parent !== 'visible' && parent !== 'ghost') return 'hidden';
+  if (children.length === 0) return parent;
+  return children.every((child) => modes[child] === parent)
     ? parent
     : 'mixed';
 };
