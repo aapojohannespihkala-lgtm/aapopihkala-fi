@@ -66,9 +66,11 @@ for file in "$@"; do
       # existing WP1 contract and the WP3 on-screen controls.
       add private-model-layers-wp1 private-model-viewer-state private-model-layers-wp3-controls ;;
     src/scripts/privateModelLayerGhostPresentation.ts)
-      # WP2 source-backed ghost presentation must rerun its existing
-      # Mesh/Line/Points restoration and pickability browser regression.
-      add private-model-layer-ghost-presentation ;;
+      # WP2 material/pickability behaviour must also preserve scoped bridge behaviour.
+      add private-model-layer-ghost-presentation private-model-layers-wp3-scoped-runtime ;;
+    src/scripts/privateModelLayerScopedPresentationBridge.ts)
+      # Scope/floor/source gating and adapter lifecycle have their own existing test.
+      add private-model-layers-wp3-scoped-runtime ;;
     src/scripts/privateModelLayersPresetControls.ts|src/styles/privateModelLayersPresetControls.css)
       # Reuse the existing real-DOM WP3 regression whenever Layers controls
       # or their scoped responsive stylesheet changes.
