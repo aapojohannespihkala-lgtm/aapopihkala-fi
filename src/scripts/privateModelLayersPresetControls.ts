@@ -176,6 +176,14 @@ export const mountViewerLayerPresetPanel = (
   const description = doc.createElement('p');
   description.className = 'yl-layer-preset-help';
   description.textContent = 'Esiasetus valitsee tasojen lähtönäkyvyyden. Voit muuttaa tasoja yksitellen.';
+  // The D 2F scene may have no independently verified roof node.
+  // Explain the unavailable ghost control without fabricating a roof layer.
+  const roofUnavailableNotice = doc.createElement('p');
+  roofUnavailableNotice.className = 'yl-layer-preset-help';
+  roofUnavailableNotice.dataset.layerRoofUnavailable = '';
+  roofUnavailableNotice.setAttribute('role', 'note');
+  roofUnavailableNotice.textContent = 'Yläkerran mallinäkymässä vesikattoa ei ole tunnistettu. Kattoa ei voi tässä näkymässä himmentää.';
+  roofUnavailableNotice.hidden = true;
   const status = doc.createElement('div');
   status.className = 'yl-layer-preset-status';
   const customizedText = doc.createElement('span');
@@ -192,7 +200,7 @@ export const mountViewerLayerPresetPanel = (
   const groups = doc.createElement('div');
   groups.className = 'yl-layer-preset-groups';
   groups.dataset.layerPresetGroups = '';
-  root.append(label, description, status, legend, groups);
+  root.append(label, description, roofUnavailableNotice, status, legend, groups);
   host.insertBefore(root, host.firstChild);
 
   for (const [id, title] of viewerLayerPresetChoices) {
@@ -230,6 +238,8 @@ export const mountViewerLayerPresetPanel = (
     }
     presetSelect.disabled = panelOptions.disabled === true || allowedPresets.size === 0;
     const model = buildViewerLayerPanelModel(next, available);
+    roofUnavailableNotice.hidden = !(model.selectedPreset === 'd-2f' &&
+      !available.includes('roof'));
     // update() may be called synchronously from an onLayerModeChange callback.
     // Preserve keyboard focus when replacing only the metadata-gated rows.
     const focused = doc.activeElement;
