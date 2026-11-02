@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { BoxGeometry, Group, Mesh, MeshBasicMaterial, Scene } from 'three';
+import { BoxGeometry, Group, Mesh, MeshBasicMaterial, Scene, type Object3D } from 'three';
 import {
   createViewerScopedLayerPresentation,
   type ViewerScopedLayerGate,
@@ -166,7 +166,7 @@ test('WP3 ghost keeps selection intact and applies parent ghost mode only inside
   state = setViewerInteractionLayerMode(state, 'architecture-walls', 'ghost');
   const f = {
     ...frameFor(scene, new Map([[wall.root, allow()]]), ['architecture-walls-party']),
-    isSelected: (mesh: Mesh) => mesh === selected,
+    isSelected: (object: Object3D) => object === selected,
   };
   expect(bridge.apply(state, f)[0].mode).toBe('ghost');
   expect(selected.material).toBe(wall.material);
@@ -194,8 +194,8 @@ test('WP3 presentation failure hides all roots and restores any earlier ghost ma
   const gates = new Map([[first.root, allow()], [second.root, allow()]]);
   const frame = {
     ...frameFor(scene, gates, ['roof', 'architecture-walls-party']),
-    isSelected: (mesh: Mesh) => {
-      if (mesh === second.mesh) throw new Error('selection callback failed');
+    isSelected: (object: Object3D) => {
+      if (object === second.mesh) throw new Error('selection callback failed');
       return false;
     },
   };
