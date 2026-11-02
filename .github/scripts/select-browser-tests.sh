@@ -61,6 +61,10 @@ for file in "$@"; do
       add current-worker-regression current-portfolio-resilience current-markets-fallback current-markets-timeout ;;
     src/pages/private-model/index.astro)
       add private-model-d1f-combined-wall-scene-contract private-model-main-view-scope private-model-other-floor-reference private-model-work-test-load-diagnostics; p4 ;;
+    src/scripts/privateModelTechnicalSystemsLayers.ts|src/scripts/privateModelTechnicalLayersAvailabilityUi.ts|src/styles/privateModelTechnicalLayersAvailability.css)
+      # HIGH2 source bindings and source-availability UI share one verified
+      # technical inventory. Re-run their existing browser and DOM guards.
+      add private-model-technical-systems-layers private-model-technical-layers-availability-ui private-model-technical-layers-availability-dom ;;
     src/scripts/privateModelWorkTest.ts)
       add private-model-work-test-load-diagnostics ;;
     src/scripts/privateModelMainViewScope.ts)
