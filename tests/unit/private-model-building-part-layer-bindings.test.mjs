@@ -332,3 +332,69 @@ test('V27 source profile rejects stale scene, hash, mesh, name and COW parent pa
   const moved=b.objects[index];moved.parent.children=moved.parent.children.filter(x=>x!==moved);b.scene.add(moved);
   assert.ok(!resolveBuildingPartLayerBindings(b.options).bindings.some(x=>x.root===moved));
 });
+
+import { V29_SOURCE_SHA256, V29_BUILDING_PARTS, V29_BUILDING_SCENES } from '../../src/scripts/privateModelC80R2V29LayerSourceProfile.mjs';
+function v29Fixture(sceneIndex) {
+  const def = V29_BUILDING_SCENES[sceneIndex];
+  const scene = new Object3D('V29');
+  const nodes = [], roots = [], objects = {}, associations = new Map();
+  for (const [key, paths] of Object.entries(def.paths)) for (const path of paths) {
+    for (let k = 0; k < path.length; k++) {
+      const index = path[k], last = k === path.length - 1;
+      nodes[index] ??= { name: 'source-parent-' + index, children: [] };
+      if (last) Object.assign(nodes[index], structuredClone(V29_BUILDING_PARTS[key]));
+      if (k === 0) { if (!roots.includes(index)) roots.push(index); }
+      else if (!nodes[path[k - 1]].children.includes(index)) nodes[path[k - 1]].children.push(index);
+    }
+  }
+  const make = index => {
+    const node = nodes[index], obj = new Object3D(node.name, node.mesh !== undefined);
+    objects[index] = obj; associations.set(obj, { nodes: index, ...(node.mesh !== undefined ? { meshes: node.mesh } : {}) });
+    for (const child of node.children ?? []) obj.add(make(child));
+    return obj;
+  };
+  for (const index of roots) scene.add(make(index));
+  const scenes = new Array(182), sourceScenes = new Array(182);
+  scenes[sceneIndex] = scene; sourceScenes[sceneIndex] = { name: def.name, nodes: roots };
+  const gltf = { scenes, parser: { json: { nodes, scenes: sourceScenes }, associations } };
+  return { objects, scene, gltf, options: {
+    gltf, expectedSourceSha256: V29_SOURCE_SHA256, loadedSourceSha256: V29_SOURCE_SHA256,
+    sceneIndex, activeSceneRoot: scene, area: 'D', floor: def.floor,
+  } };
+}
+
+test('V29 exact successor classifies 1F/2F/BOTH and the new blue west plinth without altering source', () => {
+  for (const index of [180, 162, 181]) {
+    const f = v29Fixture(index), original = JSON.stringify(f.gltf.parser.json);
+    const result = resolveBuildingPartLayerBindings(f.options);
+    assert.equal(result.sourceVerified, true);
+    assert.equal(result.bindings.length, Object.keys(V29_BUILDING_SCENES[index].paths).length);
+    assert.ok(result.evidence.every(e => e.bindingKind === 'EXACT_V29_SOURCE_PROFILE'));
+    assert.equal(JSON.stringify(f.gltf.parser.json), original);
+    if (index !== 162) {
+      const node = index === 180 ? 8855 : 8856;
+      assert.ok(result.bindings.some(b => b.root === f.objects[node] && b.id === 'architecture-walls-exterior'));
+      assert.equal(result.evidence.find(e => e.sourceNodeIndex === node)?.objectKey, 'V29:' + index + ':' + node);
+      assert.deepEqual(result.evidence.find(e => e.sourceNodeIndex === node)?.sourceNodePath, [node]);
+    }
+  }
+});
+
+test('V29 plinth fails closed for wrong SHA, scene name, node identity and missing exact parent path', () => {
+  let f = v29Fixture(180);
+  assert.equal(resolveBuildingPartLayerBindings({ ...f.options, expectedSourceSha256: HASH, loadedSourceSha256: HASH }).bindings.length, 0);
+  f.gltf.parser.json.scenes[180].name += '_UNKNOWN';
+  assert.equal(resolveBuildingPartLayerBindings(f.options).bindings.length, 0);
+  f = v29Fixture(180); f.gltf.parser.json.nodes[8855].mesh = 0;
+  assert.ok(!resolveBuildingPartLayerBindings(f.options).bindings.some(b => b.root === f.objects[8855]));
+  f = v29Fixture(181); f.objects[8856].name = 'INFERRED_PLINTH';
+  assert.ok(!resolveBuildingPartLayerBindings(f.options).bindings.some(b => b.root === f.objects[8856]));
+  f = v29Fixture(180);
+  const plinth = f.objects[8855], parent = new Object3D('tampered-parent');
+  f.scene.children = f.scene.children.filter(x => x !== plinth);
+  f.gltf.parser.json.nodes[9000] = { name: 'tampered-parent', children: [8855] };
+  f.gltf.parser.json.scenes[180].nodes = f.gltf.parser.json.scenes[180].nodes.filter(i => i !== 8855).concat(9000);
+  f.scene.add(parent); parent.add(plinth);
+  f.gltf.parser.associations.set(parent, { nodes: 9000 });
+  assert.ok(!resolveBuildingPartLayerBindings(f.options).bindings.some(b => b.root === plinth));
+});
