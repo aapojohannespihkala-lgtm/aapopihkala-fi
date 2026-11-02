@@ -123,6 +123,27 @@ test('real browser DOM controls emit only explicit user actions and support mixe
   await expect(page.getByText('Sähköt', { exact: true })).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'Palauta presetin asetukset' })).toBeDisabled();
 
+  const roofNotice = page.locator('[data-layer-roof-unavailable]');
+  await expect(roofNotice).toBeHidden();
+  // In the actual V26 D2F scene, roof has no verified layer binding.
+  await page.evaluate((state) => {
+    (window as any).layerPanel.update(state, ['architecture-walls']);
+  }, start);
+  await expect(page.locator('[data-layer-node="roof"]')).toHaveCount(0);
+  await expect(roofNotice).toBeVisible();
+  await expect(roofNotice).toContainText('vesikattoa ei ole tunnistettu');
+  const downstairs = applyViewerLayerPreset(createViewerInteractionState(), 'd-1f');
+  await page.evaluate((state) => {
+    (window as any).layerPanel.update(state, ['architecture-walls']);
+  }, downstairs);
+  await expect(roofNotice).toBeHidden();
+  await page.evaluate((state) => {
+    (window as any).layerPanel.update(state, ['roof', 'architecture-walls',
+      'architecture-walls-party', 'architecture-walls-interior', 'locus-water']);
+  }, start);
+  await expect(roofNotice).toBeHidden();
+  await expect(page.locator('[data-layer-node="roof"] select')).toHaveValue('ghost');
+
   await page.locator('[data-layer-node="roof"] select').selectOption('visible');
   await page.getByRole('combobox', { name: 'Näkymän esiasetus' }).selectOption('site');
   expect(await page.evaluate(() => (window as any).layerEvents)).toEqual([
