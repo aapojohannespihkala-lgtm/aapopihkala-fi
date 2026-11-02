@@ -93,7 +93,8 @@ export const viewerLayerPresetChoices = [
 const isLayerId = (id: string): id is ViewerLayerNodeId =>
   Object.prototype.hasOwnProperty.call(viewerLayerNodeCapabilities, id);
 
-const isPreset = (id: string): id is ViewerLayerPreset =>
+const isPreset = (id: unknown): id is ViewerLayerPreset =>
+  typeof id === 'string' &&
   viewerLayerPresetChoices.some(([preset]) => preset === id);
 
 export const buildViewerLayerPanelModel = (
@@ -103,11 +104,15 @@ export const buildViewerLayerPanelModel = (
   // No extra layer is inferred from a preset, scene name, G2 status or appearance.
   const available = new Set(availableNodeIds.filter(isLayerId));
   const modes = state.layerPresetState?.modes ?? createViewerLayerModeMap(state.layers);
+  // Persisted state is runtime data, not a trusted TypeScript union. A bad
+  // saved ID must not produce an empty select with "Oletusasetukset" beside it.
+  const persistedPreset = state.layerPresetState?.selected;
+  const selectedPreset = isPreset(persistedPreset) ? persistedPreset
+    : isPreset(state.researchPreset) ? state.researchPreset : null;
 
   return {
-    selectedPreset: state.layerPresetState?.selected ??
-      (isPreset(state.researchPreset) ? state.researchPreset : null),
-    customized: state.layerPresetState?.customized ?? false,
+    selectedPreset,
+    customized: selectedPreset !== null && (state.layerPresetState?.customized ?? false),
     groups: layerGroups.map((group) => ({
       label: group.label,
       items: group.items.filter(([id]) => available.has(id)).map(([id, label]) => {
