@@ -1649,6 +1649,20 @@ const title = 'Private 3D viewer';
           flex: 1 1 100%;
         }
 
+        /* Keep Layers custom/reset labels from resizing the canvas. A header
+           reflow would otherwise trigger the legacy aspect-dependent fit. */
+        body:has(#private-model-canvas[data-layers-runtime="active"]) #preset-menu > summary {
+          width: 246px;
+          max-width: calc(100vw - 50px);
+        }
+
+        body:has(#private-model-canvas[data-layers-runtime="active"]) #preset-context-status {
+          min-width: 0;
+          overflow: hidden;
+          white-space: nowrap;
+          text-overflow: ellipsis;
+        }
+
         .model-source-badge {
           max-width: min(100%, 72vw);
         }
