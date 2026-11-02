@@ -13975,8 +13975,14 @@ const title = 'Private 3D viewer';
           refreshLayers();
         },
         onReset: () => {
+          // Reset only layer modes. Reapplying the same view preset remounts
+          // the scene and triggers mobile safe-fit, which moves the camera.
+          // The current verified source/scope/floor remain authoritative.
+          const selected = layersState.layerPresetState?.selected;
+          if (!layersExpectedSha || !selected || !layersPresetChoices.includes(selected)) return;
           layersState = resetViewerLayerPresetToDefaults(layersState);
-          commitLayerPreset(layersState.layerPresetState!.selected);
+          layersEnabled = true;
+          refreshLayers();
         },
       }, { availablePresets: layersPresetChoices, disabled: true });
 
