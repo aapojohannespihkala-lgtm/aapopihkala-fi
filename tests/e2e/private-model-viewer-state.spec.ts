@@ -338,6 +338,25 @@ test('VUX-E3B exposes only contract-derived layer capabilities', () => {
   }
 });
 
+test('unknown runtime node IDs cannot change the 1974 IV section layer', () => {
+  const initial = createViewerInteractionState('infra').layers;
+  expect(initial.p161IvSectionVisible).toBe(true);
+
+  for (const id of ['no-such-layer', 'technical-unknown', '__proto__', 'constructor']) {
+    // Source-provided IDs can be malformed at runtime despite the TS union.
+    const result = setViewerLayerNodeVisible(
+      initial, id as Parameters<typeof setViewerLayerNodeVisible>[1], false,
+    );
+    expect(result).toEqual(initial);
+    expect(result.p161IvSectionVisible).toBe(true);
+  }
+
+  // A real ID remains independently adjustable.
+  const changed = setViewerLayerNodeVisible(initial, 'p161-iv-1974-section', false);
+  expect(changed.p161IvSectionVisible).toBe(false);
+  expect(changed.p161IvPlanVisible).toBe(initial.p161IvPlanVisible);
+});
+
 test('VUX-E3B parent visibility suppresses children without destroying child preferences', () => {
   let layers = createViewerInteractionState('infra').layers;
   layers = setViewerLayerNodeVisible(layers, 'locus-water', false);
