@@ -367,6 +367,10 @@ export const isViewerLayerNodeEffectivelyVisible = (
   current: ViewerLayerControlsState,
   nodeId: ViewerLayerNodeId,
 ): boolean => {
+  // Unknown runtime IDs must not inherit the 1974 IV-section fallback.
+  if (!Object.prototype.hasOwnProperty.call(viewerLayerNodeCapabilities, nodeId)) {
+    return false;
+  }
   if (isTechnicalNode(nodeId)) return current.technicalVisible && current[technicalVisibilityKeys[nodeId]];
   if (nodeId === 'roof') return current.roofVisible;
   if (nodeId === 'locus') return current.locusVisible;
