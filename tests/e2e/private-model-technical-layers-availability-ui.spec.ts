@@ -75,6 +75,24 @@ test('historical plans and reference layers keep their source status separate fr
   expect(rows[1].provenance).toContain('Ei toteumavarmennus');
 });
 
+test('unknown runtime source role fails closed even when a binding claims AVAILABLE', () => {
+  // Preserve the fail-closed contract for malformed runtime source roles.
+  const unverifiedRole = item('AVAILABLE', {
+    sourceRole: 'UNVERIFIED_FUTURE_ROLE' as TechnicalSystemSummary['sourceRole'],
+  });
+  const [row] = buildTechnicalAvailabilityRows([unverifiedRole]);
+  expect(row.supported).toBe(false);
+  expect(row.count).toBe(0);
+  expect(row.message).toContain('lähteen asemaa ei ole varmennettu');
+  expect(row.provenance).toContain('Lähteen asema ei ole varmennettu');
+  const inheritedRole = item('AVAILABLE', {
+    sourceRole: 'toString' as TechnicalSystemSummary['sourceRole'],
+  });
+  const [inheritedRow] = buildTechnicalAvailabilityRows([inheritedRole]);
+  expect(inheritedRow.supported).toBe(false);
+  expect(inheritedRow.provenance).toBe('Lähteen asema ei ole varmennettu.');
+});
+
 test('empty inventory yields no fabricated support', () => {
   expect(buildTechnicalAvailabilityRows([])).toEqual([]);
 });
