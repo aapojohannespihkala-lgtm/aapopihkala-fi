@@ -495,3 +495,89 @@ test('V33 Layers resolver fails closed on wrong SHA, floor, Kvik mesh/name and p
     f.gltf.parser.json.nodes[8309].children.filter(x => x !== 8049);
   assert.ok(!resolveBuildingPartLayerBindings(f.options).bindings.some(b => b.root === leaf));
 });
+
+
+import {
+  V34_SOURCE_SHA256, V34_BUILDING_PARTS, V34_BUILDING_SCENES,
+} from '../../src/scripts/privateModelC80R2V34LayerSourceProfile.mjs';
+
+// Synthetic graph exercises the actual resolver; the immutable raw-GLB
+// hash and each source path are separately checked by verify-v34-layer-source.
+function v34Fixture(sceneIndex) {
+  const profile = V34_BUILDING_SCENES[sceneIndex];
+  const scene = new Object3D('V34');
+  const nodes = [], roots = [], objects = {}, associations = new Map();
+  for (const [leaf, routes] of Object.entries(profile.paths)) for (const route of routes) {
+    route.forEach((node, i) => {
+      nodes[node] ??= { name: 'source-parent-' + node, children: [] };
+      if (i === route.length - 1)
+        Object.assign(nodes[node], structuredClone(V34_BUILDING_PARTS[leaf]));
+      if (i === 0 && !roots.includes(node)) roots.push(node);
+      if (i > 0 && !nodes[route[i-1]].children.includes(node))
+        nodes[route[i-1]].children.push(node);
+    });
+  }
+  const make = index => {
+    const def = nodes[index], obj = new Object3D(def.name, def.mesh !== undefined);
+    objects[index] = obj;
+    associations.set(obj, { nodes: index, ...(def.mesh === undefined ? {} : { meshes: def.mesh }) });
+    for (const child of def.children ?? []) obj.add(make(child));
+    return obj;
+  };
+  roots.forEach(index => scene.add(make(index)));
+  const scenes = new Array(197), sourceScenes = new Array(197);
+  scenes[sceneIndex] = scene;
+  sourceScenes[sceneIndex] = { name: profile.name, nodes: roots };
+  const gltf = { scenes, parser: { json: { nodes, scenes: sourceScenes }, associations } };
+  return { scene, objects, gltf, options: {
+    gltf, expectedSourceSha256: V34_SOURCE_SHA256, loadedSourceSha256: V34_SOURCE_SHA256,
+    sceneIndex, activeSceneRoot: scene, floor: profile.floor, area: 'D',
+  } };
+}
+
+test('V34 exact resolver binds 1F/2F/BOTH and the reparented Kvik 18 without restoring retired plinth/floor', () => {
+  const kvik = {
+    194: [],
+    195: [8049,8051,8053,8055,8057,8059,8061,8063,8065],
+    196: [8109,8111,8113,8115,8117,8119,8121,8123,8125],
+  };
+  for (const sceneIndex of [194,195,196]) {
+    const f = v34Fixture(sceneIndex), sourceBefore = JSON.stringify(f.gltf.parser.json);
+    const result = resolveBuildingPartLayerBindings(f.options);
+    assert.equal(result.sourceVerified, true);
+    assert.equal(result.bindings.length, Object.keys(V34_BUILDING_SCENES[sceneIndex].paths).length);
+    assert.ok(result.evidence.every(e => e.bindingKind === 'EXACT_V34_SOURCE_PROFILE'));
+    assert.ok(result.bindings.every(b => b.id !== undefined));
+    for (const leaf of kvik[sceneIndex]) {
+      assert.ok(result.bindings.some(b => b.root === f.objects[leaf] && b.id === 'architecture-fixtures'));
+      assert.deepEqual(result.evidence.find(e => e.sourceNodeIndex === leaf).sourceNodePath,
+        V34_BUILDING_SCENES[sceneIndex].paths[leaf][0]);
+    }
+    for (const old of [8855,8856,9256])
+      assert.ok(!result.evidence.some(e => e.sourceNodeIndex === old), 'removed source part ' + old);
+    assert.equal(JSON.stringify(f.gltf.parser.json), sourceBefore, 'resolver does not modify source');
+  }
+});
+
+test('V34 exact resolver rejects wrong SHA, scene, mesh, name and parent mutation', () => {
+  let f = v34Fixture(195);
+  assert.equal(resolveBuildingPartLayerBindings({
+    ...f.options, loadedSourceSha256: V33_SOURCE_SHA256,
+  }).bindings.length, 0);
+  assert.equal(resolveBuildingPartLayerBindings({ ...f.options, floor:'1F' }).bindings.length, 0);
+  f.gltf.parser.json.scenes[195].name += '_INVALID';
+  assert.equal(resolveBuildingPartLayerBindings(f.options).bindings.length, 0);
+  for (const field of ['mesh','name']) {
+    f = v34Fixture(195);
+    f.gltf.parser.json.nodes[8049][field] = field === 'mesh' ? 0 : 'INFERRED_KVIK_FRONT';
+    assert.ok(!resolveBuildingPartLayerBindings(f.options).bindings.some(b => b.root === f.objects[8049]));
+  }
+  f = v34Fixture(195);
+  const leaf = f.objects[8049];
+  leaf.parent.children = leaf.parent.children.filter(x => x !== leaf);
+  f.scene.add(leaf);
+  f.gltf.parser.json.scenes[195].nodes.push(8049);
+  f.gltf.parser.json.nodes[8309].children =
+    f.gltf.parser.json.nodes[8309].children.filter(x => x !== 8049);
+  assert.ok(!resolveBuildingPartLayerBindings(f.options).bindings.some(b => b.root === leaf));
+});
