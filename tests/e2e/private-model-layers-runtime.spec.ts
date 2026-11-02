@@ -202,15 +202,15 @@ test('Layers frame rejects a replaced scene or source without changing siblings'
 for (const model of [
   { version: 'V26', sourceEnv: 'YLIS_LAYERS_GLB', productionEnv: 'YLIS_LAYERS_PRODUCTION',
     candidateId: 'auto-ylisrinne-d-c80r2-v26-stair-rail-landing-end-plywood-work-test-host-hold-20261102-1jglt7no',
-    sha, bytes: 24205548, firstFloor: '174', secondFloor: '162', bothFloors: '175' },
+    sha, bytes: 24205548, firstFloor: '174', secondFloor: '162', bothFloors: '175', upstairsRoof: false },
   { version: 'V29', sourceEnv: 'YLIS_LAYERS_V29_GLB', productionEnv: 'YLIS_LAYERS_V29_PRODUCTION',
     candidateId: 'auto-ylisrinne-d-c80r2-v29-west-full-facade-plinth-work-test-host-hold-20261102-1vfk15ke',
     sha: '5325da8472055379f30be59e22be3b6237093e59e6a21999471a2c2b28c784f6',
-    bytes: 26840880, firstFloor: '180', secondFloor: '162', bothFloors: '181' },
+    bytes: 26840880, firstFloor: '180', secondFloor: '162', bothFloors: '181', upstairsRoof: false },
   { version: 'V35', sourceEnv: 'YLIS_LAYERS_V35_GLB', productionEnv: 'YLIS_LAYERS_V35_PRODUCTION',
     candidateId: 'auto-ylisrinne-d-c80r2-v35-2f-wc-yellow-tiles-photo-work-test-host-hold-20261102-11iiyoiu',
     sha: 'f81e0915711b798ec4a02472202a3372a4a77057cd8a150cc17f89bef3cd4789',
-    bytes: 30023592, firstFloor: '194', secondFloor: '197', bothFloors: '198' },
+    bytes: 30023592, firstFloor: '194', secondFloor: '197', bothFloors: '198', upstairsRoof: true },
 ] as const) {
 test(`exact ${model.version} viewer: D upstairs, ghost walls, supported IV, reset, floor changes and mobile`, async ({ page }, info) => {
   const { sha, candidateId } = model;
@@ -310,7 +310,19 @@ test(`exact ${model.version} viewer: D upstairs, ghost walls, supported IV, rese
   await expect(page.locator('[data-layer-preset-customized]')).toContainText('Mukautettu');
   await expectPreservedCamera();
   await expect(page.locator('[data-layer-node="architecture-ceilings"] [data-layer-mode="hidden"]')).toHaveAttribute('aria-pressed', 'true');
-  await expect(page.locator('[data-layer-node="roof"]')).toHaveCount(0);
+  const roof = page.locator('[data-layer-node="roof"]');
+  await expect(roof).toHaveCount(model.upstairsRoof ? 1 : 0);
+  if (model.upstairsRoof) {
+    // V35 includes source-bound NE eave closure9259 in 2F197. The older
+    // 2F sources have no roof binding. Roof edits must leave inner ceilings off.
+    await expect(roof.locator('[data-layer-mode="ghost"]')).toHaveAttribute('aria-pressed', 'true');
+    for (const mode of ['hidden', 'visible', 'ghost']) {
+      await roof.locator(`[data-layer-mode="${mode}"]`).click();
+      await expect(roof.locator(`[data-layer-mode="${mode}"]`)).toHaveAttribute('aria-pressed', 'true');
+      await expect(page.locator('[data-layer-node="architecture-ceilings"] [data-layer-mode="hidden"]')).toHaveAttribute('aria-pressed', 'true');
+      await expectPreservedCamera();
+    }
+  }
   await page.screenshot({ path: info.outputPath(evidencePrefix + '-2f-walls-ghost-iv-visible-desktop.png') });
   await page.getByRole('button', { name: 'Palauta näkyvyys' }).click();
   await expect(walls.locator('[data-layer-mode="visible"]')).toHaveAttribute('aria-pressed', 'true');
