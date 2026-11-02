@@ -137,6 +137,54 @@ test('a reparented GLB root stays hidden until its original source path returns'
   runtime.dispose();
 });
 
+test('apply fails closed on displaced GLB paths before enforce without mutating gates', () => {
+  const scene = new Scene();
+  const parent = new Group();
+  const alternateParent = new Group();
+  const wall = new Mesh(new BoxGeometry(), new MeshBasicMaterial());
+  const sibling = new Mesh(new BoxGeometry(), new MeshBasicMaterial());
+  parent.add(wall);
+  scene.add(parent, alternateParent, sibling);
+  const runtime = createViewerLayersRuntime({ sceneRoot: scene, sourceSha256: sha,
+    bindings: [
+      { id: 'architecture-walls', root: wall },
+      { id: 'architecture-doors', root: sibling },
+    ] });
+  const state = applyViewerLayerPreset(createViewerInteractionState(), 'whole-building');
+  const gates = new Map([
+    [wall, { sourceAllowed: true, scopeAllowed: true, floorAllowed: true }],
+    [sibling, { sourceAllowed: true, scopeAllowed: true, floorAllowed: true }],
+  ]);
+  const frame = { activeSceneRoot: scene, availableNodeIds: runtime.availableNodeIds, gates };
+  const apply = () => runtime.apply(state, frame);
+
+  expect(apply().map(({ mode }) => mode)).toEqual(['visible', 'visible']);
+  alternateParent.add(wall); // Still within scene, no longer on its original GLB path.
+  wall.visible = false;
+  const displaced = apply(); // No intervening enforce() call.
+  expect(displaced.map(({ mode }) => mode)).toEqual(['hidden', 'visible']);
+  expect(wall.visible).toBe(false);
+  expect(sibling.visible).toBe(true);
+  expect(gates.get(wall)).toEqual({
+    sourceAllowed: true, scopeAllowed: true, floorAllowed: true,
+  });
+
+  parent.add(wall);
+  expect(apply().map(({ mode }) => mode)).toEqual(['visible', 'visible']);
+  expect(wall.visible).toBe(true);
+
+  alternateParent.add(parent); // The bound root's ancestor can move as well.
+  wall.visible = false;
+  expect(apply().map(({ mode }) => mode)).toEqual(['hidden', 'visible']);
+  expect(wall.visible).toBe(false);
+  expect(sibling.visible).toBe(true);
+
+  scene.add(parent);
+  expect(apply().map(({ mode }) => mode)).toEqual(['visible', 'visible']);
+  expect(wall.visible).toBe(true);
+  runtime.dispose();
+});
+
 test('Layers frame rejects a replaced scene or source without changing siblings', () => {
   const scene = new Scene();
   const wall = new Mesh(new BoxGeometry(), new MeshBasicMaterial());
