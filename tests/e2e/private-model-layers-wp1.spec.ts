@@ -37,6 +37,15 @@ test('invalid runtime edge modes preserve valid legacy and viewer presentation s
     expect(mergeViewerLayerState(legacy, { edgeMode: valid }).edgeMode).toBe(valid);
     expect(patchViewerPresentationStyle(viewer, { edgeMode: valid }).presentation.edgeMode).toBe(valid);
   }
+  // A malformed patch must also preserve explicitly customized source state.
+  const customLegacy = mergeViewerLayerState(legacy, { edgeMode: 'none' });
+  const customViewer = patchViewerPresentationStyle(viewer, { edgeMode: 'object' });
+  expect(mergeViewerLayerState(customLegacy, {
+    edgeMode: 'unsupported' as EdgeMode,
+  }).edgeMode).toBe('none');
+  expect(patchViewerPresentationStyle(customViewer, {
+    edgeMode: undefined,
+  }).presentation.edgeMode).toBe('object');
   expect(legacy.edgeMode).toBe('visible');
   expect(viewer.presentation.edgeMode).toBe('visible');
 });
