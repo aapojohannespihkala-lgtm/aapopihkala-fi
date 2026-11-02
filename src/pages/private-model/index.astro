@@ -2441,6 +2441,14 @@ const title = 'Private 3D viewer';
       // @ts-ignore - exact HI12 source-scene presentation in the existing bridge.
       import { createC80Hi12VisibilityAdapter } from '../../scripts/c80Hi12Visibility.mjs';
       import { createOtherFloorReference } from '../../scripts/privateModelOtherFloorReference';
+      import '../../styles/privateModelLayersPresetControls.css';
+      import { mountViewerLayerPresetPanel } from '../../scripts/privateModelLayersPresetControls';
+      import { createViewerLayersRuntime, availableViewerLayerIds, collectViewerLayerSourceNodes, type ViewerLayersRuntime } from '../../scripts/privateModelLayersRuntime';
+      import { resolveBuildingPartLayerBindings } from '../../scripts/privateModelBuildingPartLayerBindings.mjs';
+      import { createTechnicalSystemLayerInventory } from '../../scripts/privateModelTechnicalSystemsLayers';
+      import type { ViewerScopedLayerRoot, ViewerScopedLayerGate } from '../../scripts/privateModelLayerScopedPresentationBridge';
+      import { viewerLayerNodeCapabilities, type ViewerLayerNodeId } from '../../scripts/privateModelLayerHierarchyState';
+
       import {
         createViewerLayerStateForModelLoad,
         mergeViewerLayerState,
@@ -2454,6 +2462,12 @@ const title = 'Private 3D viewer';
       } from '../../scripts/privateModelViewPresets';
       import {
         createViewerInteractionState,
+        applyViewerLayerPreset,
+        resetViewerLayerPresetToDefaults,
+        setViewerInteractionLayerMode,
+        patchViewerLayerControls,
+        type ViewerLayerPreset,
+        type ViewerInteractionState,
         formatViewerResearchPresetLabel,
         resetViewerInteractionStateToPresetDefaults,
         type ViewerResearchPreset,
@@ -3056,6 +3070,12 @@ const title = 'Private 3D viewer';
       const modelRoot = new THREE.Group();
       scene.add(modelRoot);
       installArchitecturalLayerRuntime(resolveArchitecturalSemanticDescriptor);
+      let layersRuntime: ViewerLayersRuntime | null = null;
+      let layersLoadedSha: string | null = null;
+      let refreshLayers = () => {};
+      let beforeLayersSceneChange = () => {};
+      let onLayersModelLoaded = (_gltf: any, _session: any) => {};
+      let onLayersStandardPreset = (_preset: StandardViewPreset) => {};
 
       const modelCenter = new THREE.Vector3();
       let fitDistance = 10;
@@ -3357,6 +3377,7 @@ const title = 'Private 3D viewer';
       let dAxisMeasureMarker: any = null;
 
       const setModelScene = (root: any) => {
+        beforeLayersSceneChange();
         if (root !== fullModelScene && mainViewScope?.active && root !== modelRoot.children[0]) {
           mainViewScope.restore();
           applyElectricalLayerState();
@@ -3366,6 +3387,7 @@ const title = 'Private 3D viewer';
         if (root) modelRoot.add(root);
         modelRoot.updateMatrixWorld(true);
         refreshEdgeRendering(root);
+        queueMicrotask(() => refreshLayers());
       };
 
       const restoreDReviewStyling = () => {
@@ -4438,6 +4460,7 @@ const title = 'Private 3D viewer';
       const refreshEdgeRendering = (root: any) => {
         restoreLegacyEdgeVisibility();
         mainViewScope?.enforce();
+        layersRuntime?.enforce(modelRoot.children[0] ?? null, layersLoadedSha);
         if (hi20C050GuidesPresentation?.cleaned) hi20C050GuidesPresentation.setCleaned(true);
         syncOtherFloorReference();
         clearEdgeOverlay();
@@ -5003,6 +5026,7 @@ const title = 'Private 3D viewer';
         selectionHighlightController.clear();
         selectedObject = null;
         selectionPanelController.clear();
+        queueMicrotask(() => refreshLayers());
       };
 
       // Free 3D two-point measure on visible model surfaces, in any view.
@@ -5113,6 +5137,7 @@ const title = 'Private 3D viewer';
 
         selectionHighlightController.select(object);
         d1fService?.select(object);
+        queueMicrotask(() => refreshLayers());
       };
 
       const isolateSelectedObject = () => {
@@ -6427,7 +6452,7 @@ const title = 'Private 3D viewer';
         else activateElevationView('neg-x');
       };
 
-      const activateMainModelScope = (floor: MainViewFloor) => {
+      const activateMainModelScope = (floor: MainViewFloor, preserveCamera = false) => {
         if (!mainViewScope?.available) return;
         const requestedOtherFloorMode = otherFloorMode.value;
         clearSelection();
@@ -6496,7 +6521,7 @@ const title = 'Private 3D viewer';
           mainViewScopeNote.textContent = modelLabel + ' WORK_TEST: ' +
             floorLabel + ', alkuperäinen scene ' + sceneIndex +
             '. Portaat ja yhteiset lähdejuuret säilyvät. HOST_HOLD, ei nykytila.';
-          fitModel();
+          if (!preserveCamera) fitModel();
           status.textContent = 'D-asunto ' + modelLabel + ' - ' + floorLabel + ' - WORK_TEST';
           return;
         }
@@ -6541,7 +6566,7 @@ const title = 'Private 3D viewer';
             canvas.dataset.c80ContextMeshCount = String(contextMeshes);
           }
           canvas.dataset.contentFloor = floor;
-          fitModel();
+          if (!preserveCamera) fitModel();
           status.textContent = `D-asunto ${sourceLabel} - ${floorLabel} - WORK_TEST`;
           return;
         }
@@ -6567,12 +6592,12 @@ const title = 'Private 3D viewer';
         canvas.dataset.mainViewScopeStatus = report.exceptions.length ? 'partial' : 'classified';
         canvas.dataset.contentScene = 'full-model';
         canvas.dataset.contentFloor = floor;
-        fitModel();
+        if (!preserveCamera) fitModel();
         status.textContent = `D-asunto - ${floor === 'BOTH' ? 'molemmat kerrokset' : floor === '1F' ? 'alakerta' : 'yläkerta'}, vapaa 3D` +
           (report.exceptions.length ? ' - osittainen rajaus' : '');
       };
 
-      const applyStandardViewPreset = (preset: StandardViewPreset) => {
+      const applyStandardViewPreset = (preset: StandardViewPreset, preserveCamera = false) => {
         if (mainViewScope?.active && (preset === 'whole-building' || preset === 'site' ||
             preset === 'infra' || preset === 'drainage' || preset === 'electrical')) {
           mainViewScope.restore();
@@ -6608,8 +6633,14 @@ const title = 'Private 3D viewer';
 
         if (mainViewScope?.available &&
             (preset === 'd-apartment' || preset === 'd-1f' || preset === 'd-2f')) {
-          activateMainModelScope(preset === 'd-1f' ? '1F' : preset === 'd-2f' ? '2F' : 'BOTH');
-        } else activateStandardViewCamera(preset);
+          activateMainModelScope(preset === 'd-1f' ? '1F' : preset === 'd-2f' ? '2F' : 'BOTH', preserveCamera);
+        } else if (!preserveCamera) activateStandardViewCamera(preset);
+        else {
+          setModelScene(fullModelScene);
+          syncMainViewScope();
+          canvas.dataset.contentFloor = 'BOTH';
+        }
+        onLayersStandardPreset(preset);
         refreshEdgeRendering(modelRoot.children[0] ?? null);
       };
 
@@ -7189,6 +7220,7 @@ const title = 'Private 3D viewer';
         dInteriorOverride: THREE.Object3D | null = null,
         c70PreviewSession: any = null,
       ) => {
+        onLayersModelLoaded(gltf, c70PreviewSession);
         modelLoadVersion++;
         hi20C050GuidesPresentation?.dispose();
         hi20C050GuidesPresentation = null;
@@ -13878,6 +13910,186 @@ const title = 'Private 3D viewer';
             : 'A/B-vertailu: CURRENT';
       };
 
+      // One Layers owner. Source-verified bindings are rebuilt after every
+      // scene change. Legacy camera/view actions keep their existing behavior.
+      const v26LayersSourceSha = 'cff2dbead53b7836747e10ef359637114ff723690ec380e313cec817e4f71d31';
+      let layersGltf: any = null;
+      let layersExpectedSha: string | null = null;
+      let layersEnabled = false;
+      let layersSwitchingPreset = false;
+      let layersSyncQueued = false;
+      let layersState: ViewerInteractionState = applyViewerLayerPreset(createViewerInteractionState(), 'whole-building');
+      let layersAvailable: string[] = [];
+      let layersPresetChoices: ViewerLayerPreset[] = ['whole-building'];
+      const layerPresetHost = document.createElement('div');
+      layerPresetHost.id = 'layers-preset-host';
+      layersPanel.querySelector('.layers-header')?.after(layerPresetHost);
+      const layerBindingNote = document.createElement('p');
+      layerBindingNote.className = 'layer-note';
+      layerBindingNote.setAttribute('aria-live', 'polite');
+      layerPresetHost.after(layerBindingNote);
+
+      const disposeLayersPresentation = () => {
+        layersRuntime?.dispose();
+        layersRuntime = null;
+      };
+      beforeLayersSceneChange = disposeLayersPresentation;
+
+      const commitLayerPreset = (preset: ViewerLayerPreset) => {
+        if (!layersPresetChoices.includes(preset) || !layersExpectedSha) return;
+        disposeLayersPresentation();
+        layersSwitchingPreset = true;
+        try {
+          applyStandardViewPreset(preset, true);
+          layersState = applyViewerLayerPreset(layersState, preset);
+          layersEnabled = true;
+        } finally { layersSwitchingPreset = false; }
+        refreshLayers();
+      };
+      const layersPanelControls = mountViewerLayerPresetPanel(layerPresetHost, layersState, [], {
+        onPresetChange: commitLayerPreset,
+        onLayerModeChange: (id, mode) => {
+          if (!layersAvailable.includes(id) || canvas.dataset.objectVisibilityFilter === 'active') return;
+          layersEnabled = true;
+          layersState = setViewerInteractionLayerMode(layersState, id, mode);
+          refreshLayers();
+        },
+        onReset: () => {
+          layersState = resetViewerLayerPresetToDefaults(layersState);
+          commitLayerPreset(layersState.layerPresetState!.selected);
+        },
+      }, { availablePresets: layersPresetChoices, disabled: true });
+
+      refreshLayers = () => {
+        if (layersSyncQueued) return;
+        layersSyncQueued = true;
+        queueMicrotask(() => {
+          layersSyncQueued = false;
+          const root = modelRoot.children[0] ?? null;
+          const sceneIndex = layersGltf?.scenes?.indexOf(root) ?? -1;
+          const verified = !!layersExpectedSha && layersExpectedSha === layersLoadedSha && sceneIndex >= 0;
+          const filterActive = canvas.dataset.objectVisibilityFilter === 'active';
+          if (filterActive) {
+            layersPanelControls.update(layersState, layersAvailable, { disabled: true });
+            return;
+          }
+          disposeLayersPresentation();
+          layersAvailable = [];
+          if (verified && root) {
+            if (layersEnabled) {
+              // These legacy groups retain their source baseline. The new
+              // per-mesh adapter alone owns their layer visibility while active.
+              resetArchitecturalLayerRuntimeState({ architectureCeilingsVisible: true });
+              roofLayerVisible = true; locusLayerVisible = true; electricalLayerVisible = true;
+              roofLayerOpacity = layersState.layers.roofOpacity;
+              roofLayerOpacityInput.value = String(Math.round(roofLayerOpacity * 100));
+              applyRoofLayerState(); applyLocusLayerState(); applyElectricalLayerState();
+              mainViewScope?.enforce();
+            }
+            const area = mainViewScope?.active ? 'D' : 'WHOLE';
+            const floor = (mainViewScope?.active ? mainViewScope.floor : 'BOTH') as MainViewFloor;
+            const building = resolveBuildingPartLayerBindings({
+              gltf: sourceNodeModel(layersGltf), expectedSourceSha256: layersExpectedSha!,
+              loadedSourceSha256: layersLoadedSha!, sceneIndex, activeSceneRoot: root, area, floor,
+            });
+            const technical = createTechnicalSystemLayerInventory({
+              sceneRoot: root, sourceSceneIndex: sceneIndex,
+              loadedGlbSha256: layersLoadedSha!, expectedGlbSha256: layersExpectedSha!,
+              sourceJson: layersGltf.parser.json, sourceNodes: collectViewerLayerSourceNodes(sourceNodeModel(layersGltf), root, sceneIndex, layersLoadedSha!),
+              viewerScope: layersState.layerPresetState!.selected,
+              allowSourceOnly: true, allowHistoricalPlans: false,
+            });
+            const technicalRoots = new Set(technical.bridgeBindings.map(binding => binding.root));
+            const bindings: ViewerScopedLayerRoot[] = [
+              ...building.bindings
+                .filter(binding => Object.hasOwn(viewerLayerNodeCapabilities, binding.id) && !technicalRoots.has(binding.root))
+                .map(binding => ({ id: binding.id as ViewerLayerNodeId, root: binding.root })),
+              ...technical.bridgeBindings,
+            ];
+            if (layersEnabled) {
+              // The V26 roof is source-bound by High1 rather than the old
+              // roof tag. Reuse the existing opacity owner before snapshotting.
+              for (const binding of bindings) {
+                const mesh = binding.root as THREE.Mesh;
+                if (binding.id !== 'roof' || !mesh.isMesh || roofLayerMeshes.has(mesh)) continue;
+                roofLayerMembers.add(mesh);
+                roofLayerMeshes.add(mesh);
+                roofLayerVisibilityBaseline.set(mesh, mesh.visible);
+                cloneRoofMeshMaterial(mesh);
+              }
+              roofLayerCount.textContent = `${roofLayerMeshes.size} kohdetta`;
+              applyRoofLayerState();
+            }
+            const gates = new Map<THREE.Object3D, ViewerScopedLayerGate>([...building.frame.gates, ...technical.gates] as any);
+            layersAvailable = availableViewerLayerIds(bindings);
+            if (layersEnabled) {
+              layersRuntime = createViewerLayersRuntime({ sceneRoot: root, sourceSha256: layersLoadedSha!, bindings });
+              layersRuntime.apply(layersState, {
+                activeSceneRoot: root, availableNodeIds: layersAvailable, gates,
+                isSelected: mesh => selectedObject === mesh,
+              });
+            }
+            canvas.dataset.layersBindingCount = String(bindings.length);
+            canvas.dataset.layersSourceSceneIndex = String(sceneIndex);
+            canvas.dataset.layersSourceSha256 = layersLoadedSha!;
+            canvas.dataset.layersModes = JSON.stringify(layersState.layerPresetState?.modes);
+          }
+          layersPresetChoices = mainViewScope?.available
+            ? ['whole-building', 'd-apartment', 'd-1f', 'd-2f'] : ['whole-building', 'site', 'infra'];
+          layersPanelControls.update(layersState, layersAvailable, {
+            availablePresets: layersPresetChoices, disabled: !verified,
+          });
+          canvas.dataset.layersCameraPose = JSON.stringify({ position: activeCamera.position.toArray(), quaternion: activeCamera.quaternion.toArray(), zoom: activeCamera.zoom, target: (activeCamera === planCamera ? planControls : activeCamera === isoCamera ? isoControls : controls).target.toArray() });
+          canvas.dataset.layersRuntime = verified ? (layersEnabled ? 'active' : 'ready') : 'unavailable';
+          layerBindingNote.textContent = !verified ? 'Tämän mallin layer-sidontoja ei ole varmennettu.'
+            : layersAvailable.length ? 'Valinnat koskevat luokiteltuja rakennusosia ja mallinnettuja laitteita.'
+            : 'Tässä näkymässä ei ole tunnistettuja layer-kohteita.';
+          for (const selector of ['#architecture-layer-group', '#locus-layer-group']) {
+            const legacy = document.querySelector<HTMLElement>(selector);
+            if (legacy) legacy.hidden = layersEnabled && layersAvailable.length > 0;
+          }
+          roofLayerVisibleInput.closest('label')!.hidden = layersEnabled;
+          roofLayerOpacityInput.closest<HTMLElement>('.layer-opacity')!.hidden = layersEnabled && !layersAvailable.includes('roof');
+          roofLayerCount.hidden = layersEnabled && !layersAvailable.includes('roof');
+          electricalLayerVisibleInput.closest('label')!.hidden = layersEnabled && layersAvailable.includes('technical-electrical');
+          refreshEdgeRendering(root);
+          if (selectedObject && !isEffectivelyVisible(selectedObject, modelRoot)) clearSelection();
+        });
+      };
+      onLayersModelLoaded = (gltf, session) => {
+        disposeLayersPresentation();
+        layersGltf = gltf;
+        layersLoadedSha = loadedModelSha256(gltf);
+        // V26's pin comes from the RAW-verified main-chain source. Legacy
+        // source sessions already carry their independent byte/SHA contract.
+        layersExpectedSha = session?.contract?.glbSha256 ??
+          (layersLoadedSha === v26LayersSourceSha ? v26LayersSourceSha : null);
+        layersEnabled = layersLoadedSha === v26LayersSourceSha;
+        layersState = applyViewerLayerPreset(createViewerInteractionState(), 'whole-building');
+        layersAvailable = [];
+      };
+      onLayersStandardPreset = preset => {
+        if (layersSwitchingPreset) return;
+        if (['whole-building', 'd-apartment', 'd-1f', 'd-2f', 'site', 'infra'].includes(preset)) {
+          layersState = applyViewerLayerPreset(layersState, preset as ViewerLayerPreset);
+        } else {
+          // Existing research views keep their own visibility ownership.
+          layersEnabled = false;
+          disposeLayersPresentation();
+        }
+        refreshLayers();
+      };
+      window.addEventListener('ylis-object-visibility-filter', () => refreshLayers());
+      // Keep the roof opacity slider compatible with the same material owner.
+      roofLayerOpacityInput.addEventListener('input', () => {
+        if (layersEnabled) layersState = patchViewerLayerControls(layersState, { roofOpacity: Number(roofLayerOpacityInput.value) / 100 });
+        refreshLayers();
+      });
+      resetViewDefaultsButton.addEventListener('click', () => {
+        if (layersEnabled) layersState = resetViewerLayerPresetToDefaults(layersState);
+        refreshLayers();
+      });
+
       layersButton.addEventListener('click', () => closeToolbarMenus());
       otherFloorMode.addEventListener('change', () => {
         syncOtherFloorReference();
@@ -14267,6 +14479,7 @@ const title = 'Private 3D viewer';
         // Keep exact-source C045/C050 user-visible corrections after that pass.
         if (hi20C045Presentation?.corrected) hi20C045Presentation.setCorrected(true);
         if (hi20C050GuidesPresentation?.cleaned) hi20C050GuidesPresentation.setCleaned(true);
+        layersRuntime?.enforce(modelRoot.children[0] ?? null, layersLoadedSha);
         updateSize();
         controls.update();
         planControls.update();

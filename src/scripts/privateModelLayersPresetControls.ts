@@ -67,6 +67,10 @@ const layerGroups: ReadonlyArray<{
   {
     label: 'Tekniset järjestelmät',
     items: [
+      ['technical', 'Tekniset laitteet'],
+      ['technical-ventilation', 'IV-laitteet ja venttiilit'],
+      ['technical-heating', 'Patterit ja ILP'],
+      ['technical-electrical', 'Sähkölaitteet ja valaisimet'],
       ['locus', 'Tekniset järjestelmät'],
       ['locus-water', 'Vesi'],
       ['locus-wastewater', 'Viemärit'],
@@ -128,6 +132,12 @@ export type ViewerLayerPresetPanelCallbacks = {
   onReset: () => void;
 };
 
+export type ViewerLayerPresetPanelOptions = {
+  /** Only preset scopes supported by the current source may be selected. */
+  availablePresets?: readonly ViewerLayerPreset[];
+  disabled?: boolean;
+};
+
 const modeOptions = [
   ['visible', 'Näkyvä'],
   ['ghost', 'Himmeä'],
@@ -145,6 +155,7 @@ export const mountViewerLayerPresetPanel = (
   state: ViewerInteractionState,
   availableNodeIds: readonly string[],
   callbacks: ViewerLayerPresetPanelCallbacks,
+  options: ViewerLayerPresetPanelOptions = {},
 ) => {
   if (host.querySelector('[data-layer-preset-panel]')) {
     throw new Error('Layers preset controls already mounted');
@@ -153,20 +164,35 @@ export const mountViewerLayerPresetPanel = (
   const doc = host.ownerDocument;
   const root = doc.createElement('section');
   root.dataset.layerPresetPanel = 'wp3';
+  root.className = 'yl-layer-preset-panel';
+  root.setAttribute('aria-label', 'Tasojen näkyvyys');
   const label = doc.createElement('label');
-  label.textContent = 'Layer preset';
+  label.className = 'yl-layer-preset-field';
+  const labelText = doc.createElement('span');
+  labelText.textContent = 'Näkymän esiasetus';
   const presetSelect = doc.createElement('select');
-  presetSelect.setAttribute('aria-label', 'Layer preset');
-  label.append(presetSelect);
+  presetSelect.setAttribute('aria-label', 'Näkymän esiasetus');
+  label.append(labelText, presetSelect);
+  const description = doc.createElement('p');
+  description.className = 'yl-layer-preset-help';
+  description.textContent = 'Esiasetus valitsee tasojen lähtönäkyvyyden. Voit muuttaa tasoja yksitellen.';
+  const status = doc.createElement('div');
+  status.className = 'yl-layer-preset-status';
   const customizedText = doc.createElement('span');
   customizedText.setAttribute('aria-live', 'polite');
   customizedText.dataset.layerPresetCustomized = '';
   const reset = doc.createElement('button');
   reset.type = 'button';
+  reset.className = 'yl-layer-preset-reset';
   reset.textContent = 'Palauta presetin asetukset';
+  status.append(customizedText, reset);
+  const legend = doc.createElement('p');
+  legend.className = 'yl-layer-preset-help';
+  legend.textContent = 'Himmeä = läpikuultava esitystapa, ei tiedon varmuustaso.';
   const groups = doc.createElement('div');
+  groups.className = 'yl-layer-preset-groups';
   groups.dataset.layerPresetGroups = '';
-  root.append(label, customizedText, reset, groups);
+  root.append(label, description, status, legend, groups);
   host.insertBefore(root, host.firstChild);
 
   for (const [id, title] of viewerLayerPresetChoices) {
@@ -178,26 +204,58 @@ export const mountViewerLayerPresetPanel = (
   // Legacy Salaojat/Sähköt research presets remain separate and untouched.
   const legacyOption = doc.createElement('option');
   legacyOption.value = '';
-  legacyOption.textContent = 'Valitse preset';
+  legacyOption.textContent = 'Valitse esiasetus';
   presetSelect.prepend(legacyOption);
 
+  let panelOptions = options;
+  let allowedPresets = new Set<ViewerLayerPreset>();
   presetSelect.addEventListener('change', () => {
-    if (isPreset(presetSelect.value)) callbacks.onPresetChange(presetSelect.value);
+    if (!presetSelect.disabled && isPreset(presetSelect.value) &&
+        allowedPresets.has(presetSelect.value)) callbacks.onPresetChange(presetSelect.value);
   });
   reset.addEventListener('click', () => callbacks.onReset());
 
   let destroyed = false;
-  const update = (next: ViewerInteractionState, available: readonly string[]) => {
+  const update = (
+    next: ViewerInteractionState,
+    available: readonly string[],
+    nextOptions?: ViewerLayerPresetPanelOptions,
+  ) => {
     if (destroyed) throw new Error('Layers preset controls already destroyed');
+    if (nextOptions) panelOptions = nextOptions;
+    allowedPresets = new Set(panelOptions.availablePresets ??
+      viewerLayerPresetChoices.map(([id]) => id));
+    for (const option of presetSelect.options) {
+      if (isPreset(option.value)) option.disabled = !allowedPresets.has(option.value);
+    }
+    presetSelect.disabled = panelOptions.disabled === true || allowedPresets.size === 0;
     const model = buildViewerLayerPanelModel(next, available);
+    // update() may be called synchronously from an onLayerModeChange callback.
+    // Preserve keyboard focus when replacing only the metadata-gated rows.
+    const focused = doc.activeElement;
+    const focusedLayer = focused instanceof (doc.defaultView?.HTMLSelectElement ?? Object)
+      && root.contains(focused) && focused.hasAttribute('data-layer-mode-control')
+      ? focused.closest('[data-layer-node]')?.getAttribute('data-layer-node')
+      : null;
     presetSelect.value = model.selectedPreset ?? '';
-    customizedText.textContent = model.customized ? 'Mukautettu' : '';
-    reset.disabled = !model.selectedPreset || !model.customized;
+    customizedText.textContent = model.customized
+      ? 'Mukautettu'
+      : model.selectedPreset ? 'Oletusasetukset' : 'Ei valittua esiasetusta';
+    customizedText.dataset.customized = String(model.customized);
+    reset.disabled = panelOptions.disabled === true || !model.selectedPreset ||
+      !allowedPresets.has(model.selectedPreset) || !model.customized;
     groups.replaceChildren();
+    if (model.groups.length === 0) {
+      const empty = doc.createElement('p');
+      empty.className = 'yl-layer-preset-empty';
+      empty.textContent = 'Tasoryhmiä ei voi näyttää: mallista puuttuu vahvistettu tasometadata.';
+      groups.append(empty);
+    }
 
     for (const group of model.groups) {
       const section = doc.createElement('section');
       section.dataset.layerGroup = group.label;
+      section.className = 'yl-layer-preset-group';
       const heading = doc.createElement('h3');
       heading.textContent = group.label;
       section.append(heading);
@@ -205,10 +263,15 @@ export const mountViewerLayerPresetPanel = (
       for (const item of group.items) {
         const field = doc.createElement('label');
         field.dataset.layerNode = item.id;
+        field.className = 'yl-layer-preset-row';
+        field.dataset.mixed = String(item.mode === 'mixed');
         const name = doc.createElement('span');
         name.textContent = item.label;
         const select = doc.createElement('select');
-        select.setAttribute('aria-label', item.label + ', näkyvyys');
+        select.disabled = panelOptions.disabled === true;
+        select.dataset.layerModeControl = '';
+        select.setAttribute('aria-label', item.label + ', näkyvyys' +
+          (item.mode === 'mixed' ? ', osittainen' : ''));
         for (const [mode, title] of modeOptions) {
           const option = doc.createElement('option');
           option.value = mode;
@@ -231,9 +294,21 @@ export const mountViewerLayerPresetPanel = (
           }
         });
         field.append(name, select);
+        if (item.mode === 'mixed') {
+          const mixedHelp = doc.createElement('small');
+          mixedHelp.className = 'yl-layer-preset-mixed';
+          mixedHelp.textContent = 'Osittainen: alaryhmillä eri näkyvyys';
+          field.append(mixedHelp);
+        }
         section.append(field);
       }
       groups.append(section);
+    }
+    if (focusedLayer) {
+      const restored = Array.from(groups.querySelectorAll<HTMLLabelElement>('[data-layer-node]'))
+        .find((row) => row.dataset.layerNode === focusedLayer)
+        ?.querySelector<HTMLSelectElement>('select[data-layer-mode-control]');
+      restored?.focus({ preventScroll: true });
     }
   };
 

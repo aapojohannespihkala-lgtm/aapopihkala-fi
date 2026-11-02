@@ -30,7 +30,14 @@ export type ViewerArchitecturalParentNodeId =
   | 'architecture'
   | 'architecture-walls';
 
+export type ViewerTechnicalLayerNodeId =
+  | 'technical'
+  | 'technical-ventilation'
+  | 'technical-heating'
+  | 'technical-electrical';
+
 export type ViewerLayerNodeId =
+  | ViewerTechnicalLayerNodeId
   | 'roof'
   | 'locus'
   | ViewerLocusChildNodeId
@@ -39,6 +46,10 @@ export type ViewerLayerNodeId =
 export type ViewerLayerParentVisibilityState = 'off' | 'none' | 'mixed' | 'all';
 
 export type ViewerLayerControlsState = {
+  technicalVisible: boolean;
+  technicalVentilationVisible: boolean;
+  technicalHeatingVisible: boolean;
+  technicalElectricalVisible: boolean;
   roofVisible: boolean;
   roofOpacity: number;
   locusVisible: boolean;
@@ -69,6 +80,10 @@ export const viewerLayerNodeCapabilities: Record<
     opacity: boolean;
   }
 > = {
+  technical: { parent: null, visibility: true, opacity: false },
+  'technical-ventilation': { parent: 'technical', visibility: true, opacity: false },
+  'technical-heating': { parent: 'technical', visibility: true, opacity: false },
+  'technical-electrical': { parent: 'technical', visibility: true, opacity: false },
   roof: { parent: null, visibility: true, opacity: true },
   locus: { parent: null, visibility: true, opacity: false },
   'locus-water': { parent: 'locus', visibility: true, opacity: false },
@@ -151,6 +166,10 @@ export const viewerArchitecturalWallChildNodeIds = [
 ] as const satisfies readonly ViewerArchitecturalLayerChildNodeId[];
 
 export const viewerLayerControlsDefaults: ViewerLayerControlsState = {
+  technicalVisible: true,
+  technicalVentilationVisible: true,
+  technicalHeatingVisible: true,
+  technicalElectricalVisible: true,
   roofVisible: true,
   roofOpacity: 1,
   locusVisible: false,
@@ -177,6 +196,10 @@ export const mergeViewerLayerControlsState = (
   current: ViewerLayerControlsState,
   next: Partial<ViewerLayerControlsState>,
 ): ViewerLayerControlsState => ({
+  technicalVisible: typeof next.technicalVisible === 'boolean' ? next.technicalVisible : current.technicalVisible,
+  technicalVentilationVisible: typeof next.technicalVentilationVisible === 'boolean' ? next.technicalVentilationVisible : current.technicalVentilationVisible,
+  technicalHeatingVisible: typeof next.technicalHeatingVisible === 'boolean' ? next.technicalHeatingVisible : current.technicalHeatingVisible,
+  technicalElectricalVisible: typeof next.technicalElectricalVisible === 'boolean' ? next.technicalElectricalVisible : current.technicalElectricalVisible,
   roofVisible:
     typeof next.roofVisible === 'boolean' ? next.roofVisible : current.roofVisible,
   roofOpacity:
@@ -295,11 +318,24 @@ const architecturalVisibilityKey = (
   nodeId: ViewerArchitecturalLayerNodeId,
 ) => viewerArchitecturalVisibilityKeys[nodeId];
 
+const technicalVisibilityKeys = {
+  technical: 'technicalVisible',
+  'technical-ventilation': 'technicalVentilationVisible',
+  'technical-heating': 'technicalHeatingVisible',
+  'technical-electrical': 'technicalElectricalVisible',
+} as const;
+
+const isTechnicalNode = (id: ViewerLayerNodeId): id is ViewerTechnicalLayerNodeId =>
+  Object.prototype.hasOwnProperty.call(technicalVisibilityKeys, id);
+
 export const setViewerLayerNodeVisible = (
   current: ViewerLayerControlsState,
   nodeId: ViewerLayerNodeId,
   visible: boolean,
 ): ViewerLayerControlsState => {
+  if (isTechnicalNode(nodeId)) {
+    return mergeViewerLayerControlsState(current, { [technicalVisibilityKeys[nodeId]]: visible });
+  }
   if (nodeId === 'roof') {
     return mergeViewerLayerControlsState(current, { roofVisible: visible });
   }
@@ -326,6 +362,7 @@ export const isViewerLayerNodeEffectivelyVisible = (
   current: ViewerLayerControlsState,
   nodeId: ViewerLayerNodeId,
 ): boolean => {
+  if (isTechnicalNode(nodeId)) return current.technicalVisible && current[technicalVisibilityKeys[nodeId]];
   if (nodeId === 'roof') return current.roofVisible;
   if (nodeId === 'locus') return current.locusVisible;
   if (isViewerArchitecturalLayerNodeId(nodeId)) {
@@ -394,6 +431,7 @@ const viewerLayerOwnVisible = (
   controls: ViewerLayerControlsState,
   nodeId: ViewerLayerNodeId,
 ): boolean => {
+  if (isTechnicalNode(nodeId)) return controls[technicalVisibilityKeys[nodeId]];
   if (nodeId === 'roof') return controls.roofVisible;
   if (nodeId === 'locus') return controls.locusVisible;
   if (isViewerArchitecturalLayerNodeId(nodeId)) {

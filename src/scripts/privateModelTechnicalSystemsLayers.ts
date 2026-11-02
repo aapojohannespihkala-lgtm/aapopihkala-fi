@@ -1,4 +1,5 @@
 import type { Object3D } from 'three';
+import { nameMatches } from './privateModelSourceNodeAssociations.mjs';
 import {
   createViewerScopedLayerPresentation,
   type ViewerScopedLayerRoot,
@@ -11,7 +12,9 @@ import {
  * Sol owns the index.astro mount and any shared hierarchy/type additions.
  */
 export type TechnicalSystemId =
-  | 'technical-electrical' // proposed ID: Sol must add to common hierarchy
+  | 'technical-electrical'
+  | 'technical-ventilation'
+  | 'technical-heating'
   | 'locus-water'
   | 'locus-wastewater'
   | 'p161-kvv-2017'
@@ -50,6 +53,17 @@ export type TechnicalSourceNode = {
   parentNodeIndex: number | null;
   nodeName: string;
   glbSha256: string;
+  /** Source mesh index, required for source-JSON equipment profiles. */
+  meshIndex?: number;
+};
+
+export type TechnicalSourceJson = {
+  scenes?: readonly { name?: string; nodes?: readonly number[] }[];
+  nodes?: readonly {
+    name?: string; mesh?: number; children?: readonly number[];
+    extras?: Record<string, unknown>;
+  }[];
+  meshes?: readonly { primitives?: readonly unknown[] }[];
 };
 
 export type TechnicalViewerScope = 'whole-building' | 'd-apartment' | 'd-1f' | 'd-2f' | 'site' | 'infra';
@@ -61,6 +75,8 @@ export type TechnicalSystemsContext = {
   expectedGlbSha256: string;
   /** Caller must derive this map from the verified glTF node graph. */
   sourceNodes: readonly TechnicalSourceNode[];
+  /** Original immutable parser JSON, not a viewer-generated metadata overlay. */
+  sourceJson?: TechnicalSourceJson;
   viewerScope: TechnicalViewerScope;
   /** Explicitly opt in to source/research geometry; never CURRENT. */
   allowSourceOnly?: boolean;
@@ -84,7 +100,9 @@ const groups: ReadonlyArray<{
   id: TechnicalSystemId; labelFi: string; sourceRole: TechnicalSourceRole;
   sourceDescription: string;
 }> = [
-  { id: 'technical-electrical', labelFi: 'Sähköt', sourceRole: 'WORK_TEST_SOURCE', sourceDescription: 'Sähkö 2015 / MEP_ELECTRICAL, lähde-esitys' },
+  { id: 'technical-electrical', labelFi: 'Sähkölaitteet ja valaisimet', sourceRole: 'WORK_TEST_SOURCE', sourceDescription: 'Lähteen nimetyt sähkö- ja valaisinosat, ei johdotusverkosto' },
+  { id: 'technical-ventilation', labelFi: 'IV-laitteet ja venttiilit', sourceRole: 'WORK_TEST_SOURCE', sourceDescription: 'Lähteen nimetyt IV-osat, ei varmennettu nykyverkosto' },
+  { id: 'technical-heating', labelFi: 'Patterit ja lämpöpumppu', sourceRole: 'WORK_TEST_SOURCE', sourceDescription: 'Lähteen nimetyt lämmityslaitteet, WORK_TEST-esitys' },
   { id: 'locus-water', labelFi: 'Vesi, Locus', sourceRole: 'REFERENCE_ONLY', sourceDescription: 'Locus-kunnallistekniikka, lähdereitit' },
   { id: 'locus-wastewater', labelFi: 'Viemärit, Locus', sourceRole: 'REFERENCE_ONLY', sourceDescription: 'Locus-kunnallistekniikka, lähdereitit' },
   { id: 'p161-kvv-2017', labelFi: 'KVV 2017', sourceRole: 'HISTORICAL_PLAN', sourceDescription: 'Vuoden 2017 KVV-suunnitelmat, ei as-built-reitti' },
@@ -139,29 +157,35 @@ const ancestorChain = (object: Object3D, sceneRoot: Object3D): Object3D[] => {
   return node === sceneRoot ? chain : [];
 };
 
-const explicitSystem = (chain: readonly Object3D[]): TechnicalSystemId | null => {
+const explicitSystem = (
+  chain: readonly Object3D[],
+  dataFor = (node: Object3D): Record<string, unknown> => node.userData,
+): TechnicalSystemId | null => {
   for (const node of chain) {
-    const id = classify(node.userData as Record<string, unknown>);
+    const id = classify(dataFor(node));
     if (id) return id;
   }
   // Existing Locus viewer metadata is deliberately split: the ancestor
   // identifies a source route layer, while the child identifies WATER/WASTEWATER.
   // Require BOTH explicit facts; neither alone authorizes a full group.
   const routeAncestor = chain.some((node) =>
-    recognizedRouteLayers.has(String(node.userData.presentationLayer ?? '')));
+    recognizedRouteLayers.has(String(dataFor(node).presentationLayer ?? '')));
   if (routeAncestor) {
     for (const node of chain) {
-      if (node.userData.presentationSubgroup === 'WATER') return 'locus-water';
-      if (node.userData.presentationSubgroup === 'WASTEWATER') return 'locus-wastewater';
+      if (dataFor(node).presentationSubgroup === 'WATER') return 'locus-water';
+      if (dataFor(node).presentationSubgroup === 'WASTEWATER') return 'locus-wastewater';
     }
   }
   return null;
 };
 
 type Scope = { apartment: string; storey: string; phase: string };
-const explicitScope = (chain: readonly Object3D[]): Scope | null => {
+const explicitScope = (
+  chain: readonly Object3D[],
+  dataFor = (node: Object3D): Record<string, unknown> => node.userData,
+): Scope | null => {
   for (const node of chain) {
-    const data = node.userData as Record<string, unknown>;
+    const data = dataFor(node);
     if (Object.hasOwn(data, 'ylisViewScope')) {
       const view = data.ylisViewScope as Record<string, unknown> | null;
       if (!view || typeof view !== 'object') return null;
@@ -194,6 +218,40 @@ const withinScope = (scope: Scope, preset: TechnicalViewerScope): boolean => {
 
 const normalizedSha = (sha: string) => /^[0-9a-f]{64}$/.test(sha) ? sha : null;
 
+/** V26 device identifiers inspected in its immutable original source JSON.
+ * The selected original scene is the floor-membership proof. These names
+ * identify equipment, not a claim about installed circuits, ducts or piping.
+ */
+export const V26_TECHNICAL_SOURCE_SHA256 =
+  'cff2dbead53b7836747e10ef359637114ff723690ec380e313cec817e4f71d31';
+const v26Scenes = { '1F': 174, '2F': 162, BOTH: 175 } as const;
+const v26Device = (context: TechnicalSystemsContext, binding: TechnicalSourceNode): {
+  id: TechnicalSystemId; scope: Scope;
+} | null => {
+  if (context.loadedGlbSha256 !== V26_TECHNICAL_SOURCE_SHA256 ||
+      !Object.values(v26Scenes).includes(context.sourceSceneIndex as 174 | 162 | 175) ||
+      !context.sourceJson) return null;
+  const name = context.sourceJson.nodes?.[binding.nodeIndex]?.name ?? '';
+  let id: TechnicalSystemId | null = null;
+  let floor: '1F' | '2F' | null = null;
+  const kiv = /^K10_R3_WORLD10_SC19_K10_R3_D([12])F_KIV100_ANCHOR_/.exec(name);
+  if (kiv) { id = 'technical-ventilation'; floor = kiv[1] === '1' ? '1F' : '2F'; }
+  else if (/^TOSHIBA_DAISEIKAI8_2026_OWNER_PHOTO_INDOOR_/.test(name)) {
+    id = 'technical-heating'; floor = '1F';
+  } else if (/^(?:HOB37_OWNER2026_KITCHEN_SOUTH_WINDOW2_RADIATOR_|C80R2_V17_D2F_RADIATOR_)/.test(name)) {
+    id = 'technical-heating'; floor = '2F';
+  } else if (/^PHOTO24_R1_WALL_LAMP_(?:MOUNT|NECK)_/.test(name) ||
+      /^HOB36_PHOTO24_R1_WALL_LAMP_SHADE_/.test(name) ||
+      /^D2F_KVIK_SINK_CEILING_RECESSED_SPOT_[123]_(?:WHITE_TRIM|DIM_RECESS)_/.test(name)) {
+    id = 'technical-electrical'; floor = '2F';
+  } else if (name === 'C80R2_D1F_TERRACE_CEILING_LAMP_ONLY_WORK_TEST') {
+    id = 'technical-electrical'; floor = '1F';
+  }
+  if (!id || !floor ||
+      (context.sourceSceneIndex !== v26Scenes.BOTH && context.sourceSceneIndex !== v26Scenes[floor])) return null;
+  return { id, scope: { apartment: 'D', storey: floor, phase: 'ACTIVE_IN_SELECTED_WORKTEST' } };
+};
+
 /**
  * Read only. The caller owns GLTF loading and SHA verification. Missing/invalid
  * source index, parent identity or explicit floor/apartment metadata fails closed.
@@ -205,6 +263,7 @@ export const createTechnicalSystemLayerInventory = (context: TechnicalSystemsCon
     context.loadedGlbSha256 === context.expectedGlbSha256;
 
   const indices = new Map<number, TechnicalSourceNode>();
+  const sourceObjects = new Map<Object3D, TechnicalSourceNode>();
   const objects = new Set<Object3D>();
   const duplicateIndices = new Set<number>();
   const duplicateObjects = new Set<Object3D>();
@@ -213,6 +272,7 @@ export const createTechnicalSystemLayerInventory = (context: TechnicalSystemsCon
     if (objects.has(binding.object)) duplicateObjects.add(binding.object);
     indices.set(binding.nodeIndex, binding);
     objects.add(binding.object);
+    sourceObjects.set(binding.object, binding);
   }
   const validNode = (binding: TechnicalSourceNode) => {
     if (!exactSource || binding.glbSha256 !== context.loadedGlbSha256 ||
@@ -220,11 +280,28 @@ export const createTechnicalSystemLayerInventory = (context: TechnicalSystemsCon
         !Number.isSafeInteger(binding.nodeIndex) || binding.nodeIndex < 0 ||
         duplicateIndices.has(binding.nodeIndex) || duplicateObjects.has(binding.object) ||
         binding.object.name !== binding.nodeName) return false;
+    const json = context.sourceJson;
+    if (json) {
+      const definition = json.nodes?.[binding.nodeIndex];
+      if (!definition || !nameMatches(binding.object, definition)) return false;
+      if (isRenderable(binding.object) && (binding.meshIndex !== definition.mesh ||
+          !Number.isSafeInteger(definition.mesh) ||
+          !json.meshes?.[definition.mesh!]?.primitives?.length)) return false;
+      const expectedParents = binding.parentNodeIndex === null
+        ? json.scenes?.[sourceSceneIndex]?.nodes
+        : json.nodes?.[binding.parentNodeIndex]?.children;
+      if (!expectedParents?.includes(binding.nodeIndex)) return false;
+      if (JSON.stringify(binding.object.userData.sourceLinks) !==
+          JSON.stringify(definition.extras?.sourceLinks)) return false;
+    }
     if (binding.parentNodeIndex === null) return binding.object.parent === sceneRoot;
     const parent = indices.get(binding.parentNodeIndex);
     return !!parent && parent.object === binding.object.parent &&
       !duplicateIndices.has(binding.parentNodeIndex);
   };
+  const dataFor = (object: Object3D): Record<string, unknown> => context.sourceJson
+    ? context.sourceJson.nodes?.[sourceObjects.get(object)?.nodeIndex ?? -1]?.extras ?? {}
+    : object.userData;
 
   const matches = new Map<TechnicalSystemId, number>();
   const verified = new Map<TechnicalSystemId, number>();
@@ -242,18 +319,26 @@ export const createTechnicalSystemLayerInventory = (context: TechnicalSystemsCon
     if (!isRenderable(object)) continue;
     const chain = ancestorChain(object, sceneRoot);
     if (!chain.length) continue;
-    const id = explicitSystem(chain);
+    let hasSourceRenderableChild = false;
+    object.traverse((child) => {
+      if (child !== object && sourceObjects.has(child) && isRenderable(child)) hasSourceRenderableChild = true;
+    });
+    if (hasSourceRenderableChild) continue;
+    const device = v26Device(context, binding);
+    const id = device?.id ?? explicitSystem(chain, dataFor);
     if (!id) continue;
     increment(matches, id);
     if (!validNode(binding)) continue;
     // Every ancestor between the renderable and the scene must be indexed
     // consistently, otherwise the node's original source card could drift.
     if (chain.some((ancestor) => {
-      const match = context.sourceNodes.find((part) => part.object === ancestor);
+      const match = sourceObjects.get(ancestor);
       return !match || !validNode(match);
     })) continue;
     increment(verified, id);
-    const scope = explicitScope(chain);
+    // A profiled device's source scene and identifier are authoritative here.
+    // Old ylisViewScope.objectKey hashes are never reused as source-card hashes.
+    const scope = device?.scope ?? explicitScope(chain, dataFor);
     if (!scope) { increment(missingScope, id); continue; }
     if (!withinScope(scope, viewerScope)) { increment(outside, id); continue; }
     const group = groups.find((item) => item.id === id)!;
@@ -279,26 +364,22 @@ export const createTechnicalSystemLayerInventory = (context: TechnicalSystemsCon
     if (!exactSource) reason = 'SOURCE_MISMATCH';
     else if (!matchedCount) reason = 'NO_OBJECTS_IN_SCENE';
     else if (!(verified.get(group.id) ?? 0)) reason = 'UNVERIFIED_NODE_IDENTITY';
-    else if (boundCount > 0) reason = group.id === 'technical-electrical' ? 'LAYER_ID_PENDING' : 'AVAILABLE';
+    else if (boundCount > 0) reason = 'AVAILABLE';
     else if (missingScope.get(group.id)) reason = 'UNVERIFIED_SCOPE';
     else if (!boundCount && outside.get(group.id)) reason = 'OUTSIDE_SCOPE';
     else if (!boundCount && needsOptIn.get(group.id)) reason = 'OPT_IN_REQUIRED';
     else if (!boundCount) reason = 'UNVERIFIED_SCOPE';
-    else if (group.id === 'technical-electrical') reason = 'LAYER_ID_PENDING';
     return {
       ...group, availability: reason === 'AVAILABLE' ? 'available' : 'unavailable',
       reason, matchedCount, boundCount, currentInstallationVerified: false as const,
     };
   });
 
-  // Existing WP3 adapter accepts only existing ViewerLayerNodeId values.
-  // Electrical binding is held until Sol adds 'technical-electrical' to WP1.
+  // Sol has registered the technical IDs in the common WP1 hierarchy.
   const bridgeBindings: ViewerScopedLayerRoot[] = bound
-    .filter((item) => item.id !== 'technical-electrical')
     .map((item) => ({ id: item.id as ViewerScopedLayerRoot['id'], root: item.object }));
   const gates = new Map<Object3D, ViewerScopedLayerGate>(
-    bound.filter((item) => item.id !== 'technical-electrical')
-      .map((item) => [item.object, item.gate]),
+    bound.map((item) => [item.object, item.gate]),
   );
   const availableNodeIds = [...new Set(bridgeBindings.map((item) => item.id))];
   return { summary, boundObjects: bound, bridgeBindings, gates, availableNodeIds };
