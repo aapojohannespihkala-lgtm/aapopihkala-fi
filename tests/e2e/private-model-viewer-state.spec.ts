@@ -19,13 +19,16 @@ import {
   mergeViewerLayerState,
 } from '../../src/scripts/privateModelLayerState';
 import {
+  applyViewerLayerPreset,
   applyViewerResearchPreset,
   createViewerInteractionState,
   formatViewerResearchPresetLabel,
   patchViewerLayerControls,
   patchViewerPresentationStyle,
   resetViewerInteractionStateToPresetDefaults,
+  resetViewerLayerPresetToDefaults,
   setViewerCameraView,
+  setViewerInteractionLayerMode,
 } from '../../src/scripts/privateModelViewerState';
 
 const expectedDefaultChildren = {
@@ -51,6 +54,49 @@ const expectedDefaultChildren = {
   architectureFixturesVisible: true,
   architectureOtherVisible: true,
 };
+
+test('WP1 malformed persisted preset IDs cannot crash reset or mode/legacy edits', () => {
+  const valid = applyViewerLayerPreset(createViewerInteractionState('d-2f'), 'd-2f');
+  const baselineModes = valid.layerPresetState!.modes;
+
+  for (const id of ['unknown', '__proto__', 'constructor', 'electrical', '']) {
+    const bad = {
+      ...valid,
+      layerPresetState: {
+        ...valid.layerPresetState!,
+        selected: id as unknown as NonNullable<typeof valid.layerPresetState>['selected'],
+      },
+    };
+
+    const reset = resetViewerLayerPresetToDefaults(bad);
+    expect(reset.layerPresetState?.selected).toBe('d-2f');
+    expect(reset.layerPresetState?.customized).toBe(false);
+    expect(reset.layerPresetState?.modes).toEqual(baselineModes);
+    expect(reset.cameraView).toBe(valid.cameraView);
+
+    const edited = setViewerInteractionLayerMode(bad, 'roof', 'hidden');
+    expect(edited.layerPresetState?.selected).toBe('d-2f');
+    expect(edited.layerPresetState?.customized).toBe(true);
+    expect(edited.layerPresetState?.modes.roof).toBe('hidden');
+    expect(edited.cameraView).toBe(valid.cameraView);
+
+    const legacy = patchViewerLayerControls(bad, { roofVisible: true });
+    expect(legacy.layerPresetState?.selected).toBe('d-2f');
+    expect(legacy.layerPresetState?.customized).toBe(true);
+
+    const direct = applyViewerLayerPreset(
+      valid, id as unknown as NonNullable<typeof valid.layerPresetState>['selected'],
+    );
+    expect(direct.layerPresetState?.selected).toBe('d-2f');
+  }
+
+  // Legitimate presets and the original research views retain their semantics.
+  const infra = applyViewerLayerPreset(valid, 'infra');
+  expect(resetViewerLayerPresetToDefaults(infra).layerPresetState?.selected).toBe('infra');
+  const legacyResearch = createViewerInteractionState('electrical');
+  expect(resetViewerLayerPresetToDefaults(legacyResearch).layerPresetState?.selected)
+    .toBe('whole-building');
+});
 
 test('VUX-C model load defaults replace prior manual layer state without losing review locus intent', () => {
   const priorManual = mergeViewerLayerState(createViewerLayerStateForModelLoad(), {
