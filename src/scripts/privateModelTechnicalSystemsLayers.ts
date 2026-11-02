@@ -1,3 +1,4 @@
+import { V27_SOURCE_SHA256, V27_SOURCE_SCENE_COUNT, V27_TECHNICAL_SCENES } from './privateModelC80R2V27LayerSourceProfile.mjs';
 import type { Object3D } from 'three';
 import { nameMatches } from './privateModelSourceNodeAssociations.mjs';
 import {
@@ -228,9 +229,12 @@ const v26Scenes = { '1F': 174, '2F': 162, BOTH: 175 } as const;
 const v26Device = (context: TechnicalSystemsContext, binding: TechnicalSourceNode): {
   id: TechnicalSystemId; scope: Scope;
 } | null => {
-  if (context.loadedGlbSha256 !== V26_TECHNICAL_SOURCE_SHA256 ||
-      !Object.values(v26Scenes).includes(context.sourceSceneIndex as 174 | 162 | 175) ||
-      !context.sourceJson) return null;
+  const successor = context.loadedGlbSha256 === V27_SOURCE_SHA256;
+  const scenes = successor ? V27_TECHNICAL_SCENES : v26Scenes;
+  if ((!successor && context.loadedGlbSha256 !== V26_TECHNICAL_SOURCE_SHA256) ||
+      !(Object.values(scenes) as readonly number[]).includes(context.sourceSceneIndex) ||
+      !context.sourceJson ||
+      (successor && context.sourceJson.scenes?.length !== V27_SOURCE_SCENE_COUNT)) return null;
   const name = context.sourceJson.nodes?.[binding.nodeIndex]?.name ?? '';
   let id: TechnicalSystemId | null = null;
   let floor: '1F' | '2F' | null = null;
@@ -248,7 +252,7 @@ const v26Device = (context: TechnicalSystemsContext, binding: TechnicalSourceNod
     id = 'technical-electrical'; floor = '1F';
   }
   if (!id || !floor ||
-      (context.sourceSceneIndex !== v26Scenes.BOTH && context.sourceSceneIndex !== v26Scenes[floor])) return null;
+      (context.sourceSceneIndex !== scenes.BOTH && context.sourceSceneIndex !== scenes[floor])) return null;
   return { id, scope: { apartment: 'D', storey: floor, phase: 'ACTIVE_IN_SELECTED_WORKTEST' } };
 };
 
@@ -393,3 +397,4 @@ export const createTechnicalSystemPresentation = (
   sceneRoot: Object3D,
   inventory: ReturnType<typeof createTechnicalSystemLayerInventory>,
 ) => createViewerScopedLayerPresentation(sceneRoot, inventory.bridgeBindings);
+

@@ -1,3 +1,5 @@
+import { V27_SOURCE_SHA256, V27_SOURCE_SCENE_COUNT, V27_BUILDING_PARTS, V27_BUILDING_SCENES } from './privateModelC80R2V27LayerSourceProfile.mjs';
+
 /**
  * High 1: opt-in, read-only building-part bindings for
  * privateModelLayerScopedPresentationBridge.ts.
@@ -257,11 +259,12 @@ const matchesSourceName = (actual, expected) => {
 };
 
 const v26SourcePart = (json, sha, sceneIndex, floor, source, associations, mesh) => {
-  const scene = v26Scenes[sceneIndex];
-  const part = v26Parts[source.index];
+  const successor = sha === V27_SOURCE_SHA256;
+  const scene = (successor ? V27_BUILDING_SCENES : v26Scenes)[sceneIndex];
+  const part = (successor ? V27_BUILDING_PARTS : v26Parts)[source.index];
   const def = json.nodes[source.index];
-  if (sha !== V26_SHA || !scene || !part || scene.floor !== floor ||
-      json.scenes.length !== 176 || json.scenes[sceneIndex]?.name !== scene.name ||
+  if ((!successor && sha !== V26_SHA) || !scene || !part || scene.floor !== floor ||
+      json.scenes.length !== (successor ? V27_SOURCE_SCENE_COUNT : 176) || json.scenes[sceneIndex]?.name !== scene.name ||
       def?.mesh !== part.mesh || def?.name !== part.name ||
       !scene.paths[source.index]?.some(path => samePath(path, source.path)) ||
       !matchesSourceName(source.sourceObject.name, part.name)) return null;
@@ -376,10 +379,10 @@ export function resolveBuildingPartLayerBindings(input) {
       sourceNodePath: [...source.path], sceneIndex,
       sourceSha256: String(loadedSourceSha256).toLowerCase(),
       sourceLinks: hierarchy.nodes[sourceNodeIndex]?.extras?.sourceLinks ?? [],
-      objectKey: scope?.objectKey ?? `V26:${sceneIndex}:${sourceNodeIndex}`,
+      objectKey: scope?.objectKey ?? `${String(loadedSourceSha256).toLowerCase() === V27_SOURCE_SHA256 ? 'V27' : 'V26'}:${sceneIndex}:${sourceNodeIndex}`,
       storeyScope: scope?.storeyScope ?? floor,
       apartmentScope: scope?.apartmentScope ?? 'D',
-      bindingKind: profile ? 'EXACT_V26_SOURCE_PROFILE' : 'EXPLICIT_SOURCE_METADATA',
+      bindingKind: profile ? (String(loadedSourceSha256).toLowerCase() === V27_SOURCE_SHA256 ? 'EXACT_V27_SOURCE_PROFILE' : 'EXACT_V26_SOURCE_PROFILE') : 'EXPLICIT_SOURCE_METADATA',
     });
   });
   return {
@@ -394,3 +397,4 @@ export function resolveBuildingPartLayerBindings(input) {
     excluded,
   };
 }
+
