@@ -123,11 +123,24 @@ test('exact V26 viewer: D upstairs, ghost walls, supported IV, reset, floor chan
   const walls = page.locator('[data-layer-node="architecture-walls"] select');
   const ventilation = page.locator('[data-layer-node="technical-ventilation"] select');
   const pose = await canvas.getAttribute('data-layers-camera-pose');
+  const expectPreservedCamera = async () => {
+    const before = JSON.parse(pose!);
+    const after = JSON.parse((await canvas.getAttribute('data-layers-camera-pose'))!);
+    // OrbitControls can round a target component by one floating-point bit
+    // after an explicit fit. Keep a sub-nanometre tolerance, not string equality.
+    for (const key of ['position', 'quaternion', 'target']) {
+      expect(after[key]).toHaveLength(before[key].length);
+      for (let i = 0; i < before[key].length; i++) {
+        expect(after[key][i]).toBeCloseTo(before[key][i], 9);
+      }
+    }
+    expect(after.zoom).toBeCloseTo(before.zoom, 9);
+  };
   await walls.selectOption('ghost');
   await ventilation.selectOption('hidden');
   await ventilation.selectOption('visible');
   await expect(page.locator('[data-layer-preset-customized]')).toContainText('Mukautettu');
-  await expect(canvas).toHaveAttribute('data-layers-camera-pose', pose!);
+  await expectPreservedCamera();
   await expect(page.locator('[data-layer-node="architecture-ceilings"] select')).toHaveValue('hidden');
   await expect(page.locator('[data-layer-node="roof"]')).toHaveCount(0);
   await page.screenshot({ path: info.outputPath('layers-v26-2f-walls-ghost-iv-visible-desktop.png') });
@@ -135,7 +148,7 @@ test('exact V26 viewer: D upstairs, ghost walls, supported IV, reset, floor chan
   await expect(walls).toHaveValue('visible');
   await expect(canvas).toHaveAttribute('data-main-view-floor', '2F');
   await expect(page.locator('[data-layer-preset-customized]')).not.toContainText('Mukautettu');
-  await expect(canvas).toHaveAttribute('data-layers-camera-pose', pose!);
+  await expectPreservedCamera();
   for (const [value, floor, index] of [['d-1f', '1F', '174'], ['d-apartment', 'BOTH', '175'], ['d-2f', '2F', '162']]) {
     await preset.selectOption(value);
     await expect(canvas).toHaveAttribute('data-main-view-floor', floor);
