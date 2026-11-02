@@ -1,9 +1,11 @@
 import {
   EdgesGeometry,
+  Line,
   LineBasicMaterial,
   LineSegments,
   Mesh,
   NormalBlending,
+  Points,
   type Material,
   type Object3D,
 } from 'three';
@@ -34,6 +36,14 @@ type MeshSnapshot = {
   outline: LineSegments | null;
 };
 
+/** Source-backed routes can be lines or points, not just meshes. */
+type LinePointSnapshot = {
+  material: Material | Material[];
+  raycast: Line['raycast'];
+  ownRaycast: boolean;
+  temporaryMaterials: Material[];
+};
+
 const validOpacity = (value: number | undefined) =>
   typeof value === 'number' && Number.isFinite(value)
     ? Math.max(0.02, Math.min(0.35, value))
@@ -49,6 +59,7 @@ const materialsOf = (material: Material | Material[]): Material[] =>
 export const createViewerLayerGhostPresentation = (root: Object3D) => {
   const originalRootVisible = root.visible;
   const changed = new Map<Mesh, MeshSnapshot>();
+  const changedLinesAndPoints = new Map<Line | Points, LinePointSnapshot>();
   let disposed = false;
 
   const restoreMaterials = () => {
@@ -69,6 +80,16 @@ export const createViewerLayerGhostPresentation = (root: Object3D) => {
       saved.temporaryMaterials.forEach((material) => material.dispose());
     }
     changed.clear();
+    for (const [object, saved] of changedLinesAndPoints) {
+      object.material = saved.material;
+      if (saved.ownRaycast) {
+        object.raycast = saved.raycast;
+      } else {
+        delete (object as unknown as { raycast?: Line['raycast'] }).raycast;
+      }
+      saved.temporaryMaterials.forEach((material) => material.dispose());
+    }
+    changedLinesAndPoints.clear();
   };
 
   const apply = (
@@ -89,9 +110,12 @@ export const createViewerLayerGhostPresentation = (root: Object3D) => {
     const opacity = validOpacity(options.opacity);
     // Snapshot before inserting helper edges so they cannot be traversed as data.
     const targets: Mesh[] = [];
+    const lineAndPointTargets: Array<Line | Points> = [];
     root.traverse((child) => {
       if (child instanceof Mesh && child.visible && !options.isSelected?.(child)) {
         targets.push(child);
+      } else if ((child instanceof Line || child instanceof Points) && child.visible) {
+        lineAndPointTargets.push(child);
       }
     });
 
@@ -164,6 +188,34 @@ export const createViewerLayerGhostPresentation = (root: Object3D) => {
         mesh.add(outline);
         snapshot.outline = outline;
       }
+    }
+
+    // Collection happens before transient mesh outline helpers are added.
+    // Never modify original materials or change the source node hierarchy.
+    for (const object of lineAndPointTargets) {
+      const original = object.material;
+      const copies: Material[] = [];
+      try {
+        for (const material of materialsOf(original)) {
+          const copy = material.clone();
+          copies.push(copy);
+          copy.transparent = true;
+          copy.opacity = Math.min(material.opacity, opacity);
+          copy.depthWrite = false;
+          copy.needsUpdate = true;
+        }
+      } catch (error) {
+        copies.forEach((material) => material.dispose());
+        throw error;
+      }
+      changedLinesAndPoints.set(object, {
+        material: original,
+        raycast: object.raycast,
+        ownRaycast: Object.prototype.hasOwnProperty.call(object, 'raycast'),
+        temporaryMaterials: copies,
+      });
+      object.material = Array.isArray(original) ? copies : copies[0];
+      object.raycast = () => {};
     }
       return effectiveMode;
     } catch (error) {
