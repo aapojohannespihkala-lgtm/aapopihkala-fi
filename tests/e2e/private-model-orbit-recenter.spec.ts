@@ -165,3 +165,28 @@ test('focus respects clipping intersection and the intersected mesh face materia
   materials[4].clipIntersection = false; // clipped by positive Z alone
   expect(visibleOrbitFocus(root, camera)?.point.z).toBeCloseTo(2, 5);
 });
+
+test('orbit pivot ignores source surfaces that write no visible colour', () => {
+  const camera = new PerspectiveCamera(40, 1, 0.01, 100);
+  camera.position.set(0, 0, 10);
+  camera.lookAt(0, 0, 0);
+  const root = new Group();
+  // A source-only mask can be raycastable without painting a single pixel.
+  // depthWrite=false ensures it does not hide the real background surface.
+  const maskMaterial = new MeshBasicMaterial({
+    side: 2, colorWrite: false, depthWrite: false,
+  });
+  const foregroundMask = new Mesh(new BoxGeometry(2, 2, 2), maskMaterial);
+  foregroundMask.position.z = 3;
+  const visibleBackground = new Mesh(
+    new BoxGeometry(2, 2, 2), new MeshBasicMaterial({ side: 2 }),
+  );
+  root.add(foregroundMask, visibleBackground);
+  expect(visibleOrbitFocus(root, camera)?.point.z).toBeCloseTo(1, 5);
+
+  maskMaterial.colorWrite = true;
+  expect(visibleOrbitFocus(root, camera)?.point.z).toBeCloseTo(4, 5);
+  maskMaterial.colorWrite = false;
+  root.remove(visibleBackground);
+  expect(visibleOrbitFocus(root, camera)).toBeNull();
+});
