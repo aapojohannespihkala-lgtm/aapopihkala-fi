@@ -74,6 +74,17 @@ class SelectionTests(unittest.TestCase):
             'tests/e2e/private-model-work-test-load-diagnostics.spec.ts',
         ])
 
+    def test_layers_wp3_source_and_css_changes_select_existing_dom_regression(self):
+        spec = 'tests/e2e/private-model-layers-wp3-controls.spec.ts'
+        paths = ('src/scripts/privateModelLayersPresetControls.ts',
+                 'src/styles/privateModelLayersPresetControls.css')
+        for path in paths:
+            with self.subTest(path=path):
+                self.assertEqual(selected(path), [spec])
+        # Multiple edits to the same pane must not duplicate its browser run.
+        self.assertEqual(selected(*paths, *paths), [spec])
+        self.assertEqual(selected('src/scripts/unrelated-layer-script.ts'), [])
+
     def test_work_test_loader_changes_run_diagnostics(self):
         self.assertEqual(selected('src/scripts/privateModelWorkTest.ts'), [
             'tests/e2e/private-model-work-test-load-diagnostics.spec.ts',
