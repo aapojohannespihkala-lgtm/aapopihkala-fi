@@ -70,6 +70,23 @@ test('real DOM: model switch clears stale technical sources and never invents cu
   await expect(root.locator('[data-technical-layer="technical-ventilation"]')).toContainText('SHA-256');
   await expect(root.locator('[data-technical-layer]')).toHaveCount(1);
   await expect(summary).toBeFocused();
+
+  // Even with a valid-looking binding count, a future/unknown runtime source
+  // role must not be presented as a verified, selectable technical layer.
+  const unknownRole: TechnicalSystemSummary[] = [
+    fixture('technical-ventilation', 'AVAILABLE',
+      'UNVERIFIED_FUTURE_ROLE' as TechnicalSystemSummary['sourceRole'],
+      'IV-laitteet ja venttiilit', 4),
+  ];
+  await page.evaluate((next) => (window as any).technicalPanel.update(next), unknownRole);
+  const unknownRow = root.locator('[data-technical-layer="technical-ventilation"]');
+  await expect(summary).toContainText('0/1 ryhmää');
+  await expect(unknownRow).toHaveAttribute('data-available', 'false');
+  await expect(unknownRow).toContainText('lähteen asemaa ei ole varmennettu');
+  await expect(unknownRow).toContainText('Lähteen asema ei ole varmennettu');
+  await expect(unknownRow).not.toContainText('Saatavilla: 4');
+  await expect(summary).toBeFocused();
+
   await page.evaluate(() => (window as any).technicalPanel.update([]));
   await expect(root).toHaveAttribute('data-availability-state', 'unverified');
   await expect(summary).toContainText('ei ole vielä varmennettu');
