@@ -81,6 +81,50 @@ test('scope and hidden take priority; original hidden descendants stay hidden', 
   adapter.dispose();
 });
 
+test('ghost ignores hidden Group descendants and preserves visible sibling', () => {
+  const root = new Group();
+  const visible = makeMesh();
+  const visibleMaterial = visible.material;
+  const visibleRaycast = visible.raycast;
+  const hiddenGroup = new Group();
+  hiddenGroup.visible = false;
+  const hiddenMaterial = new MeshBasicMaterial();
+  let hiddenClones = 0;
+  hiddenMaterial.clone = () => {
+    hiddenClones++;
+    throw new Error('invisible material must not be cloned');
+  };
+  const hiddenMesh = makeMesh(hiddenMaterial);
+  const hiddenRaycast = hiddenMesh.raycast;
+  hiddenGroup.add(hiddenMesh);
+  root.add(visible, hiddenGroup);
+  const adapter = createViewerLayerGhostPresentation(root);
+
+  // Neither the selection callback nor material cloning should see an object
+  // under an invisible ancestor, even when the leaf's own visible flag is true.
+  expect(adapter.apply('ghost', {
+    isSelected: object => {
+      if (object === hiddenMesh) throw new Error('invisible object selected');
+      return false;
+    },
+  })).toBe('ghost');
+  expect(root.visible).toBe(true);
+  expect(visible.material).not.toBe(visibleMaterial);
+  expect(visible.raycast).not.toBe(visibleRaycast);
+  expect(hiddenGroup.visible).toBe(false);
+  expect(hiddenMesh.material).toBe(hiddenMaterial);
+  expect(hiddenMesh.raycast).toBe(hiddenRaycast);
+
+  expect(adapter.apply('ghost')).toBe('ghost');
+  expect(hiddenClones).toBe(0);
+  expect(hiddenMesh.material).toBe(hiddenMaterial);
+  adapter.apply('visible');
+  expect(visible.material).toBe(visibleMaterial);
+  expect(visible.raycast).toBe(visibleRaycast);
+  expect(hiddenGroup.visible).toBe(false);
+  adapter.dispose();
+});
+
 test('one scene root never mutates another scene even with shared source material', () => {
   const source = new MeshBasicMaterial({ color: 0x556677 });
   const scene1 = new Group();
