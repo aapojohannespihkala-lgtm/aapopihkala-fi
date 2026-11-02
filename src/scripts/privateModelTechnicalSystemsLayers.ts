@@ -1,6 +1,7 @@
 import { V27_SOURCE_SHA256, V27_SOURCE_SCENE_COUNT, V27_TECHNICAL_SCENES } from './privateModelC80R2V27LayerSourceProfile.mjs';
 import { V29_SOURCE_SHA256, V29_SOURCE_SCENE_COUNT, V29_TECHNICAL_SCENES } from './privateModelC80R2V29LayerSourceProfile.mjs';
 import { V33_SOURCE_SHA256, V33_SOURCE_SCENE_COUNT, V33_TECHNICAL_SCENES } from './privateModelC80R2V33LayerSourceProfile.mjs';
+import { V34_SOURCE_SHA256, V34_SOURCE_SCENE_COUNT, V34_TECHNICAL_SCENES } from './privateModelC80R2V34LayerSourceProfile.mjs';
 import type { Object3D } from 'three';
 import { nameMatches } from './privateModelSourceNodeAssociations.mjs';
 import {
@@ -231,14 +232,16 @@ const v26Scenes = { '1F': 174, '2F': 162, BOTH: 175 } as const;
 const v26Device = (context: TechnicalSystemsContext, binding: TechnicalSourceNode): {
   id: TechnicalSystemId; scope: Scope;
 } | null => {
+  const v34 = context.loadedGlbSha256 === V34_SOURCE_SHA256;
   const v33 = context.loadedGlbSha256 === V33_SOURCE_SHA256;
   const v29 = context.loadedGlbSha256 === V29_SOURCE_SHA256;
   const v27 = context.loadedGlbSha256 === V27_SOURCE_SHA256;
-  const scenes = v33 ? V33_TECHNICAL_SCENES : v29 ? V29_TECHNICAL_SCENES : v27 ? V27_TECHNICAL_SCENES : v26Scenes;
+  const scenes = v34 ? V34_TECHNICAL_SCENES : v33 ? V33_TECHNICAL_SCENES : v29 ? V29_TECHNICAL_SCENES : v27 ? V27_TECHNICAL_SCENES : v26Scenes;
   // No guessed successor or copied metadata from another GLB is accepted.
-  if ((!v33 && !v29 && !v27 && context.loadedGlbSha256 !== V26_TECHNICAL_SOURCE_SHA256) ||
+  if ((!v34 && !v33 && !v29 && !v27 && context.loadedGlbSha256 !== V26_TECHNICAL_SOURCE_SHA256) ||
       !(Object.values(scenes) as readonly number[]).includes(context.sourceSceneIndex) ||
       !context.sourceJson ||
+      (v34 && context.sourceJson.scenes?.length !== V34_SOURCE_SCENE_COUNT) ||
       (v33 && context.sourceJson.scenes?.length !== V33_SOURCE_SCENE_COUNT) ||
       (v29 && context.sourceJson.scenes?.length !== V29_SOURCE_SCENE_COUNT) ||
       (v27 && context.sourceJson.scenes?.length !== V27_SOURCE_SCENE_COUNT)) return null;
