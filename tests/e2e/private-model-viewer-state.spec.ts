@@ -338,9 +338,11 @@ test('VUX-E3B exposes only contract-derived layer capabilities', () => {
   }
 });
 
-test('unknown runtime node IDs cannot change the 1974 IV section layer', () => {
+test('unknown runtime node IDs cannot change or impersonate the 1974 IV section layer', () => {
   const initial = createViewerInteractionState('infra').layers;
+  expect(initial.locusVisible).toBe(true);
   expect(initial.p161IvSectionVisible).toBe(true);
+  expect(isViewerLayerNodeEffectivelyVisible(initial, 'p161-iv-1974-section')).toBe(true);
 
   for (const id of ['no-such-layer', 'technical-unknown', '__proto__', 'constructor']) {
     // Source-provided IDs can be malformed at runtime despite the TS union.
@@ -349,6 +351,10 @@ test('unknown runtime node IDs cannot change the 1974 IV section layer', () => {
     );
     expect(result).toEqual(initial);
     expect(result.p161IvSectionVisible).toBe(true);
+    // A malformed source ID must not borrow the visible IV-section state.
+    expect(isViewerLayerNodeEffectivelyVisible(
+      initial, id as Parameters<typeof isViewerLayerNodeEffectivelyVisible>[1],
+    )).toBe(false);
   }
 
   // A real ID remains independently adjustable.
