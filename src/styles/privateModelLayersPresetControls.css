@@ -102,6 +102,33 @@
   min-width: 0;
   font-weight: 560;
 }
+[data-layer-preset-panel] .yl-layer-mode-choices {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 4px;
+  min-width: 0;
+}
+[data-layer-preset-panel] .yl-layer-mode-button {
+  min-width: 0;
+  width: 100%;
+  min-height: 44px;
+  padding: 7px 3px;
+  font-size: 13px;
+  overflow-wrap: normal;
+  white-space: nowrap;
+  cursor: pointer;
+}
+[data-layer-preset-panel] .yl-layer-mode-button[aria-pressed='true'] {
+  color: #fff;
+  background: #245679;
+  border-color: #245679;
+  font-weight: 750;
+}
+[data-layer-preset-panel] .yl-layer-mode-button[aria-pressed='true']:disabled {
+  background: #245679;
+  color: #fff;
+  opacity: .6;
+}
 [data-layer-preset-panel] .yl-layer-preset-row[data-mixed='true'] {
   background: #eff3f5;
   border: 1px solid #9daeb9;
@@ -137,12 +164,8 @@
   scrollbar-gutter: stable;
   scroll-padding-block: 10px;
 }
-@media (min-width: 520px) {
-  [data-layer-preset-panel] .yl-layer-preset-row {
-    grid-template-columns: minmax(0, 1fr) minmax(110px, 44%);
-    align-items: center;
-  }
-}
+/* A stacked title leaves all three full-width controls tappable even when
+   the Layers side panel is narrower than the desktop viewport. */
 @media (max-width: 519px) {
   #layers-panel:has([data-layer-preset-panel]) {
     max-height: min(calc(100% - 24px), calc(100dvh - 115px));
