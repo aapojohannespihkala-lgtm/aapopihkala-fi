@@ -21,6 +21,80 @@ test('preset choices exclude legacy electrical/drainage research views', () => {
   expect(buildViewerLayerPanelModel(old, []).selectedPreset).toBeNull();
 });
 
+test('malformed saved preset IDs use a verified fallback or no preset', () => {
+  const base = applyViewerLayerPreset(createViewerInteractionState(), 'd-2f');
+  for (const invalidId of ['unknown', '__proto__', 'constructor', 'electrical', 123, null]) {
+    const invalid = {
+      ...base,
+      layerPresetState: {
+        ...base.layerPresetState!,
+        selected: invalidId as NonNullable<typeof base.layerPresetState>['selected'],
+      },
+    };
+    const model = buildViewerLayerPanelModel(invalid, ['roof']);
+    expect(model.selectedPreset).toBe('d-2f');
+    expect(model.groups.flatMap(group => group.items).find(item => item.id === 'roof')?.mode)
+      .toBe('ghost');
+    expect(invalid.layerPresetState.selected).toBe(invalidId);
+  }
+
+  const research = {
+    ...createViewerInteractionState('electrical'),
+    layerPresetState: {
+      ...base.layerPresetState!,
+      selected: '__proto__' as NonNullable<typeof base.layerPresetState>['selected'],
+      customized: true,
+    },
+  };
+  expect(buildViewerLayerPanelModel(research, ['roof'])).toMatchObject({
+    selectedPreset: null, customized: false,
+  });
+  // Valid saved selections continue to take precedence over older research modes.
+  expect(buildViewerLayerPanelModel({
+    ...createViewerInteractionState('electrical'),
+    layerPresetState: base.layerPresetState,
+  }, []).selectedPreset).toBe('d-2f');
+});
+
+test('browser select never appears empty for an invalid saved preset with valid fallback', async ({ page }) => {
+  const result = await build({
+    entryPoints: ['src/scripts/privateModelLayersPresetControls.ts'],
+    absWorkingDir: process.cwd(), bundle: true, platform: 'browser',
+    format: 'iife', globalName: 'YlisrinneLayersWP3', write: false,
+  });
+  await page.setContent('<main id="layers"></main>');
+  await page.addScriptTag({ content: result.outputFiles[0].text });
+  const base = applyViewerLayerPreset(createViewerInteractionState(), 'd-2f');
+  const malformed = {
+    ...base,
+    layerPresetState: {
+      ...base.layerPresetState!,
+      selected: 'constructor' as NonNullable<typeof base.layerPresetState>['selected'],
+    },
+  };
+  await page.evaluate((state) => {
+    const app = (window as any).YlisrinneLayersWP3;
+    (window as any).layerPanel = app.mountViewerLayerPresetPanel(
+      document.getElementById('layers'), state, ['roof'],
+      { onPresetChange: () => {}, onLayerModeChange: () => {}, onReset: () => {} },
+    );
+  }, malformed);
+  await expect(page.getByRole('combobox', { name: 'Näkymän esiasetus' }))
+    .toHaveValue('d-2f');
+  await expect(page.getByText('Oletusasetukset', { exact: true })).toBeVisible();
+  const legacy = {
+    ...createViewerInteractionState('electrical'),
+    layerPresetState: { ...malformed.layerPresetState, customized: true },
+  };
+  await page.evaluate((state) => (window as any).layerPanel.update(state, ['roof']), legacy);
+  await expect(page.getByRole('combobox', { name: 'Näkymän esiasetus' }))
+    .toHaveValue('');
+  await expect(page.getByText('Ei valittua esiasetusta', { exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Palauta presetin asetukset' }))
+    .toBeDisabled();
+  await page.evaluate(() => (window as any).layerPanel.destroy());
+});
+
 test('only explicit available hierarchy IDs are shown, with no fabricated electric layer', () => {
   const state = applyViewerLayerPreset(createViewerInteractionState(), 'd-2f');
   const model = buildViewerLayerPanelModel(state, [
