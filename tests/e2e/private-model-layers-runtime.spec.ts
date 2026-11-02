@@ -100,7 +100,8 @@ test('exact V26 viewer: D upstairs, ghost walls, supported IV, reset, floor chan
   for (let attempt = 0; attempt < (production ? 12 : 1); attempt++) {
     await page.goto(reviewUrl, { waitUntil: 'domcontentloaded' });
     await expect(canvas).toHaveAttribute('data-work-test-review-autoload', 'true', { timeout: 120_000 });
-    if (await canvas.getAttribute('data-layers-runtime') === 'active') break;
+    if (await canvas.getAttribute('data-layers-runtime') === 'active' &&
+        await page.locator('[data-technical-layer-availability]').count() === 1) break;
     if (production && attempt < 11) await page.waitForTimeout(10_000);
   }
   expect(sourceVerified).toBe(true);
