@@ -15,7 +15,8 @@ export function visibleOrbitFocus(
   // A hit must be checked against the *actual intersected face material*, not
   // just any visible material on the mesh. The viewer enables local clipping.
   const renderable = (material: Material | undefined | null) =>
-    !!material && material.visible && material.depthTest !== false &&
+    !!material && material.visible && material.colorWrite !== false &&
+    material.depthTest !== false &&
     !('wireframe' in material && material.wireframe === true) &&
     (material.opacity ?? 1) >= 0.45;
   const meshes: Mesh[] = [];
