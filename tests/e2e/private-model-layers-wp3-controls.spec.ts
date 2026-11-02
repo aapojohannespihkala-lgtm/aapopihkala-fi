@@ -38,6 +38,31 @@ test('only explicit available hierarchy IDs are shown, with no fabricated electr
     .toBe('ghost');
 });
 
+test('malformed persisted leaf modes display safely hidden without changing source preferences', () => {
+  const base = applyViewerLayerPreset(createViewerInteractionState(), 'd-2f');
+  const invalid = {
+    ...base,
+    layerPresetState: {
+      ...base.layerPresetState!,
+      modes: {
+        ...base.layerPresetState!.modes,
+        roof: 'unrecognized' as 'visible',
+        'architecture-windows': undefined as unknown as 'visible',
+      },
+    },
+  };
+  const rows = buildViewerLayerPanelModel(invalid, ['roof', 'architecture-windows'])
+    .groups.flatMap(group => group.items);
+  expect(rows.find(item => item.id === 'roof')).toMatchObject({
+    mode: 'hidden', effectiveMode: 'hidden',
+  });
+  expect(rows.find(item => item.id === 'architecture-windows')).toMatchObject({
+    mode: 'hidden', effectiveMode: 'hidden',
+  });
+  expect(invalid.layerPresetState.modes.roof).toBe('unrecognized');
+  expect(base.layerPresetState!.modes.roof).toBe('ghost');
+});
+
 test('parent reports mixed when explicit children differ, without changing child settings', () => {
   let state = applyViewerLayerPreset(createViewerInteractionState(), 'd-apartment');
   state = setViewerInteractionLayerMode(state, 'architecture-walls-party', 'hidden');
@@ -169,6 +194,36 @@ test('real browser DOM controls emit only explicit user actions and support mixe
       'architecture-walls-party', 'architecture-walls-interior', 'locus-water']);
   }, start);
   await expect(roofNotice).toBeHidden();
+  await expect(page.locator('[data-layer-node="roof"] select')).toHaveValue('ghost');
+
+  // A corrupted runtime map must render a meaningful hidden option,
+  // never a blank selection that disagrees with fail-closed presentation.
+  await page.evaluate((state) => {
+    const bad = {
+      ...state,
+      layerPresetState: {
+        ...state.layerPresetState,
+        modes: {
+          ...state.layerPresetState.modes,
+          roof: 'unrecognized',
+          'architecture-walls-party': undefined,
+        },
+      },
+    };
+    (window as any).layerPanel.update(bad, [
+      'roof', 'architecture-walls', 'architecture-walls-party',
+    ]);
+  }, start);
+  await expect(page.locator('[data-layer-node="roof"] select')).toHaveValue('hidden');
+  await expect(page.locator('[data-layer-node="architecture-walls-party"] select')).toHaveValue('hidden');
+  await expect(page.locator('[data-layer-node="roof"] select')).toHaveAttribute('data-effective-mode', 'hidden');
+  expect(await page.evaluate(() => (window as any).layerEvents)).toEqual([]);
+  await page.evaluate((state) => {
+    (window as any).layerPanel.update(state, [
+      'roof', 'architecture-walls', 'architecture-walls-party',
+      'architecture-walls-interior', 'locus-water',
+    ]);
+  }, start);
   await expect(page.locator('[data-layer-node="roof"] select')).toHaveValue('ghost');
 
   await page.locator('[data-layer-node="roof"] select').selectOption('visible');
