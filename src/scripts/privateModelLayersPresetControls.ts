@@ -346,31 +346,6 @@ export const mountViewerLayerPresetPanel = (
         }
         field.append(name, choices);
         if (item.mode === 'mixed') {
-          const option = doc.createElement('option');
-          option.value = 'mixed';
-          option.textContent = 'Osittainen';
-          option.disabled = true;
-          select.prepend(option);
-        }
-        select.value = item.mode;
-        select.dataset.effectiveMode = item.effectiveMode;
-        // Child preference is retained when a parent prevents visibility.
-        // Explain the actual presentation without changing or disabling
-        // that preference. It becomes effective again when the parent opens.
-        const parentEffect = item.effectiveMode === 'hidden' && item.mode !== 'hidden'
-          ? 'Ylempi tasoryhmä on piilossa. Tämä taso ei nyt näy, vaikka oma asetus säilyy.'
-          : item.effectiveMode === 'ghost' && item.mode === 'visible'
-            ? 'Ylempi tasoryhmä on himmeä. Myös tämä taso näkyy himmeänä.'
-            : null;
-        if (parentEffect) select.setAttribute('aria-description', parentEffect);
-        select.addEventListener('change', () => {
-          if (select.value === 'visible' || select.value === 'ghost' ||
-              select.value === 'hidden') {
-            callbacks.onLayerModeChange(item.id, select.value);
-          }
-        });
-        field.append(name, select);
-        if (item.mode === 'mixed') {
           const mixedHelp = doc.createElement('small');
           mixedHelp.className = 'yl-layer-preset-mixed';
           mixedHelp.textContent = 'Osittainen: ylätason ja alatasojen näkyvyys poikkeaa. Muuta alatasoja tarvittaessa erikseen.';
