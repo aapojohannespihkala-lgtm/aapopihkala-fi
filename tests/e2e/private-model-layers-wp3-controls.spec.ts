@@ -149,12 +149,12 @@ test('real browser DOM controls emit only explicit user actions and support mixe
     });
   }, custom);
   const preset = page.getByRole('combobox', { name: 'Näkymän esiasetus' });
-  await expect(preset.locator('option[value="site"]')).toBeDisabled();
-  await expect(preset.locator('option[value="infra"]')).toBeDisabled();
-  await expect(preset.locator('option[value="d-2f"]')).toBeEnabled();
+  await expect(preset.locator('option[value="site"]')).toHaveJSProperty('disabled', true);
+  await expect(preset.locator('option[value="infra"]')).toHaveJSProperty('disabled', true);
+  await expect(preset.locator('option[value="d-2f"]')).toHaveJSProperty('disabled', false);
   // Normal updates retain the runtime's supported-scope restriction.
   await page.evaluate((state) => (window as any).layerPanel.update(state, ['roof']), custom);
-  await expect(preset.locator('option[value="site"]')).toBeDisabled();
+  await expect(preset.locator('option[value="site"]')).toHaveJSProperty('disabled', true);
   await page.evaluate((state) => {
     (window as any).layerPanel.update(state, ['roof'], { disabled: true });
   }, custom);
