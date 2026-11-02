@@ -29,6 +29,10 @@ import {
 } from '../../src/scripts/privateModelViewerState';
 
 const expectedDefaultChildren = {
+  technicalVisible: true,
+  technicalVentilationVisible: true,
+  technicalHeatingVisible: true,
+  technicalElectricalVisible: true,
   locusWaterVisible: true,
   locusWastewaterVisible: true,
   p161KvvVisible: true,
@@ -251,6 +255,10 @@ test('VUX-C explicit reset restores the active research preset defaults', () => 
 
 test('VUX-E3B exposes only contract-derived layer capabilities', () => {
   expect(Object.keys(viewerLayerNodeCapabilities)).toEqual([
+    'technical',
+    'technical-ventilation',
+    'technical-heating',
+    'technical-electrical',
     'roof',
     'locus',
     'locus-water',
@@ -285,6 +293,10 @@ test('VUX-E3B exposes only contract-derived layer capabilities', () => {
     'architecture-walls',
   );
   for (const nodeId of [
+    'technical',
+    'technical-ventilation',
+    'technical-heating',
+    'technical-electrical',
     'locus',
     'locus-water',
     'locus-wastewater',
