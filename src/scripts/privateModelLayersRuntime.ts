@@ -47,6 +47,16 @@ export const availableViewerLayerIds = (bindings: readonly ViewerScopedLayerRoot
   return [...ids];
 };
 
+/** A detached or reparented source root must never outlive its scene gate. */
+const remainsInSourceScene = (root: Object3D, sceneRoot: Object3D) => {
+  let parent: Object3D | null = root.parent;
+  while (parent) {
+    if (parent === sceneRoot) return true;
+    parent = parent.parent;
+  }
+  return false;
+};
+
 /**
  * Owns only verified non-overlapping meshes in one original glTF scene.
  * The existing loader, source-card resolver, scope, scene and camera owners
@@ -80,7 +90,8 @@ export const createViewerLayersRuntime = (args: {
     if (disposed) return;
     const active = activeSceneRoot === args.sceneRoot && sourceSha256 === args.sourceSha256;
     args.bindings.forEach(({ root }, index) => {
-      if (!active || (modes[index]?.mode !== 'visible' && modes[index]?.mode !== 'ghost')) root.visible = false;
+      if (!active || !remainsInSourceScene(root, args.sceneRoot) ||
+        (modes[index]?.mode !== 'visible' && modes[index]?.mode !== 'ghost')) root.visible = false;
     });
   };
 
