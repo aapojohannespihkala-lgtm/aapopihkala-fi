@@ -287,6 +287,15 @@ export const mountViewerLayerPresetPanel = (
         }
         select.value = item.mode;
         select.dataset.effectiveMode = item.effectiveMode;
+        // Child preference is retained when a parent prevents visibility.
+        // Explain the actual presentation without changing or disabling
+        // that preference. It becomes effective again when the parent opens.
+        const parentEffect = item.effectiveMode === 'hidden' && item.mode !== 'hidden'
+          ? 'Ylempi tasoryhmä on piilossa. Tämä taso ei nyt näy, vaikka oma asetus säilyy.'
+          : item.effectiveMode === 'ghost' && item.mode === 'visible'
+            ? 'Ylempi tasoryhmä on himmeä. Myös tämä taso näkyy himmeänä.'
+            : null;
+        if (parentEffect) select.setAttribute('aria-description', parentEffect);
         select.addEventListener('change', () => {
           if (select.value === 'visible' || select.value === 'ghost' ||
               select.value === 'hidden') {
@@ -299,6 +308,13 @@ export const mountViewerLayerPresetPanel = (
           mixedHelp.className = 'yl-layer-preset-mixed';
           mixedHelp.textContent = 'Osittainen: alaryhmillä eri näkyvyys';
           field.append(mixedHelp);
+        }
+        if (parentEffect) {
+          const hint = doc.createElement('small');
+          hint.className = 'yl-layer-preset-parent-effect';
+          hint.dataset.layerParentEffect = '';
+          hint.textContent = parentEffect;
+          field.append(hint);
         }
         section.append(field);
       }
