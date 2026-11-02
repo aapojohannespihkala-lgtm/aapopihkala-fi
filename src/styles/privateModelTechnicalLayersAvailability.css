@@ -1,0 +1,61 @@
+/* Only the optional technical-source disclosure, not the existing viewer panel. */
+[data-technical-layer-availability] {
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+  margin-block: 8px;
+  border: 1px solid #b9bbb5;
+  border-radius: 7px;
+  background: #f7f7f4;
+  color: #20211f;
+  font-size: 13px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+[data-technical-layer-availability] *,
+[data-technical-layer-availability] *::before,
+[data-technical-layer-availability] *::after {
+  box-sizing: border-box;
+}
+[data-technical-layer-availability] > summary {
+  display: list-item;
+  cursor: pointer;
+  min-height: 44px;
+  padding: 11px 12px;
+  font-weight: 650;
+}
+[data-technical-layer-availability] > summary:focus-visible {
+  outline: 3px solid #376b8c;
+  outline-offset: 2px;
+}
+[data-technical-layer-availability] .yl-technical-layer-availability-list {
+  list-style: none;
+  margin: 0;
+  padding: 3px 12px 4px;
+  min-width: 0;
+}
+[data-technical-layer-availability] .yl-technical-layer-availability-list li {
+  min-width: 0;
+  padding-block: 8px;
+  border-top: 1px solid #d7d7d2;
+}
+[data-technical-layer-availability] .yl-technical-layer-availability-list span,
+[data-technical-layer-availability] .yl-technical-layer-availability-list small {
+  overflow-wrap: anywhere;
+}
+[data-technical-layer-availability] .yl-technical-layer-availability-list small {
+  display: block;
+  margin-top: 3px;
+  color: #555853;
+}
+[data-technical-layer-availability] > .layer-note {
+  margin: 4px 12px 12px;
+  color: #555853;
+  font-size: 12px;
+}
+[data-technical-layer-availability][data-availability-state="unverified"] {
+  background: #f7f7f4;
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-technical-layer-availability] { scroll-behavior: auto; }
+}
