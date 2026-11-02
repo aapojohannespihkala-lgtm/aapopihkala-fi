@@ -2,12 +2,45 @@ import { expect, test } from '@playwright/test';
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { BoxGeometry, Group, Mesh, MeshBasicMaterial, Scene } from 'three';
-import { createViewerLayersRuntime } from '../../src/scripts/privateModelLayersRuntime';
+import { collectViewerLayerSourceNodes, createViewerLayersRuntime } from '../../src/scripts/privateModelLayersRuntime';
 import { applyViewerLayerPreset, createViewerInteractionState, setViewerInteractionLayerMode } from '../../src/scripts/privateModelViewerState';
 
 const sha = 'cff2dbead53b7836747e10ef359637114ff723690ec380e313cec817e4f71d31';
 const candidateId = 'auto-ylisrinne-d-c80r2-v26-stair-rail-landing-end-plywood-work-test-host-hold-20261102-1jglt7no';
 const modelPath = '/private-model/work-test/' + candidateId + '.glb';
+
+test('source node collection requires original glTF scene and parent membership', () => {
+  const scene = new Scene();
+  const walls = new Group(); walls.name = 'Walls';
+  const room = new Group(); room.name = 'Room';
+  const roof = new Group(); roof.name = 'Roof';
+  const unlisted = new Group(); unlisted.name = 'Unlisted';
+  walls.add(room);
+  scene.add(walls, roof, unlisted);
+  const source = {
+    scenes: [scene],
+    parser: {
+      associations: new Map([
+        [walls, { nodes: 0 }], [room, { nodes: 1 }],
+        [roof, { nodes: 2 }], [unlisted, { nodes: 3 }],
+      ]),
+      json: {
+        scenes: [{ nodes: [0, 2] }],
+        nodes: [
+          { name: 'Walls', children: [1] },
+          { name: 'Room' }, { name: 'Roof' }, { name: 'Unlisted' },
+        ],
+      },
+    },
+  };
+  const collected = () => collectViewerLayerSourceNodes(source, scene, 0, sha)
+    .map(({ nodeIndex, parentNodeIndex }) => [nodeIndex, parentNodeIndex]);
+  expect(collected()).toEqual([[0, null], [1, 0], [2, null]]);
+  roof.add(room); // Loader association now disagrees with source JSON parent.
+  expect(collected()).toEqual([[0, null], [2, null]]);
+  walls.add(room);
+  expect(collected()).toEqual([[0, null], [1, 0], [2, null]]);
+});
 
 test('Layers reset uses visibility refresh rather than reapplying the same camera preset', () => {
   const source = readFileSync('src/pages/private-model/index.astro', 'utf8');
