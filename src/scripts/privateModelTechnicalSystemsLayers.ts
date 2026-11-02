@@ -144,6 +144,17 @@ const explicitSystem = (chain: readonly Object3D[]): TechnicalSystemId | null =>
     const id = classify(node.userData as Record<string, unknown>);
     if (id) return id;
   }
+  // Existing Locus viewer metadata is deliberately split: the ancestor
+  // identifies a source route layer, while the child identifies WATER/WASTEWATER.
+  // Require BOTH explicit facts; neither alone authorizes a full group.
+  const routeAncestor = chain.some((node) =>
+    recognizedRouteLayers.has(String(node.userData.presentationLayer ?? '')));
+  if (routeAncestor) {
+    for (const node of chain) {
+      if (node.userData.presentationSubgroup === 'WATER') return 'locus-water';
+      if (node.userData.presentationSubgroup === 'WASTEWATER') return 'locus-wastewater';
+    }
+  }
   return null;
 };
 
@@ -268,6 +279,7 @@ export const createTechnicalSystemLayerInventory = (context: TechnicalSystemsCon
     if (!exactSource) reason = 'SOURCE_MISMATCH';
     else if (!matchedCount) reason = 'NO_OBJECTS_IN_SCENE';
     else if (!(verified.get(group.id) ?? 0)) reason = 'UNVERIFIED_NODE_IDENTITY';
+    else if (boundCount > 0) reason = group.id === 'technical-electrical' ? 'LAYER_ID_PENDING' : 'AVAILABLE';
     else if (missingScope.get(group.id)) reason = 'UNVERIFIED_SCOPE';
     else if (!boundCount && outside.get(group.id)) reason = 'OUTSIDE_SCOPE';
     else if (!boundCount && needsOptIn.get(group.id)) reason = 'OPT_IN_REQUIRED';

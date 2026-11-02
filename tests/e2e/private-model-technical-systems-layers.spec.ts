@@ -129,7 +129,20 @@ test('Unknown family or unclassified parent never activates a technical group', 
   f.root.userData.familyRef = 'MYSTERY';
   expect(createTechnicalSystemLayerInventory(f.context).bridgeBindings).toHaveLength(0);
   f.root.userData.familyRef = 'KVV_2017';
-  f.context.sourceNodes.push; // tuple is read-only and cannot be expanded implicitly
   f.scene.remove(f.root);
+  expect(createTechnicalSystemLayerInventory(f.context).bridgeBindings).toHaveLength(0);
+});
+
+test('Locus requires both ancestor route layer and child water/wastewater subgroup', () => {
+  const f = makeFixture('kvv');
+  delete f.root.userData.Pass;
+  delete f.root.userData.presentationVisibilityAid;
+  delete f.root.userData.familyRef;
+  f.root.userData.presentationLayer = 'G3_LOCUS_SITE';
+  f.mesh.userData.presentationSubgroup = 'WATER';
+  const inv = createTechnicalSystemLayerInventory(f.context);
+  expect(summary(inv, 'locus-water')).toMatchObject({ reason: 'AVAILABLE', boundCount: 1 });
+  expect(summary(inv, 'locus-wastewater').reason).toBe('NO_OBJECTS_IN_SCENE');
+  delete f.root.userData.presentationLayer;
   expect(createTechnicalSystemLayerInventory(f.context).bridgeBindings).toHaveLength(0);
 });
