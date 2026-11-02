@@ -147,6 +147,29 @@ test('Layers WP1 explicit scope/storey gate beats even a visible or ghost layer'
   expect(Object.keys(viewerLayerNodeCapabilities).length).toBe(23);
 });
 
+test('Layers WP1 unknown runtime IDs cannot mutate or crash semantic visibility', () => {
+  const modes = createViewerLayerModeMap(createViewerInteractionState().layers);
+  const validVisible = getViewerLayerEffectiveMode(modes, 'architecture-doors');
+  expect(validVisible).toBe('visible');
+
+  for (const id of ['rogue-layer', 'technical-unknown', '__proto__', 'constructor']) {
+    const nodeId = id as Parameters<typeof setViewerLayerMode>[1];
+    // Even a source-supplied visible/ghost map entry cannot supply a missing capability.
+    for (const mode of ['visible', 'ghost'] as const) {
+      const malformed = { ...modes, [id]: mode } as typeof modes;
+      expect(getViewerLayerEffectiveMode(malformed, nodeId)).toBe('hidden');
+      expect(setViewerLayerMode(modes, nodeId, mode)).toBe(modes);
+      expect(Object.keys(modes)).not.toContain(id);
+    }
+  }
+
+  // Valid layer controls and their hierarchical visibility still work.
+  const ghostDoors = setViewerLayerMode(modes, 'architecture-doors', 'ghost');
+  expect(ghostDoors).not.toBe(modes);
+  expect(getViewerLayerEffectiveMode(ghostDoors, 'architecture-doors')).toBe('ghost');
+  expect(getViewerLayerEffectiveMode(modes, 'architecture-doors')).toBe('visible');
+});
+
 test('Layers WP1 select a different preset restores that presets defaults, not camera', () => {
   let current = applyViewerLayerPreset(createViewerInteractionState(), 'd-2f');
   current = setViewerInteractionLayerMode(current, 'architecture-doors', 'hidden');

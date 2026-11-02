@@ -465,6 +465,11 @@ export const getViewerLayerEffectiveMode = (
   modes: ViewerLayerModeMap,
   nodeId: ViewerLayerNodeId,
 ): ViewerLayerVisibilityMode => {
+  // Runtime source IDs are not guaranteed to belong to the declared hierarchy.
+  // Reject an unknown ID before dereferencing its missing parent capability.
+  if (!Object.prototype.hasOwnProperty.call(viewerLayerNodeCapabilities, nodeId)) {
+    return 'hidden';
+  }
   const ownMode = modes[nodeId];
   // External/persisted mode maps can be incomplete or malformed at runtime.
   // Never reinterpret an unrecognized state as visible in a scoped viewer.
@@ -499,7 +504,10 @@ export const setViewerLayerMode = (
   modes: ViewerLayerModeMap,
   nodeId: ViewerLayerNodeId,
   mode: ViewerLayerVisibilityMode,
-): ViewerLayerModeMap => ({ ...modes, [nodeId]: mode });
+): ViewerLayerModeMap =>
+  Object.prototype.hasOwnProperty.call(viewerLayerNodeCapabilities, nodeId)
+    ? { ...modes, [nodeId]: mode }
+    : modes;
 
 /** Ordered fail-closed decision: scope > storey > presentation layer. */
 export const resolveScopedViewerLayerMode = (
