@@ -271,8 +271,8 @@ test('exact V26 viewer: D upstairs, ghost walls, supported IV, reset, floor chan
   await page.locator('#fit-button').click();
   await page.locator('#layers-button').click();
   await expect(page.locator('[data-technical-layer-availability] [data-technical-layer="technical-ventilation"]')).toHaveAttribute('data-available', 'true');
-  const walls = page.locator('[data-layer-node="architecture-walls"] select');
-  const ventilation = page.locator('[data-layer-node="technical-ventilation"] select');
+  const walls = page.locator('[data-layer-node="architecture-walls"]');
+  const ventilation = page.locator('[data-layer-node="technical-ventilation"]');
   const pose = await canvas.getAttribute('data-layers-camera-pose');
   const expectPreservedCamera = async () => {
     const before = JSON.parse(pose!);
@@ -287,16 +287,16 @@ test('exact V26 viewer: D upstairs, ghost walls, supported IV, reset, floor chan
     }
     expect(after.zoom).toBeCloseTo(before.zoom, 9);
   };
-  await walls.selectOption('ghost');
-  await ventilation.selectOption('hidden');
-  await ventilation.selectOption('visible');
+  await walls.locator('button[data-layer-mode="ghost"]').click();
+  await ventilation.locator('button[data-layer-mode="hidden"]').click();
+  await ventilation.locator('button[data-layer-mode="visible"]').click();
   await expect(page.locator('[data-layer-preset-customized]')).toContainText('Mukautettu');
   await expectPreservedCamera();
-  await expect(page.locator('[data-layer-node="architecture-ceilings"] select')).toHaveValue('hidden');
+  await expect(page.locator('[data-layer-node="architecture-ceilings"] [data-layer-mode-choices]')).toHaveAttribute('data-selected-mode', 'hidden');
   await expect(page.locator('[data-layer-node="roof"]')).toHaveCount(0);
   await page.screenshot({ path: info.outputPath('layers-v26-2f-walls-ghost-iv-visible-desktop.png') });
   await page.getByRole('button', { name: 'Palauta presetin asetukset' }).click();
-  await expect(walls).toHaveValue('visible');
+  await expect(walls.locator('[data-layer-mode-choices]')).toHaveAttribute('data-selected-mode', 'visible');
   await expect(canvas).toHaveAttribute('data-main-view-floor', '2F');
   await expect(page.locator('[data-layer-preset-customized]')).not.toContainText('Mukautettu');
   await expectPreservedCamera();
