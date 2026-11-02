@@ -92,3 +92,29 @@ test('Layers WP1 select a different preset restores that presets defaults, not c
   expect(switched.layerPresetState?.modes['architecture-doors']).toBe('visible');
   expect(switched.layerPresetState?.modes.roof).toBe('visible');
 });
+
+test('visible parent with all hidden children is mixed and preserves child preferences', () => {
+  let state = applyViewerLayerPreset(createViewerInteractionState(), 'd-2f');
+  for (const id of viewerArchitecturalWallChildNodeIds) {
+    state = setViewerInteractionLayerMode(state, id, 'hidden');
+  }
+  const modes = state.layerPresetState!.modes;
+  expect(modes['architecture-walls']).toBe('visible');
+  for (const id of viewerArchitecturalWallChildNodeIds) {
+    expect(getViewerLayerEffectiveMode(modes, id)).toBe('hidden');
+  }
+  expect(getViewerLayerParentMode(modes, 'architecture-walls', viewerArchitecturalWallChildNodeIds))
+    .toBe('mixed');
+  const hiddenParent = setViewerInteractionLayerMode(state, 'architecture-walls', 'hidden');
+  expect(getViewerLayerParentMode(hiddenParent.layerPresetState!.modes,
+    'architecture-walls', viewerArchitecturalWallChildNodeIds)).toBe('hidden');
+  const restored = setViewerInteractionLayerMode(hiddenParent, 'architecture-walls', 'visible');
+  expect(getViewerLayerParentMode(restored.layerPresetState!.modes,
+    'architecture-walls', viewerArchitecturalWallChildNodeIds)).toBe('mixed');
+  for (const id of viewerArchitecturalWallChildNodeIds) {
+    expect(restored.layerPresetState!.modes[id]).toBe('hidden');
+  }
+  const ghostParent = setViewerInteractionLayerMode(state, 'architecture-walls', 'ghost');
+  expect(getViewerLayerParentMode(ghostParent.layerPresetState!.modes,
+    'architecture-walls', viewerArchitecturalWallChildNodeIds)).toBe('mixed');
+});
