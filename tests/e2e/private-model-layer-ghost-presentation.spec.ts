@@ -120,6 +120,45 @@ test('selected material and picking are preserved, while other meshes ghost', ()
   adapter.dispose();
 });
 
+test('selected technical line and point retain source appearance and picking when peers ghost', () => {
+  const positions = new BufferGeometry().setFromPoints([
+    new Vector3(0, 0, 0), new Vector3(1, 0, 0),
+  ]);
+  const selectedLineMaterial = new LineBasicMaterial({ color: 0x225577 });
+  const selectedPointMaterial = new PointsMaterial({ color: 0x447799, size: 0.05 });
+  const peerMaterial = new LineBasicMaterial({ color: 0x8899aa });
+  const selectedLine = new LineSegments(positions, selectedLineMaterial);
+  const selectedPoint = new Points(positions, selectedPointMaterial);
+  const peer = new LineSegments(positions, peerMaterial);
+  const lineRaycast = selectedLine.raycast;
+  const pointRaycast = selectedPoint.raycast;
+  const peerRaycast = peer.raycast;
+  const root = new Group();
+  root.add(selectedLine, selectedPoint, peer);
+  const adapter = createViewerLayerGhostPresentation(root);
+
+  adapter.apply('ghost', {
+    opacity: 0.16,
+    isSelected: object => object === selectedLine || object === selectedPoint,
+  });
+  expect(selectedLine.material).toBe(selectedLineMaterial);
+  expect(selectedPoint.material).toBe(selectedPointMaterial);
+  expect(selectedLine.raycast).toBe(lineRaycast);
+  expect(selectedPoint.raycast).toBe(pointRaycast);
+  expect(selectedLineMaterial.opacity).toBe(1);
+  expect(selectedPointMaterial.opacity).toBe(1);
+  expect(peer.material).not.toBe(peerMaterial);
+  expect((peer.material as LineBasicMaterial).opacity).toBeCloseTo(0.16);
+  expect(peer.raycast).not.toBe(peerRaycast);
+
+  adapter.apply('visible');
+  expect(peer.material).toBe(peerMaterial);
+  expect(peer.raycast).toBe(peerRaycast);
+  expect(selectedLine.material).toBe(selectedLineMaterial);
+  expect(selectedPoint.material).toBe(selectedPointMaterial);
+  adapter.dispose();
+});
+
 test('multi-material mesh is restored exactly and repeat reset/dispose is harmless', () => {
   const originals = [new MeshBasicMaterial(), new MeshBasicMaterial()];
   const root = new Group();
