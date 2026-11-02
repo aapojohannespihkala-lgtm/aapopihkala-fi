@@ -31,6 +31,33 @@ test('Layers WP1 presets preserve camera while selecting explicit area and floor
   expect(customCamera.layerPresetState).toBeUndefined(); // legacy shape unchanged
 });
 
+test('Layers WP1 unknown runtime mode cannot expose legacy or semantic layers', () => {
+  const initial = applyViewerLayerPreset(
+    setViewerCameraView(createViewerInteractionState(), 'elev-pos-x'),
+    'd-2f',
+  );
+  // Persisted/programmatic runtime data is not necessarily TypeScript-validated.
+  const invalid = 'unsupported' as Parameters<typeof setViewerInteractionLayerMode>[2];
+  const result = setViewerInteractionLayerMode(initial, 'technical-electrical', invalid);
+  expect(result.layerPresetState?.modes['technical-electrical']).toBe('hidden');
+  expect(getViewerLayerEffectiveMode(result.layerPresetState!.modes, 'technical-electrical'))
+    .toBe('hidden');
+  expect(result.layers.technicalElectricalVisible).toBe(false);
+  expect(result.layerPresetState?.customized).toBe(true);
+  expect(result.cameraView).toBe('elev-pos-x');
+
+  const missing = setViewerInteractionLayerMode(
+    initial, 'architecture-doors',
+    undefined as unknown as Parameters<typeof setViewerInteractionLayerMode>[2],
+  );
+  expect(missing.layerPresetState?.modes['architecture-doors']).toBe('hidden');
+  expect(missing.layers.architectureDoorsVisible).toBe(false);
+  const restored = resetViewerLayerPresetToDefaults(result);
+  expect(restored.layerPresetState?.modes['technical-electrical']).toBe('visible');
+  expect(restored.layers.technicalElectricalVisible).toBe(true);
+  expect(restored.cameraView).toBe('elev-pos-x');
+});
+
 test('Layers WP1 manual ghost, mixed parent, restoration and no preset mutation', () => {
   let state = applyViewerLayerPreset(createViewerInteractionState(), 'd-2f');
   const original = { ...state.layerPresetState!.modes };
