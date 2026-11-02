@@ -41,7 +41,7 @@ export const buildTechnicalAvailabilityRows = (
 ): TechnicalAvailabilityRow[] =>
   summaries.map(item => {
     // Runtime inventory data can be malformed even when static TS types are valid.
-    // Unknown provenance must never be advertised as an available layer.
+    // Only own source-role keys are trusted; inherited names are not provenance.
     const sourceRoleVerified = Object.hasOwn(provenanceFi, item.sourceRole);
     const supported =
       sourceRoleVerified &&
