@@ -80,7 +80,7 @@ export const createViewerLayersRuntime = (args: {
     if (disposed) return;
     const active = activeSceneRoot === args.sceneRoot && sourceSha256 === args.sourceSha256;
     args.bindings.forEach(({ root }, index) => {
-      if (!active || modes[index]?.mode === 'hidden') root.visible = false;
+      if (!active || (modes[index]?.mode !== 'visible' && modes[index]?.mode !== 'ghost')) root.visible = false;
     });
   };
 
