@@ -346,7 +346,7 @@ export const mountViewerLayerPresetPanel = (
       view.hint.textContent = parentEffect ?? '';
       choices.forEach((choice, i) => {
         const button = view.buttons[i];
-        button.disabled = panelOptions.disabled === true || node.commandIds.length === 0;
+        button.disabled = panelOptions.disabled === true || resolveViewerLayerPanelDispatch(node, available).ids.length === 0;
         button.setAttribute('aria-label', `${node.label}: ${choice.label.toLowerCase()}${branch ? ', koko haara' : ''}`);
         button.setAttribute('aria-pressed', String(node.mode === choice.id));
         button.dataset.effectiveMode = node.effectiveMode;
