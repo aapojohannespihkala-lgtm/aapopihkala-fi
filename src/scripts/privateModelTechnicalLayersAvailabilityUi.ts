@@ -40,7 +40,11 @@ export const buildTechnicalAvailabilityRows = (
   summaries: readonly TechnicalSystemSummary[],
 ): TechnicalAvailabilityRow[] =>
   summaries.map(item => {
+    // Runtime inventory data can be malformed even when static TS types are valid.
+    // Unknown provenance must never be advertised as an available layer.
+    const sourceRoleVerified = Object.hasOwn(provenanceFi, item.sourceRole);
     const supported =
+      sourceRoleVerified &&
       item.reason === 'AVAILABLE' &&
       item.availability === 'available' &&
       Number.isSafeInteger(item.boundCount) && item.boundCount > 0;
@@ -51,9 +55,11 @@ export const buildTechnicalAvailabilityRows = (
       count: supported ? item.boundCount : 0,
       message: supported
         ? `Saatavilla: ${item.boundCount} mallin esitysobjektia.`
-        : item.reason === 'AVAILABLE'
-          ? 'Ei käytettävissä: vahvistettu objektisidonta puuttuu.'
-          : reasonFi[item.reason] ?? 'Saatavuutta ei ole varmennettu.',
+        : !sourceRoleVerified
+          ? 'Ei käytettävissä: lähteen asemaa ei ole varmennettu.'
+          : item.reason === 'AVAILABLE'
+            ? 'Ei käytettävissä: vahvistettu objektisidonta puuttuu.'
+            : reasonFi[item.reason] ?? 'Saatavuutta ei ole varmennettu.',
       provenance: provenanceFi[item.sourceRole] ?? 'Lähteen asema ei ole varmennettu.',
     };
   });
