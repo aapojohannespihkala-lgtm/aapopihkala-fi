@@ -211,6 +211,22 @@ export function resolveBuildingPartLayerBindings(input) {
   scene.traverse((object) => {
     if (!isMesh(object) || seenMeshes.has(object)) return;
     seenMeshes.add(object);
+    // The presentation bridge forbids ancestor/descendant layer roots.
+    // A mesh containing mesh descendants is ambiguous: do not control
+    // either half of an overlapping mesh hierarchy.
+    let ancestor = object.parent;
+    let nested = false;
+    while (ancestor && ancestor !== scene) {
+      if (isMesh(ancestor)) { nested = true; break; }
+      ancestor = ancestor.parent;
+    }
+    if (!nested) object.traverse((child) => {
+      if (child !== object && isMesh(child)) nested = true;
+    });
+    if (nested) {
+      excluded.push({ reason: 'NESTED_MESH_HIERARCHY' });
+      return;
+    }
     const sourceNodeIndex = ancestorSourceNode(object, scene, associations, hierarchy);
     if (sourceNodeIndex === null) {
       excluded.push({ reason: 'UNBOUND_SOURCE_NODE' });
