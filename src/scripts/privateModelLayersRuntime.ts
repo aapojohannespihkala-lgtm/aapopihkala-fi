@@ -64,8 +64,13 @@ export const createViewerLayersRuntime = (args: {
   let modes: ReadonlyArray<{ id: ViewerLayerNodeId; mode: ViewerLayerVisibilityMode }> = [];
 
   const apply = (state: ViewerInteractionState, frame: ViewerScopedLayerFrame) => {
-    modes = bridge.apply(state, { ...frame, availableNodeIds });
-    return modes;
+    try {
+      modes = bridge.apply(state, { ...frame, availableNodeIds });
+      return modes;
+    } catch (error) {
+      modes = [];
+      throw error;
+    }
   };
 
   // Runs AFTER the existing scope/floor pass. Only narrows visibility. It
@@ -75,7 +80,7 @@ export const createViewerLayersRuntime = (args: {
     if (disposed) return;
     const active = activeSceneRoot === args.sceneRoot && sourceSha256 === args.sourceSha256;
     args.bindings.forEach(({ root }, index) => {
-      if (!active || modes[index]?.mode === 'hidden') root.visible = false;
+      if (!active || (modes[index]?.mode !== 'visible' && modes[index]?.mode !== 'ghost')) root.visible = false;
     });
   };
 
