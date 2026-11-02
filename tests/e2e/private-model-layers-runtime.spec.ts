@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
-import { BoxGeometry, Mesh, MeshBasicMaterial, Scene } from 'three';
+import { BoxGeometry, Group, Mesh, MeshBasicMaterial, Scene } from 'three';
 import { createViewerLayersRuntime } from '../../src/scripts/privateModelLayersRuntime';
 import { applyViewerLayerPreset, createViewerInteractionState, setViewerInteractionLayerMode } from '../../src/scripts/privateModelViewerState';
 
@@ -66,6 +66,32 @@ test('failed Layers frame cannot be re-exposed by legacy state', () => {
   wall.visible = true;
   runtime.enforce(scene, sha);
   expect(wall.visible).toBe(false);
+  runtime.apply(state, frame);
+  expect(wall.visible).toBe(true);
+  runtime.dispose();
+});
+
+test('a reparented GLB root stays hidden until its original source path returns', () => {
+  const scene = new Scene();
+  const wall = new Mesh(new BoxGeometry(), new MeshBasicMaterial());
+  const sibling = new Mesh(new BoxGeometry(), new MeshBasicMaterial());
+  const sourceParent = new Group();
+  const otherParent = new Group();
+  sourceParent.add(wall);
+  scene.add(sourceParent, otherParent, sibling);
+  const runtime = createViewerLayersRuntime({ sceneRoot: scene, sourceSha256: sha,
+    bindings: [{ id: 'architecture-walls', root: wall }] });
+  const state = applyViewerLayerPreset(createViewerInteractionState(), 'whole-building');
+  const frame = { activeSceneRoot: scene, availableNodeIds: runtime.availableNodeIds,
+    gates: new Map([[wall, { sourceAllowed: true, scopeAllowed: true, floorAllowed: true }]]) };
+  runtime.apply(state, frame);
+  expect(wall.visible).toBe(true);
+  otherParent.add(wall); // Same scene and SHA, but wrong original node-parent path.
+  wall.visible = true; // A legacy rendering pass cannot authorize this relocation.
+  runtime.enforce(scene, sha);
+  expect(wall.visible).toBe(false);
+  expect(sibling.visible).toBe(true);
+  sourceParent.add(wall);
   runtime.apply(state, frame);
   expect(wall.visible).toBe(true);
   runtime.dispose();
