@@ -56,7 +56,7 @@ for (const [id, profile] of Object.entries(V34_BUILDING_SCENES)) {
     }
   }
 }
-assert.equal(checked, 111, 'V34 exact classified source paths');
+assert.equal(checked, 135, 'V34 exact classified source paths');
 const kvik = {
   195: { root: [9293,9292,8309], leaves: [8049,8051,8053,8055,8057,8059,8061,8063,8065] },
   196: { root: [9328,9327,8421], leaves: [8109,8111,8113,8115,8117,8119,8121,8123,8125] },
@@ -66,6 +66,28 @@ for (const [scene, { root, leaves }] of Object.entries(kvik)) for (const node of
   assert.match(V34_BUILDING_PARTS[node]?.name ?? '', /^KVIK_SINK_OWNER20261101_.*_FRONT3x3_/);
   assert.deepEqual(V34_BUILDING_SCENES[scene].paths[node], [[...root,node]]);
 }
+
+// Four Kvik/MANO tall cabinets: 3 independent PHOTO2024 WORK_TEST front panels
+// per module, in both active scenes. Historical picture labels are not as-built.
+const tallKvik = {
+  195: { root: [9293,9292,8309], start: 8033, moduleStart: 8036, meshStart: 2464 },
+  196: { root: [9328,9327,8421], start: 8093, moduleStart: 8096, meshStart: 2510 },
+};
+for (const [scene, cfg] of Object.entries(tallKvik)) {
+  for (let cabinet = 0; cabinet < 4; cabinet++) {
+    for (let band = 0; band < 3; band++) {
+      const leaf = cfg.start + cabinet*4 + band;
+      const name = `HOB28_COW3_SC129_CAB${cabinet+1}_${['LOWER','MIDDLE','UPPER'][band]}_INDEPENDENT_FACADE_PANEL_PHOTO2024_V17`;
+      assert.deepEqual(V34_BUILDING_PARTS[leaf], {
+        id: 'architecture-fixtures', mesh: cfg.meshStart + cabinet*3 + band, name,
+      }, 'Kvik tall-cabinet exact mesh and identity: ' + scene + '/' + leaf);
+      assert.deepEqual(V34_BUILDING_SCENES[scene].paths[leaf],
+        [[...cfg.root, cfg.moduleStart + cabinet*4, leaf]],
+        'Kvik tall-cabinet exact parent path: ' + scene + '/' + leaf);
+    }
+  }
+}
+
 for (const scene of [194,195,196]) {
   const paths = V34_BUILDING_SCENES[scene].paths;
   for (const node of [8855,8856,9256,9273,9276,9288,9323])
@@ -83,4 +105,4 @@ for (const [node, { id, scenes }] of Object.entries(added)) {
   for (const scene of [194,195,196])
     assert.equal(Object.hasOwn(V34_BUILDING_SCENES[scene].paths,node), scenes.includes(scene));
 }
-console.log('V34 source PASS: exact raw GLB SHA, 197 scenes, 111 source paths, 18 Kvik fronts, 5 V34 parts, WORK_TEST only.');
+console.log('V34 source PASS: exact raw GLB SHA, 197 scenes, 135 source paths, 18 sink + 24 tall-cabinet fronts, 5 V34 parts, WORK_TEST only.');
