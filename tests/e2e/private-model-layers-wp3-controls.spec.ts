@@ -238,3 +238,65 @@ test('keyboard focus survives state update, no metadata has an explicit explanat
   await expect(page.locator('[data-layer-node]')).toHaveCount(0);
   await page.evaluate(() => (window as any).panel.destroy());
 });
+
+test('parent visibility overrides are explained without changing child preference or mobile focus', async ({ page }) => {
+  const compiled = await build({
+    entryPoints: ['src/scripts/privateModelLayersPresetControls.ts'],
+    absWorkingDir: process.cwd(), bundle: true, platform: 'browser', format: 'iife',
+    globalName: 'YlisrinneLayersWP3', write: false,
+  });
+  await page.setViewportSize({ width: 375, height: 667 });
+  await page.setContent('<div id="layer-wrap" style="width:300px; height:420px; overflow-y:auto"><div id="layers"></div></div>');
+  await page.addStyleTag({
+    content: readFileSync('src/styles/privateModelLayersPresetControls.css', 'utf8'),
+  });
+  await page.addScriptTag({ content: compiled.outputFiles[0].text });
+  const initial = applyViewerLayerPreset(createViewerInteractionState(), 'd-apartment');
+  const available = ['technical', 'technical-ventilation', 'technical-heating'];
+  await page.evaluate(({ state, ids }) => {
+    const mount = (window as any).YlisrinneLayersWP3.mountViewerLayerPresetPanel;
+    (window as any).actualModeEvents = [];
+    (window as any).parentEffectPanel = mount(
+      document.getElementById('layers'), state, ids,
+      {
+        onPresetChange: () => {},
+        onLayerModeChange: (id: string, mode: string) =>
+          (window as any).actualModeEvents.push([id, mode]),
+        onReset: () => {},
+      },
+    );
+  }, { state: initial, ids: available });
+
+  const device = page.locator('[data-layer-node="technical-ventilation"]');
+  const select = device.locator('select');
+  await expect(select).toHaveValue('visible');
+  await expect(device.locator('[data-layer-parent-effect]')).toHaveCount(0);
+  await select.focus();
+  const hidden = setViewerInteractionLayerMode(initial, 'technical', 'hidden');
+  await page.evaluate(({ state, ids }) =>
+    (window as any).parentEffectPanel.update(state, ids), { state: hidden, ids: available });
+  await expect(select).toBeFocused();
+  await expect(select).toHaveValue('visible');
+  await expect(select).toHaveAttribute('data-effective-mode', 'hidden');
+  await expect(device.locator('[data-layer-parent-effect]')).toContainText('ei nyt näy');
+  await expect(select).toHaveAttribute('aria-description', /oma asetus säilyy/);
+  expect(await page.locator('#layer-wrap').evaluate(el => el.scrollWidth > el.clientWidth)).toBe(false);
+  expect(await select.evaluate(el => el.getBoundingClientRect().height)).toBeGreaterThanOrEqual(44);
+
+  const ghost = setViewerInteractionLayerMode(initial, 'technical', 'ghost');
+  await page.evaluate(({ state, ids }) =>
+    (window as any).parentEffectPanel.update(state, ids), { state: ghost, ids: available });
+  await expect(select).toBeFocused();
+  await expect(select).toHaveValue('visible');
+  await expect(select).toHaveAttribute('data-effective-mode', 'ghost');
+  await expect(device.locator('[data-layer-parent-effect]')).toContainText('näkyy himmeänä');
+
+  await page.evaluate(({ state, ids }) =>
+    (window as any).parentEffectPanel.update(state, ids), { state: initial, ids: available });
+  await expect(select).toHaveValue('visible');
+  await expect(select).toHaveAttribute('data-effective-mode', 'visible');
+  await expect(device.locator('[data-layer-parent-effect]')).toHaveCount(0);
+  await expect(select).not.toHaveAttribute('aria-description');
+  expect(await page.evaluate(() => (window as any).actualModeEvents)).toEqual([]);
+  await page.evaluate(() => (window as any).parentEffectPanel.destroy());
+});
