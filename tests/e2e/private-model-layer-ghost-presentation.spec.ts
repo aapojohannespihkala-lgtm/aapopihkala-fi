@@ -167,6 +167,19 @@ test('selected technical line and point retain source appearance and picking whe
   expect(peer.raycast).toBe(peerRaycast);
   expect(selectedLine.material).toBe(selectedLineMaterial);
   expect(selectedPoint.material).toBe(selectedPointMaterial);
+
+  // Scope denial must override even a selected source object. Hidden routes
+  // cannot remain ghosted or pickable through a stale selection.
+  expect(adapter.apply('ghost', {
+    scopeAllowed: false,
+    isSelected: object => object === selectedLine || object === selectedPoint,
+  })).toBe('hidden');
+  expect(root.visible).toBe(false);
+  expect(selectedLine.material).toBe(selectedLineMaterial);
+  expect(selectedPoint.material).toBe(selectedPointMaterial);
+  expect(peer.material).toBe(peerMaterial);
+  expect(adapter.apply('visible', { scopeAllowed: true })).toBe('visible');
+  expect(root.visible).toBe(true);
   adapter.dispose();
 });
 
