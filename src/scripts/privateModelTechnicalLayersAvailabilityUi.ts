@@ -60,7 +60,9 @@ export const buildTechnicalAvailabilityRows = (
           : item.reason === 'AVAILABLE'
             ? 'Ei käytettävissä: vahvistettu objektisidonta puuttuu.'
             : reasonFi[item.reason] ?? 'Saatavuutta ei ole varmennettu.',
-      provenance: provenanceFi[item.sourceRole] ?? 'Lähteen asema ei ole varmennettu.',
+      provenance: sourceRoleVerified
+        ? provenanceFi[item.sourceRole]
+        : 'Lähteen asema ei ole varmennettu.',
     };
   });
 
