@@ -85,6 +85,27 @@ class SelectionTests(unittest.TestCase):
         self.assertEqual(selected(*paths, *paths), [spec])
         self.assertEqual(selected('src/scripts/unrelated-layer-script.ts'), [])
 
+    def test_layers_wp1_and_viewer_state_changes_select_existing_contract_and_dom_guards(self):
+        expected = [
+            'tests/e2e/private-model-layers-wp1.spec.ts',
+            'tests/e2e/private-model-layers-wp3-controls.spec.ts',
+            'tests/e2e/private-model-viewer-state.spec.ts',
+        ]
+        paths = (
+            'src/scripts/privateModelLayerHierarchyState.ts',
+            'src/scripts/privateModelViewerState.ts',
+        )
+        for path in paths:
+            with self.subTest(path=path):
+                self.assertEqual(selected(path), expected)
+        self.assertEqual(selected(*paths, *paths), expected)
+        # WP1 changes must not accidentally select unrelated site tests.
+        self.assertFalse(any('/current-' in path for path in selected(*paths)))
+        self.assertEqual(
+            selected('src/styles/privateModelLayersPresetControls.css'),
+            ['tests/e2e/private-model-layers-wp3-controls.spec.ts'],
+        )
+
     def test_work_test_loader_changes_run_diagnostics(self):
         self.assertEqual(selected('src/scripts/privateModelWorkTest.ts'), [
             'tests/e2e/private-model-work-test-load-diagnostics.spec.ts',
