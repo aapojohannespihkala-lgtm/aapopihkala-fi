@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { BoxGeometry, Group, Mesh, MeshBasicMaterial, Raycaster, Vector3 } from 'three';
+import { BoxGeometry, BufferGeometry, Group, LineBasicMaterial, LineSegments, Mesh, MeshBasicMaterial, Points, PointsMaterial, Raycaster, Vector3 } from 'three';
 import { createViewerLayerGhostPresentation } from '../../src/scripts/privateModelLayerGhostPresentation';
 
 const makeMesh = (material = new MeshBasicMaterial()) =>
@@ -188,5 +188,67 @@ test('late ghost material clone failure rolls back earlier meshes and hides root
   expect(first.raycast).toBe(firstRaycast);
   expect(first.children).toHaveLength(0);
   expect(adapter.apply('hidden')).toBe('hidden');
+  adapter.dispose();
+});
+
+test('source LineSegments and Points are ghosted reversibly without changing sibling sources', () => {
+  const lineMaterial = new LineBasicMaterial({ color: 0x224466 });
+  const pointMaterial = new PointsMaterial({ color: 0x778899, size: 0.05 });
+  const positions = new BufferGeometry().setFromPoints([
+    new Vector3(0, 0, 0), new Vector3(1, 0, 0),
+  ]);
+  const route = new LineSegments(positions, lineMaterial);
+  const markers = new Points(positions, pointMaterial);
+  const sibling = new LineSegments(positions, lineMaterial);
+  const sourceRouteRaycast = route.raycast;
+  const sourcePointRaycast = markers.raycast;
+  const root = new Group();
+  root.add(route, markers);
+  const other = new Group();
+  other.add(sibling);
+  const adapter = createViewerLayerGhostPresentation(root);
+
+  expect(adapter.apply('ghost', { opacity: 0.16 })).toBe('ghost');
+  expect(route.material).not.toBe(lineMaterial);
+  expect(markers.material).not.toBe(pointMaterial);
+  expect((route.material as LineBasicMaterial).opacity).toBeCloseTo(0.16);
+  expect((markers.material as PointsMaterial).opacity).toBeCloseTo(0.16);
+  expect((route.material as LineBasicMaterial).transparent).toBe(true);
+  expect((markers.material as PointsMaterial).depthWrite).toBe(false);
+  expect(route.raycast).not.toBe(sourceRouteRaycast);
+  expect(markers.raycast).not.toBe(sourcePointRaycast);
+  expect(sibling.material).toBe(lineMaterial);
+  expect(lineMaterial.opacity).toBe(1);
+  expect(pointMaterial.opacity).toBe(1);
+
+  expect(adapter.apply('hidden')).toBe('hidden');
+  expect(root.visible).toBe(false);
+  expect(route.material).toBe(lineMaterial);
+  expect(markers.material).toBe(pointMaterial);
+  expect(route.raycast).toBe(sourceRouteRaycast);
+  expect(markers.raycast).toBe(sourcePointRaycast);
+  adapter.dispose();
+  expect(root.visible).toBe(true);
+});
+
+test('point clone failure rolls back an earlier ghost line and hides the source root', () => {
+  const positions = new BufferGeometry().setFromPoints([
+    new Vector3(0, 0, 0), new Vector3(1, 0, 0),
+  ]);
+  const lineMaterial = new LineBasicMaterial();
+  const badMaterial = new PointsMaterial();
+  badMaterial.clone = () => { throw new Error('point clone failed'); };
+  const route = new LineSegments(positions, lineMaterial);
+  const markers = new Points(positions, badMaterial);
+  const originalRaycast = route.raycast;
+  const root = new Group();
+  root.add(route, markers);
+  const adapter = createViewerLayerGhostPresentation(root);
+
+  expect(() => adapter.apply('ghost')).toThrow('point clone failed');
+  expect(root.visible).toBe(false);
+  expect(route.material).toBe(lineMaterial);
+  expect(route.raycast).toBe(originalRaycast);
+  expect(markers.material).toBe(badMaterial);
   adapter.dispose();
 });
