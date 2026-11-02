@@ -23,8 +23,8 @@ export type ViewerLayerGhostOptions = {
   opacity?: number;
   /** Prefer edge-only presentation for coplanar or dense surfaces. */
   preferEdges?: boolean;
-  /** Selected meshes keep their source material and picking behaviour. */
-  isSelected?: (mesh: Mesh) => boolean;
+  /** Selected meshes, lines and points keep their source material and picking behaviour. */
+  isSelected?: (object: Mesh | Line | Points) => boolean;
 };
 
 type MeshSnapshot = {
@@ -114,7 +114,7 @@ export const createViewerLayerGhostPresentation = (root: Object3D) => {
     root.traverse((child) => {
       if (child instanceof Mesh && child.visible && !options.isSelected?.(child)) {
         targets.push(child);
-      } else if ((child instanceof Line || child instanceof Points) && child.visible) {
+      } else if ((child instanceof Line || child instanceof Points) && child.visible && !options.isSelected?.(child)) {
         lineAndPointTargets.push(child);
       }
     });
