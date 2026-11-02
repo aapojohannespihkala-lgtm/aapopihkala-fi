@@ -3952,6 +3952,17 @@ const AUTO_YLISRINNE_D_C80R2_V29_WEST_FULL_FACADE_PLINTH_WORK_TEST_HOST_HOLD_202
   expectedSha256: '5325da8472055379f30be59e22be3b6237093e59e6a21999471a2c2b28c784f6',
 } as const satisfies PrivateWorkTestCandidate;
 
+// Auto-registered 2026-11-02 from Drive queue file 1xBjbwWpWm2RACbVwmPl3XPQ-3OON41AU
+// by auto-publish-work-test. WORK_TEST, never as-built.
+const AUTO_YLISRINNE_D_C80R2_V33_MERGE_V29_HJ_KIV8_AEG_RAIL_FLOORS_ISLAND_NE_WORK_TEST_HOST_HOLD_20261102_1XBJBWWP_CANDIDATE = {
+  id: 'auto-ylisrinne-d-c80r2-v33-merge-v29-hj-kiv8-aeg-rail-floors-island-ne-work-test-host-hold-20261102-1xbjbwwp',
+  label: 'Auto: Ylisrinne D C80R2 V33 MERGE V29 HJ KIV8 AEG RAIL FLOORS ISLAND NE WORK TEST HOST HOLD 20261102 (scene193) - WORK_TEST',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/auto-ylisrinne-d-c80r2-v33-merge-v29-hj-kiv8-aeg-rail-floors-island-ne-work-test-host-hold-20261102-1xbjbwwp.glb`,
+  objectKey: 'work-test/auto-ylisrinne-d-c80r2-v33-merge-v29-hj-kiv8-aeg-rail-floors-island-ne-work-test-host-hold-20261102-1xbjbwwp.glb',
+  expectedSize: 29371860,
+  expectedSha256: 'ca1de571fa70e0fbcf1e36748ab0a43f840ff663b02dd2ff237aa99aac7c0210',
+} as const satisfies PrivateWorkTestCandidate;
+
 const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
   C80R2_V27_D_TERRACE_165MM_WORK_TEST_CANDIDATE,
   D_C80R2_UNIFIED64_C018_WORK_TEST_CANDIDATE,
@@ -4267,6 +4278,7 @@ const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
   AUTO_YLISRINNE_D_C80R2_V26_STAIR_RAIL_LANDING_END_PLYWOOD_WORK_TEST_HOST_HOLD_20261102_1JGLT7NO_CANDIDATE,
   AUTO_YLISRINNE_D_C80R2_V26_AEG_HK654200FB_OWNER_APPROVED_VIEWER_FLOOR_SCENES_WORK_TEST_HOST_HOLD_20261102_1STMZPYZ_CANDIDATE,
   AUTO_YLISRINNE_D_C80R2_V29_WEST_FULL_FACADE_PLINTH_WORK_TEST_HOST_HOLD_20261102_1VFK15KE_CANDIDATE,
+  AUTO_YLISRINNE_D_C80R2_V33_MERGE_V29_HJ_KIV8_AEG_RAIL_FLOORS_ISLAND_NE_WORK_TEST_HOST_HOLD_20261102_1XBJBWWP_CANDIDATE,
 ] as const satisfies readonly PrivateWorkTestCandidate[];
 
 type PrivateWorkTestObjectMetadata = {
