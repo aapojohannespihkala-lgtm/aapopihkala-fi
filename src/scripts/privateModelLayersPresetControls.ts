@@ -263,10 +263,11 @@ export const mountViewerLayerPresetPanel = (
     // update() may be called synchronously from an onLayerModeChange callback.
     // Preserve keyboard focus when replacing only the metadata-gated rows.
     const focused = doc.activeElement;
-    const focusedLayer = focused instanceof (doc.defaultView?.HTMLSelectElement ?? Object)
+    const focusedLayer = focused instanceof (doc.defaultView?.HTMLButtonElement ?? Object)
       && root.contains(focused) && focused.hasAttribute('data-layer-mode-control')
       ? focused.closest('[data-layer-node]')?.getAttribute('data-layer-node')
       : null;
+    const focusedMode = focusedLayer ? (focused as HTMLButtonElement).dataset.layerMode : null;
     // Rebuilding the long list briefly collapses its height. On mobile this
     // clamps an ancestor's scrollTop to zero, even if focus is restored later.
     // Keep only real scroll containers; do not touch page/window scrolling.
@@ -303,23 +304,47 @@ export const mountViewerLayerPresetPanel = (
       section.append(heading);
 
       for (const item of group.items) {
-        const field = doc.createElement('label');
+        const field = doc.createElement('div');
         field.dataset.layerNode = item.id;
         field.className = 'yl-layer-preset-row';
         field.dataset.mixed = String(item.mode === 'mixed');
         const name = doc.createElement('span');
         name.textContent = item.label;
-        const select = doc.createElement('select');
-        select.disabled = panelOptions.disabled === true;
-        select.dataset.layerModeControl = '';
-        select.setAttribute('aria-label', item.label + ', näkyvyys' +
+        // Three direct, independently focusable actions. The source-bound
+        // availableNodeIds filter runs before creating any control.
+        const choices = doc.createElement('div');
+        choices.className = 'yl-layer-mode-choices';
+        choices.dataset.layerModeChoices = '';
+        choices.dataset.selectedMode = item.mode;
+        choices.dataset.effectiveMode = item.effectiveMode;
+        choices.setAttribute('role', 'group');
+        choices.setAttribute('aria-label', item.label + ', näkyvyys' +
           (item.mode === 'mixed' ? ', osittainen' : ''));
+        choices.setAttribute('aria-disabled', String(panelOptions.disabled === true));
+        // Parent gating affects presentation, not the child's saved choice.
+        const parentEffect = item.effectiveMode === 'hidden' && item.mode !== 'hidden'
+          ? 'Ylempi tasoryhmä on piilossa. Tämä taso ei nyt näy, vaikka oma asetus säilyy.'
+          : item.effectiveMode === 'ghost' && item.mode === 'visible'
+            ? 'Ylempi tasoryhmä on himmeä. Myös tämä taso näkyy himmeänä.'
+            : null;
         for (const [mode, title] of modeOptions) {
-          const option = doc.createElement('option');
-          option.value = mode;
-          option.textContent = title;
-          select.append(option);
+          const button = doc.createElement('button');
+          button.type = 'button';
+          button.dataset.layerModeControl = '';
+          button.dataset.layerMode = mode;
+          button.dataset.effectiveMode = item.effectiveMode;
+          button.className = 'yl-layer-mode-button';
+          button.textContent = title;
+          button.setAttribute('aria-label', item.label + ': ' + title);
+          button.setAttribute('aria-pressed', String(item.mode === mode));
+          button.disabled = panelOptions.disabled === true;
+          if (parentEffect) button.setAttribute('aria-description', parentEffect);
+          button.addEventListener('click', () => {
+            if (!button.disabled) callbacks.onLayerModeChange(item.id, mode);
+          });
+          choices.append(button);
         }
+        field.append(name, choices);
         if (item.mode === 'mixed') {
           const option = doc.createElement('option');
           option.value = 'mixed';
@@ -363,9 +388,11 @@ export const mountViewerLayerPresetPanel = (
       groups.append(section);
     }
     if (focusedLayer) {
-      const restored = Array.from(groups.querySelectorAll<HTMLLabelElement>('[data-layer-node]'))
-        .find((row) => row.dataset.layerNode === focusedLayer)
-        ?.querySelector<HTMLSelectElement>('select[data-layer-mode-control]');
+      const restoredRow = Array.from(groups.querySelectorAll<HTMLElement>('[data-layer-node]'))
+        .find((row) => row.dataset.layerNode === focusedLayer);
+      const restored = Array.from(
+        restoredRow?.querySelectorAll<HTMLButtonElement>('button[data-layer-mode-control]') ?? [],
+      ).find((button) => button.dataset.layerMode === focusedMode);
       restored?.focus({ preventScroll: true });
     }
     // The browser naturally clamps this if fewer source-verified rows remain.
