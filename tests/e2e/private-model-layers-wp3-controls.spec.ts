@@ -204,7 +204,7 @@ test('real browser DOM controls emit only explicit user actions and support mixe
       layerPresetState: {
         ...state.layerPresetState,
         modes: {
-          ...state.layerPresetState.modes,
+          ...state.layerPresetState!.modes,
           roof: 'unrecognized',
           'architecture-walls-party': undefined,
         },
