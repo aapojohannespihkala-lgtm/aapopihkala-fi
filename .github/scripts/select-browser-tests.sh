@@ -65,6 +65,10 @@ for file in "$@"; do
       # WP1 state, scope defaults and parent-child visibility feed both the
       # existing WP1 contract and the WP3 on-screen controls.
       add private-model-layers-wp1 private-model-viewer-state private-model-layers-wp3-controls ;;
+    src/scripts/privateModelLayerGhostPresentation.ts)
+      # WP2 source-backed ghost presentation must rerun its existing
+      # Mesh/Line/Points restoration and pickability browser regression.
+      add private-model-layer-ghost-presentation ;;
     src/scripts/privateModelLayersPresetControls.ts|src/styles/privateModelLayersPresetControls.css)
       # Reuse the existing real-DOM WP3 regression whenever Layers controls
       # or their scoped responsive stylesheet changes.
