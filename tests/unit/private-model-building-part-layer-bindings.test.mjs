@@ -281,3 +281,54 @@ test('multi-primitive source nodes bind only leaf meshes and retain nearest sour
   f.gltf.parser.associations.set(leaves[0],{meshes:999,primitives:0});
   assert.ok(!resolveBuildingPartLayerBindings(f.options).bindings.some(b=>b.root===leaves[0]));
 });
+
+import { V27_SOURCE_SHA256, V27_BUILDING_PARTS, V27_BUILDING_SCENES } from '../../src/scripts/privateModelC80R2V27LayerSourceProfile.mjs';
+function v27Fixture(sceneIndex) {
+  const def=V27_BUILDING_SCENES[sceneIndex];
+  const scene=new Object3D('V27');const nodes=[],roots=[],objects={},associations=new Map();
+  for(const [key,paths] of Object.entries(def.paths)) for(const path of paths) {
+    for(let k=0;k<path.length;k++) {
+      const index=path[k],last=k===path.length-1;
+      nodes[index]??={name:'source-parent-'+index,children:[]};
+      if(last) Object.assign(nodes[index],structuredClone(V27_BUILDING_PARTS[key]));
+      if(k===0){if(!roots.includes(index))roots.push(index);}
+      else if(!nodes[path[k-1]].children.includes(index))nodes[path[k-1]].children.push(index);
+    }
+  }
+  const make=index=>{
+    const node=nodes[index];const obj=new Object3D(node.name,node.mesh!==undefined);
+    objects[index]=obj;associations.set(obj,{nodes:index});
+    for(const child of node.children??[])obj.add(make(child));return obj;
+  };
+  for(const index of roots)scene.add(make(index));
+  const scenes=new Array(178),sourceScenes=new Array(178);scenes[sceneIndex]=scene;
+  sourceScenes[sceneIndex]={name:def.name,nodes:roots};
+  const gltf={scenes,parser:{json:{nodes,scenes:sourceScenes},associations}};
+  return {objects,scene,gltf,options:{gltf,expectedSourceSha256:V27_SOURCE_SHA256,loadedSourceSha256:V27_SOURCE_SHA256,sceneIndex,activeSceneRoot:scene,area:'D',floor:def.floor}};
+}
+test('V27 exact successor binds unchanged and COW parts in 1F/2F/BOTH without modifying source',()=>{
+  for(const index of [176,162,177]) {
+    const f=v27Fixture(index),before=JSON.stringify(f.gltf.parser.json);
+    const result=resolveBuildingPartLayerBindings(f.options);
+    assert.equal(result.sourceVerified,true);
+    assert.equal(result.bindings.length,Object.keys(V27_BUILDING_SCENES[index].paths).length);
+    assert.ok(result.evidence.every(e=>e.bindingKind==='EXACT_V27_SOURCE_PROFILE'));
+    assert.equal(JSON.stringify(f.gltf.parser.json),before);
+    assert.ok(!result.evidence.some(e=>e.sourceNodeIndex===6497||e.sourceNodeIndex===6498));
+  }
+});
+test('V27 source profile rejects stale scene, hash, mesh, name and COW parent path',()=>{
+  const f=v27Fixture(176);
+  assert.equal(resolveBuildingPartLayerBindings({...f.options,loadedSourceSha256:HASH,expectedSourceSha256:HASH}).bindings.length,0);
+  f.gltf.parser.json.scenes[176].name+='-changed';
+  assert.equal(resolveBuildingPartLayerBindings(f.options).bindings.length,0);
+  for(const field of ['mesh','name']) {
+    const b=v27Fixture(177),index=Number(Object.keys(V27_BUILDING_SCENES[177].paths).find(i=>Number(i)>8688));
+    b.gltf.parser.json.nodes[index][field]=field==='mesh'?0:'different';
+    assert.ok(!resolveBuildingPartLayerBindings(b.options).bindings.some(x=>x.root===b.objects[index]));
+  }
+  const b=v27Fixture(176),index=Number(Object.keys(V27_BUILDING_SCENES[176].paths).find(i=>V27_BUILDING_SCENES[176].paths[i][0].length>1));
+  b.gltf.parser.json.scenes[176].nodes.push(index);
+  const moved=b.objects[index];moved.parent.children=moved.parent.children.filter(x=>x!==moved);b.scene.add(moved);
+  assert.ok(!resolveBuildingPartLayerBindings(b.options).bindings.some(x=>x.root===moved));
+});

@@ -258,3 +258,21 @@ test('Locus requires both ancestor route layer and child water/wastewater subgro
   delete f.root.userData.presentationLayer;
   expect(createTechnicalSystemLayerInventory(f.context).bridgeBindings).toHaveLength(0);
 });
+
+import { V27_SOURCE_SHA256 } from '../../src/scripts/privateModelC80R2V27LayerSourceProfile.mjs';
+test('V27 successor retains technical floor membership and rejects old V26 scene routing', () => {
+  for (const sceneIndex of [162,177]) {
+    const f=v26Fixture();
+    const scenes=new Array(178);scenes[sceneIndex]={nodes:[0]};
+    const context: TechnicalSystemsContext={...f.context,sourceSceneIndex:sceneIndex,
+      loadedGlbSha256:V27_SOURCE_SHA256,expectedGlbSha256:V27_SOURCE_SHA256,
+      sourceNodes:f.context.sourceNodes.map(n=>({...n,sceneIndex,glbSha256:V27_SOURCE_SHA256})),
+      sourceJson:{...f.context.sourceJson,scenes},
+    };
+    const before=JSON.stringify(context.sourceJson);
+    expect(createTechnicalSystemLayerInventory(context).bridgeBindings.map(b=>b.id)).toEqual(['technical-heating']);
+    expect(JSON.stringify(context.sourceJson)).toBe(before);
+    expect(createTechnicalSystemLayerInventory({...context,sourceSceneIndex:175}).bridgeBindings).toHaveLength(0);
+    expect(createTechnicalSystemLayerInventory({...context,sourceJson:{...context.sourceJson,scenes:new Array(176)}}).bridgeBindings).toHaveLength(0);
+  }
+});
