@@ -85,14 +85,18 @@ class SelectionTests(unittest.TestCase):
         self.assertEqual(selected(*paths, *paths), [spec])
         self.assertEqual(selected('src/scripts/unrelated-layer-script.ts'), [])
 
-    def test_layers_wp2_ghost_source_selects_existing_browser_regression(self):
-        spec = 'tests/e2e/private-model-layer-ghost-presentation.spec.ts'
+    def test_layers_wp2_ghost_and_scope_bridge_select_existing_browser_regressions(self):
+        ghost = 'tests/e2e/private-model-layer-ghost-presentation.spec.ts'
+        scoped = 'tests/e2e/private-model-layers-wp3-scoped-runtime.spec.ts'
+        controls = 'tests/e2e/private-model-layers-wp3-controls.spec.ts'
         source = 'src/scripts/privateModelLayerGhostPresentation.ts'
-        self.assertEqual(selected(source), [spec])
-        # Mixed independent Layers edits select each existing spec exactly once.
-        self.assertEqual(selected(source, source,
+        bridge = 'src/scripts/privateModelLayerScopedPresentationBridge.ts'
+        self.assertEqual(selected(source), [ghost, scoped])
+        self.assertEqual(selected(bridge), [scoped])
+        # Mixed changes never duplicate existing guards, including bridge and WP3.
+        self.assertEqual(selected(source, bridge, source,
                                   'src/scripts/privateModelLayersPresetControls.ts'),
-                         [spec, 'tests/e2e/private-model-layers-wp3-controls.spec.ts'])
+                         [ghost, controls, scoped])
 
     def test_layers_wp1_and_viewer_state_changes_select_existing_contract_and_dom_guards(self):
         expected = [
