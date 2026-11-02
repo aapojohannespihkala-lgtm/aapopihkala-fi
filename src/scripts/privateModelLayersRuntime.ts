@@ -90,7 +90,20 @@ export const createViewerLayersRuntime = (args: {
 
   const apply = (state: ViewerInteractionState, frame: ViewerScopedLayerFrame) => {
     try {
-      modes = bridge.apply(state, { ...frame, availableNodeIds });
+      // The bridge verifies current scene ancestry, but source-validated roots
+      // must also retain their exact original glTF parent chain. Apply can
+      // run before enforce(), so deny a relocated root at the gate itself.
+      // Clone only for invalid roots: the caller's immutable gate map remains
+      // intact and independent siblings keep their own verified gates.
+      const displacedRoots = args.bindings.filter(({ root }, index) =>
+        !hasOriginalPath(root, index));
+      let safeFrame = { ...frame, availableNodeIds };
+      if (displacedRoots.length) {
+        const gates = new Map(frame.gates);
+        displacedRoots.forEach(({ root }) => gates.delete(root));
+        safeFrame = { ...safeFrame, gates };
+      }
+      modes = bridge.apply(state, safeFrame);
       return modes;
     } catch (error) {
       modes = [];
