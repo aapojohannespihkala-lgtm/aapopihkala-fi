@@ -294,6 +294,31 @@ test('source LineSegments and Points are ghosted reversibly without changing sib
   expect(root.visible).toBe(true);
 });
 
+test('selected technical line callback failure fails closed without mutating source material', () => {
+  const positions = new BufferGeometry().setFromPoints([
+    new Vector3(0, 0, 0), new Vector3(1, 0, 0),
+  ]);
+  const source = new LineBasicMaterial({ color: 0x123456 });
+  const route = new LineSegments(positions, source);
+  const raycast = route.raycast;
+  const root = new Group();
+  root.add(route);
+  const adapter = createViewerLayerGhostPresentation(root);
+
+  expect(() => adapter.apply('ghost', {
+    isSelected: object => {
+      if (object === route) throw new Error('technical selection failed');
+      return false;
+    },
+  })).toThrow('technical selection failed');
+  expect(root.visible).toBe(false);
+  expect(route.material).toBe(source);
+  expect(route.raycast).toBe(raycast);
+  expect(adapter.apply('visible', { scopeAllowed: true })).toBe('visible');
+  expect(root.visible).toBe(true);
+  adapter.dispose();
+});
+
 test('point clone failure rolls back an earlier ghost line and hides the source root', () => {
   const positions = new BufferGeometry().setFromPoints([
     new Vector3(0, 0, 0), new Vector3(1, 0, 0),
