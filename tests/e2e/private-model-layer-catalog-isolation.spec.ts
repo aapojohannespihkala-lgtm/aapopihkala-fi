@@ -81,3 +81,90 @@ test('unclassified architecture ancestor cannot be dispatched as broad gate', ()
   expect(resolveViewerLayerPanelDispatch(node, new Set(available)))
     .toEqual({ kind: 'batch', ids: [] });
 });
+
+test('real DOM clicks preserve furniture independently of Rakennusosat parent', async ({ page }) => {
+  const { build } = await import('esbuild');
+  const bundle = await build({
+    stdin: {
+      contents: `export {
+        mountViewerLayerPresetPanel,
+      } from './src/scripts/privateModelLayersPresetControls';
+      export {
+        createViewerInteractionState, applyViewerLayerPreset,
+        setViewerInteractionLayerBranchMode,
+      } from './src/scripts/privateModelViewerState';`,
+      resolveDir: process.cwd(), loader: 'ts',
+    },
+    bundle: true, platform: 'browser', format: 'iife',
+    globalName: 'YlisrinneCatalogIsolation', write: false,
+  });
+  await page.setContent('<div id="layer-host"></div>');
+  await page.addScriptTag({ content: bundle.outputFiles[0].text });
+  await page.evaluate(() => {
+    const app = (window as any).YlisrinneCatalogIsolation;
+    const ids = [
+      'architecture', 'architecture-walls', 'architecture-walls-exterior',
+      'architecture-fixtures', 'architecture-other', 'roof',
+    ];
+    const options = { boundNodeIds: [
+      'architecture-walls-exterior', 'architecture-fixtures', 'architecture-other', 'roof',
+    ] };
+    let state = app.applyViewerLayerPreset(app.createViewerInteractionState(), 'whole-building');
+    state = app.setViewerInteractionLayerBranchMode(state, 'architecture-fixtures', 'ghost', ids);
+    state = app.setViewerInteractionLayerBranchMode(state, 'architecture-other', 'visible', ids);
+    (window as any).layerState = state;
+    (window as any).layerEvents = [];
+    const refresh = () => panel.update((window as any).layerState, ids, options);
+    const apply = (id: string, mode: string) => {
+      (window as any).layerState = app.setViewerInteractionLayerBranchMode(
+        (window as any).layerState, id, mode, ids);
+    };
+    const panel = app.mountViewerLayerPresetPanel(
+      document.getElementById('layer-host'), state, ids, {
+        onPresetChange: () => {},
+        onLayerModeChange: (id: string, mode: string) => {
+          (window as any).layerEvents.push(['branch', id, mode]);
+          apply(id, mode);
+          refresh();
+        },
+        onLayerModesChange: (targets: string[], mode: string) => {
+          (window as any).layerEvents.push(['batch', [...targets], mode]);
+          for (const id of targets) apply(id, mode);
+          refresh();
+        },
+        onReset: () => {},
+      }, options);
+  });
+  const mode = (id: string, value: string) =>
+    page.locator(`[data-layer-branch="${id}"] > .yl-layer-preset-row [data-layer-mode="${value}"]`);
+  const states = () => page.evaluate(() => {
+    const modes = (window as any).layerState.layerPresetState.modes;
+    return {
+      exterior: modes['architecture-walls-exterior'],
+      roof: modes.roof,
+      fixtures: modes['architecture-fixtures'],
+      other: modes['architecture-other'],
+      events: (window as any).layerEvents,
+    };
+  });
+  const initial = await states();
+  expect(initial).toMatchObject({ fixtures: 'ghost', other: 'visible' });
+  await mode('architecture', 'hidden').click();
+  const afterArchitecture = await states();
+  expect(afterArchitecture).toMatchObject({
+    exterior: 'hidden', roof: 'hidden', fixtures: 'ghost', other: 'visible',
+  });
+  expect(afterArchitecture.events.at(-1)).toEqual([
+    'batch', ['architecture-walls-exterior', 'roof'], 'hidden',
+  ]);
+  await mode('furniture', 'hidden').click();
+  const afterFurniture = await states();
+  expect(afterFurniture).toMatchObject({
+    exterior: 'hidden', roof: 'hidden', fixtures: 'hidden', other: 'hidden',
+  });
+  await mode('architecture', 'visible').click();
+  const afterRestoringArchitecture = await states();
+  expect(afterRestoringArchitecture).toMatchObject({
+    exterior: 'visible', roof: 'visible', fixtures: 'hidden', other: 'hidden',
+  });
+});
