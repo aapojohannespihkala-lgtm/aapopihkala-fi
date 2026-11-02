@@ -6,8 +6,6 @@ import { collectViewerLayerSourceNodes, createViewerLayersRuntime } from '../../
 import { applyViewerLayerPreset, createViewerInteractionState, setViewerInteractionLayerMode } from '../../src/scripts/privateModelViewerState';
 
 const sha = 'cff2dbead53b7836747e10ef359637114ff723690ec380e313cec817e4f71d31';
-const candidateId = 'auto-ylisrinne-d-c80r2-v26-stair-rail-landing-end-plywood-work-test-host-hold-20261102-1jglt7no';
-const modelPath = '/private-model/work-test/' + candidateId + '.glb';
 
 test('source node collection requires original glTF scene and parent membership', () => {
   const scene = new Scene();
@@ -199,14 +197,28 @@ test('Layers frame rejects a replaced scene or source without changing siblings'
   expect(wall.visible).toBe(true);
 });
 
-test('exact V26 viewer: D upstairs, ghost walls, supported IV, reset, floor changes and mobile', async ({ page }, info) => {
-  const sourcePath = process.env.YLIS_LAYERS_GLB;
-  const production = process.env.YLIS_LAYERS_PRODUCTION === '1';
+// Keep the proven predecessor and the current main-chain source independently
+// pinned. A trusted production job supplies only its matching immutable bytes.
+for (const model of [
+  { version: 'V26', sourceEnv: 'YLIS_LAYERS_GLB', productionEnv: 'YLIS_LAYERS_PRODUCTION',
+    candidateId: 'auto-ylisrinne-d-c80r2-v26-stair-rail-landing-end-plywood-work-test-host-hold-20261102-1jglt7no',
+    sha, bytes: 24205548, firstFloor: '174', bothFloors: '175' },
+  { version: 'V29', sourceEnv: 'YLIS_LAYERS_V29_GLB', productionEnv: 'YLIS_LAYERS_V29_PRODUCTION',
+    candidateId: 'auto-ylisrinne-d-c80r2-v29-west-full-facade-plinth-work-test-host-hold-20261102-1vfk15ke',
+    sha: '5325da8472055379f30be59e22be3b6237093e59e6a21999471a2c2b28c784f6',
+    bytes: 26840880, firstFloor: '180', bothFloors: '181' },
+] as const) {
+test(`exact ${model.version} viewer: D upstairs, ghost walls, supported IV, reset, floor changes and mobile`, async ({ page }, info) => {
+  const { sha, candidateId } = model;
+  const modelPath = '/private-model/work-test/' + candidateId + '.glb';
+  const evidencePrefix = 'layers-' + model.version.toLowerCase();
+  const sourcePath = process.env[model.sourceEnv];
+  const production = process.env[model.productionEnv] === '1';
   if (production) expect(sourcePath, 'Protected full-source SHA readback is required').toBeTruthy();
-  test.skip(!sourcePath, 'Actual private V26 bytes are supplied only locally or on trusted main.');
+  test.skip(!sourcePath, `Actual private ${model.version} bytes are supplied only locally or on trusted main.`);
   test.setTimeout(540_000);
   const source = readFileSync(sourcePath!);
-  expect(source.length).toBe(24205548);
+  expect(source.length).toBe(model.bytes);
   expect(createHash('sha256').update(source).digest('hex')).toBe(sha);
   const origin = production ? 'https://aapopihkala.fi' : 'http://127.0.0.1:4321';
   const errors: string[] = [];
@@ -233,7 +245,7 @@ test('exact V26 viewer: D upstairs, ghost walls, supported IV, reset, floor chan
     await page.route('**/private-model/model.glb', route => route.fulfill({ status: 404 }));
     await page.route('**/private-model/source-cards.json', route => route.fulfill({ status: 404 }));
     await page.route('**/private-model/work-test/catalog.json', route => route.fulfill({ json: {
-      candidates: [{ id: candidateId, label: 'V26 WORK_TEST', path: modelPath }],
+      candidates: [{ id: candidateId, label: model.version + ' WORK_TEST', path: modelPath }],
     } }));
     await page.route('**' + modelPath, route => { sourceVerified = true;
       return route.fulfill({ contentType: 'model/gltf-binary', body: source }); });
@@ -248,6 +260,7 @@ test('exact V26 viewer: D upstairs, ghost walls, supported IV, reset, floor chan
     await page.goto(reviewUrl, { waitUntil: 'domcontentloaded' });
     await expect(canvas).toHaveAttribute('data-work-test-review-autoload', 'true', { timeout: 120_000 });
     if (await canvas.getAttribute('data-layers-runtime') === 'active' &&
+        await page.locator('#layers-button').innerText() === 'Sisältö' &&
         await page.locator('[data-technical-layer-availability]').count() === 1 &&
         await page.locator('#preset-context-status').evaluate(el =>
           getComputedStyle(el).textOverflow === 'ellipsis')) break;
@@ -271,8 +284,8 @@ test('exact V26 viewer: D upstairs, ghost walls, supported IV, reset, floor chan
   await page.locator('#fit-button').click();
   await page.locator('#layers-button').click();
   await expect(page.locator('[data-technical-layer-availability] [data-technical-layer="technical-ventilation"]')).toHaveAttribute('data-available', 'true');
-  const walls = page.locator('[data-layer-node="architecture-walls"] select');
-  const ventilation = page.locator('[data-layer-node="technical-ventilation"] select');
+  const walls = page.locator('[data-layer-node="architecture-walls"]');
+  const ventilation = page.locator('[data-layer-node="technical-ventilation"]');
   const pose = await canvas.getAttribute('data-layers-camera-pose');
   const expectPreservedCamera = async () => {
     const before = JSON.parse(pose!);
@@ -287,20 +300,20 @@ test('exact V26 viewer: D upstairs, ghost walls, supported IV, reset, floor chan
     }
     expect(after.zoom).toBeCloseTo(before.zoom, 9);
   };
-  await walls.selectOption('ghost');
-  await ventilation.selectOption('hidden');
-  await ventilation.selectOption('visible');
+  await walls.locator('[data-layer-mode="ghost"]').click();
+  await ventilation.locator('[data-layer-mode="hidden"]').click();
+  await ventilation.locator('[data-layer-mode="visible"]').click();
   await expect(page.locator('[data-layer-preset-customized]')).toContainText('Mukautettu');
   await expectPreservedCamera();
-  await expect(page.locator('[data-layer-node="architecture-ceilings"] select')).toHaveValue('hidden');
+  await expect(page.locator('[data-layer-node="architecture-ceilings"] [data-layer-mode="hidden"]')).toHaveAttribute('aria-pressed', 'true');
   await expect(page.locator('[data-layer-node="roof"]')).toHaveCount(0);
-  await page.screenshot({ path: info.outputPath('layers-v26-2f-walls-ghost-iv-visible-desktop.png') });
-  await page.getByRole('button', { name: 'Palauta presetin asetukset' }).click();
-  await expect(walls).toHaveValue('visible');
+  await page.screenshot({ path: info.outputPath(evidencePrefix + '-2f-walls-ghost-iv-visible-desktop.png') });
+  await page.getByRole('button', { name: 'Palauta näkyvyys' }).click();
+  await expect(walls.locator('[data-layer-mode="visible"]')).toHaveAttribute('aria-pressed', 'true');
   await expect(canvas).toHaveAttribute('data-main-view-floor', '2F');
   await expect(page.locator('[data-layer-preset-customized]')).not.toContainText('Mukautettu');
   await expectPreservedCamera();
-  for (const [value, floor, index] of [['d-1f', '1F', '174'], ['d-apartment', 'BOTH', '175'], ['d-2f', '2F', '162']]) {
+  for (const [value, floor, index] of [['d-1f', '1F', model.firstFloor], ['d-apartment', 'BOTH', model.bothFloors], ['d-2f', '2F', '162']]) {
     await preset.selectOption(value);
     await expect(canvas).toHaveAttribute('data-main-view-floor', floor);
     await expect(canvas).toHaveAttribute('data-layers-source-scene-index', index);
@@ -329,8 +342,8 @@ test('exact V26 viewer: D upstairs, ghost walls, supported IV, reset, floor chan
     }
     expect(await canvas.boundingBox()).toEqual(mobileCanvas);
   };
-  await walls.selectOption('ghost');
-  await ventilation.selectOption('visible');
+  await walls.locator('[data-layer-mode="ghost"]').click();
+  await ventilation.locator('[data-layer-mode="visible"]').click();
   const bounds = await preset.boundingBox();
   expect(bounds!.x).toBeGreaterThanOrEqual(0);
   expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(390);
@@ -338,13 +351,13 @@ test('exact V26 viewer: D upstairs, ghost walls, supported IV, reset, floor chan
   // controls and their state have already been exercised at this viewport.
   await page.locator('#layers-button').click();
   await expectMobileCamera();
-  await page.screenshot({ path: info.outputPath('layers-v26-2f-walls-ghost-mobile.png') });
+  await page.screenshot({ path: info.outputPath(evidencePrefix + '-2f-walls-ghost-mobile.png') });
   await page.locator('#layers-button').click();
-  await page.getByRole('button', { name: 'Palauta presetin asetukset' }).click();
-  await expect(walls).toHaveValue('visible');
+  await page.getByRole('button', { name: 'Palauta näkyvyys' }).click();
+  await expect(walls.locator('[data-layer-mode="visible"]')).toHaveAttribute('aria-pressed', 'true');
   await page.locator('#layers-button').click();
   await expectMobileCamera();
-  await page.screenshot({ path: info.outputPath('layers-v26-2f-restored-mobile.png') });
+  await page.screenshot({ path: info.outputPath(evidencePrefix + '-2f-restored-mobile.png') });
   const webgl = await canvas.evaluate((element: HTMLCanvasElement) => {
     const gl = element.getContext('webgl2');
     return { available: !!gl, lost: gl?.isContextLost(), error: gl?.getError() };
@@ -353,3 +366,4 @@ test('exact V26 viewer: D upstairs, ghost walls, supported IV, reset, floor chan
   expect(errors).toEqual([]);
   console.log(JSON.stringify({ source: sha, scene: 162, stages: ['ghost', 'IV-visible', 'reset', '1F', 'BOTH', '2F', 'mobile'], webgl, humanReview: 'NOT_RUN', production }));
 });
+}

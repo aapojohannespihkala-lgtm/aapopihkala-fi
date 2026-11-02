@@ -1244,8 +1244,8 @@ const title = 'Private 3D viewer';
 
       /* The layers panel also lives on the left: sit beside it instead of covering its controls. */
       .viewport:has(.layers-panel:not([hidden])) .selection-panel {
-        left: calc(min(290px, 100% - 24px) + 24px);
-        width: min(340px, calc(100% - min(290px, 100% - 24px) - 36px));
+        left: calc(min(348px, 100% - 24px) + 24px);
+        width: min(340px, calc(100% - min(348px, 100% - 24px) - 36px));
       }
 
       /* Narrow screens: the full-width panel would cover the bottom gizmo, so it opens from the top. */
@@ -1602,6 +1602,14 @@ const title = 'Private 3D viewer';
       }
 
       /* VUX-C2 responsive + accessibility guardrails. */
+      body:has(#private-model-canvas[data-layers-runtime="active"]) .source-menu {
+        max-width: min(260px, 100%);
+      }
+      body:has(#private-model-canvas[data-layers-runtime="active"]) #layers-button[aria-expanded="true"] {
+        background: #52704e;
+        border-color: #728b60;
+        color: #fff;
+      }
       .toolbar {
         min-width: 0;
       }
@@ -2482,7 +2490,8 @@ const title = 'Private 3D viewer';
         createViewerInteractionState,
         applyViewerLayerPreset,
         resetViewerLayerPresetToDefaults,
-        setViewerInteractionLayerMode,
+        setViewerInteractionLayerBranchMode,
+        withViewerLayerBranchVisibility,
         patchViewerLayerControls,
         type ViewerLayerPreset,
         type ViewerInteractionState,
@@ -13936,8 +13945,9 @@ const title = 'Private 3D viewer';
       let layersEnabled = false;
       let layersSwitchingPreset = false;
       let layersSyncQueued = false;
-      let layersState: ViewerInteractionState = applyViewerLayerPreset(createViewerInteractionState(), 'whole-building');
+      let layersState: ViewerInteractionState = withViewerLayerBranchVisibility(applyViewerLayerPreset(createViewerInteractionState(), 'whole-building'));
       let layersAvailable: string[] = [];
+      let layersBoundIds: string[] = [];
       let layersPresetChoices: ViewerLayerPreset[] = ['whole-building'];
       const layerPresetHost = document.createElement('div');
       layerPresetHost.id = 'layers-preset-host';
@@ -13973,7 +13983,15 @@ const title = 'Private 3D viewer';
         onLayerModeChange: (id, mode) => {
           if (!layersAvailable.includes(id) || canvas.dataset.objectVisibilityFilter === 'active') return;
           layersEnabled = true;
-          layersState = setViewerInteractionLayerMode(layersState, id, mode);
+          layersState = setViewerInteractionLayerBranchMode(layersState, id, mode, layersAvailable);
+          refreshLayers();
+        },
+        onLayerModesChange: (ids, mode) => {
+          if (canvas.dataset.objectVisibilityFilter === 'active') return;
+          for (const id of ids) {
+            layersState = setViewerInteractionLayerBranchMode(layersState, id, mode, layersAvailable);
+          }
+          layersEnabled = true;
           refreshLayers();
         },
         onReset: () => {
@@ -13998,11 +14016,12 @@ const title = 'Private 3D viewer';
           const verified = !!layersExpectedSha && layersExpectedSha === layersLoadedSha && sceneIndex >= 0;
           const filterActive = canvas.dataset.objectVisibilityFilter === 'active';
           if (filterActive) {
-            layersPanelControls.update(layersState, layersAvailable, { disabled: true });
+            layersPanelControls.update(layersState, layersAvailable, { boundNodeIds: layersBoundIds, disabled: true });
             return;
           }
           disposeLayersPresentation();
           layersAvailable = [];
+          layersBoundIds = [];
           if (verified && root) {
             if (layersEnabled) {
               // These legacy groups retain their source baseline. The new
@@ -14051,6 +14070,7 @@ const title = 'Private 3D viewer';
             }
             const gates = new Map<THREE.Object3D, ViewerScopedLayerGate>([...building.frame.gates, ...technical.gates] as any);
             layersAvailable = availableViewerLayerIds(bindings);
+            layersBoundIds = [...new Set(bindings.map(binding => binding.id))];
             if (layersEnabled) {
               layersRuntime = createViewerLayersRuntime({ sceneRoot: root, sourceSha256: layersLoadedSha!, bindings });
               layersRuntime.apply(layersState, {
@@ -14066,14 +14086,24 @@ const title = 'Private 3D viewer';
           layersPresetChoices = mainViewScope?.available
             ? ['whole-building', 'd-apartment', 'd-1f', 'd-2f'] : ['whole-building', 'site', 'infra'];
           layersPanelControls.update(layersState, layersAvailable, {
-            availablePresets: layersPresetChoices, disabled: !verified,
+            availablePresets: layersPresetChoices, boundNodeIds: layersBoundIds, disabled: !verified,
           });
           canvas.dataset.layersCameraPose = JSON.stringify({ position: activeCamera.position.toArray(), quaternion: activeCamera.quaternion.toArray(), zoom: activeCamera.zoom, target: (activeCamera === planCamera ? planControls : activeCamera === isoCamera ? isoControls : controls).target.toArray() });
           canvas.dataset.layersRuntime = verified ? (layersEnabled ? 'active' : 'ready') : 'unavailable';
+          const modernContent = verified && layersEnabled;
+          layersButton.textContent = modernContent ? 'Sisältö' : 'Layerit';
+          const contentHeading = layersPanel.querySelector('h2');
+          if (contentHeading) contentHeading.textContent = modernContent ? 'Mallin sisältö' : 'Layerit';
+          const scopeSummary = document.querySelector('#preset-menu > summary');
+          if (scopeSummary?.firstChild?.nodeType === Node.TEXT_NODE) {
+            scopeSummary.firstChild.textContent = modernContent ? 'Rajaus · ' : 'Presetit · ';
+          }
+          const cameraSummary = document.querySelector('#view-menu > summary');
+          if (cameraSummary) cameraSummary.textContent = modernContent ? 'Kamera' : 'Näkymä';
           layerBindingNote.textContent = !verified ? 'Tämän mallin layer-sidontoja ei ole varmennettu.'
             : layersAvailable.length ? 'Valinnat koskevat luokiteltuja rakennusosia ja mallinnettuja laitteita.'
             : 'Tässä näkymässä ei ole tunnistettuja layer-kohteita.';
-          for (const selector of ['#architecture-layer-group', '#locus-layer-group']) {
+          for (const selector of ['#architecture-layer-group', '#locus-layer-group', '#electrical-layer-group', '#drainage-layer-group']) {
             const legacy = document.querySelector<HTMLElement>(selector);
             if (legacy) legacy.hidden = layersEnabled && layersAvailable.length > 0;
           }
@@ -14098,8 +14128,9 @@ const title = 'Private 3D viewer';
             ? layersLoadedSha : null;
         layersExpectedSha = session?.contract?.glbSha256 ?? verifiedChainSourceSha;
         layersEnabled = verifiedChainSourceSha !== null;
-        layersState = applyViewerLayerPreset(createViewerInteractionState(), 'whole-building');
+        layersState = withViewerLayerBranchVisibility(applyViewerLayerPreset(createViewerInteractionState(), 'whole-building'));
         layersAvailable = [];
+        layersBoundIds = [];
       };
       onLayersStandardPreset = preset => {
         if (layersSwitchingPreset) return;

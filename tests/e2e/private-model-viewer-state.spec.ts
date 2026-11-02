@@ -344,7 +344,7 @@ test('VUX-E3B exposes only contract-derived layer capabilities', () => {
     'architecture-other',
   ]);
   expect(viewerLayerNodeCapabilities.roof).toEqual({
-    parent: null,
+    parent: 'architecture',
     visibility: true,
     opacity: true,
   });
@@ -356,6 +356,9 @@ test('VUX-E3B exposes only contract-derived layer capabilities', () => {
   expect(viewerLayerNodeCapabilities['architecture-walls-exterior'].parent).toBe(
     'architecture-walls',
   );
+  for (const id of ['architecture-fixtures', 'architecture-other', 'architecture-review-helpers'] as const) {
+    expect(viewerLayerNodeCapabilities[id].parent).toBeNull();
+  }
   for (const nodeId of [
     'technical',
     'technical-ventilation',

@@ -10,6 +10,8 @@ import {
   createViewerInteractionState,
   setViewerCameraView,
   setViewerInteractionLayerMode,
+  setViewerInteractionLayerBranchMode,
+  withViewerLayerBranchVisibility,
 } from '../../src/scripts/privateModelViewerState';
 
 const makeRoot = (scene: Scene, material = new MeshBasicMaterial()) => {
@@ -31,6 +33,42 @@ const frameFor = (
   activeSceneRoot: scene,
   gates,
   availableNodeIds,
+});
+
+test('R1 branch visibility reopens only the selected system inside authoritative source and floor gates', () => {
+  const scene = new Scene();
+  const iv = makeRoot(scene), electrical = makeRoot(scene), outside = makeRoot(scene), noSource = makeRoot(scene);
+  const bindings = [
+    { id: 'technical-ventilation' as const, root: iv.root },
+    { id: 'technical-electrical' as const, root: electrical.root },
+    { id: 'technical-ventilation' as const, root: outside.root },
+    { id: 'technical-ventilation' as const, root: noSource.root },
+  ];
+  const available = ['technical', 'technical-ventilation', 'technical-electrical'];
+  const gates = new Map([
+    [iv.root, allow()], [electrical.root, allow()],
+    [outside.root, { ...allow(), floorAllowed: false }],
+    [noSource.root, { ...allow(), sourceAllowed: false }],
+  ]);
+  const bridge = createViewerScopedLayerPresentation(scene, bindings);
+  let state = withViewerLayerBranchVisibility(applyViewerLayerPreset(createViewerInteractionState(), 'd-2f'));
+  state = setViewerInteractionLayerBranchMode(state, 'technical', 'hidden', available);
+  bridge.apply(state, frameFor(scene, gates, available));
+  expect(iv.root.visible).toBe(false);
+  state = setViewerInteractionLayerBranchMode(state, 'technical-ventilation', 'visible', available);
+  bridge.apply(state, frameFor(scene, gates, available));
+  expect(iv.root.visible).toBe(true);
+  expect(electrical.root.visible).toBe(false);
+  expect(outside.root.visible).toBe(false);
+  expect(noSource.root.visible).toBe(false);
+  state = setViewerInteractionLayerBranchMode(state, 'technical', 'ghost', available);
+  bridge.apply(state, frameFor(scene, gates, available));
+  expect(iv.mesh.material).not.toBe(iv.material);
+  expect(electrical.mesh.material).not.toBe(electrical.material);
+  expect(outside.root.visible).toBe(false);
+  bridge.dispose();
+  expect(iv.mesh.material).toBe(iv.material);
+  expect(electrical.mesh.material).toBe(electrical.material);
 });
 
 test('WP3 bridge makes D 2F roof a reversible ghost without changing camera or legacy source material', () => {

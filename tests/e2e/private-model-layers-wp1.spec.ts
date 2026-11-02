@@ -17,8 +17,64 @@ import {
   resetViewerLayerPresetToDefaults,
   setViewerCameraView,
   setViewerInteractionLayerMode,
+  setViewerInteractionLayerBranchMode,
+  withViewerLayerBranchVisibility,
   viewerLayerPresetScopes,
 } from '../../src/scripts/privateModelViewerState';
+
+test('R1 branch commands reveal only the requested available child after hiding its group', () => {
+  const available = ['technical', 'technical-ventilation', 'technical-electrical'];
+  let state = withViewerLayerBranchVisibility(applyViewerLayerPreset(createViewerInteractionState(), 'd-2f'));
+  const camera = state.cameraView;
+  state = setViewerInteractionLayerBranchMode(state, 'technical', 'hidden', available);
+  state = setViewerInteractionLayerBranchMode(state, 'technical-ventilation', 'visible', available);
+  expect(state.layerPresetState?.visibilityTree).toBe('branch');
+  expect(getViewerLayerEffectiveMode(state.layerPresetState!.modes, 'technical-ventilation', true)).toBe('visible');
+  expect(getViewerLayerEffectiveMode(state.layerPresetState!.modes, 'technical-electrical', true)).toBe('hidden');
+  expect(state.cameraView).toBe(camera);
+  expect(state.researchPreset).toBe('d-2f');
+  expect(state.layerPresetState?.modes['technical-heating']).toBe('visible'); // unavailable: preference untouched
+});
+
+test('R1 physical building commands leave fixtures and reference helpers independent', () => {
+  const available = ['architecture', 'architecture-walls', 'architecture-walls-interior',
+    'roof', 'architecture-fixtures', 'architecture-review-helpers'];
+  let state = withViewerLayerBranchVisibility(applyViewerLayerPreset(createViewerInteractionState(), 'whole-building'));
+  state = setViewerInteractionLayerBranchMode(state, 'architecture', 'hidden', available);
+  const modes = state.layerPresetState!.modes;
+  expect(modes.roof).toBe('hidden');
+  expect(modes['architecture-walls-interior']).toBe('hidden');
+  expect(modes['architecture-fixtures']).toBe('visible');
+  expect(modes['architecture-review-helpers']).toBe('visible');
+});
+
+test('R1 migration preserves effective legacy visibility and legacy maps retain their gates', () => {
+  let legacy = applyViewerLayerPreset(createViewerInteractionState(), 'whole-building');
+  legacy = setViewerInteractionLayerMode(legacy, 'technical', 'ghost');
+  const before = legacy.layerPresetState!.modes;
+  expect(getViewerLayerEffectiveMode(before, 'technical-ventilation')).toBe('ghost');
+  const modern = withViewerLayerBranchVisibility(legacy);
+  expect(modern.layerPresetState!.modes['technical-ventilation']).toBe('ghost');
+  const own = { ...before, technical: 'hidden' as const };
+  expect(getViewerLayerEffectiveMode(own, 'technical-ventilation')).toBe('hidden');
+  expect(getViewerLayerEffectiveMode(own, 'technical-ventilation', true)).toBe('visible');
+  expect(legacy.layerPresetState?.visibilityTree).toBeUndefined();
+});
+
+test('R1 unavailable commands are no-ops and preset/reset/opacity keep the new tree contract', () => {
+  const start = withViewerLayerBranchVisibility(applyViewerLayerPreset(createViewerInteractionState(), 'd-2f'));
+  expect(setViewerInteractionLayerBranchMode(start, 'roof', 'visible', ['technical'])).toBe(start);
+  expect(setViewerInteractionLayerBranchMode(start, 'untrusted' as never, 'visible', ['untrusted'])).toBe(start);
+  let state = setViewerInteractionLayerBranchMode(start, 'technical', 'ghost', ['technical', 'technical-ventilation']);
+  state = patchViewerLayerControls(state, { roofOpacity: 0.4 });
+  expect(state.layerPresetState?.visibilityTree).toBe('branch');
+  state = applyViewerLayerPreset(state, 'd-1f');
+  expect(state.layerPresetState?.visibilityTree).toBe('branch');
+  state = resetViewerLayerPresetToDefaults(state);
+  expect(state.layerPresetState?.visibilityTree).toBe('branch');
+  expect(state.layerPresetState?.customized).toBe(false);
+  expect(state.cameraView).toBe(start.cameraView);
+});
 
 test('invalid runtime edge modes preserve valid legacy and viewer presentation state', () => {
   const legacy = createViewerLayerStateForModelLoad();

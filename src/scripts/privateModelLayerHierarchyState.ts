@@ -84,7 +84,7 @@ export const viewerLayerNodeCapabilities: Record<
   'technical-ventilation': { parent: 'technical', visibility: true, opacity: false },
   'technical-heating': { parent: 'technical', visibility: true, opacity: false },
   'technical-electrical': { parent: 'technical', visibility: true, opacity: false },
-  roof: { parent: null, visibility: true, opacity: true },
+  roof: { parent: 'architecture', visibility: true, opacity: true },
   locus: { parent: null, visibility: true, opacity: false },
   'locus-water': { parent: 'locus', visibility: true, opacity: false },
   'locus-wastewater': { parent: 'locus', visibility: true, opacity: false },
@@ -123,15 +123,15 @@ export const viewerLayerNodeCapabilities: Record<
     opacity: false,
   },
   'architecture-review-helpers': {
-    parent: 'architecture',
+    parent: null,
     visibility: true,
     opacity: false,
   },
   'architecture-floors': { parent: 'architecture', visibility: true, opacity: false },
   'architecture-ceilings': { parent: 'architecture', visibility: true, opacity: false },
-  'architecture-fixtures': { parent: 'architecture', visibility: true, opacity: false },
+  'architecture-fixtures': { parent: null, visibility: true, opacity: false },
   'architecture-other': {
-    parent: 'architecture',
+    parent: null,
     visibility: true,
     opacity: false,
   },
@@ -148,6 +148,8 @@ export const viewerP161SystemChildNodeIds = [
   'p161-iv-1974-section',
 ] as const satisfies readonly ViewerLocusChildNodeId[];
 
+// Legacy checkbox inventory. The R1 source-bound tree uses capabilities
+// above and deliberately does not reuse this historical parent grouping.
 export const viewerArchitecturalRootChildNodeIds = [
   'architecture-walls',
   'architecture-doors',
@@ -464,6 +466,7 @@ export const createViewerLayerModeMap = (
 export const getViewerLayerEffectiveMode = (
   modes: ViewerLayerModeMap,
   nodeId: ViewerLayerNodeId,
+  independent = false,
 ): ViewerLayerVisibilityMode => {
   // Runtime source IDs are not guaranteed to belong to the declared hierarchy.
   // Reject an unknown ID before dereferencing its missing parent capability.
@@ -474,7 +477,15 @@ export const getViewerLayerEffectiveMode = (
   // External/persisted mode maps can be incomplete or malformed at runtime.
   // Never reinterpret an unrecognized state as visible in a scoped viewer.
   if (ownMode !== 'visible' && ownMode !== 'ghost') return 'hidden';
-  const parentId = viewerLayerNodeCapabilities[nodeId].parent;
+  // R1 branch commands already write the requested descendants. They must
+  // not leave an invisible parent gate above a directly re-enabled child.
+  // Maps without this explicit opt-in retain the legacy gate behavior.
+  if (independent) return ownMode;
+  // The old boolean viewer used a different grouping. Keep its saved maps
+  // compatible while the source-bound R1 UI uses independent branch modes.
+  const parentId = nodeId === 'roof' ? null
+    : nodeId === 'architecture-fixtures' || nodeId === 'architecture-other' || nodeId === 'architecture-review-helpers'
+      ? 'architecture' : viewerLayerNodeCapabilities[nodeId].parent;
   if (parentId === null) return ownMode;
   const parentMode = getViewerLayerEffectiveMode(modes, parentId);
   if (parentMode === 'hidden') return 'hidden';
