@@ -168,3 +168,55 @@ test('real DOM clicks preserve furniture independently of Rakennusosat parent', 
     exterior: 'visible', roof: 'visible', fixtures: 'hidden', other: 'hidden',
   });
 });
+
+test('architecture-only source gate disables no-op root buttons and restores when a leaf is bound', async ({ page }) => {
+  const { build } = await import('esbuild');
+  const bundle = await build({
+    stdin: {
+      contents: `export { mountViewerLayerPresetPanel } from './src/scripts/privateModelLayersPresetControls';
+export { createViewerInteractionState, applyViewerLayerPreset } from './src/scripts/privateModelViewerState';`,
+      resolveDir: process.cwd(), loader: 'ts',
+    },
+    bundle: true, platform: 'browser', format: 'iife',
+    globalName: 'YlisrinneEmptyDispatch', write: false,
+  });
+  await page.setContent('<div id="layers"></div>');
+  await page.addScriptTag({ content: bundle.outputFiles[0].text });
+  await page.evaluate(() => {
+    const app = (window as any).YlisrinneEmptyDispatch;
+    const state = app.applyViewerLayerPreset(app.createViewerInteractionState(), 'whole-building');
+    (window as any).events = [];
+    (window as any).panel = app.mountViewerLayerPresetPanel(
+      document.getElementById('layers'), state, ['architecture'], {
+        onPresetChange: () => {},
+        onLayerModeChange: (id: string, mode: string) =>
+          (window as any).events.push(['branch', id, mode]),
+        onLayerModesChange: (ids: string[], mode: string) =>
+          (window as any).events.push(['batch', ids, mode]),
+        onReset: () => {},
+      }, { boundNodeIds: ['architecture'] });
+    (window as any).sourceState = state;
+  });
+  const button = page.locator(
+    '[data-layer-branch="architecture"] > .yl-layer-preset-row [data-layer-mode="hidden"]');
+  await expect(button).toBeVisible();
+  await expect(button).toBeDisabled();
+  await expect(page.evaluate(() => (window as any).events)).toEqual([]);
+
+  await page.evaluate(() => (window as any).panel.update(
+    (window as any).sourceState,
+    ['architecture', 'architecture-walls', 'architecture-walls-exterior'],
+    { boundNodeIds: ['architecture-walls-exterior'] },
+  ));
+  await expect(button).toBeEnabled();
+  await button.click();
+  expect(await page.evaluate(() => (window as any).events)).toEqual([
+    ['batch', ['architecture-walls-exterior'], 'hidden'],
+  ]);
+
+  await page.evaluate(() => (window as any).panel.update(
+    (window as any).sourceState, ['architecture'], { boundNodeIds: ['architecture'] },
+  ));
+  await expect(button).toBeDisabled();
+  expect(await page.evaluate(() => (window as any).events)).toHaveLength(1);
+});
