@@ -85,6 +85,15 @@ class SelectionTests(unittest.TestCase):
         self.assertEqual(selected(*paths, *paths), [spec])
         self.assertEqual(selected('src/scripts/unrelated-layer-script.ts'), [])
 
+    def test_layers_wp2_ghost_source_selects_existing_browser_regression(self):
+        spec = 'tests/e2e/private-model-layer-ghost-presentation.spec.ts'
+        source = 'src/scripts/privateModelLayerGhostPresentation.ts'
+        self.assertEqual(selected(source), [spec])
+        # Mixed independent Layers edits select each existing spec exactly once.
+        self.assertEqual(selected(source, source,
+                                  'src/scripts/privateModelLayersPresetControls.ts'),
+                         [spec, 'tests/e2e/private-model-layers-wp3-controls.spec.ts'])
+
     def test_layers_wp1_and_viewer_state_changes_select_existing_contract_and_dom_guards(self):
         expected = [
             'tests/e2e/private-model-layers-wp1.spec.ts',
