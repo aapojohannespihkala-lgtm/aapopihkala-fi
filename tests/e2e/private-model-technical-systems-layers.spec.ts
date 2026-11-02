@@ -5,6 +5,7 @@ import {
   createTechnicalSystemPresentation,
   type TechnicalSourceNode,
   type TechnicalSystemsContext,
+  V26_TECHNICAL_SOURCE_SHA256,
 } from '../../src/scripts/privateModelTechnicalSystemsLayers';
 import { createViewerInteractionState, setViewerInteractionLayerMode } from '../../src/scripts/privateModelViewerState';
 
@@ -41,7 +42,7 @@ const makeFixture = (family: 'electric' | 'kvv' | 'iv') => {
 const summary = (inventory: ReturnType<typeof createTechnicalSystemLayerInventory>, id: string) =>
   inventory.summary.find((item) => item.id === id)!;
 
-test('HI20 scene without explicit system metadata reports six unavailable groups', () => {
+test('HI20 scene without explicit system metadata reports unavailable technical groups', () => {
   const scene = new Scene();
   const item = createTechnicalSystemLayerInventory({
     sceneRoot: scene, sourceSceneIndex: 24, sourceNodes: [],
@@ -49,7 +50,7 @@ test('HI20 scene without explicit system metadata reports six unavailable groups
     viewerScope: 'd-2f', allowSourceOnly: true, allowHistoricalPlans: true,
   });
   expect(item.bridgeBindings).toHaveLength(0);
-  expect(item.summary).toHaveLength(6);
+  expect(item.summary).toHaveLength(8);
   expect(item.summary.every((entry) => entry.reason === 'NO_OBJECTS_IN_SCENE')).toBe(true);
   expect(item.summary.every((entry) => entry.currentInstallationVerified === false)).toBe(true);
 });
@@ -75,15 +76,126 @@ test('2017 KVV plan binds only one exact-scene renderable and preserves its sour
   bridge.dispose();
 });
 
-test('D 2F electrical source is classified but not exposed before Sol adds its layer ID', () => {
+test('D 2F electrical source is exposed through its registered layer ID', () => {
   const f = makeFixture('electric');
   const inv = createTechnicalSystemLayerInventory(f.context);
   expect(summary(inv, 'technical-electrical')).toMatchObject({
-    reason: 'LAYER_ID_PENDING', matchedCount: 1, boundCount: 1,
+    reason: 'AVAILABLE', matchedCount: 1, boundCount: 1,
     currentInstallationVerified: false,
   });
-  expect(inv.bridgeBindings).toHaveLength(0);
+  expect(inv.bridgeBindings).toHaveLength(1);
   expect(inv.boundObjects[0].id).toBe('technical-electrical');
+});
+
+const v26Fixture = (name = 'C80R2_V17_D2F_RADIATOR_SOUTH_WINDOW1_WEST') => {
+  const scene = new Group();
+  const root = new Group(); root.name = 'source-root';
+  const mesh = new Mesh(new BoxGeometry(1, 1, 1), new MeshBasicMaterial());
+  mesh.name = name;
+  root.add(mesh); scene.add(root);
+  const sourceNodes: TechnicalSourceNode[] = [
+    { object: root, sceneIndex: 162, nodeIndex: 0, parentNodeIndex: null,
+      nodeName: root.name, glbSha256: V26_TECHNICAL_SOURCE_SHA256 },
+    { object: mesh, sceneIndex: 162, nodeIndex: 1, parentNodeIndex: 0,
+      nodeName: mesh.name, meshIndex: 0, glbSha256: V26_TECHNICAL_SOURCE_SHA256 },
+  ];
+  const scenes: { nodes?: number[] }[] = [];
+  scenes[162] = { nodes: [0] };
+  const context: TechnicalSystemsContext = {
+    sceneRoot: scene, sourceSceneIndex: 162, sourceNodes,
+    loadedGlbSha256: V26_TECHNICAL_SOURCE_SHA256,
+    expectedGlbSha256: V26_TECHNICAL_SOURCE_SHA256,
+    viewerScope: 'd-2f', allowSourceOnly: true,
+    sourceJson: {
+      scenes, nodes: [{ name: root.name, children: [1] }, { name, mesh: 0 }],
+      meshes: [{ primitives: [{}] }],
+    },
+  };
+  return { scene, root, mesh, context };
+};
+
+test('V26 named KIV, radiator and light parts bind only in their real floor scene', () => {
+  for (const [name, id] of [
+    ['K10_R3_WORLD10_SC19_K10_R3_D2F_KIV100_ANCHOR_001_WORK_TEST_SLEEVE', 'technical-ventilation'],
+    ['C80R2_V17_D2F_RADIATOR_SOUTH_WINDOW1_WEST', 'technical-heating'],
+    ['D2F_KVIK_SINK_CEILING_RECESSED_SPOT_1_WHITE_TRIM_OWNERPHOTO20261101_WORK_TEST', 'technical-electrical'],
+  ]) {
+    const f = v26Fixture(name);
+    const before = JSON.stringify(f.context.sourceJson);
+    const inv = createTechnicalSystemLayerInventory(f.context);
+    expect(inv.bridgeBindings.map((binding) => binding.id)).toEqual([id]);
+    expect(inv.gates.get(f.mesh)).toEqual({ scopeAllowed: true, floorAllowed: true, sourceAllowed: true });
+    expect(JSON.stringify(f.context.sourceJson)).toBe(before);
+    expect(f.mesh.userData).toEqual({}); // never synthesizes scope/source-card metadata
+    expect(createTechnicalSystemLayerInventory({ ...f.context, viewerScope: 'd-1f' }).bridgeBindings).toHaveLength(0);
+    expect(createTechnicalSystemLayerInventory({ ...f.context, allowSourceOnly: false }).bridgeBindings).toHaveLength(0);
+  }
+});
+
+test('V26 profile never guesses a device on another SHA or without original source JSON', () => {
+  const f = v26Fixture();
+  expect(createTechnicalSystemLayerInventory({ ...f.context, sourceJson: undefined }).bridgeBindings).toHaveLength(0);
+  expect(createTechnicalSystemLayerInventory({
+    ...f.context, loadedGlbSha256: SHA, expectedGlbSha256: SHA,
+    sourceNodes: f.context.sourceNodes.map((node) => ({ ...node, glbSha256: SHA })),
+  }).bridgeBindings).toHaveLength(0);
+  expect(createTechnicalSystemLayerInventory(v26Fixture('WHITE_RECTANGLE_NEAR_WINDOW').context).bridgeBindings).toHaveLength(0);
+  // Combined lamp/heater or passive fibre sockets are deliberately unresolved.
+  expect(createTechnicalSystemLayerInventory(v26Fixture('C80R2_D2F_BALCONY_LAMP_HEATER_ONLY_WORK_TEST').context).bridgeBindings).toHaveLength(0);
+});
+
+test('V26 source mesh, scene-root membership, parent, name and sourceLinks mismatches fail closed', () => {
+  const badMesh = v26Fixture();
+  badMesh.context.sourceNodes = badMesh.context.sourceNodes.map((node) =>
+    node.object === badMesh.mesh ? { ...node, meshIndex: 2 } : node);
+  expect(createTechnicalSystemLayerInventory(badMesh.context).bridgeBindings).toHaveLength(0);
+  const badParent = v26Fixture();
+  badParent.context.sourceJson!.nodes![0].children = [];
+  expect(createTechnicalSystemLayerInventory(badParent.context).bridgeBindings).toHaveLength(0);
+  const badScene = v26Fixture();
+  badScene.context.sourceJson!.scenes![162].nodes = [1];
+  expect(createTechnicalSystemLayerInventory(badScene.context).bridgeBindings).toHaveLength(0);
+  const badName = v26Fixture();
+  badName.mesh.name = 'different';
+  expect(createTechnicalSystemLayerInventory(badName.context).bridgeBindings).toHaveLength(0);
+  const badLinks = v26Fixture();
+  badLinks.mesh.userData.sourceLinks = [{ url: 'changed' }];
+  expect(createTechnicalSystemLayerInventory(badLinks.context).bridgeBindings).toHaveLength(0);
+});
+
+test('Viewer-added equipment metadata cannot classify an unclassified original source node', () => {
+  const f = v26Fixture('UNCLASSIFIED_ORIGINAL_NODE');
+  f.mesh.userData.presentationLayer = 'MEP_ELECTRICAL';
+  f.mesh.userData.ylisViewScope = {
+    apartmentScope: 'D', storeyScope: '2F', phaseScope: 'ACTIVE_IN_SELECTED_WORKTEST',
+  };
+  expect(createTechnicalSystemLayerInventory(f.context).bridgeBindings).toHaveLength(0);
+});
+
+test('Technical roots are non-overlapping source leaves even when source meshes are nested', () => {
+  const f = v26Fixture('PHOTO24_R1_WALL_LAMP_MOUNT_1');
+  const child = new Mesh(new BoxGeometry(1, 1, 1), new MeshBasicMaterial());
+  child.name = 'C80R2_V17_D2F_RADIATOR_NORTH_WINDOW_ROOM_WEST';
+  f.mesh.add(child);
+  const context: TechnicalSystemsContext = {
+    ...f.context,
+    sourceNodes: [...f.context.sourceNodes, {
+      object: child, sceneIndex: 162, nodeIndex: 2, parentNodeIndex: 1,
+      nodeName: child.name, meshIndex: 1, glbSha256: V26_TECHNICAL_SOURCE_SHA256,
+    }],
+    sourceJson: {
+      ...f.context.sourceJson,
+      nodes: [
+        { name: f.root.name, children: [1] },
+        { name: f.mesh.name, mesh: 0, children: [2] },
+        { name: child.name, mesh: 1 },
+      ],
+      meshes: [{ primitives: [{}] }, { primitives: [{}] }],
+    },
+  };
+  const inv = createTechnicalSystemLayerInventory(context);
+  expect(inv.bridgeBindings).toEqual([{ id: 'technical-heating', root: child }]);
+  expect(() => createTechnicalSystemPresentation(f.scene, inv)).not.toThrow();
 });
 
 test('Historical IV is opt-in and never promoted to current by the Layer mode', () => {

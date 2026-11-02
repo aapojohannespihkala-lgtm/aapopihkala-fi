@@ -303,6 +303,10 @@ export const setViewerInteractionLayerMode = (
 
 /** Legacy checkbox edits must override stale ghost intentions deterministically. */
 const legacyVisibilityFields = {
+  technical: 'technicalVisible',
+  'technical-ventilation': 'technicalVentilationVisible',
+  'technical-heating': 'technicalHeatingVisible',
+  'technical-electrical': 'technicalElectricalVisible',
   roof: 'roofVisible',
   locus: 'locusVisible',
   'locus-water': 'locusWaterVisible',
