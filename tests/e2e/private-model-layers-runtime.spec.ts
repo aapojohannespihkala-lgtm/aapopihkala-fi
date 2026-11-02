@@ -121,6 +121,12 @@ test('a reparented GLB root stays hidden until its original source path returns'
   expect(wall.visible).toBe(true);
   otherParent.add(wall); // Same scene and SHA, but wrong original node-parent path.
   wall.visible = true; // A legacy rendering pass cannot authorize this relocation.
+  const reparentedModes = runtime.apply(state, frame);
+  expect(reparentedModes[0]).toEqual({ id: 'architecture-walls', mode: 'hidden' });
+  // The source must be hidden by apply itself, before the render-loop guard.
+  expect(wall.visible).toBe(false);
+  expect(frame.gates.get(wall)?.sourceAllowed).toBe(true); // Unmodified frame.
+  wall.visible = true;
   runtime.enforce(scene, sha);
   expect(wall.visible).toBe(false);
   expect(sibling.visible).toBe(true);
