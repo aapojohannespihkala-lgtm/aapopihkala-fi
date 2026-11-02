@@ -151,6 +151,25 @@ export const buildViewerLayerPanelModel = (
   };
 };
 
+/** Dispatch only the source-bound descendants represented by this visible UI group.
+ * The capability tree still puts fixtures/other under architecture for legacy
+ * callers, but the R1 panel presents those objects under a separate furniture root.
+ */
+export const resolveViewerLayerPanelDispatch = (
+  node: Pick<ViewerLayerPanelNode, 'id' | 'layerId' | 'commandIds'>,
+  available: ReadonlySet<ViewerLayerNodeId>,
+): { kind: 'branch' | 'batch'; ids: ViewerLayerNodeId[] } => {
+  const trusted = node.commandIds.filter(id => available.has(id));
+  if (node.id === 'architecture') {
+    // Do not dispatch the broad capability ancestor: it also controls furniture.
+    return { kind: 'batch', ids: trusted.filter(id => id !== 'architecture') };
+  }
+  if (node.layerId && available.has(node.layerId)) {
+    return { kind: 'branch', ids: [node.layerId] };
+  }
+  return { kind: 'batch', ids: trusted };
+};
+
 const choices = [
   { id: 'visible', label: 'Näkyvä', mark: '●' },
   { id: 'ghost', label: 'Himmeä', mark: '◐' },
@@ -240,14 +259,14 @@ export const mountViewerLayerPresetPanel = (
   };
   const command = (view: NodeView, mode: ViewerLayerVisibilityMode) => {
     if (destroyed || panelOptions.disabled || !root.contains(view.wrapper)) return;
-    const targets = view.model.commandIds.filter(id => available.has(id));
-    if (targets.length === 0) return;
-    if (view.model.layerId && available.has(view.model.layerId)) {
-      callbacks.onLayerModeChange(view.model.layerId, mode);
+    const dispatch = resolveViewerLayerPanelDispatch(view.model, available);
+    if (dispatch.ids.length === 0) return;
+    if (dispatch.kind === 'branch') {
+      callbacks.onLayerModeChange(dispatch.ids[0], mode);
     } else if (callbacks.onLayerModesChange) {
-      callbacks.onLayerModesChange(targets, mode);
+      callbacks.onLayerModesChange(dispatch.ids, mode);
     } else {
-      targets.forEach(id => callbacks.onLayerModeChange(id, mode));
+      dispatch.ids.forEach(id => callbacks.onLayerModeChange(id, mode));
     }
   };
   const createView = (node: ViewerLayerPanelNode): NodeView => {
