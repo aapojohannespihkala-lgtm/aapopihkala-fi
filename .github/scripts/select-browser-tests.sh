@@ -69,8 +69,9 @@ for file in "$@"; do
       # WP2 material/pickability behaviour must also preserve scoped bridge behaviour.
       add private-model-layer-ghost-presentation private-model-layers-wp3-scoped-runtime ;;
     src/scripts/privateModelLayerScopedPresentationBridge.ts)
-      # Scope/floor/source gating and adapter lifecycle have their own existing test.
-      add private-model-layers-wp3-scoped-runtime ;;
+      # Bridge changes affect both source-gated adapters and reversible ghost
+      # materials/pickability; recheck both existing browser regressions.
+      add private-model-layer-ghost-presentation private-model-layers-wp3-scoped-runtime ;;
     src/scripts/privateModelLayersPresetControls.ts|src/styles/privateModelLayersPresetControls.css)
       # Reuse the existing real-DOM WP3 regression whenever Layers controls
       # or their scoped responsive stylesheet changes.
