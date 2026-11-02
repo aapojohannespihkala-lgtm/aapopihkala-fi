@@ -2460,6 +2460,7 @@ const title = 'Private 3D viewer';
       import { createViewerLayersRuntime, availableViewerLayerIds, collectViewerLayerSourceNodes, type ViewerLayersRuntime } from '../../scripts/privateModelLayersRuntime';
       import { resolveBuildingPartLayerBindings } from '../../scripts/privateModelBuildingPartLayerBindings.mjs';
       import { V27_SOURCE_SHA256 } from '../../scripts/privateModelC80R2V27LayerSourceProfile.mjs';
+      import { V29_SOURCE_SHA256 } from '../../scripts/privateModelC80R2V29LayerSourceProfile.mjs';
       import { createTechnicalSystemLayerInventory } from '../../scripts/privateModelTechnicalSystemsLayers';
       import { mountTechnicalLayerAvailability } from '../../scripts/privateModelTechnicalLayersAvailabilityUi';
       import '../../styles/privateModelTechnicalLayersAvailability.css';
@@ -14091,7 +14092,9 @@ const title = 'Private 3D viewer';
         // Main-chain pins come from independently RAW-verified GLB bytes.
         // Legacy source sessions keep their own independent byte/SHA contract.
         const verifiedChainSourceSha =
-          layersLoadedSha === v26LayersSourceSha || layersLoadedSha === V27_SOURCE_SHA256
+          layersLoadedSha === v26LayersSourceSha ||
+          layersLoadedSha === V27_SOURCE_SHA256 ||
+          layersLoadedSha === V29_SOURCE_SHA256
             ? layersLoadedSha : null;
         layersExpectedSha = session?.contract?.glbSha256 ?? verifiedChainSourceSha;
         layersEnabled = verifiedChainSourceSha !== null;
