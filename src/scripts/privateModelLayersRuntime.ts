@@ -47,16 +47,6 @@ export const availableViewerLayerIds = (bindings: readonly ViewerScopedLayerRoot
   return [...ids];
 };
 
-/** A detached or reparented source root must never outlive its scene gate. */
-const remainsInSourceScene = (root: Object3D, sceneRoot: Object3D) => {
-  let parent: Object3D | null = root.parent;
-  while (parent) {
-    if (parent === sceneRoot) return true;
-    parent = parent.parent;
-  }
-  return false;
-};
-
 /**
  * Owns only verified non-overlapping meshes in one original glTF scene.
  * The existing loader, source-card resolver, scope, scene and camera owners
@@ -70,6 +60,23 @@ export const createViewerLayersRuntime = (args: {
   if (!/^[a-f0-9]{64}$/.test(args.sourceSha256)) throw Error('Layers source digest missing');
   const bridge = createViewerScopedLayerPresentation(args.sceneRoot, args.bindings);
   const availableNodeIds = availableViewerLayerIds(args.bindings);
+  // Preserve the exact loader parent chain, not only scene membership.
+  const sourcePaths = args.bindings.map(({ root }) => {
+    const ancestors: Object3D[] = [];
+    for (let parent = root.parent; parent; parent = parent.parent) {
+      ancestors.push(parent);
+      if (parent === args.sceneRoot) break;
+    }
+    return ancestors;
+  });
+  const hasOriginalPath = (root: Object3D, index: number) => {
+    let ancestor = root.parent;
+    for (const expected of sourcePaths[index]) {
+      if (ancestor !== expected) return false;
+      ancestor = ancestor.parent;
+    }
+    return sourcePaths[index].at(-1) === args.sceneRoot;
+  };
   let disposed = false;
   let modes: ReadonlyArray<{ id: ViewerLayerNodeId; mode: ViewerLayerVisibilityMode }> = [];
 
@@ -90,7 +97,7 @@ export const createViewerLayersRuntime = (args: {
     if (disposed) return;
     const active = activeSceneRoot === args.sceneRoot && sourceSha256 === args.sourceSha256;
     args.bindings.forEach(({ root }, index) => {
-      if (!active || !remainsInSourceScene(root, args.sceneRoot) ||
+      if (!active || !hasOriginalPath(root, index) ||
         (modes[index]?.mode !== 'visible' && modes[index]?.mode !== 'ghost')) root.visible = false;
     });
   };
