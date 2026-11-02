@@ -1,0 +1,19 @@
+import { V29_BUILDING_PARTS } from './privateModelC80R2V29LayerSourceProfile.mjs';
+
+/**
+ * Exact V33 WORK_TEST source profile, from immutable G2b AUTO source.
+ * GLB (not ZIP) SHA and glTF scene/node/mesh/name/parent paths verified
+ * directly against GLB/model.glb. V29's 79 node name/mesh identities are
+ * unchanged, but V33's new scene paths are independently pinned here.
+ * Unlisted nodes, including mixed roof/wall and stair composites, fail closed.
+ * This is a presentation allowlist, not an as-built or whole-model inventory.
+ */
+export const V33_SOURCE_SHA256 = 'ca1de571fa70e0fbcf1e36748ab0a43f840ff663b02dd2ff237aa99aac7c0210';
+export const V33_SOURCE_SCENE_COUNT = 194;
+export const V33_SOURCE_DRIVE_ZIP_ID = '1xBjbwWpWm2RACbVwmPl3XPQ-3OON41AU';
+export const V33_BUILDING_PARTS = Object.freeze({
+  ...V29_BUILDING_PARTS,
+  ...{"9256":{"id":"architecture-floors","mesh":3270,"name":"C80R2_V33_D1F_GREY_450_TILE_FLOOR_SINGLE_PLANE_LIGHT_JOINTS"},"9257":{"id":"architecture-floors","mesh":3271,"name":"C80R2_V33_D2F_PALE_PLANK_FLOOR_SINGLE_PLANE_LIGHT_GAPS"},"9258":{"id":"architecture-fixtures","mesh":3272,"name":"C80R2_V33_D2F_ISLAND_SOLID_PALE_END_PANELS"},"9259":{"id":"roof","mesh":3273,"name":"C80R2_V33_NE_CORNER_EAVE_CLOSURE_WHITE"}}
+});
+export const V33_BUILDING_SCENES = Object.freeze({"191":{"floor":"1F","name":"C80R2_V33_D1F_WORK_TEST_HOST_HOLD_20261102","paths":{"6376":[[6376]],"6377":[[6377]],"7221":[[7221]],"7289":[[9250,9233,9232,7289]],"7290":[[9250,9233,9232,7290]],"7594":[[7594]],"7645":[[7646,7645]],"7999":[[7999]],"8007":[[8007]],"8152":[[8152]],"8193":[[8193]],"8196":[[8196]],"8760":[[8760]],"8855":[[8855]],"9256":[[9256]],"9259":[[9259]]}},"192":{"floor":"2F","name":"C80R2_V33_D2F_WORK_TEST_HOST_HOLD_20261102","paths":{"5296":[[7361,5296]],"5308":[[7366,5308]],"5323":[[5323]],"5327":[[5327]],"5631":[[5631]],"6431":[[6431]],"6432":[[6432]],"6433":[[6433]],"6564":[[6564]],"7222":[[7222]],"7223":[[7223]],"7357":[[7361,7357]],"7358":[[7361,7358]],"7359":[[7361,7359]],"7360":[[7361,7360]],"7362":[[7366,7362]],"7363":[[7366,7363]],"7364":[[7366,7364]],"7365":[[7366,7365]],"7367":[[7367]],"7368":[[7368]],"8003":[[8003]],"8028":[[9243,9242,8032,8029,8028]],"8030":[[9243,9242,8032,8030]],"8031":[[9243,9242,8032,8031]],"8199":[[8199]],"8310":[[9243,9242,9241,8311,8310]],"9257":[[9257]],"9258":[[9258]],"9259":[[9259]]}},"193":{"floor":"BOTH","name":"C80R2_V33_BOTH_WORK_TEST_HOST_HOLD_20261102","paths":{"5290":[[7496,5290]],"5302":[[7501,5302]],"6391":[[6391]],"6392":[[6392]],"6437":[[6437]],"6438":[[6438]],"6439":[[6439]],"6656":[[9267,6656]],"7221":[[7221]],"7222":[[7222]],"7223":[[7223]],"7445":[[9253,9236,9235,7445]],"7446":[[9253,9236,9235,7446]],"7492":[[7496,7492]],"7493":[[7496,7493]],"7494":[[7496,7494]],"7495":[[7496,7495]],"7497":[[7501,7497]],"7498":[[7501,7498]],"7499":[[7501,7499]],"7500":[[7501,7500]],"7502":[[7502]],"7503":[[7503]],"7594":[[7594]],"7706":[[7707,7706]],"7722":[[9267,9266,7722]],"8002":[[8002]],"8003":[[8003]],"8007":[[8007]],"8088":[[9253,9246,8092,8089,8088]],"8090":[[9253,9246,8092,8090]],"8091":[[9253,9246,8092,8091]],"8152":[[8152]],"8193":[[8193]],"8196":[[8196]],"8199":[[8199]],"8836":[[8836]],"8856":[[8856]],"9256":[[9256]],"9257":[[9257]],"9258":[[9258]],"9259":[[9259]]}}});
+export const V33_TECHNICAL_SCENES = Object.freeze({ '1F': 191, '2F': 192, BOTH: 193 });
