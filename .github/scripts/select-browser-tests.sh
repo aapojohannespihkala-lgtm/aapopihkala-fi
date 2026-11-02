@@ -61,6 +61,10 @@ for file in "$@"; do
       add current-worker-regression current-portfolio-resilience current-markets-fallback current-markets-timeout ;;
     src/pages/private-model/index.astro)
       add private-model-d1f-combined-wall-scene-contract private-model-main-view-scope private-model-other-floor-reference private-model-work-test-load-diagnostics; p4 ;;
+    src/scripts/privateModelLayerHierarchyState.ts|src/scripts/privateModelViewerState.ts)
+      # WP1 state, scope defaults and parent-child visibility feed both the
+      # existing WP1 contract and the WP3 on-screen controls.
+      add private-model-layers-wp1 private-model-viewer-state private-model-layers-wp3-controls ;;
     src/scripts/privateModelLayersPresetControls.ts|src/styles/privateModelLayersPresetControls.css)
       # Reuse the existing real-DOM WP3 regression whenever Layers controls
       # or their scoped responsive stylesheet changes.
