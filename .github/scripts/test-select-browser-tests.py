@@ -75,14 +75,18 @@ class SelectionTests(unittest.TestCase):
         ])
 
     def test_layers_wp3_source_and_css_changes_select_existing_dom_regression(self):
-        spec = 'tests/e2e/private-model-layers-wp3-controls.spec.ts'
+        specs = [
+            'tests/e2e/private-model-layer-ghost-presentation.spec.ts',
+            'tests/e2e/private-model-layers-wp3-controls.spec.ts',
+            'tests/e2e/private-model-layers-wp3-scoped-runtime.spec.ts',
+        ]
         paths = ('src/scripts/privateModelLayersPresetControls.ts',
                  'src/styles/privateModelLayersPresetControls.css')
         for path in paths:
             with self.subTest(path=path):
-                self.assertEqual(selected(path), [spec])
+                self.assertEqual(selected(path), specs)
         # Multiple edits to the same pane must not duplicate its browser run.
-        self.assertEqual(selected(*paths, *paths), [spec])
+        self.assertEqual(selected(*paths, *paths), specs)
         self.assertEqual(selected('src/scripts/unrelated-layer-script.ts'), [])
 
     def test_layers_wp2_ghost_and_scope_bridge_select_existing_browser_regressions(self):
@@ -116,7 +120,11 @@ class SelectionTests(unittest.TestCase):
         self.assertFalse(any('/current-' in path for path in selected(*paths)))
         self.assertEqual(
             selected('src/styles/privateModelLayersPresetControls.css'),
-            ['tests/e2e/private-model-layers-wp3-controls.spec.ts'],
+            [
+                'tests/e2e/private-model-layer-ghost-presentation.spec.ts',
+                'tests/e2e/private-model-layers-wp3-controls.spec.ts',
+                'tests/e2e/private-model-layers-wp3-scoped-runtime.spec.ts',
+            ],
         )
 
     def test_work_test_loader_changes_run_diagnostics(self):
