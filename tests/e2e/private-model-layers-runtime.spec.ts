@@ -11,7 +11,7 @@ const modelPath = '/private-model/work-test/' + candidateId + '.glb';
 
 test('Layers reset uses visibility refresh rather than reapplying the same camera preset', () => {
   const source = readFileSync('src/pages/private-model/index.astro', 'utf8');
-  const handler = source.match(/onReset: \\(\\) => \\{([\\s\\S]*?)\\n        \\},/)?.[1];
+  const handler = source.match(/onReset: \(\) => \{([\s\S]*?)\n        \},/)?.[1];
   expect(handler, 'The current Layers reset callback must be present').toBeDefined();
   expect(handler).toContain('resetViewerLayerPresetToDefaults(layersState)');
   expect(handler).toContain('refreshLayers()');
