@@ -118,3 +118,42 @@ test('visible parent with all hidden children is mixed and preserves child prefe
   expect(getViewerLayerParentMode(ghostParent.layerPresetState!.modes,
     'architecture-walls', viewerArchitecturalWallChildNodeIds)).toBe('mixed');
 });
+
+test('ghost parent preserves visible child preference as mixed, without changing effective ghost', () => {
+  const state = applyViewerLayerPreset(createViewerInteractionState(), 'd-2f');
+  const parentGhost = setViewerInteractionLayerMode(state, 'architecture-walls', 'ghost');
+  const modes = parentGhost.layerPresetState!.modes;
+  expect(modes['architecture-walls']).toBe('ghost');
+  for (const child of viewerArchitecturalWallChildNodeIds) {
+    expect(modes[child]).toBe('visible');
+    expect(getViewerLayerEffectiveMode(modes, child)).toBe('ghost');
+  }
+  // Effective presentation alone would incorrectly hide the preference conflict.
+  expect(getViewerLayerParentMode(modes, 'architecture-walls', viewerArchitecturalWallChildNodeIds))
+    .toBe('mixed');
+
+  let allGhost = parentGhost;
+  for (const child of viewerArchitecturalWallChildNodeIds) {
+    allGhost = setViewerInteractionLayerMode(allGhost, child, 'ghost');
+  }
+  expect(getViewerLayerParentMode(allGhost.layerPresetState!.modes,
+    'architecture-walls', viewerArchitecturalWallChildNodeIds)).toBe('ghost');
+
+  // A hidden parent remains authoritative; child preferences remain intact.
+  const hidden = setViewerInteractionLayerMode(parentGhost, 'architecture-walls', 'hidden');
+  expect(getViewerLayerParentMode(hidden.layerPresetState!.modes,
+    'architecture-walls', viewerArchitecturalWallChildNodeIds)).toBe('hidden');
+  expect(hidden.layerPresetState!.modes['architecture-walls-party']).toBe('visible');
+
+  // An ancestor's ghost only affects rendering, not this parent's own choice.
+  const ancestorGhost = setViewerInteractionLayerMode(state, 'architecture', 'ghost');
+  const ancestorModes = ancestorGhost.layerPresetState!.modes;
+  expect(getViewerLayerEffectiveMode(ancestorModes, 'architecture-walls')).toBe('ghost');
+  expect(getViewerLayerParentMode(ancestorModes, 'architecture-walls',
+    viewerArchitecturalWallChildNodeIds)).toBe('visible');
+
+  // Fail closed if an imported mode map has an unknown parent preference.
+  const malformed = { ...modes, 'architecture-walls': undefined } as unknown as typeof modes;
+  expect(getViewerLayerParentMode(malformed, 'architecture-walls',
+    viewerArchitecturalWallChildNodeIds)).toBe('hidden');
+});
