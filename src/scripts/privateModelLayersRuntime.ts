@@ -90,7 +90,14 @@ export const createViewerLayersRuntime = (args: {
 
   const apply = (state: ViewerInteractionState, frame: ViewerScopedLayerFrame) => {
     try {
-      modes = bridge.apply(state, { ...frame, availableNodeIds });
+      // A reparented root may remain in this scene, but no longer match its
+      // exact GLB parent chain. Revoke its gate BEFORE presenting the layer.
+      // Copy the frame gates so restoration never mutates caller permissions.
+      const gates = new Map(frame.gates);
+      args.bindings.forEach(({ root }, index) => {
+        if (!hasOriginalPath(root, index)) gates.delete(root);
+      });
+      modes = bridge.apply(state, { ...frame, availableNodeIds, gates });
       return modes;
     } catch (error) {
       modes = [];
