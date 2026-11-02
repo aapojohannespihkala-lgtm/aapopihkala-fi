@@ -52,6 +52,12 @@ test('Layers WP1 unknown runtime mode cannot expose legacy or semantic layers', 
   );
   expect(missing.layerPresetState?.modes['architecture-doors']).toBe('hidden');
   expect(missing.layers.architectureDoorsVisible).toBe(false);
+  const nullMode = setViewerInteractionLayerMode(
+    initial, 'architecture-walls',
+    null as unknown as Parameters<typeof setViewerInteractionLayerMode>[2],
+  );
+  expect(nullMode.layerPresetState?.modes['architecture-walls']).toBe('hidden');
+  expect(nullMode.layers.architectureWallsVisible).toBe(false);
   const restored = resetViewerLayerPresetToDefaults(result);
   expect(restored.layerPresetState?.modes['technical-electrical']).toBe('visible');
   expect(restored.layers.technicalElectricalVisible).toBe(true);
