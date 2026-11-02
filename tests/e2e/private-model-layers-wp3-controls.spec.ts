@@ -21,6 +21,80 @@ test('preset choices exclude legacy electrical/drainage research views', () => {
   expect(buildViewerLayerPanelModel(old, []).selectedPreset).toBeNull();
 });
 
+test('malformed saved preset IDs use a verified fallback or no preset', () => {
+  const base = applyViewerLayerPreset(createViewerInteractionState(), 'd-2f');
+  for (const invalidId of ['unknown', '__proto__', 'constructor', 'electrical', 123, null]) {
+    const invalid = {
+      ...base,
+      layerPresetState: {
+        ...base.layerPresetState!,
+        selected: invalidId as NonNullable<typeof base.layerPresetState>['selected'],
+      },
+    };
+    const model = buildViewerLayerPanelModel(invalid, ['roof']);
+    expect(model.selectedPreset).toBe('d-2f');
+    expect(model.groups.flatMap(group => group.items).find(item => item.id === 'roof')?.mode)
+      .toBe('ghost');
+    expect(invalid.layerPresetState.selected).toBe(invalidId);
+  }
+
+  const research = {
+    ...createViewerInteractionState('electrical'),
+    layerPresetState: {
+      ...base.layerPresetState!,
+      selected: '__proto__' as NonNullable<typeof base.layerPresetState>['selected'],
+      customized: true,
+    },
+  };
+  expect(buildViewerLayerPanelModel(research, ['roof'])).toMatchObject({
+    selectedPreset: null, customized: false,
+  });
+  // Valid saved selections continue to take precedence over older research modes.
+  expect(buildViewerLayerPanelModel({
+    ...createViewerInteractionState('electrical'),
+    layerPresetState: base.layerPresetState,
+  }, []).selectedPreset).toBe('d-2f');
+});
+
+test('browser select never appears empty for an invalid saved preset with valid fallback', async ({ page }) => {
+  const result = await build({
+    entryPoints: ['src/scripts/privateModelLayersPresetControls.ts'],
+    absWorkingDir: process.cwd(), bundle: true, platform: 'browser',
+    format: 'iife', globalName: 'YlisrinneLayersWP3', write: false,
+  });
+  await page.setContent('<main id="layers"></main>');
+  await page.addScriptTag({ content: result.outputFiles[0].text });
+  const base = applyViewerLayerPreset(createViewerInteractionState(), 'd-2f');
+  const malformed = {
+    ...base,
+    layerPresetState: {
+      ...base.layerPresetState!,
+      selected: 'constructor' as NonNullable<typeof base.layerPresetState>['selected'],
+    },
+  };
+  await page.evaluate((state) => {
+    const app = (window as any).YlisrinneLayersWP3;
+    (window as any).layerPanel = app.mountViewerLayerPresetPanel(
+      document.getElementById('layers'), state, ['roof'],
+      { onPresetChange: () => {}, onLayerModeChange: () => {}, onReset: () => {} },
+    );
+  }, malformed);
+  await expect(page.getByRole('combobox', { name: 'Näkymän esiasetus' }))
+    .toHaveValue('d-2f');
+  await expect(page.getByText('Oletusasetukset', { exact: true })).toBeVisible();
+  const legacy = {
+    ...createViewerInteractionState('electrical'),
+    layerPresetState: { ...malformed.layerPresetState, customized: true },
+  };
+  await page.evaluate((state) => (window as any).layerPanel.update(state, ['roof']), legacy);
+  await expect(page.getByRole('combobox', { name: 'Näkymän esiasetus' }))
+    .toHaveValue('');
+  await expect(page.getByText('Ei valittua esiasetusta', { exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Palauta presetin asetukset' }))
+    .toBeDisabled();
+  await page.evaluate(() => (window as any).layerPanel.destroy());
+});
+
 test('only explicit available hierarchy IDs are shown, with no fabricated electric layer', () => {
   const state = applyViewerLayerPreset(createViewerInteractionState(), 'd-2f');
   const model = buildViewerLayerPanelModel(state, [
@@ -36,6 +110,31 @@ test('only explicit available hierarchy IDs are shown, with no fabricated electr
   expect(model.groups.flatMap((g) => g.items.map((i) => i.label))).not.toContain('Sähköt');
   expect(model.groups.flatMap((g) => g.items).find((i) => i.id === 'roof')?.mode)
     .toBe('ghost');
+});
+
+test('malformed persisted leaf modes display safely hidden without changing source preferences', () => {
+  const base = applyViewerLayerPreset(createViewerInteractionState(), 'd-2f');
+  const invalid = {
+    ...base,
+    layerPresetState: {
+      ...base.layerPresetState!,
+      modes: {
+        ...base.layerPresetState!.modes,
+        roof: 'unrecognized' as 'visible',
+        'architecture-windows': undefined as unknown as 'visible',
+      },
+    },
+  };
+  const rows = buildViewerLayerPanelModel(invalid, ['roof', 'architecture-windows'])
+    .groups.flatMap(group => group.items);
+  expect(rows.find(item => item.id === 'roof')).toMatchObject({
+    mode: 'hidden', effectiveMode: 'hidden',
+  });
+  expect(rows.find(item => item.id === 'architecture-windows')).toMatchObject({
+    mode: 'hidden', effectiveMode: 'hidden',
+  });
+  expect(invalid.layerPresetState.modes.roof).toBe('unrecognized');
+  expect(base.layerPresetState!.modes.roof).toBe('ghost');
 });
 
 test('parent reports mixed when explicit children differ, without changing child settings', () => {
@@ -169,6 +268,36 @@ test('real browser DOM controls emit only explicit user actions and support mixe
       'architecture-walls-party', 'architecture-walls-interior', 'locus-water']);
   }, start);
   await expect(roofNotice).toBeHidden();
+  await expect(page.locator('[data-layer-node="roof"] select')).toHaveValue('ghost');
+
+  // A corrupted runtime map must render a meaningful hidden option,
+  // never a blank selection that disagrees with fail-closed presentation.
+  await page.evaluate((state) => {
+    const bad = {
+      ...state,
+      layerPresetState: {
+        ...state.layerPresetState,
+        modes: {
+          ...state.layerPresetState!.modes,
+          roof: 'unrecognized',
+          'architecture-walls-party': undefined,
+        },
+      },
+    };
+    (window as any).layerPanel.update(bad, [
+      'roof', 'architecture-walls', 'architecture-walls-party',
+    ]);
+  }, start);
+  await expect(page.locator('[data-layer-node="roof"] select')).toHaveValue('hidden');
+  await expect(page.locator('[data-layer-node="architecture-walls-party"] select')).toHaveValue('hidden');
+  await expect(page.locator('[data-layer-node="roof"] select')).toHaveAttribute('data-effective-mode', 'hidden');
+  expect(await page.evaluate(() => (window as any).layerEvents)).toEqual([]);
+  await page.evaluate((state) => {
+    (window as any).layerPanel.update(state, [
+      'roof', 'architecture-walls', 'architecture-walls-party',
+      'architecture-walls-interior', 'locus-water',
+    ]);
+  }, start);
   await expect(page.locator('[data-layer-node="roof"] select')).toHaveValue('ghost');
 
   await page.locator('[data-layer-node="roof"] select').selectOption('visible');
@@ -393,4 +522,64 @@ test('uniformly hidden children are mixed under visible parent in mobile DOM', a
   expect(await select.evaluate(el => el.getBoundingClientRect().height)).toBeGreaterThanOrEqual(44);
   expect(await page.evaluate(() => (window as any).events)).toEqual([]);
   await page.evaluate(() => (window as any).panel.destroy());
+});
+
+test('mobile Layers list keeps its scroll position after a mode update', async ({ page }) => {
+  const output = await build({
+    entryPoints: ['src/scripts/privateModelLayersPresetControls.ts'],
+    absWorkingDir: process.cwd(), bundle: true, platform: 'browser',
+    format: 'iife', globalName: 'YlisrinneLayersWP3', write: false,
+  });
+  await page.setViewportSize({ width: 375, height: 667 });
+  await page.setContent(
+    '<div id="viewport" style="width:300px;height:310px;overflow-y:auto">' +
+    '<div id="layers"></div></div>',
+  );
+  await page.addStyleTag({
+    content: readFileSync('src/styles/privateModelLayersPresetControls.css', 'utf8'),
+  });
+  await page.addScriptTag({ content: output.outputFiles[0].text });
+
+  const available = [
+    'architecture', 'architecture-walls', 'architecture-walls-exterior',
+    'architecture-walls-party', 'architecture-walls-interior',
+    'architecture-floors', 'architecture-ceilings', 'roof',
+    'architecture-doors', 'architecture-windows', 'architecture-review-helpers',
+    'architecture-fixtures', 'architecture-other',
+    'technical', 'technical-ventilation', 'technical-heating',
+    'technical-electrical', 'locus', 'locus-water', 'locus-wastewater',
+    'p161-kvv-2017', 'p161-iv-1974-plan', 'p161-iv-1974-section',
+  ];
+  const initial = applyViewerLayerPreset(createViewerInteractionState(), 'd-apartment');
+  await page.evaluate(({ state, ids }) => {
+    const mount = (window as any).YlisrinneLayersWP3.mountViewerLayerPresetPanel;
+    (window as any).scrollEvents = [];
+    (window as any).scrollPanel = mount(document.getElementById('layers'), state, ids, {
+      onReset: () => (window as any).scrollEvents.push('reset'),
+      onPresetChange: () => (window as any).scrollEvents.push('preset'),
+      onLayerModeChange: () => (window as any).scrollEvents.push('mode'),
+    });
+  }, { state: initial, ids: available });
+  const control = page.locator('[data-layer-node="architecture-other"] select');
+  await control.focus();
+  await expect(control).toBeFocused();
+  const before = await page.locator('#viewport').evaluate(element => element.scrollTop);
+  expect(before).toBeGreaterThan(300);
+
+  const changed = setViewerInteractionLayerMode(initial, 'architecture-walls-party', 'hidden');
+  await page.evaluate(({ state, ids }) => (window as any).scrollPanel.update(state, ids),
+    { state: changed, ids: available });
+  await expect(control).toBeFocused();
+  const after = await page.locator('#viewport').evaluate(element => element.scrollTop);
+  expect(after).toBeCloseTo(before, 0);
+  await expect(page.locator('[data-layer-node="architecture"] select')).toHaveValue('mixed');
+  expect(await page.evaluate(() => (window as any).scrollEvents)).toEqual([]);
+
+  // Source metadata may shrink the list, in which case scroll naturally clamps.
+  await page.evaluate((state) => (window as any).scrollPanel.update(state, ['architecture-walls']), changed);
+  const position = await page.locator('#viewport').evaluate(element => ({
+    top: element.scrollTop, max: element.scrollHeight - element.clientHeight,
+  }));
+  expect(position.top).toBeLessThanOrEqual(position.max + 1);
+  await page.evaluate(() => (window as any).scrollPanel.destroy());
 });

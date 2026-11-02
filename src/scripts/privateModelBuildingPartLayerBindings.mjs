@@ -1,3 +1,6 @@
+import { V27_SOURCE_SHA256, V27_SOURCE_SCENE_COUNT, V27_BUILDING_PARTS, V27_BUILDING_SCENES } from './privateModelC80R2V27LayerSourceProfile.mjs';
+import { V29_SOURCE_SHA256, V29_SOURCE_SCENE_COUNT, V29_BUILDING_PARTS, V29_BUILDING_SCENES } from './privateModelC80R2V29LayerSourceProfile.mjs';
+
 /**
  * High 1: opt-in, read-only building-part bindings for
  * privateModelLayerScopedPresentationBridge.ts.
@@ -257,11 +260,20 @@ const matchesSourceName = (actual, expected) => {
 };
 
 const v26SourcePart = (json, sha, sceneIndex, floor, source, associations, mesh) => {
-  const scene = v26Scenes[sceneIndex];
-  const part = v26Parts[source.index];
+  const version = sha === V29_SOURCE_SHA256 ? 'V29'
+    : sha === V27_SOURCE_SHA256 ? 'V27' : sha === V26_SHA ? 'V26' : null;
+  if (!version) return null;
+  const sceneProfile = version === 'V29' ? V29_BUILDING_SCENES
+    : version === 'V27' ? V27_BUILDING_SCENES : v26Scenes;
+  const partProfile = version === 'V29' ? V29_BUILDING_PARTS
+    : version === 'V27' ? V27_BUILDING_PARTS : v26Parts;
+  const count = version === 'V29' ? V29_SOURCE_SCENE_COUNT
+    : version === 'V27' ? V27_SOURCE_SCENE_COUNT : 176;
+  const scene = sceneProfile[sceneIndex];
+  const part = partProfile[source.index];
   const def = json.nodes[source.index];
-  if (sha !== V26_SHA || !scene || !part || scene.floor !== floor ||
-      json.scenes.length !== 176 || json.scenes[sceneIndex]?.name !== scene.name ||
+  if (!scene || !part || scene.floor !== floor ||
+      json.scenes.length !== count || json.scenes[sceneIndex]?.name !== scene.name ||
       def?.mesh !== part.mesh || def?.name !== part.name ||
       !scene.paths[source.index]?.some(path => samePath(path, source.path)) ||
       !matchesSourceName(source.sourceObject.name, part.name)) return null;
@@ -376,10 +388,10 @@ export function resolveBuildingPartLayerBindings(input) {
       sourceNodePath: [...source.path], sceneIndex,
       sourceSha256: String(loadedSourceSha256).toLowerCase(),
       sourceLinks: hierarchy.nodes[sourceNodeIndex]?.extras?.sourceLinks ?? [],
-      objectKey: scope?.objectKey ?? `V26:${sceneIndex}:${sourceNodeIndex}`,
+      objectKey: scope?.objectKey ?? `${String(loadedSourceSha256).toLowerCase() === V29_SOURCE_SHA256 ? 'V29' : String(loadedSourceSha256).toLowerCase() === V27_SOURCE_SHA256 ? 'V27' : 'V26'}:${sceneIndex}:${sourceNodeIndex}`,
       storeyScope: scope?.storeyScope ?? floor,
       apartmentScope: scope?.apartmentScope ?? 'D',
-      bindingKind: profile ? 'EXACT_V26_SOURCE_PROFILE' : 'EXPLICIT_SOURCE_METADATA',
+      bindingKind: profile ? (String(loadedSourceSha256).toLowerCase() === V29_SOURCE_SHA256 ? 'EXACT_V29_SOURCE_PROFILE' : String(loadedSourceSha256).toLowerCase() === V27_SOURCE_SHA256 ? 'EXACT_V27_SOURCE_PROFILE' : 'EXACT_V26_SOURCE_PROFILE') : 'EXPLICIT_SOURCE_METADATA',
     });
   });
   return {
@@ -394,3 +406,4 @@ export function resolveBuildingPartLayerBindings(input) {
     excluded,
   };
 }
+

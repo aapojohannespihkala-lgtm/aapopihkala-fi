@@ -333,6 +333,11 @@ export const setViewerLayerNodeVisible = (
   nodeId: ViewerLayerNodeId,
   visible: boolean,
 ): ViewerLayerControlsState => {
+  // Runtime callers can supply an unrecognized ID despite the static type.
+  // Do not let childVisibilityKey's final branch toggle the 1974 IV section.
+  if (!Object.prototype.hasOwnProperty.call(viewerLayerNodeCapabilities, nodeId)) {
+    return current;
+  }
   if (isTechnicalNode(nodeId)) {
     return mergeViewerLayerControlsState(current, { [technicalVisibilityKeys[nodeId]]: visible });
   }
@@ -362,6 +367,10 @@ export const isViewerLayerNodeEffectivelyVisible = (
   current: ViewerLayerControlsState,
   nodeId: ViewerLayerNodeId,
 ): boolean => {
+  // Unknown runtime IDs must not inherit the 1974 IV-section fallback.
+  if (!Object.prototype.hasOwnProperty.call(viewerLayerNodeCapabilities, nodeId)) {
+    return false;
+  }
   if (isTechnicalNode(nodeId)) return current.technicalVisible && current[technicalVisibilityKeys[nodeId]];
   if (nodeId === 'roof') return current.roofVisible;
   if (nodeId === 'locus') return current.locusVisible;
@@ -456,6 +465,11 @@ export const getViewerLayerEffectiveMode = (
   modes: ViewerLayerModeMap,
   nodeId: ViewerLayerNodeId,
 ): ViewerLayerVisibilityMode => {
+  // Runtime source IDs are not guaranteed to belong to the declared hierarchy.
+  // Reject an unknown ID before dereferencing its missing parent capability.
+  if (!Object.prototype.hasOwnProperty.call(viewerLayerNodeCapabilities, nodeId)) {
+    return 'hidden';
+  }
   const ownMode = modes[nodeId];
   // External/persisted mode maps can be incomplete or malformed at runtime.
   // Never reinterpret an unrecognized state as visible in a scoped viewer.
@@ -490,7 +504,10 @@ export const setViewerLayerMode = (
   modes: ViewerLayerModeMap,
   nodeId: ViewerLayerNodeId,
   mode: ViewerLayerVisibilityMode,
-): ViewerLayerModeMap => ({ ...modes, [nodeId]: mode });
+): ViewerLayerModeMap =>
+  Object.prototype.hasOwnProperty.call(viewerLayerNodeCapabilities, nodeId)
+    ? { ...modes, [nodeId]: mode }
+    : modes;
 
 /** Ordered fail-closed decision: scope > storey > presentation layer. */
 export const resolveScopedViewerLayerMode = (

@@ -1,4 +1,4 @@
-import type { Mesh, Object3D } from 'three';
+import type { Line, Mesh, Object3D, Points } from 'three';
 import {
   createViewerLayerModeMap,
   getViewerLayerEffectiveMode,
@@ -39,7 +39,7 @@ export type ViewerScopedLayerFrame = {
   gates: ReadonlyMap<Object3D, ViewerScopedLayerGate>;
   ghostOpacity?: number;
   preferEdges?: boolean;
-  isSelected?: (mesh: Mesh) => boolean;
+  isSelected?: (object: Mesh | Line | Points) => boolean;
 };
 
 const isLayerNodeId = (id: string): id is ViewerLayerNodeId =>

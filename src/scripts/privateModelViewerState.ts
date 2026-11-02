@@ -1,4 +1,4 @@
-import type { EdgeMode } from './privateModelLayerState';
+import { isViewerEdgeMode, type EdgeMode } from './privateModelLayerState';
 import {
   createViewerLayerControlsState,
   mergeViewerLayerControlsState,
@@ -199,6 +199,10 @@ export const patchViewerPresentationStyle = (
   presentation: {
     ...current.presentation,
     ...next,
+    // Never replace a valid presentation mode with malformed runtime state.
+    edgeMode: isViewerEdgeMode(next.edgeMode)
+      ? next.edgeMode
+      : current.presentation.edgeMode,
   },
 });
 
@@ -223,8 +227,18 @@ export const viewerLayerPresetScopes: Record<ViewerLayerPreset, ViewerLayerPrese
   infra: { area: 'INFRA', floor: 'BOTH' },
 };
 
+/** Validate runtime preset IDs before indexing definitions or computing defaults. */
+const isViewerLayerPreset = (preset: unknown): preset is ViewerLayerPreset =>
+  typeof preset === 'string' &&
+  Object.prototype.hasOwnProperty.call(viewerLayerPresetScopes, preset);
+
 const legacyToLayerPreset = (preset: ViewerResearchPreset): ViewerLayerPreset =>
-  preset === 'drainage' || preset === 'electrical' ? 'whole-building' : preset;
+  isViewerLayerPreset(preset) ? preset : 'whole-building';
+
+const selectedLayerPreset = (current: ViewerInteractionState): ViewerLayerPreset =>
+  isViewerLayerPreset(current.layerPresetState?.selected)
+    ? current.layerPresetState!.selected
+    : legacyToLayerPreset(current.researchPreset);
 
 const defaultLayerModesForPreset = (preset: ViewerLayerPreset): ViewerLayerModeMap => {
   const modes = createViewerLayerModeMap(viewerResearchPresetDefinitions[preset].layers);
@@ -261,19 +275,23 @@ const createLayerPresetState = (preset: ViewerLayerPreset): ViewerLayerPresetSta
 export const applyViewerLayerPreset = (
   current: ViewerInteractionState,
   preset: ViewerLayerPreset,
-): ViewerInteractionState => ({
-  ...current,
-  researchPreset: preset,
-  layers: { ...viewerResearchPresetDefinitions[preset].layers },
-  layerPresetState: createLayerPresetState(preset),
-});
+): ViewerInteractionState => {
+  const selected = isViewerLayerPreset(preset)
+    ? preset : legacyToLayerPreset(current.researchPreset);
+  return {
+    ...current,
+    researchPreset: selected,
+    layers: { ...viewerResearchPresetDefinitions[selected].layers },
+    layerPresetState: createLayerPresetState(selected),
+  };
+};
 
 export const resetViewerLayerPresetToDefaults = (
   current: ViewerInteractionState,
 ): ViewerInteractionState =>
   applyViewerLayerPreset(
     current,
-    current.layerPresetState?.selected ?? legacyToLayerPreset(current.researchPreset),
+    selectedLayerPreset(current),
   );
 
 /** An explicit mode updates the legacy boolean where safe, not scene membership. */
@@ -282,8 +300,8 @@ export const setViewerInteractionLayerMode = (
   nodeId: ViewerLayerNodeId,
   mode: ViewerLayerVisibilityMode,
 ): ViewerInteractionState => {
-  const active = current.layerPresetState ??
-    createLayerPresetState(legacyToLayerPreset(current.researchPreset));
+  const selected = selectedLayerPreset(current);
+  const active = current.layerPresetState ?? createLayerPresetState(selected);
   // Runtime inputs may be malformed even when TypeScript callers are typed.
   // Fail closed in BOTH semantic modes and legacy visibility booleans.
   const safeMode: ViewerLayerVisibilityMode =
@@ -298,8 +316,8 @@ export const setViewerInteractionLayerMode = (
     ...current,
     layers,
     layerPresetState: {
-      selected: active.selected,
-      customized: hasLayerPresetCustomization(active.selected, modes, layers),
+      selected,
+      customized: hasLayerPresetCustomization(selected, modes, layers),
       modes,
     },
   };
@@ -339,6 +357,7 @@ export const patchViewerLayerControlsWithPresets = (
   const merged = mergeViewerLayerControlsState(current.layers, next);
   const active = current.layerPresetState;
   if (!active) return { ...current, layers: merged };
+  const selected = selectedLayerPreset(current);
   const modes = { ...active.modes };
   for (const id of Object.keys(legacyVisibilityFields) as ViewerLayerNodeId[]) {
     const key = legacyVisibilityFields[id];
@@ -349,8 +368,8 @@ export const patchViewerLayerControlsWithPresets = (
     ...current,
     layers: merged,
     layerPresetState: {
-      selected: active.selected,
-      customized: hasLayerPresetCustomization(active.selected, modes, merged),
+      selected,
+      customized: hasLayerPresetCustomization(selected, modes, merged),
       modes,
     },
   };

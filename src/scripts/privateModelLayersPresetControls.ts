@@ -93,7 +93,8 @@ export const viewerLayerPresetChoices = [
 const isLayerId = (id: string): id is ViewerLayerNodeId =>
   Object.prototype.hasOwnProperty.call(viewerLayerNodeCapabilities, id);
 
-const isPreset = (id: string): id is ViewerLayerPreset =>
+const isPreset = (id: unknown): id is ViewerLayerPreset =>
+  typeof id === 'string' &&
   viewerLayerPresetChoices.some(([preset]) => preset === id);
 
 export const buildViewerLayerPanelModel = (
@@ -103,11 +104,15 @@ export const buildViewerLayerPanelModel = (
   // No extra layer is inferred from a preset, scene name, G2 status or appearance.
   const available = new Set(availableNodeIds.filter(isLayerId));
   const modes = state.layerPresetState?.modes ?? createViewerLayerModeMap(state.layers);
+  // Persisted state is runtime data, not a trusted TypeScript union. A bad
+  // saved ID must not produce an empty select with "Oletusasetukset" beside it.
+  const persistedPreset = state.layerPresetState?.selected;
+  const selectedPreset = isPreset(persistedPreset) ? persistedPreset
+    : isPreset(state.researchPreset) ? state.researchPreset : null;
 
   return {
-    selectedPreset: state.layerPresetState?.selected ??
-      (isPreset(state.researchPreset) ? state.researchPreset : null),
-    customized: state.layerPresetState?.customized ?? false,
+    selectedPreset,
+    customized: selectedPreset !== null && (state.layerPresetState?.customized ?? false),
     groups: layerGroups.map((group) => ({
       label: group.label,
       items: group.items.filter(([id]) => available.has(id)).map(([id, label]) => {
@@ -125,10 +130,15 @@ export const buildViewerLayerPanelModel = (
             }
             return false;
           });
+        // The renderer treats missing/malformed modes as hidden. A leaf
+        // select must show the same safe state, never a blank option.
+        const ownMode = modes[id];
+        const safeOwnMode = ownMode === 'visible' || ownMode === 'ghost'
+          ? ownMode : 'hidden';
         return {
           id,
           label,
-          mode: descendants.length ? getViewerLayerParentMode(modes, id, descendants) : modes[id],
+          mode: descendants.length ? getViewerLayerParentMode(modes, id, descendants) : safeOwnMode,
           effectiveMode: getViewerLayerEffectiveMode(modes, id),
         };
       }),
@@ -257,6 +267,18 @@ export const mountViewerLayerPresetPanel = (
       && root.contains(focused) && focused.hasAttribute('data-layer-mode-control')
       ? focused.closest('[data-layer-node]')?.getAttribute('data-layer-node')
       : null;
+    // Rebuilding the long list briefly collapses its height. On mobile this
+    // clamps an ancestor's scrollTop to zero, even if focus is restored later.
+    // Keep only real scroll containers; do not touch page/window scrolling.
+    const scrollers: Array<{ element: HTMLElement; top: number }> = [];
+    for (let ancestor = groups.parentElement; ancestor && ancestor !== doc.body;
+      ancestor = ancestor.parentElement) {
+      const overflowY = doc.defaultView?.getComputedStyle(ancestor).overflowY;
+      if (/^(auto|scroll|overlay)$/.test(overflowY ?? '') &&
+          ancestor.scrollHeight > ancestor.clientHeight) {
+        scrollers.push({ element: ancestor, top: ancestor.scrollTop });
+      }
+    }
     presetSelect.value = model.selectedPreset ?? '';
     customizedText.textContent = model.customized
       ? 'Mukautettu'
@@ -346,6 +368,8 @@ export const mountViewerLayerPresetPanel = (
         ?.querySelector<HTMLSelectElement>('select[data-layer-mode-control]');
       restored?.focus({ preventScroll: true });
     }
+    // The browser naturally clamps this if fewer source-verified rows remain.
+    for (const { element, top } of scrollers) element.scrollTop = top;
   };
 
   update(state, availableNodeIds);

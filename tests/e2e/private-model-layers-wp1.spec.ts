@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { createViewerLayerStateForModelLoad, mergeViewerLayerState, type EdgeMode } from '../../src/scripts/privateModelLayerState';
 import {
   createViewerLayerModeMap,
   getViewerLayerEffectiveMode,
@@ -12,11 +13,42 @@ import {
   applyViewerLayerPreset,
   createViewerInteractionState,
   patchViewerLayerControls,
+  patchViewerPresentationStyle,
   resetViewerLayerPresetToDefaults,
   setViewerCameraView,
   setViewerInteractionLayerMode,
   viewerLayerPresetScopes,
 } from '../../src/scripts/privateModelViewerState';
+
+test('invalid runtime edge modes preserve valid legacy and viewer presentation state', () => {
+  const legacy = createViewerLayerStateForModelLoad();
+  const viewer = createViewerInteractionState('d-2f');
+  const invalidModes: unknown[] = ['unsupported', '', undefined, null, 0, { edgeMode: 'none' }];
+  for (const invalid of invalidModes) {
+    const value = invalid as EdgeMode;
+    const merged = mergeViewerLayerState(legacy, { edgeMode: value });
+    const patched = patchViewerPresentationStyle(viewer, { edgeMode: value });
+    expect(merged.edgeMode).toBe('visible');
+    expect(patched.presentation.edgeMode).toBe('visible');
+    expect(patched.cameraView).toBe(viewer.cameraView);
+    expect(patched.layers).toEqual(viewer.layers);
+  }
+  for (const valid of ['none', 'object', 'unified', 'visible'] as const) {
+    expect(mergeViewerLayerState(legacy, { edgeMode: valid }).edgeMode).toBe(valid);
+    expect(patchViewerPresentationStyle(viewer, { edgeMode: valid }).presentation.edgeMode).toBe(valid);
+  }
+  // A malformed patch must also preserve explicitly customized source state.
+  const customLegacy = mergeViewerLayerState(legacy, { edgeMode: 'none' });
+  const customViewer = patchViewerPresentationStyle(viewer, { edgeMode: 'object' });
+  expect(mergeViewerLayerState(customLegacy, {
+    edgeMode: 'unsupported' as EdgeMode,
+  }).edgeMode).toBe('none');
+  expect(patchViewerPresentationStyle(customViewer, {
+    edgeMode: undefined,
+  }).presentation.edgeMode).toBe('object');
+  expect(legacy.edgeMode).toBe('visible');
+  expect(viewer.presentation.edgeMode).toBe('visible');
+});
 
 test('Layers WP1 presets preserve camera while selecting explicit area and floor', () => {
   const customCamera = setViewerCameraView(createViewerInteractionState(), 'elev-neg-y');
@@ -113,6 +145,29 @@ test('Layers WP1 explicit scope/storey gate beats even a visible or ghost layer'
   expect(getViewerLayerEffectiveMode(ghostWalls, 'architecture-walls-exterior')).toBe('ghost');
   expect(getViewerLayerEffectiveMode(map, 'architecture-walls-exterior')).toBe('visible');
   expect(Object.keys(viewerLayerNodeCapabilities).length).toBe(23);
+});
+
+test('Layers WP1 unknown runtime IDs cannot mutate or crash semantic visibility', () => {
+  const modes = createViewerLayerModeMap(createViewerInteractionState().layers);
+  const validVisible = getViewerLayerEffectiveMode(modes, 'architecture-doors');
+  expect(validVisible).toBe('visible');
+
+  for (const id of ['rogue-layer', 'technical-unknown', '__proto__', 'constructor']) {
+    const nodeId = id as Parameters<typeof setViewerLayerMode>[1];
+    // Even a source-supplied visible/ghost map entry cannot supply a missing capability.
+    for (const mode of ['visible', 'ghost'] as const) {
+      const malformed = { ...modes, [id]: mode } as typeof modes;
+      expect(getViewerLayerEffectiveMode(malformed, nodeId)).toBe('hidden');
+      expect(setViewerLayerMode(modes, nodeId, mode)).toBe(modes);
+      expect(Object.keys(modes)).not.toContain(id);
+    }
+  }
+
+  // Valid layer controls and their hierarchical visibility still work.
+  const ghostDoors = setViewerLayerMode(modes, 'architecture-doors', 'ghost');
+  expect(ghostDoors).not.toBe(modes);
+  expect(getViewerLayerEffectiveMode(ghostDoors, 'architecture-doors')).toBe('ghost');
+  expect(getViewerLayerEffectiveMode(modes, 'architecture-doors')).toBe('visible');
 });
 
 test('Layers WP1 select a different preset restores that presets defaults, not camera', () => {

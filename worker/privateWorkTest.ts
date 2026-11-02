@@ -3919,6 +3919,17 @@ const AUTO_YLISRINNE_D_C80R2_V26_STAIR_RAIL_LANDING_END_PLYWOOD_WORK_TEST_HOST_H
   expectedSha256: 'cff2dbead53b7836747e10ef359637114ff723690ec380e313cec817e4f71d31',
 } as const satisfies PrivateWorkTestCandidate;
 
+
+// Source-verified terrace successor. WORK_TEST / HOST_HOLD, never as-built.
+const C80R2_V27_D_TERRACE_165MM_WORK_TEST_CANDIDATE = {
+  id: 'c80r2-v27-d-terrace-165mm-20261102',
+  label: 'D C80R2 V27 - terassi 165 mm, D1F/BOTH - WORK_TEST',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/c80r2-v27-d-terrace-165mm-20261102.glb`,
+  objectKey: 'work-test/c80r2-v27-d-terrace-165mm-20261102.glb',
+  expectedSize: 26768768,
+  expectedSha256: '7dfc4842781e0c26ba85a46e38b322925830310b68a5054fa634baa5d2f7ce60',
+} as const satisfies PrivateWorkTestCandidate;
+
 // Auto-registered 2026-11-02 from Drive queue file 1sTMZPyzHlBSd0gFmPZbG1jiFQIJ6i1Yq
 // by auto-publish-work-test. WORK_TEST, never as-built.
 const AUTO_YLISRINNE_D_C80R2_V26_AEG_HK654200FB_OWNER_APPROVED_VIEWER_FLOOR_SCENES_WORK_TEST_HOST_HOLD_20261102_1STMZPYZ_CANDIDATE = {
@@ -3931,6 +3942,7 @@ const AUTO_YLISRINNE_D_C80R2_V26_AEG_HK654200FB_OWNER_APPROVED_VIEWER_FLOOR_SCEN
 } as const satisfies PrivateWorkTestCandidate;
 
 const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
+  C80R2_V27_D_TERRACE_165MM_WORK_TEST_CANDIDATE,
   D_C80R2_UNIFIED64_C018_WORK_TEST_CANDIDATE,
   D_C80_HI20_UNIFIED52_BOTH_WORK_TEST_CANDIDATE,
   D_C80R2_108SCENE_K17_MAT01_WORK_TEST_CANDIDATE,

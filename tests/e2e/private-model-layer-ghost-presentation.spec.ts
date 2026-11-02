@@ -81,6 +81,50 @@ test('scope and hidden take priority; original hidden descendants stay hidden', 
   adapter.dispose();
 });
 
+test('ghost ignores hidden Group descendants and preserves visible sibling', () => {
+  const root = new Group();
+  const visible = makeMesh();
+  const visibleMaterial = visible.material;
+  const visibleRaycast = visible.raycast;
+  const hiddenGroup = new Group();
+  hiddenGroup.visible = false;
+  const hiddenMaterial = new MeshBasicMaterial();
+  let hiddenClones = 0;
+  hiddenMaterial.clone = () => {
+    hiddenClones++;
+    throw new Error('invisible material must not be cloned');
+  };
+  const hiddenMesh = makeMesh(hiddenMaterial);
+  const hiddenRaycast = hiddenMesh.raycast;
+  hiddenGroup.add(hiddenMesh);
+  root.add(visible, hiddenGroup);
+  const adapter = createViewerLayerGhostPresentation(root);
+
+  // Neither the selection callback nor material cloning should see an object
+  // under an invisible ancestor, even when the leaf's own visible flag is true.
+  expect(adapter.apply('ghost', {
+    isSelected: object => {
+      if (object === hiddenMesh) throw new Error('invisible object selected');
+      return false;
+    },
+  })).toBe('ghost');
+  expect(root.visible).toBe(true);
+  expect(visible.material).not.toBe(visibleMaterial);
+  expect(visible.raycast).not.toBe(visibleRaycast);
+  expect(hiddenGroup.visible).toBe(false);
+  expect(hiddenMesh.material).toBe(hiddenMaterial);
+  expect(hiddenMesh.raycast).toBe(hiddenRaycast);
+
+  expect(adapter.apply('ghost')).toBe('ghost');
+  expect(hiddenClones).toBe(0);
+  expect(hiddenMesh.material).toBe(hiddenMaterial);
+  adapter.apply('visible');
+  expect(visible.material).toBe(visibleMaterial);
+  expect(visible.raycast).toBe(visibleRaycast);
+  expect(hiddenGroup.visible).toBe(false);
+  adapter.dispose();
+});
+
 test('one scene root never mutates another scene even with shared source material', () => {
   const source = new MeshBasicMaterial({ color: 0x556677 });
   const scene1 = new Group();
@@ -117,6 +161,69 @@ test('selected material and picking are preserved, while other meshes ghost', ()
   expect(selected.material).toBe(selectedMaterial);
   expect(selected.raycast).toBe(selectedRaycast);
   expect(other.material).not.toBe(otherMaterial);
+  adapter.dispose();
+});
+
+test('selected technical line and point retain source appearance and picking when peers ghost', () => {
+  const positions = new BufferGeometry().setFromPoints([
+    new Vector3(0, 0, 0), new Vector3(1, 0, 0),
+  ]);
+  const selectedLineMaterial = new LineBasicMaterial({ color: 0x225577 });
+  const selectedPointMaterial = new PointsMaterial({ color: 0x447799, size: 0.05 });
+  const peerMaterial = new LineBasicMaterial({ color: 0x8899aa });
+  const selectedLine = new LineSegments(positions, selectedLineMaterial);
+  const selectedPoint = new Points(positions, selectedPointMaterial);
+  const peer = new LineSegments(positions, peerMaterial);
+  const lineRaycast = selectedLine.raycast;
+  const pointRaycast = selectedPoint.raycast;
+  const peerRaycast = peer.raycast;
+  const root = new Group();
+  root.add(selectedLine, selectedPoint, peer);
+  const adapter = createViewerLayerGhostPresentation(root);
+
+  adapter.apply('ghost', {
+    opacity: 0.16,
+    isSelected: object => object === selectedLine || object === selectedPoint,
+  });
+  expect(selectedLine.material).toBe(selectedLineMaterial);
+  expect(selectedPoint.material).toBe(selectedPointMaterial);
+  expect(selectedLine.raycast).toBe(lineRaycast);
+  expect(selectedPoint.raycast).toBe(pointRaycast);
+  expect(selectedLineMaterial.opacity).toBe(1);
+  expect(selectedPointMaterial.opacity).toBe(1);
+  expect(peer.material).not.toBe(peerMaterial);
+  expect((peer.material as LineBasicMaterial).opacity).toBeCloseTo(0.16);
+  expect(peer.raycast).not.toBe(peerRaycast);
+
+  // Re-applying after a selection change must restore the previously ghosted
+  // source without letting the old selection retain full strength.
+  adapter.apply('ghost', {
+    opacity: 0.16,
+    isSelected: object => object === peer,
+  });
+  expect(peer.material).toBe(peerMaterial);
+  expect(peer.raycast).toBe(peerRaycast);
+  expect(selectedLine.material).not.toBe(selectedLineMaterial);
+  expect(selectedPoint.material).not.toBe(selectedPointMaterial);
+
+  adapter.apply('visible');
+  expect(peer.material).toBe(peerMaterial);
+  expect(peer.raycast).toBe(peerRaycast);
+  expect(selectedLine.material).toBe(selectedLineMaterial);
+  expect(selectedPoint.material).toBe(selectedPointMaterial);
+
+  // Scope denial must override even a selected source object. Hidden routes
+  // cannot remain ghosted or pickable through a stale selection.
+  expect(adapter.apply('ghost', {
+    scopeAllowed: false,
+    isSelected: object => object === selectedLine || object === selectedPoint,
+  })).toBe('hidden');
+  expect(root.visible).toBe(false);
+  expect(selectedLine.material).toBe(selectedLineMaterial);
+  expect(selectedPoint.material).toBe(selectedPointMaterial);
+  expect(peer.material).toBe(peerMaterial);
+  expect(adapter.apply('visible', { scopeAllowed: true })).toBe('visible');
+  expect(root.visible).toBe(true);
   adapter.dispose();
 });
 
@@ -229,6 +336,31 @@ test('source LineSegments and Points are ghosted reversibly without changing sib
   expect(markers.raycast).toBe(sourcePointRaycast);
   adapter.dispose();
   expect(root.visible).toBe(true);
+});
+
+test('selected technical line callback failure fails closed without mutating source material', () => {
+  const positions = new BufferGeometry().setFromPoints([
+    new Vector3(0, 0, 0), new Vector3(1, 0, 0),
+  ]);
+  const source = new LineBasicMaterial({ color: 0x123456 });
+  const route = new LineSegments(positions, source);
+  const raycast = route.raycast;
+  const root = new Group();
+  root.add(route);
+  const adapter = createViewerLayerGhostPresentation(root);
+
+  expect(() => adapter.apply('ghost', {
+    isSelected: object => {
+      if (object === route) throw new Error('technical selection failed');
+      return false;
+    },
+  })).toThrow('technical selection failed');
+  expect(root.visible).toBe(false);
+  expect(route.material).toBe(source);
+  expect(route.raycast).toBe(raycast);
+  expect(adapter.apply('visible', { scopeAllowed: true })).toBe('visible');
+  expect(root.visible).toBe(true);
+  adapter.dispose();
 });
 
 test('point clone failure rolls back an earlier ghost line and hides the source root', () => {
