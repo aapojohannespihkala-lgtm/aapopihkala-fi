@@ -202,11 +202,15 @@ test('Layers frame rejects a replaced scene or source without changing siblings'
 for (const model of [
   { version: 'V26', sourceEnv: 'YLIS_LAYERS_GLB', productionEnv: 'YLIS_LAYERS_PRODUCTION',
     candidateId: 'auto-ylisrinne-d-c80r2-v26-stair-rail-landing-end-plywood-work-test-host-hold-20261102-1jglt7no',
-    sha, bytes: 24205548, firstFloor: '174', bothFloors: '175' },
+    sha, bytes: 24205548, firstFloor: '174', secondFloor: '162', bothFloors: '175' },
   { version: 'V29', sourceEnv: 'YLIS_LAYERS_V29_GLB', productionEnv: 'YLIS_LAYERS_V29_PRODUCTION',
     candidateId: 'auto-ylisrinne-d-c80r2-v29-west-full-facade-plinth-work-test-host-hold-20261102-1vfk15ke',
     sha: '5325da8472055379f30be59e22be3b6237093e59e6a21999471a2c2b28c784f6',
-    bytes: 26840880, firstFloor: '180', bothFloors: '181' },
+    bytes: 26840880, firstFloor: '180', secondFloor: '162', bothFloors: '181' },
+  { version: 'V35', sourceEnv: 'YLIS_LAYERS_V35_GLB', productionEnv: 'YLIS_LAYERS_V35_PRODUCTION',
+    candidateId: 'auto-ylisrinne-d-c80r2-v35-2f-wc-yellow-tiles-photo-work-test-host-hold-20261102-11iiyoiu',
+    sha: 'f81e0915711b798ec4a02472202a3372a4a77057cd8a150cc17f89bef3cd4789',
+    bytes: 30023592, firstFloor: '194', secondFloor: '197', bothFloors: '198' },
 ] as const) {
 test(`exact ${model.version} viewer: D upstairs, ghost walls, supported IV, reset, floor changes and mobile`, async ({ page }, info) => {
   const { sha, candidateId } = model;
@@ -276,7 +280,7 @@ test(`exact ${model.version} viewer: D upstairs, ghost walls, supported IV, rese
   await expect(preset).toBeVisible();
   await preset.selectOption('d-2f');
   await expect(canvas).toHaveAttribute('data-main-view-floor', '2F');
-  await expect(canvas).toHaveAttribute('data-layers-source-scene-index', '162');
+  await expect(canvas).toHaveAttribute('data-layers-source-scene-index', model.secondFloor);
   // An explicit camera action frames the selected floor before testing that
   // Layers edits themselves preserve it. Do not inherit the site's wide fit.
   await page.locator('#layers-button').click();
@@ -313,7 +317,7 @@ test(`exact ${model.version} viewer: D upstairs, ghost walls, supported IV, rese
   await expect(canvas).toHaveAttribute('data-main-view-floor', '2F');
   await expect(page.locator('[data-layer-preset-customized]')).not.toContainText('Mukautettu');
   await expectPreservedCamera();
-  for (const [value, floor, index] of [['d-1f', '1F', model.firstFloor], ['d-apartment', 'BOTH', model.bothFloors], ['d-2f', '2F', '162']]) {
+  for (const [value, floor, index] of [['d-1f', '1F', model.firstFloor], ['d-apartment', 'BOTH', model.bothFloors], ['d-2f', '2F', model.secondFloor]]) {
     await preset.selectOption(value);
     await expect(canvas).toHaveAttribute('data-main-view-floor', floor);
     await expect(canvas).toHaveAttribute('data-layers-source-scene-index', index);
@@ -364,6 +368,6 @@ test(`exact ${model.version} viewer: D upstairs, ghost walls, supported IV, rese
   });
   expect(webgl).toEqual({ available: true, lost: false, error: 0 });
   expect(errors).toEqual([]);
-  console.log(JSON.stringify({ source: sha, scene: 162, stages: ['ghost', 'IV-visible', 'reset', '1F', 'BOTH', '2F', 'mobile'], webgl, humanReview: 'NOT_RUN', production }));
+  console.log(JSON.stringify({ source: sha, scene: +model.secondFloor, reviewUrl: page.url(), stages: ['ghost', 'IV-visible', 'reset', '1F', 'BOTH', '2F', 'mobile'], webgl, humanReview: 'NOT_RUN', production }));
 });
 }
