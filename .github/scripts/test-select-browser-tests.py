@@ -145,6 +145,13 @@ class SelectionTests(unittest.TestCase):
         self.assertEqual(selected(model), [runtime])
         self.assertEqual(selected(viewer), [runtime, wiring])
         self.assertEqual(selected(model, viewer, model), [runtime, wiring])
+        # Exact-source profile + viewer wiring changes must union without
+        # repeating the architectural runtime regression.
+        profile = 'src/scripts/privateModelBuildingPartLayerBindings.mjs'
+        layers = 'tests/e2e/private-model-layers-runtime.spec.ts'
+        self.assertEqual(selected(profile, model, viewer, profile),
+                         [runtime, wiring, layers])
+
         self.assertEqual(selected('src/scripts/unrelated-architectural-module.ts'), [])
 
     def test_layers_runtime_and_loader_state_select_existing_browser_guards(self):
