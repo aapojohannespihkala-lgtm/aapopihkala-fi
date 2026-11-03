@@ -366,3 +366,27 @@ test('desktop layer disclosure reaches 44px without horizontal overflow', async 
   await expect(trigger).toHaveAttribute('aria-expanded', 'true');
   expect(await page.locator('#layers-panel').evaluate(el => el.scrollWidth > el.clientWidth)).toBe(false);
 });
+
+test('Layers visibility legend stays in view while a long tree scrolls', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await mount(page);
+  await expand(page, 'architecture-walls');
+  await expand(page, 'furniture');
+  await expand(page, 'references');
+  await expand(page, 'locus');
+  const panel = page.locator('#layers-panel');
+  const legend = page.locator('[data-layer-preset-panel] .yl-layer-preset-legend');
+  const scrollTop = await panel.evaluate(el => { el.scrollTop = 500; return el.scrollTop; });
+  expect(scrollTop).toBeGreaterThan(100);
+  const panelBox = await panel.boundingBox();
+  const legendBox = await legend.boundingBox();
+  expect(panelBox).not.toBeNull();
+  expect(legendBox).not.toBeNull();
+  expect(legendBox!.y).toBeGreaterThanOrEqual(panelBox!.y - 1);
+  expect(legendBox!.y).toBeLessThanOrEqual(panelBox!.y + 16);
+  await expect(legend).toContainText('Näkyvä');
+  await expect(legend).toContainText('Himmeä');
+  await expect(legend).toContainText('Piilossa');
+  expect(await panel.evaluate(el => el.scrollWidth > el.clientWidth)).toBe(false);
+  expect(await page.evaluate(() => (window as any).layerEvents)).toEqual([]);
+});
