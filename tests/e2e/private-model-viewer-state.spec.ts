@@ -126,6 +126,42 @@ test('VUX-C model load defaults replace prior manual layer state without losing 
   });
 });
 
+test('legacy research presets reject malformed runtime IDs without state loss', () => {
+  const selected = setViewerCameraView(
+    patchViewerLayerControls(createViewerInteractionState('drainage'), {
+      roofOpacity: 0.42, locusVisible: true,
+    }),
+    'elev-neg-x',
+  );
+  const fallback = createViewerInteractionState('whole-building');
+
+  for (const incoming of ['unknown', '__proto__', 'constructor', 'toString', '']) {
+    const invalid = incoming as Parameters<typeof createViewerInteractionState>[0];
+
+    expect(createViewerInteractionState(invalid)).toEqual(fallback);
+    expect(formatViewerResearchPresetLabel(invalid)).toBe('Koko rakennus');
+    expect(formatViewerResearchPresetLabel(invalid, true)).toBe('Koko rakennus · mukautettu');
+
+    // Invalid user actions must not wipe an existing research view or camera.
+    expect(applyViewerResearchPreset(selected, invalid)).toBe(selected);
+
+    // A malformed saved preset must reset safely to a defined default.
+    const persisted = { ...selected, researchPreset: invalid };
+    expect(resetViewerInteractionStateToPresetDefaults(persisted)).toEqual(fallback);
+  }
+
+  // Runtime inputs can be non-strings even though TS only accepts the union.
+  const nonString = null as unknown as Parameters<typeof createViewerInteractionState>[0];
+  expect(createViewerInteractionState(nonString)).toEqual(fallback);
+  expect(formatViewerResearchPresetLabel(nonString)).toBe('Koko rakennus');
+  expect(applyViewerResearchPreset(selected, nonString)).toBe(selected);
+
+  // Legitimate historical research presets and the new Layers camera contract stay intact.
+  expect(createViewerInteractionState('electrical').researchPreset).toBe('electrical');
+  expect(applyViewerResearchPreset(selected, 'd-2f').cameraView).toBe('plan');
+  expect(resetViewerInteractionStateToPresetDefaults(selected).researchPreset).toBe('drainage');
+});
+
 test('VUX-E1A research preset labels retain the original context after customization', () => {
   expect(formatViewerResearchPresetLabel('whole-building')).toBe('Koko rakennus');
   expect(formatViewerResearchPresetLabel('drainage')).toBe('Salaojat');
