@@ -323,3 +323,22 @@ for (const sceneIndex of [197,198]) {
     assert.equal(hl1Only.bindings.length,0);
   });
 }
+
+test('V35 LILLANGEN rejects live association mesh mismatch and spoofed loader name', () => {
+  const badAssociation=v35MirrorFixture(197);
+  const leaf=badAssociation.leaves.get(5819);
+  badAssociation.options.gltf.parser.associations.get(leaf).meshes=9999;
+  const first=resolveBuildingPartLayerBindings(badAssociation.options);
+  assert.equal(first.sourceVerified,true);
+  assert.equal(first.bindings.length,14);
+  assert.equal(first.evidence.some(e => e.sourceNodeIndex===5819),false);
+  assert.equal(first.evidence.filter(e =>
+    e.bindingKind==='EXACT_V35_SOURCE_ONLY_PRODUCT_2015').length,14);
+  const spoofName=v35MirrorFixture(198);
+  spoofName.leaves.get(5827).name='C80_018_MIRROR_LILLANGEN60_2015_LOOKALIKE';
+  const second=resolveBuildingPartLayerBindings(spoofName.options);
+  assert.equal(second.sourceVerified,true);
+  assert.equal(second.bindings.length,14);
+  assert.equal(second.evidence.some(e => e.sourceNodeIndex===5827),false);
+  assert.equal(second.bindings.some(b => b.root===spoofName.leaves.get(5826)),false);
+});
