@@ -153,6 +153,37 @@ test('malformed leaf states fail closed in own and effective presentation', () =
   expect(base.layerPresetState!.modes.roof).toBe('ghost');
 });
 
+test('inherited persisted leaf modes cannot appear selected when the render gate hides them', () => {
+  const base = initial();
+  const defaults = base.layerPresetState!.modes;
+  // Simulate a malformed saved object whose own keys omit these two leaves.
+  // Prior to this guard the panel displayed inherited visible/ghost choices
+  // even though getViewerLayerEffectiveMode correctly returned hidden.
+  const inherited = Object.assign(
+    Object.create({ roof: 'visible', 'architecture-windows': 'ghost' }),
+    Object.fromEntries(Object.entries(defaults).filter(([id]) =>
+      id !== 'roof' && id !== 'architecture-windows')),
+  ) as typeof defaults;
+  const bad = { ...base, layerPresetState: { ...base.layerPresetState!, modes: inherited } };
+  const rows = items(bad, ['roof', 'architecture-windows']);
+  expect(rows.find(item => item.id === 'roof')).toMatchObject({
+    mode: 'hidden', effectiveMode: 'hidden',
+  });
+  expect(rows.find(item => item.id === 'architecture-windows')).toMatchObject({
+    mode: 'hidden', effectiveMode: 'hidden',
+  });
+  expect(Object.hasOwn(inherited, 'roof')).toBe(false);
+  expect(Object.hasOwn(inherited, 'architecture-windows')).toBe(false);
+
+  // Legitimate own choices, including those on null-prototype maps, still work.
+  const explicit = Object.assign(Object.create(null), defaults) as typeof defaults;
+  const good = { ...base, layerPresetState: { ...base.layerPresetState!, modes: explicit } };
+  const restored = items(good, ['roof', 'architecture-windows']);
+  expect(restored.find(item => item.id === 'roof')?.mode).toBe('ghost');
+  expect(restored.find(item => item.id === 'architecture-windows')?.mode).toBe('visible');
+  expect(base.layerPresetState!.modes.roof).toBe('ghost');
+});
+
 test('branch summaries aggregate actual bound effective states rather than abstract parent selections', () => {
   const start = withViewerLayerBranchVisibility(initial());
   const state = setViewerInteractionLayerMode(start, 'architecture-walls', 'hidden');
