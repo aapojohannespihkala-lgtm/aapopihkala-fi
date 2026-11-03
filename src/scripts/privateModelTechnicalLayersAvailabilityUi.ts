@@ -39,7 +39,11 @@ const provenanceFi: Readonly<Record<TechnicalSourceRole, string>> = {
 export const buildTechnicalAvailabilityRows = (
   summaries: readonly TechnicalSystemSummary[],
 ): TechnicalAvailabilityRow[] =>
-  summaries.map(item => {
+  // Runtime inventory may contain malformed entries despite the TS contract.
+  // Omit unsourced rows, but keep each valid sibling's verified status.
+  summaries.filter(item => item !== null && typeof item === 'object' &&
+    !Array.isArray(item) && typeof item.id === 'string' && item.id.length > 0 &&
+    typeof item.labelFi === 'string' && item.labelFi.length > 0).map(item => {
     // Runtime inventory data can be malformed even when static TS types are valid.
     // Only own source-role keys are trusted; inherited names are not provenance.
     const sourceRoleVerified = Object.hasOwn(provenanceFi, item.sourceRole);
