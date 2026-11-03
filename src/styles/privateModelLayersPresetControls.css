@@ -68,8 +68,12 @@
   min-width: 0;
 }
 [data-layer-preset-panel] .yl-layer-preset-legend {
+  position: sticky;
+  top: 0;
+  z-index: 1;
   padding-block: 8px;
   border-block: 1px solid var(--yl-border);
+  background: var(--yl-panel);
   color: var(--yl-muted);
   font-size: 10px;
 }
