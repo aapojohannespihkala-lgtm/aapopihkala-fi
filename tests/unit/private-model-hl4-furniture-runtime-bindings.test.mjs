@@ -152,7 +152,8 @@ const hl1Fixture = sceneIndex => {
       },
     };
     json.meshes[mesh] = { primitives: indices.map(i => originalPrimitives[i]) };
-    const obj = f.sceneRoot.add(new Object3D(name, true));
+    const obj = new Object3D(name, true);
+    f.sceneRoot.add(obj);
     f.objects.set(id, obj);
     f.options.gltf.parser.associations.set(obj, { nodes: id, meshes: mesh });
   }
