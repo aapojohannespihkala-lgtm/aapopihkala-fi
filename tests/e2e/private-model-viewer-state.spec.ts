@@ -126,6 +126,34 @@ test('VUX-C model load defaults replace prior manual layer state without losing 
   });
 });
 
+test('runtime camera choices reject malformed IDs while preserving the active Layers view', () => {
+  const initial = patchViewerLayerControls(createViewerInteractionState('d-2f'), {
+    roofOpacity: 0.45,
+    locusVisible: true,
+  });
+  const active = setViewerCameraView(initial, 'elev-neg-x');
+  const invalid: unknown[] = [
+    'not-a-camera', '__proto__', 'constructor', '', null, undefined, 0, {},
+  ];
+  for (const choice of invalid) {
+    // DOM, URLs and persisted state can bypass the TypeScript camera union.
+    const unchanged = setViewerCameraView(active, choice as Parameters<typeof setViewerCameraView>[1]);
+    expect(unchanged).toBe(active);
+    expect(unchanged.cameraView).toBe('elev-neg-x');
+    expect(unchanged.layers).toEqual(active.layers);
+  }
+  const legitimate = [
+    'free-3d', 'isometric', 'plan', 'top', 'bottom',
+    'elev-pos-y', 'elev-neg-y', 'elev-pos-x', 'elev-neg-x',
+  ] as const;
+  for (const choice of legitimate) {
+    const next = setViewerCameraView(active, choice);
+    expect(next.cameraView).toBe(choice);
+    expect(next.layers).toEqual(active.layers);
+    expect(next.researchPreset).toBe(active.researchPreset);
+  }
+});
+
 test('legacy research presets reject malformed runtime IDs without state loss', () => {
   const selected = setViewerCameraView(
     patchViewerLayerControls(createViewerInteractionState('drainage'), {

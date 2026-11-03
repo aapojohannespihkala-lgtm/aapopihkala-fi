@@ -188,13 +188,21 @@ export const resetViewerInteractionStateToPresetDefaults = (
   current: ViewerInteractionState,
 ): ViewerInteractionState => createViewerInteractionState(current.researchPreset);
 
+// Camera controls can receive URL/DOM/runtime values that TS does not validate.
+// Ignore unknown choices instead of putting an unusable camera ID into state.
+const viewerCameraViewValues: ReadonlySet<string> = new Set<ViewerCameraView>([
+  'free-3d', 'isometric', 'plan', 'top', 'bottom',
+  'elev-pos-y', 'elev-neg-y', 'elev-pos-x', 'elev-neg-x',
+]);
+const isViewerCameraView = (value: unknown): value is ViewerCameraView =>
+  typeof value === 'string' && viewerCameraViewValues.has(value);
+
 export const setViewerCameraView = (
   current: ViewerInteractionState,
   cameraView: ViewerCameraView,
-): ViewerInteractionState => ({
-  ...current,
-  cameraView,
-});
+): ViewerInteractionState => isViewerCameraView(cameraView)
+  ? { ...current, cameraView }
+  : current;
 
 export const patchViewerLayerControls = (
   current: ViewerInteractionState,
