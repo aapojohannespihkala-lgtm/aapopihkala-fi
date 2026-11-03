@@ -65,6 +65,13 @@ for file in "$@"; do
       # Changes to exact-source building/furniture profiles must recheck the
       # existing Layers runtime and architectural representation contracts.
       add private-model-layers-runtime private-model-architectural-layer-runtime ;;
+    src/scripts/privateModelArchitecturalLayerRuntime.ts)
+      # Semantic membership and parent visibility drive architectural Layers.
+      add private-model-architectural-layer-runtime ;;
+    src/scripts/privateModelArchitecturalLayersRuntime.ts)
+      # The installed legacy tree adapter must retain its viewer wiring and
+      # semantic architecture checks when its presentation code changes.
+      add private-model-architectural-layer-runtime private-model-architectural-layer-wiring ;;
     src/scripts/privateModelLayersRuntime.ts)
       # Runtime changes must recheck the existing scoped Layers presentation contract.
       add private-model-layers-wp3-scoped-runtime ;;
