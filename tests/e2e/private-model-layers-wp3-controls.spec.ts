@@ -387,6 +387,13 @@ test('Layers visibility legend stays in view while a long tree scrolls', async (
   await expect(legend).toContainText('Näkyvä');
   await expect(legend).toContainText('Himmeä');
   await expect(legend).toContainText('Piilossa');
+  const target = modeButton(page, 'technical-electrical', 'visible');
+  await target.evaluate(el => el.scrollIntoView({ block: 'start' }));
+  const targetBox = await target.boundingBox();
+  const stickyBox = await legend.boundingBox();
+  expect(targetBox).not.toBeNull();
+  expect(stickyBox).not.toBeNull();
+  expect(targetBox!.y).toBeGreaterThanOrEqual(stickyBox!.y + stickyBox!.height - 1);
   expect(await panel.evaluate(el => el.scrollWidth > el.clientWidth)).toBe(false);
   expect(await page.evaluate(() => (window as any).layerEvents)).toEqual([]);
 });
