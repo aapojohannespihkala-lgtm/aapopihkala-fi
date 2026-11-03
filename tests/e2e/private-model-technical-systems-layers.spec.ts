@@ -167,6 +167,42 @@ test('V26 source mesh, scene-root membership, parent, name and sourceLinks misma
   expect(createTechnicalSystemLayerInventory(badLinks.context).bridgeBindings).toHaveLength(0);
 });
 
+test('cyclic runtime sourceLinks fail closed per node without losing valid siblings', () => {
+  const f = v26Fixture();
+  const sibling = new Mesh(new BoxGeometry(1, 1, 1), new MeshBasicMaterial());
+  sibling.name = 'D2F_KVIK_SINK_CEILING_RECESSED_SPOT_1_WHITE_TRIM_WORK_TEST';
+  f.root.add(sibling);
+  const cyclic: Record<string, unknown> = { title: 'invalid runtime source card' };
+  cyclic.self = cyclic;
+  f.mesh.userData.sourceLinks = cyclic;
+
+  const context: TechnicalSystemsContext = {
+    ...f.context,
+    sourceNodes: [...f.context.sourceNodes, {
+      object: sibling, sceneIndex: 162, nodeIndex: 2, parentNodeIndex: 0,
+      nodeName: sibling.name, meshIndex: 1, glbSha256: V26_TECHNICAL_SOURCE_SHA256,
+    }],
+    sourceJson: {
+      ...f.context.sourceJson,
+      nodes: [
+        { name: f.root.name, children: [1, 2] },
+        { name: f.mesh.name, mesh: 0 },
+        { name: sibling.name, mesh: 1 },
+      ],
+      meshes: [{ primitives: [{}] }, { primitives: [{}] }],
+    },
+  };
+  // One malformed original userData value must not break the whole Layers
+  // inventory or reveal the node whose source card cannot be verified.
+  expect(() => createTechnicalSystemLayerInventory(context)).not.toThrow();
+  const inventory = createTechnicalSystemLayerInventory(context);
+  expect(summary(inventory, 'technical-heating').reason).toBe('UNVERIFIED_NODE_IDENTITY');
+  expect(summary(inventory, 'technical-electrical')).toMatchObject({
+    reason: 'AVAILABLE', matchedCount: 1, boundCount: 1,
+  });
+  expect(inventory.bridgeBindings).toEqual([{ id: 'technical-electrical', root: sibling }]);
+});
+
 test('Viewer-added equipment metadata cannot classify an unclassified original source node', () => {
   const f = v26Fixture('UNCLASSIFIED_ORIGINAL_NODE');
   f.mesh.userData.presentationLayer = 'MEP_ELECTRICAL';
