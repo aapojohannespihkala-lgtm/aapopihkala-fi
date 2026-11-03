@@ -1,6 +1,7 @@
 import { readFile } from 'node:fs/promises';
 
 import { expect, test } from '@playwright/test';
+import { pickSelectableObjectAtClientPoint } from '../../src/scripts/privateModelSelectionPicking';
 
 import {
   createObjectVisibilityFilter,
@@ -61,6 +62,52 @@ test('visible-material predicate preserves the existing opacity threshold', () =
   expect(hasVisibleMaterial({ material: { opacity: 0.011 } })).toBe(true);
   expect(hasVisibleMaterial({ material: { opacity: 0.01 } })).toBe(false);
   expect(hasVisibleMaterial({ material: [{ opacity: 0 }, { opacity: 0.5 }] })).toBe(true);
+});
+
+test('source-hidden materials cannot intercept model selections', () => {
+  const root = makeNode('scene-root', true, null, false);
+  const hidden = makeNode('hidden-material', true, root);
+  const depthOnly = makeNode('depth-only', true, root);
+  const visible = makeNode('visible-wall', true, root);
+  Object.assign(hidden, { material: { visible: false, opacity: 1 } });
+  Object.assign(depthOnly, { material: { colorWrite: false, opacity: 1 } });
+  Object.assign(visible, { material: { visible: true, colorWrite: true, opacity: 1 } });
+
+  const picked = pickSelectableObjectAtClientPoint({
+    canvas: {
+      dataset: { interactionMode: 'select' },
+      getBoundingClientRect: () => ({ left: 0, top: 0, width: 100, height: 100 }),
+    },
+    camera: {},
+    modelRoot: root,
+    raycaster: {
+      setFromCamera: () => {},
+      intersectObjects: () => [{ object: hidden }, { object: depthOnly }, { object: visible }],
+    },
+    pointer: { x: 0, y: 0 },
+    clientX: 50, clientY: 50,
+    isEffectivelyVisible,
+    hasVisibleMaterial,
+  });
+  expect(picked).toBe(visible);
+});
+
+test('visibility picking filters explicit non-drawing materials without rejecting visible siblings', () => {
+  expect(hasVisibleMaterial({ material: { visible: false, opacity: 1 } })).toBe(false);
+  expect(hasVisibleMaterial({ material: { colorWrite: false, opacity: 1 } })).toBe(false);
+  expect(hasVisibleMaterial({
+    material: [
+      { visible: false, opacity: 1 },
+      { colorWrite: false, opacity: 1 },
+      { opacity: 0.01 },
+    ],
+  })).toBe(false);
+  expect(hasVisibleMaterial({
+    material: [{ visible: false, opacity: 1 }, { visible: true, opacity: 0.5 }],
+  })).toBe(true);
+  expect(hasVisibleMaterial({ material: { visible: true, colorWrite: true } })).toBe(true);
+  // Existing behavior for objects without source materials is unchanged.
+  expect(hasVisibleMaterial(null)).toBe(true);
 });
 
 test('object visibility core keeps cumulative hides and restores one object at a time', () => {
