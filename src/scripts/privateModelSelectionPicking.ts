@@ -17,6 +17,7 @@ type SelectionPickingPointer = {
 
 type SelectionPickingIntersection = {
   object?: any;
+  face?: { materialIndex?: number } | null;
 };
 
 type SelectionPickingRaycaster = {
@@ -56,6 +57,20 @@ export const pickSelectableObjectAtClientPoint = ({
   pointer.y = -((clientY - rect.top) / rect.height) * 2 + 1;
   raycaster.setFromCamera(pointer, camera);
 
+  // A visible material group must not make a different, invisible face selectable.
+  // Keep legacy object-level picking for single-material and non-face hits (e.g. lines).
+  const isHitMaterialVisible = (candidate: SelectionPickingIntersection) => {
+    const materials = candidate.object?.material;
+    const materialIndex = candidate.face?.materialIndex;
+    if (!Array.isArray(materials) || materialIndex === undefined) {
+      return hasVisibleMaterial(candidate.object);
+    }
+    if (!Number.isInteger(materialIndex) || materialIndex < 0 || materialIndex >= materials.length) {
+      return false;
+    }
+    return hasVisibleMaterial({ material: materials[materialIndex] });
+  };
+
   const hit = raycaster
     .intersectObjects(modelRoot.children, true)
     .find(
@@ -64,7 +79,7 @@ export const pickSelectableObjectAtClientPoint = ({
           candidate.object?.isLine ||
           candidate.object?.isLineSegments) &&
         isEffectivelyVisible(candidate.object, modelRoot) &&
-        hasVisibleMaterial(candidate.object),
+        isHitMaterialVisible(candidate),
     );
 
   return hit?.object ?? null;
