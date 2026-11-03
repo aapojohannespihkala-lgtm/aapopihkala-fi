@@ -119,6 +119,19 @@ class SelectionTests(unittest.TestCase):
             ['tests/e2e/private-model-layers-wp3-controls.spec.ts'],
         )
 
+    def test_layers_runtime_and_loader_state_select_existing_browser_guards(self):
+        scoped = 'tests/e2e/private-model-layers-wp3-scoped-runtime.spec.ts'
+        wp1 = 'tests/e2e/private-model-layers-wp1.spec.ts'
+        state = 'tests/e2e/private-model-viewer-state.spec.ts'
+        runtime_path = 'src/scripts/privateModelLayersRuntime.ts'
+        load_path = 'src/scripts/privateModelLayerState.ts'
+        self.assertEqual(selected(runtime_path), [scoped])
+        self.assertEqual(selected(load_path), [wp1, state])
+        self.assertEqual(selected(runtime_path, load_path, runtime_path),
+                         [wp1, scoped, state])
+        self.assertFalse(any('/current-' in spec for spec in
+                             selected(runtime_path, load_path)))
+
     def test_work_test_loader_changes_run_diagnostics(self):
         self.assertEqual(selected('src/scripts/privateModelWorkTest.ts'), [
             'tests/e2e/private-model-work-test-load-diagnostics.spec.ts',

@@ -61,6 +61,12 @@ for file in "$@"; do
       add current-worker-regression current-portfolio-resilience current-markets-fallback current-markets-timeout ;;
     src/pages/private-model/index.astro)
       add private-model-d1f-combined-wall-scene-contract private-model-main-view-scope private-model-other-floor-reference private-model-work-test-load-diagnostics; p4 ;;
+    src/scripts/privateModelLayersRuntime.ts)
+      # Runtime changes must recheck the existing scoped Layers presentation contract.
+      add private-model-layers-wp3-scoped-runtime ;;
+    src/scripts/privateModelLayerState.ts)
+      # Loader defaults and legacy layer flags are exercised in both state guards.
+      add private-model-layers-wp1 private-model-viewer-state ;;
     src/scripts/privateModelLayerHierarchyState.ts|src/scripts/privateModelViewerState.ts)
       # WP1 state, scope defaults and parent-child visibility feed both the
       # existing WP1 contract and the WP3 on-screen controls.
