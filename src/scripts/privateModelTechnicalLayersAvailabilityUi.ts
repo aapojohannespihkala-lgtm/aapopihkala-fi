@@ -43,7 +43,9 @@ export const buildTechnicalAvailabilityRows = (
   if (!Array.isArray(summaries)) return [];
   // Runtime inventory may contain malformed entries despite the TS contract.
   // Omit unsourced rows, but keep each valid sibling's verified status.
-  return summaries.filter(item => item !== null && typeof item === 'object' &&
+  // Array.isArray narrows readonly input to any[], so retain the typed contract.
+  const verifiedShape: readonly TechnicalSystemSummary[] = summaries;
+  return verifiedShape.filter(item => item !== null && typeof item === 'object' &&
     !Array.isArray(item) && typeof item.id === 'string' && item.id.length > 0 &&
     typeof item.labelFi === 'string' && item.labelFi.length > 0).map(item => {
     // Runtime inventory data can be malformed even when static TS types are valid.
