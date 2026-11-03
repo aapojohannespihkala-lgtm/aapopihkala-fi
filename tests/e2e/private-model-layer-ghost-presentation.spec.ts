@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { BoxGeometry, BufferGeometry, Group, LineBasicMaterial, LineSegments, Mesh, MeshBasicMaterial, Points, PointsMaterial, Raycaster, Vector3 } from 'three';
+import { BoxGeometry, BufferGeometry, Group, LineBasicMaterial, LineSegments, Mesh, MeshBasicMaterial, Plane, Points, PointsMaterial, Raycaster, Vector3 } from 'three';
 import { createViewerLayerGhostPresentation } from '../../src/scripts/privateModelLayerGhostPresentation';
 
 const makeMesh = (material = new MeshBasicMaterial()) =>
@@ -55,6 +55,56 @@ test('transparent source materials use non-pickable edges, not stacked alpha fac
   adapter.reset();
   expect(mesh.children).toHaveLength(0);
   expect(mesh.material).toBe(original);
+  adapter.dispose();
+});
+
+test('ghost outline honors the transparent source clipping planes and clipIntersection', () => {
+  const source = new MeshBasicMaterial({ transparent: true, opacity: 0.3 });
+  const sourceClip = [new Plane(new Vector3(0, 1, 0), -0.4)];
+  source.clippingPlanes = sourceClip;
+  source.clipIntersection = true;
+  const root = new Group();
+  const mesh = makeMesh(source);
+  root.add(mesh);
+  const adapter = createViewerLayerGhostPresentation(root);
+
+  expect(adapter.apply('ghost')).toBe('ghost');
+  expect(mesh.children).toHaveLength(1);
+  const outline = mesh.children[0] as LineSegments;
+  const outlineMaterial = outline.material as LineBasicMaterial;
+  expect(outlineMaterial.clippingPlanes).toBe(sourceClip);
+  expect(outlineMaterial.clipIntersection).toBe(true);
+  expect(outlineMaterial).not.toBe(source);
+  expect(source.clippingPlanes).toBe(sourceClip);
+  expect(source.clipIntersection).toBe(true);
+  expect(outline.raycast(new Raycaster(), [] as never)).toBeUndefined();
+
+  adapter.apply('visible');
+  expect(mesh.children).toHaveLength(0);
+  expect(mesh.material).toBe(source);
+  expect(source.clippingPlanes).toBe(sourceClip);
+  adapter.dispose();
+});
+
+test('different source material clipping rules cannot create an exposing whole-mesh outline', () => {
+  const first = new MeshBasicMaterial({ transparent: true, opacity: 0.3 });
+  const second = new MeshBasicMaterial({ transparent: true, opacity: 0.3 });
+  first.clippingPlanes = [new Plane(new Vector3(0, 1, 0), 0)];
+  second.clippingPlanes = [new Plane(new Vector3(1, 0, 0), 0)];
+  const root = new Group();
+  const mesh = new Mesh(new BoxGeometry(1, 1, 1), [first, second]);
+  root.add(mesh);
+  const adapter = createViewerLayerGhostPresentation(root);
+
+  expect(adapter.apply('ghost')).toBe('ghost');
+  expect(mesh.children).toHaveLength(0); // no unclipped helper can reveal masked faces
+  expect(mesh.material).not.toBe([first, second]);
+  expect((mesh.material as MeshBasicMaterial[]).every(m => !m.visible)).toBe(true);
+  adapter.reset();
+  expect(mesh.material).toEqual([first, second]);
+  expect(mesh.children).toHaveLength(0);
+  expect(first.clippingPlanes).toHaveLength(1);
+  expect(second.clippingPlanes).toHaveLength(1);
   adapter.dispose();
 });
 
