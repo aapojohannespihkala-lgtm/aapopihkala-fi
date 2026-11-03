@@ -100,8 +100,8 @@
 [data-layer-preset-panel] .yl-layer-node-label { min-width: 0; overflow-wrap: anywhere; }
 [data-layer-preset-panel] .yl-layer-root-row .yl-layer-node-label { font-weight: 650; }
 [data-layer-preset-panel] .yl-layer-disclosure {
-  flex: 0 0 30px;
-  width: 30px;
+  flex: 0 0 44px;
+  width: 44px;
   padding: 0;
   border: 0;
   border-radius: 5px;
@@ -167,7 +167,6 @@
   border-color: #3b4b53;
 }
 @media (max-width: 519px) {
-  [data-layer-preset-panel] .yl-layer-disclosure { flex-basis: 44px; width: 44px; }
   [data-layer-preset-panel] select { font-size: 16px; }
 }
 @media (prefers-reduced-motion: reduce) {
