@@ -166,6 +166,7 @@
   overscroll-behavior: contain;
   scrollbar-gutter: stable;
   scroll-padding-block: 10px;
+  scroll-padding-top: 44px;
   color: #f1f3ee;
   background: #1d2a32;
   border-color: #3b4b53;
