@@ -14091,7 +14091,7 @@ const title = 'Private 3D viewer';
           layersPanelControls.update(layersState, layersAvailable, {
             availablePresets: layersPresetChoices, boundNodeIds: layersBoundIds, disabled: !verified,
             sourceCoverageNote: verified && layersLoadedSha === V35_SOURCE_SHA256 && mainViewScope?.floor !== '1F'
-              ? 'WC:n lattia ja itäseinä ovat vielä yksi malliosa. Ne jäävät näiden ryhmävalintojen ulkopuolelle.'
+              ? 'WC:n yhdistetty lattia ja itäseinä eivät vielä kuulu Layers-ohjaukseen. V35:n neljän korkean keittiökaapin rungot ja etupinnat ovat lähdesidottuja. Muiden kalusteiden ohjaus voi kattaa vain osia.'
               : undefined,
           });
           canvas.dataset.layersCameraPose = JSON.stringify({ position: activeCamera.position.toArray(), quaternion: activeCamera.quaternion.toArray(), zoom: activeCamera.zoom, target: (activeCamera === planCamera ? planControls : activeCamera === isoCamera ? isoControls : controls).target.toArray() });

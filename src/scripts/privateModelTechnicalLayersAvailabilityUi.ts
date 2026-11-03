@@ -59,7 +59,9 @@ export const buildTechnicalAvailabilityRows = (
           ? 'Ei käytettävissä: lähteen asemaa ei ole varmennettu.'
           : item.reason === 'AVAILABLE'
             ? 'Ei käytettävissä: vahvistettu objektisidonta puuttuu.'
-            : reasonFi[item.reason] ?? 'Saatavuutta ei ole varmennettu.',
+            : Object.hasOwn(reasonFi, item.reason)
+              ? reasonFi[item.reason]
+              : 'Saatavuutta ei ole varmennettu.',
       provenance: sourceRoleVerified
         ? provenanceFi[item.sourceRole]
         : 'Lähteen asema ei ole varmennettu.',

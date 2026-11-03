@@ -174,16 +174,29 @@ export const createViewerLayerGhostPresentation = (root: Object3D) => {
       mesh.raycast = () => {};
       mesh.renderOrder = snapshot.renderOrder + 1;
 
-      if (useEdges && mesh.geometry) {
+      // The helper line must never draw outside the source mesh's local clip.
+      // A multi-material mesh with different clipping rules has no single
+      // safe whole-mesh outline, so omit it instead of exposing hidden faces.
+      const sourceClip = sourceMaterials[0].clippingPlanes;
+      const sourceIntersection = sourceMaterials[0].clipIntersection;
+      const sharedSourceClip = sourceMaterials.every((material) =>
+        material.clipIntersection === sourceIntersection &&
+        (material.clippingPlanes === sourceClip ||
+          (!material.clippingPlanes?.length && !sourceClip?.length)),
+      );
+      if (useEdges && mesh.geometry && sharedSourceClip) {
+        const outlineMaterial = new LineBasicMaterial({
+          color: 0x8995a3,
+          opacity: Math.min(0.48, opacity * 2),
+          transparent: true,
+          depthTest: true,
+          depthWrite: false,
+        });
+        outlineMaterial.clippingPlanes = sourceClip;
+        outlineMaterial.clipIntersection = sourceIntersection;
         const outline = new LineSegments(
           new EdgesGeometry(mesh.geometry, 30),
-          new LineBasicMaterial({
-            color: 0x8995a3,
-            opacity: Math.min(0.48, opacity * 2),
-            transparent: true,
-            depthTest: true,
-            depthWrite: false,
-          }),
+          outlineMaterial,
         );
         outline.name = '__VIEWER_GHOST_EDGES_PRESENTATION_ONLY__';
         outline.renderOrder = mesh.renderOrder + 1;

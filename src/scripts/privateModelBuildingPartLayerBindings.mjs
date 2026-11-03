@@ -4,6 +4,7 @@ import { V33_SOURCE_SHA256, V33_SOURCE_SCENE_COUNT, V33_BUILDING_PARTS, V33_BUIL
 import { V34_SOURCE_SHA256, V34_SOURCE_SCENE_COUNT, V34_BUILDING_PARTS, V34_BUILDING_SCENES } from './privateModelC80R2V34LayerSourceProfile.mjs';
 import { V35_SOURCE_SHA256, V35_SOURCE_SCENE_COUNT, V35_BUILDING_PARTS, V35_BUILDING_SCENES } from './privateModelC80R2V35LayerSourceProfile.mjs';
 import { resolveV35FurnitureSourcePart, V35_FURNITURE_SCENES } from './privateModelFurnitureLayerSourceProfile.mjs';
+import { resolveV35LillangenSourceMesh } from './privateModelV35LillangenMirrorSourceProfile.mjs';
 
 /**
  * High 1: opt-in, read-only building-part bindings for
@@ -109,6 +110,39 @@ const v26Scenes = Object.freeze({
   "174": {"floor":"1F","name":"C80R2_V26_D1F_STAIR_RAIL_LANDING_END_PLYWOOD_WORK_TEST_HOST_HOLD_20261102","paths":{"7289":[[7295,7294,7291,7289]],"7290":[[7295,7294,7291,7290]],"7296":[[7998,7997,7296]],"7297":[[7998,7997,7297]],"7298":[[7998,7997,7298]],"7299":[[7998,7997,7299]],"7645":[[7646,7645]],"6377":[[6377]],"7999":[[7999]],"6497":[[6497]],"6376":[[6376]],"7221":[[7221]],"7594":[[7594]],"8007":[[8007]],"8152":[[8152]],"8191":[[8191]],"8193":[[8193]],"8196":[[8196]],"8197":[[8197]]}},
   "175": {"floor":"BOTH","name":"C80R2_V26_BOTH_STAIR_RAIL_LANDING_END_PLYWOOD_WORK_TEST_HOST_HOLD_20261102","paths":{"8088":[[8428,8427,8092,8089,8088]],"8090":[[8428,8427,8092,8090]],"8091":[[8428,8427,8092,8091]],"7445":[[8428,7450,7447,7445]],"7446":[[8428,7450,7447,7446]],"7459":[[8001,8000,7459]],"7460":[[8001,8000,7460]],"7461":[[8001,8000,7461]],"7462":[[8001,8000,7462]],"7706":[[7707,7706]],"6437":[[6437]],"6438":[[6438]],"6392":[[6392]],"6439":[[6439]],"8002":[[8002]],"5290":[[7496,5290]],"7492":[[7496,7492]],"7493":[[7496,7493]],"7494":[[7496,7494]],"7495":[[7496,7495]],"5302":[[7501,5302]],"7497":[[7501,7497]],"7498":[[7501,7498]],"7499":[[7501,7499]],"7500":[[7501,7500]],"7502":[[7502]],"7503":[[7503]],"8003":[[8003]],"6498":[[6498]],"6391":[[6391]],"6656":[[7723,6656]],"7722":[[7723,7722]],"7221":[[7221]],"7222":[[7222]],"7223":[[7223]],"7594":[[7594]],"8007":[[8007]],"8152":[[8152]],"8191":[[8191]],"8193":[[8193]],"8196":[[8196]],"8197":[[8197]],"8198":[[8198]],"8199":[[8199]]}},
 });
+
+
+/**
+ * HL1 opt-in WC split. It is an independent WORK_TEST/HOST_HOLD donor, NOT
+ * the published V35 SHA. The donor retains the exact V35 199-scene prefix,
+ * but adds two optional scenes with separate WC floor and interior east wall.
+ */
+const V35_HL1_DONOR_SHA256 = '7f4d6ffbf69f30815b22cdd54261db2d392fcbdf3723379257826ec9e63193bd';
+const V35_HL1_DONOR_SCENE_COUNT = 201;
+const V35_HL1_DONOR_SCENES = Object.freeze({
+  199: Object.freeze({ original: 197, floor: '2F', name: 'HL1_V35_WC_SPLIT_D2F_WORK_TEST_HOST_HOLD' }),
+  200: Object.freeze({ original: 198, floor: 'BOTH', name: 'HL1_V35_WC_SPLIT_BOTH_WORK_TEST_HOST_HOLD' }),
+});
+const V35_HL1_ORIGINAL_WC_NODE = 'C80R2_V35_D2F_WC_RAISED_FLOOR_80MM_AND_EAST_WALL_YELLOW_TILES_154_PHOTO';
+const V35_HL1_DONOR_PARTS = Object.freeze({
+  9334: Object.freeze({
+    id: 'architecture-floors', mesh: 3284, name: 'HL1_V35_WC_FLOOR_FROM_NODE9331',
+    part: 'floor', primitives: Object.freeze([0, 1, 2, 3, 4, 5]),
+  }),
+  9335: Object.freeze({
+    id: 'architecture-walls-interior', mesh: 3285, name: 'HL1_V35_WC_EAST_WALL_FROM_NODE9331',
+    part: 'east_wall', primitives: Object.freeze([6, 7]),
+  }),
+});
+const v35Hl1DonorScene = (json, sceneIndex, floor) => {
+  if (json?.scenes?.length !== V35_HL1_DONOR_SCENE_COUNT ||
+      !Object.hasOwn(V35_HL1_DONOR_SCENES, sceneIndex)) return null;
+  const scene = V35_HL1_DONOR_SCENES[sceneIndex];
+  const roots = json.scenes[sceneIndex]?.nodes;
+  return scene.floor === floor && json.scenes[sceneIndex]?.name === scene.name &&
+    Array.isArray(roots) && roots.includes(9334) && roots.includes(9335) &&
+    !roots.includes(9331) ? scene : null;
+};
 
 const SHA256 = /^[a-f0-9]{64}$/i;
 const FLOOR = new Set(['1F', '2F', 'BOTH']);
@@ -264,7 +298,7 @@ const matchesSourceName = (actual, expected) => {
 };
 
 const v26SourcePart = (json, sha, sceneIndex, floor, source, associations, mesh) => {
-  const version = sha === V35_SOURCE_SHA256 ? 'V35'
+  const version = (sha === V35_SOURCE_SHA256 || sha === V35_HL1_DONOR_SHA256) ? 'V35'
     : sha === V34_SOURCE_SHA256 ? 'V34'
     : sha === V33_SOURCE_SHA256 ? 'V33'
     : sha === V29_SOURCE_SHA256 ? 'V29'
@@ -280,21 +314,60 @@ const v26SourcePart = (json, sha, sceneIndex, floor, source, associations, mesh)
     : version === 'V33' ? V33_BUILDING_PARTS
     : version === 'V29' ? V29_BUILDING_PARTS
     : version === 'V27' ? V27_BUILDING_PARTS : v26Parts;
-  const count = version === 'V35' ? V35_SOURCE_SCENE_COUNT
+  const count = version === 'V35' ? (sha === V35_HL1_DONOR_SHA256 ? V35_HL1_DONOR_SCENE_COUNT : V35_SOURCE_SCENE_COUNT)
     : version === 'V34' ? V34_SOURCE_SCENE_COUNT
     : version === 'V33' ? V33_SOURCE_SCENE_COUNT
     : version === 'V29' ? V29_SOURCE_SCENE_COUNT
     : version === 'V27' ? V27_SOURCE_SCENE_COUNT : 176;
-  const scene = sceneProfile[sceneIndex];
+  const donorScene = sha === V35_HL1_DONOR_SHA256 ? V35_HL1_DONOR_SCENES[sceneIndex] : null;
+  const originalSceneIndex = donorScene?.original ?? sceneIndex;
+  const scene = sceneProfile[originalSceneIndex];
   const part = partProfile[source.index];
   const def = json.nodes[source.index];
   if (!scene || !part || scene.floor !== floor ||
-      json.scenes.length !== count || json.scenes[sceneIndex]?.name !== scene.name ||
+      json.scenes.length !== count || json.scenes[sceneIndex]?.name !== (donorScene?.name ?? scene.name) ||
       def?.mesh !== part.mesh || def?.name !== part.name ||
       !scene.paths[source.index]?.some(path => samePath(path, source.path)) ||
       !matchesSourceName(source.sourceObject.name, part.name)) return null;
   const primitive = associations.get(mesh);
   if (primitive?.meshes !== undefined && primitive.meshes !== part.mesh) return null;
+  return part;
+};
+
+
+/**
+ * Source-locked classification of only two new opt-in GLB scene roots. The
+ * exact donor SHA and original primitive/accessor definitions are required.
+ * Never identify a wall or floor from color, name pattern or mesh index alone.
+ */
+const v35Hl1WcSplitPart = (json, sha, sceneIndex, floor, source, associations, object) => {
+  if (sha !== V35_HL1_DONOR_SHA256 ||
+      !v35Hl1DonorScene(json, sceneIndex, floor) ||
+      source.path.length !== 1 || source.path[0] !== source.index ||
+      !Object.hasOwn(V35_HL1_DONOR_PARTS, source.index)) return null;
+  const part = V35_HL1_DONOR_PARTS[source.index];
+  const def = json.nodes[source.index];
+  const extras = def?.extras;
+  const primitiveIndices = extras?.sourcePrimitiveIndices;
+  const originalPrimitives = json.meshes?.[3283]?.primitives;
+  const splitPrimitives = json.meshes?.[part.mesh]?.primitives;
+  if (def?.name !== part.name || def?.mesh !== part.mesh ||
+      !matchesSourceName(source.sourceObject.name, part.name) ||
+      (associations.get(object)?.meshes !== undefined &&
+       associations.get(object).meshes !== part.mesh) ||
+      extras?.sourceGLBSHA256 !== V35_SOURCE_SHA256 ||
+      extras?.sourceNodeIndex !== 9331 || extras?.sourceMeshIndex !== 3283 ||
+      extras?.sourceNodeName !== V35_HL1_ORIGINAL_WC_NODE ||
+      extras?.part !== part.part ||
+      !Array.isArray(extras?.sourceSceneIndices) ||
+      extras.sourceSceneIndices.length !== 2 ||
+      extras.sourceSceneIndices[0] !== 197 || extras.sourceSceneIndices[1] !== 198 ||
+      !Array.isArray(primitiveIndices) || primitiveIndices.length !== part.primitives.length ||
+      !primitiveIndices.every((v, i) => v === part.primitives[i]) ||
+      !Array.isArray(originalPrimitives) || originalPrimitives.length !== 8 ||
+      !Array.isArray(splitPrimitives) ||
+      JSON.stringify(splitPrimitives) !==
+        JSON.stringify(part.primitives.map(i => originalPrimitives[i]))) return null;
   return part;
 };
 
@@ -332,6 +405,14 @@ export function resolveBuildingPartLayerBindings(input) {
     return unavailable('SOURCE_SHA_MISMATCH', scene);
   }
   if (!AREA.has(area) || !FLOOR.has(floor)) return unavailable('UNKNOWN_SCOPE', scene);
+  // A modified or incomplete opt-in donor scene must not inherit the old V35
+  // part allowlist. Both new split roots are required in the selected scene.
+  if (String(loadedSourceSha256).toLowerCase() === V35_HL1_DONOR_SHA256 &&
+      (gltf?.parser?.json?.scenes?.length !== V35_HL1_DONOR_SCENE_COUNT ||
+       (Object.hasOwn(V35_HL1_DONOR_SCENES, sceneIndex) &&
+        !v35Hl1DonorScene(gltf.parser.json, sceneIndex, floor)))) {
+    return unavailable('HL1_DONOR_SCENE_MISMATCH', scene);
+  }
   if (!Number.isInteger(sceneIndex) || gltf?.scenes?.[sceneIndex] !== scene)
     return unavailable('SCENE_MISMATCH', scene);
   const hierarchy = makeNodeHierarchy(gltf?.parser?.json, sceneIndex);
@@ -372,32 +453,58 @@ export function resolveBuildingPartLayerBindings(input) {
     const sha = String(loadedSourceSha256).toLowerCase();
     const existingProfile = v26SourcePart(gltf.parser.json, sha,
       sceneIndex, floor, source, associations, object);
-    // HL2 exact source profile: four separate cabinet carcass meshes are not
-    // in the legacy V35 front-only allowlist. Match the immutable source
-    // scene/node/mesh/name/parent path before granting fixture visibility.
-    // The existing front bindings retain their original owner and path.
     const sourceDefinition = hierarchy.nodes[source.index];
     const parentDefinition = hierarchy.nodes[source.path.at(-2)];
-    const furniture = !existingProfile && sha === V35_SOURCE_SHA256 &&
-      gltf.parser.json.scenes.length === V35_SOURCE_SCENE_COUNT &&
-      V35_FURNITURE_SCENES[sceneIndex]?.floor === floor
+    // HL1 new WC roots belong exclusively to the independently hashed 201-scene
+    // donor. Inherited V35 nodes and furniture are matched against their exact
+    // unchanged donor-prefix paths, never by a lookalike name or shared mesh.
+    const splitPart = !existingProfile ? v35Hl1WcSplitPart(gltf.parser.json,
+      sha, sceneIndex, floor, source, associations, object) : null;
+    const donorScene = V35_HL1_DONOR_SCENES[sceneIndex];
+    const mappedSceneIndex = sha === V35_HL1_DONOR_SHA256 && donorScene
+      ? donorScene.original : sceneIndex;
+    const furnitureScene = V35_FURNITURE_SCENES[mappedSceneIndex];
+    const isOriginalV35 = sha === V35_SOURCE_SHA256 &&
+      gltf.parser.json.scenes.length === V35_SOURCE_SCENE_COUNT;
+    const isVerifiedDonor = sha === V35_HL1_DONOR_SHA256 &&
+      gltf.parser.json.scenes.length === V35_HL1_DONOR_SCENE_COUNT &&
+      (!donorScene || !!v35Hl1DonorScene(gltf.parser.json, sceneIndex, floor));
+    const furniture = !existingProfile && !splitPart && (isOriginalV35 || isVerifiedDonor) &&
+      furnitureScene?.floor === floor
       ? resolveV35FurnitureSourcePart({
-          expectedSourceSha256, loadedSourceSha256,
-          sceneIndex, sceneName: gltf.parser.json.scenes[sceneIndex]?.name,
+          // This inner V35 match verifies inherited node IDs. The outer SHA
+          // guard independently authenticates the loaded opt-in donor bytes.
+          expectedSourceSha256: V35_SOURCE_SHA256,
+          loadedSourceSha256: V35_SOURCE_SHA256,
+          sceneIndex: mappedSceneIndex, sceneName: furnitureScene.name,
           nodeIndex: source.index, meshIndex: sourceDefinition?.mesh,
           nodeName: sourceDefinition?.name, nodePath: source.path,
           parentNodeName: parentDefinition?.name,
         })
       : null;
-    // Do not infer a cabinet from its reused mesh number alone. Retain the
-    // source parser's real mesh association and the original source name.
     const verifiedFurniture = furniture &&
       matchesSourceName(source.sourceObject.name, furniture.name) &&
       (associations.get(object)?.meshes === undefined ||
        associations.get(object)?.meshes === furniture.meshIndex)
       ? furniture : null;
-    const profile = existingProfile ??
-      (verifiedFurniture ? { id: verifiedFurniture.layerId } : null);
+    // The historical LILLÅNGEN mirror is independently identifiable in original
+    // V35 only. The HL1 201-scene donor remains controlled by its own exact profile.
+    const lillangen = !existingProfile && !splitPart && !verifiedFurniture &&
+      isOriginalV35
+      ? resolveV35LillangenSourceMesh({
+          glbJson: gltf.parser.json,
+          expectedSourceSha256, loadedSourceSha256,
+          sceneIndex, floor, nodeIndex: source.index, nodePath: source.path,
+        })
+      : null;
+    const verifiedLillangen = lillangen &&
+      matchesSourceName(source.sourceObject.name, sourceDefinition?.name) &&
+      (associations.get(object)?.meshes === undefined ||
+       associations.get(object)?.meshes === lillangen.sourceMeshIndex)
+      ? lillangen : null;
+    const profile = existingProfile ?? splitPart ??
+      (verifiedFurniture ? { id: verifiedFurniture.layerId } : null) ??
+      (verifiedLillangen ? { id: verifiedLillangen.id } : null);
     const explicit = exactFamily(meta.G2Id) ?? exactFamily(meta.ParentG2Id) ?? exactFamily(meta.identity);
     const scope = meta.ylisViewScope;
     const id = profile?.id ?? explicit?.layerId;
@@ -431,10 +538,10 @@ export function resolveBuildingPartLayerBindings(input) {
       sourceNodePath: [...source.path], sceneIndex,
       sourceSha256: String(loadedSourceSha256).toLowerCase(),
       sourceLinks: hierarchy.nodes[sourceNodeIndex]?.extras?.sourceLinks ?? [],
-      objectKey: scope?.objectKey ?? `${String(loadedSourceSha256).toLowerCase() === V35_SOURCE_SHA256 ? 'V35' : String(loadedSourceSha256).toLowerCase() === V34_SOURCE_SHA256 ? 'V34' : String(loadedSourceSha256).toLowerCase() === V33_SOURCE_SHA256 ? 'V33' : String(loadedSourceSha256).toLowerCase() === V29_SOURCE_SHA256 ? 'V29' : String(loadedSourceSha256).toLowerCase() === V27_SOURCE_SHA256 ? 'V27' : 'V26'}:${sceneIndex}:${sourceNodeIndex}`,
+      objectKey: scope?.objectKey ?? `${String(loadedSourceSha256).toLowerCase() === V35_HL1_DONOR_SHA256 ? 'V35_HL1_DONOR' : String(loadedSourceSha256).toLowerCase() === V35_SOURCE_SHA256 ? 'V35' : String(loadedSourceSha256).toLowerCase() === V34_SOURCE_SHA256 ? 'V34' : String(loadedSourceSha256).toLowerCase() === V33_SOURCE_SHA256 ? 'V33' : String(loadedSourceSha256).toLowerCase() === V29_SOURCE_SHA256 ? 'V29' : String(loadedSourceSha256).toLowerCase() === V27_SOURCE_SHA256 ? 'V27' : 'V26'}:${sceneIndex}:${sourceNodeIndex}`,
       storeyScope: scope?.storeyScope ?? floor,
       apartmentScope: scope?.apartmentScope ?? 'D',
-      bindingKind: profile ? (String(loadedSourceSha256).toLowerCase() === V35_SOURCE_SHA256 ? 'EXACT_V35_SOURCE_PROFILE' : String(loadedSourceSha256).toLowerCase() === V34_SOURCE_SHA256 ? 'EXACT_V34_SOURCE_PROFILE' : String(loadedSourceSha256).toLowerCase() === V33_SOURCE_SHA256 ? 'EXACT_V33_SOURCE_PROFILE' : String(loadedSourceSha256).toLowerCase() === V29_SOURCE_SHA256 ? 'EXACT_V29_SOURCE_PROFILE' : String(loadedSourceSha256).toLowerCase() === V27_SOURCE_SHA256 ? 'EXACT_V27_SOURCE_PROFILE' : 'EXACT_V26_SOURCE_PROFILE') : 'EXPLICIT_SOURCE_METADATA',
+      bindingKind: verifiedLillangen ? verifiedLillangen.bindingKind : splitPart ? 'EXACT_V35_HL1_WC_SPLIT_DONOR_PROFILE' : profile ? (sha === V35_HL1_DONOR_SHA256 ? 'INHERITED_V35_HL1_DONOR_PROFILE' : String(loadedSourceSha256).toLowerCase() === V35_SOURCE_SHA256 ? 'EXACT_V35_SOURCE_PROFILE' : String(loadedSourceSha256).toLowerCase() === V34_SOURCE_SHA256 ? 'EXACT_V34_SOURCE_PROFILE' : String(loadedSourceSha256).toLowerCase() === V33_SOURCE_SHA256 ? 'EXACT_V33_SOURCE_PROFILE' : String(loadedSourceSha256).toLowerCase() === V29_SOURCE_SHA256 ? 'EXACT_V29_SOURCE_PROFILE' : String(loadedSourceSha256).toLowerCase() === V27_SOURCE_SHA256 ? 'EXACT_V27_SOURCE_PROFILE' : 'EXACT_V26_SOURCE_PROFILE') : 'EXPLICIT_SOURCE_METADATA',
     });
   });
   return {

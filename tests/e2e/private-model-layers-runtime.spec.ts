@@ -196,6 +196,55 @@ test('apply fails closed on displaced GLB paths before enforce without mutating 
   runtime.dispose();
 });
 
+test('displaced Layers root with malformed gates revokes stale ghost and sibling presentation', () => {
+  const scene = new Scene();
+  const sourceParent = new Group();
+  const alternateParent = new Group();
+  const sourceMaterial = new MeshBasicMaterial();
+  const wall = new Mesh(new BoxGeometry(), sourceMaterial);
+  const door = new Mesh(new BoxGeometry(), new MeshBasicMaterial());
+  sourceParent.add(wall);
+  scene.add(sourceParent, alternateParent, door);
+  const runtime = createViewerLayersRuntime({ sceneRoot: scene, sourceSha256: sha,
+    bindings: [
+      { id: 'architecture-walls', root: wall },
+      { id: 'architecture-doors', root: door },
+    ] });
+  const state = applyViewerLayerPreset(createViewerInteractionState(), 'whole-building');
+  const ghost = setViewerInteractionLayerMode(state, 'architecture-walls', 'ghost');
+  const gates = new Map([
+    [wall, { sourceAllowed: true, scopeAllowed: true, floorAllowed: true }],
+    [door, { sourceAllowed: true, scopeAllowed: true, floorAllowed: true }],
+  ]);
+  const frame = { activeSceneRoot: scene, availableNodeIds: runtime.availableNodeIds, gates };
+
+  expect(runtime.apply(ghost, frame).map(({ mode }) => mode)).toEqual(['ghost', 'visible']);
+  expect(wall.visible).toBe(true);
+  expect(wall.material).not.toBe(sourceMaterial);
+  expect(door.visible).toBe(true);
+
+  // The original GLB path has changed, and a malformed runtime gate object
+  // must be denied BEFORE the bridge's visibility/material reconciliation.
+  alternateParent.add(wall);
+  const malformed = { ...frame, gates: {} as unknown as typeof gates };
+  expect(runtime.apply(ghost, malformed).map(({ mode }) => mode)).toEqual(['hidden', 'hidden']);
+  expect(wall.visible).toBe(false);
+  expect(door.visible).toBe(false);
+  expect(wall.material).toBe(sourceMaterial);
+  runtime.enforce(scene, sha);
+  expect(wall.visible).toBe(false);
+  expect(door.visible).toBe(false);
+
+  // Recovery needs both the original source path and independently valid gates.
+  sourceParent.add(wall);
+  expect(runtime.apply(state, frame).map(({ mode }) => mode)).toEqual(['visible', 'visible']);
+  expect(wall.visible).toBe(true);
+  expect(door.visible).toBe(true);
+  expect(wall.material).toBe(sourceMaterial);
+  expect(gates.size).toBe(2);
+  runtime.dispose();
+});
+
 test('Layers frame rejects a replaced scene or source without changing siblings', () => {
   const scene = new Scene();
   const wall = new Mesh(new BoxGeometry(), new MeshBasicMaterial());
@@ -335,6 +384,36 @@ test(`exact ${model.version} viewer: D upstairs, ghost walls, supported IV, rese
       await expect(page.locator('[data-layer-node="architecture-ceilings"] [data-layer-mode="hidden"]')).toHaveAttribute('aria-pressed', 'true');
       await expectPreservedCamera();
     }
+  }
+  if (model.version === 'V35') {
+    // V35 exact source, 2F197: HL4 binds four Kvik/MANO tall-cabinet
+    // carcasses and their verified front surfaces to architecture-fixtures.
+    // Only this already source-verified version has that expected coverage.
+    const fixtures = page.locator('[data-layer-node="architecture-fixtures"]');
+    const fixtureVisible = fixtures.locator('[data-layer-mode="visible"]');
+    const fixtureHidden = fixtures.locator('[data-layer-mode="hidden"]');
+    await expect(fixtures).toHaveCount(1);
+    await expect(fixtureVisible).toHaveAttribute('aria-pressed', 'true');
+    await expect(canvas).toHaveAttribute('data-layers-source-sha256', sha);
+    await expect(canvas).toHaveAttribute('data-layers-source-scene-index', model.secondFloor);
+
+    // Keep the same viewport/camera and close only the UI panel in both
+    // evidence frames, so the model rather than the overlay is compared.
+    await page.locator('#layers-button').click();
+    await page.screenshot({ path: info.outputPath('layers-v35-2f-fixtures-visible-desktop.png') });
+    await page.locator('#layers-button').click();
+    await fixtureHidden.click();
+    await expect(fixtureHidden).toHaveAttribute('aria-pressed', 'true');
+    await expect(canvas).toHaveAttribute('data-layers-runtime', 'active');
+    await expectPreservedCamera();
+    await page.locator('#layers-button').click();
+    await page.screenshot({ path: info.outputPath('layers-v35-2f-fixtures-hidden-desktop.png') });
+    await page.locator('#layers-button').click();
+    await fixtureVisible.click();
+    await expect(fixtureVisible).toHaveAttribute('aria-pressed', 'true');
+    await expectPreservedCamera();
+    // Restore the verified source-bound state before the existing reset,
+    // 1F/BOTH/2F and mobile regression exercises run.
   }
   await page.screenshot({ path: info.outputPath(evidencePrefix + '-2f-walls-ghost-iv-visible-desktop.png') });
   await page.getByRole('button', { name: 'Palauta näkyvyys' }).click();
