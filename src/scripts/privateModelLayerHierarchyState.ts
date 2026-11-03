@@ -486,6 +486,8 @@ export const getViewerLayerEffectiveMode = (
   if (!Object.prototype.hasOwnProperty.call(viewerLayerNodeCapabilities, nodeId)) {
     return 'hidden';
   }
+  // A missing/non-record persisted mode map must not throw or reveal a layer.
+  if (!modes || typeof modes !== 'object' || Array.isArray(modes)) return 'hidden';
   // Only a node's own saved value can establish its presentation mode.
   const ownMode = Object.hasOwn(modes, nodeId) ? modes[nodeId] : undefined;
   // External/persisted mode maps can be incomplete or malformed at runtime.
@@ -516,6 +518,7 @@ export const getViewerLayerParentMode = (
   parentId: ViewerLayerNodeId,
   children: readonly ViewerLayerNodeId[],
 ): ViewerLayerParentMode => {
+  if (!modes || typeof modes !== 'object' || Array.isArray(modes)) return 'hidden';
   const parent = Object.hasOwn(modes, parentId) ? modes[parentId] : undefined;
   // Persisted maps may be incomplete: never expose an invalid parent mode.
   if (parent !== 'visible' && parent !== 'ghost') return 'hidden';
