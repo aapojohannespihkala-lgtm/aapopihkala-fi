@@ -72,6 +72,13 @@ test('Layers reject prototype-inherited visible or ghost values in persisted map
   }) as ViewerLayerModeMap;
   expect(getViewerLayerEffectiveMode(inheritedParent, 'architecture-walls-exterior')).toBe('hidden');
 
+  // Explicit own keys remain valid on null-prototype objects.
+  const nullPrototypeModes = Object.assign(Object.create(null),
+    createViewerLayerModeMap(createViewerLayerControlsState())) as ViewerLayerModeMap;
+  expect(getViewerLayerEffectiveMode(nullPrototypeModes, 'architecture-doors')).toBe('visible');
+  expect(getViewerLayerParentMode(nullPrototypeModes, 'architecture-walls',
+    viewerArchitecturalWallChildNodeIds)).toBe('visible');
+
   // The parent summary needs every child's own preference too.
   const inheritedChild = Object.assign(Object.create({ 'architecture-walls-exterior': 'visible' }), {
     'architecture-walls': 'visible',
