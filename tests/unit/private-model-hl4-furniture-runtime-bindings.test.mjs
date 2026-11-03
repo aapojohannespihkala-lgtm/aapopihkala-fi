@@ -2,6 +2,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { resolveBuildingPartLayerBindings } from '../../src/scripts/privateModelBuildingPartLayerBindings.mjs';
 import {
+  V35_LILLANGEN_PARTS, V35_LILLANGEN_DONOR_SHA256,
+} from '../../src/scripts/privateModelV35LillangenMirrorSourceProfile.mjs';
+import {
   V35_FURNITURE_SCENES, V35_FURNITURE_SOURCE_SHA256 as SHA,
 } from '../../src/scripts/privateModelFurnitureLayerSourceProfile.mjs';
 
@@ -246,3 +249,74 @@ test('HL1 donor leaves the published V35 classification and unchanged donor sour
     ...donor.options, loadedSourceSha256: SHA, expectedSourceSha256: SHA,
   }).bindings.length, 0);
 });
+
+/** Exact source-only mirror fixture, no material or visual heuristics. */
+const v35MirrorFixture = sceneIndex => {
+  const nodes = new Array(9334).fill(null);
+  const rootName = 'C80_018_MIRROR_LILLANGEN60_2015_GLB_WORLD_FROM_2015_ROOM_HOST';
+  const parentName = 'C80_018_MIRROR_LILLANGEN60_2015_world';
+  nodes[5835] = { name: rootName, children:[5818], extras:{current:false,asBuilt:false} };
+  nodes[5818] = { name:parentName,
+    children:Array.from({length:16},(_,i)=>5819+i),
+    extras:{donorSha256:V35_LILLANGEN_DONOR_SHA256,
+      geometryLevel:'SOURCE_ONLY_PRODUCT_2015_PLUS_VISUAL_PROXY'} };
+  const sceneRoot = new Object3D('scene');
+  const root = sceneRoot.add(new Object3D(rootName));
+  const parent = root.add(new Object3D(parentName));
+  const associations = new Map([[root,{nodes:5835}],[parent,{nodes:5818}]]);
+  const leaves = new Map();
+  for (const part of V35_LILLANGEN_PARTS) {
+    nodes[part.nodeIndex] = { name:part.name, mesh:part.meshIndex,
+      extras:{current:false,asBuilt:false,donorSha256:V35_LILLANGEN_DONOR_SHA256} };
+    const leaf = parent.add(new Object3D(part.name,true));
+    associations.set(leaf,{nodes:part.nodeIndex,meshes:part.meshIndex});
+    leaves.set(part.nodeIndex,leaf);
+  }
+  const jsonScenes = new Array(199);
+  jsonScenes[sceneIndex] = {
+    name: sceneIndex===197 ? 'C80R2_V35_D2F_WORK_TEST_HOST_HOLD_20261102'
+      : 'C80R2_V35_BOTH_WORK_TEST_HOST_HOLD_20261102',
+    nodes:[5835],
+  };
+  const scenes = new Array(199);
+  scenes[sceneIndex] = sceneRoot;
+  const json = {nodes,meshes:new Array(3284),scenes:jsonScenes};
+  return { leaves, options:{
+    gltf:{scenes,parser:{json,associations}},
+    sceneIndex, activeSceneRoot:sceneRoot,
+    expectedSourceSha256:SHA, loadedSourceSha256:SHA,
+    floor:sceneIndex===197?'2F':'BOTH',area:'D',
+  }};
+};
+
+for (const sceneIndex of [197,198]) {
+  test('V35 2015 LILLANGEN mirror binds 15 leaves, never visual reference, scene '+sceneIndex, () => {
+    const f=v35MirrorFixture(sceneIndex);
+    const original=JSON.stringify(f.options.gltf.parser.json);
+    const result=resolveBuildingPartLayerBindings(f.options);
+    assert.equal(result.sourceVerified,true);
+    const mirror=result.evidence.filter(x => x.bindingKind==='EXACT_V35_SOURCE_ONLY_PRODUCT_2015');
+    assert.equal(mirror.length,15);
+    assert.equal(result.bindings.length,15);
+    for (const part of V35_LILLANGEN_PARTS) {
+      const binding=result.bindings.find(x => x.root===f.leaves.get(part.nodeIndex));
+      assert.equal(binding?.id,part.physicalPart?'architecture-fixtures':undefined);
+      if (part.physicalPart) {
+        const evidence=mirror.find(e => e.sourceNodeIndex===part.nodeIndex);
+        assert.deepEqual(evidence?.sourceNodePath,[5835,5818,part.nodeIndex]);
+        assert.equal(evidence?.sourceSha256,SHA);
+      }
+    }
+    assert.equal(JSON.stringify(f.options.gltf.parser.json),original);
+    const reject=resolveBuildingPartLayerBindings({
+      ...f.options, loadedSourceSha256:'0'.repeat(64),
+    });
+    assert.equal(reject.sourceVerified,false);
+    assert.equal(reject.bindings.length,0);
+    // SHA for the HL1 201-scene donor cannot reclassify old V35 mirror parts.
+    const hl1Only=resolveBuildingPartLayerBindings({
+      ...f.options,expectedSourceSha256:HL1_SHA,loadedSourceSha256:HL1_SHA,
+    });
+    assert.equal(hl1Only.bindings.length,0);
+  });
+}
