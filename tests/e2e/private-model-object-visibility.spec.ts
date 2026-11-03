@@ -144,6 +144,62 @@ test('visibility undo is bounded LIFO state and never overrides the captured bas
   expect(filter.canUndo()).toBe(false);
 });
 
+test('stale or detached selection cannot blank the active model or enter visibility history', () => {
+  const root = makeNode('active-model', true, null, false);
+  const active = makeNode('active-mesh', true, root);
+  const sibling = makeNode('sibling', true, root);
+  const anotherRoot = makeNode('old-model', true, null, false);
+  const stale = makeNode('old-selected-mesh', true, anotherRoot);
+  const filter = createObjectVisibilityFilter();
+
+  expect(filter.isolate(root, stale)).toBe(false);
+  expect(filter.hide(root, stale)).toBe(false);
+  expect(filter.isolate(root, root)).toBe(false);
+  expect(filter.isActive()).toBe(false);
+  expect(filter.canUndo()).toBe(false);
+  expect(active.visible).toBe(true);
+  expect(sibling.visible).toBe(true);
+
+  expect(filter.hide(root, active)).toBe(true);
+  expect(active.visible).toBe(false);
+  expect(filter.isolate(root, stale)).toBe(false);
+  expect(filter.hide(root, stale)).toBe(false);
+  expect(filter.getHiddenObjects()).toEqual([active]);
+  expect(filter.isIsolating()).toBe(false);
+  expect(sibling.visible).toBe(true);
+
+  expect(filter.undo(root)).toBe(true);
+  expect(active.visible).toBe(true);
+  expect(filter.canUndo()).toBe(false);
+});
+
+test('visibility history stays tied to its captured scene root until reset', () => {
+  const firstRoot = makeNode('scene-a', true, null, false);
+  const firstMesh = makeNode('mesh-a', true, firstRoot);
+  const secondRoot = makeNode('scene-b', true, null, false);
+  const secondMesh = makeNode('mesh-b', true, secondRoot);
+  const filter = createObjectVisibilityFilter();
+
+  expect(filter.hide(firstRoot, firstMesh)).toBe(true);
+  expect(firstMesh.visible).toBe(false);
+  expect(filter.hide(secondRoot, secondMesh)).toBe(false);
+  expect(filter.isolate(secondRoot, secondMesh)).toBe(false);
+  expect(filter.reapply(secondRoot)).toBe(false);
+  expect(filter.showAll(secondRoot)).toBe(false);
+  expect(filter.undo(secondRoot)).toBe(false);
+  expect(filter.endIsolate(secondRoot)).toBe(false);
+  expect(filter.getHiddenObjects()).toEqual([firstMesh]);
+  expect(secondMesh.visible).toBe(true);
+  expect(firstMesh.visible).toBe(false);
+
+  filter.reset();
+  expect(filter.isolate(secondRoot, secondMesh)).toBe(true);
+  expect(filter.isIsolating()).toBe(true);
+  expect(secondMesh.visible).toBe(true);
+  expect(filter.endIsolate(secondRoot)).toBe(true);
+  expect(filter.showAll(secondRoot)).toBe(false);
+});
+
 test('reset clears object visibility history for a model switch', () => {
   const root = makeNode('root', true, null, false);
   const a = makeNode('A', true, root);
