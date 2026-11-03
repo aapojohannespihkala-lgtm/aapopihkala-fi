@@ -114,3 +114,20 @@ test('unknown technical availability reasons never inherit prototype labels', ()
 test('empty inventory yields no fabricated support', () => {
   expect(buildTechnicalAvailabilityRows([])).toEqual([]);
 });
+
+test('malformed runtime inventory rows fail closed without hiding valid siblings', () => {
+  const invalid = [null, undefined, false, 'bad',
+    { id: 'technical-electrical', labelFi: null },
+  ] as unknown as TechnicalSystemSummary[];
+  expect(buildTechnicalAvailabilityRows(invalid)).toEqual([]);
+  const rows = buildTechnicalAvailabilityRows([
+    ...invalid,
+    item('SOURCE_MISMATCH'),
+    item('AVAILABLE'),
+  ]);
+  expect(rows).toHaveLength(2);
+  expect(rows[0].supported).toBe(false);
+  expect(rows[0].message).toContain('SHA-256');
+  expect(rows[1].supported).toBe(true);
+  expect(rows[1].count).toBe(2);
+});
