@@ -87,6 +87,18 @@ test('real DOM: model switch clears stale technical sources and never invents cu
   await expect(unknownRow).not.toContainText('Saatavilla: 4');
   await expect(summary).toBeFocused();
 
+  // An invalid whole inventory must revoke the previous model's availability.
+  await page.evaluate(() => (window as any).technicalPanel.update(null));
+  await expect(root).toHaveAttribute('data-availability-state', 'unverified');
+  await expect(root.locator('[data-technical-layer]')).toHaveCount(0);
+  await expect(summary).toContainText('ei ole vielä varmennettu');
+  // A later valid source must still restore the rows normally.
+  await page.evaluate((next) => (window as any).technicalPanel.update(next), input);
+  await expect(summary).toContainText('1/3 ryhmää');
+  await page.evaluate(() => (window as any).technicalPanel.update(undefined));
+  await expect(root.locator('[data-technical-layer]')).toHaveCount(0);
+  await expect(summary).toContainText('ei ole vielä varmennettu');
+
   await page.evaluate(() => (window as any).technicalPanel.update([]));
   await expect(root).toHaveAttribute('data-availability-state', 'unverified');
   await expect(summary).toContainText('ei ole vielä varmennettu');
