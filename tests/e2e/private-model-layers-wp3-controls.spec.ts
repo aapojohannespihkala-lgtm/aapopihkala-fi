@@ -184,6 +184,43 @@ test('inherited persisted leaf modes cannot appear selected when the render gate
   expect(base.layerPresetState!.modes.roof).toBe('ghost');
 });
 
+test('inherited saved modes never press actual Layers buttons for hidden content', async ({ page }) => {
+  await mount(page);
+  await page.evaluate(() => {
+    const app = window as any;
+    const saved = app.layerState;
+    // Build malformed runtime/persisted input in the page. Playwright's
+    // argument serialization would strip the inherited prototype values.
+    const modes = Object.assign(
+      Object.create({ roof: 'visible', 'architecture-windows': 'ghost' }),
+      Object.fromEntries(Object.entries(saved.layerPresetState.modes).filter(
+        ([id]) => id !== 'roof' && id !== 'architecture-windows')),
+    );
+    app.layerPanel.update(
+      { ...saved, layerPresetState: { ...saved.layerPresetState, modes } },
+      app.layerIds,
+    );
+  });
+  await expect(modeButton(page, 'roof', 'hidden')).toBeVisible();
+  await expect(modeButton(page, 'roof', 'hidden')).toHaveAttribute('aria-pressed', 'true');
+  await expect(modeButton(page, 'roof', 'visible')).toHaveAttribute('aria-pressed', 'false');
+  await expect(modeButton(page, 'architecture-windows', 'hidden')).toHaveAttribute('aria-pressed', 'true');
+  await expect(modeButton(page, 'architecture-windows', 'ghost')).toHaveAttribute('aria-pressed', 'false');
+  await expect(row(page, 'roof')).toHaveAttribute('data-effective-mode', 'hidden');
+
+  await page.evaluate(() => {
+    const app = window as any;
+    const saved = app.layerState;
+    const modes = Object.assign(Object.create(null), saved.layerPresetState.modes);
+    app.layerPanel.update(
+      { ...saved, layerPresetState: { ...saved.layerPresetState, modes } },
+      app.layerIds,
+    );
+  });
+  await expect(modeButton(page, 'roof', 'ghost')).toHaveAttribute('aria-pressed', 'true');
+  await expect(modeButton(page, 'architecture-windows', 'visible')).toHaveAttribute('aria-pressed', 'true');
+});
+
 test('branch summaries aggregate actual bound effective states rather than abstract parent selections', () => {
   const start = withViewerLayerBranchVisibility(initial());
   const state = setViewerInteractionLayerMode(start, 'architecture-walls', 'hidden');
