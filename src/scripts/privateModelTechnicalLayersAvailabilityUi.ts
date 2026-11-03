@@ -35,6 +35,19 @@ const provenanceFi: Readonly<Record<TechnicalSourceRole, string>> = {
   REFERENCE_ONLY: 'Lähdeviite tai tutkimusesitys. Ei toteumavarmennus.',
 };
 
+// The source inventory has exactly eight technical-system identities. Runtime
+// inputs may violate their TypeScript type, so never invent an available row.
+const canonicalTechnicalGroupIds: ReadonlySet<TechnicalSystemSummary['id']> = new Set([
+  'technical-electrical',
+  'technical-ventilation',
+  'technical-heating',
+  'locus-water',
+  'locus-wastewater',
+  'p161-kvv-2017',
+  'p161-iv-1974-plan',
+  'p161-iv-1974-section',
+]);
+
 /** UI considers a layer actionable only when the inventory has real bindings. */
 export const buildTechnicalAvailabilityRows = (
   summaries: readonly TechnicalSystemSummary[],
@@ -46,7 +59,8 @@ export const buildTechnicalAvailabilityRows = (
   // Array.isArray narrows readonly input to any[], so retain the typed contract.
   const verifiedShape: readonly TechnicalSystemSummary[] = summaries;
   return verifiedShape.filter(item => item !== null && typeof item === 'object' &&
-    !Array.isArray(item) && typeof item.id === 'string' && item.id.length > 0 &&
+    !Array.isArray(item) && typeof item.id === 'string' &&
+    canonicalTechnicalGroupIds.has(item.id) &&
     typeof item.labelFi === 'string' && item.labelFi.length > 0).map(item => {
     // Runtime inventory data can be malformed even when static TS types are valid.
     // Only own source-role keys are trusted; inherited names are not provenance.
