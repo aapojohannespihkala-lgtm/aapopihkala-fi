@@ -5032,7 +5032,10 @@ const title = 'Private 3D viewer';
       const setLayersPanelOpen = (open: boolean, restoreFocus = false) => {
         layersPanel.hidden = !open;
         layersButton.setAttribute('aria-expanded', String(open));
-        if (!open && restoreFocus) layersButton.focus();
+        // Enter the open panel directly instead of tabbing through unrelated controls.
+        // The existing close and Escape handlers restore focus to the opener.
+        if (open) closeLayersButton.focus();
+        else if (restoreFocus) layersButton.focus();
       };
 
 
