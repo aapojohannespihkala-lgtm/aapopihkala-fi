@@ -136,7 +136,7 @@ test('legacy research presets reject malformed runtime IDs without state loss', 
   const fallback = createViewerInteractionState('whole-building');
 
   for (const incoming of ['unknown', '__proto__', 'constructor', 'toString', '']) {
-    const invalid = incoming as Parameters<typeof createViewerInteractionState>[0];
+    const invalid = incoming as NonNullable<Parameters<typeof createViewerInteractionState>[0]>;
 
     expect(createViewerInteractionState(invalid)).toEqual(fallback);
     expect(formatViewerResearchPresetLabel(invalid)).toBe('Koko rakennus');
@@ -151,7 +151,7 @@ test('legacy research presets reject malformed runtime IDs without state loss', 
   }
 
   // Runtime inputs can be non-strings even though TS only accepts the union.
-  const nonString = null as unknown as Parameters<typeof createViewerInteractionState>[0];
+  const nonString = null as unknown as NonNullable<Parameters<typeof createViewerInteractionState>[0]>;
   expect(createViewerInteractionState(nonString)).toEqual(fallback);
   expect(formatViewerResearchPresetLabel(nonString)).toBe('Koko rakennus');
   expect(applyViewerResearchPreset(selected, nonString)).toBe(selected);
