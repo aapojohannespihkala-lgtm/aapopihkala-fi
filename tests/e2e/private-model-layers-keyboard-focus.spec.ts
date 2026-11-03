@@ -5,10 +5,10 @@ import { readFileSync } from 'node:fs';
 // authenticating a private GLB or creating a second, simulated viewer.
 const viewerSource = readFileSync('src/pages/private-model/index.astro', 'utf8');
 const focusHandler = viewerSource.match(
-  /const setLayersPanelOpen = \\(open: boolean, restoreFocus = false\\) => \\{([\\s\\S]*?)\\n      \\};/,
+  /const setLayersPanelOpen = \(open: boolean, restoreFocus = false\) => \{([\s\S]*?)\n      \};/,
 );
 const eventHandlers = viewerSource.match(
-  /layersButton\\.addEventListener\\('click', \\(\\) => setLayersPanelOpen\\(layersPanel\\.hidden\\)\\);[\\s\\S]*?(?=\\n      edgeModeSelect\\.addEventListener)/,
+  /layersButton\.addEventListener\('click', \(\) => setLayersPanelOpen\(layersPanel\.hidden\)\);[\s\S]*?(?=\n      edgeModeSelect\.addEventListener)/,
 );
 
 test('Layers keyboard entry, close and Escape preserve a predictable focus path', async ({ page }) => {
