@@ -68,8 +68,12 @@
   min-width: 0;
 }
 [data-layer-preset-panel] .yl-layer-preset-legend {
+  position: sticky;
+  top: 0;
+  z-index: 1;
   padding-block: 8px;
   border-block: 1px solid var(--yl-border);
+  background: var(--yl-panel);
   color: var(--yl-muted);
   font-size: 10px;
 }
@@ -162,6 +166,7 @@
   overscroll-behavior: contain;
   scrollbar-gutter: stable;
   scroll-padding-block: 10px;
+  scroll-padding-top: 44px;
   color: #f1f3ee;
   background: #1d2a32;
   border-color: #3b4b53;
