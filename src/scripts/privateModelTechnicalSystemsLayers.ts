@@ -308,8 +308,14 @@ export const createTechnicalSystemLayerInventory = (context: TechnicalSystemsCon
         ? json.scenes?.[sourceSceneIndex]?.nodes
         : json.nodes?.[binding.parentNodeIndex]?.children;
       if (!expectedParents?.includes(binding.nodeIndex)) return false;
-      if (JSON.stringify(binding.object.userData.sourceLinks) !==
-          JSON.stringify(definition.extras?.sourceLinks)) return false;
+      // Corrupt runtime source links (for example cyclic objects) must
+      // invalidate this source node, not abort the inventory of other nodes.
+      try {
+        if (JSON.stringify(binding.object.userData.sourceLinks) !==
+            JSON.stringify(definition.extras?.sourceLinks)) return false;
+      } catch {
+        return false;
+      }
     }
     if (binding.parentNodeIndex === null) return binding.object.parent === sceneRoot;
     const parent = indices.get(binding.parentNodeIndex);
