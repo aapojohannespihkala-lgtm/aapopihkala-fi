@@ -39,7 +39,7 @@ export const viewerResearchPresetLabels: Record<ViewerResearchPreset, string> = 
 export const formatViewerResearchPresetLabel = (
   preset: ViewerResearchPreset,
   customized = false,
-) => `${viewerResearchPresetLabels[preset]}${customized ? ' · mukautettu' : ''}`;
+) => `${viewerResearchPresetLabels[isViewerResearchPreset(preset) ? preset : 'whole-building']}${customized ? ' · mukautettu' : ''}`;
 
 export type ViewerCameraView =
   | 'free-3d'
@@ -150,6 +150,12 @@ export const viewerResearchPresetDefinitions: Record<
   },
 };
 
+// Persisted IDs and JS callers can bypass the static union. Object.prototype
+// values such as '__proto__' must never act as valid research presets.
+const isViewerResearchPreset = (preset: unknown): preset is ViewerResearchPreset =>
+  typeof preset === 'string' &&
+  Object.prototype.hasOwnProperty.call(viewerResearchPresetDefinitions, preset);
+
 const copyLayerControls = (
   layers: ViewerLayerControlsState,
 ): ViewerLayerControlsState => ({ ...layers });
@@ -161,9 +167,10 @@ const copyPresentationStyle = (
 export const createViewerInteractionState = (
   preset: ViewerResearchPreset = 'whole-building',
 ): ViewerInteractionState => {
-  const definition = viewerResearchPresetDefinitions[preset];
+  const safePreset = isViewerResearchPreset(preset) ? preset : 'whole-building';
+  const definition = viewerResearchPresetDefinitions[safePreset];
   return {
-    researchPreset: preset,
+    researchPreset: safePreset,
     cameraView: definition.cameraView,
     layers: copyLayerControls(definition.layers),
     presentation: copyPresentationStyle(definition.presentation),
@@ -171,9 +178,11 @@ export const createViewerInteractionState = (
 };
 
 export const applyViewerResearchPreset = (
-  _current: ViewerInteractionState,
+  current: ViewerInteractionState,
   preset: ViewerResearchPreset,
-): ViewerInteractionState => createViewerInteractionState(preset);
+): ViewerInteractionState => isViewerResearchPreset(preset)
+  ? createViewerInteractionState(preset)
+  : current;
 
 export const resetViewerInteractionStateToPresetDefaults = (
   current: ViewerInteractionState,

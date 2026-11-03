@@ -4,6 +4,7 @@ import { V33_SOURCE_SHA256, V33_SOURCE_SCENE_COUNT, V33_BUILDING_PARTS, V33_BUIL
 import { V34_SOURCE_SHA256, V34_SOURCE_SCENE_COUNT, V34_BUILDING_PARTS, V34_BUILDING_SCENES } from './privateModelC80R2V34LayerSourceProfile.mjs';
 import { V35_SOURCE_SHA256, V35_SOURCE_SCENE_COUNT, V35_BUILDING_PARTS, V35_BUILDING_SCENES } from './privateModelC80R2V35LayerSourceProfile.mjs';
 import { resolveV35FurnitureSourcePart, V35_FURNITURE_SCENES } from './privateModelFurnitureLayerSourceProfile.mjs';
+import { resolveV35LillangenSourceMesh } from './privateModelV35LillangenMirrorSourceProfile.mjs';
 
 /**
  * High 1: opt-in, read-only building-part bindings for
@@ -486,8 +487,24 @@ export function resolveBuildingPartLayerBindings(input) {
       (associations.get(object)?.meshes === undefined ||
        associations.get(object)?.meshes === furniture.meshIndex)
       ? furniture : null;
+    // The historical LILLÅNGEN mirror is independently identifiable in original
+    // V35 only. The HL1 201-scene donor remains controlled by its own exact profile.
+    const lillangen = !existingProfile && !splitPart && !verifiedFurniture &&
+      isOriginalV35
+      ? resolveV35LillangenSourceMesh({
+          glbJson: gltf.parser.json,
+          expectedSourceSha256, loadedSourceSha256,
+          sceneIndex, floor, nodeIndex: source.index, nodePath: source.path,
+        })
+      : null;
+    const verifiedLillangen = lillangen &&
+      matchesSourceName(source.sourceObject.name, sourceDefinition?.name) &&
+      (associations.get(object)?.meshes === undefined ||
+       associations.get(object)?.meshes === lillangen.sourceMeshIndex)
+      ? lillangen : null;
     const profile = existingProfile ?? splitPart ??
-      (verifiedFurniture ? { id: verifiedFurniture.layerId } : null);
+      (verifiedFurniture ? { id: verifiedFurniture.layerId } : null) ??
+      (verifiedLillangen ? { id: verifiedLillangen.id } : null);
     const explicit = exactFamily(meta.G2Id) ?? exactFamily(meta.ParentG2Id) ?? exactFamily(meta.identity);
     const scope = meta.ylisViewScope;
     const id = profile?.id ?? explicit?.layerId;
@@ -524,7 +541,7 @@ export function resolveBuildingPartLayerBindings(input) {
       objectKey: scope?.objectKey ?? `${String(loadedSourceSha256).toLowerCase() === V35_HL1_DONOR_SHA256 ? 'V35_HL1_DONOR' : String(loadedSourceSha256).toLowerCase() === V35_SOURCE_SHA256 ? 'V35' : String(loadedSourceSha256).toLowerCase() === V34_SOURCE_SHA256 ? 'V34' : String(loadedSourceSha256).toLowerCase() === V33_SOURCE_SHA256 ? 'V33' : String(loadedSourceSha256).toLowerCase() === V29_SOURCE_SHA256 ? 'V29' : String(loadedSourceSha256).toLowerCase() === V27_SOURCE_SHA256 ? 'V27' : 'V26'}:${sceneIndex}:${sourceNodeIndex}`,
       storeyScope: scope?.storeyScope ?? floor,
       apartmentScope: scope?.apartmentScope ?? 'D',
-      bindingKind: splitPart ? 'EXACT_V35_HL1_WC_SPLIT_DONOR_PROFILE' : profile ? (sha === V35_HL1_DONOR_SHA256 ? 'INHERITED_V35_HL1_DONOR_PROFILE' : String(loadedSourceSha256).toLowerCase() === V35_SOURCE_SHA256 ? 'EXACT_V35_SOURCE_PROFILE' : String(loadedSourceSha256).toLowerCase() === V34_SOURCE_SHA256 ? 'EXACT_V34_SOURCE_PROFILE' : String(loadedSourceSha256).toLowerCase() === V33_SOURCE_SHA256 ? 'EXACT_V33_SOURCE_PROFILE' : String(loadedSourceSha256).toLowerCase() === V29_SOURCE_SHA256 ? 'EXACT_V29_SOURCE_PROFILE' : String(loadedSourceSha256).toLowerCase() === V27_SOURCE_SHA256 ? 'EXACT_V27_SOURCE_PROFILE' : 'EXACT_V26_SOURCE_PROFILE') : 'EXPLICIT_SOURCE_METADATA',
+      bindingKind: verifiedLillangen ? verifiedLillangen.bindingKind : splitPart ? 'EXACT_V35_HL1_WC_SPLIT_DONOR_PROFILE' : profile ? (sha === V35_HL1_DONOR_SHA256 ? 'INHERITED_V35_HL1_DONOR_PROFILE' : String(loadedSourceSha256).toLowerCase() === V35_SOURCE_SHA256 ? 'EXACT_V35_SOURCE_PROFILE' : String(loadedSourceSha256).toLowerCase() === V34_SOURCE_SHA256 ? 'EXACT_V34_SOURCE_PROFILE' : String(loadedSourceSha256).toLowerCase() === V33_SOURCE_SHA256 ? 'EXACT_V33_SOURCE_PROFILE' : String(loadedSourceSha256).toLowerCase() === V29_SOURCE_SHA256 ? 'EXACT_V29_SOURCE_PROFILE' : String(loadedSourceSha256).toLowerCase() === V27_SOURCE_SHA256 ? 'EXACT_V27_SOURCE_PROFILE' : 'EXACT_V26_SOURCE_PROFILE') : 'EXPLICIT_SOURCE_METADATA',
     });
   });
   return {
