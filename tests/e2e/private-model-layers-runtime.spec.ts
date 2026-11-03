@@ -389,10 +389,18 @@ test(`exact ${model.version} viewer: D upstairs, ghost walls, supported IV, rese
     // V35 exact source, 2F197: HL4 binds four Kvik/MANO tall-cabinet
     // carcasses and their verified front surfaces to architecture-fixtures.
     // Only this already source-verified version has that expected coverage.
+    // Furniture starts collapsed. Follow its disclosure before using child controls,
+    // just as a user does, and preserve that expansion across panel toggles.
+    const furnitureDisclosure = page.locator('[data-layer-disclosure="furniture"]');
+    if (await furnitureDisclosure.getAttribute('aria-expanded') !== 'true') {
+      await furnitureDisclosure.click();
+    }
+    await expect(furnitureDisclosure).toHaveAttribute('aria-expanded', 'true');
     const fixtures = page.locator('[data-layer-node="architecture-fixtures"]');
     const fixtureVisible = fixtures.locator('[data-layer-mode="visible"]');
     const fixtureHidden = fixtures.locator('[data-layer-mode="hidden"]');
     await expect(fixtures).toHaveCount(1);
+    await expect(fixtureVisible).toBeVisible();
     await expect(fixtureVisible).toHaveAttribute('aria-pressed', 'true');
     await expect(canvas).toHaveAttribute('data-layers-source-sha256', sha);
     await expect(canvas).toHaveAttribute('data-layers-source-scene-index', model.secondFloor);
