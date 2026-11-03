@@ -261,14 +261,17 @@ const v35MirrorFixture = sceneIndex => {
     extras:{donorSha256:V35_LILLANGEN_DONOR_SHA256,
       geometryLevel:'SOURCE_ONLY_PRODUCT_2015_PLUS_VISUAL_PROXY'} };
   const sceneRoot = new Object3D('scene');
-  const root = sceneRoot.add(new Object3D(rootName));
-  const parent = root.add(new Object3D(parentName));
+  const root = new Object3D(rootName);
+  sceneRoot.add(root);
+  const parent = new Object3D(parentName);
+  root.add(parent);
   const associations = new Map([[root,{nodes:5835}],[parent,{nodes:5818}]]);
   const leaves = new Map();
   for (const part of V35_LILLANGEN_PARTS) {
     nodes[part.nodeIndex] = { name:part.name, mesh:part.meshIndex,
       extras:{current:false,asBuilt:false,donorSha256:V35_LILLANGEN_DONOR_SHA256} };
-    const leaf = parent.add(new Object3D(part.name,true));
+    const leaf = new Object3D(part.name,true);
+    parent.add(leaf);
     associations.set(leaf,{nodes:part.nodeIndex,meshes:part.meshIndex});
     leaves.set(part.nodeIndex,leaf);
   }
