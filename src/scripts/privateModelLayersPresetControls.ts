@@ -70,7 +70,7 @@ const catalog: readonly CatalogNode[] = [
     { id: 'architecture-windows', label: 'Ikkunat' },
   ] },
   { id: 'furniture', label: 'Kalusteet ja varusteet', children: [
-    { id: 'architecture-fixtures', label: 'Tunnistetut kiintokalusteet' },
+    { id: 'architecture-fixtures', label: 'Kiintokalusteiden tunnistetut osat' },
     { id: 'architecture-other', label: 'Muut tunnistetut kohteet' },
   ] },
   { id: 'technical', label: 'Talotekniikka', children: [
@@ -206,7 +206,7 @@ export const mountViewerLayerPresetPanel = (
   roofNotice.hidden = true;
   const help = doc.createElement('p');
   help.className = 'yl-layer-preset-help';
-  help.textContent = 'Luokittelu on osittainen. Näytetään vain tunnistetut ryhmät.';
+  help.textContent = 'Näkyvyys koskee vain lähteeseen sidottuja osia. Kalusteen etupintojen piilotus ei välttämättä piilota runkoa.';
   const sourceCoverageNote = doc.createElement('p');
   sourceCoverageNote.className = 'yl-layer-preset-help';
   sourceCoverageNote.dataset.layerSourceCoverage = '';
