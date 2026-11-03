@@ -404,6 +404,14 @@ export function resolveBuildingPartLayerBindings(input) {
     return unavailable('SOURCE_SHA_MISMATCH', scene);
   }
   if (!AREA.has(area) || !FLOOR.has(floor)) return unavailable('UNKNOWN_SCOPE', scene);
+  // A modified or incomplete opt-in donor scene must not inherit the old V35
+  // part allowlist. Both new split roots are required in the selected scene.
+  if (String(loadedSourceSha256).toLowerCase() === V35_HL1_DONOR_SHA256 &&
+      (gltf?.parser?.json?.scenes?.length !== V35_HL1_DONOR_SCENE_COUNT ||
+       (Object.hasOwn(V35_HL1_DONOR_SCENES, sceneIndex) &&
+        !v35Hl1DonorScene(gltf.parser.json, sceneIndex, floor)))) {
+    return unavailable('HL1_DONOR_SCENE_MISMATCH', scene);
+  }
   if (!Number.isInteger(sceneIndex) || gltf?.scenes?.[sceneIndex] !== scene)
     return unavailable('SCENE_MISMATCH', scene);
   const hierarchy = makeNodeHierarchy(gltf?.parser?.json, sceneIndex);
