@@ -336,6 +336,36 @@ test(`exact ${model.version} viewer: D upstairs, ghost walls, supported IV, rese
       await expectPreservedCamera();
     }
   }
+  if (model.version === 'V35') {
+    // V35 exact source, 2F197: HL4 binds four Kvik/MANO tall-cabinet
+    // carcasses and their verified front surfaces to architecture-fixtures.
+    // Only this already source-verified version has that expected coverage.
+    const fixtures = page.locator('[data-layer-node="architecture-fixtures"]');
+    const fixtureVisible = fixtures.locator('[data-layer-mode="visible"]');
+    const fixtureHidden = fixtures.locator('[data-layer-mode="hidden"]');
+    await expect(fixtures).toHaveCount(1);
+    await expect(fixtureVisible).toHaveAttribute('aria-pressed', 'true');
+    await expect(canvas).toHaveAttribute('data-layers-source-sha256', sha);
+    await expect(canvas).toHaveAttribute('data-layers-source-scene-index', model.secondFloor);
+
+    // Keep the same viewport/camera and close only the UI panel in both
+    // evidence frames, so the model rather than the overlay is compared.
+    await page.locator('#layers-button').click();
+    await page.screenshot({ path: info.outputPath('layers-v35-2f-fixtures-visible-desktop.png') });
+    await page.locator('#layers-button').click();
+    await fixtureHidden.click();
+    await expect(fixtureHidden).toHaveAttribute('aria-pressed', 'true');
+    await expect(canvas).toHaveAttribute('data-layers-runtime', 'active');
+    await expectPreservedCamera();
+    await page.locator('#layers-button').click();
+    await page.screenshot({ path: info.outputPath('layers-v35-2f-fixtures-hidden-desktop.png') });
+    await page.locator('#layers-button').click();
+    await fixtureVisible.click();
+    await expect(fixtureVisible).toHaveAttribute('aria-pressed', 'true');
+    await expectPreservedCamera();
+    // Restore the verified source-bound state before the existing reset,
+    // 1F/BOTH/2F and mobile regression exercises run.
+  }
   await page.screenshot({ path: info.outputPath(evidencePrefix + '-2f-walls-ghost-iv-visible-desktop.png') });
   await page.getByRole('button', { name: 'Palauta näkyvyys' }).click();
   await expect(walls.locator('[data-layer-mode="visible"]')).toHaveAttribute('aria-pressed', 'true');
