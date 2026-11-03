@@ -353,3 +353,16 @@ test('legacy ancestor effects are explained but branch-mode choices become indep
   await expect(modeButton(page, 'technical-ventilation', 'visible')).not.toHaveAttribute('aria-description');
   expect(await page.evaluate(() => (window as any).layerEvents)).toEqual([]);
 });
+
+test('desktop layer disclosure reaches 44px without horizontal overflow', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await mount(page);
+  const trigger = page.locator('[data-layer-disclosure="architecture-walls"]');
+  const bounds = await trigger.boundingBox();
+  expect(bounds).not.toBeNull();
+  expect(bounds!.width).toBeGreaterThanOrEqual(44);
+  expect(bounds!.height).toBeGreaterThanOrEqual(44);
+  await trigger.click();
+  await expect(trigger).toHaveAttribute('aria-expanded', 'true');
+  expect(await page.locator('#layers-panel').evaluate(el => el.scrollWidth > el.clientWidth)).toBe(false);
+});
