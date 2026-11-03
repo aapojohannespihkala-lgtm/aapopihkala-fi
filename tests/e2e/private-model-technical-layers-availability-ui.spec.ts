@@ -55,6 +55,29 @@ test('a falsely advertised available status without any binding is rejected', ()
   expect(row.message).toContain('objektisidonta puuttuu');
 });
 
+
+test('source-matched count must cover every advertised bound object', () => {
+  // A malformed/stale runtime inventory must not fabricate availability.
+  for (const matchedCount of [0, 1, -1, Number.NaN, Number.POSITIVE_INFINITY]) {
+    const [row] = buildTechnicalAvailabilityRows([
+      item('AVAILABLE', { matchedCount, boundCount: 2 }),
+    ]);
+    expect(row.supported).toBe(false);
+    expect(row.count).toBe(0);
+    expect(row.message).toContain('objektisidonta puuttuu');
+  }
+
+  // A valid neighboring group remains available; two matches cover two bindings.
+  const rows = buildTechnicalAvailabilityRows([
+    item('AVAILABLE', { matchedCount: 0, boundCount: 2 }),
+    item('AVAILABLE', { id: 'technical-heating', labelFi: 'Lämmitys', matchedCount: 2, boundCount: 2 }),
+  ]);
+  expect(rows.map(row => [row.id, row.supported, row.count])).toEqual([
+    ['technical-electrical', false, 0],
+    ['technical-heating', true, 2],
+  ]);
+});
+
 test('historical plans and reference layers keep their source status separate from visibility', () => {
   const rows = buildTechnicalAvailabilityRows([
     item('AVAILABLE', {
