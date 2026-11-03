@@ -38,10 +38,12 @@ const provenanceFi: Readonly<Record<TechnicalSourceRole, string>> = {
 /** UI considers a layer actionable only when the inventory has real bindings. */
 export const buildTechnicalAvailabilityRows = (
   summaries: readonly TechnicalSystemSummary[],
-): TechnicalAvailabilityRow[] =>
+): TechnicalAvailabilityRow[] => {
+  // A malformed whole inventory must clear the previous model's rows.
+  if (!Array.isArray(summaries)) return [];
   // Runtime inventory may contain malformed entries despite the TS contract.
   // Omit unsourced rows, but keep each valid sibling's verified status.
-  summaries.filter(item => item !== null && typeof item === 'object' &&
+  return summaries.filter(item => item !== null && typeof item === 'object' &&
     !Array.isArray(item) && typeof item.id === 'string' && item.id.length > 0 &&
     typeof item.labelFi === 'string' && item.labelFi.length > 0).map(item => {
     // Runtime inventory data can be malformed even when static TS types are valid.
@@ -71,6 +73,7 @@ export const buildTechnicalAvailabilityRows = (
         : 'Lähteen asema ei ole varmennettu.',
     };
   });
+};
 
 export type TechnicalAvailabilityView = {
   root: HTMLDetailsElement;
