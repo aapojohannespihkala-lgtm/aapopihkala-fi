@@ -247,7 +247,11 @@ const blockedReviewIds = new Set<string>([p185cReviewId]);
 export const getRequestedReviewCandidateId = (search: string) => {
   const reviewId = new URLSearchParams(search).get(reviewQueryKey);
   if (!reviewId || blockedReviewIds.has(reviewId)) return null;
-  return reviewCandidateById[reviewId] ?? getConventionalReviewCandidateId(reviewId);
+  // A source review must be an own mapping, never an inherited Object key.
+  const mappedCandidateId = Object.hasOwn(reviewCandidateById, reviewId)
+    ? reviewCandidateById[reviewId]
+    : null;
+  return mappedCandidateId ?? getConventionalReviewCandidateId(reviewId);
 };
 
 export const isWorkTestCandidate = (value: unknown): value is WorkTestCandidate => {
