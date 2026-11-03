@@ -4,6 +4,7 @@ import { nameMatches } from './privateModelSourceNodeAssociations.mjs';
 import {
   createViewerScopedLayerPresentation,
   type ViewerScopedLayerFrame,
+  type ViewerScopedLayerGate,
   type ViewerScopedLayerRoot,
 } from './privateModelLayerScopedPresentationBridge';
 import {
@@ -99,7 +100,16 @@ export const createViewerLayersRuntime = (args: {
         !hasOriginalPath(root, index));
       let safeFrame = { ...frame, availableNodeIds };
       if (displacedRoots.length) {
-        const gates = new Map(frame.gates);
+        // A malformed runtime gate collection must not throw before the
+        // scoped bridge can revoke stale visible/ghost presentation.
+        // Retain support for valid readonly/iterable maps, but fail closed
+        // for invalid collections instead of keeping any previous gates.
+        let gates = new Map<Object3D, ViewerScopedLayerGate>();
+        try {
+          gates = new Map(frame.gates);
+        } catch {
+          // No trusted gate can be retained from a malformed collection.
+        }
         displacedRoots.forEach(({ root }) => gates.delete(root));
         safeFrame = { ...safeFrame, gates };
       }
