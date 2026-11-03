@@ -291,7 +291,7 @@ test('references open separately and no source-only routes enter the physical de
   await page.evaluate(state => (window as any).layerPanel.update(state, []), initial());
   await expect(page.locator('[data-layer-node]')).toHaveCount(0);
   await expect(refs.getByText('Tässä näkymässä ei ole erikseen luokiteltuja lähteitä tai viitteitä.')).toBeVisible();
-  await expect(page.getByText('Luokittelu on osittainen. Näytetään vain tunnistetut ryhmät.')).toBeVisible();
+  await expect(page.getByText('Näkyvyys koskee vain lähteeseen sidottuja osia. Kalusteen etupintojen piilotus ei välttämättä piilota runkoa.')).toBeVisible();
 });
 
 test('keyed mobile updates preserve expansion, focused button, scroll and readable dark contrast', async ({ page }) => {
