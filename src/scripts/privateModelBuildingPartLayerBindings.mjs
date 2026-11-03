@@ -3,6 +3,7 @@ import { V29_SOURCE_SHA256, V29_SOURCE_SCENE_COUNT, V29_BUILDING_PARTS, V29_BUIL
 import { V33_SOURCE_SHA256, V33_SOURCE_SCENE_COUNT, V33_BUILDING_PARTS, V33_BUILDING_SCENES } from './privateModelC80R2V33LayerSourceProfile.mjs';
 import { V34_SOURCE_SHA256, V34_SOURCE_SCENE_COUNT, V34_BUILDING_PARTS, V34_BUILDING_SCENES } from './privateModelC80R2V34LayerSourceProfile.mjs';
 import { V35_SOURCE_SHA256, V35_SOURCE_SCENE_COUNT, V35_BUILDING_PARTS, V35_BUILDING_SCENES } from './privateModelC80R2V35LayerSourceProfile.mjs';
+import { resolveV35FurnitureSourcePart, V35_FURNITURE_SCENES } from './privateModelFurnitureLayerSourceProfile.mjs';
 
 /**
  * High 1: opt-in, read-only building-part bindings for
@@ -368,8 +369,35 @@ export function resolveBuildingPartLayerBindings(input) {
     }
     const sourceNodeIndex = source.index;
     const meta = sourceMetadata(source.path, hierarchy);
-    const profile = v26SourcePart(gltf.parser.json, String(loadedSourceSha256).toLowerCase(),
+    const sha = String(loadedSourceSha256).toLowerCase();
+    const existingProfile = v26SourcePart(gltf.parser.json, sha,
       sceneIndex, floor, source, associations, object);
+    // HL2 exact source profile: four separate cabinet carcass meshes are not
+    // in the legacy V35 front-only allowlist. Match the immutable source
+    // scene/node/mesh/name/parent path before granting fixture visibility.
+    // The existing front bindings retain their original owner and path.
+    const sourceDefinition = hierarchy.nodes[source.index];
+    const parentDefinition = hierarchy.nodes[source.path.at(-2)];
+    const furniture = !existingProfile && sha === V35_SOURCE_SHA256 &&
+      gltf.parser.json.scenes.length === V35_SOURCE_SCENE_COUNT &&
+      V35_FURNITURE_SCENES[sceneIndex]?.floor === floor
+      ? resolveV35FurnitureSourcePart({
+          expectedSourceSha256, loadedSourceSha256,
+          sceneIndex, sceneName: gltf.parser.json.scenes[sceneIndex]?.name,
+          nodeIndex: source.index, meshIndex: sourceDefinition?.mesh,
+          nodeName: sourceDefinition?.name, nodePath: source.path,
+          parentNodeName: parentDefinition?.name,
+        })
+      : null;
+    // Do not infer a cabinet from its reused mesh number alone. Retain the
+    // source parser's real mesh association and the original source name.
+    const verifiedFurniture = furniture &&
+      matchesSourceName(source.sourceObject.name, furniture.name) &&
+      (associations.get(object)?.meshes === undefined ||
+       associations.get(object)?.meshes === furniture.meshIndex)
+      ? furniture : null;
+    const profile = existingProfile ??
+      (verifiedFurniture ? { id: verifiedFurniture.layerId } : null);
     const explicit = exactFamily(meta.G2Id) ?? exactFamily(meta.ParentG2Id) ?? exactFamily(meta.identity);
     const scope = meta.ylisViewScope;
     const id = profile?.id ?? explicit?.layerId;
