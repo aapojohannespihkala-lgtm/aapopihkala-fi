@@ -28,11 +28,15 @@ test('source-disallowed selected preset is not presented as active and returns w
   }, saved);
   const selection = page.getByRole('combobox', { name: 'Näkymän esiasetus' });
   await expect(selection).toHaveValue('d-2f');
+  // Empty is a display fallback, never a command that changes the preset.
+  await expect(selection.locator('option[value=""]')).toBeDisabled();
   await expect(page.getByText('Mukautettu', { exact: true })).toBeVisible();
 
   await page.evaluate(state => (window as any).layerPanel.update(
     state, ['roof'], { boundNodeIds: ['roof'], availablePresets: ['d-apartment'] }), saved);
   await expect(selection).toHaveValue('');
+  // The source-unavailable state still displays blank even with a disabled option.
+  await expect(selection.locator('option[value=""]')).toBeDisabled();
   await expect(selection.locator('option[value="d-2f"]')).toHaveJSProperty('disabled', true);
   await expect(page.getByText('Esiasetus ei käytettävissä tässä mallissa')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Palauta näkyvyys' })).toBeDisabled();
