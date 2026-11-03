@@ -51,6 +51,27 @@ test('Layers fail closed if persisted node mode is absent or malformed', () => {
   expect(getViewerLayerEffectiveMode(invalidRoot, 'architecture')).toBe('hidden');
 });
 
+test('Layers reject missing and non-record persisted mode maps without throwing', () => {
+  // Runtime URL/storage or external source data is not type-checked by TS.
+  // In particular Object.hasOwn(null, key) throws without an explicit guard.
+  for (const raw of [null, undefined, false, 42, '', []]) {
+    const modes = raw as unknown as ViewerLayerModeMap;
+    expect(getViewerLayerEffectiveMode(modes, 'roof')).toBe('hidden');
+    expect(getViewerLayerEffectiveMode(modes, 'architecture-walls-exterior', true)).toBe('hidden');
+    expect(getViewerLayerParentMode(modes, 'architecture-walls',
+      viewerArchitecturalWallChildNodeIds)).toBe('hidden');
+  }
+
+  // Valid null-prototype and explicit own-key maps keep their prior behavior.
+  const modes = Object.assign(Object.create(null),
+    createViewerLayerModeMap(createViewerLayerControlsState())) as ViewerLayerModeMap;
+  expect(getViewerLayerEffectiveMode(modes, 'architecture-walls-exterior')).toBe('visible');
+  modes['architecture-walls'] = 'ghost';
+  expect(getViewerLayerEffectiveMode(modes, 'architecture-walls-exterior')).toBe('ghost');
+  expect(getViewerLayerParentMode(modes, 'architecture-walls',
+    viewerArchitecturalWallChildNodeIds)).toBe('mixed');
+});
+
 test('Layers reject prototype-inherited visible or ghost values in persisted maps', () => {
   // Runtime maps do not carry TypeScript guarantees. A missing own key must
   // not become visible because an injected prototype contains that name.

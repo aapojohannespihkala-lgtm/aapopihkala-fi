@@ -113,6 +113,37 @@ test('unknown technical availability reasons never inherit prototype labels', ()
 
 test('empty inventory yields no fabricated support', () => {
   expect(buildTechnicalAvailabilityRows([])).toEqual([]);
+  // A scene change can supply an invalid entire inventory, not only invalid rows.
+  for (const invalid of [null, undefined, false, {}, 'stale-source']) {
+    expect(buildTechnicalAvailabilityRows(invalid as unknown as TechnicalSystemSummary[]))
+      .toEqual([]);
+  }
+});
+
+test('technical inventory rejects unknown group IDs without hiding valid siblings', () => {
+  const unknown = ['technical-imaginary-pipes', 'constructor', '__proto__', 'p161-future-plan'];
+  const fake = unknown.map(id => item('AVAILABLE', {
+    id: id as TechnicalSystemSummary['id'],
+    labelFi: 'Kuvitteellinen lähdeverkosto',
+  }));
+  expect(buildTechnicalAvailabilityRows(fake)).toEqual([]);
+
+  const valid = item('AVAILABLE', {
+    id: 'technical-heating',
+    labelFi: 'Patterit ja lämpöpumppu',
+  });
+  const rows = buildTechnicalAvailabilityRows([...fake, valid]);
+  expect(rows).toHaveLength(1);
+  expect(rows[0]).toMatchObject({ id: 'technical-heating', supported: true, count: 2 });
+
+  // Keep all eight existing source-owned IDs, including reference-only groups.
+  const known: TechnicalSystemSummary['id'][] = [
+    'technical-electrical', 'technical-ventilation', 'technical-heating',
+    'locus-water', 'locus-wastewater', 'p161-kvv-2017',
+    'p161-iv-1974-plan', 'p161-iv-1974-section',
+  ];
+  expect(buildTechnicalAvailabilityRows(known.map(id => item('NO_OBJECTS_IN_SCENE', { id })))
+    .map(row => row.id)).toEqual(known);
 });
 
 test('malformed runtime inventory rows fail closed without hiding valid siblings', () => {
