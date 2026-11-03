@@ -403,7 +403,12 @@ export const viewerLocusParentVisibilityState = (
   if (childNodeIds.length === 0) return 'all';
 
   const visibleCount = childNodeIds.filter(
-    (nodeId) => current[childVisibilityKey(nodeId)],
+    (nodeId) =>
+      // A malformed runtime child ID must not fall through to the 1974 IV
+      // section key in childVisibilityKey and appear as a visible Locus node.
+      Object.prototype.hasOwnProperty.call(viewerLayerNodeCapabilities, nodeId) &&
+      viewerLayerNodeCapabilities[nodeId].parent === 'locus' &&
+      current[childVisibilityKey(nodeId)],
   ).length;
 
   if (visibleCount === 0) return 'none';
