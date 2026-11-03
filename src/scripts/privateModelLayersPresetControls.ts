@@ -183,6 +183,9 @@ export const mountViewerLayerPresetPanel = (
   for (const [id, label] of [['', 'Valitse esiasetus'], ...viewerLayerPresetChoices]) {
     const option = doc.createElement('option');
     option.value = id; option.textContent = label;
+    // Placeholder is a status display, not an actionable preset: selecting it
+    // would leave the model on its prior preset while the picker looks empty.
+    if (id === '') option.disabled = true;
     presetSelect.append(option);
   }
   const customized = doc.createElement('span');
