@@ -1,4 +1,4 @@
-import { Raycaster, Vector2, type Object3D, type PerspectiveCamera, type Mesh } from 'three';
+import { Raycaster, Vector2, type Object3D, type PerspectiveCamera, type Mesh, type Material, type Plane } from 'three';
 import type { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 
 /**
@@ -11,24 +11,43 @@ export function visibleOrbitFocus(
   camera: PerspectiveCamera,
 ): { point: import('three').Vector3; distance: number } | null {
   if (!root?.visible) return null;
-  const meshes: Object3D[] = [];
+  // Raycaster does not reproduce WebGL material visibility or local clipping.
+  // A hit must be checked against the *actual intersected face material*, not
+  // just any visible material on the mesh. The viewer enables local clipping.
+  const renderable = (material: Material | undefined | null) =>
+    !!material && material.visible && material.colorWrite !== false &&
+    material.depthTest !== false &&
+    !('wireframe' in material && material.wireframe === true) &&
+    (material.opacity ?? 1) >= 0.45;
+  const meshes: Mesh[] = [];
   root.updateWorldMatrix(true, true);
   root.traverseVisible((object) => {
     const mesh = object as Mesh;
     if (!mesh.isMesh || !mesh.geometry) return;
     const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
-    if (!materials.some((material) => material && material.visible &&
-      material.depthTest !== false && !('wireframe' in material && material.wireframe === true) &&
-      (material.opacity ?? 1) >= 0.45)) return;
-    meshes.push(mesh);
+    if (materials.some(renderable)) meshes.push(mesh);
   });
   if (!meshes.length) return null;
 
   camera.updateWorldMatrix(true, false);
   const raycaster = new Raycaster();
   raycaster.setFromCamera(new Vector2(0, 0), camera);
-  const hit = raycaster.intersectObjects(meshes, false)
-    .find((entry) => Number.isFinite(entry.distance) && entry.distance > 0.01);
+  const hit = raycaster.intersectObjects(meshes, false).find((entry) => {
+    if (!Number.isFinite(entry.distance) || entry.distance <= 0.01) return false;
+    const intersectedMesh = entry.object as Mesh;
+    const material = Array.isArray(intersectedMesh.material)
+      ? intersectedMesh.material[entry.face?.materialIndex ?? 0]
+      : intersectedMesh.material;
+    if (!renderable(material)) return false;
+    const planes = material.clippingPlanes;
+    if (!planes?.length) return true;
+    // Three.js clips the positive half-space of a Plane. For
+    // clipIntersection, every clipping plane must reject this point.
+    const clipped = material.clipIntersection
+      ? planes.every((plane: Plane) => plane.distanceToPoint(entry.point) > 0)
+      : planes.some((plane: Plane) => plane.distanceToPoint(entry.point) > 0);
+    return !clipped;
+  });
   return hit ? { point: hit.point.clone(), distance: hit.distance } : null;
 }
 
