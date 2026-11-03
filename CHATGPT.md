@@ -67,6 +67,29 @@ FI and EN are two language versions of the same article. Update both in the same
 
 Keep facts, argument, emphasis, source sets and image alt-text meaning aligned across languages.
 
+## Protected private model and Layers
+
+For the existing protected viewer, use this route before the general 3D route below.
+
+Start with the smallest relevant set:
+
+- Viewer integration and model loading: `src/pages/private-model/index.astro`.
+- Visibility state and controls: `src/scripts/privateModelViewerState.ts`, `src/scripts/privateModelLayerHierarchyState.ts`, `src/scripts/privateModelLayersPresetControls.ts` and `src/styles/privateModelLayersPresetControls.css`.
+- Scene application: `src/scripts/privateModelLayersRuntime.ts` and `src/scripts/privateModelLayerScopedPresentationBridge.ts`.
+- Source classification: `src/scripts/privateModelBuildingPartLayerBindings.mjs`, `src/scripts/privateModelTechnicalSystemsLayers.ts` and the exact source profile they select. Furniture additions can have a separate `privateModelFurnitureLayerSourceProfile.mjs`.
+- Matching `tests/unit/private-model-*.test.mjs` and `tests/e2e/private-model-*.spec.ts`. For CI selection, read `.github/scripts/select-browser-tests.sh` and the explicit Node test list in `.github/workflows/build-check.yml`.
+
+Preserve these contracts:
+
+- Identify the actual loaded source and verified published model. A newer local donor, filename or PR title does not establish a new active model.
+- Bind classification and source cards to the exact SHA, internal scene, node/mesh identity and original parent path. Do not inherit bindings from another source or infer a physical category from appearance.
+- Target and floor scope constrain visibility before layer choices. Layer changes and restore preserve the camera.
+- Keep direct visible/ghost/hidden controls, independent branch commands, reversible materials and selection, and separate ceiling and roof behavior.
+- Preserve C70/default, working model routes, authentication and sourceLinks.
+- Coordinate ownership before changing shared source gates or the integration page. Reuse delivered source modules instead of writing another contributor's files in parallel.
+
+For actual production proof, use the existing authenticated trusted-main `.github/workflows/d-view-regression.yml` path and its exact-source checks. Report required CI, source-only rendering, production WebGL and human review separately. A skipped private-source test or a local render is not production proof. Ordinary viewer maintenance does not create a new Animation Lab experiment.
+
 ## 3D and interactive graphics
 
 Start with:
