@@ -486,7 +486,8 @@ export const getViewerLayerEffectiveMode = (
   if (!Object.prototype.hasOwnProperty.call(viewerLayerNodeCapabilities, nodeId)) {
     return 'hidden';
   }
-  const ownMode = modes[nodeId];
+  // Only a node's own saved value can establish its presentation mode.
+  const ownMode = Object.hasOwn(modes, nodeId) ? modes[nodeId] : undefined;
   // External/persisted mode maps can be incomplete or malformed at runtime.
   // Never reinterpret an unrecognized state as visible in a scoped viewer.
   if (ownMode !== 'visible' && ownMode !== 'ghost') return 'hidden';
@@ -515,11 +516,11 @@ export const getViewerLayerParentMode = (
   parentId: ViewerLayerNodeId,
   children: readonly ViewerLayerNodeId[],
 ): ViewerLayerParentMode => {
-  const parent = modes[parentId];
+  const parent = Object.hasOwn(modes, parentId) ? modes[parentId] : undefined;
   // Persisted maps may be incomplete: never expose an invalid parent mode.
   if (parent !== 'visible' && parent !== 'ghost') return 'hidden';
   if (children.length === 0) return parent;
-  return children.every((child) => modes[child] === parent)
+  return children.every((child) => Object.hasOwn(modes, child) && modes[child] === parent)
     ? parent
     : 'mixed';
 };

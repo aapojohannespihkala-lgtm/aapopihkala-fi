@@ -51,6 +51,44 @@ test('Layers fail closed if persisted node mode is absent or malformed', () => {
   expect(getViewerLayerEffectiveMode(invalidRoot, 'architecture')).toBe('hidden');
 });
 
+test('Layers reject prototype-inherited visible or ghost values in persisted maps', () => {
+  // Runtime maps do not carry TypeScript guarantees. A missing own key must
+  // not become visible because an injected prototype contains that name.
+  const inherited = Object.create({
+    architecture: 'visible',
+    roof: 'ghost',
+    'architecture-walls': 'visible',
+    'architecture-walls-exterior': 'visible',
+  }) as ViewerLayerModeMap;
+  expect(getViewerLayerEffectiveMode(inherited, 'architecture')).toBe('hidden');
+  expect(getViewerLayerEffectiveMode(inherited, 'roof', true)).toBe('hidden');
+  expect(getViewerLayerEffectiveMode(inherited, 'architecture-walls-exterior')).toBe('hidden');
+  expect(getViewerLayerParentMode(inherited, 'architecture-walls',
+    viewerArchitecturalWallChildNodeIds)).toBe('hidden');
+
+  const inheritedParent = Object.assign(Object.create({ 'architecture-walls': 'visible' }), {
+    architecture: 'visible',
+    'architecture-walls-exterior': 'visible',
+  }) as ViewerLayerModeMap;
+  expect(getViewerLayerEffectiveMode(inheritedParent, 'architecture-walls-exterior')).toBe('hidden');
+
+  // Explicit own keys remain valid on null-prototype objects.
+  const nullPrototypeModes = Object.assign(Object.create(null),
+    createViewerLayerModeMap(createViewerLayerControlsState())) as ViewerLayerModeMap;
+  expect(getViewerLayerEffectiveMode(nullPrototypeModes, 'architecture-doors')).toBe('visible');
+  expect(getViewerLayerParentMode(nullPrototypeModes, 'architecture-walls',
+    viewerArchitecturalWallChildNodeIds)).toBe('visible');
+
+  // The parent summary needs every child's own preference too.
+  const inheritedChild = Object.assign(Object.create({ 'architecture-walls-exterior': 'visible' }), {
+    'architecture-walls': 'visible',
+    'architecture-walls-party': 'visible',
+    'architecture-walls-interior': 'visible',
+  }) as ViewerLayerModeMap;
+  expect(getViewerLayerParentMode(inheritedChild, 'architecture-walls',
+    viewerArchitecturalWallChildNodeIds)).toBe('mixed');
+});
+
 test('Layers preserve valid visible/ghost modes and reject invalid scoped mode', () => {
   const modes = createViewerLayerModeMap(createViewerLayerControlsState());
   const ghost = { ...modes, 'architecture-walls': 'ghost' } as ViewerLayerModeMap;
