@@ -87,8 +87,9 @@ export const resolveV35FurnitureSourcePart = ({
 } = {}) => {
   if (expectedSourceSha256 !== V35_FURNITURE_SOURCE_SHA256 ||
       loadedSourceSha256 !== V35_FURNITURE_SOURCE_SHA256) return null;
+  if (!Number.isInteger(sceneIndex) || !Object.hasOwn(V35_FURNITURE_SCENES, sceneIndex)) return null;
   const scene = V35_FURNITURE_SCENES[sceneIndex];
-  if (!scene || sceneName !== scene.name || !Array.isArray(nodePath)) return null;
+  if (sceneName !== scene.name || !Array.isArray(nodePath)) return null;
   const matched = scene.parts.find(part =>
     part.nodeIndex === nodeIndex && part.meshIndex === meshIndex &&
     part.name === nodeName && part.parentName === parentNodeName &&
