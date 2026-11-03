@@ -137,6 +137,16 @@ class SelectionTests(unittest.TestCase):
         self.assertEqual(selected(*paths, *paths), expected)
         self.assertEqual(selected('src/scripts/unrelated-layer-profile.mjs'), [])
 
+    def test_architectural_runtime_and_wiring_select_existing_browser_guards(self):
+        runtime = 'tests/e2e/private-model-architectural-layer-runtime.spec.ts'
+        wiring = 'tests/e2e/private-model-architectural-layer-wiring.spec.ts'
+        model = 'src/scripts/privateModelArchitecturalLayerRuntime.ts'
+        viewer = 'src/scripts/privateModelArchitecturalLayersRuntime.ts'
+        self.assertEqual(selected(model), [runtime])
+        self.assertEqual(selected(viewer), [runtime, wiring])
+        self.assertEqual(selected(model, viewer, model), [runtime, wiring])
+        self.assertEqual(selected('src/scripts/unrelated-architectural-module.ts'), [])
+
     def test_layers_runtime_and_loader_state_select_existing_browser_guards(self):
         scoped = 'tests/e2e/private-model-layers-wp3-scoped-runtime.spec.ts'
         wp1 = 'tests/e2e/private-model-layers-wp1.spec.ts'
