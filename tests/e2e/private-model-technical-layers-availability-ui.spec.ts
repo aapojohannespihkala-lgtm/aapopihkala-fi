@@ -113,6 +113,11 @@ test('unknown technical availability reasons never inherit prototype labels', ()
 
 test('empty inventory yields no fabricated support', () => {
   expect(buildTechnicalAvailabilityRows([])).toEqual([]);
+  // A scene change can supply an invalid entire inventory, not only invalid rows.
+  for (const invalid of [null, undefined, false, {}, 'stale-source']) {
+    expect(buildTechnicalAvailabilityRows(invalid as unknown as TechnicalSystemSummary[]))
+      .toEqual([]);
+  }
 });
 
 test('malformed runtime inventory rows fail closed without hiding valid siblings', () => {
