@@ -93,6 +93,24 @@ test('unknown runtime source role fails closed even when a binding claims AVAILA
   expect(inheritedRow.provenance).toBe('Lähteen asema ei ole varmennettu.');
 });
 
+test('unknown technical availability reasons never inherit prototype labels', () => {
+  // A source can contain an invalid runtime reason even with valid TS types.
+  // No inherited Object property may appear as a user-facing explanation.
+  for (const reason of ['toString', 'constructor', '__proto__', 'FUTURE_REASON']) {
+    const [row] = buildTechnicalAvailabilityRows([
+      item(reason as TechnicalSystemSummary['reason'], {
+        availability: 'unavailable', boundCount: 0,
+      }),
+    ]);
+    expect(row.supported).toBe(false);
+    expect(row.count).toBe(0);
+    expect(row.message).toBe('Saatavuutta ei ole varmennettu.');
+    expect(row.provenance).toContain('WORK_TEST-lähde-esitys');
+  }
+  expect(buildTechnicalAvailabilityRows([item('SOURCE_MISMATCH')])[0].message)
+    .toContain('SHA-256');
+});
+
 test('empty inventory yields no fabricated support', () => {
   expect(buildTechnicalAvailabilityRows([])).toEqual([]);
 });
