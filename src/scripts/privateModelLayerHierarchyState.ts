@@ -424,7 +424,15 @@ export const viewerArchitecturalParentVisibilityState = (
   if (!isViewerLayerNodeEffectivelyVisible(current, parentNodeId)) return 'off';
   if (childNodeIds.length === 0) return 'all';
 
+  // The legacy architecture summary has its own explicit child groups.
+  // Do not count a known ID from another branch (or an unknown runtime ID)
+  // as a child of this parent. Some legacy root children intentionally use
+  // null capability parents, so the curated lists remain authoritative.
+  const directChildren: readonly string[] = parentNodeId === 'architecture'
+    ? viewerArchitecturalRootChildNodeIds
+    : viewerArchitecturalWallChildNodeIds;
   const visibleCount = childNodeIds.filter((nodeId) =>
+    directChildren.includes(nodeId) &&
     isViewerLayerNodeEffectivelyVisible(current, nodeId),
   ).length;
 
