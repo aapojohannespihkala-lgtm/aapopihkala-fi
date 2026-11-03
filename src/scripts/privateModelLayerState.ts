@@ -19,7 +19,8 @@ export const createViewerLayerStateForModelLoad = (
 ): ViewerLayerState => ({
   roofVisible: true,
   roofOpacity: 1,
-  locusVisible: options.locusVisible ?? false,
+  // Runtime-provided model-load flags must not expose source-only Locus layers.
+  locusVisible: options.locusVisible === true,
   edgeMode: 'visible',
 });
 
