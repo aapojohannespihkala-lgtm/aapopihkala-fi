@@ -150,6 +150,13 @@ class SelectionTests(unittest.TestCase):
         self.assertFalse(any('/current-' in spec for spec in
                              selected(runtime_path, load_path)))
 
+    def test_object_visibility_changes_select_existing_root_guard_regression(self):
+        spec = 'tests/e2e/private-model-object-visibility.spec.ts'
+        source = 'src/scripts/privateModelObjectVisibility.ts'
+        self.assertEqual(selected(source), [spec])
+        self.assertEqual(selected(source, source), [spec])
+        self.assertFalse(any('/current-' in item for item in selected(source)))
+
     def test_work_test_loader_changes_run_diagnostics(self):
         self.assertEqual(selected('src/scripts/privateModelWorkTest.ts'), [
             'tests/e2e/private-model-work-test-load-diagnostics.spec.ts',

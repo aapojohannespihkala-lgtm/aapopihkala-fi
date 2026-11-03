@@ -90,6 +90,9 @@ for file in "$@"; do
       # HIGH2 source bindings and source-availability UI share one verified
       # technical inventory. Re-run their existing browser and DOM guards.
       add private-model-technical-systems-layers private-model-technical-layers-availability-ui private-model-technical-layers-availability-dom ;;
+    src/scripts/privateModelObjectVisibility.ts)
+      # Scene-root-scoped hide/isolate must retain stale-target and model-swap guards.
+      add private-model-object-visibility ;;
     src/scripts/privateModelWorkTest.ts)
       add private-model-work-test-load-diagnostics ;;
     src/scripts/privateModelMainViewScope.ts)
