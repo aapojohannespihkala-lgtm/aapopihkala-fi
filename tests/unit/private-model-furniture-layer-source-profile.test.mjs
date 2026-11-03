@@ -62,6 +62,8 @@ test('wrong GLB SHA, internal scene, node, mesh, name, path or parent fail close
     { loadedSourceSha256: '0'.repeat(64) },
     { sceneIndex: 198 },
     { sceneIndex: 196 },
+    { sceneIndex: '__proto__' },
+    { sceneIndex: 'constructor' },
     { sceneName: V35_FURNITURE_SCENES[198].name },
     { nodeIndex: body.nodeIndex + 1 },
     { meshIndex: body.meshIndex + 1 },
