@@ -257,3 +257,34 @@ test('WP3 presentation failure hides all roots and restores any earlier ghost ma
   expect(first.mesh.material).toBe(first.material);
   expect(second.mesh.material).toBe(second.material);
 });
+
+test('WP3 missing source availability or gate metadata revokes earlier visible and ghost roots', () => {
+  const scene = new Scene();
+  const part = makeRoot(scene);
+  const bridge = createViewerScopedLayerPresentation(scene, [{ id: 'roof', root: part.root }]);
+  const visible = applyViewerLayerPreset(createViewerInteractionState(), 'whole-building');
+  const frame = frameFor(scene, new Map([[part.root, allow()]]), ['roof']);
+
+  expect(bridge.apply(visible, frame)[0].mode).toBe('visible');
+  expect(part.root.visible).toBe(true);
+  const missingAvailability = { ...frame, availableNodeIds: undefined as unknown as string[] };
+  expect(bridge.apply(visible, missingAvailability)[0].mode).toBe('hidden');
+  expect(part.root.visible).toBe(false);
+  expect(bridge.apply(visible, frame)[0].mode).toBe('visible');
+
+  const ghost = setViewerInteractionLayerMode(visible, 'roof', 'ghost');
+  expect(bridge.apply(ghost, frame)[0].mode).toBe('ghost');
+  expect(part.mesh.material).not.toBe(part.material);
+  const missingGates = {
+    ...frame,
+    gates: undefined as unknown as ViewerScopedLayerFrame['gates'],
+  };
+  expect(bridge.apply(ghost, missingGates)[0].mode).toBe('hidden');
+  expect(part.root.visible).toBe(false);
+  expect(part.mesh.material).toBe(part.material);
+
+  expect(bridge.apply(visible, frame)[0].mode).toBe('visible');
+  expect(part.root.visible).toBe(true);
+  bridge.dispose();
+  expect(part.mesh.material).toBe(part.material);
+});
