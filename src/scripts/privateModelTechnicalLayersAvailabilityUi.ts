@@ -69,7 +69,10 @@ export const buildTechnicalAvailabilityRows = (
       sourceRoleVerified &&
       item.reason === 'AVAILABLE' &&
       item.availability === 'available' &&
-      Number.isSafeInteger(item.boundCount) && item.boundCount > 0;
+      Number.isSafeInteger(item.boundCount) && item.boundCount > 0 &&
+      // Bound objects are a verified subset of source-matched objects.
+      // An inconsistent runtime inventory must not advertise availability.
+      Number.isSafeInteger(item.matchedCount) && item.matchedCount >= item.boundCount;
     return {
       id: item.id,
       label: item.labelFi,
