@@ -358,16 +358,21 @@ export const mountViewerLayerPresetPanel = (
     if (destroyed) throw new Error('Layers preset controls already destroyed');
     if (nextOptions) panelOptions = nextOptions;
     available.clear(); ids.filter(isLayerId).forEach(id => available.add(id));
-    allowedPresets = new Set(panelOptions.availablePresets ?? viewerLayerPresetChoices.map(([id]) => id));
+    allowedPresets = new Set((panelOptions.availablePresets ?? viewerLayerPresetChoices.map(([id]) => id)).filter(isPreset));
     for (const option of presetSelect.options) if (isPreset(option.value)) option.disabled = !allowedPresets.has(option.value);
     presetSelect.disabled = panelOptions.disabled === true || allowedPresets.size === 0;
     const model = buildViewerLayerPanelModel(next, ids, panelOptions);
-    presetSelect.value = model.selectedPreset ?? '';
-    customized.textContent = model.customized ? 'Mukautettu'
+    // Preserve the saved state, but never display a source-disallowed preset
+    // as the active/default choice when the model or scene changes.
+    const selectedAllowed = model.selectedPreset !== null && allowedPresets.has(model.selectedPreset);
+    presetSelect.value = selectedAllowed ? model.selectedPreset! : '';
+    customized.textContent = model.selectedPreset && !selectedAllowed
+      ? 'Esiasetus ei käytettävissä tässä mallissa'
+      : model.customized ? 'Mukautettu'
       : model.selectedPreset ? 'Oletusnäkyvyys' : 'Ei valittua esiasetusta';
-    customized.dataset.customized = String(model.customized);
-    reset.disabled = panelOptions.disabled === true || !model.selectedPreset || !allowedPresets.has(model.selectedPreset) || !model.customized;
-    roofNotice.hidden = !(model.selectedPreset === 'd-2f' && !available.has('roof'));
+    customized.dataset.customized = String(selectedAllowed && model.customized);
+    reset.disabled = panelOptions.disabled === true || !selectedAllowed || !model.customized;
+    roofNotice.hidden = !(selectedAllowed && model.selectedPreset === 'd-2f' && !available.has('roof'));
     sourceCoverageNote.textContent = typeof panelOptions.sourceCoverageNote === 'string'
       ? panelOptions.sourceCoverageNote.trim() : '';
     sourceCoverageNote.hidden = !sourceCoverageNote.textContent;
