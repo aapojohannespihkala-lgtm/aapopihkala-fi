@@ -88,14 +88,18 @@ export const createViewerScopedLayerPresentation = (
     frame: ViewerScopedLayerFrame,
   ): ReadonlyArray<{ id: ViewerLayerNodeId; mode: ViewerLayerVisibilityMode }> => {
     if (disposed) throw new Error('Scoped layer presentation already disposed');
-    const available = new Set(frame.availableNodeIds.filter(isLayerNodeId));
     const modes = state.layerPresetState?.modes ?? createViewerLayerModeMap(state.layers);
     // An error while presenting a later root must not leave earlier roots
     // exposed (or ghosted with temporary materials). In particular, a
     // selection callback may throw after a previous root has been updated.
     try {
+      // An incomplete source/scene refresh must revoke all layer bindings,
+      // including ones still visible from the previous valid frame.
+      const available = new Set(
+        (Array.isArray(frame.availableNodeIds) ? frame.availableNodeIds : []).filter(isLayerNodeId),
+      );
       return entries.map(({ id, root, adapter }) => {
-        const gate = frame.gates.get(root);
+        const gate = frame.gates?.get(root);
         // A scene switch, stale/reparented root, absent metadata, or an
         // unknown scope/floor/source permission must never reveal geometry.
         const allowed =
