@@ -4007,6 +4007,28 @@ const AUTO_YLISRINNE_D_C80R2_V57_KITCHEN_CABINETS_UNIFORM_WORKTOP15_ONE_TAP_WORK
   expectedSha256: 'c69188fb13b7759941bd7f4e2af932b1d40993147a7a81744cef48f53f331f20',
 } as const satisfies PrivateWorkTestCandidate;
 
+// Auto-registered 2026-11-03 from Drive queue file 19rLWC4QWemRWTLen0XUie-hf8XvKAhx_
+// by auto-publish-work-test. WORK_TEST, never as-built.
+const AUTO_YLISRINNE_D_C80R2_V58_KITCHEN_WORKTOP_SAME_AS_ISLAND_WORK_TEST_HOST_HOLD_20261103_19RLWC4Q_CANDIDATE = {
+  id: 'auto-ylisrinne-d-c80r2-v58-kitchen-worktop-same-as-island-work-test-host-hold-20261103-19rlwc4q',
+  label: 'Auto: Ylisrinne D C80R2 V58 KITCHEN WORKTOP SAME AS ISLAND WORK TEST HOST HOLD 20261103 (scene261) - WORK_TEST',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/auto-ylisrinne-d-c80r2-v58-kitchen-worktop-same-as-island-work-test-host-hold-20261103-19rlwc4q.glb`,
+  objectKey: 'work-test/auto-ylisrinne-d-c80r2-v58-kitchen-worktop-same-as-island-work-test-host-hold-20261103-19rlwc4q.glb',
+  expectedSize: 30482052,
+  expectedSha256: '95fc34622fdf1cd52249d9d44c0ea3abfdb51d16a18746c026fbd9b4e7d53c17',
+} as const satisfies PrivateWorkTestCandidate;
+
+// Auto-registered 2026-11-03 from Drive queue file 1O4SW0hFKOHfQDkdO7ZuXeNYkXaZEs1xP
+// by auto-publish-work-test. WORK_TEST, never as-built.
+const AUTO_YLISRINNE_D_C80R2_V58R2_KITCHEN_WORKTOP_SAME_AS_ISLAND_FLOORSCENES_WORK_TEST_HOST_HOLD_20261103_1O4SW0HF_CANDIDATE = {
+  id: 'auto-ylisrinne-d-c80r2-v58r2-kitchen-worktop-same-as-island-floorscenes-work-test-host-hold-20261103-1o4sw0hf',
+  label: 'Auto: Ylisrinne D C80R2 V58R2 KITCHEN WORKTOP SAME AS ISLAND FLOORSCENES WORK TEST HOST HOLD 20261103 (scene261) - WORK_TEST',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/auto-ylisrinne-d-c80r2-v58r2-kitchen-worktop-same-as-island-floorscenes-work-test-host-hold-20261103-1o4sw0hf.glb`,
+  objectKey: 'work-test/auto-ylisrinne-d-c80r2-v58r2-kitchen-worktop-same-as-island-floorscenes-work-test-host-hold-20261103-1o4sw0hf.glb',
+  expectedSize: 30482316,
+  expectedSha256: '79c75737bb9df8050f66aade746588ea53f96b14ef760b95dd8be413a527f031',
+} as const satisfies PrivateWorkTestCandidate;
+
 const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
   C80R2_V27_D_TERRACE_165MM_WORK_TEST_CANDIDATE,
   D_C80R2_UNIFIED64_C018_WORK_TEST_CANDIDATE,
@@ -4327,6 +4349,8 @@ const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
   AUTO_YLISRINNE_D_C80R2_V35_2F_WC_YELLOW_TILES_PHOTO_WORK_TEST_HOST_HOLD_20261102_11IIYOIU_CANDIDATE,
   AUTO_YLISRINNE_D_C80R2_V56_GPT_V55_ALL7_TOSHIBA_SCONCES_JOIN03_FLOORS_WIRED_WORK_TEST_HOST_HOLD_20261103_1OKPBNAW_CANDIDATE,
   AUTO_YLISRINNE_D_C80R2_V57_KITCHEN_CABINETS_UNIFORM_WORKTOP15_ONE_TAP_WORK_TEST_HOST_HOLD_20261103_1WKMDAQ6_CANDIDATE,
+  AUTO_YLISRINNE_D_C80R2_V58_KITCHEN_WORKTOP_SAME_AS_ISLAND_WORK_TEST_HOST_HOLD_20261103_19RLWC4Q_CANDIDATE,
+  AUTO_YLISRINNE_D_C80R2_V58R2_KITCHEN_WORKTOP_SAME_AS_ISLAND_FLOORSCENES_WORK_TEST_HOST_HOLD_20261103_1O4SW0HF_CANDIDATE,
 ] as const satisfies readonly PrivateWorkTestCandidate[];
 
 type PrivateWorkTestObjectMetadata = {
