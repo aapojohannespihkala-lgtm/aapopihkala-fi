@@ -13,6 +13,8 @@ export type ObjectVisibilityNode = {
 
 type VisibilityMaterial = {
   opacity?: number;
+  visible?: boolean;
+  colorWrite?: boolean;
 };
 
 type VisibilitySnapshot = {
@@ -43,8 +45,15 @@ export const hasVisibleMaterial = (
     | undefined,
 ) => {
   const materials = Array.isArray(object?.material) ? object.material : [object?.material];
+  // Raycaster can intersect surfaces that Three.js never draws.
+  // Keep the existing no-material fallback, but exclude source materials
+  // explicitly hidden or configured as depth-only/non-color-writing.
   return materials.some(
-    (material) => !material || material.opacity === undefined || material.opacity > 0.01,
+    (material) => !material || (
+      material.visible !== false &&
+      material.colorWrite !== false &&
+      (material.opacity === undefined || material.opacity > 0.01)
+    ),
   );
 };
 
