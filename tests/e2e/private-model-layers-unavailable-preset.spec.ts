@@ -33,7 +33,7 @@ test('source-disallowed selected preset is not presented as active and returns w
   await page.evaluate(state => (window as any).layerPanel.update(
     state, ['roof'], { boundNodeIds: ['roof'], availablePresets: ['d-apartment'] }), saved);
   await expect(selection).toHaveValue('');
-  await expect(selection.locator('option[value="d-2f"]')).toBeDisabled();
+  await expect(selection.locator('option[value="d-2f"]')).toHaveJSProperty('disabled', true);
   await expect(page.getByText('Esiasetus ei käytettävissä tässä mallissa')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Palauta näkyvyys' })).toBeDisabled();
   await expect(page.locator('[data-layer-preset-customized]')).toHaveAttribute('data-customized', 'false');
