@@ -221,8 +221,7 @@ test('HL1 donor rejects spoofed split node, provenance, primitive mapping or par
     if (variant === 'meshPrimitives') json.meshes[3284].primitives[0] = { attributes: { POSITION: 1 } };
     if (variant === 'path') {
       json.scenes[199].nodes = json.scenes[199].nodes.filter(x => x !== 9334);
-      json.nodes[9335].children = [9334];
-      f.objects.get(9335).add(f.objects.get(9334));
+      // Remove the root association without creating a nested mesh pair.
     }
     const result = resolveBuildingPartLayerBindings(f.options);
     assert.ok(!result.bindings.some(b => b.root === f.objects.get(9334)), variant);
