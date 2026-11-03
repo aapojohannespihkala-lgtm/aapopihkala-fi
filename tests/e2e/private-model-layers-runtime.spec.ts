@@ -196,6 +196,55 @@ test('apply fails closed on displaced GLB paths before enforce without mutating 
   runtime.dispose();
 });
 
+test('displaced Layers root with malformed gates revokes stale ghost and sibling presentation', () => {
+  const scene = new Scene();
+  const sourceParent = new Group();
+  const alternateParent = new Group();
+  const sourceMaterial = new MeshBasicMaterial();
+  const wall = new Mesh(new BoxGeometry(), sourceMaterial);
+  const door = new Mesh(new BoxGeometry(), new MeshBasicMaterial());
+  sourceParent.add(wall);
+  scene.add(sourceParent, alternateParent, door);
+  const runtime = createViewerLayersRuntime({ sceneRoot: scene, sourceSha256: sha,
+    bindings: [
+      { id: 'architecture-walls', root: wall },
+      { id: 'architecture-doors', root: door },
+    ] });
+  const state = applyViewerLayerPreset(createViewerInteractionState(), 'whole-building');
+  const ghost = setViewerInteractionLayerMode(state, 'architecture-walls', 'ghost');
+  const gates = new Map([
+    [wall, { sourceAllowed: true, scopeAllowed: true, floorAllowed: true }],
+    [door, { sourceAllowed: true, scopeAllowed: true, floorAllowed: true }],
+  ]);
+  const frame = { activeSceneRoot: scene, availableNodeIds: runtime.availableNodeIds, gates };
+
+  expect(runtime.apply(ghost, frame).map(({ mode }) => mode)).toEqual(['ghost', 'visible']);
+  expect(wall.visible).toBe(true);
+  expect(wall.material).not.toBe(sourceMaterial);
+  expect(door.visible).toBe(true);
+
+  // The original GLB path has changed, and a malformed runtime gate object
+  // must be denied BEFORE the bridge's visibility/material reconciliation.
+  alternateParent.add(wall);
+  const malformed = { ...frame, gates: {} as unknown as typeof gates };
+  expect(runtime.apply(ghost, malformed).map(({ mode }) => mode)).toEqual(['hidden', 'hidden']);
+  expect(wall.visible).toBe(false);
+  expect(door.visible).toBe(false);
+  expect(wall.material).toBe(sourceMaterial);
+  runtime.enforce(scene, sha);
+  expect(wall.visible).toBe(false);
+  expect(door.visible).toBe(false);
+
+  // Recovery needs both the original source path and independently valid gates.
+  sourceParent.add(wall);
+  expect(runtime.apply(state, frame).map(({ mode }) => mode)).toEqual(['visible', 'visible']);
+  expect(wall.visible).toBe(true);
+  expect(door.visible).toBe(true);
+  expect(wall.material).toBe(sourceMaterial);
+  expect(gates.size).toBe(2);
+  runtime.dispose();
+});
+
 test('Layers frame rejects a replaced scene or source without changing siblings', () => {
   const scene = new Scene();
   const wall = new Mesh(new BoxGeometry(), new MeshBasicMaterial());
