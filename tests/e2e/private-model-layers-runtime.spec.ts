@@ -3,9 +3,22 @@ import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { BoxGeometry, Group, Mesh, MeshBasicMaterial, Scene } from 'three';
 import { collectViewerLayerSourceNodes, createViewerLayersRuntime } from '../../src/scripts/privateModelLayersRuntime';
+import { buildViewerLayerPanelModel } from '../../src/scripts/privateModelLayersPresetControls';
 import { applyViewerLayerPreset, createViewerInteractionState, setViewerInteractionLayerMode } from '../../src/scripts/privateModelViewerState';
 
 const sha = 'cff2dbead53b7836747e10ef359637114ff723690ec380e313cec817e4f71d31';
+
+test('fixture visibility describes source-bound parts rather than complete cabinets', () => {
+  const state = applyViewerLayerPreset(createViewerInteractionState(), 'd-2f');
+  const panel = buildViewerLayerPanelModel(state, ['architecture-fixtures'],
+    { boundNodeIds: ['architecture-fixtures'] });
+  const furniture = panel.roots.find(node => node.id === 'furniture');
+  const fixtures = furniture?.children.find(node => node.layerId === 'architecture-fixtures');
+  expect(fixtures?.label).toBe('Kiintokalusteiden tunnistetut osat');
+  expect(fixtures?.commandIds).toEqual(['architecture-fixtures']);
+  const source = readFileSync('src/scripts/privateModelLayersPresetControls.ts', 'utf8');
+  expect(source).toContain('Kalusteen etupintojen piilotus ei välttämättä piilota runkoa.');
+});
 
 test('source node collection requires original glTF scene and parent membership', () => {
   const scene = new Scene();
