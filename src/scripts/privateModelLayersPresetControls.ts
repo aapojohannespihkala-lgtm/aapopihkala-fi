@@ -131,7 +131,10 @@ export const buildViewerLayerPanelModel = (
       ...(layerId && bound.has(layerId) ? [layerId] : []),
       ...children.flatMap(child => child.commandIds),
     ])];
-    const own = layerId ? safeMode(modes[layerId]) : 'hidden';
+    // Persisted mode maps may inherit prototype values. A layer without its
+    // own saved choice is hidden, just as the renderer's effective-mode gate.
+    const own = layerId && Object.hasOwn(modes, layerId)
+      ? safeMode(modes[layerId]) : 'hidden';
     return {
       id: source.id, layerId, label: source.label, children, commandIds,
       mode: source.children ? aggregate(commandIds.map(effective)) : own,
