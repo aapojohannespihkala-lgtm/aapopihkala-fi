@@ -39,6 +39,17 @@ test('source-disallowed selected preset is not presented as active and returns w
   await expect(page.locator('[data-layer-preset-customized]')).toHaveAttribute('data-customized', 'false');
   expect(await page.evaluate(() => (window as any).layerEvents)).toEqual([]);
 
+  // A temporarily unsupported model has no legal preset actions at all.
+  await page.evaluate(state => (window as any).layerPanel.update(
+    state, [], { boundNodeIds: [], availablePresets: [] }), saved);
+  await expect(selection).toBeDisabled();
+  await expect(page.getByRole('button', { name: 'Palauta näkyvyys' })).toBeDisabled();
+  await expect(page.getByText('Esiasetus ei käytettävissä tässä mallissa')).toBeVisible();
+  expect(await page.evaluate(() => (window as any).layerEvents)).toEqual([]);
+
+  await page.evaluate(state => (window as any).layerPanel.update(
+    state, ['roof'], { boundNodeIds: ['roof'], availablePresets: ['d-apartment'] }), saved);
+  await expect(selection).toBeEnabled();
   await selection.selectOption('d-apartment');
   expect(await page.evaluate(() => (window as any).layerEvents)).toEqual([['preset', 'd-apartment']]);
 
