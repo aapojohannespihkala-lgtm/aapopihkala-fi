@@ -226,7 +226,9 @@ test('HL1 donor rejects spoofed split node, provenance, primitive mapping or par
     }
     const result = resolveBuildingPartLayerBindings(f.options);
     assert.ok(!result.bindings.some(b => b.root === f.objects.get(9334)), variant);
-    assert.ok(result.bindings.some(b => b.root === f.objects.get(9335)), variant);
+    // Missing either required donor root invalidates the whole scene identity.
+    if (variant === 'path') assert.equal(result.bindings.length, 0, variant);
+    else assert.ok(result.bindings.some(b => b.root === f.objects.get(9335)), variant);
   }
 });
 
