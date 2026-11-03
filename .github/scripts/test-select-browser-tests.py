@@ -119,6 +119,24 @@ class SelectionTests(unittest.TestCase):
             ['tests/e2e/private-model-layers-wp3-controls.spec.ts'],
         )
 
+    def test_layers_exact_building_and_furniture_profiles_select_existing_browser_guards(self):
+        expected = [
+            'tests/e2e/private-model-architectural-layer-runtime.spec.ts',
+            'tests/e2e/private-model-layers-runtime.spec.ts',
+        ]
+        paths = (
+            'src/scripts/privateModelBuildingPartLayerBindings.mjs',
+            'src/scripts/privateModelC80R2V27LayerSourceProfile.mjs',
+            'src/scripts/privateModelC80R2V35LayerSourceProfile.mjs',
+            'src/scripts/privateModelFurnitureLayerSourceProfile.mjs',
+            'src/scripts/privateModelV35LillangenMirrorSourceProfile.mjs',
+        )
+        for path in paths:
+            with self.subTest(path=path):
+                self.assertEqual(selected(path), expected)
+        self.assertEqual(selected(*paths, *paths), expected)
+        self.assertEqual(selected('src/scripts/unrelated-layer-profile.mjs'), [])
+
     def test_layers_runtime_and_loader_state_select_existing_browser_guards(self):
         scoped = 'tests/e2e/private-model-layers-wp3-scoped-runtime.spec.ts'
         wp1 = 'tests/e2e/private-model-layers-wp1.spec.ts'
