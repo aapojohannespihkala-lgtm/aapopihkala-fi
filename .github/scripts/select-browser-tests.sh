@@ -61,6 +61,10 @@ for file in "$@"; do
       add current-worker-regression current-portfolio-resilience current-markets-fallback current-markets-timeout ;;
     src/pages/private-model/index.astro)
       add private-model-d1f-combined-wall-scene-contract private-model-main-view-scope private-model-other-floor-reference private-model-work-test-load-diagnostics; p4 ;;
+    src/scripts/privateModelBuildingPartLayerBindings.mjs|src/scripts/privateModelC80R2V*LayerSourceProfile.mjs|src/scripts/privateModelFurnitureLayerSourceProfile.mjs|src/scripts/privateModelV35LillangenMirrorSourceProfile.mjs)
+      # Changes to exact-source building/furniture profiles must recheck the
+      # existing Layers runtime and architectural representation contracts.
+      add private-model-layers-runtime private-model-architectural-layer-runtime ;;
     src/scripts/privateModelLayersRuntime.ts)
       # Runtime changes must recheck the existing scoped Layers presentation contract.
       add private-model-layers-wp3-scoped-runtime ;;
