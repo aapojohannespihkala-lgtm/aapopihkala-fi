@@ -196,6 +196,8 @@ test('invalid persisted preset never creates an empty-looking browser selection'
 test('direct mode buttons emit actions, preset scopes remain guarded and missing roof is explained', async ({ page }) => {
   await mount(page, initial(), ['roof', 'architecture-walls', 'architecture-walls-party'], {});
   await expect(page.locator('[data-layer-preset-panel] select')).toHaveCount(1);
+  const coverageNote = page.locator('[data-layer-source-coverage]');
+  await expect(coverageNote).toBeHidden();
   await expect(modeButton(page, 'roof', 'ghost')).toHaveAttribute('aria-pressed', 'true');
   await modeButton(page, 'roof', 'visible').click();
   await page.getByRole('combobox', { name: 'Näkymän esiasetus' }).selectOption('site');
@@ -208,14 +210,20 @@ test('direct mode buttons emit actions, preset scopes remain guarded and missing
   const custom = setViewerInteractionLayerMode(initial(), 'roof', 'visible');
   await page.evaluate(state => (window as any).layerPanel.update(state, ['roof'], {
     availablePresets: ['d-apartment', 'd-1f', 'd-2f'], boundNodeIds: ['roof'],
+    sourceCoverageNote: 'WC:n lattia ja itäseinä ovat yksi yhdistetty osa. Se jää ryhmäohjauksen ulkopuolelle.',
   }), custom);
+  await expect(coverageNote).toBeVisible();
+  await expect(coverageNote).toHaveText('WC:n lattia ja itäseinä ovat yksi yhdistetty osa. Se jää ryhmäohjauksen ulkopuolelle.');
   const picker = page.getByRole('combobox', { name: 'Näkymän esiasetus' });
   await expect(picker.locator('option[value="site"]')).toHaveJSProperty('disabled', true);
   await expect(picker.locator('option[value="d-2f"]')).toHaveJSProperty('disabled', false);
   await page.evaluate(state => (window as any).layerPanel.update(state, ['roof']), custom);
   await expect(picker.locator('option[value="site"]')).toHaveJSProperty('disabled', true);
+  await expect(coverageNote).toBeVisible();
   await page.getByRole('button', { name: 'Palauta näkyvyys' }).click();
   await page.evaluate(state => (window as any).layerPanel.update(state, ['roof'], { disabled: true }), custom);
+  await expect(coverageNote).toBeHidden();
+  await expect(coverageNote).toHaveText('');
   await expect(picker).toBeDisabled();
   await expect(modeButton(page, 'roof', 'visible')).toBeDisabled();
   await expect(page.getByRole('button', { name: 'Palauta näkyvyys' })).toBeDisabled();
@@ -283,7 +291,7 @@ test('references open separately and no source-only routes enter the physical de
   await page.evaluate(state => (window as any).layerPanel.update(state, []), initial());
   await expect(page.locator('[data-layer-node]')).toHaveCount(0);
   await expect(refs.getByText('Tässä näkymässä ei ole erikseen luokiteltuja lähteitä tai viitteitä.')).toBeVisible();
-  await expect(page.getByText('Luokittelu on osittainen. Näytetään vain tunnistetut ryhmät.')).toBeVisible();
+  await expect(page.getByText('Näkyvyys koskee vain lähteeseen sidottuja osia. Kalusteen etupintojen piilotus ei välttämättä piilota runkoa.')).toBeVisible();
 });
 
 test('keyed mobile updates preserve expansion, focused button, scroll and readable dark contrast', async ({ page }) => {

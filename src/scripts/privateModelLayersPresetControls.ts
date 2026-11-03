@@ -43,6 +43,8 @@ export type ViewerLayerPresetPanelOptions = {
   availablePresets?: readonly ViewerLayerPreset[];
   /** IDs with actual renderable bindings, distinct from abstract UI parents. */
   boundNodeIds?: readonly string[];
+  /** Source-specific coverage limits, supplied only for the verified source. */
+  sourceCoverageNote?: string;
   disabled?: boolean;
 };
 export type ViewerLayerPresetPanelCallbacks = {
@@ -68,7 +70,7 @@ const catalog: readonly CatalogNode[] = [
     { id: 'architecture-windows', label: 'Ikkunat' },
   ] },
   { id: 'furniture', label: 'Kalusteet ja varusteet', children: [
-    { id: 'architecture-fixtures', label: 'Tunnistetut kiintokalusteet' },
+    { id: 'architecture-fixtures', label: 'Kiintokalusteiden tunnistetut osat' },
     { id: 'architecture-other', label: 'Muut tunnistetut kohteet' },
   ] },
   { id: 'technical', label: 'Talotekniikka', children: [
@@ -204,13 +206,18 @@ export const mountViewerLayerPresetPanel = (
   roofNotice.hidden = true;
   const help = doc.createElement('p');
   help.className = 'yl-layer-preset-help';
-  help.textContent = 'Luokittelu on osittainen. Näytetään vain tunnistetut ryhmät.';
+  help.textContent = 'Näkyvyys koskee vain lähteeseen sidottuja osia. Kalusteen etupintojen piilotus ei välttämättä piilota runkoa.';
+  const sourceCoverageNote = doc.createElement('p');
+  sourceCoverageNote.className = 'yl-layer-preset-help';
+  sourceCoverageNote.dataset.layerSourceCoverage = '';
+  sourceCoverageNote.setAttribute('role', 'note');
+  sourceCoverageNote.hidden = true;
   const ghostHelp = doc.createElement('p');
   ghostHelp.className = 'yl-layer-preset-help';
   ghostHelp.textContent = 'Himmeä on esitystapa, ei tiedon varmuustaso.';
   const reset = doc.createElement('button');
   reset.type = 'button'; reset.className = 'yl-layer-preset-reset'; reset.textContent = 'Palauta näkyvyys';
-  root.append(presetLabel, customized, legend, groups, roofNotice, help, ghostHelp, reset);
+  root.append(presetLabel, customized, legend, groups, roofNotice, help, sourceCoverageNote, ghostHelp, reset);
   host.insertBefore(root, host.firstChild);
 
   let panelOptions = options;
@@ -361,6 +368,9 @@ export const mountViewerLayerPresetPanel = (
     customized.dataset.customized = String(model.customized);
     reset.disabled = panelOptions.disabled === true || !model.selectedPreset || !allowedPresets.has(model.selectedPreset) || !model.customized;
     roofNotice.hidden = !(model.selectedPreset === 'd-2f' && !available.has('roof'));
+    sourceCoverageNote.textContent = typeof panelOptions.sourceCoverageNote === 'string'
+      ? panelOptions.sourceCoverageNote.trim() : '';
+    sourceCoverageNote.hidden = !sourceCoverageNote.textContent;
     const scrollers: Array<{ element: HTMLElement; top: number }> = [];
     for (let parent = groups.parentElement; parent && parent !== doc.body; parent = parent.parentElement) {
       if (/^(auto|scroll|overlay)$/.test(doc.defaultView?.getComputedStyle(parent).overflowY ?? '')) {
