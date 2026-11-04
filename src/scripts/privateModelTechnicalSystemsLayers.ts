@@ -262,8 +262,8 @@ const v26Device = (context: TechnicalSystemsContext, binding: TechnicalSourceNod
     const source = context.sourceJson.scenes?.[context.sourceSceneIndex];
     // The serial model retains the supplied original device geometry. Require
     // its complete exact scene, then validNode checks node/mesh/parent/sourceLinks.
-    if (context.sourceJson.scenes?.length !== integratedCount || !profile ||
-        source?.name !== profile.name ||
+    if (context.sourceJson.scenes?.length !== integratedCount || !profile || !source ||
+        source.name !== profile.name ||
         JSON.stringify(source.nodes) !== JSON.stringify(profile.rootNodes)) return null;
   }
   const name = context.sourceJson.nodes?.[binding.nodeIndex]?.name ?? '';
