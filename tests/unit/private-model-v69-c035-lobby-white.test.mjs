@@ -50,3 +50,12 @@ test('staged clone failure rolls back without changing an existing scene materia
   assert(r.available);assert.equal(r.setApplied(true),false);
   assert(f.objects.every(t=>t.object.material===t.original));
 });
+
+test('source roots remain available when GLTFLoader drops first-scene associations',()=>{
+  const f=fixture();
+  for(const object of f.gltf.scenes[290].children) f.gltf.parser.associations.delete(object);
+  const r=createV69C035WhiteLobbyPresentation(f.gltf,V69_C035_LOBBY_SHA,V69_C035_LOBBY_SHA);
+  assert.equal(r.available,true);assert.equal(r.count,12);
+  assert(r.setApplied(true));r.dispose();
+  assert(f.objects.every(t=>t.object.material===t.original));
+});
