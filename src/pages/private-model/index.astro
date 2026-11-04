@@ -2475,6 +2475,7 @@ const title = 'Private 3D viewer';
       import { V35_SOURCE_SHA256 } from '../../scripts/privateModelC80R2V35LayerSourceProfile.mjs';
       import { V67_SOURCE_SHA256 } from '../../scripts/privateModelC80R2V67LayerSourceProfile.mjs';
       import { V69_SOURCE_SHA256 } from '../../scripts/privateModelC80R2V69LayerSourceProfile.mjs';
+      import { K17_RAIL900_SOURCE_SHA256 } from '../../scripts/privateModelK17Rail900LayerSourceProfile.mjs';
       import { createV69C035WhiteLobbyPresentation } from '../../scripts/privateModelV69C035WhiteLobbyPresentation.mjs';
       import { createV69C020UpperGlassPresentation } from '../../scripts/privateModelV69C020UpperGlassPresentation.mjs';
       import { V68_SOURCE_SHA256 } from '../../scripts/privateModelC80R2V68LayerSourceProfile.mjs';
@@ -14163,7 +14164,8 @@ const title = 'Private 3D viewer';
           layersLoadedSha === V35_SOURCE_SHA256 ||
           layersLoadedSha === V67_SOURCE_SHA256 ||
           layersLoadedSha === V68_SOURCE_SHA256 ||
-          layersLoadedSha === V69_SOURCE_SHA256
+          layersLoadedSha === V69_SOURCE_SHA256 ||
+          layersLoadedSha === K17_RAIL900_SOURCE_SHA256
             ? layersLoadedSha : null;
         layersExpectedSha = session?.contract?.glbSha256 ?? verifiedChainSourceSha;
         // Restore the owner-approved white, doorless lobby only for the exact
