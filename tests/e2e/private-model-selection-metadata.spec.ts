@@ -176,3 +176,28 @@ test('selection source links collect GLB sourceLinks from node and ancestors as 
   expect(selectionMetadataEntries(node, root).map(([key]) => key)).not.toContain('sourceLinks');
   expect(selectionSourceLinks({ userData: { sourceLinks: 'x' } }, null)).toEqual([]);
 });
+
+import { sceneNameForObject } from '../../src/scripts/privateModelSelectionIdentity';
+
+test('selection follows the exact source-mapped glTF Group across 1F 2F BOTH instead of the default fallback', () => {
+  const stop={name:'viewer-root'};
+  const first={name:'runtime-first',parent:stop};
+  const second={name:'runtime-second',parent:stop};
+  const both={name:'runtime-both',parent:stop};
+  const names=new WeakMap<object,string>([[first,'C80R2_V69_1F'],[second,'C80R2_V69_2F'],[both,'C80R2_V69_BOTH']]);
+  for(const [source,expected] of [[first,'C80R2_V69_1F'],[second,'C80R2_V69_2F'],[both,'C80R2_V69_BOTH']] as const) {
+    const parent={name:'source-part',parent:source};
+    const mesh={name:'source-mesh',parent};
+    expect(sceneNameForObject(mesh,stop,names,both)).toBe(expected);
+  }
+});
+
+test('selection does not infer a source scene from an arbitrary Group name or walk past the model boundary', () => {
+  const outside={name:'outside'},stop={name:'viewer-root',parent:outside};
+  const fallback={name:'fallback'};
+  const impostor={name:'C80R2_V69_2F',parent:stop};
+  const names=new WeakMap<object,string>([[outside,'OUTSIDE'],[fallback,'EXACT_FALLBACK']]);
+  expect(sceneNameForObject({name:'mesh',parent:impostor},stop,names,fallback)).toBe('EXACT_FALLBACK');
+  const legacyScene={isScene:true,name:'legacy scene',parent:stop};
+  expect(sceneNameForObject({name:'mesh',parent:legacyScene},stop,names,fallback)).toBe('legacy scene');
+});

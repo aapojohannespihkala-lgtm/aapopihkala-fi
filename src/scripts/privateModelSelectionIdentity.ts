@@ -33,9 +33,11 @@ export const sceneNameForObject = (
 ) => {
   let current: SelectionIdentityNode | null | undefined = object;
   while (current && current !== stopAt) {
-    if (current.isScene) {
-      return sourceSceneNames.get(current as object) || (current.name ? String(current.name) : '');
-    }
+    // GLTFLoader source scenes are Groups. Only the loader's exact source
+    // map authorizes a Group as a scene; arbitrary named groups do not.
+    const sourceName = sourceSceneNames.get(current as object);
+    if (sourceName) return sourceName;
+    if (current.isScene) return current.name ? String(current.name) : '';
     current = current.parent;
   }
 

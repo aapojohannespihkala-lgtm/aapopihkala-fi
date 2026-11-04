@@ -496,7 +496,8 @@ test(`exact ${model.version} viewer: D upstairs, ghost walls, supported IV, rese
     }
     await expect(selection).toBeVisible();
     await expect(page.locator('#selection-mesh')).not.toHaveText('-');
-    await expect(page.locator('#selection-scene')).toContainText(model.version + '_2F');
+    const technicalScene = page.locator('#selection-metadata-list dt').filter({hasText:'Tekninen scene'}).locator('xpath=following-sibling::dd[1]');
+    await expect(technicalScene).toContainText(model.version + '_2F');
     await expect(canvas).toHaveAttribute('data-layers-source-sha256',sha);
     await page.screenshot({path:info.outputPath(evidencePrefix+'-actual-object-selection-desktop.png')});
     await page.locator('#clear-selection-button').click();
