@@ -12,18 +12,25 @@ const TARGETS = [
 ];
 const unavailable = reason => ({available:false,reason,count:0,applied:false,setApplied:()=>false,dispose:()=>{}});
 const close = (actual,expected) => typeof actual==='number' && Math.abs(actual-expected)<0.00001;
-function exactMesh(scene,sourceNode,associations){
-  const found=[];
-  scene?.traverse?.(obj=>{
-    if(!obj?.isMesh)return;
-    let current=obj;
-    while(current){
-      if(associations.get(current)?.nodes===sourceNode){found.push(obj);break;}
-      if(current===scene)break;
-      current=current.parent;
-    }
-  });
-  return found.length===1?found[0]:null;
+// GLTFLoader r185 reduces parser.associations after each loaded scene.
+// Earlier scenes can therefore lose their node mappings even though their
+// runtime roots are intact. GLTFLoader preserves the source root-node order.
+// Only use that fallback for exact root mesh leaves under this pinned GLB.
+function exactMesh(scene,sourceNode,sourceRoots,sourceName,associations){
+  if(!Array.isArray(sourceRoots) || scene?.children?.length!==sourceRoots.length)return null;
+  const ordinal=sourceRoots.indexOf(sourceNode);
+  if(ordinal<0 || sourceRoots.lastIndexOf(sourceNode)!==ordinal)return null;
+  const root=scene.children[ordinal];
+  const loaderName=root?.name;
+  const instanceSuffix=typeof loaderName==='string'?loaderName.slice(sourceName.length):'';
+  const nameMatches=loaderName===sourceName ||
+    (loaderName?.startsWith(sourceName) && /^_instance_[0-9]+$/.test(instanceSuffix));
+  if(!root?.isMesh || root.children?.length!==0 || !nameMatches)return null;
+  // An available association is authoritative. Only a missing association
+  // may use the validated source-root ordinal fallback.
+  const mapping=associations.get(root);
+  if(mapping && mapping.nodes!==sourceNode)return null;
+  return root;
 }
 export function createV69C035WhiteLobbyPresentation(gltf,loadedSha,expectedSha){
   const json=gltf?.parser?.json,assoc=gltf?.parser?.associations;
@@ -53,7 +60,8 @@ export function createV69C035WhiteLobbyPresentation(gltf,loadedSha,expectedSha){
          json.materials?.[target.material]?.alphaMode!=='OPAQUE' ||
          node?.extras?.asBuilt===true || node?.extras?.current===true)
         return unavailable('source-node-mesh-material');
-      const obj=exactMesh(scene,target.node,assoc);
+      if(node?.children?.length)return unavailable('source-node-has-children');
+      const obj=exactMesh(scene,target.node,roots,target.name,assoc);
       if(!obj || Array.isArray(obj.material) ||
          typeof obj.material?.clone!=='function' ||
          typeof obj.material?.color?.setRGB!=='function')
