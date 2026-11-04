@@ -34,11 +34,14 @@ jobs:
           ACTOR_ID: ${{ github.actor_id }}
           BEFORE_SHA: ${{ github.event.before }}
           AFTER_SHA: ${{ github.sha }}
-        run: python3 .github/scripts/private-model-review-dispatch.py "$RUNNER_TEMP/p186e-review-dispatch.json"
+        run: python3 .github/scripts/private-model-review-dispatch.py "$RUNNER_TEMP/p186e-review-dispatch.json" "$RUNNER_TEMP/private-model-review-workflow.txt"
       - name: Dispatch existing read-only production probe on main
         env:
           GH_TOKEN: ${{ github.token }}
-        run: >-
-          gh api --method POST
-          "/repos/${GITHUB_REPOSITORY}/actions/workflows/private-model-production-review-smoke.yml/dispatches"
-          --input "$RUNNER_TEMP/p186e-review-dispatch.json"
+        run: |
+          set -euo pipefail
+          workflow="$(cat "$RUNNER_TEMP/private-model-review-workflow.txt")"
+          [[ "$workflow" == 'private-model-production-review-smoke.yml' || "$workflow" == 'd-view-regression.yml' ]]
+          gh api --method POST "/repos/${GITHUB_REPOSITORY}/actions/workflows/${workflow}/dispatches" \
+            --input "$RUNNER_TEMP/p186e-review-dispatch.json"
+

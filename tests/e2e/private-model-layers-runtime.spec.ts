@@ -273,6 +273,10 @@ for (const model of [
     candidateId: 'auto-ylisrinne-d-c80r2-v35-2f-wc-yellow-tiles-photo-work-test-host-hold-20261102-11iiyoiu',
     sha: 'f81e0915711b798ec4a02472202a3372a4a77057cd8a150cc17f89bef3cd4789',
     bytes: 30023592, firstFloor: '194', secondFloor: '197', bothFloors: '198', upstairsRoof: true },
+  { version: 'V68', sourceEnv: 'YLIS_LAYERS_V68_GLB', productionEnv: 'YLIS_LAYERS_V68_PRODUCTION',
+    candidateId: 'auto-ylisrinne-c80r2-v68-integrated-v66-k17-v59p2-sink-hl1-wc-layers-work-test-host-hold-20261104-19aqqecn',
+    sha: '48116fd649c1100dcc1054170d0b32e94408c0c040af32d5a4a37b6e75dd7d90',
+    bytes: 31381740, firstFloor: '283', secondFloor: '284', bothFloors: '285', upstairsRoof: true },
 ] as const) {
 test(`exact ${model.version} viewer: D upstairs, ghost walls, supported IV, reset, floor changes and mobile`, async ({ page }, info) => {
   const { sha, candidateId } = model;
@@ -385,7 +389,7 @@ test(`exact ${model.version} viewer: D upstairs, ghost walls, supported IV, rese
       await expectPreservedCamera();
     }
   }
-  if (model.version === 'V35') {
+  if (model.version === 'V35' || model.version === 'V68') {
     // V35 exact source, 2F197: HL4 binds four Kvik/MANO tall-cabinet
     // carcasses and their verified front surfaces to architecture-fixtures.
     // Only this already source-verified version has that expected coverage.
@@ -408,14 +412,14 @@ test(`exact ${model.version} viewer: D upstairs, ghost walls, supported IV, rese
     // Keep the same viewport/camera and close only the UI panel in both
     // evidence frames, so the model rather than the overlay is compared.
     await page.locator('#layers-button').click();
-    await page.screenshot({ path: info.outputPath('layers-v35-2f-fixtures-visible-desktop.png') });
+    await page.screenshot({ path: info.outputPath(evidencePrefix + '-2f-fixtures-visible-desktop.png') });
     await page.locator('#layers-button').click();
     await fixtureHidden.click();
     await expect(fixtureHidden).toHaveAttribute('aria-pressed', 'true');
     await expect(canvas).toHaveAttribute('data-layers-runtime', 'active');
     await expectPreservedCamera();
     await page.locator('#layers-button').click();
-    await page.screenshot({ path: info.outputPath('layers-v35-2f-fixtures-hidden-desktop.png') });
+    await page.screenshot({ path: info.outputPath(evidencePrefix + '-2f-fixtures-hidden-desktop.png') });
     await page.locator('#layers-button').click();
     await fixtureVisible.click();
     await expect(fixtureVisible).toHaveAttribute('aria-pressed', 'true');
@@ -483,3 +487,4 @@ test(`exact ${model.version} viewer: D upstairs, ghost walls, supported IV, rese
   console.log(JSON.stringify({ source: sha, scene: +model.secondFloor, reviewUrl: page.url(), stages: ['ghost', 'IV-visible', 'reset', '1F', 'BOTH', '2F', 'mobile'], webgl, humanReview: 'NOT_RUN', production }));
 });
 }
+
