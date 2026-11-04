@@ -4029,6 +4029,17 @@ const AUTO_YLISRINNE_D_C80R2_V58R2_KITCHEN_WORKTOP_SAME_AS_ISLAND_FLOORSCENES_WO
   expectedSha256: '79c75737bb9df8050f66aade746588ea53f96b14ef760b95dd8be413a527f031',
 } as const satisfies PrivateWorkTestCandidate;
 
+// Auto-registered 2026-11-04 from Drive queue file 1b-N4iqVpGaQKqrFc701oXBSv2G2YF3Um
+// by auto-publish-work-test. WORK_TEST, never as-built.
+const AUTO_YLISRINNE_C80R2_V67_INTEGRATED_V66_K17_V59P2_SINK_LAYERS_WORK_TEST_HOST_HOLD_20261104_1BN4IQVP_CANDIDATE = {
+  id: 'auto-ylisrinne-c80r2-v67-integrated-v66-k17-v59p2-sink-layers-work-test-host-hold-20261104-1bn4iqvp',
+  label: 'Auto: Ylisrinne C80R2 V67 INTEGRATED V66 K17 V59P2 SINK LAYERS WORK TEST HOST HOLD 20261104 (scene282) - WORK_TEST',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/auto-ylisrinne-c80r2-v67-integrated-v66-k17-v59p2-sink-layers-work-test-host-hold-20261104-1bn4iqvp.glb`,
+  objectKey: 'work-test/auto-ylisrinne-c80r2-v67-integrated-v66-k17-v59p2-sink-layers-work-test-host-hold-20261104-1bn4iqvp.glb',
+  expectedSize: 31374596,
+  expectedSha256: 'aff46070414512face723fb2657152b8d18f4ec4a2debb8eea714617aaea0cad',
+} as const satisfies PrivateWorkTestCandidate;
+
 const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
   C80R2_V27_D_TERRACE_165MM_WORK_TEST_CANDIDATE,
   D_C80R2_UNIFIED64_C018_WORK_TEST_CANDIDATE,
@@ -4351,6 +4362,7 @@ const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
   AUTO_YLISRINNE_D_C80R2_V57_KITCHEN_CABINETS_UNIFORM_WORKTOP15_ONE_TAP_WORK_TEST_HOST_HOLD_20261103_1WKMDAQ6_CANDIDATE,
   AUTO_YLISRINNE_D_C80R2_V58_KITCHEN_WORKTOP_SAME_AS_ISLAND_WORK_TEST_HOST_HOLD_20261103_19RLWC4Q_CANDIDATE,
   AUTO_YLISRINNE_D_C80R2_V58R2_KITCHEN_WORKTOP_SAME_AS_ISLAND_FLOORSCENES_WORK_TEST_HOST_HOLD_20261103_1O4SW0HF_CANDIDATE,
+  AUTO_YLISRINNE_C80R2_V67_INTEGRATED_V66_K17_V59P2_SINK_LAYERS_WORK_TEST_HOST_HOLD_20261104_1BN4IQVP_CANDIDATE,
 ] as const satisfies readonly PrivateWorkTestCandidate[];
 
 type PrivateWorkTestObjectMetadata = {
@@ -5015,6 +5027,7 @@ export const handlePrivateWorkTestRequest = async (
 
   return privateWorkTestCandidateResponse(request, bucket, candidate, true);
 };
+
 
 
 

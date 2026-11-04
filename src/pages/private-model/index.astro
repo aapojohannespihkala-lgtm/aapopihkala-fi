@@ -2472,6 +2472,7 @@ const title = 'Private 3D viewer';
       import { V33_SOURCE_SHA256 } from '../../scripts/privateModelC80R2V33LayerSourceProfile.mjs';
       import { V34_SOURCE_SHA256 } from '../../scripts/privateModelC80R2V34LayerSourceProfile.mjs';
       import { V35_SOURCE_SHA256 } from '../../scripts/privateModelC80R2V35LayerSourceProfile.mjs';
+      import { V67_SOURCE_SHA256 } from '../../scripts/privateModelC80R2V67LayerSourceProfile.mjs';
       import { createTechnicalSystemLayerInventory } from '../../scripts/privateModelTechnicalSystemsLayers';
       import { mountTechnicalLayerAvailability } from '../../scripts/privateModelTechnicalLayersAvailabilityUi';
       import '../../styles/privateModelTechnicalLayersAvailability.css';
@@ -14095,7 +14096,9 @@ const title = 'Private 3D viewer';
             availablePresets: layersPresetChoices, boundNodeIds: layersBoundIds, disabled: !verified,
             sourceCoverageNote: verified && layersLoadedSha === V35_SOURCE_SHA256 && mainViewScope?.floor !== '1F'
               ? 'WC:n yhdistetty lattia ja itäseinä eivät vielä kuulu Layers-ohjaukseen. V35:n neljän korkean keittiökaapin rungot ja etupinnat ovat lähdesidottuja. Muiden kalusteiden ohjaus voi kattaa vain osia.'
-              : undefined,
+              : verified && layersLoadedSha === V67_SOURCE_SHA256
+                ? 'V67: porras, keittiökalusteet ja tunnistetut rakennusosat ovat lähdesidottuja. WC:n yhdistetty lattia ja itäseinä sekä muut tunnistamattomat osat eivät kuulu erilliseen Layers-ohjaukseen.'
+                : undefined,
           });
           canvas.dataset.layersCameraPose = JSON.stringify({ position: activeCamera.position.toArray(), quaternion: activeCamera.quaternion.toArray(), zoom: activeCamera.zoom, target: (activeCamera === planCamera ? planControls : activeCamera === isoCamera ? isoControls : controls).target.toArray() });
           canvas.dataset.layersRuntime = verified ? (layersEnabled ? 'active' : 'ready') : 'unavailable';
@@ -14136,7 +14139,8 @@ const title = 'Private 3D viewer';
           layersLoadedSha === V29_SOURCE_SHA256 ||
           layersLoadedSha === V33_SOURCE_SHA256 ||
           layersLoadedSha === V34_SOURCE_SHA256 ||
-          layersLoadedSha === V35_SOURCE_SHA256
+          layersLoadedSha === V35_SOURCE_SHA256 ||
+          layersLoadedSha === V67_SOURCE_SHA256
             ? layersLoadedSha : null;
         layersExpectedSha = session?.contract?.glbSha256 ?? verifiedChainSourceSha;
         layersEnabled = verifiedChainSourceSha !== null;
@@ -14649,6 +14653,7 @@ const title = 'Private 3D viewer';
     </script>
   </body>
 </html>
+
 
 
 
