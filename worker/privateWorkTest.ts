@@ -4073,7 +4073,19 @@ const K17_RAIL900_WORK_TEST_CANDIDATE = {
   expectedSha256: '4b8deb415c75de9eee623d8ad84a8cfa24fa8baf2540c19b59c4ec9423c58d99',
 } as const satisfies PrivateWorkTestCandidate;
 
+// SHA-pinned 305-scene SIX6 + K17 RAIL900, distinct from 308-scene K17.
+// Opt-in WORK_TEST/HOST_HOLD only, no AUTO or sourceCards promotion.
+const SIX6_RAIL900_WORK_TEST_CANDIDATE = {
+  id: 'ylisrinne-v69-six6-k17-rail900-20261104',
+  label: 'V69 SIX6 + K17 900 mm portaat ja kaiteet - WORK_TEST',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/ylisrinne-v69-six6-k17-rail900-20261104.glb`,
+  objectKey: 'work-test/ylisrinne-v69-six6-k17-rail900-20261104.glb',
+  expectedSize: 31756000,
+  expectedSha256: '34b3bc9c3bad18f359675ae5e022d952ca126c751a012fca3f8b4505159c7ca5',
+} as const satisfies PrivateWorkTestCandidate;
+
 const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
+  SIX6_RAIL900_WORK_TEST_CANDIDATE,
   K17_RAIL900_WORK_TEST_CANDIDATE,
   C80R2_V27_D_TERRACE_165MM_WORK_TEST_CANDIDATE,
   D_C80R2_UNIFIED64_C018_WORK_TEST_CANDIDATE,
