@@ -524,6 +524,11 @@ function exactProfileFixture(sceneIndex, parts = V34_BUILDING_PARTS, profiles = 
     for (const child of def.children ?? []) obj.add(make(child));
     return obj;
   };
+  if (profile.rootNodes) {
+    // V67 pins the complete root array, including unclassified source roots.
+    roots.splice(0, roots.length, ...profile.rootNodes);
+    for (const index of roots) nodes[index] ??= { name: 'unclassified-' + index, children: [] };
+  }
   roots.forEach(index => scene.add(make(index)));
   const scenes = new Array(count), sourceScenes = new Array(count);
   scenes[sceneIndex] = scene;
@@ -623,3 +628,49 @@ test('V35 resolver rejects predecessor route, SHA, scene count and reparented Kv
   f.gltf.parser.json.nodes[8036].children = f.gltf.parser.json.nodes[8036].children.filter(x => x !== 8033);
   assert.ok(!resolveBuildingPartLayerBindings(f.options).bindings.some(b => b.root === leaf));
 });
+
+import {
+  V67_SOURCE_SHA256, V67_BUILDING_PARTS, V67_BUILDING_SCENES,
+} from '../../src/scripts/privateModelC80R2V67LayerSourceProfile.mjs';
+const v67Fixture = sceneIndex => exactProfileFixture(
+  sceneIndex, V67_BUILDING_PARTS, V67_BUILDING_SCENES, V67_SOURCE_SHA256, 283,
+);
+
+test('V67 integration binds original 1F/2F/BOTH with new kitchen and K17 source identities', () => {
+  for (const [sceneIndex, count] of [[280,35],[281,132],[282,170]]) {
+    const f = v67Fixture(sceneIndex);
+    const before = JSON.stringify(f.gltf.parser.json);
+    const result = resolveBuildingPartLayerBindings(f.options);
+    assert.equal(result.bindings.length, count, JSON.stringify(result.excluded.slice(0,5)));
+    assert.ok(result.evidence.every(e => e.bindingKind === 'EXACT_V67_SOURCE_PROFILE'));
+    assert.ok(result.evidence.every(e => e.objectKey.startsWith(`V67:${sceneIndex}:`)));
+    assert.ok(result.bindings.some(b => b.id === 'architecture-other'));
+    if (sceneIndex !== 280) assert.ok(result.bindings.some(b => b.id === 'architecture-fixtures'));
+    assert.ok(!result.evidence.some(e => [9331,245,250,255,260].includes(e.sourceNodeIndex)));
+    assert.equal(JSON.stringify(f.gltf.parser.json), before);
+  }
+});
+
+test('V67 refuses old SHA, wrong floor/count, altered root order and reparented imported drain', () => {
+  let f = v67Fixture(281);
+  assert.equal(resolveBuildingPartLayerBindings({ ...f.options, loadedSourceSha256: V35_SOURCE_SHA256 }).bindings.length, 0);
+  assert.equal(resolveBuildingPartLayerBindings({ ...f.options, floor: '1F' }).bindings.length, 0);
+  f.gltf.parser.json.scenes.length = 282;
+  assert.equal(resolveBuildingPartLayerBindings(f.options).bindings.length, 0);
+  f = v67Fixture(281);
+  f.gltf.parser.json.scenes[281].nodes.reverse();
+  assert.equal(resolveBuildingPartLayerBindings(f.options).bindings.length, 0);
+  f = v67Fixture(281);
+  const index = Number(Object.keys(V67_BUILDING_PARTS).find(i => V67_BUILDING_PARTS[i].name.startsWith('V59P2_METAL_')));
+  const leaf = f.objects[index];
+  assert.ok(leaf, 'Imported drain is part of the complete current kitchen');
+  const parent = leaf.parent;
+  parent.children = parent.children.filter(x => x !== leaf);
+  f.scene.add(leaf);
+  const oldPath = V67_BUILDING_SCENES[281].paths[index][0];
+  const parentIndex = oldPath.at(-2);
+  f.gltf.parser.json.nodes[parentIndex].children = f.gltf.parser.json.nodes[parentIndex].children.filter(i => i !== index);
+  f.gltf.parser.json.scenes[281].nodes.push(index);
+  assert.ok(!resolveBuildingPartLayerBindings(f.options).bindings.some(b => b.root === leaf));
+});
+
