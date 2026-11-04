@@ -337,12 +337,23 @@ test(`exact ${model.version} viewer: D upstairs, ghost walls, supported IV, rese
         await page.locator('#layers-button').innerText() === 'Sisältö' &&
         await page.locator('[data-technical-layer-availability]').count() === 1 &&
         await page.locator('#preset-context-status').evaluate(el =>
-          getComputedStyle(el).textOverflow === 'ellipsis')) break;
+          getComputedStyle(el).textOverflow === 'ellipsis') &&
+        (model.version !== 'V69' ||
+          await canvas.getAttribute('data-v69-c035-lobby-source-ready') === 'true')) break;
     if (production && attempt < 11) await page.waitForTimeout(10_000);
   }
   expect(sourceVerified).toBe(true);
   await expect(canvas).toHaveAttribute('data-layers-source-sha256', sha);
   await expect(canvas).toHaveAttribute('data-layers-runtime', 'active');
+  // Verify the exact-source material adapter in the actual authenticated V69
+  // browser load, rather than only checking that Layers and the GLB loaded.
+  // The attribute is set only after all 12 V69 C80-035 1F/BOTH objects pass
+  // SHA/scene/node/mesh/material source guards and white clones are applied.
+  if (model.version === 'V69') {
+    await expect(canvas).toHaveAttribute('data-v69-c035-lobby-source-ready', 'true');
+  } else {
+    await expect(canvas).not.toHaveAttribute('data-v69-c035-lobby-source-ready', 'true');
+  }
   await expect(page.locator('#preset-menu > summary')).toHaveCSS('width', '246px');
   await page.setViewportSize(desktopViewport);
   await page.locator('#layers-button').click();
@@ -442,6 +453,11 @@ test(`exact ${model.version} viewer: D upstairs, ghost walls, supported IV, rese
     await expect(canvas).toHaveAttribute('data-main-view-floor', floor);
     await expect(canvas).toHaveAttribute('data-layers-source-scene-index', index);
     await expect(canvas).toHaveAttribute('data-main-view-source-sha256', sha);
+    // The material-only V69 lobby correction must survive each real source
+    // scene switch, including returning to 2F where no jamb objects exist.
+    if (model.version === 'V69') {
+      await expect(canvas).toHaveAttribute('data-v69-c035-lobby-source-ready', 'true');
+    }
   }
   await page.setViewportSize({ width: 390, height: 844 });
   await page.locator('#layers-button').click();
