@@ -45,7 +45,8 @@ function fixture(){
   for(const index of [291,292]){
     jsonScenes[index]={name:`C80R2_V69_${index===291?'2F':'BOTH'}`,nodes:[...lower]};
     for(const id of lower){
-      const mesh=new Object3D({isMesh:true,name:'lower'});
+      nodes[id]={name:`lower_source_${id}`};
+      const mesh=new Object3D({isMesh:true,name:nodes[id].name});
       scenes[index].add(mesh);associations.set(mesh,{nodes:id});
     }
   }
@@ -100,4 +101,53 @@ test('clone failure leaves both target scenes unchanged',()=>{
   assert.equal(r.setApplied(true),false);
   assert.equal(r.applied,false);
   for(const index of [291,292])assert.equal(f.gltf.scenes[index].children.length,5);
+});
+
+test('GLTFLoader association pruning retains exact V69 glass presentation through source-root slots',()=>{
+  const f=fixture();
+  // r185 retains only the latest loaded scene association map in this case.
+  f.associations.delete(f.parent);
+  for(const mesh of f.parent.children)f.associations.delete(mesh);
+  for(const mesh of f.gltf.scenes[291].children)f.associations.delete(mesh);
+  const r=make(f);
+  assert.equal(r.available,true,r.reason);
+  assert.equal(r.count,16);
+  assert.equal(r.setApplied(true),true);
+  for(const scene of [291,292]){
+    const group=f.gltf.scenes[scene].children.at(-1);
+    assert.equal(group.children.length,8);
+    for(let i=0;i<8;i++){
+      assert.equal(f.associations.get(group.children[i]).nodes,6463+i);
+      assert.equal(f.associations.get(group.children[i]).meshes,1859);
+    }
+  }
+  r.dispose();
+  for(const scene of [291,292])assert.equal(f.gltf.scenes[scene].children.length,5);
+  assert.equal(f.associations.size,5);
+});
+test('a contradictory existing mapping cannot be overwritten by positional fallback',()=>{
+  const a=fixture();
+  a.associations.set(a.parent,{nodes:9999});
+  assert.equal(make(a).available,false);
+  const b=fixture();
+  b.associations.set(b.parent.children[2],{nodes:9999});
+  assert.equal(make(b).available,false);
+  const c=fixture();
+  c.associations.set(c.gltf.scenes[291].children[0],{nodes:9999});
+  assert.equal(make(c).available,false);
+  for(const f of [a,b,c]){
+    assert.equal(f.gltf.scenes[291].children.length,5);
+    assert.equal(f.gltf.scenes[292].children.length,5);
+  }
+});
+test('wrong GLTFLoader runtime root or child order fails closed without associations',()=>{
+  const a=fixture();
+  for(const child of a.gltf.scenes[291].children)a.associations.delete(child);
+  const arr=a.gltf.scenes[291].children;
+  [arr[0],arr[1]]=[arr[1],arr[0]];
+  assert.equal(make(a).available,false);
+  const b=fixture();
+  for(const mesh of b.parent.children)b.associations.delete(mesh);
+  [b.parent.children[0],b.parent.children[1]]=[b.parent.children[1],b.parent.children[0]];
+  assert.equal(make(b).available,false);
 });
