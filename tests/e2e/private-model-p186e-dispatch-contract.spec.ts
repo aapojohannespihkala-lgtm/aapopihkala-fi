@@ -16,6 +16,14 @@ test('validated requests can dispatch only the existing P186E mode on main',()=>
   expect(JSON.parse(result.stdout)).toEqual({ref:'main',inputs:{probe_mode:'p186e-labels-render'}});
 });
 
+test('V68 request selects only the established exact-source WebGL workflow on main',()=>{
+  const result=evaluate({...request,probeMode:'d-view-v68'});
+  expect(result.status).toBe(0);
+  expect(JSON.parse(result.stdout)).toEqual({ref:'main',inputs:{source_version:'V68'},_workflow:'d-view-regression.yml'});
+  for(const probeMode of ['d-view-v69','d-view-any','../workflow','d-view-v68\nref=other'])
+    expect(evaluate({...request,probeMode}).status).not.toBe(0);
+});
+
 test('invalid mode, extra target/ref, main drift and request injection fail closed',()=>{
   for(const payload of [
     {...request,probeMode:'full-render'}, {...request,probeMode:'g2-records-readback'},
@@ -26,7 +34,7 @@ test('invalid mode, extra target/ref, main drift and request injection fail clos
   ])expect(evaluate(payload).status).not.toBe(0);
 });
 
-function fixture(tamper=false){
+function fixture(tamper=false,probeMode=request.probeMode){
   const dir=mkdtempSync(join(tmpdir(),'p186e-request-'));
   const git=(...args:string[])=>execFileSync('git',args,{cwd:dir,encoding:'utf8'}).trim();
   git('init','-b','main');git('config','user.email','fixture@example.invalid');
@@ -34,7 +42,7 @@ function fixture(tamper=false){
   writeFileSync(join(dir,'trusted.txt'),'trusted main\n');git('add','.');git('commit','-qm','main');
   const before=git('rev-parse','HEAD');git('checkout','-qb','ops/private-model-review');
   mkdirSync(join(dir,'.github'));
-  writeFileSync(join(dir,'.github/private-model-review-request.json'),JSON.stringify({...request,expectedMainSha:before}));
+  writeFileSync(join(dir,'.github/private-model-review-request.json'),JSON.stringify({...request,probeMode,expectedMainSha:before}));
   if(tamper)writeFileSync(join(dir,'trusted.txt'),'untrusted executable change\n');
   git('add','.');git('commit','-qm','request');const after=git('rev-parse','HEAD');
   git('checkout','-q','main');
@@ -49,6 +57,16 @@ test('actual CLI reads the inert request from its commit while executing trusted
     const result=spawnSync('python3',[validator,f.output],{cwd:f.dir,env:f.env,encoding:'utf8'});
     expect(result.status).toBe(0);
     expect(JSON.parse(readFileSync(f.output,'utf8'))).toEqual({ref:'main',inputs:{probe_mode:'p186e-labels-render'}});
+  }finally{rmSync(f.dir,{recursive:true,force:true});}
+});
+
+test('V68 CLI emits a fixed workflow target separately from its canonical dispatch body',()=>{
+  const f=fixture(false,'d-view-v68');try{
+    const target=join(f.dir,'workflow.txt');
+    const result=spawnSync('python3',[validator,f.output,target],{cwd:f.dir,env:f.env,encoding:'utf8'});
+    expect(result.status).toBe(0);
+    expect(JSON.parse(readFileSync(f.output,'utf8'))).toEqual({ref:'main',inputs:{source_version:'V68'}});
+    expect(readFileSync(target,'utf8')).toBe('d-view-regression.yml\n');
   }finally{rmSync(f.dir,{recursive:true,force:true});}
 });
 
@@ -77,7 +95,8 @@ test('workflow executes main validator and never binds viewer credentials or PR 
   expect(yaml).toContain('ref: main');expect(yaml).toContain('fetch-depth: 0');
   expect(yaml).toContain('actions: write');expect(yaml).toContain('contents: read');
   expect(yaml).toContain('python3 .github/scripts/private-model-review-dispatch.py');
-  expect(yaml).toContain('/actions/workflows/private-model-production-review-smoke.yml/dispatches');
+  expect(yaml).toContain("[[ \"$workflow\" == 'private-model-production-review-smoke.yml' || \"$workflow\" == 'd-view-regression.yml' ]]");
+  expect(yaml).toContain('/actions/workflows/${workflow}/dispatches');
   expect(yaml).not.toContain('secrets.');expect(yaml).not.toContain('CF_ACCESS');
   expect(yaml).not.toContain('pull_request:');
 });
@@ -140,3 +159,4 @@ test('new-main request refuses executable drift or a missing old-branch ancestry
     }finally{rmSync(f.dir,{recursive:true,force:true});}
   }
 });
+
