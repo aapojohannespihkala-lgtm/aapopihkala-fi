@@ -3,6 +3,8 @@ import { V29_SOURCE_SHA256, V29_SOURCE_SCENE_COUNT, V29_TECHNICAL_SCENES } from 
 import { V33_SOURCE_SHA256, V33_SOURCE_SCENE_COUNT, V33_TECHNICAL_SCENES } from './privateModelC80R2V33LayerSourceProfile.mjs';
 import { V34_SOURCE_SHA256, V34_SOURCE_SCENE_COUNT, V34_TECHNICAL_SCENES } from './privateModelC80R2V34LayerSourceProfile.mjs';
 import { V35_SOURCE_SHA256, V35_SOURCE_SCENE_COUNT, V35_TECHNICAL_SCENES } from './privateModelC80R2V35LayerSourceProfile.mjs';
+import { V68_SOURCE_SHA256, V68_SOURCE_SCENE_COUNT, V68_BUILDING_SCENES } from './privateModelC80R2V68LayerSourceProfile.mjs';
+import { V69_SOURCE_SHA256, V69_SOURCE_SCENE_COUNT, V69_BUILDING_SCENES } from './privateModelC80R2V69LayerSourceProfile.mjs';
 import type { Object3D } from 'three';
 import { nameMatches } from './privateModelSourceNodeAssociations.mjs';
 import {
@@ -233,14 +235,18 @@ const v26Scenes = { '1F': 174, '2F': 162, BOTH: 175 } as const;
 const v26Device = (context: TechnicalSystemsContext, binding: TechnicalSourceNode): {
   id: TechnicalSystemId; scope: Scope;
 } | null => {
+  const integratedScenes = context.loadedGlbSha256 === V69_SOURCE_SHA256 ? V69_BUILDING_SCENES
+    : context.loadedGlbSha256 === V68_SOURCE_SHA256 ? V68_BUILDING_SCENES : null;
+  const integratedCount = context.loadedGlbSha256 === V69_SOURCE_SHA256 ? V69_SOURCE_SCENE_COUNT : V68_SOURCE_SCENE_COUNT;
   const v35 = context.loadedGlbSha256 === V35_SOURCE_SHA256;
   const v34 = context.loadedGlbSha256 === V34_SOURCE_SHA256;
   const v33 = context.loadedGlbSha256 === V33_SOURCE_SHA256;
   const v29 = context.loadedGlbSha256 === V29_SOURCE_SHA256;
   const v27 = context.loadedGlbSha256 === V27_SOURCE_SHA256;
-  const scenes = v35 ? V35_TECHNICAL_SCENES : v34 ? V34_TECHNICAL_SCENES : v33 ? V33_TECHNICAL_SCENES : v29 ? V29_TECHNICAL_SCENES : v27 ? V27_TECHNICAL_SCENES : v26Scenes;
+  const scenes = integratedScenes ? Object.fromEntries(Object.entries(integratedScenes).map(([index, scene]) => [scene.floor, Number(index)]))
+    : v35 ? V35_TECHNICAL_SCENES : v34 ? V34_TECHNICAL_SCENES : v33 ? V33_TECHNICAL_SCENES : v29 ? V29_TECHNICAL_SCENES : v27 ? V27_TECHNICAL_SCENES : v26Scenes;
   // No guessed successor or copied metadata from another GLB is accepted.
-  if ((!v35 && !v34 && !v33 && !v29 && !v27 && context.loadedGlbSha256 !== V26_TECHNICAL_SOURCE_SHA256) ||
+  if ((!integratedScenes && !v35 && !v34 && !v33 && !v29 && !v27 && context.loadedGlbSha256 !== V26_TECHNICAL_SOURCE_SHA256) ||
       !(Object.values(scenes) as readonly number[]).includes(context.sourceSceneIndex) ||
       !context.sourceJson ||
       (v35 && context.sourceJson.scenes?.length !== V35_SOURCE_SCENE_COUNT) ||
@@ -248,6 +254,15 @@ const v26Device = (context: TechnicalSystemsContext, binding: TechnicalSourceNod
       (v33 && context.sourceJson.scenes?.length !== V33_SOURCE_SCENE_COUNT) ||
       (v29 && context.sourceJson.scenes?.length !== V29_SOURCE_SCENE_COUNT) ||
       (v27 && context.sourceJson.scenes?.length !== V27_SOURCE_SCENE_COUNT)) return null;
+  if (integratedScenes) {
+    const profile = integratedScenes[context.sourceSceneIndex];
+    const source = context.sourceJson.scenes?.[context.sourceSceneIndex];
+    // The serial model retains the supplied original device geometry. Require
+    // its complete exact scene, then validNode checks node/mesh/parent/sourceLinks.
+    if (context.sourceJson.scenes?.length !== integratedCount || !profile ||
+        source?.name !== profile.name ||
+        JSON.stringify(source.nodes) !== JSON.stringify(profile.rootNodes)) return null;
+  }
   const name = context.sourceJson.nodes?.[binding.nodeIndex]?.name ?? '';
   let id: TechnicalSystemId | null = null;
   let floor: '1F' | '2F' | null = null;

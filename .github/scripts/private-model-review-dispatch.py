@@ -34,15 +34,15 @@ def validate_request(payload, trusted_main_sha):
     require(isinstance(payload, dict) and set(payload) == {
         "probeMode", "requestId", "expectedMainSha",
     }, "REQUEST_KEYS")
-    require(payload["probeMode"] in ("p186e-labels-render", "d-view-v68"), "FIXED_PROBE_MODE")
+    require(payload["probeMode"] in ("p186e-labels-render", "d-view-v68", "d-view-v69"), "FIXED_PROBE_MODE")
     request_id = payload["requestId"]
     require(isinstance(request_id, str) and
             re.fullmatch(r"[A-Za-z0-9._:-]{1,128}", request_id), "REQUEST_ID")
     require(isinstance(trusted_main_sha, str) and SHA.fullmatch(trusted_main_sha)
             and trusted_main_sha != "0" * 40
             and payload["expectedMainSha"] == trusted_main_sha, "TRUSTED_MAIN")
-    if payload["probeMode"] == "d-view-v68":
-        return {"ref": "main", "inputs": {"source_version": "V68"},
+    if payload["probeMode"] in ("d-view-v68", "d-view-v69"):
+        return {"ref": "main", "inputs": {"source_version": "V69" if payload["probeMode"] == "d-view-v69" else "V68"},
                 "_workflow": "d-view-regression.yml"}
     return {"ref": "main", "inputs": {"probe_mode": "p186e-labels-render"}}
 

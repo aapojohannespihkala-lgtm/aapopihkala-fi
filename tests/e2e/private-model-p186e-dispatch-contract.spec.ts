@@ -20,7 +20,15 @@ test('V68 request selects only the established exact-source WebGL workflow on ma
   const result=evaluate({...request,probeMode:'d-view-v68'});
   expect(result.status).toBe(0);
   expect(JSON.parse(result.stdout)).toEqual({ref:'main',inputs:{source_version:'V68'},_workflow:'d-view-regression.yml'});
-  for(const probeMode of ['d-view-v69','d-view-any','../workflow','d-view-v68\nref=other'])
+  for(const probeMode of ['d-view-v70','d-view-any','../workflow','d-view-v68\nref=other'])
+    expect(evaluate({...request,probeMode}).status).not.toBe(0);
+});
+
+test('V69 request selects only the established exact-source WebGL workflow on main',()=>{
+  const result=evaluate({...request,probeMode:'d-view-v69'});
+  expect(result.status).toBe(0);
+  expect(JSON.parse(result.stdout)).toEqual({ref:'main',inputs:{source_version:'V69'},_workflow:'d-view-regression.yml'});
+  for(const probeMode of ['d-view-v70','d-view-any','../workflow','d-view-v68\nref=other'])
     expect(evaluate({...request,probeMode}).status).not.toBe(0);
 });
 
@@ -66,6 +74,16 @@ test('V68 CLI emits a fixed workflow target separately from its canonical dispat
     const result=spawnSync('python3',[validator,f.output,target],{cwd:f.dir,env:f.env,encoding:'utf8'});
     expect(result.status).toBe(0);
     expect(JSON.parse(readFileSync(f.output,'utf8'))).toEqual({ref:'main',inputs:{source_version:'V68'}});
+    expect(readFileSync(target,'utf8')).toBe('d-view-regression.yml\n');
+  }finally{rmSync(f.dir,{recursive:true,force:true});}
+});
+
+test('V69 CLI emits a fixed workflow target separately from its canonical dispatch body',()=>{
+  const f=fixture(false,'d-view-v69');try{
+    const target=join(f.dir,'workflow.txt');
+    const result=spawnSync('python3',[validator,f.output,target],{cwd:f.dir,env:f.env,encoding:'utf8'});
+    expect(result.status).toBe(0);
+    expect(JSON.parse(readFileSync(f.output,'utf8'))).toEqual({ref:'main',inputs:{source_version:'V69'}});
     expect(readFileSync(target,'utf8')).toBe('d-view-regression.yml\n');
   }finally{rmSync(f.dir,{recursive:true,force:true});}
 });
