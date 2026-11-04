@@ -384,9 +384,11 @@ test('V35 source scene and viewer floor gates cannot reveal another floor device
 
 import { V68_SOURCE_SHA256, V68_SOURCE_SCENE_COUNT, V68_BUILDING_SCENES } from '../../src/scripts/privateModelC80R2V68LayerSourceProfile.mjs';
 import { V69_SOURCE_SHA256, V69_SOURCE_SCENE_COUNT, V69_BUILDING_SCENES } from '../../src/scripts/privateModelC80R2V69LayerSourceProfile.mjs';
+import { K17_RAIL900_SOURCE_SHA256, K17_RAIL900_SOURCE_SCENE_COUNT, K17_RAIL900_BUILDING_SCENES } from '../../src/scripts/privateModelK17Rail900LayerSourceProfile.mjs';
 for (const model of [
   {sha:V68_SOURCE_SHA256,count:V68_SOURCE_SCENE_COUNT,profiles:V68_BUILDING_SCENES,upstairs:284,both:285},
   {sha:V69_SOURCE_SHA256,count:V69_SOURCE_SCENE_COUNT,profiles:V69_BUILDING_SCENES,upstairs:291,both:292},
+  {sha:K17_RAIL900_SOURCE_SHA256,count:K17_RAIL900_SOURCE_SCENE_COUNT,profiles:K17_RAIL900_BUILDING_SCENES,upstairs:306,both:307},
 ]) test(`integrated technical source ${model.sha.slice(0,8)} retains IV with exact scene and parent guards`, () => {
   const name='K10_R3_WORLD10_SC19_K10_R3_D2F_KIV100_ANCHOR_001_WORK_TEST_SLEEVE_COVER_ORIENT__KIV100_EXTERNAL_SCREEN_WIRE_05_PROXY_V20';
   const fixture=()=>{

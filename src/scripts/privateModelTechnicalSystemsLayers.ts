@@ -1,3 +1,4 @@
+import { K17_RAIL900_SOURCE_SHA256, K17_RAIL900_SOURCE_SCENE_COUNT, K17_RAIL900_BUILDING_SCENES } from './privateModelK17Rail900LayerSourceProfile.mjs';
 import { V27_SOURCE_SHA256, V27_SOURCE_SCENE_COUNT, V27_TECHNICAL_SCENES } from './privateModelC80R2V27LayerSourceProfile.mjs';
 import { V29_SOURCE_SHA256, V29_SOURCE_SCENE_COUNT, V29_TECHNICAL_SCENES } from './privateModelC80R2V29LayerSourceProfile.mjs';
 import { V33_SOURCE_SHA256, V33_SOURCE_SCENE_COUNT, V33_TECHNICAL_SCENES } from './privateModelC80R2V33LayerSourceProfile.mjs';
@@ -235,9 +236,11 @@ const v26Scenes = { '1F': 174, '2F': 162, BOTH: 175 } as const;
 const v26Device = (context: TechnicalSystemsContext, binding: TechnicalSourceNode): {
   id: TechnicalSystemId; scope: Scope;
 } | null => {
-  const integratedScenes = context.loadedGlbSha256 === V69_SOURCE_SHA256 ? V69_BUILDING_SCENES
+  const integratedScenes = context.loadedGlbSha256 === K17_RAIL900_SOURCE_SHA256 ? K17_RAIL900_BUILDING_SCENES
+    : context.loadedGlbSha256 === V69_SOURCE_SHA256 ? V69_BUILDING_SCENES
     : context.loadedGlbSha256 === V68_SOURCE_SHA256 ? V68_BUILDING_SCENES : null;
-  const integratedCount = context.loadedGlbSha256 === V69_SOURCE_SHA256 ? V69_SOURCE_SCENE_COUNT : V68_SOURCE_SCENE_COUNT;
+  const integratedCount = context.loadedGlbSha256 === K17_RAIL900_SOURCE_SHA256 ? K17_RAIL900_SOURCE_SCENE_COUNT
+    : context.loadedGlbSha256 === V69_SOURCE_SHA256 ? V69_SOURCE_SCENE_COUNT : V68_SOURCE_SCENE_COUNT;
   const v35 = context.loadedGlbSha256 === V35_SOURCE_SHA256;
   const v34 = context.loadedGlbSha256 === V34_SOURCE_SHA256;
   const v33 = context.loadedGlbSha256 === V33_SOURCE_SHA256;
@@ -259,8 +262,8 @@ const v26Device = (context: TechnicalSystemsContext, binding: TechnicalSourceNod
     const source = context.sourceJson.scenes?.[context.sourceSceneIndex];
     // The serial model retains the supplied original device geometry. Require
     // its complete exact scene, then validNode checks node/mesh/parent/sourceLinks.
-    if (context.sourceJson.scenes?.length !== integratedCount || !profile ||
-        source?.name !== profile.name ||
+    if (context.sourceJson.scenes?.length !== integratedCount || !profile || !source ||
+        source.name !== profile.name ||
         JSON.stringify(source.nodes) !== JSON.stringify(profile.rootNodes)) return null;
   }
   const name = context.sourceJson.nodes?.[binding.nodeIndex]?.name ?? '';

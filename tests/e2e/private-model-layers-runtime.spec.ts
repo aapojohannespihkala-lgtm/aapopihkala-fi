@@ -281,6 +281,10 @@ for (const model of [
     candidateId: 'auto-ylisrinne-c80r2-v69-integrated-v68-h3-floor-h4-storage-layers-work-test-host-hold-20261104-1zropkz2',
     sha: '5b720c9b9f87358867463e725b1500c63bafd9de15d121cdf6c36a3e23ca36fd',
     bytes: 31397788, firstFloor: '290', secondFloor: '291', bothFloors: '292', upstairsRoof: true },
+  { version: 'K17_RAIL_HANDRAIL900', sourceEnv: 'YLIS_LAYERS_K17_RAIL900_GLB', productionEnv: 'YLIS_LAYERS_K17_RAIL900_PRODUCTION',
+    candidateId: 'ylisrinne-k17-rail900-20261104',
+    sha: '4b8deb415c75de9eee623d8ad84a8cfa24fa8baf2540c19b59c4ec9423c58d99',
+    bytes: 31760668, firstFloor: '305', secondFloor: '306', bothFloors: '307', upstairsRoof: true },
 ] as const) {
 test(`exact ${model.version} viewer: D upstairs, ghost walls, supported IV, reset, floor changes and mobile`, async ({ page }, info) => {
   const { sha, candidateId } = model;
@@ -407,7 +411,7 @@ test(`exact ${model.version} viewer: D upstairs, ghost walls, supported IV, rese
       await expectPreservedCamera();
     }
   }
-  if (model.version === 'V35' || model.version === 'V68' || model.version === 'V69') {
+  if (model.version === 'V35' || model.version === 'V68' || model.version === 'V69' || model.version === 'K17_RAIL_HANDRAIL900') {
     // V35 exact source, 2F197: HL4 binds four Kvik/MANO tall-cabinet
     // carcasses and their verified front surfaces to architecture-fixtures.
     // Only this already source-verified version has that expected coverage.
@@ -456,6 +460,11 @@ test(`exact ${model.version} viewer: D upstairs, ghost walls, supported IV, rese
     await expect(canvas).toHaveAttribute('data-main-view-floor', floor);
     await expect(canvas).toHaveAttribute('data-layers-source-scene-index', index);
     await expect(canvas).toHaveAttribute('data-main-view-source-sha256', sha);
+    if (model.version === 'K17_RAIL_HANDRAIL900') {
+      await page.locator('#layers-button').click();
+      await page.screenshot({path:info.outputPath(evidencePrefix+'-'+floor.toLowerCase()+'-original-scene.png')});
+      await page.locator('#layers-button').click();
+    }
     // The material-only V69 lobby correction must survive each real source
     // scene switch, including returning to 2F where no jamb objects exist.
     if (model.version === 'V69') {
@@ -502,7 +511,7 @@ test(`exact ${model.version} viewer: D upstairs, ghost walls, supported IV, rese
   await page.locator('#layers-button').click();
   await expectMobileCamera();
   await page.screenshot({ path: info.outputPath(evidencePrefix + '-2f-restored-mobile.png') });
-  if (model.version === 'V68' || model.version === 'V69') {
+  if (model.version === 'V68' || model.version === 'V69' || model.version === 'K17_RAIL_HANDRAIL900') {
     await page.setViewportSize(desktopViewport);
     await page.locator('#more-menu > summary').click();
     await page.locator('#fit-button').click();
@@ -529,7 +538,7 @@ test(`exact ${model.version} viewer: D upstairs, ghost walls, supported IV, rese
   });
   expect(webgl).toEqual({ available: true, lost: false, error: 0 });
   expect(errors).toEqual([]);
-  console.log(JSON.stringify({ source: sha, scene: +model.secondFloor, reviewUrl: page.url(), stages: ['ghost', 'IV-visible', 'reset', '1F', 'BOTH', '2F', 'mobile', ...((model.version === 'V68' || model.version === 'V69') ? ['actual-object-click'] : [])], webgl, humanReview: 'NOT_RUN', production }));
+  console.log(JSON.stringify({ source: sha, scene: +model.secondFloor, reviewUrl: page.url(), stages: ['ghost', 'IV-visible', 'reset', '1F', 'BOTH', '2F', 'mobile', ...((model.version === 'V68' || model.version === 'V69' || model.version === 'K17_RAIL_HANDRAIL900') ? ['actual-object-click'] : [])], webgl, humanReview: 'NOT_RUN', production }));
 });
 }
 

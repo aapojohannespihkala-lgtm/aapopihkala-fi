@@ -361,6 +361,18 @@ jobs:
           [[ "$GITHUB_REF" == "refs/heads/main" ]]
           gh api --method POST "/repos/${GITHUB_REPOSITORY}/actions/workflows/private-model-d1f-service-review.yml/dispatches" -f ref=main
 
+      - name: Dispatch exact K17 production regression after verified publish
+        if: success() && inputs.candidate == 'ylisrinne-k17-rail900-20261104'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          [[ "$GITHUB_EVENT_NAME" == "workflow_dispatch" ]]
+          [[ "$GITHUB_REF" == "refs/heads/main" ]]
+          [[ "$CANDIDATE_ID" == 'ylisrinne-k17-rail900-20261104' ]]
+          gh api --method POST "/repos/${GITHUB_REPOSITORY}/actions/workflows/d-view-regression.yml/dispatches" -f ref=main -f inputs[source_version]=K17_RAIL900
+
       - name: Remove private temporary files
         if: always()
         shell: bash
