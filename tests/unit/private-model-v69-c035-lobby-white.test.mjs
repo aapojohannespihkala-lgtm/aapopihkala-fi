@@ -17,7 +17,7 @@ function fixture(){
       meshes[mesh]={primitives:[{material}]};
       srcScenes[sceneId].nodes.push(id);
       const original={name:'gray',color:{setRGB(){}},clone(){return {color:{setRGB(...v){this.rgb=v}},dispose(){this.disposed=true;}}}};
-      const object={isMesh:true,parent:sc,material:original};
+      const object={isMesh:true,name:sceneId===292?name+'_instance_1':name,children:[],parent:sc,material:original};
       sc.children.push(object);assoc.set(object,{nodes:id});objects.push({object,original});
     }
   }
