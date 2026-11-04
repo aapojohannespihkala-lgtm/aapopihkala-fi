@@ -4084,7 +4084,21 @@ const SIX6_RAIL900_WORK_TEST_CANDIDATE = {
   expectedSha256: '34b3bc9c3bad18f359675ae5e022d952ca126c751a012fca3f8b4505159c7ca5',
 } as const satisfies PrivateWorkTestCandidate;
 
+// Exact G2b TYÖ WORK_TEST source. The 295-scene GLB keeps V69's original
+// 293 scenes, and provides opt-in 2F=293 / BOTH=294 with V59P8+V59P12.
+// This registers protected transport only. It does not enable production
+// views, rebind source cards, promote CURRENT, or waive HUMAN_REVIEW.
+const V69P12R1_SINK_FAUCET_WORK_TEST_CANDIDATE = {
+  id: 'ylisrinne-v69p12r1-sink-faucet-floor-metadata-20261105',
+  label: 'V69P12R1 D2F: V59P8 allas + V59P12 Hansgrohe - WORK_TEST/HOST_HOLD',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/ylisrinne-v69p12r1-sink-faucet-floor-metadata-20261105.glb`,
+  objectKey: 'work-test/ylisrinne-v69p12r1-sink-faucet-floor-metadata-20261105.glb',
+  expectedSize: 32_610_084,
+  expectedSha256: 'd39102890470f59d7c2a2e033851a6f3d1481a83fb6180b549acd4cbf22182b3',
+} as const satisfies PrivateWorkTestCandidate;
+
 const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
+  V69P12R1_SINK_FAUCET_WORK_TEST_CANDIDATE,
   SIX6_RAIL900_WORK_TEST_CANDIDATE,
   K17_RAIL900_WORK_TEST_CANDIDATE,
   C80R2_V27_D_TERRACE_165MM_WORK_TEST_CANDIDATE,
