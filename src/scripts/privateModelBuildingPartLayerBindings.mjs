@@ -1,3 +1,4 @@
+import { K17_RAIL900_SOURCE_SHA256, K17_RAIL900_SOURCE_SCENE_COUNT, K17_RAIL900_BUILDING_PARTS, K17_RAIL900_BUILDING_SCENES } from './privateModelK17Rail900LayerSourceProfile.mjs';
 import { V69_SOURCE_SHA256, V69_SOURCE_SCENE_COUNT, V69_BUILDING_PARTS, V69_BUILDING_SCENES } from './privateModelC80R2V69LayerSourceProfile.mjs';
 import { V27_SOURCE_SHA256, V27_SOURCE_SCENE_COUNT, V27_BUILDING_PARTS, V27_BUILDING_SCENES } from './privateModelC80R2V27LayerSourceProfile.mjs';
 import { V29_SOURCE_SHA256, V29_SOURCE_SCENE_COUNT, V29_BUILDING_PARTS, V29_BUILDING_SCENES } from './privateModelC80R2V29LayerSourceProfile.mjs';
@@ -301,7 +302,8 @@ const matchesSourceName = (actual, expected) => {
 };
 
 const v26SourcePart = (json, sha, sceneIndex, floor, source, associations, mesh) => {
-  const version = sha === V69_SOURCE_SHA256 ? 'V69'
+  const version = sha === K17_RAIL900_SOURCE_SHA256 ? 'K17_RAIL900'
+    : sha === V69_SOURCE_SHA256 ? 'V69'
     : sha === V68_SOURCE_SHA256 ? 'V68'
     : sha === V67_SOURCE_SHA256 ? 'V67'
     : (sha === V35_SOURCE_SHA256 || sha === V35_HL1_DONOR_SHA256) ? 'V35'
@@ -310,7 +312,8 @@ const v26SourcePart = (json, sha, sceneIndex, floor, source, associations, mesh)
     : sha === V29_SOURCE_SHA256 ? 'V29'
     : sha === V27_SOURCE_SHA256 ? 'V27' : sha === V26_SHA ? 'V26' : null;
   if (!version) return null;
-  const sceneProfile = version === 'V69' ? V69_BUILDING_SCENES
+  const sceneProfile = version === 'K17_RAIL900' ? K17_RAIL900_BUILDING_SCENES
+    : version === 'V69' ? V69_BUILDING_SCENES
     : version === 'V68' ? V68_BUILDING_SCENES
     : version === 'V67' ? V67_BUILDING_SCENES
     : version === 'V35' ? V35_BUILDING_SCENES
@@ -318,7 +321,8 @@ const v26SourcePart = (json, sha, sceneIndex, floor, source, associations, mesh)
     : version === 'V33' ? V33_BUILDING_SCENES
     : version === 'V29' ? V29_BUILDING_SCENES
     : version === 'V27' ? V27_BUILDING_SCENES : v26Scenes;
-  const partProfile = version === 'V69' ? V69_BUILDING_PARTS
+  const partProfile = version === 'K17_RAIL900' ? K17_RAIL900_BUILDING_PARTS
+    : version === 'V69' ? V69_BUILDING_PARTS
     : version === 'V68' ? V68_BUILDING_PARTS
     : version === 'V67' ? V67_BUILDING_PARTS
     : version === 'V35' ? V35_BUILDING_PARTS
@@ -326,7 +330,8 @@ const v26SourcePart = (json, sha, sceneIndex, floor, source, associations, mesh)
     : version === 'V33' ? V33_BUILDING_PARTS
     : version === 'V29' ? V29_BUILDING_PARTS
     : version === 'V27' ? V27_BUILDING_PARTS : v26Parts;
-  const count = version === 'V69' ? V69_SOURCE_SCENE_COUNT
+  const count = version === 'K17_RAIL900' ? K17_RAIL900_SOURCE_SCENE_COUNT
+    : version === 'V69' ? V69_SOURCE_SCENE_COUNT
     : version === 'V68' ? V68_SOURCE_SCENE_COUNT
     : version === 'V67' ? V67_SOURCE_SCENE_COUNT
     : version === 'V35' ? (sha === V35_HL1_DONOR_SHA256 ? V35_HL1_DONOR_SCENE_COUNT : V35_SOURCE_SCENE_COUNT)
@@ -341,7 +346,7 @@ const v26SourcePart = (json, sha, sceneIndex, floor, source, associations, mesh)
   const def = json.nodes[source.index];
   if (!scene || !part || scene.floor !== floor ||
       json.scenes.length !== count || json.scenes[sceneIndex]?.name !== (donorScene?.name ?? scene.name) ||
-      (['V67', 'V68', 'V69'].includes(version) && (!Array.isArray(json.scenes[sceneIndex]?.nodes) ||
+      (['V67', 'V68', 'V69', 'K17_RAIL900'].includes(version) && (!Array.isArray(json.scenes[sceneIndex]?.nodes) ||
         !samePath(json.scenes[sceneIndex].nodes, scene.rootNodes))) ||
       def?.mesh !== part.mesh || def?.name !== part.name ||
       !scene.paths[source.index]?.some(path => samePath(path, source.path)) ||
@@ -555,10 +560,10 @@ export function resolveBuildingPartLayerBindings(input) {
       sourceNodePath: [...source.path], sceneIndex,
       sourceSha256: String(loadedSourceSha256).toLowerCase(),
       sourceLinks: hierarchy.nodes[sourceNodeIndex]?.extras?.sourceLinks ?? [],
-      objectKey: scope?.objectKey ?? `${sha === V69_SOURCE_SHA256 ? 'V69' : sha === V68_SOURCE_SHA256 ? 'V68' : sha === V67_SOURCE_SHA256 ? 'V67' : String(loadedSourceSha256).toLowerCase() === V35_HL1_DONOR_SHA256 ? 'V35_HL1_DONOR' : String(loadedSourceSha256).toLowerCase() === V35_SOURCE_SHA256 ? 'V35' : String(loadedSourceSha256).toLowerCase() === V34_SOURCE_SHA256 ? 'V34' : String(loadedSourceSha256).toLowerCase() === V33_SOURCE_SHA256 ? 'V33' : String(loadedSourceSha256).toLowerCase() === V29_SOURCE_SHA256 ? 'V29' : String(loadedSourceSha256).toLowerCase() === V27_SOURCE_SHA256 ? 'V27' : 'V26'}:${sceneIndex}:${sourceNodeIndex}`,
+      objectKey: scope?.objectKey ?? `${sha === K17_RAIL900_SOURCE_SHA256 ? 'K17_RAIL900' : sha === V69_SOURCE_SHA256 ? 'V69' : sha === V68_SOURCE_SHA256 ? 'V68' : sha === V67_SOURCE_SHA256 ? 'V67' : String(loadedSourceSha256).toLowerCase() === V35_HL1_DONOR_SHA256 ? 'V35_HL1_DONOR' : String(loadedSourceSha256).toLowerCase() === V35_SOURCE_SHA256 ? 'V35' : String(loadedSourceSha256).toLowerCase() === V34_SOURCE_SHA256 ? 'V34' : String(loadedSourceSha256).toLowerCase() === V33_SOURCE_SHA256 ? 'V33' : String(loadedSourceSha256).toLowerCase() === V29_SOURCE_SHA256 ? 'V29' : String(loadedSourceSha256).toLowerCase() === V27_SOURCE_SHA256 ? 'V27' : 'V26'}:${sceneIndex}:${sourceNodeIndex}`,
       storeyScope: scope?.storeyScope ?? floor,
       apartmentScope: scope?.apartmentScope ?? 'D',
-      bindingKind: verifiedLillangen ? verifiedLillangen.bindingKind : splitPart ? 'EXACT_V35_HL1_WC_SPLIT_DONOR_PROFILE' : profile ? (sha === V69_SOURCE_SHA256 ? 'EXACT_V69_SOURCE_PROFILE' : sha === V68_SOURCE_SHA256 ? 'EXACT_V68_SOURCE_PROFILE' : sha === V67_SOURCE_SHA256 ? 'EXACT_V67_SOURCE_PROFILE' : sha === V35_HL1_DONOR_SHA256 ? 'INHERITED_V35_HL1_DONOR_PROFILE' : String(loadedSourceSha256).toLowerCase() === V35_SOURCE_SHA256 ? 'EXACT_V35_SOURCE_PROFILE' : String(loadedSourceSha256).toLowerCase() === V34_SOURCE_SHA256 ? 'EXACT_V34_SOURCE_PROFILE' : String(loadedSourceSha256).toLowerCase() === V33_SOURCE_SHA256 ? 'EXACT_V33_SOURCE_PROFILE' : String(loadedSourceSha256).toLowerCase() === V29_SOURCE_SHA256 ? 'EXACT_V29_SOURCE_PROFILE' : String(loadedSourceSha256).toLowerCase() === V27_SOURCE_SHA256 ? 'EXACT_V27_SOURCE_PROFILE' : 'EXACT_V26_SOURCE_PROFILE') : 'EXPLICIT_SOURCE_METADATA',
+      bindingKind: verifiedLillangen ? verifiedLillangen.bindingKind : splitPart ? 'EXACT_V35_HL1_WC_SPLIT_DONOR_PROFILE' : profile ? (sha === K17_RAIL900_SOURCE_SHA256 ? 'EXACT_K17_RAIL900_SOURCE_PROFILE' : sha === V69_SOURCE_SHA256 ? 'EXACT_V69_SOURCE_PROFILE' : sha === V68_SOURCE_SHA256 ? 'EXACT_V68_SOURCE_PROFILE' : sha === V67_SOURCE_SHA256 ? 'EXACT_V67_SOURCE_PROFILE' : sha === V35_HL1_DONOR_SHA256 ? 'INHERITED_V35_HL1_DONOR_PROFILE' : String(loadedSourceSha256).toLowerCase() === V35_SOURCE_SHA256 ? 'EXACT_V35_SOURCE_PROFILE' : String(loadedSourceSha256).toLowerCase() === V34_SOURCE_SHA256 ? 'EXACT_V34_SOURCE_PROFILE' : String(loadedSourceSha256).toLowerCase() === V33_SOURCE_SHA256 ? 'EXACT_V33_SOURCE_PROFILE' : String(loadedSourceSha256).toLowerCase() === V29_SOURCE_SHA256 ? 'EXACT_V29_SOURCE_PROFILE' : String(loadedSourceSha256).toLowerCase() === V27_SOURCE_SHA256 ? 'EXACT_V27_SOURCE_PROFILE' : 'EXACT_V26_SOURCE_PROFILE') : 'EXPLICIT_SOURCE_METADATA',
     });
   });
   return {

@@ -711,6 +711,41 @@ test('V68 multi-primitive split hands six floor and two wall leaves to independe
 import { V69_SOURCE_SHA256, V69_BUILDING_PARTS, V69_BUILDING_SCENES }
   from '../../src/scripts/privateModelC80R2V69LayerSourceProfile.mjs';
 const v69Fixture = si => exactProfileFixture(si, V69_BUILDING_PARTS, V69_BUILDING_SCENES, V69_SOURCE_SHA256, 293);
+import { K17_RAIL900_SOURCE_SHA256, K17_RAIL900_BUILDING_PARTS, K17_RAIL900_BUILDING_SCENES }
+  from '../../src/scripts/privateModelK17Rail900LayerSourceProfile.mjs';
+const k17Fixture = si => exactProfileFixture(si, K17_RAIL900_BUILDING_PARTS, K17_RAIL900_BUILDING_SCENES, K17_RAIL900_SOURCE_SHA256, 308);
+test('K17 900 successor binds corrected parts in exact 1F/2F/BOTH, preserves source and excludes retired rail/helper', () => {
+  for (const si of [305,306,307]) {
+    const f=k17Fixture(si), before=JSON.stringify(f.gltf.parser.json);
+    const r=resolveBuildingPartLayerBindings(f.options);
+    assert.equal(r.bindings.length,Object.keys(K17_RAIL900_BUILDING_SCENES[si].paths).length);
+    assert.ok(r.evidence.every(e=>e.bindingKind==='EXACT_K17_RAIL900_SOURCE_PROFILE'));
+    assert.ok(r.evidence.every(e=>e.sourceSha256===K17_RAIL900_SOURCE_SHA256));
+    assert.ok(r.evidence.some(e=>e.sourceNodeIndex===9942));
+    assert.ok(!r.evidence.some(e=>e.sourceNodeIndex===9844 || e.sourceNodeIndex===9915));
+    assert.equal(JSON.stringify(f.gltf.parser.json),before);
+  }
+});
+test('K17 exact source rejects wrong hash, scene, count, root order, mesh and parent', () => {
+  let f=k17Fixture(307);
+  assert.equal(resolveBuildingPartLayerBindings({...f.options,loadedSourceSha256:V69_SOURCE_SHA256}).bindings.length,0);
+  assert.equal(resolveBuildingPartLayerBindings({...f.options,sceneIndex:292}).bindings.length,0);
+  f.gltf.parser.json.scenes.pop();
+  assert.equal(resolveBuildingPartLayerBindings(f.options).bindings.length,0);
+  f=k17Fixture(307);f.gltf.parser.json.scenes[307].nodes.reverse();
+  assert.equal(resolveBuildingPartLayerBindings(f.options).bindings.length,0);
+  f=k17Fixture(307);f.gltf.parser.json.nodes[9942].mesh=3558;
+  assert.ok(!resolveBuildingPartLayerBindings(f.options).evidence.some(e=>e.sourceNodeIndex===9942));
+  f=k17Fixture(307);f.scene.children=f.scene.children.filter(n=>n!==f.objects[9942]);
+  f.objects[6430].add(f.objects[9942]);
+  assert.ok(!resolveBuildingPartLayerBindings(f.options).evidence.some(e=>e.sourceNodeIndex===9942));
+});
+test('K17 nonphysical helper cannot become a wall binding through presentation metadata', () => {
+  const f=k17Fixture(307), helper=new Object3D('APUSEINA_900MM_EI_FYYSINEN_RAKENNE',true);
+  f.gltf.parser.json.nodes[9915]={name:helper.name,mesh:3593,extras:{presentationOnly:true,physicalStructure:false,G2Id:'G2_WALL_INT_HELPER',ylisViewScope:scope('helper','D','BOTH')}};
+  f.scene.add(helper);f.gltf.parser.associations.set(helper,{nodes:9915,meshes:3593});
+  assert.ok(!resolveBuildingPartLayerBindings(f.options).evidence.some(e=>e.sourceNodeIndex===9915));
+});
 test('V69 integrates H3 dedup and exact H4 replacement while retaining WC, kitchen and source paths', () => {
   for (const [si,count] of [[290,36],[291,133],[292,172]]) {
     const f=v69Fixture(si), before=JSON.stringify(f.gltf.parser.json);

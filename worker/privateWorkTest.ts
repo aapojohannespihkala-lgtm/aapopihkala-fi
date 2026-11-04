@@ -4062,7 +4062,19 @@ const AUTO_YLISRINNE_C80R2_V69_INTEGRATED_V68_H3_FLOOR_H4_STORAGE_LAYERS_WORK_TE
   expectedSha256: '5b720c9b9f87358867463e725b1500c63bafd9de15d121cdf6c36a3e23ca36fd',
 } as const satisfies PrivateWorkTestCandidate;
 
+// Owner-corrected K17, full immutable 308-scene GLB from G2b TYÖ.
+// Manually registered WORK_TEST. No scene extraction and no AUTO promotion.
+const K17_RAIL900_WORK_TEST_CANDIDATE = {
+  id: 'ylisrinne-k17-rail900-20261104',
+  label: 'K17: seinä 1320, portaat 900, kaiteet - WORK_TEST',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/ylisrinne-k17-rail900-20261104.glb`,
+  objectKey: 'work-test/ylisrinne-k17-rail900-20261104.glb',
+  expectedSize: 31760668,
+  expectedSha256: '4b8deb415c75de9eee623d8ad84a8cfa24fa8baf2540c19b59c4ec9423c58d99',
+} as const satisfies PrivateWorkTestCandidate;
+
 const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
+  K17_RAIL900_WORK_TEST_CANDIDATE,
   C80R2_V27_D_TERRACE_165MM_WORK_TEST_CANDIDATE,
   D_C80R2_UNIFIED64_C018_WORK_TEST_CANDIDATE,
   D_C80_HI20_UNIFIED52_BOTH_WORK_TEST_CANDIDATE,
