@@ -381,3 +381,41 @@ test('V35 source scene and viewer floor gates cannot reveal another floor device
     ...upstairs.context, allowSourceOnly: false,
   }).bridgeBindings).toHaveLength(0);
 });
+
+import { V68_SOURCE_SHA256, V68_SOURCE_SCENE_COUNT, V68_BUILDING_SCENES } from '../../src/scripts/privateModelC80R2V68LayerSourceProfile.mjs';
+import { V69_SOURCE_SHA256, V69_SOURCE_SCENE_COUNT, V69_BUILDING_SCENES } from '../../src/scripts/privateModelC80R2V69LayerSourceProfile.mjs';
+for (const model of [
+  {sha:V68_SOURCE_SHA256,count:V68_SOURCE_SCENE_COUNT,profiles:V68_BUILDING_SCENES,upstairs:284,both:285},
+  {sha:V69_SOURCE_SHA256,count:V69_SOURCE_SCENE_COUNT,profiles:V69_BUILDING_SCENES,upstairs:291,both:292},
+]) test(`integrated technical source ${model.sha.slice(0,8)} retains IV with exact scene and parent guards`, () => {
+  const name='K10_R3_WORLD10_SC19_K10_R3_D2F_KIV100_ANCHOR_001_WORK_TEST_SLEEVE_COVER_ORIENT__KIV100_EXTERNAL_SCREEN_WIRE_05_PROXY_V20';
+  const fixture=()=>{
+    const scene=new Scene(),root=new Group(),parent=new Group(),mesh=new Mesh(new BoxGeometry(),new MeshBasicMaterial());
+    root.name='source-root8913';parent.name='source-parent8908';mesh.name=name;
+    const links=[{title:'original source only'}];mesh.userData.sourceLinks=links;
+    scene.add(root);root.add(parent);parent.add(mesh);
+    const nodes:any[]=[];nodes[8913]={name:root.name,children:[8908]};nodes[8908]={name:parent.name,children:[8317]};nodes[8317]={name,mesh:2688,extras:{sourceLinks:links}};
+    const meshes:any[]=[];meshes[2688]={primitives:[{}]};
+    const scenes:any[]=new Array(model.count);const profile=model.profiles[model.upstairs];
+    scenes[model.upstairs]={name:profile.name,nodes:[...profile.rootNodes]};
+    const sourceNodes=[{object:root,nodeIndex:8913,parentNodeIndex:null},{object:parent,nodeIndex:8908,parentNodeIndex:8913},{object:mesh,nodeIndex:8317,parentNodeIndex:8908,meshIndex:2688}].map(n=>({...n,nodeName:n.object.name,glbSha256:model.sha,sceneIndex:model.upstairs}));
+    const context:TechnicalSystemsContext={sceneRoot:scene,sourceSceneIndex:model.upstairs,loadedGlbSha256:model.sha,expectedGlbSha256:model.sha,sourceNodes,sourceJson:{nodes,meshes,scenes},viewerScope:'d-2f',allowSourceOnly:true};
+    return {context,mesh,root,parent};
+  };
+  let f=fixture();const before=JSON.stringify(f.context.sourceJson);
+  const inv=createTechnicalSystemLayerInventory(f.context);
+  expect(inv.bridgeBindings.map(b=>b.id)).toEqual(['technical-ventilation']);
+  expect(inv.boundObjects[0].sourceGlbSha256).toBe(model.sha);
+  expect(inv.boundObjects[0].sourceLinks).toEqual([{title:'original source only'}]);
+  expect(JSON.stringify(f.context.sourceJson)).toBe(before);
+  expect(createTechnicalSystemLayerInventory({...f.context,viewerScope:'d-1f'}).bridgeBindings).toHaveLength(0);
+  expect(createTechnicalSystemLayerInventory({...f.context,expectedGlbSha256:'0'.repeat(64)}).bridgeBindings).toHaveLength(0);
+  f.context.sourceJson!.scenes![model.upstairs].name='altered';
+  expect(createTechnicalSystemLayerInventory(f.context).bridgeBindings).toHaveLength(0);
+  f=fixture();(f.context.sourceJson!.scenes![model.upstairs].nodes as number[]).push(5631);
+  expect(createTechnicalSystemLayerInventory(f.context).bridgeBindings).toHaveLength(0);
+  f=fixture();f.root.add(f.mesh);
+  expect(createTechnicalSystemLayerInventory(f.context).bridgeBindings).toHaveLength(0);
+  f=fixture();f.mesh.userData.sourceLinks=[{title:'other'}];
+  expect(createTechnicalSystemLayerInventory(f.context).bridgeBindings).toHaveLength(0);
+});

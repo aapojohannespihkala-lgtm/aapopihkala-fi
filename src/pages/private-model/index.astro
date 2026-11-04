@@ -2473,6 +2473,7 @@ const title = 'Private 3D viewer';
       import { V34_SOURCE_SHA256 } from '../../scripts/privateModelC80R2V34LayerSourceProfile.mjs';
       import { V35_SOURCE_SHA256 } from '../../scripts/privateModelC80R2V35LayerSourceProfile.mjs';
       import { V67_SOURCE_SHA256 } from '../../scripts/privateModelC80R2V67LayerSourceProfile.mjs';
+      import { V69_SOURCE_SHA256 } from '../../scripts/privateModelC80R2V69LayerSourceProfile.mjs';
       import { V68_SOURCE_SHA256 } from '../../scripts/privateModelC80R2V68LayerSourceProfile.mjs';
       import { createTechnicalSystemLayerInventory } from '../../scripts/privateModelTechnicalSystemsLayers';
       import { mountTechnicalLayerAvailability } from '../../scripts/privateModelTechnicalLayersAvailabilityUi';
@@ -14099,6 +14100,8 @@ const title = 'Private 3D viewer';
               ? 'WC:n yhdistetty lattia ja itäseinä eivät vielä kuulu Layers-ohjaukseen. V35:n neljän korkean keittiökaapin rungot ja etupinnat ovat lähdesidottuja. Muiden kalusteiden ohjaus voi kattaa vain osia.'
               : verified && layersLoadedSha === V67_SOURCE_SHA256
                 ? 'V67: porras, keittiökalusteet ja tunnistetut rakennusosat ovat lähdesidottuja. WC:n yhdistetty lattia ja itäseinä sekä muut tunnistamattomat osat eivät kuulu erilliseen Layers-ohjaukseen.'
+                : verified && layersLoadedSha === V69_SOURCE_SHA256
+                  ? 'V69: parvekkeen päällekkäinen lattia poistettu. Varaston oviseinän 100 mm on visuaalinen työoletus. WC:n lattia ja itäseinä ovat erikseen lähdesidottuja.'
                 : verified && layersLoadedSha === V68_SOURCE_SHA256
                   ? 'V68: myös WC:n lattia ja itäseinä ovat erikseen lähdesidottuja. Muiden tunnistamattomien osien Layers-ohjaus on edelleen rajallinen.'
                   : undefined,
@@ -14144,7 +14147,8 @@ const title = 'Private 3D viewer';
           layersLoadedSha === V34_SOURCE_SHA256 ||
           layersLoadedSha === V35_SOURCE_SHA256 ||
           layersLoadedSha === V67_SOURCE_SHA256 ||
-          layersLoadedSha === V68_SOURCE_SHA256
+          layersLoadedSha === V68_SOURCE_SHA256 ||
+          layersLoadedSha === V69_SOURCE_SHA256
             ? layersLoadedSha : null;
         layersExpectedSha = session?.contract?.glbSha256 ?? verifiedChainSourceSha;
         layersEnabled = verifiedChainSourceSha !== null;

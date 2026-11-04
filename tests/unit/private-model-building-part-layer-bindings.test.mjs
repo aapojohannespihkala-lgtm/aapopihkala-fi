@@ -707,3 +707,35 @@ test('V68 multi-primitive split hands six floor and two wall leaves to independe
   }
 });
 
+
+import { V69_SOURCE_SHA256, V69_BUILDING_PARTS, V69_BUILDING_SCENES }
+  from '../../src/scripts/privateModelC80R2V69LayerSourceProfile.mjs';
+const v69Fixture = si => exactProfileFixture(si, V69_BUILDING_PARTS, V69_BUILDING_SCENES, V69_SOURCE_SHA256, 293);
+test('V69 integrates H3 dedup and exact H4 replacement while retaining WC, kitchen and source paths', () => {
+  for (const [si,count] of [[290,36],[291,133],[292,172]]) {
+    const f=v69Fixture(si), before=JSON.stringify(f.gltf.parser.json);
+    const r=resolveBuildingPartLayerBindings(f.options);
+    assert.equal(r.bindings.length,count);
+    assert.ok(r.evidence.every(e=>e.bindingKind==='EXACT_V69_SOURCE_PROFILE'));
+    assert.ok(!r.evidence.some(e=>e.sourceNodeIndex===5631 || e.sourceNodeIndex===6345));
+    if(si!==290) {
+      assert.ok(r.evidence.some(e=>e.sourceNodeIndex===6564));
+      assert.equal(r.bindings.find(b=>b.root===f.objects[9911])?.id,'architecture-floors');
+      assert.equal(r.bindings.find(b=>b.root===f.objects[9912])?.id,'architecture-walls-interior');
+    }
+    if(si!==291) assert.equal(r.bindings.find(b=>b.root===f.objects[9913])?.id,'architecture-walls-exterior');
+    assert.equal(JSON.stringify(f.gltf.parser.json),before);
+  }
+});
+test('V69 refuses old SHA, changed scene/root, restored duplicate and reparented replacement', () => {
+  let f=v69Fixture(292);
+  assert.equal(resolveBuildingPartLayerBindings({...f.options,loadedSourceSha256:V68_SOURCE_SHA256}).bindings.length,0);
+  assert.equal(resolveBuildingPartLayerBindings({...f.options,sceneIndex:285}).bindings.length,0);
+  f.gltf.parser.json.scenes[292].nodes.push(5631);
+  assert.equal(resolveBuildingPartLayerBindings(f.options).bindings.length,0);
+  f=v69Fixture(292);f.gltf.parser.json.nodes[9913].mesh=1820;
+  assert.ok(!resolveBuildingPartLayerBindings(f.options).evidence.some(e=>e.sourceNodeIndex===9913));
+  f=v69Fixture(292);f.scene.children=f.scene.children.filter(n=>n!==f.objects[9913]);
+  f.objects[6430].add(f.objects[9913]);
+  assert.ok(!resolveBuildingPartLayerBindings(f.options).evidence.some(e=>e.sourceNodeIndex===9913));
+});

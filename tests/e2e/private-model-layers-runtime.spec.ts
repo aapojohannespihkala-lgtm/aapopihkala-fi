@@ -277,6 +277,10 @@ for (const model of [
     candidateId: 'auto-ylisrinne-c80r2-v68-integrated-v66-k17-v59p2-sink-hl1-wc-layers-work-test-host-hold-20261104-19aqqecn',
     sha: '48116fd649c1100dcc1054170d0b32e94408c0c040af32d5a4a37b6e75dd7d90',
     bytes: 31381740, firstFloor: '283', secondFloor: '284', bothFloors: '285', upstairsRoof: true },
+  { version: 'V69', sourceEnv: 'YLIS_LAYERS_V69_GLB', productionEnv: 'YLIS_LAYERS_V69_PRODUCTION',
+    candidateId: 'auto-ylisrinne-c80r2-v69-integrated-v68-h3-floor-h4-storage-layers-work-test-host-hold-20261104-1zropkz2',
+    sha: '5b720c9b9f87358867463e725b1500c63bafd9de15d121cdf6c36a3e23ca36fd',
+    bytes: 31397788, firstFloor: '290', secondFloor: '291', bothFloors: '292', upstairsRoof: true },
 ] as const) {
 test(`exact ${model.version} viewer: D upstairs, ghost walls, supported IV, reset, floor changes and mobile`, async ({ page }, info) => {
   const { sha, candidateId } = model;
@@ -389,7 +393,7 @@ test(`exact ${model.version} viewer: D upstairs, ghost walls, supported IV, rese
       await expectPreservedCamera();
     }
   }
-  if (model.version === 'V35' || model.version === 'V68') {
+  if (model.version === 'V35' || model.version === 'V68' || model.version === 'V69') {
     // V35 exact source, 2F197: HL4 binds four Kvik/MANO tall-cabinet
     // carcasses and their verified front surfaces to architecture-fixtures.
     // Only this already source-verified version has that expected coverage.
@@ -478,13 +482,33 @@ test(`exact ${model.version} viewer: D upstairs, ghost walls, supported IV, rese
   await page.locator('#layers-button').click();
   await expectMobileCamera();
   await page.screenshot({ path: info.outputPath(evidencePrefix + '-2f-restored-mobile.png') });
+  if (model.version === 'V68' || model.version === 'V69') {
+    await page.setViewportSize(desktopViewport);
+    await page.locator('#more-menu > summary').click();
+    await page.locator('#fit-button').click();
+    await page.locator('#selection-tool-button').click();
+    const selection = page.locator('#selection-panel');
+    const box = (await canvas.boundingBox())!;
+    // Real raycast on the displayed model. No injected selection or scene handle.
+    for (const [x,y] of [[.5,.5],[.4,.5],[.6,.5],[.5,.4],[.5,.6],[.35,.4],[.65,.6]]) {
+      await canvas.click({position:{x:box.width*x,y:box.height*y}});
+      if (await selection.isVisible()) break;
+    }
+    await expect(selection).toBeVisible();
+    await expect(page.locator('#selection-mesh')).not.toHaveText('-');
+    await expect(page.locator('#selection-scene')).toContainText(model.version + '_2F');
+    await expect(canvas).toHaveAttribute('data-layers-source-sha256',sha);
+    await page.screenshot({path:info.outputPath(evidencePrefix+'-actual-object-selection-desktop.png')});
+    await page.locator('#clear-selection-button').click();
+    await expect(selection).toBeHidden();
+  }
   const webgl = await canvas.evaluate((element: HTMLCanvasElement) => {
     const gl = element.getContext('webgl2');
     return { available: !!gl, lost: gl?.isContextLost(), error: gl?.getError() };
   });
   expect(webgl).toEqual({ available: true, lost: false, error: 0 });
   expect(errors).toEqual([]);
-  console.log(JSON.stringify({ source: sha, scene: +model.secondFloor, reviewUrl: page.url(), stages: ['ghost', 'IV-visible', 'reset', '1F', 'BOTH', '2F', 'mobile'], webgl, humanReview: 'NOT_RUN', production }));
+  console.log(JSON.stringify({ source: sha, scene: +model.secondFloor, reviewUrl: page.url(), stages: ['ghost', 'IV-visible', 'reset', '1F', 'BOTH', '2F', 'mobile', ...((model.version === 'V68' || model.version === 'V69') ? ['actual-object-click'] : [])], webgl, humanReview: 'NOT_RUN', production }));
 });
 }
 
