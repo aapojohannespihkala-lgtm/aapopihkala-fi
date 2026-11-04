@@ -31,8 +31,8 @@ function fixture(){
   const upper=Array.from({length:8},(_,i)=>6463+i);
   const lower=Array.from({length:5},(_,i)=>6472+i);
   jsonScenes[54]={name:'D2F_WP3_BALCONY_GLASS_VISIBILITY_2F',nodes:[6471]};
-  nodes[6471]={children:[...upper],rotation:[-Math.SQRT1_2,0,0,Math.SQRT1_2]};
-  const parent=new Object3D({isGroup:true,name:'historical group'});
+  nodes[6471]={name:'HI20_COMBINED_WP1_WP3_ROOT_2F_WORK_TEST_HOST_HOLD_K17_1125_COW',children:[...upper],rotation:[-Math.SQRT1_2,0,0,Math.SQRT1_2]};
+  const parent=new Object3D({isGroup:true,name:nodes[6471].name});
   parent.quaternion=[-Math.SQRT1_2,0,0,Math.SQRT1_2];
   scenes[54].add(parent);associations.set(parent,{nodes:6471});
   for(let i=0;i<8;i++){
@@ -45,7 +45,9 @@ function fixture(){
   for(const index of [291,292]){
     jsonScenes[index]={name:`C80R2_V69_${index===291?'2F':'BOTH'}`,nodes:[...lower]};
     for(const id of lower){
-      const mesh=new Object3D({isMesh:true,name:'lower'});
+      const n=id-6472;
+      nodes[id]={name:`C80_020_D2F_WP3_LOWER_INNER_GLAZING_PANEL_${String(n+1).padStart(2,'0')}_1195MM_WORK_TEST_HOST_HOLD`,mesh:1859};
+      const mesh=new Object3D({isMesh:true,name:nodes[id].name});
       scenes[index].add(mesh);associations.set(mesh,{nodes:id});
     }
   }
@@ -100,4 +102,45 @@ test('clone failure leaves both target scenes unchanged',()=>{
   assert.equal(r.setApplied(true),false);
   assert.equal(r.applied,false);
   for(const index of [291,292])assert.equal(f.gltf.scenes[index].children.length,5);
+});
+
+test('r185 dropped scene associations use exact scene-root ordinal and upper child order',()=>{
+  const f=fixture();
+  f.associations.clear(); // GLTFLoader r185 keeps only the last scene mappings.
+  f.gltf.scenes[292].children[0].name+='_instance_1';
+  const r=make(f);
+  assert(r.available,r.reason);
+  assert.equal(r.setApplied(true),true);
+  for(const sceneIndex of [291,292]){
+    const group=f.gltf.scenes[sceneIndex].children.at(-1);
+    assert.equal(group.children.length,8);
+    for(let i=0;i<8;i++){
+      assert.equal(f.associations.get(group.children[i]).nodes,6463+i);
+      assert.equal(f.associations.get(group.children[i]).meshes,1859);
+      assert.equal(f.associations.get(group.children[i]).primitives,0);
+    }
+  }
+  r.dispose();
+  assert.equal(f.gltf.scenes[291].children.length,5);
+  assert.equal(f.gltf.scenes[292].children.length,5);
+});
+test('wrong existing mapping is authoritative and blocks historical or target fallback',()=>{
+  const p=fixture();p.associations.clear();
+  p.associations.set(p.parent.children[0],{nodes:9999});
+  assert.equal(make(p).available,false);
+  const q=fixture();q.associations.clear();
+  q.associations.set(q.gltf.scenes[291].children[0],{nodes:6473});
+  assert.equal(make(q).available,false);
+});
+test('shuffled target roots or changed historical child names fail closed',()=>{
+  const p=fixture();p.associations.clear();
+  const r=p.gltf.scenes[291];
+  [r.children[0],r.children[1]]=[r.children[1],r.children[0]];
+  assert.equal(make(p).available,false);
+  const q=fixture();q.associations.clear();
+  q.parent.children[0].name='IMPOSTOR';
+  assert.equal(make(q).available,false);
+  const s=fixture();s.associations.clear();
+  s.gltf.scenes[54].add(new Object3D({isGroup:true,name:'EXTRA'}));
+  assert.equal(make(s).available,false);
 });
