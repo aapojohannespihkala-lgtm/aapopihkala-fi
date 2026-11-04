@@ -2426,6 +2426,7 @@ const title = 'Private 3D viewer';
       } from '../../scripts/privateModelP183ReviewPresentation';
       import { createHorizontalClippingController } from '../../scripts/privateModelHorizontalClipping';
       import { findCoplanarTJunctionBoundaryIndexes } from '../../scripts/privateModelHi20CoplanarTJunctionEdges';
+      import { shouldSuppressC044CoplanarTJunctions } from '../../scripts/privateModelC80C044EdgeSourceGuard.mjs';
       import { type MainViewFloor } from '../../scripts/privateModelMainViewScope';
       import { createDViewRuntime } from '../../scripts/privateModelDViewRuntime';
       import {
@@ -4459,10 +4460,14 @@ const title = 'Private 3D viewer';
         // triangulated wall parts are not architectural contours. The default
         // edgeMode=none from PR #1582 is unchanged; this affects manual unified/
         // visible edge overlays only, and never the actual GLB geometry.
-        const isHi20TwoFloorPreview = activeHi20SourceVerified &&
-          (canvas.dataset.standardViewPreset === 'd-2f' ||
-            canvas.dataset.standardViewPreset === 'd-apartment');
-        const suppressedIndexes = isHi20TwoFloorPreview
+        const isC044TwoFloorPreview = shouldSuppressC044CoplanarTJunctions({
+          hi20Verified: activeHi20SourceVerified,
+          loadedSha: layersLoadedSha,
+          expectedSha: layersExpectedSha,
+          v69SourceSha: V69_SOURCE_SHA256,
+          preset: canvas.dataset.standardViewPreset,
+        });
+        const suppressedIndexes = isC044TwoFloorPreview
           ? findCoplanarTJunctionBoundaryIndexes(
               boundaries.map((record) => ({
                 a: record.a, b: record.b, normal: record.normals[0],
