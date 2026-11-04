@@ -15,14 +15,14 @@ const registry = JSON.parse(readFileSync(new URL('.github/work-test-candidates.j
 // This is an opt-in transport registration for an immutable GLB, not a scene
 // selector change, deployment, source-card promotion, or human acceptance.
 test('V69P12R1 has one exact SHA-pinned Worker receiver and Drive source', () => {
-  const candidates = worker.match(/const V69P12R1_SINK_FAUCET_WORK_TEST_CANDIDATE = \\{([\\s\\S]*?)\\} as const satisfies PrivateWorkTestCandidate;/g) ?? [];
+  const candidates = worker.match(/const V69P12R1_SINK_FAUCET_WORK_TEST_CANDIDATE = \{([\s\S]*?)\} as const satisfies PrivateWorkTestCandidate;/g) ?? [];
   assert.equal(candidates.length, 1);
   const block = candidates[0];
   assert.ok(block.includes(`id: '${candidateId}'`));
   assert.ok(block.includes(`objectKey: 'work-test/${candidateId}.glb'`));
   assert.ok(block.includes(`expectedSize: 32_610_084`));
   assert.ok(block.includes(`expectedSha256: '${sha}'`));
-  assert.match(worker, /const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = \\[\\s*V69P12R1_SINK_FAUCET_WORK_TEST_CANDIDATE,/);
+  assert.match(worker, /const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = \[\s*V69P12R1_SINK_FAUCET_WORK_TEST_CANDIDATE,/);
   assert.equal(registry.candidates[candidateId]?.driveFileId, sourceId);
   assert.equal(registry.candidates['ylisrinne-v69-six6-k17-rail900-20261104']?.driveFileId, '1xHJfOqoS7mzd7bpt527nziQl7cHhUMQv');
   assert.ok(!block.includes('current: true') && !block.includes('asBuilt: true'));
