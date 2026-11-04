@@ -17,7 +17,7 @@ function fixture(){
       meshes[mesh]={primitives:[{material}]};
       srcScenes[sceneId].nodes.push(id);
       const original={name:'gray',color:{setRGB(){}},clone(){return {color:{setRGB(...v){this.rgb=v}},dispose(){this.disposed=true;}}}};
-      const object={isMesh:true,parent:sc,material:original};
+      const object={isMesh:true,name:sceneId===292?name+'_instance_1':name,children:[],parent:sc,material:original};
       sc.children.push(object);assoc.set(object,{nodes:id});objects.push({object,original});
     }
   }
@@ -48,5 +48,14 @@ test('staged clone failure rolls back without changing an existing scene materia
   const f=fixture();f.objects[4].original.clone=()=>{throw new Error('clone failed')};
   const r=createV69C035WhiteLobbyPresentation(f.gltf,V69_C035_LOBBY_SHA,V69_C035_LOBBY_SHA);
   assert(r.available);assert.equal(r.setApplied(true),false);
+  assert(f.objects.every(t=>t.object.material===t.original));
+});
+
+test('source roots remain available when GLTFLoader drops first-scene associations',()=>{
+  const f=fixture();
+  for(const object of f.gltf.scenes[290].children) f.gltf.parser.associations.delete(object);
+  const r=createV69C035WhiteLobbyPresentation(f.gltf,V69_C035_LOBBY_SHA,V69_C035_LOBBY_SHA);
+  assert.equal(r.available,true);assert.equal(r.count,12);
+  assert(r.setApplied(true));r.dispose();
   assert(f.objects.every(t=>t.object.material===t.original));
 });
