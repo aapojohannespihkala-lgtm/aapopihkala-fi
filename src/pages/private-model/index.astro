@@ -2476,6 +2476,7 @@ const title = 'Private 3D viewer';
       import { V67_SOURCE_SHA256 } from '../../scripts/privateModelC80R2V67LayerSourceProfile.mjs';
       import { V69_SOURCE_SHA256 } from '../../scripts/privateModelC80R2V69LayerSourceProfile.mjs';
       import { createV69C035WhiteLobbyPresentation } from '../../scripts/privateModelV69C035WhiteLobbyPresentation.mjs';
+      import { createV69C020UpperGlassPresentation } from '../../scripts/privateModelV69C020UpperGlassPresentation.mjs';
       import { V68_SOURCE_SHA256 } from '../../scripts/privateModelC80R2V68LayerSourceProfile.mjs';
       import { createTechnicalSystemLayerInventory } from '../../scripts/privateModelTechnicalSystemsLayers';
       import { mountTechnicalLayerAvailability } from '../../scripts/privateModelTechnicalLayersAvailabilityUi';
@@ -13957,6 +13958,7 @@ const title = 'Private 3D viewer';
       const v26LayersSourceSha = 'cff2dbead53b7836747e10ef359637114ff723690ec380e313cec817e4f71d31';
       let layersGltf: any = null;
       let v69C035LobbyPresentation: ReturnType<typeof createV69C035WhiteLobbyPresentation> | null = null;
+      let v69C020UpperGlassPresentation: ReturnType<typeof createV69C020UpperGlassPresentation> | null = null;
       let layersExpectedSha: string | null = null;
       let layersEnabled = false;
       let layersSwitchingPreset = false;
@@ -14145,6 +14147,9 @@ const title = 'Private 3D viewer';
         v69C035LobbyPresentation?.dispose();
         v69C035LobbyPresentation = null;
         delete canvas.dataset.v69C035LobbySourceReady;
+        v69C020UpperGlassPresentation?.dispose();
+        v69C020UpperGlassPresentation = null;
+        delete canvas.dataset.v69C020UpperGlassSourceReady;
         layersGltf = gltf;
         layersLoadedSha = loadedModelSha256(gltf);
         // Main-chain pins come from independently RAW-verified GLB bytes.
@@ -14168,6 +14173,13 @@ const title = 'Private 3D viewer';
           if (lobby.available && lobby.setApplied(true)) {
             v69C035LobbyPresentation = lobby;
             canvas.dataset.v69C035LobbySourceReady = 'true';
+          }
+          // C80-020: restore eight already modeled source panes for V69 2F/BOTH.
+          // Fail closed on a different source identity; do not mutate the GLB.
+          const upperGlass = createV69C020UpperGlassPresentation(gltf, layersLoadedSha, layersExpectedSha);
+          if (upperGlass.available && upperGlass.setApplied(true)) {
+            v69C020UpperGlassPresentation = upperGlass;
+            canvas.dataset.v69C020UpperGlassSourceReady = 'true';
           }
         }
         layersEnabled = verifiedChainSourceSha !== null;

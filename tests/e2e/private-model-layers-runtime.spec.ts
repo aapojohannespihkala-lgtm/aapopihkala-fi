@@ -339,7 +339,8 @@ test(`exact ${model.version} viewer: D upstairs, ghost walls, supported IV, rese
         await page.locator('#preset-context-status').evaluate(el =>
           getComputedStyle(el).textOverflow === 'ellipsis') &&
         (model.version !== 'V69' ||
-          await canvas.getAttribute('data-v69-c035-lobby-source-ready') === 'true')) break;
+          (await canvas.getAttribute('data-v69-c035-lobby-source-ready') === 'true' &&
+           await canvas.getAttribute('data-v69-c020-upper-glass-source-ready') === 'true'))) break;
     if (production && attempt < 11) await page.waitForTimeout(10_000);
   }
   expect(sourceVerified).toBe(true);
@@ -351,8 +352,10 @@ test(`exact ${model.version} viewer: D upstairs, ghost walls, supported IV, rese
   // SHA/scene/node/mesh/material source guards and white clones are applied.
   if (model.version === 'V69') {
     await expect(canvas).toHaveAttribute('data-v69-c035-lobby-source-ready', 'true');
+    await expect(canvas).toHaveAttribute('data-v69-c020-upper-glass-source-ready', 'true');
   } else {
     await expect(canvas).not.toHaveAttribute('data-v69-c035-lobby-source-ready', 'true');
+    await expect(canvas).not.toHaveAttribute('data-v69-c020-upper-glass-source-ready', 'true');
   }
   await expect(page.locator('#preset-menu > summary')).toHaveCSS('width', '246px');
   await page.setViewportSize(desktopViewport);
@@ -457,6 +460,7 @@ test(`exact ${model.version} viewer: D upstairs, ghost walls, supported IV, rese
     // scene switch, including returning to 2F where no jamb objects exist.
     if (model.version === 'V69') {
       await expect(canvas).toHaveAttribute('data-v69-c035-lobby-source-ready', 'true');
+      await expect(canvas).toHaveAttribute('data-v69-c020-upper-glass-source-ready', 'true');
     }
   }
   await page.setViewportSize({ width: 390, height: 844 });
