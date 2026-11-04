@@ -1,6 +1,15 @@
 // C80-044: narrowly enable the existing conservative T-junction filter
 // for the exact V69 D 2F/BOTH work-test source. Does not hide physical edges.
 
+/**
+ * @param {{
+ *   hi20Verified?: boolean,
+ *   loadedSha?: string | null,
+ *   expectedSha?: string | null,
+ *   preset?: string,
+ *   v69SourceSha?: string | null,
+ * }} options
+ */
 export function shouldSuppressC044CoplanarTJunctions({
   hi20Verified = false,
   loadedSha = null,
