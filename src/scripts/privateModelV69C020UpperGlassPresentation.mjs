@@ -11,12 +11,38 @@ const unavailable = reason => ({
 });
 const near = (a,b) => typeof a==='number' && Math.abs(a-b)<0.00001;
 
-function exactNode(scene,id,associations) {
-  const matches=[];
-  scene?.traverse?.(object=>{
-    if(associations.get(object)?.nodes===id)matches.push(object);
-  });
-  return matches.length===1?matches[0]:null;
+// GLTFLoader r185 can discard parser.associations from earlier parsed scenes.
+// The exact source GLB JSON root/child ordering survives in gltf.scenes.
+// Prefer an existing association, but allow a source-locked positional fallback
+// only for direct roots and direct, single-mesh historical group children.
+function exactRoot(scene,roots,id,associations,kind,sourceName) {
+  if(!Array.isArray(roots) || scene?.children?.length!==roots.length)return null;
+  const ordinal=roots.indexOf(id);
+  if(ordinal<0 || roots.lastIndexOf(id)!==ordinal)return null;
+  const obj=scene.children[ordinal];
+  if(!obj || (kind==='group'?!obj.isGroup:!obj.isMesh))return null;
+  if(kind==='mesh' && obj.children?.length!==0)return null;
+  if(typeof sourceName==='string' && sourceName.length){
+    const actual=obj.name;
+    if(actual!==sourceName &&
+       !(actual?.startsWith(sourceName) &&
+         /^_instance_[0-9]+$/.test(actual.slice(sourceName.length))))return null;
+  }
+  const mapping=associations.get(obj);
+  if(mapping && mapping.nodes!==id)return null;
+  return obj;
+}
+function exactHistoricalChild(parent,node,id,ordinal,associations) {
+  const obj=parent?.children?.[ordinal];
+  if(!obj?.isMesh || obj.children?.length!==0)return null;
+  const actual=obj.name,sourceName=node?.name;
+  if(typeof sourceName!=='string' || !sourceName ||
+     (actual!==sourceName &&
+      !(actual?.startsWith(sourceName) &&
+        /^_instance_[0-9]+$/.test(actual.slice(sourceName.length)))))return null;
+  const mapping=associations.get(obj);
+  if(mapping && mapping.nodes!==id)return null;
+  return obj;
 }
 
 export function createV69C020UpperGlassPresentation(gltf,loadedSha,expectedSha) {
@@ -46,8 +72,10 @@ export function createV69C020UpperGlassPresentation(gltf,loadedSha,expectedSha) 
      !Array.isArray(parent.rotation) || parent.rotation.length!==4 ||
      !parent.rotation.every((v,i)=>near(v,[-Math.SQRT1_2,0,0,Math.SQRT1_2][i])))
     return unavailable('historical-upper-source-parent');
-  const sourceParent=exactNode(gltf.scenes[HISTORICAL_SCENE],HISTORICAL_ROOT,associations);
-  if(!sourceParent?.isGroup || sourceParent.parent!==gltf.scenes[HISTORICAL_SCENE] ||
+  const sourceParent=exactRoot(gltf.scenes[HISTORICAL_SCENE],historical.nodes,
+    HISTORICAL_ROOT,associations,'group',parent.name);
+  if(!sourceParent || sourceParent.parent!==gltf.scenes[HISTORICAL_SCENE] ||
+     sourceParent.children?.length!==parent.children.length ||
      typeof sourceParent.clone!=='function' ||
      typeof sourceParent.add!=='function')return unavailable('historical-runtime-parent');
 
@@ -60,10 +88,10 @@ export function createV69C020UpperGlassPresentation(gltf,loadedSha,expectedSha) 
        json.meshes[1859].primitives.length!==1 || primitive?.material!==342 ||
        !near(node.translation?.[0],.5135+i*.764) ||
        !near(node.translation?.[1],-1.569) || !near(node.translation?.[2],4.49) ||
-       !sourceParent.children?.some(child=>associations.get(child)?.nodes===id) ||
+       !exactHistoricalChild(sourceParent,node,id,i,associations) ||
        node.extras?.asBuilt===true || node.extras?.current===true)
       return unavailable('historical-upper-source-node');
-    const source=sourceParent.children.find(child=>associations.get(child)?.nodes===id);
+    const source=exactHistoricalChild(sourceParent,node,id,i,associations);
     if(!source?.isMesh || Array.isArray(source.material) ||
        !source.material?.transparent || !near(source.material.opacity,.62) ||
        typeof source.clone!=='function')return unavailable('historical-upper-runtime-mesh');
@@ -79,7 +107,7 @@ export function createV69C020UpperGlassPresentation(gltf,loadedSha,expectedSha) 
        s.nodes.includes(HISTORICAL_ROOT) ||
        UPPER.some(id=>s.nodes.includes(id)) ||
        !LOWER.every(id=>s.nodes.includes(id)) ||
-       !LOWER.every(id=>exactNode(root,id,associations)?.isMesh))
+       !LOWER.every(id=>exactRoot(root,s.nodes,id,associations,'mesh',json.nodes[id]?.name)))
       return unavailable('target-scene-or-lower-glazing');
   }
 
@@ -118,7 +146,7 @@ export function createV69C020UpperGlassPresentation(gltf,loadedSha,expectedSha) 
         for(const item of staged) {
           for(let i=0;i<UPPER.length;i++){
             const src=associations.get(sourcePanes[i]);
-            associations.set(item.clones[i],{...src,nodes:UPPER[i]});
+            associations.set(item.clones[i],{...(src||{meshes:1859,primitives:0}),nodes:UPPER[i]});
           }
           item.scene.add(item.group);
         }
