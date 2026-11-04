@@ -674,3 +674,36 @@ test('V67 refuses old SHA, wrong floor/count, altered root order and reparented 
   assert.ok(!resolveBuildingPartLayerBindings(f.options).bindings.some(b => b.root === leaf));
 });
 
+import { V68_SOURCE_SHA256, V68_BUILDING_PARTS, V68_BUILDING_SCENES }
+  from '../../src/scripts/privateModelC80R2V68LayerSourceProfile.mjs';
+const v68Fixture = si => exactProfileFixture(si, V68_BUILDING_PARTS, V68_BUILDING_SCENES, V68_SOURCE_SHA256, 286);
+test('V68 preserves integrated rooms and separates the exact WC floor and east wall', () => {
+  for (const [si,count] of [[283,35],[284,134],[285,172]]) {
+    const f = v68Fixture(si);
+    const r = resolveBuildingPartLayerBindings(f.options);
+    assert.equal(r.bindings.length, count);
+    assert.ok(r.evidence.every(e => e.bindingKind === 'EXACT_V68_SOURCE_PROFILE'));
+    if (si === 283) continue;
+    assert.equal(r.bindings.find(b => b.root === f.objects[9911])?.id, 'architecture-floors');
+    assert.equal(r.bindings.find(b => b.root === f.objects[9912])?.id, 'architecture-walls-interior');
+    assert.ok(!r.evidence.some(e => e.sourceNodeIndex === 9331));
+    assert.equal(resolveBuildingPartLayerBindings({...f.options,loadedSourceSha256:V67_SOURCE_SHA256}).bindings.length,0);
+  }
+});
+test('V68 multi-primitive split hands six floor and two wall leaves to independent layer controls', () => {
+  const f = v68Fixture(285);
+  for (const [ni,count] of [[9911,6],[9912,2]]) {
+    const root = f.objects[ni];root.isMesh=false;
+    for(let pi=0;pi<count;pi++) {
+      const leaf = new Object3D('primitive-'+pi,true);root.add(leaf);
+      f.gltf.parser.associations.set(leaf,{meshes:V68_BUILDING_PARTS[ni].mesh,primitives:pi});
+    }
+  }
+  const r=resolveBuildingPartLayerBindings(f.options);
+  for(const [ni,id,count] of [[9911,'architecture-floors',6],[9912,'architecture-walls-interior',2]]) {
+    const leaves=new Set(f.objects[ni].children);
+    assert.equal(r.bindings.filter(b=>b.id===id && leaves.has(b.root)).length,count);
+    assert.ok(!r.bindings.some(b=>b.root===f.objects[ni]));
+  }
+});
+
