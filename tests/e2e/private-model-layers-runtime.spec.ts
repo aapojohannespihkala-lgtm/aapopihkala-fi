@@ -579,6 +579,17 @@ test(`exact ${model.version} viewer: D upstairs, ghost walls, supported IV, rese
       if (await page.locator('#layers-button').getAttribute('aria-expanded') === 'true')
         await page.locator('#layers-button').click();
     };
+    const waitForCameraRest = async () => {
+      let signature = '', stable = 0;
+      await expect.poll(async () => {
+        const pose = await readLiveCamera();
+        const next = JSON.stringify(['position', 'target', 'direction'].map(key =>
+          pose[key].map((value: number) => value.toFixed(11))));
+        stable = next === signature ? stable + 1 : 0;
+        signature = next;
+        return stable;
+      }, { timeout: 45_000, intervals: [150, 250, 500] }).toBeGreaterThanOrEqual(2);
+    };
     const observe = async () => {
       const previous = await canvas.getAttribute('data-c008-depth-observation');
       await canvas.dispatchEvent('c80-008-observe');
@@ -603,8 +614,8 @@ test(`exact ${model.version} viewer: D upstairs, ghost walls, supported IV, rese
           await page.mouse.up();
           expect(await readLiveCamera()).not.toEqual(before);
         }
-        // Let the real OrbitControls damping settle before a same-camera pair.
-        await page.waitForTimeout(900);
+        // A fixed delay cannot prove rest at the runner's actual render rate.
+        await waitForCameraRest();
         await openLayers();
         const context = page.locator('#c80-source-context-visible');
         const contextAvailable = await context.isVisible();
@@ -618,6 +629,9 @@ test(`exact ${model.version} viewer: D upstairs, ghost walls, supported IV, rese
           await page.locator('[data-layer-node="architecture-doors"] [data-layer-mode="hidden"]').click();
           await closeLayers();
           const hiddenObservation = await observe();
+          await info.attach(`c008-${floor}-${view}-${contextOn}-live-source-pair`, {
+            body: JSON.stringify({ observation, hiddenObservation }, null, 2), contentType: 'application/json',
+          });
           for (const key of ['position', 'quaternion', 'projection']) {
             for (let i = 0; i < observation.camera[key].length; i++)
               expect(hiddenObservation.camera[key][i]).toBeCloseTo(observation.camera[key][i], 9);
@@ -647,8 +661,15 @@ test(`exact ${model.version} viewer: D upstairs, ghost walls, supported IV, rese
             expect.soft(door.material.every((m: any) => m.visible && m.depthTest && m.depthWrite && !m.transparent && m.opacity === 1)).toBe(true);
             const pixels = differences.find((item: any) => item.node === door.node).samples;
             visiblePixels.set(door.node, visiblePixels.get(door.node)! + pixels.filter((p: any) => p.frontNode === door.node && p.delta > 3).length);
-            const opaqueLeaks = pixels.filter((p: any) => p.frontNode !== null && ![8028, 8030].includes(p.frontNode) &&
-              p.frontDistance < p.targetDistance - .08 && p.delta > 3);
+            const afterSamples = hiddenObservation.doors.find((item: any) => item.node === door.node).samples;
+            const opaqueLeaks = pixels.filter((p: any) => {
+              const hidden = afterSamples.find((item: any) => Math.abs(item.x - p.x) < .01 && Math.abs(item.y - p.y) < .01);
+              // Hiding the entire door layer can also remove a different door
+              // in front. Only an unchanged opaque occluder is a negative control.
+              return p.frontNode !== null && ![8028, 8030].includes(p.frontNode) &&
+                hidden?.frontNode === p.frontNode && Math.abs(hidden.frontDistance - p.frontDistance) < .000001 &&
+                p.frontDistance < p.targetDistance - .08 && p.delta > 3;
+            });
             expect.soft(opaqueLeaks, `Door ${door.node} must not paint through a nearer opaque source surface`).toEqual([]);
           }
           reports.push({ floor, view, sourceContext: contextOn, contextControlAvailable: contextAvailable,

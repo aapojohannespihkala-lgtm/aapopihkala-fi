@@ -57,7 +57,9 @@ permissions:
   id-token: write
 
 concurrency:
-  group: d-view-exact-source-webgl
+  # The established all matrix excludes P12R1. Its automatic replay must not
+  # cancel the dedicated P12R1 capture of the same trusted main head.
+  group: d-view-exact-source-webgl${{ inputs.source_version == 'V69P12R1' && '-v69p12r1' || '' }}
   # Read-only viewer QA is bound to one exact main head. A newer head supersedes it.
   cancel-in-progress: true
 
