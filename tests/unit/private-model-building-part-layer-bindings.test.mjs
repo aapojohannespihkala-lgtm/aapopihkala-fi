@@ -1,6 +1,84 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { resolveBuildingPartLayerBindings } from '../../src/scripts/privateModelBuildingPartLayerBindings.mjs';
+import {
+  V69P12R1_SOURCE_SHA256, V69P12R1_SOURCE_SCENE_COUNT,
+  V69P12R1_BUILDING_PARTS, V69P12R1_BUILDING_SCENES, V69P12R1_FLOORS,
+} from '../../src/scripts/privateModelC80R2V69P12R1LayerSourceProfile.mjs';
+
+function v69p12r1Fixture(sceneIndex) {
+  const f = exactProfileFixture(sceneIndex, V69P12R1_BUILDING_PARTS,
+    V69P12R1_BUILDING_SCENES, V69P12R1_SOURCE_SHA256, V69P12R1_SOURCE_SCENE_COUNT);
+  f.gltf.parser.json.asset = { extras: {
+    current: false, asBuilt: false, viewerFloorScenes: { ...V69P12R1_FLOORS },
+  } };
+  return f;
+}
+
+test('V69P12R1 inherits real door/wall paths in 290/293/294 and leaves the replacement rig unbound', () => {
+  for (const sceneIndex of [290, 293, 294]) {
+    const f = v69p12r1Fixture(sceneIndex);
+    const before = JSON.stringify(f.gltf.parser.json);
+    const r = resolveBuildingPartLayerBindings(f.options);
+    assert.ok(r.evidence.length > 0);
+    assert.ok(r.evidence.every(e => e.bindingKind === 'EXACT_V69P12R1_INHERITED_V69_PROFILE'));
+    assert.ok(r.evidence.every(e => e.sourceSha256 === V69P12R1_SOURCE_SHA256));
+    if (sceneIndex !== 290) {
+      assert.deepEqual(r.evidence.find(e => e.sourceNodeIndex === 8028)?.sourceNodePath,
+        [9572, 9571, 8032, 8029, 8028]);
+      assert.equal(r.evidence.find(e => e.sourceNodeIndex === 8030)?.id, 'architecture-doors');
+      assert.equal(r.evidence.find(e => e.sourceNodeIndex === 7222)?.sourceMeshIndex, 2153);
+    }
+    if (sceneIndex !== 293)
+      assert.equal(r.evidence.find(e => e.sourceNodeIndex === 9913)?.id, 'architecture-walls-exterior');
+    assert.ok(!r.evidence.some(e => [9877, 9910, 9914, 9985].includes(e.sourceNodePath[0])));
+    assert.equal(JSON.stringify(f.gltf.parser.json), before);
+  }
+});
+
+test('V69P12R1 rejects wrong source, scene metadata and complete-root drift', () => {
+  const changes = [
+    f => { f.options.loadedSourceSha256 = V69_SOURCE_SHA256; },
+    f => { f.gltf.parser.json.asset.extras.current = true; },
+    f => { f.gltf.parser.json.asset.extras.asBuilt = true; },
+    f => { f.gltf.parser.json.asset.extras.viewerFloorScenes.BOTH = 292; },
+    f => { f.gltf.parser.json.scenes[294].name += '_UNKNOWN'; },
+    f => { f.gltf.parser.json.scenes[294].nodes.reverse(); },
+    f => { f.gltf.parser.json.scenes.length = 294; },
+    f => { f.options.floor = '2F'; },
+  ];
+  for (const change of changes) {
+    const f = v69p12r1Fixture(294); change(f);
+    assert.equal(resolveBuildingPartLayerBindings(f.options).bindings.length, 0);
+  }
+});
+
+test('V69P12R1 door binding rejects changed mesh, name, parent and hidden source ancestor', () => {
+  const changes = [
+    f => { f.gltf.parser.json.nodes[8028].mesh = 0; },
+    f => { f.objects[8028].name = 'UNVERIFIED_DOOR'; },
+    f => {
+      const door = f.objects[8028];
+      door.parent.children = door.parent.children.filter(n => n !== door);
+      f.scene.add(door);
+    },
+    f => { f.objects[8032].visible = false; },
+  ];
+  for (const change of changes) {
+    const f = v69p12r1Fixture(293); change(f);
+    assert.ok(!resolveBuildingPartLayerBindings(f.options).evidence.some(e => e.sourceNodeIndex === 8028));
+  }
+});
+
+test('V69P12R1 classification preserves sourceLinks without rebinding source cards', () => {
+  const f = v69p12r1Fixture(293);
+  const links = ['source-link-fixture-preserved'];
+  f.gltf.parser.json.nodes[8028].extras = { sourceLinks: links };
+  const material = f.objects[8028].material;
+  const e = resolveBuildingPartLayerBindings(f.options).evidence.find(e => e.sourceNodeIndex === 8028);
+  assert.strictEqual(e.sourceLinks, links);
+  assert.strictEqual(f.objects[8028].material, material);
+});
 
 const HASH = 'cff2dbead53b7836747e10ef359637114ff723690ec380e313cec817e4f71d31';
 class Object3D {
@@ -774,3 +852,4 @@ test('V69 refuses old SHA, changed scene/root, restored duplicate and reparented
   f.objects[6430].add(f.objects[9913]);
   assert.ok(!resolveBuildingPartLayerBindings(f.options).evidence.some(e=>e.sourceNodeIndex===9913));
 });
+

@@ -1,6 +1,6 @@
+import { V69P12R1_SOURCE_SHA256, V69P12R1_SOURCE_SCENE_COUNT, V69P12R1_BUILDING_PARTS, V69P12R1_BUILDING_SCENES, V69P12R1_FLOORS } from './privateModelC80R2V69P12R1LayerSourceProfile.mjs';
 import { K17_RAIL900_SOURCE_SHA256, K17_RAIL900_SOURCE_SCENE_COUNT, K17_RAIL900_BUILDING_PARTS, K17_RAIL900_BUILDING_SCENES } from './privateModelK17Rail900LayerSourceProfile.mjs';
 import { V69_SOURCE_SHA256, V69_SOURCE_SCENE_COUNT, V69_BUILDING_PARTS, V69_BUILDING_SCENES } from './privateModelC80R2V69LayerSourceProfile.mjs';
-import { V69P12R1_SOURCE_SHA256, V69P12R1_SCENE_COUNT, V69P12R1_FLOORS } from './privateModelV69P12R1FloorGate.mjs';
 import { V27_SOURCE_SHA256, V27_SOURCE_SCENE_COUNT, V27_BUILDING_PARTS, V27_BUILDING_SCENES } from './privateModelC80R2V27LayerSourceProfile.mjs';
 import { V29_SOURCE_SHA256, V29_SOURCE_SCENE_COUNT, V29_BUILDING_PARTS, V29_BUILDING_SCENES } from './privateModelC80R2V29LayerSourceProfile.mjs';
 import { V33_SOURCE_SHA256, V33_SOURCE_SCENE_COUNT, V33_BUILDING_PARTS, V33_BUILDING_SCENES } from './privateModelC80R2V33LayerSourceProfile.mjs';
@@ -302,34 +302,9 @@ const matchesSourceName = (actual, expected) => {
   return name === safe || (name.startsWith(safe + '_') && /^\d+$/.test(name.slice(safe.length + 1)));
 };
 
-// V69P12R1 is an append-only V69 successor. Bind only unchanged V69
-// meshes, using the original exact node/name/mesh/full parent path. The new
-// sink/faucet geometry has no inherited classification and stays unbound.
-const v69p12r1InheritedPart = (json, sha, sceneIndex, floor, source, associations, object) => {
-  if (sha !== V69P12R1_SOURCE_SHA256 ||
-      json?.scenes?.length !== V69P12R1_SCENE_COUNT ||
-      json?.asset?.extras?.current !== false ||
-      json?.asset?.extras?.asBuilt !== false ||
-      json?.asset?.extras?.viewerFloorScenes?.[floor] !== sceneIndex ||
-      V69P12R1_FLOORS[floor] !== sceneIndex) return null;
-  const oldIndex = sceneIndex === 290 ? 290 : sceneIndex === 293 ? 291 : sceneIndex === 294 ? 292 : null;
-  const oldScene = V69_BUILDING_SCENES[oldIndex];
-  const part = V69_BUILDING_PARTS[source.index];
-  const def = json.nodes?.[source.index];
-  const actual = json.scenes[sceneIndex];
-  if (!oldScene || oldScene.floor !== floor || !part ||
-      !actual?.name?.startsWith('C80R2_') ||
-      !Array.isArray(actual.nodes) || !actual.nodes.includes(source.path[0]) ||
-      def?.mesh !== part.mesh || def?.name !== part.name ||
-      !oldScene.paths[source.index]?.some(path => samePath(path, source.path)) ||
-      !matchesSourceName(source.sourceObject.name, part.name)) return null;
-  const primitive = associations.get(object);
-  if (primitive?.meshes !== undefined && primitive.meshes !== part.mesh) return null;
-  return part;
-};
-
 const v26SourcePart = (json, sha, sceneIndex, floor, source, associations, mesh) => {
-  const version = sha === K17_RAIL900_SOURCE_SHA256 ? 'K17_RAIL900'
+  const version = sha === V69P12R1_SOURCE_SHA256 ? 'V69P12R1'
+    : sha === K17_RAIL900_SOURCE_SHA256 ? 'K17_RAIL900'
     : sha === V69_SOURCE_SHA256 ? 'V69'
     : sha === V68_SOURCE_SHA256 ? 'V68'
     : sha === V67_SOURCE_SHA256 ? 'V67'
@@ -339,7 +314,12 @@ const v26SourcePart = (json, sha, sceneIndex, floor, source, associations, mesh)
     : sha === V29_SOURCE_SHA256 ? 'V29'
     : sha === V27_SOURCE_SHA256 ? 'V27' : sha === V26_SHA ? 'V26' : null;
   if (!version) return null;
-  const sceneProfile = version === 'K17_RAIL900' ? K17_RAIL900_BUILDING_SCENES
+  if (version === 'V69P12R1' && (json.asset?.extras?.current !== false ||
+      json.asset?.extras?.asBuilt !== false ||
+      !Object.entries(V69P12R1_FLOORS).every(([key, index]) =>
+        json.asset?.extras?.viewerFloorScenes?.[key] === index))) return null;
+  const sceneProfile = version === 'V69P12R1' ? V69P12R1_BUILDING_SCENES
+    : version === 'K17_RAIL900' ? K17_RAIL900_BUILDING_SCENES
     : version === 'V69' ? V69_BUILDING_SCENES
     : version === 'V68' ? V68_BUILDING_SCENES
     : version === 'V67' ? V67_BUILDING_SCENES
@@ -348,7 +328,8 @@ const v26SourcePart = (json, sha, sceneIndex, floor, source, associations, mesh)
     : version === 'V33' ? V33_BUILDING_SCENES
     : version === 'V29' ? V29_BUILDING_SCENES
     : version === 'V27' ? V27_BUILDING_SCENES : v26Scenes;
-  const partProfile = version === 'K17_RAIL900' ? K17_RAIL900_BUILDING_PARTS
+  const partProfile = version === 'V69P12R1' ? V69P12R1_BUILDING_PARTS
+    : version === 'K17_RAIL900' ? K17_RAIL900_BUILDING_PARTS
     : version === 'V69' ? V69_BUILDING_PARTS
     : version === 'V68' ? V68_BUILDING_PARTS
     : version === 'V67' ? V67_BUILDING_PARTS
@@ -357,7 +338,8 @@ const v26SourcePart = (json, sha, sceneIndex, floor, source, associations, mesh)
     : version === 'V33' ? V33_BUILDING_PARTS
     : version === 'V29' ? V29_BUILDING_PARTS
     : version === 'V27' ? V27_BUILDING_PARTS : v26Parts;
-  const count = version === 'K17_RAIL900' ? K17_RAIL900_SOURCE_SCENE_COUNT
+  const count = version === 'V69P12R1' ? V69P12R1_SOURCE_SCENE_COUNT
+    : version === 'K17_RAIL900' ? K17_RAIL900_SOURCE_SCENE_COUNT
     : version === 'V69' ? V69_SOURCE_SCENE_COUNT
     : version === 'V68' ? V68_SOURCE_SCENE_COUNT
     : version === 'V67' ? V67_SOURCE_SCENE_COUNT
@@ -373,7 +355,7 @@ const v26SourcePart = (json, sha, sceneIndex, floor, source, associations, mesh)
   const def = json.nodes[source.index];
   if (!scene || !part || scene.floor !== floor ||
       json.scenes.length !== count || json.scenes[sceneIndex]?.name !== (donorScene?.name ?? scene.name) ||
-      (['V67', 'V68', 'V69', 'K17_RAIL900'].includes(version) && (!Array.isArray(json.scenes[sceneIndex]?.nodes) ||
+      (['V67', 'V68', 'V69', 'V69P12R1', 'K17_RAIL900'].includes(version) && (!Array.isArray(json.scenes[sceneIndex]?.nodes) ||
         !samePath(json.scenes[sceneIndex].nodes, scene.rootNodes))) ||
       def?.mesh !== part.mesh || def?.name !== part.name ||
       !scene.paths[source.index]?.some(path => samePath(path, source.path)) ||
@@ -500,8 +482,7 @@ export function resolveBuildingPartLayerBindings(input) {
     const sourceNodeIndex = source.index;
     const meta = sourceMetadata(source.path, hierarchy);
     const sha = String(loadedSourceSha256).toLowerCase();
-    const existingProfile = v69p12r1InheritedPart(gltf.parser.json, sha,
-      sceneIndex, floor, source, associations, object) ?? v26SourcePart(gltf.parser.json, sha,
+    const existingProfile = v26SourcePart(gltf.parser.json, sha,
       sceneIndex, floor, source, associations, object);
     const sourceDefinition = hierarchy.nodes[source.index];
     const parentDefinition = hierarchy.nodes[source.path.at(-2)];
@@ -606,5 +587,6 @@ export function resolveBuildingPartLayerBindings(input) {
     excluded,
   };
 }
+
 
 

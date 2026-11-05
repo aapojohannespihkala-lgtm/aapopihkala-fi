@@ -2475,8 +2475,8 @@ const title = 'Private 3D viewer';
       import { V35_SOURCE_SHA256 } from '../../scripts/privateModelC80R2V35LayerSourceProfile.mjs';
       import { V67_SOURCE_SHA256 } from '../../scripts/privateModelC80R2V67LayerSourceProfile.mjs';
       import { V69_SOURCE_SHA256 } from '../../scripts/privateModelC80R2V69LayerSourceProfile.mjs';
+      import { V69P12R1_SOURCE_SHA256 } from '../../scripts/privateModelC80R2V69P12R1LayerSourceProfile.mjs';
       import { K17_RAIL900_SOURCE_SHA256 } from '../../scripts/privateModelK17Rail900LayerSourceProfile.mjs';
-      import { V69P12R1_SOURCE_SHA256, resolveV69P12R1FloorBridge } from '../../scripts/privateModelV69P12R1FloorGate.mjs';
       import { createV69C035WhiteLobbyPresentation } from '../../scripts/privateModelV69C035WhiteLobbyPresentation.mjs';
       import { createV69C020UpperGlassPresentation } from '../../scripts/privateModelV69C020UpperGlassPresentation.mjs';
       import { V68_SOURCE_SHA256 } from '../../scripts/privateModelC80R2V68LayerSourceProfile.mjs';
@@ -7396,15 +7396,6 @@ const title = 'Private 3D viewer';
           fullModelScene = gltf.scenes[c80WholeSceneIndex(c70PreviewSession.contract)];
           if (!fullModelScene) throw new Error('C80 source WHOLE scene missing');
         }
-        // Only V69P12R1 opts into the source-declared BOTH294 scene.
-        // Its legacy default292 is unchanged in the binary and remains valid
-        // for existing V69 routes. Reject mismatched source or metadata.
-        const v69p12r1FloorScenes = resolveV69P12R1FloorBridge({
-          gltf, loadedSourceSha256: loadedModelSha256(gltf), sourceKind,
-          hasC70Preview: Boolean(c70PreviewSession),
-          resolveChainScenes: resolveC80R2ChainScenes,
-        });
-        if (v69p12r1FloorScenes) fullModelScene = v69p12r1FloorScenes.scenes.BOTH;
         resolveSelectionSources = sourceCardResolverForModel(gltf);
         dInteriorScene = dInteriorOverride ??
           findSourceNamedScene(gltf, 'D CURRENT INTERIOR - BABYLON Y-UP');
@@ -7552,7 +7543,7 @@ const title = 'Private 3D viewer';
               mounted: () => modelRoot.children[0] ?? null,
             }) as any
           : sourceKind === 'work-test' && !c70PreviewSession &&
-          (resolveC80R2ChainScenes(gltf)?.scenes.BOTH === gltf.scene || v69p12r1FloorScenes !== null)
+          resolveC80R2ChainScenes(gltf)?.scenes.BOTH === gltf.scene
           ? createC80R2ChainFloorRuntime({
               gltf, mount: setModelScene,
               mounted: () => modelRoot.children[0] ?? null,
