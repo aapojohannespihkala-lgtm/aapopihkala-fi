@@ -20,6 +20,10 @@ class Emitter {
   removeEventListener(k, fn) {
     this.handlers.set(k, (this.handlers.get(k) || []).filter(f => f !== fn));
   }
+  dispatchEvent(e) {
+    for (const fn of this.handlers.get(e.type) || []) fn(e);
+    return !e.defaultPrevented;
+  }
   emit(k, e = {}) {
     let stopped = false;
     const ev = {
