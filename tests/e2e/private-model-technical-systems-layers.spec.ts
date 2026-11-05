@@ -1,3 +1,4 @@
+import { V69P12R1_SOURCE_SHA256, V69P12R1_SOURCE_SCENE_COUNT, V69P12R1_BUILDING_SCENES } from '../../src/scripts/privateModelC80R2V69P12R1LayerSourceProfile.mjs';
 import { expect, test } from '@playwright/test';
 import { BoxGeometry, Group, Mesh, MeshBasicMaterial, Scene } from 'three';
 import {
@@ -386,6 +387,7 @@ import { V68_SOURCE_SHA256, V68_SOURCE_SCENE_COUNT, V68_BUILDING_SCENES } from '
 import { V69_SOURCE_SHA256, V69_SOURCE_SCENE_COUNT, V69_BUILDING_SCENES } from '../../src/scripts/privateModelC80R2V69LayerSourceProfile.mjs';
 import { K17_RAIL900_SOURCE_SHA256, K17_RAIL900_SOURCE_SCENE_COUNT, K17_RAIL900_BUILDING_SCENES } from '../../src/scripts/privateModelK17Rail900LayerSourceProfile.mjs';
 for (const model of [
+  {sha:V69P12R1_SOURCE_SHA256,count:V69P12R1_SOURCE_SCENE_COUNT,profiles:V69P12R1_BUILDING_SCENES,upstairs:293,both:294},
   {sha:V68_SOURCE_SHA256,count:V68_SOURCE_SCENE_COUNT,profiles:V68_BUILDING_SCENES,upstairs:284,both:285},
   {sha:V69_SOURCE_SHA256,count:V69_SOURCE_SCENE_COUNT,profiles:V69_BUILDING_SCENES,upstairs:291,both:292},
   {sha:K17_RAIL900_SOURCE_SHA256,count:K17_RAIL900_SOURCE_SCENE_COUNT,profiles:K17_RAIL900_BUILDING_SCENES,upstairs:306,both:307},
@@ -421,3 +423,4 @@ for (const model of [
   f=fixture();f.mesh.userData.sourceLinks=[{title:'other'}];
   expect(createTechnicalSystemLayerInventory(f.context).bridgeBindings).toHaveLength(0);
 });
+
