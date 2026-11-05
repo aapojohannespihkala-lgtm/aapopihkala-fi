@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { BoxGeometry, Group, Mesh, MeshBasicMaterial, PerspectiveCamera, PlaneGeometry, Vector3 } from 'three';
+import { BoxGeometry, Group, Mesh, MeshBasicMaterial, PerspectiveCamera, PlaneGeometry, Vector3, type BufferGeometry } from 'three';
 import { observeC008Depth } from '../../src/scripts/privateModelC008DepthObservation';
 import { createSourceNodeView } from '../../src/scripts/privateModelSourceNodeAssociations.mjs';
 
@@ -12,7 +12,7 @@ function fixture() {
     const object = new Mesh(new BoxGeometry(.7, 2, .035), new MeshBasicMaterial());
     object.name = `door${node}`; object.position.x = i ? .6 : -.6; root.add(object); return object;
   });
-  const blocker = new Mesh(new BoxGeometry(4, 4, .1), new MeshBasicMaterial());
+  const blocker = new Mesh<BufferGeometry, MeshBasicMaterial>(new BoxGeometry(4, 4, .1), new MeshBasicMaterial());
   blocker.name = 'backing'; blocker.position.z = -1; root.add(blocker);
   const nodes: any[] = [], meshes: any[] = [], materials: any[] = [];
   [8028, 8030, 10].forEach((node, i) => {
