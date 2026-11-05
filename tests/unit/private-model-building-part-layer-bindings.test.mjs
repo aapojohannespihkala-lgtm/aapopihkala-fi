@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { resolveBuildingPartLayerBindings } from '../../src/scripts/privateModelBuildingPartLayerBindings.mjs';
 import {
   V69P12R1_SOURCE_SHA256, V69P12R1_SOURCE_SCENE_COUNT,
-  V69P12R1_BUILDING_PARTS, V69P12R1_BUILDING_SCENES, V69P12R1_FLOORS,
+  V69P12R1_BUILDING_PARTS, V69P12R1_BUILDING_SCENES, V69P12R1_FLOORS, V69P12R1_RIG_PARTS,
 } from '../../src/scripts/privateModelC80R2V69P12R1LayerSourceProfile.mjs';
 
 function v69p12r1Fixture(sceneIndex) {
@@ -15,7 +15,7 @@ function v69p12r1Fixture(sceneIndex) {
   return f;
 }
 
-test('V69P12R1 inherits real door/wall paths in 290/293/294 and leaves the replacement rig unbound', () => {
+test('V69P12R1 retains inherited door/wall paths and binds only the active replacement rig', () => {
   for (const sceneIndex of [290, 293, 294]) {
     const f = v69p12r1Fixture(sceneIndex);
     const before = JSON.stringify(f.gltf.parser.json);
@@ -31,8 +31,87 @@ test('V69P12R1 inherits real door/wall paths in 290/293/294 and leaves the repla
     }
     if (sceneIndex !== 293)
       assert.equal(r.evidence.find(e => e.sourceNodeIndex === 9913)?.id, 'architecture-walls-exterior');
-    assert.ok(!r.evidence.some(e => [9877, 9910, 9914, 9985].includes(e.sourceNodePath[0])));
+    assert.ok(!r.evidence.some(e => [9877, 9910].includes(e.sourceNodePath[0])));
+    const rig = r.evidence.filter(e => Object.hasOwn(V69P12R1_RIG_PARTS, e.sourceNodeIndex));
+    assert.equal(rig.length, sceneIndex === 290 ? 0 : 53);
+    if (sceneIndex !== 290) assert.ok(rig.every(e => e.sourceNodePath[0] === (sceneIndex === 293 ? 9914 : 9985)));
     assert.equal(JSON.stringify(f.gltf.parser.json), before);
+  }
+});
+
+test('V69P12R1 rig binds every exact basin, faucet and cabinet leaf without rebinding links', () => {
+  assert.equal(Object.keys(V69P12R1_RIG_PARTS).length, 106);
+  for (const [sceneIndex, root] of [[293, 9914], [294, 9985]]) {
+    const f = v69p12r1Fixture(sceneIndex);
+    const sourceBefore = JSON.stringify(f.gltf.parser.json);
+    const result = resolveBuildingPartLayerBindings(f.options);
+    const rig = result.evidence.filter(e => e.sourceNodePath[0] === root);
+    assert.equal(rig.length, 53);
+    assert.ok(rig.every(e => e.id === 'architecture-fixtures'));
+    assert.ok(rig.every(e => e.sourceSha256 === V69P12R1_SOURCE_SHA256));
+    assert.ok(rig.every(e => e.sourceMeshIndex === V69P12R1_RIG_PARTS[e.sourceNodeIndex].mesh));
+    assert.ok(rig.every(e => e.sourceNodePath.length >= 2));
+    assert.ok(!result.bindings.some(b => b.root === f.objects[root]));
+    assert.equal(JSON.stringify(f.gltf.parser.json), sourceBefore);
+    const leaf = rig[0].sourceNodeIndex;
+    const links = ['preserved-original-source-link'];
+    f.gltf.parser.json.nodes[leaf].extras = { sourceLinks: links };
+    const linked = resolveBuildingPartLayerBindings(f.options).evidence.find(e => e.sourceNodeIndex === leaf);
+    assert.strictEqual(linked.sourceLinks, links);
+  }
+  const downstairs = v69p12r1Fixture(290);
+  assert.ok(!resolveBuildingPartLayerBindings(downstairs.options).evidence.some(e =>
+    Object.hasOwn(V69P12R1_RIG_PARTS, e.sourceNodeIndex)));
+});
+
+test('V69P12R1 rig rejects scene-root, parent, name, mesh and hidden-ancestor drift', () => {
+  for (const [sceneIndex, root, leaf] of [[293, 9914, 9916], [294, 9985, 9987]]) {
+    const changes = [
+      f => { f.gltf.parser.json.nodes[leaf].mesh = 0; },
+      f => { f.gltf.parser.json.nodes[leaf].name = 'UNVERIFIED_SINK'; },
+      f => { f.objects[leaf].name = 'UNVERIFIED_SINK'; },
+      f => { f.gltf.parser.associations.set(f.objects[leaf], { nodes: leaf, meshes: 0 }); },
+      f => { f.objects[root].visible = false; },
+      f => {
+        const object = f.objects[leaf];
+        object.parent.children = object.parent.children.filter(n => n !== object);
+        f.scene.add(object);
+      },
+      f => {
+        const parentIndex = sceneIndex === 293 ? 9915 : 9986;
+        const parent = f.gltf.parser.json.nodes[parentIndex];
+        parent.children = parent.children.filter(n => n !== leaf);
+      },
+      f => { f.gltf.parser.json.scenes[sceneIndex].nodes = f.gltf.parser.json.scenes[sceneIndex].nodes.filter(n => n !== root); },
+    ];
+    for (const change of changes) {
+      const f = v69p12r1Fixture(sceneIndex); change(f);
+      assert.ok(!resolveBuildingPartLayerBindings(f.options).evidence.some(e => e.sourceNodeIndex === leaf));
+    }
+  }
+});
+
+test('V69P12R1 two-material worktop binds both primitive meshes under its exact source node', () => {
+  for (const [sceneIndex, leaf] of [[293, 9951], [294, 10022]]) {
+    const f = v69p12r1Fixture(sceneIndex);
+    const group = f.objects[leaf];
+    group.isMesh = false;
+    const primitives = [0, 1].map(primitive => {
+      const mesh = new Object3D('worktop-primitive-' + primitive, true);
+      group.add(mesh);
+      f.gltf.parser.associations.set(mesh, {
+        meshes: V69P12R1_RIG_PARTS[leaf].mesh, primitives: primitive,
+      });
+      return mesh;
+    });
+    const result = resolveBuildingPartLayerBindings(f.options);
+    const evidence = result.evidence.filter(e => e.sourceNodeIndex === leaf);
+    assert.equal(evidence.length, 2);
+    assert.ok(evidence.every(e => e.id === 'architecture-fixtures'));
+    assert.ok(primitives.every(mesh => result.bindings.some(b => b.root === mesh)));
+    assert.ok(!result.bindings.some(b => b.root === group));
+    group.visible = false;
+    assert.ok(!resolveBuildingPartLayerBindings(f.options).evidence.some(e => e.sourceNodeIndex === leaf));
   }
 });
 
@@ -885,4 +964,5 @@ test('V69 refuses old SHA, changed scene/root, restored duplicate and reparented
   f.objects[6430].add(f.objects[9913]);
   assert.ok(!resolveBuildingPartLayerBindings(f.options).evidence.some(e=>e.sourceNodeIndex===9913));
 });
+
 
