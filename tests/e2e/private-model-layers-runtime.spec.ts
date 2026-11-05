@@ -306,6 +306,15 @@ test(`exact ${model.version} viewer: D upstairs, ghost walls, supported IV, rese
   const errors: string[] = [];
   page.on('pageerror', error => errors.push(error.message));
   let sourceVerified = false;
+  // The GLB SHA is unchanged by viewer-only classification. Require the new
+  // profile in code actually delivered to this browser, not just the test checkout.
+  let loadedScripts: Promise<string>[] = [];
+  const rigMarker = 'C80R2_V69_P12_OPTIN__V59P12_HG14875000_LEFT_APK_PEG_CYLINDRICAL_ROUND_PHOTO_BOTH';
+  if (model.version === 'V69P12R1') page.on('response', response => {
+    if (response.request().resourceType() === 'script' && new URL(response.url()).origin === origin)
+      loadedScripts.push(response.text().catch(() => ''));
+  });
+  const hasServedRigProfile = async () => (await Promise.all(loadedScripts)).some(text => text.includes(rigMarker));
   if (production) {
     const clientId = process.env.CF_ACCESS_VIEWER_PROBE_CLIENT_ID;
     const clientSecret = process.env.CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET;
@@ -339,9 +348,11 @@ test(`exact ${model.version} viewer: D upstairs, ghost walls, supported IV, rese
   // A newly merged viewer can be ahead of its normal Cloudflare deployment.
   // Reload only the same authenticated viewer, never an alternate auth route.
   for (let attempt = 0; attempt < (production ? 12 : 1); attempt++) {
+    loadedScripts = [];
     await page.goto(reviewUrl, { waitUntil: 'domcontentloaded' });
     await expect(canvas).toHaveAttribute('data-work-test-review-autoload', 'true', { timeout: 120_000 });
-    if (await canvas.getAttribute('data-layers-runtime') === 'active' &&
+    if ((model.version !== 'V69P12R1' || await hasServedRigProfile()) &&
+        await canvas.getAttribute('data-layers-runtime') === 'active' &&
         await page.locator('#layers-button').innerText() === 'Sisältö' &&
         await page.locator('[data-technical-layer-availability]').count() === 1 &&
         await page.locator('#preset-context-status').evaluate(el =>
@@ -352,6 +363,7 @@ test(`exact ${model.version} viewer: D upstairs, ghost walls, supported IV, rese
     if (production && attempt < 11) await page.waitForTimeout(10_000);
   }
   expect(sourceVerified).toBe(true);
+  if (model.version === 'V69P12R1') expect(await hasServedRigProfile(), 'Deployed viewer must include the exact P12 sink/faucet rig profile').toBe(true);
   await expect(canvas).toHaveAttribute('data-layers-source-sha256', sha);
   await expect(canvas).toHaveAttribute('data-layers-runtime', 'active');
   // Verify the exact-source material adapter in the actual authenticated V69
@@ -557,7 +569,7 @@ test(`exact ${model.version} viewer: D upstairs, ghost walls, supported IV, rese
   });
   expect(webgl).toEqual({ available: true, lost: false, error: 0 });
   expect(errors).toEqual([]);
-  console.log(JSON.stringify({ source: sha, scene: +model.secondFloor, reviewUrl: page.url(), stages: ['ghost', 'IV-visible', 'reset', '1F', 'BOTH', '2F', 'mobile', ...((model.version === 'V68' || model.version === 'V69' || model.version === 'K17_RAIL_HANDRAIL900' || model.version === 'V69P12R1') ? ['actual-object-click'] : [])], webgl, humanReview: 'NOT_RUN', production }));
+  console.log(JSON.stringify({ source: sha, scene: +model.secondFloor, reviewUrl: page.url(), servedRigProfile: model.version === 'V69P12R1' ? await hasServedRigProfile() : null, bindings: await canvas.getAttribute('data-layers-binding-count'), stages: ['ghost', 'IV-visible', 'reset', '1F', 'BOTH', '2F', 'mobile', ...((model.version === 'V68' || model.version === 'V69' || model.version === 'K17_RAIL_HANDRAIL900' || model.version === 'V69P12R1') ? ['actual-object-click'] : [])], webgl, humanReview: 'NOT_RUN', production }));
 });
 }
 
