@@ -1989,6 +1989,13 @@ const title = 'Private 3D viewer';
             <h2>Layerit</h2>
             <button id="close-layers-button" type="button">Sulje</button>
           </div>
+          <div id="layers-source-context" class="layer-section" hidden>
+            <label class="layer-row">
+              <input id="layers-source-context-visible" type="checkbox" checked aria-describedby="layers-source-context-note" />
+              <span>Lähdekonteksti</span>
+            </label>
+            <div id="layers-source-context-note" class="layer-note"></div>
+          </div>
           <div id="c80-shell-focus-layer" hidden>
             <label class="layer-row">
               <input id="c80-shell-focus" type="checkbox" checked />
@@ -2476,7 +2483,7 @@ const title = 'Private 3D viewer';
       import { V35_SOURCE_SHA256 } from '../../scripts/privateModelC80R2V35LayerSourceProfile.mjs';
       import { V67_SOURCE_SHA256 } from '../../scripts/privateModelC80R2V67LayerSourceProfile.mjs';
       import { V69_SOURCE_SHA256 } from '../../scripts/privateModelC80R2V69LayerSourceProfile.mjs';
-      import { V69P12R1_SOURCE_SHA256 } from '../../scripts/privateModelC80R2V69P12R1LayerSourceProfile.mjs';
+      import { V69P12R1_SOURCE_SHA256, resolveV69P12R1SourceContext } from '../../scripts/privateModelC80R2V69P12R1LayerSourceProfile.mjs';
       import { K17_RAIL900_SOURCE_SHA256 } from '../../scripts/privateModelK17Rail900LayerSourceProfile.mjs';
       import { createV69C035WhiteLobbyPresentation } from '../../scripts/privateModelV69C035WhiteLobbyPresentation.mjs';
       import { createV69C020UpperGlassPresentation } from '../../scripts/privateModelV69C020UpperGlassPresentation.mjs';
@@ -13980,8 +13987,24 @@ const title = 'Private 3D viewer';
       const technicalAvailabilityHost = document.createElement('div');
       layerBindingNote.after(technicalAvailabilityHost);
       const technicalAvailability = mountTechnicalLayerAvailability(technicalAvailabilityHost);
+      const layersContextRow = document.querySelector<HTMLElement>('#layers-source-context')!;
+      const layersContextInput = document.querySelector<HTMLInputElement>('#layers-source-context-visible')!;
+      const layersContextNote = document.querySelector<HTMLElement>('#layers-source-context-note')!;
+      let layersContextVisible = true;
+      let layersContext: { root: THREE.Object3D; baseline: boolean } | null = null;
+
+      layersContextInput.addEventListener('change', () => {
+        if (!layersContext || layersContextInput.disabled) return;
+        layersContextVisible = layersContextInput.checked;
+        layersContext.root.visible = layersContext.baseline && layersContextVisible;
+        refreshEdgeRendering(modelRoot.children[0] ?? null);
+        if (selectedObject && !isEffectivelyVisible(selectedObject, modelRoot)) clearSelection();
+      });
 
       const disposeLayersPresentation = () => {
+        if (layersContext) layersContext.root.visible = layersContext.baseline;
+        layersContext = null;
+        layersContextRow.hidden = true;
         technicalAvailability.update([]);
         layersRuntime?.dispose();
         layersRuntime = null;
@@ -14022,6 +14045,7 @@ const title = 'Private 3D viewer';
           const selected = layersState.layerPresetState?.selected;
           if (!layersExpectedSha || !selected || !layersPresetChoices.includes(selected)) return;
           layersState = resetViewerLayerPresetToDefaults(layersState);
+          layersContextVisible = true;
           layersEnabled = true;
           refreshLayers();
         },
@@ -14037,10 +14061,12 @@ const title = 'Private 3D viewer';
           const verified = !!layersExpectedSha && layersExpectedSha === layersLoadedSha && sceneIndex >= 0;
           const filterActive = canvas.dataset.objectVisibilityFilter === 'active';
           if (filterActive) {
+            layersContextInput.disabled = true;
             layersPanelControls.update(layersState, layersAvailable, { boundNodeIds: layersBoundIds, disabled: true });
             return;
           }
           disposeLayersPresentation();
+          layersContextInput.disabled = false;
           layersAvailable = [];
           layersBoundIds = [];
           if (verified && root) {
@@ -14056,14 +14082,15 @@ const title = 'Private 3D viewer';
             }
             const area = mainViewScope?.active ? 'D' : 'WHOLE';
             const floor = (mainViewScope?.active ? mainViewScope.floor : 'BOTH') as MainViewFloor;
+            const source = sourceNodeModel(layersGltf);
             const building = resolveBuildingPartLayerBindings({
-              gltf: sourceNodeModel(layersGltf), expectedSourceSha256: layersExpectedSha!,
+              gltf: source, expectedSourceSha256: layersExpectedSha!,
               loadedSourceSha256: layersLoadedSha!, sceneIndex, activeSceneRoot: root, area, floor,
             });
             const technical = createTechnicalSystemLayerInventory({
               sceneRoot: root, sourceSceneIndex: sceneIndex,
               loadedGlbSha256: layersLoadedSha!, expectedGlbSha256: layersExpectedSha!,
-              sourceJson: layersGltf.parser.json, sourceNodes: collectViewerLayerSourceNodes(sourceNodeModel(layersGltf), root, sceneIndex, layersLoadedSha!),
+              sourceJson: layersGltf.parser.json, sourceNodes: collectViewerLayerSourceNodes(source, root, sceneIndex, layersLoadedSha!),
               viewerScope: layersState.layerPresetState!.selected,
               allowSourceOnly: true, allowHistoricalPlans: false,
             });
@@ -14098,6 +14125,20 @@ const title = 'Private 3D viewer';
                 activeSceneRoot: root, availableNodeIds: layersAvailable, gates,
                 isSelected: mesh => selectedObject === mesh,
               });
+              // Mask the authored reference group after normal Layers gates.
+              // ON only restores its baseline, never a hidden child or a permission.
+              const context = area === 'D' ? resolveV69P12R1SourceContext(
+                source, root, sceneIndex, layersLoadedSha, layersExpectedSha,
+              ) : null;
+              if (context) {
+                layersContext = { root: context.root, baseline: context.root.visible };
+                context.root.visible = layersContext.baseline && layersContextVisible;
+                layersContextInput.checked = layersContextVisible;
+                layersContextNote.textContent = context.parts.length
+                  ? 'Tämän näkymän viitepinnat.'
+                  : 'Yläkerran lähteessä ei ole erillisiä viitepintoja.';
+                layersContextRow.hidden = false;
+              }
             }
             canvas.dataset.layersBindingCount = String(bindings.length);
             canvas.dataset.layersSourceSceneIndex = String(sceneIndex);
@@ -14188,6 +14229,7 @@ const title = 'Private 3D viewer';
           }
         }
         layersEnabled = verifiedChainSourceSha !== null;
+        layersContextVisible = true;
         layersState = withViewerLayerBranchVisibility(applyViewerLayerPreset(createViewerInteractionState(), 'whole-building'));
         layersAvailable = [];
         layersBoundIds = [];
@@ -14211,6 +14253,7 @@ const title = 'Private 3D viewer';
       });
       resetViewDefaultsButton.addEventListener('click', () => {
         if (layersEnabled) layersState = resetViewerLayerPresetToDefaults(layersState);
+        layersContextVisible = true;
         refreshLayers();
       });
 

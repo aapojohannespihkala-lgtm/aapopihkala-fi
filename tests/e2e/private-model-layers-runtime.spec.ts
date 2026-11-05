@@ -320,7 +320,9 @@ test(`exact ${model.version} viewer: D upstairs, ghost walls, supported IV, rese
   const hasServedRigProfile = async () => {
     const scripts = await Promise.all(loadedScripts);
     return scripts.some(text => text.includes(rigMarker)) &&
-      (process.env.YLIS_C008_DEPTH !== '1' || scripts.some(text => text.includes('c80-008-observe')));
+      (process.env.YLIS_C008_DEPTH !== '1' ||
+        scripts.some(text => text.includes('c80-008-observe')) &&
+        scripts.some(text => text.includes('#layers-source-context-visible')));
   };
   if (production) {
     const clientId = process.env.CF_ACCESS_VIEWER_PROBE_CLIENT_ID;
@@ -571,6 +573,7 @@ test(`exact ${model.version} viewer: D upstairs, ghost walls, supported IV, rese
     await page.screenshot({ path: info.outputPath(evidencePrefix + '-2f-after-real-orbit.png') });
   }
   if (depthProbe) {
+    const gltf = JSON.parse(source.subarray(20, 20 + source.readUInt32LE(12)).toString('utf8'));
     const reports: any[] = [];
     const depthStarted = Date.now();
     const saveDepthProgress = () => writeFileSync(info.outputPath('c008-live-depth-progress.json'), JSON.stringify({
@@ -631,19 +634,34 @@ test(`exact ${model.version} viewer: D upstairs, ghost walls, supported IV, rese
         // A fixed delay cannot prove rest at the runner's actual render rate.
         await waitForCameraRest();
         await openLayers();
-        const context = page.locator('#c80-source-context-visible');
-        const contextAvailable = await context.isVisible();
-        expect(contextAvailable, 'C008 requires both SOURCE_CONTEXT states in each floor and orbit view').toBe(true);
-        for (const contextOn of contextAvailable ? [true, false] : [null]) {
-          if (contextOn !== null) await context.setChecked(contextOn);
+        const context = page.locator('#layers-source-context-visible');
+        await expect(context, 'C008 requires the active Layers SOURCE_CONTEXT control').toBeVisible();
+        const upstairs = floor === 'd-2f';
+        const sceneIndex = upstairs ? 293 : 294;
+        const contextNodes = upstairs ? [] : [5741, 6629, 7645];
+        for (const contextOn of [true, false]) {
+          await context.setChecked(contextOn);
           await page.locator('[data-layer-node="architecture-doors"] [data-layer-mode="visible"]').click();
           await closeLayers();
           const observation = await observe();
+          expect(observation.sourceSha256).toBe(sha);
+          expect(observation.sceneIndex).toBe(sceneIndex);
+          expect(observation.sourceContext).toMatchObject({
+            rootNode: upstairs ? 5629 : 7646, enabled: contextOn,
+            nodes: contextNodes,
+          });
+          const mountedNodes = observation.sourceContext.mountedNodes;
+          expect(mountedNodes.filter((node: number) => node !== 5741)).toEqual(upstairs ? [] : [6629, 7645]);
+          expect(mountedNodes.every((node: number) => contextNodes.includes(node))).toBe(true);
+          expect(observation.sourceContext.visibleNodes).toEqual(contextOn ? mountedNodes : []);
           const before = await canvas.screenshot({ path: info.outputPath(`c008-${floor}-${view}-${contextOn}-visible.png`), scale: 'css' });
           await openLayers();
           await page.locator('[data-layer-node="architecture-doors"] [data-layer-mode="hidden"]').click();
           await closeLayers();
           const hiddenObservation = await observe();
+          expect(hiddenObservation.sourceSha256).toBe(sha);
+          expect(hiddenObservation.sceneIndex).toBe(sceneIndex);
+          expect(hiddenObservation.sourceContext).toEqual(observation.sourceContext);
           await info.attach(`c008-${floor}-${view}-${contextOn}-live-source-pair`, {
             body: JSON.stringify({ observation, hiddenObservation }, null, 2), contentType: 'application/json',
           });
@@ -672,11 +690,18 @@ test(`exact ${model.version} viewer: D upstairs, ghost walls, supported IV, rese
             }) }));
           }, { before: before.toString('base64'), after: after.toString('base64'), doors: observation.doors });
           for (const door of observation.doors) {
+            const hiddenDoor = hiddenObservation.doors.find((item: any) => item.node === door.node);
+            const def = gltf.nodes[door.node];
+            expect(door.mesh).toBe(def.mesh);
+            expect(gltf.nodes[door.parent]?.children).toContain(door.node);
+            expect(door.sourceLinks).toEqual(def.extras.sourceLinks);
+            expect(hiddenDoor).toMatchObject({ mesh: door.mesh, parent: door.parent, sourceLinks: door.sourceLinks,
+              material: door.material, renderOrder: door.renderOrder, ancestorOrders: door.ancestorOrders });
             expect.soft(door.visible).toBe(true);
             expect.soft(door.material.every((m: any) => m.visible && m.depthTest && m.depthWrite && !m.transparent && m.opacity === 1)).toBe(true);
             const pixels = differences.find((item: any) => item.node === door.node).samples;
             visiblePixels.set(door.node, visiblePixels.get(door.node)! + pixels.filter((p: any) => p.frontNode === door.node && p.delta > 3).length);
-            const afterSamples = hiddenObservation.doors.find((item: any) => item.node === door.node).samples;
+            const afterSamples = hiddenDoor.samples;
             const opaqueLeaks = pixels.filter((p: any) => {
               const hidden = afterSamples.find((item: any) => Math.abs(item.x - p.x) < .01 && Math.abs(item.y - p.y) < .01);
               // Hiding the entire door layer can also remove a different door
@@ -687,8 +712,8 @@ test(`exact ${model.version} viewer: D upstairs, ghost walls, supported IV, rese
             });
             expect.soft(opaqueLeaks, `Door ${door.node} must not paint through a nearer opaque source surface`).toEqual([]);
           }
-          reports.push({ floor, view, sourceContext: contextOn, contextControlAvailable: contextAvailable,
-            edgeMode: await canvas.getAttribute('data-edge-mode'), observation, differences });
+          reports.push({ floor, view, sourceContext: contextOn,
+            edgeMode: await canvas.getAttribute('data-edge-mode'), observation, hiddenObservation, differences });
           saveDepthProgress();
           console.log(JSON.stringify({ c008CapturePair: reports.length, elapsedMs: Date.now() - depthStarted }));
           await openLayers();

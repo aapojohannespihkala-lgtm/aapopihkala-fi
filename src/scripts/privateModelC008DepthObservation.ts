@@ -1,5 +1,6 @@
 import { Matrix4, Mesh, Raycaster, Vector2, Vector3, type Camera, type Material, type Object3D } from 'three';
 import { collectViewerLayerSourceNodes } from './privateModelLayersRuntime';
+import { resolveV69P12R1SourceContext } from './privateModelC80R2V69P12R1LayerSourceProfile.mjs';
 
 const SHA = 'd39102890470f59d7c2a2e033851a6f3d1481a83fb6180b549acd4cbf22182b3';
 const TARGETS = [{ node: 8028, mesh: 2461 }, { node: 8030, mesh: 2462 }];
@@ -90,10 +91,18 @@ export function observeC008Depth(args: {
       if (current === root) break;
     }
     return { node: target!.node, mesh: target!.mesh, parent: record.parentNodeIndex,
+      sourceLinks: json.nodes[target!.node].extras?.sourceLinks ?? [],
       name: record.nodeName, visible, material: materials(object).map(state),
       renderOrder: object.renderOrder, ancestorOrders, samples };
   });
-  return { sourceSha256: SHA, sceneIndex, width, height, doors,
+  const context = resolveV69P12R1SourceContext(source, root, sceneIndex, args.loadedSha, args.expectedSha);
+  const sourceContext = context ? { rootNode: context.node, enabled: context.root.visible,
+    nodes: context.parts.map(({ node }) => node),
+    mountedNodes: context.parts.filter(({ object }) => object !== null).map(({ node }) => node),
+    visibleNodes: context.parts.filter(({ object }) => root.visible && context.root.visible && object?.visible)
+      .map(({ node }) => node),
+  } : null;
+  return { sourceSha256: SHA, sceneIndex, width, height, doors, sourceContext,
     camera: { position: camera.position.toArray(), quaternion: camera.quaternion.toArray(),
       projection: camera.projectionMatrix.toArray() }, humanReview: 'NOT_RUN' };
 }

@@ -597,6 +597,16 @@ jobs:
             WPvmU21EqmW63i5YSB9n9F+IEtq3lWmcIOzFlurTa+6UZPWQvsBrGGeIBhpga1xE
             EwIDAQAB
             -----END PUBLIC KEY-----
+          C008_LAYERS_REVIEW_PUBLIC_KEY: |
+            -----BEGIN PUBLIC KEY-----
+            MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAzqE7rmrxjbvEGvK5PTaK
+            QTR+wnogTV4LkbnPdKMLtCUQg4G5LTXs/5YbCkWkrXm3qqn/+coVJofUmS1pPLZS
+            eh7YlwcrfYoBT7rnrpnh1BIKYK8kPi3zCvjsg9K5As7M5A6lOKaF1hFMXJ8ManSQ
+            ZfIfkpCHJ0yZDEtCy4lmPEJRpGKcsBgHBEo3kTm1bovUhh1zeQr+O5ZX1YC7Zcr/
+            Jt58zihAD+Ka3HjJoWzKWsgyUyoSqNd6QCUKH9sCXzuEUl/+TyHhxBwD+Jrr9E5c
+            CUgInLgHZRJqv+T0rT+625Y9qSxnfj7mJv/wVoOYBiOmK+bkQCUnt79XkgXQnWUf
+            NQIDAQAB
+            -----END PUBLIC KEY-----
           C008_WORK_REVIEW_PUBLIC_KEY: |
             -----BEGIN PUBLIC KEY-----
             MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAsE/CPQTjD+3wLn8Stvbp
@@ -702,6 +712,10 @@ jobs:
             openssl pkeyutl -encrypt -pubin -inkey "$RUNNER_TEMP/c008-evidence-public.pem" \
               -pkeyopt rsa_padding_mode:oaep -pkeyopt rsa_oaep_md:sha256 \
               -in "$RUNNER_TEMP/d-view-evidence-password" -out "$RUNNER_TEMP/d-view-evidence/password.c008.rsa"
+            printf '%s\n' "$C008_LAYERS_REVIEW_PUBLIC_KEY" > "$RUNNER_TEMP/c008-layers-evidence-public.pem"
+            openssl pkeyutl -encrypt -pubin -inkey "$RUNNER_TEMP/c008-layers-evidence-public.pem" \
+              -pkeyopt rsa_padding_mode:oaep -pkeyopt rsa_oaep_md:sha256 \
+              -in "$RUNNER_TEMP/d-view-evidence-password" -out "$RUNNER_TEMP/d-view-evidence/password.c008layers.rsa"
             printf '%s\n' "$C008_WORK_REVIEW_PUBLIC_KEY" > "$RUNNER_TEMP/c008-work-evidence-public.pem"
             openssl pkeyutl -encrypt -pubin -inkey "$RUNNER_TEMP/c008-work-evidence-public.pem" \
               -pkeyopt rsa_padding_mode:oaep -pkeyopt rsa_oaep_md:sha256 \
