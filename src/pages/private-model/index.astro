@@ -14633,7 +14633,7 @@ const title = 'Private 3D viewer';
         renderer.render(scene, activeCamera);
         if (c008ObservationRequested) {
           c008ObservationRequested = false;
-          const observation = observeC008Depth({ source: layersGltf,
+          const observation = observeC008Depth({ source: sourceNodeModel(layersGltf),
             root: modelRoot.children[0], sceneIndex: Number(canvas.dataset.layersSourceSceneIndex),
             loadedSha: layersLoadedSha, expectedSha: layersExpectedSha, camera: activeCamera,
             width: canvas.clientWidth, height: canvas.clientHeight });

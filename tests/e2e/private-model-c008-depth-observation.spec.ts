@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { BoxGeometry, Group, Mesh, MeshBasicMaterial, PerspectiveCamera } from 'three';
 import { observeC008Depth } from '../../src/scripts/privateModelC008DepthObservation';
+import { createSourceNodeView } from '../../src/scripts/privateModelSourceNodeAssociations.mjs';
 
 const sha = 'd39102890470f59d7c2a2e033851a6f3d1481a83fb6180b549acd4cbf22182b3';
 function fixture() {
@@ -61,4 +62,14 @@ test('C008 rejects source, scene, mesh and original-parent drift', () => {
   f.source.parser.json.nodes[8028].mesh = 2461;
   const moved = new Group(); f.root.add(moved); moved.add(f.doors[0]);
   expect(observeC008Depth(f)).toBeNull();
+});
+
+test('C008 requires the same restored multi-scene source map as the live Layers runtime', () => {
+  const f = fixture();
+  const captured = new Map(f.source.parser.associations);
+  f.source.parser.associations.clear();
+  expect(observeC008Depth(f)).toBeNull();
+  const view = createSourceNodeView(f.source, captured);
+  expect(view.scenes[293]).toBe(f.root);
+  expect(observeC008Depth({ ...f, source: view })!.doors.map(door => door.node)).toEqual([8028, 8030]);
 });
