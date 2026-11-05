@@ -517,7 +517,7 @@ jobs:
           CF_ACCESS_VIEWER_PROBE_CLIENT_ID: ${{ secrets.CF_ACCESS_VIEWER_PROBE_CLIENT_ID }}
           CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET: ${{ secrets.CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET }}
           D_VIEW_TESTED_COMMIT: ${{ github.event.workflow_run.head_sha || github.sha }}
-        run: npx playwright test tests/e2e/private-model-layers-runtime.spec.ts --workers=1 --trace=off --output=test-results/layers-v69p12r1-production --reporter=line
+        run: npx playwright test tests/e2e/private-model-layers-runtime.spec.ts --workers=1 --trace=off --output=test-results/layers-v69p12r1-production --reporter=line --retries=0
       - name: Remove temporary protected V69P12R1 source
         if: always() && matrix.mode == 'layers-v69p12r1-production'
         run: rm -f "$RUNNER_TEMP/layers-v69p12r1-production.glb"
@@ -596,6 +596,16 @@ jobs:
             gass9wcopzLRxlmu0jh22G3U/UbEXsPqrYntuwbrD7fJrc41lb9gOmJEwpEuzqE/
             WPvmU21EqmW63i5YSB9n9F+IEtq3lWmcIOzFlurTa+6UZPWQvsBrGGeIBhpga1xE
             EwIDAQAB
+            -----END PUBLIC KEY-----
+          C008_WORK_REVIEW_PUBLIC_KEY: |
+            -----BEGIN PUBLIC KEY-----
+            MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAsE/CPQTjD+3wLn8Stvbp
+            N7yCRo7qPWaIydm/e6MfZiDsSGVvT+V8RsqBkCxl5M2lFSDYjN7TG4xBdWj/BIYy
+            wDq5hhS/rk85HMD7pSeDgXZQKieIrbFRQ7IgPZTZ69XRQNO7FAmF8j54rXtcD7vq
+            8MX59mwwJE50efd5d0bcK6DCYuMbPgoTOi0xQ7//CJPL/YstOyCth2+/ENKQO8n+
+            JKPGKuSFMokgmBkR7ZEDHHumlO812BJx4VrntTyE6NC58LBAfmhIgVfOwB/jU/RO
+            u2zoKua/RS+6uA/ZOoBSOx6VURVb1u6pPdy72A7LlURgZed1uDKirWW203/CHtIE
+            qQIDAQAB
             -----END PUBLIC KEY-----
           C008_REVIEW_PUBLIC_KEY: |
             -----BEGIN PUBLIC KEY-----
@@ -692,6 +702,10 @@ jobs:
             openssl pkeyutl -encrypt -pubin -inkey "$RUNNER_TEMP/c008-evidence-public.pem" \
               -pkeyopt rsa_padding_mode:oaep -pkeyopt rsa_oaep_md:sha256 \
               -in "$RUNNER_TEMP/d-view-evidence-password" -out "$RUNNER_TEMP/d-view-evidence/password.c008.rsa"
+            printf '%s\n' "$C008_WORK_REVIEW_PUBLIC_KEY" > "$RUNNER_TEMP/c008-work-evidence-public.pem"
+            openssl pkeyutl -encrypt -pubin -inkey "$RUNNER_TEMP/c008-work-evidence-public.pem" \
+              -pkeyopt rsa_padding_mode:oaep -pkeyopt rsa_oaep_md:sha256 \
+              -in "$RUNNER_TEMP/d-view-evidence-password" -out "$RUNNER_TEMP/d-view-evidence/password.c008work.rsa"
           fi
       - uses: actions/upload-artifact@v4
         if: always()

@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { createHash } from 'node:crypto';
-import { readFileSync } from 'node:fs';
+import { readFileSync, writeFileSync } from 'node:fs';
 import { BoxGeometry, Group, Mesh, MeshBasicMaterial, Scene } from 'three';
 import { collectViewerLayerSourceNodes, createViewerLayersRuntime } from '../../src/scripts/privateModelLayersRuntime';
 import { buildViewerLayerPanelModel } from '../../src/scripts/privateModelLayersPresetControls';
@@ -298,7 +298,10 @@ test(`exact ${model.version} viewer: D upstairs, ghost walls, supported IV, rese
   const production = process.env[model.productionEnv] === '1';
   if (production) expect(sourcePath, 'Protected full-source SHA readback is required').toBeTruthy();
   test.skip(!sourcePath, `Actual private ${model.version} bytes are supplied only locally or on trusted main.`);
-  test.setTimeout(540_000);
+  const depthProbe = model.version === 'V69P12R1' && process.env.YLIS_C008_DEPTH === '1';
+  // The depth pass adds 16 independent screenshot pairs to the base lifecycle.
+  // Keep its full bounded capture within the trusted job's 30-minute limit.
+  test.setTimeout(depthProbe ? 24 * 60_000 : 540_000);
   const source = readFileSync(sourcePath!);
   expect(source.length).toBe(model.bytes);
   expect(createHash('sha256').update(source).digest('hex')).toBe(sha);
@@ -346,7 +349,6 @@ test(`exact ${model.version} viewer: D upstairs, ghost walls, supported IV, rese
       return route.fulfill({ contentType: 'model/gltf-binary', body: source }); });
   }
   const canvas = page.locator('#private-model-canvas');
-  const depthProbe = model.version === 'V69P12R1' && process.env.YLIS_C008_DEPTH === '1';
   const reviewUrl = origin + '/private-model/?review=' + candidateId + '-review' + (depthProbe ? '&c008Depth=1' : '');
   const desktopViewport = page.viewportSize()!;
   await page.setViewportSize({ width: 390, height: 844 });
@@ -570,6 +572,13 @@ test(`exact ${model.version} viewer: D upstairs, ghost walls, supported IV, rese
   }
   if (depthProbe) {
     const reports: any[] = [];
+    const depthStarted = Date.now();
+    const saveDepthProgress = () => writeFileSync(info.outputPath('c008-live-depth-progress.json'), JSON.stringify({
+      testedCommit: process.env.D_VIEW_TESTED_COMMIT ?? null, source: sha, production,
+      completedPairs: reports.length, expectedPairs: 16, elapsedMs: Date.now() - depthStarted,
+      humanReview: 'NOT_RUN', reports,
+    }, null, 2));
+    saveDepthProgress();
     const visiblePixels = new Map([[8028, 0], [8030, 0]]);
     const openLayers = async () => {
       if (await page.locator('#layers-button').getAttribute('aria-expanded') !== 'true')
@@ -624,6 +633,7 @@ test(`exact ${model.version} viewer: D upstairs, ghost walls, supported IV, rese
         await openLayers();
         const context = page.locator('#c80-source-context-visible');
         const contextAvailable = await context.isVisible();
+        expect(contextAvailable, 'C008 requires both SOURCE_CONTEXT states in each floor and orbit view').toBe(true);
         for (const contextOn of contextAvailable ? [true, false] : [null]) {
           if (contextOn !== null) await context.setChecked(contextOn);
           await page.locator('[data-layer-node="architecture-doors"] [data-layer-mode="visible"]').click();
@@ -679,12 +689,15 @@ test(`exact ${model.version} viewer: D upstairs, ghost walls, supported IV, rese
           }
           reports.push({ floor, view, sourceContext: contextOn, contextControlAvailable: contextAvailable,
             edgeMode: await canvas.getAttribute('data-edge-mode'), observation, differences });
+          saveDepthProgress();
+          console.log(JSON.stringify({ c008CapturePair: reports.length, elapsedMs: Date.now() - depthStarted }));
           await openLayers();
           await page.locator('[data-layer-node="architecture-doors"] [data-layer-mode="visible"]').click();
           await closeLayers();
         }
       }
     }
+    expect(reports).toHaveLength(16);
     await info.attach('c008-live-depth-and-independent-pixels', { body: JSON.stringify(reports, null, 2), contentType: 'application/json' });
     for (const [node, pixels] of visiblePixels) expect(pixels, `Door ${node} must contribute actual foreground pixels across the moving-camera views`).toBeGreaterThan(0);
     console.log(JSON.stringify({ c008Depth: true, source: sha, observations: reports.length,
