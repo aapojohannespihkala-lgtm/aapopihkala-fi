@@ -70,6 +70,39 @@ test('V69P12R1 door binding rejects changed mesh, name, parent and hidden source
   }
 });
 
+test('V69P12R1 C80-023 balcony wall is bound in 2F/BOTH but not 1F', () => {
+  assert.equal(V69P12R1_BUILDING_PARTS[6435].mesh, 1853);
+  for (const sceneIndex of [293, 294]) {
+    const f = v69p12r1Fixture(sceneIndex);
+    const before = JSON.stringify(f.gltf.parser.json);
+    const r = resolveBuildingPartLayerBindings(f.options);
+    const e = r.evidence.find(e => e.sourceNodeIndex === 6435);
+    assert.equal(e?.id, 'architecture-walls-exterior');
+    assert.equal(e?.sourceMeshIndex, 1853);
+    assert.deepEqual(e?.sourceNodePath, [6435]);
+    assert.equal(e?.sourceSha256, V69P12R1_SOURCE_SHA256);
+    assert.deepEqual(e?.sourceLinks, []);
+    assert.equal(JSON.stringify(f.gltf.parser.json), before);
+  }
+  const firstFloor = v69p12r1Fixture(290);
+  assert.ok(!resolveBuildingPartLayerBindings(firstFloor.options).evidence.some(e => e.sourceNodeIndex === 6435));
+});
+
+test('V69P12R1 C80-023 wall binding fails closed on mesh, name, visibility and SHA drift', () => {
+  const changes = [
+    f => { f.gltf.parser.json.nodes[6435].mesh = 0; },
+    f => { f.objects[6435].name = 'UNVERIFIED_BALCONY_FACADE'; },
+    f => { f.objects[6435].visible = false; },
+    f => { f.gltf.parser.associations.set(f.objects[6435], { nodes: 6435, meshes: 0 }); },
+    f => { f.options.loadedSourceSha256 = '0'.repeat(64); },
+  ];
+  for (const change of changes) {
+    const f = v69p12r1Fixture(293);
+    change(f);
+    assert.ok(!resolveBuildingPartLayerBindings(f.options).evidence.some(e => e.sourceNodeIndex === 6435));
+  }
+});
+
 test('V69P12R1 classification preserves sourceLinks without rebinding source cards', () => {
   const f = v69p12r1Fixture(293);
   const links = ['source-link-fixture-preserved'];
