@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { BoxGeometry, Group, Mesh, MeshBasicMaterial, PerspectiveCamera } from 'three';
+import { BoxGeometry, Group, Mesh, MeshBasicMaterial, PerspectiveCamera, PlaneGeometry, Vector3 } from 'three';
 import { observeC008Depth } from '../../src/scripts/privateModelC008DepthObservation';
 import { createSourceNodeView } from '../../src/scripts/privateModelSourceNodeAssociations.mjs';
 
@@ -50,6 +50,23 @@ test('C008 does not mistake transparent context or an invisible ancestor for opa
   for (const door of observeC008Depth(f)!.doors) {
     expect(door.visible).toBe(false); expect(door.samples.every(sample => sample.frontNode === null)).toBe(true);
   }
+});
+
+test('C008 measures the containing pixel and distinguishes an opaque wall edge', () => {
+  const f = fixture();
+  const door = observeC008Depth(f)!.doors[0];
+  const sample = door.samples.find(point => point.frontNode === door.node)!;
+  expect([sample.x, sample.y]).toEqual([Math.floor(sample.projected.x), Math.floor(sample.projected.y)]);
+  // Put an opaque plane's edge three quarters of the way across this pixel.
+  const edgeRay = new Vector3(2 * (sample.x + .75) / f.width - 1, 0, 0).unproject(f.camera);
+  const edgeX = f.camera.position.x + (edgeRay.x - f.camera.position.x) *
+    (f.camera.position.z - 2) / (f.camera.position.z - edgeRay.z);
+  f.blocker.geometry = new PlaneGeometry(4, 4);
+  f.blocker.position.set(edgeX - 2, 0, 2);
+  const edge = observeC008Depth(f)!.doors[0].samples.find(point => point.x === sample.x && point.y === sample.y)!;
+  expect(edge.frontNode).toBe(10);
+  expect(edge.footprint).toHaveLength(5);
+  expect(edge.footprint.filter(ray => ray.frontNode === 10)).toHaveLength(3);
 });
 
 test('C008 rejects source, scene, mesh and original-parent drift', () => {

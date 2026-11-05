@@ -45,6 +45,27 @@ export function observeC008Depth(args: {
   root.traverseVisible(object => { if ((object as Mesh).isMesh) visibleMeshes.push(object as Mesh); });
   const raycaster = new Raycaster();
   const viewProjection = new Matrix4().multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
+  const pixelRay = (x: number, y: number, point: Vector3) => {
+    raycaster.setFromCamera(new Vector2(2 * x / width - 1, 1 - 2 * y / height), camera);
+    const hits = raycaster.intersectObjects(visibleMeshes, false).filter(hit => {
+      const material = materials(hit.object as Mesh)[hit.face?.materialIndex ?? 0];
+      if (!material?.visible || !material.colorWrite || material.opacity <= 0) return false;
+      const planes = material.clippingPlanes;
+      return !planes?.length || !(material.clipIntersection
+        ? planes.every(plane => plane.distanceToPoint(hit.point) > 0)
+        : planes.some(plane => plane.distanceToPoint(hit.point) > 0));
+    });
+    // Transparent faces can tint the door without defining opaque depth.
+    const opaque = hits.find(hit => {
+      const material = materials(hit.object as Mesh)[hit.face?.materialIndex ?? 0];
+      return !material.transparent && material.opacity >= .999 && material.depthTest && material.depthWrite;
+    });
+    return { hits, depth: { targetDistance: raycaster.ray.origin.distanceTo(point),
+      frontDistance: opaque?.distance ?? null, frontNode: opaque ? nodeId(opaque.object) : null } };
+  };
+  // Use inset corners to distinguish a fully covered pixel from a silhouette
+  // pixel that contains samples on both sides of the foreground wall.
+  const corners = [[.001, .001], [.999, .001], [.001, .999], [.999, .999]] as const;
   const doors = targets.map(target => {
     const { object, record } = target!;
     const position = object.geometry.getAttribute('position');
@@ -59,28 +80,15 @@ export function observeC008Depth(args: {
       point.multiplyScalar(1 / 3).applyMatrix4(object.matrixWorld);
       const ndc = point.clone().applyMatrix4(viewProjection);
       if (Math.abs(ndc.x) > .98 || Math.abs(ndc.y) > .95 || Math.abs(ndc.z) > 1) continue;
-      const pixel = { x: (ndc.x + 1) * width / 2, y: (1 - ndc.y) * height / 2 };
-      const key = `${Math.round(pixel.x)},${Math.round(pixel.y)}`;
+      const projected = { x: (ndc.x + 1) * width / 2, y: (1 - ndc.y) * height / 2 };
+      const pixel = { x: Math.floor(projected.x), y: Math.floor(projected.y) };
+      const key = `${pixel.x},${pixel.y}`;
       if (pixels.has(key)) continue;
       pixels.add(key);
-      raycaster.setFromCamera(new Vector2(ndc.x, ndc.y), camera);
-      const hits = raycaster.intersectObjects(visibleMeshes, false).filter(hit => {
-        const mesh = hit.object as Mesh;
-        const material = materials(mesh)[hit.face?.materialIndex ?? 0];
-        if (!material?.visible || !material.colorWrite || material.opacity <= 0) return false;
-        const planes = material.clippingPlanes;
-        return !planes?.length || !(material.clipIntersection
-          ? planes.every(plane => plane.distanceToPoint(hit.point) > 0)
-          : planes.some(plane => plane.distanceToPoint(hit.point) > 0));
-      });
-      // Transparent faces can tint the door, but do not define opaque depth.
-      const opaque = hits.find(hit => {
-        const material = materials(hit.object as Mesh)[hit.face?.materialIndex ?? 0];
-        return !material.transparent && material.opacity >= .999 && material.depthTest && material.depthWrite;
-      });
-      samples.push({ ...pixel, point: point.toArray(), targetDistance: raycaster.ray.origin.distanceTo(point),
-        frontDistance: opaque?.distance ?? null, frontNode: opaque ? nodeId(opaque.object) : null,
-        hits: hits.slice(0, 4).map(hit => ({ node: nodeId(hit.object), distance: hit.distance,
+      const center = pixelRay(pixel.x + .5, pixel.y + .5, point);
+      const footprint = [center.depth, ...corners.map(([x, y]) => pixelRay(pixel.x + x, pixel.y + y, point).depth)];
+      samples.push({ ...pixel, projected, point: point.toArray(), ...center.depth, footprint,
+        hits: center.hits.slice(0, 4).map(hit => ({ node: nodeId(hit.object), distance: hit.distance,
           material: state(materials(hit.object as Mesh)[hit.face?.materialIndex ?? 0]) })) });
     }
     const ancestorOrders = [];
@@ -103,6 +111,7 @@ export function observeC008Depth(args: {
       .map(({ node }) => node),
   } : null;
   return { sourceSha256: SHA, sceneIndex, width, height, doors, sourceContext,
+    pixelContract: 'C008_PIXEL_FOOTPRINT_V1',
     camera: { position: camera.position.toArray(), quaternion: camera.quaternion.toArray(),
       projection: camera.projectionMatrix.toArray() }, humanReview: 'NOT_RUN' };
 }
