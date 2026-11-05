@@ -583,13 +583,29 @@ test(`exact ${model.version} viewer: D upstairs, ghost walls, supported IV, rese
     }, null, 2));
     saveDepthProgress();
     const visiblePixels = new Map([[8028, 0], [8030, 0]]);
+    const controlTimeout = 30_000;
+    const layersToggle = page.locator('#layers-button');
     const openLayers = async () => {
-      if (await page.locator('#layers-button').getAttribute('aria-expanded') !== 'true')
-        await page.locator('#layers-button').click();
+      if (await layersToggle.getAttribute('aria-expanded', { timeout: controlTimeout }) !== 'true') {
+        await layersToggle.press('Enter', { timeout: controlTimeout });
+        await expect(layersToggle).toHaveAttribute('aria-expanded', 'true');
+      }
     };
     const closeLayers = async () => {
-      if (await page.locator('#layers-button').getAttribute('aria-expanded') === 'true')
-        await page.locator('#layers-button').click();
+      if (await layersToggle.getAttribute('aria-expanded', { timeout: controlTimeout }) === 'true') {
+        await page.locator('#close-layers-button').press('Enter', { timeout: controlTimeout });
+        await expect(layersToggle).toHaveAttribute('aria-expanded', 'false');
+      }
+    };
+    const setDoorLayerMode = async (mode: 'visible' | 'hidden') => {
+      const control = page.locator(`[data-layer-node="architecture-doors"] [data-layer-mode="${mode}"]`);
+      await expect(control).toBeVisible();
+      await expect(control).toBeEnabled();
+      // A real key activation uses the same Layers button without waiting
+      // for Playwright's pointer-position stability frames on software WebGL.
+      if (await control.getAttribute('aria-pressed', { timeout: controlTimeout }) !== 'true')
+        await control.press('Enter', { timeout: controlTimeout });
+      await expect(control).toHaveAttribute('aria-pressed', 'true');
     };
     const waitForCameraRest = async () => {
       // Use the viewer's existing fixed-eye middle-click gesture. It flushes
@@ -640,8 +656,12 @@ test(`exact ${model.version} viewer: D upstairs, ghost walls, supported IV, rese
         const sceneIndex = upstairs ? 293 : 294;
         const contextNodes = upstairs ? [] : [5741, 6629, 7645];
         for (const contextOn of [true, false]) {
-          await context.setChecked(contextOn);
-          await page.locator('[data-layer-node="architecture-doors"] [data-layer-mode="visible"]').click();
+          console.log(JSON.stringify({ c008Stage: 'prepare-visible', floor, view, contextOn }));
+          await expect(context).toBeEnabled();
+          if (await context.isChecked({ timeout: controlTimeout }) !== contextOn)
+            await context.press('Space', { timeout: controlTimeout });
+          await expect(context).toBeChecked({ checked: contextOn });
+          await setDoorLayerMode('visible');
           await closeLayers();
           const observation = await observe();
           expect(observation.sourceSha256).toBe(sha);
@@ -656,7 +676,7 @@ test(`exact ${model.version} viewer: D upstairs, ghost walls, supported IV, rese
           expect(observation.sourceContext.visibleNodes).toEqual(contextOn ? mountedNodes : []);
           const before = await canvas.screenshot({ path: info.outputPath(`c008-${floor}-${view}-${contextOn}-visible.png`), scale: 'css' });
           await openLayers();
-          await page.locator('[data-layer-node="architecture-doors"] [data-layer-mode="hidden"]').click();
+          await setDoorLayerMode('hidden');
           await closeLayers();
           const hiddenObservation = await observe();
           expect(hiddenObservation.sourceSha256).toBe(sha);
@@ -717,9 +737,11 @@ test(`exact ${model.version} viewer: D upstairs, ghost walls, supported IV, rese
           saveDepthProgress();
           console.log(JSON.stringify({ c008CapturePair: reports.length, elapsedMs: Date.now() - depthStarted }));
           await openLayers();
-          await page.locator('[data-layer-node="architecture-doors"] [data-layer-mode="visible"]').click();
-          await closeLayers();
         }
+        // Keep the real doors visible during each subsequent orbit gesture.
+        console.log(JSON.stringify({ c008Stage: 'restore-doors', floor, view }));
+        await setDoorLayerMode('visible');
+        await closeLayers();
       }
     }
     expect(reports).toHaveLength(16);
