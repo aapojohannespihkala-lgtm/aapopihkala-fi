@@ -32,6 +32,12 @@ test('V69 request selects only the established exact-source WebGL workflow on ma
     expect(evaluate({...request,probeMode}).status).not.toBe(0);
 });
 
+test('P12R1 request selects only its established trusted-main source mode',()=>{
+  const result=evaluate({...request,probeMode:'d-view-v69p12r1'});
+  expect(result.status).toBe(0);
+  expect(JSON.parse(result.stdout)).toEqual({ref:'main',inputs:{source_version:'V69P12R1'},_workflow:'d-view-regression.yml'});
+});
+
 test('invalid mode, extra target/ref, main drift and request injection fail closed',()=>{
   for(const payload of [
     {...request,probeMode:'full-render'}, {...request,probeMode:'g2-records-readback'},

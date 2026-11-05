@@ -2429,6 +2429,7 @@ const title = 'Private 3D viewer';
       import { shouldSuppressC044CoplanarTJunctions } from '../../scripts/privateModelC80C044EdgeSourceGuard.mjs';
       import { type MainViewFloor } from '../../scripts/privateModelMainViewScope';
       import { createDViewRuntime } from '../../scripts/privateModelDViewRuntime';
+      import { observeC008Depth } from '../../scripts/privateModelC008DepthObservation';
       import {
         HI20_UNIFIED52_SHA,
         resolveHi20Unified52Scenes, createHi20Unified52FloorRuntime,
@@ -14596,6 +14597,14 @@ const title = 'Private 3D viewer';
       new MutationObserver(() => queueMobileSafeFit('preserve'))
         .observe(coordinatePanel, { attributes:true, attributeFilter:['hidden'] });
 
+      // Opt-in, read-only source/ray observation. No public scene handle or
+      // camera/material override is exposed to the browser regression.
+      let c008ObservationRequested = false;
+      let c008ObservationSequence = 0;
+      if (new URLSearchParams(window.location.search).get('c008Depth') === '1') {
+        canvas.addEventListener('c80-008-observe', () => { c008ObservationRequested = true; });
+      }
+
       renderer.setAnimationLoop(() => {
         mainViewScope?.enforce();
         // The floor-scoping runtime may reset object.visible each frame.
@@ -14622,6 +14631,14 @@ const title = 'Private 3D viewer';
         p186ePixelRuntime?.pinFrame();
         if (isP186eElectricalLabelReviewRequested()) p186eCaptionLayout?.update(activeCamera);
         renderer.render(scene, activeCamera);
+        if (c008ObservationRequested) {
+          c008ObservationRequested = false;
+          const observation = observeC008Depth({ source: layersGltf,
+            root: modelRoot.children[0], sceneIndex: Number(canvas.dataset.layersSourceSceneIndex),
+            loadedSha: layersLoadedSha, expectedSha: layersExpectedSha, camera: activeCamera,
+            width: canvas.clientWidth, height: canvas.clientHeight });
+          canvas.dataset.c008DepthObservation = JSON.stringify({ sequence: ++c008ObservationSequence, observation });
+        }
       });
 
       void (async () => {
