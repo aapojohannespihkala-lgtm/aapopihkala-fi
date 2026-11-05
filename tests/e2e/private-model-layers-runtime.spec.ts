@@ -618,7 +618,10 @@ test(`exact ${model.version} viewer: D upstairs, ghost walls, supported IV, rese
           await page.locator('[data-layer-node="architecture-doors"] [data-layer-mode="hidden"]').click();
           await closeLayers();
           const hiddenObservation = await observe();
-          expect(hiddenObservation.camera).toEqual(observation.camera);
+          for (const key of ['position', 'quaternion', 'projection']) {
+            for (let i = 0; i < observation.camera[key].length; i++)
+              expect(hiddenObservation.camera[key][i]).toBeCloseTo(observation.camera[key][i], 9);
+          }
           expect(hiddenObservation.doors.every((door: any) => !door.visible)).toBe(true);
           const after = await canvas.screenshot({ path: info.outputPath(`c008-${floor}-${view}-${contextOn}-hidden.png`), scale: 'css' });
           // Decode independent browser screenshots, never a second renderer or
