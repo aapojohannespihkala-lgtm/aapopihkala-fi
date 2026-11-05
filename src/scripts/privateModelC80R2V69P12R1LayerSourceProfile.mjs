@@ -3,6 +3,7 @@
 // Unchanged V69 parts are inherited. The replacement kitchen rig has its own
 // SHA/scene/node/mesh/name/parent allowlist derived from the same source bytes.
 import { V69_BUILDING_PARTS, V69_BUILDING_SCENES } from './privateModelC80R2V69LayerSourceProfile.mjs';
+import { sameSourceName } from './privateModelSourceNodeAssociations.mjs';
 export const V69P12R1_SOURCE_SHA256 = 'd39102890470f59d7c2a2e033851a6f3d1481a83fb6180b549acd4cbf22182b3';
 export const V69P12R1_SOURCE_SCENE_COUNT = 295;
 export const V69P12R1_FLOORS = Object.freeze({ '1F': 290, '2F': 293, BOTH: 294 });
@@ -150,4 +151,66 @@ export const V69P12R1_BUILDING_SCENES = Object.freeze(Object.fromEntries(
       rootNodes: Object.freeze(source.rootNodes), paths: Object.freeze(paths) })];
   }),
 ));
+
+// Original architectural SOURCE_CONTEXT groups. Scene 293 explicitly
+// authors an empty group; scene 294 contains three reference-only leaves.
+// Terrain, stairs, physical walls and doors are independent scene roots.
+const sourceContextProfiles = {
+  293: { node: 5629, name: 'C80_SOURCE_CONTEXT_SEPARATE_FROM_FLOOR_CONTENT', parts: [] },
+  294: { node: 7646, name: 'C80R2_C050_GUIDES_FACADE_COW_DC_WHITE_D1F_6499_V9COW',
+    parts: [[5741, 1485], [6629, 1923], [7645, 1924]] },
+};
+const isContextReference = extras => extras?.sourceOnly === true &&
+  extras.presentationOnly === true && extras.canApplyToViewer === false &&
+  extras.physicalHost === 'HOST_HOLD' && extras.current === false && extras.asBuilt === false;
+
+/** Resolve only authored reference content, using the same exact-source map as Layers. */
+export function resolveV69P12R1SourceContext(gltf, scene, sceneIndex, loadedSha, expectedSha) {
+  const profile = sourceContextProfiles[sceneIndex];
+  const json = gltf?.parser?.json, sourceScene = json?.scenes?.[sceneIndex];
+  const associations = gltf?.parser?.associations;
+  const extra = json?.asset?.extras;
+  if (!profile || loadedSha !== V69P12R1_SOURCE_SHA256 || expectedSha !== loadedSha ||
+      json?.scenes?.length !== V69P12R1_SOURCE_SCENE_COUNT || gltf?.scenes?.[sceneIndex] !== scene ||
+      extra?.current !== false || extra?.asBuilt !== false ||
+      !Object.entries(V69P12R1_FLOORS).every(([floor, index]) => extra.viewerFloorScenes?.[floor] === index) ||
+      sourceScene?.name !== sourceScenes[sceneIndex].name ||
+      sourceScene.nodes?.filter(id => id === profile.node).length !== 1 ||
+      typeof associations?.get !== 'function' || !Array.isArray(scene?.children)) return null;
+  const definition = json.nodes?.[profile.node];
+  if (definition?.name !== profile.name || definition.mesh !== undefined ||
+      definition.extras?.contextOnly !== true || !isContextReference(definition.extras) ||
+      (definition.children ?? []).length !== profile.parts.length ||
+      (sceneIndex === 293 && definition.extras.HI12Meaning !==
+        'EXPLICIT_EMPTY_2F_ARCHITECTURAL_SOURCE_CONTEXT;K17_ALWAYS_VISIBLE_OUTSIDE') ||
+      (sceneIndex === 294 && definition.extras.visibility !== 'VISIBLE_BY_EXPLICIT_C80_SCENE_SELECTION')) return null;
+  const matches = scene.children.filter(object => associations.get(object)?.nodes === profile.node);
+  if (matches.length !== 1) return null;
+  const root = matches[0];
+  if (root.parent !== scene || root.isMesh || !sameSourceName(root.name, profile.name)) return null;
+  // The loader can omit the shared 5741 plane from this scene's live group.
+  // Validate its authored parent and report absence; never fetch or reparent it.
+  // The two remaining reference leaves must match the same original path.
+  const parts = [];
+  let mountedIndex = 0;
+  for (const [index, [node, mesh]] of profile.parts.entries()) {
+    const def = json.nodes?.[node];
+    if (definition.children[index] !== node || def?.mesh !== mesh || (def.children ?? []).length ||
+        !isContextReference(def.extras)) return null;
+    const object = root.children[mountedIndex];
+    if (node === 5741 && !sameSourceName(object?.name, def.name)) {
+      parts.push({ node, object: null });
+      continue;
+    }
+    const association = associations.get(object);
+    if (!object?.isMesh || object.children.length || object.parent !== root ||
+        !sameSourceName(object.name, def.name) ||
+        (association?.nodes !== undefined && association.nodes !== node) ||
+        (association?.meshes !== undefined && association.meshes !== mesh)) return null;
+    parts.push({ node, object });
+    mountedIndex++;
+  }
+  if (mountedIndex !== root.children.length) return null;
+  return { node: profile.node, root, parts };
+}
 
