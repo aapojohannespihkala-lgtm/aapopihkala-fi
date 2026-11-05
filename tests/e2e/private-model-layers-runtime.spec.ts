@@ -314,7 +314,11 @@ test(`exact ${model.version} viewer: D upstairs, ghost walls, supported IV, rese
     if (response.request().resourceType() === 'script' && new URL(response.url()).origin === origin)
       loadedScripts.push(response.text().catch(() => ''));
   });
-  const hasServedRigProfile = async () => (await Promise.all(loadedScripts)).some(text => text.includes(rigMarker));
+  const hasServedRigProfile = async () => {
+    const scripts = await Promise.all(loadedScripts);
+    return scripts.some(text => text.includes(rigMarker)) &&
+      (process.env.YLIS_C008_DEPTH !== '1' || scripts.some(text => text.includes('c80-008-observe')));
+  };
   if (production) {
     const clientId = process.env.CF_ACCESS_VIEWER_PROBE_CLIENT_ID;
     const clientSecret = process.env.CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET;
@@ -342,7 +346,8 @@ test(`exact ${model.version} viewer: D upstairs, ghost walls, supported IV, rese
       return route.fulfill({ contentType: 'model/gltf-binary', body: source }); });
   }
   const canvas = page.locator('#private-model-canvas');
-  const reviewUrl = origin + '/private-model/?review=' + candidateId + '-review';
+  const depthProbe = model.version === 'V69P12R1' && process.env.YLIS_C008_DEPTH === '1';
+  const reviewUrl = origin + '/private-model/?review=' + candidateId + '-review' + (depthProbe ? '&c008Depth=1' : '');
   const desktopViewport = page.viewportSize()!;
   await page.setViewportSize({ width: 390, height: 844 });
   // A newly merged viewer can be ahead of its normal Cloudflare deployment.
@@ -562,6 +567,102 @@ test(`exact ${model.version} viewer: D upstairs, ghost walls, supported IV, rese
     await page.mouse.up();
     expect(await readLiveCamera()).not.toEqual(beforeOrbit);
     await page.screenshot({ path: info.outputPath(evidencePrefix + '-2f-after-real-orbit.png') });
+  }
+  if (depthProbe) {
+    const reports: any[] = [];
+    const visiblePixels = new Map([[8028, 0], [8030, 0]]);
+    const openLayers = async () => {
+      if (await page.locator('#layers-button').getAttribute('aria-expanded') !== 'true')
+        await page.locator('#layers-button').click();
+    };
+    const closeLayers = async () => {
+      if (await page.locator('#layers-button').getAttribute('aria-expanded') === 'true')
+        await page.locator('#layers-button').click();
+    };
+    const observe = async () => {
+      const previous = await canvas.getAttribute('data-c008-depth-observation');
+      await canvas.dispatchEvent('c80-008-observe');
+      await expect.poll(() => canvas.getAttribute('data-c008-depth-observation')).not.toBe(previous);
+      const value = JSON.parse((await canvas.getAttribute('data-c008-depth-observation'))!);
+      expect(value.observation, 'Served exact source must expose actual read-only door observations').toBeTruthy();
+      return value.observation;
+    };
+    for (const floor of ['d-2f', 'd-apartment']) {
+      await openLayers(); await preset.selectOption(floor); await closeLayers();
+      if (await page.locator('#more-menu').getAttribute('open') === null)
+        await page.locator('#more-menu > summary').click();
+      await page.locator('#fit-button').click();
+      for (let view = 0; view < 4; view++) {
+        if (view) {
+          await page.locator('#navigate-tool-button').click();
+          const box = (await canvas.boundingBox())!;
+          const before = await readLiveCamera();
+          await page.mouse.move(box.x + box.width * .4, box.y + box.height * .45);
+          await page.mouse.down();
+          await page.mouse.move(box.x + box.width * .62, box.y + box.height * .45, { steps: 16 });
+          await page.mouse.up();
+          expect(await readLiveCamera()).not.toEqual(before);
+        }
+        // Let the real OrbitControls damping settle before a same-camera pair.
+        await page.waitForTimeout(900);
+        await openLayers();
+        const context = page.locator('#c80-source-context-visible');
+        const contextAvailable = await context.isVisible();
+        for (const contextOn of contextAvailable ? [true, false] : [null]) {
+          if (contextOn !== null) await context.setChecked(contextOn);
+          await page.locator('[data-layer-node="architecture-doors"] [data-layer-mode="visible"]').click();
+          await closeLayers();
+          const observation = await observe();
+          const before = await canvas.screenshot({ path: info.outputPath(`c008-${floor}-${view}-${contextOn}-visible.png`), scale: 'css' });
+          await openLayers();
+          await page.locator('[data-layer-node="architecture-doors"] [data-layer-mode="hidden"]').click();
+          await closeLayers();
+          const hiddenObservation = await observe();
+          for (const key of ['position', 'quaternion', 'projection']) {
+            for (let i = 0; i < observation.camera[key].length; i++)
+              expect(hiddenObservation.camera[key][i]).toBeCloseTo(observation.camera[key][i], 9);
+          }
+          expect(hiddenObservation.doors.every((door: any) => !door.visible)).toBe(true);
+          const after = await canvas.screenshot({ path: info.outputPath(`c008-${floor}-${view}-${contextOn}-hidden.png`), scale: 'css' });
+          // Decode independent browser screenshots, never a second renderer or
+          // synthetic pixel fixture. Coordinates come from the actual live camera.
+          const differences = await page.evaluate(async ({ before, after, doors }) => {
+            const decode = async (base64: string) => {
+              const bytes = Uint8Array.from(atob(base64), char => char.charCodeAt(0));
+              const bitmap = await createImageBitmap(new Blob([bytes], { type: 'image/png' }));
+              const target = new OffscreenCanvas(bitmap.width, bitmap.height);
+              const ctx = target.getContext('2d')!; ctx.drawImage(bitmap, 0, 0); bitmap.close();
+              return { width: target.width, height: target.height, data: ctx.getImageData(0, 0, target.width, target.height).data };
+            };
+            const a = await decode(before), b = await decode(after);
+            if (a.width !== b.width || a.height !== b.height) throw Error('C008 screenshot viewport drift');
+            return doors.map((door: any) => ({ node: door.node, samples: door.samples.map((sample: any) => {
+              const x = Math.round(sample.x), y = Math.round(sample.y), offset = (y * a.width + x) * 4;
+              const delta = Math.max(...[0, 1, 2].map(channel => Math.abs(a.data[offset + channel] - b.data[offset + channel])));
+              return { ...sample, delta };
+            }) }));
+          }, { before: before.toString('base64'), after: after.toString('base64'), doors: observation.doors });
+          for (const door of observation.doors) {
+            expect.soft(door.visible).toBe(true);
+            expect.soft(door.material.every((m: any) => m.visible && m.depthTest && m.depthWrite && !m.transparent && m.opacity === 1)).toBe(true);
+            const pixels = differences.find((item: any) => item.node === door.node).samples;
+            visiblePixels.set(door.node, visiblePixels.get(door.node)! + pixels.filter((p: any) => p.frontNode === door.node && p.delta > 3).length);
+            const opaqueLeaks = pixels.filter((p: any) => p.frontNode !== null && ![8028, 8030].includes(p.frontNode) &&
+              p.frontDistance < p.targetDistance - .08 && p.delta > 3);
+            expect.soft(opaqueLeaks, `Door ${door.node} must not paint through a nearer opaque source surface`).toEqual([]);
+          }
+          reports.push({ floor, view, sourceContext: contextOn, contextControlAvailable: contextAvailable,
+            edgeMode: await canvas.getAttribute('data-edge-mode'), observation, differences });
+          await openLayers();
+          await page.locator('[data-layer-node="architecture-doors"] [data-layer-mode="visible"]').click();
+          await closeLayers();
+        }
+      }
+    }
+    await info.attach('c008-live-depth-and-independent-pixels', { body: JSON.stringify(reports, null, 2), contentType: 'application/json' });
+    for (const [node, pixels] of visiblePixels) expect(pixels, `Door ${node} must contribute actual foreground pixels across the moving-camera views`).toBeGreaterThan(0);
+    console.log(JSON.stringify({ c008Depth: true, source: sha, observations: reports.length,
+      visibleDoorPixels: Object.fromEntries(visiblePixels), humanReview: 'NOT_RUN', production }));
   }
   const webgl = await canvas.evaluate((element: HTMLCanvasElement) => {
     const gl = element.getContext('webgl2');
