@@ -1,3 +1,4 @@
+import { V69P12R1_SOURCE_SHA256, V69P12R1_SOURCE_SCENE_COUNT, V69P12R1_BUILDING_SCENES } from './privateModelC80R2V69P12R1LayerSourceProfile.mjs';
 import { K17_RAIL900_SOURCE_SHA256, K17_RAIL900_SOURCE_SCENE_COUNT, K17_RAIL900_BUILDING_SCENES } from './privateModelK17Rail900LayerSourceProfile.mjs';
 import { V27_SOURCE_SHA256, V27_SOURCE_SCENE_COUNT, V27_TECHNICAL_SCENES } from './privateModelC80R2V27LayerSourceProfile.mjs';
 import { V29_SOURCE_SHA256, V29_SOURCE_SCENE_COUNT, V29_TECHNICAL_SCENES } from './privateModelC80R2V29LayerSourceProfile.mjs';
@@ -236,10 +237,12 @@ const v26Scenes = { '1F': 174, '2F': 162, BOTH: 175 } as const;
 const v26Device = (context: TechnicalSystemsContext, binding: TechnicalSourceNode): {
   id: TechnicalSystemId; scope: Scope;
 } | null => {
-  const integratedScenes = context.loadedGlbSha256 === K17_RAIL900_SOURCE_SHA256 ? K17_RAIL900_BUILDING_SCENES
+  const integratedScenes = context.loadedGlbSha256 === V69P12R1_SOURCE_SHA256 ? V69P12R1_BUILDING_SCENES
+    : context.loadedGlbSha256 === K17_RAIL900_SOURCE_SHA256 ? K17_RAIL900_BUILDING_SCENES
     : context.loadedGlbSha256 === V69_SOURCE_SHA256 ? V69_BUILDING_SCENES
     : context.loadedGlbSha256 === V68_SOURCE_SHA256 ? V68_BUILDING_SCENES : null;
-  const integratedCount = context.loadedGlbSha256 === K17_RAIL900_SOURCE_SHA256 ? K17_RAIL900_SOURCE_SCENE_COUNT
+  const integratedCount = context.loadedGlbSha256 === V69P12R1_SOURCE_SHA256 ? V69P12R1_SOURCE_SCENE_COUNT
+    : context.loadedGlbSha256 === K17_RAIL900_SOURCE_SHA256 ? K17_RAIL900_SOURCE_SCENE_COUNT
     : context.loadedGlbSha256 === V69_SOURCE_SHA256 ? V69_SOURCE_SCENE_COUNT : V68_SOURCE_SCENE_COUNT;
   const v35 = context.loadedGlbSha256 === V35_SOURCE_SHA256;
   const v34 = context.loadedGlbSha256 === V34_SOURCE_SHA256;
@@ -434,4 +437,5 @@ export const createTechnicalSystemPresentation = (
   sceneRoot: Object3D,
   inventory: ReturnType<typeof createTechnicalSystemLayerInventory>,
 ) => createViewerScopedLayerPresentation(sceneRoot, inventory.bridgeBindings);
+
 

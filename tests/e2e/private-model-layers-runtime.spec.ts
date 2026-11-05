@@ -281,6 +281,10 @@ for (const model of [
     candidateId: 'auto-ylisrinne-c80r2-v69-integrated-v68-h3-floor-h4-storage-layers-work-test-host-hold-20261104-1zropkz2',
     sha: '5b720c9b9f87358867463e725b1500c63bafd9de15d121cdf6c36a3e23ca36fd',
     bytes: 31397788, firstFloor: '290', secondFloor: '291', bothFloors: '292', upstairsRoof: true },
+  { version: 'V69P12R1', sourceEnv: 'YLIS_LAYERS_V69P12R1_GLB', productionEnv: 'YLIS_LAYERS_V69P12R1_PRODUCTION',
+    candidateId: 'ylisrinne-v69p12r1-sink-faucet-floor-metadata-20261105',
+    sha: 'd39102890470f59d7c2a2e033851a6f3d1481a83fb6180b549acd4cbf22182b3',
+    bytes: 32610084, firstFloor: '290', secondFloor: '293', bothFloors: '294', upstairsRoof: true },
   { version: 'K17_RAIL_HANDRAIL900', sourceEnv: 'YLIS_LAYERS_K17_RAIL900_GLB', productionEnv: 'YLIS_LAYERS_K17_RAIL900_PRODUCTION',
     candidateId: 'ylisrinne-k17-rail900-20261104',
     sha: '4b8deb415c75de9eee623d8ad84a8cfa24fa8baf2540c19b59c4ec9423c58d99',
@@ -411,7 +415,7 @@ test(`exact ${model.version} viewer: D upstairs, ghost walls, supported IV, rese
       await expectPreservedCamera();
     }
   }
-  if (model.version === 'V35' || model.version === 'V68' || model.version === 'V69' || model.version === 'K17_RAIL_HANDRAIL900') {
+  if (model.version === 'V35' || model.version === 'V68' || model.version === 'V69' || model.version === 'K17_RAIL_HANDRAIL900' || model.version === 'V69P12R1') {
     // V35 exact source, 2F197: HL4 binds four Kvik/MANO tall-cabinet
     // carcasses and their verified front surfaces to architecture-fixtures.
     // Only this already source-verified version has that expected coverage.
@@ -460,7 +464,7 @@ test(`exact ${model.version} viewer: D upstairs, ghost walls, supported IV, rese
     await expect(canvas).toHaveAttribute('data-main-view-floor', floor);
     await expect(canvas).toHaveAttribute('data-layers-source-scene-index', index);
     await expect(canvas).toHaveAttribute('data-main-view-source-sha256', sha);
-    if (model.version === 'K17_RAIL_HANDRAIL900') {
+    if (model.version === 'K17_RAIL_HANDRAIL900' || model.version === 'V69P12R1') {
       await page.locator('#layers-button').click();
       await page.screenshot({path:info.outputPath(evidencePrefix+'-'+floor.toLowerCase()+'-original-scene.png')});
       await page.locator('#layers-button').click();
@@ -511,7 +515,7 @@ test(`exact ${model.version} viewer: D upstairs, ghost walls, supported IV, rese
   await page.locator('#layers-button').click();
   await expectMobileCamera();
   await page.screenshot({ path: info.outputPath(evidencePrefix + '-2f-restored-mobile.png') });
-  if (model.version === 'V68' || model.version === 'V69' || model.version === 'K17_RAIL_HANDRAIL900') {
+  if (model.version === 'V68' || model.version === 'V69' || model.version === 'K17_RAIL_HANDRAIL900' || model.version === 'V69P12R1') {
     await page.setViewportSize(desktopViewport);
     await page.locator('#more-menu > summary').click();
     await page.locator('#fit-button').click();
@@ -526,11 +530,26 @@ test(`exact ${model.version} viewer: D upstairs, ghost walls, supported IV, rese
     await expect(selection).toBeVisible();
     await expect(page.locator('#selection-mesh')).not.toHaveText('-');
     const technicalScene = page.locator('#selection-metadata-list dt').filter({hasText:'Tekninen scene'}).locator('xpath=following-sibling::dd[1]');
-    await expect(technicalScene).toContainText(model.version + '_2F');
+    const sourceSceneName = model.version === 'V69P12R1'
+      ? JSON.parse(source.subarray(20, 20 + source.readUInt32LE(12)).toString('utf8')).scenes[+model.secondFloor].name
+      : model.version + '_2F';
+    await expect(technicalScene).toContainText(sourceSceneName);
     await expect(canvas).toHaveAttribute('data-layers-source-sha256',sha);
     await page.screenshot({path:info.outputPath(evidencePrefix+'-actual-object-selection-desktop.png')});
     await page.locator('#clear-selection-button').click();
     await expect(selection).toBeHidden();
+  }
+  if (model.version === 'V69P12R1') {
+    // Exercise an actual orbit gesture on the displayed source, with no
+    // injected scene handles. Screenshots remain encrypted by the trusted job.
+    const beforeOrbit = await readLiveCamera();
+    const box = (await canvas.boundingBox())!;
+    await page.mouse.move(box.x + box.width * .45, box.y + box.height * .5);
+    await page.mouse.down();
+    await page.mouse.move(box.x + box.width * .65, box.y + box.height * .55, { steps: 12 });
+    await page.mouse.up();
+    expect(await readLiveCamera()).not.toEqual(beforeOrbit);
+    await page.screenshot({ path: info.outputPath(evidencePrefix + '-2f-after-real-orbit.png') });
   }
   const webgl = await canvas.evaluate((element: HTMLCanvasElement) => {
     const gl = element.getContext('webgl2');
@@ -538,7 +557,8 @@ test(`exact ${model.version} viewer: D upstairs, ghost walls, supported IV, rese
   });
   expect(webgl).toEqual({ available: true, lost: false, error: 0 });
   expect(errors).toEqual([]);
-  console.log(JSON.stringify({ source: sha, scene: +model.secondFloor, reviewUrl: page.url(), stages: ['ghost', 'IV-visible', 'reset', '1F', 'BOTH', '2F', 'mobile', ...((model.version === 'V68' || model.version === 'V69' || model.version === 'K17_RAIL_HANDRAIL900') ? ['actual-object-click'] : [])], webgl, humanReview: 'NOT_RUN', production }));
+  console.log(JSON.stringify({ source: sha, scene: +model.secondFloor, reviewUrl: page.url(), stages: ['ghost', 'IV-visible', 'reset', '1F', 'BOTH', '2F', 'mobile', ...((model.version === 'V68' || model.version === 'V69' || model.version === 'K17_RAIL_HANDRAIL900' || model.version === 'V69P12R1') ? ['actual-object-click'] : [])], webgl, humanReview: 'NOT_RUN', production }));
 });
 }
+
 
