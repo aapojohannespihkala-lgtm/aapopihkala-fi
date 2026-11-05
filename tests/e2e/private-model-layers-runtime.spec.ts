@@ -580,6 +580,11 @@ test(`exact ${model.version} viewer: D upstairs, ghost walls, supported IV, rese
         await page.locator('#layers-button').click();
     };
     const waitForCameraRest = async () => {
+      // Use the viewer's existing fixed-eye middle-click gesture. It flushes
+      // residual orbit inertia without injecting a camera pose or changing the
+      // production damping settings. A passive delay depends on render rate.
+      const box = (await canvas.boundingBox())!;
+      await page.mouse.click(box.x + box.width * .5, box.y + box.height * .5, { button: 'middle' });
       let signature = '', stable = 0;
       await expect.poll(async () => {
         const pose = await readLiveCamera();
