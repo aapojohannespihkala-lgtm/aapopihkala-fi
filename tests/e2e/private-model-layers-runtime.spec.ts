@@ -322,7 +322,8 @@ test(`exact ${model.version} viewer: D upstairs, ghost walls, supported IV, rese
     return scripts.some(text => text.includes(rigMarker)) &&
       (process.env.YLIS_C008_DEPTH !== '1' ||
         scripts.some(text => text.includes('c80-008-observe')) &&
-        scripts.some(text => text.includes('#layers-source-context-visible')));
+        scripts.some(text => text.includes('#layers-source-context-visible')) &&
+        scripts.some(text => text.includes('C008_PIXEL_FOOTPRINT_V1')));
   };
   if (production) {
     const clientId = process.env.CF_ACCESS_VIEWER_PROBE_CLIENT_ID;
@@ -583,6 +584,7 @@ test(`exact ${model.version} viewer: D upstairs, ghost walls, supported IV, rese
     }, null, 2));
     saveDepthProgress();
     const visiblePixels = new Map([[8028, 0], [8030, 0]]);
+    const coveredOpaqueControls = new Map<string, number>();
     const controlTimeout = 30_000;
     const layersToggle = page.locator('#layers-button');
     const openLayers = async () => {
@@ -664,6 +666,7 @@ test(`exact ${model.version} viewer: D upstairs, ghost walls, supported IV, rese
           await setDoorLayerMode('visible');
           await closeLayers();
           const observation = await observe();
+          expect(observation.pixelContract).toBe('C008_PIXEL_FOOTPRINT_V1');
           expect(observation.sourceSha256).toBe(sha);
           expect(observation.sceneIndex).toBe(sceneIndex);
           expect(observation.sourceContext).toMatchObject({
@@ -679,6 +682,7 @@ test(`exact ${model.version} viewer: D upstairs, ghost walls, supported IV, rese
           await setDoorLayerMode('hidden');
           await closeLayers();
           const hiddenObservation = await observe();
+          expect(hiddenObservation.pixelContract).toBe(observation.pixelContract);
           expect(hiddenObservation.sourceSha256).toBe(sha);
           expect(hiddenObservation.sceneIndex).toBe(sceneIndex);
           expect(hiddenObservation.sourceContext).toEqual(observation.sourceContext);
@@ -704,7 +708,9 @@ test(`exact ${model.version} viewer: D upstairs, ghost walls, supported IV, rese
             const a = await decode(before), b = await decode(after);
             if (a.width !== b.width || a.height !== b.height) throw Error('C008 screenshot viewport drift');
             return doors.map((door: any) => ({ node: door.node, samples: door.samples.map((sample: any) => {
-              const x = Math.round(sample.x), y = Math.round(sample.y), offset = (y * a.width + x) * 4;
+              const { x, y } = sample, offset = (y * a.width + x) * 4;
+              if (!Number.isInteger(x) || !Number.isInteger(y) || x < 0 || y < 0 || x >= a.width || y >= a.height)
+                throw Error('C008 ray and screenshot pixel indices must agree');
               const delta = Math.max(...[0, 1, 2].map(channel => Math.abs(a.data[offset + channel] - b.data[offset + channel])));
               return { ...sample, delta };
             }) }));
@@ -722,14 +728,22 @@ test(`exact ${model.version} viewer: D upstairs, ghost walls, supported IV, rese
             const pixels = differences.find((item: any) => item.node === door.node).samples;
             visiblePixels.set(door.node, visiblePixels.get(door.node)! + pixels.filter((p: any) => p.frontNode === door.node && p.delta > 3).length);
             const afterSamples = hiddenDoor.samples;
-            const opaqueLeaks = pixels.filter((p: any) => {
-              const hidden = afterSamples.find((item: any) => Math.abs(item.x - p.x) < .01 && Math.abs(item.y - p.y) < .01);
-              // Hiding the entire door layer can also remove a different door
-              // in front. Only an unchanged opaque occluder is a negative control.
-              return p.frontNode !== null && ![8028, 8030].includes(p.frontNode) &&
-                hidden?.frontNode === p.frontNode && Math.abs(hidden.frontDistance - p.frontDistance) < .000001 &&
-                p.frontDistance < p.targetDistance - .08 && p.delta > 3;
+            const opaqueControls = pixels.filter((p: any) => {
+              const hidden = afterSamples.find((item: any) => item.x === p.x && item.y === p.y);
+              // A nearer surface has to cover the pixel in both frames. A
+              // mixed silhouette pixel may contain color from a visible door.
+              return p.footprint.length === 5 && hidden?.footprint.length === 5 &&
+                p.footprint.every((ray: any, i: number) => {
+                  const afterRay = hidden.footprint[i];
+                  return ray.frontNode !== null && ![8028, 8030].includes(ray.frontNode) &&
+                    afterRay.frontNode === ray.frontNode &&
+                    Math.abs(afterRay.frontDistance - ray.frontDistance) < .000001 &&
+                    ray.frontDistance < ray.targetDistance - .08;
+                });
             });
+            const coverageKey = `${floor}/${contextOn}/${door.node}`;
+            coveredOpaqueControls.set(coverageKey, (coveredOpaqueControls.get(coverageKey) ?? 0) + opaqueControls.length);
+            const opaqueLeaks = opaqueControls.filter((p: any) => p.delta > 3);
             expect.soft(opaqueLeaks, `Door ${door.node} must not paint through a nearer opaque source surface`).toEqual([]);
           }
           reports.push({ floor, view, sourceContext: contextOn,
@@ -747,8 +761,15 @@ test(`exact ${model.version} viewer: D upstairs, ghost walls, supported IV, rese
     expect(reports).toHaveLength(16);
     await info.attach('c008-live-depth-and-independent-pixels', { body: JSON.stringify(reports, null, 2), contentType: 'application/json' });
     for (const [node, pixels] of visiblePixels) expect(pixels, `Door ${node} must contribute actual foreground pixels across the moving-camera views`).toBeGreaterThan(0);
+    for (const floor of ['d-2f', 'd-apartment']) for (const contextOn of [true, false]) {
+      for (const node of [8028, 8030]) {
+        const key = `${floor}/${contextOn}/${node}`;
+        expect(coveredOpaqueControls.get(key), `C008 requires a fully covered opaque control for ${key}`).toBeGreaterThan(0);
+      }
+    }
     console.log(JSON.stringify({ c008Depth: true, source: sha, observations: reports.length,
-      visibleDoorPixels: Object.fromEntries(visiblePixels), humanReview: 'NOT_RUN', production }));
+      visibleDoorPixels: Object.fromEntries(visiblePixels), coveredOpaqueControls: Object.fromEntries(coveredOpaqueControls),
+      humanReview: 'NOT_RUN', production }));
   }
   const webgl = await canvas.evaluate((element: HTMLCanvasElement) => {
     const gl = element.getContext('webgl2');
