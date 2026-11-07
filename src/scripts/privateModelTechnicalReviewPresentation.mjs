@@ -41,7 +41,7 @@ const isRenderable = object => object?.isMesh === true || object?.isLine === tru
  * @param keepRoots objects whose whole subtree keeps its own materials
  * @param createMaterials () => ({ surface, line, systems? }) shared presentation materials;
  *   systems maps a technical system key to one shared highlight material
- * @param systemOf optional (object) => system key for a kept renderable, or null to keep its own material
+ * @param {(object: any) => (string | null)} [systemOf] system key for a kept renderable, or null to keep its own material
  */
 export function createTechnicalReviewPresentation(root, keepRoots, createMaterials, systemOf = () => null) {
   const keep = new Set(keepRoots.filter(Boolean));

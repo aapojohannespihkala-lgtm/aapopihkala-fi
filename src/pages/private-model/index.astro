@@ -14182,7 +14182,7 @@ const title = 'Private 3D viewer';
             if (reviewRoots) {
               technicalReview = createTechnicalReviewPresentation(root,
                 [...reviewRoots, ...technical.boundObjects.map(item => item.object)], createTechnicalReviewMaterials,
-                object => technicalReviewSystemOf(object, root));
+                (object: THREE.Object3D) => technicalReviewSystemOf(object, root));
               technicalReviewInput.checked = technicalReviewOn;
               technicalReview.apply(technicalReviewOn);
               canvas.dataset.technicalReview = technicalReviewOn && technicalReview.applied ? 'on' : 'off';
