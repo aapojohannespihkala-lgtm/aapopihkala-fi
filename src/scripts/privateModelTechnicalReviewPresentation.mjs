@@ -39,9 +39,11 @@ const isRenderable = object => object?.isMesh === true || object?.isLine === tru
 /**
  * @param root active glTF scene root
  * @param keepRoots objects whose whole subtree keeps its own materials
- * @param createMaterials () => ({ surface, line }) shared presentation materials
+ * @param createMaterials () => ({ surface, line, systems? }) shared presentation materials;
+ *   systems maps a technical system key to one shared highlight material
+ * @param {(object: any) => (string | null)} [systemOf] system key for a kept renderable, or null to keep its own material
  */
-export function createTechnicalReviewPresentation(root, keepRoots, createMaterials) {
+export function createTechnicalReviewPresentation(root, keepRoots, createMaterials, systemOf = () => null) {
   const keep = new Set(keepRoots.filter(Boolean));
   const saved = new Map();
   let materials = null;
@@ -65,9 +67,18 @@ export function createTechnicalReviewPresentation(root, keepRoots, createMateria
     if (applied) return true;
     materials ??= createMaterials();
     root.traverse(object => {
-      if (object === root || !isRenderable(object) || kept(object) || saved.has(object)) return;
+      if (object === root || !isRenderable(object) || saved.has(object)) return;
+      let shared;
+      if (kept(object)) {
+        // Technical geometry is drawn in a clear system color so that it stays
+        // readable through the translucent grey building.
+        const highlight = object.isMesh ? materials.systems?.[systemOf(object) ?? ''] : null;
+        if (!highlight) return;
+        shared = highlight;
+      } else {
+        shared = object.isMesh ? materials.surface : materials.line;
+      }
       saved.set(object, object.material);
-      const shared = object.isMesh ? materials.surface : materials.line;
       object.material = Array.isArray(object.material) ? object.material.map(() => shared) : shared;
     });
     applied = true;
@@ -79,9 +90,20 @@ export function createTechnicalReviewPresentation(root, keepRoots, createMateria
     restore();
     materials?.surface?.dispose?.();
     materials?.line?.dispose?.();
+    for (const material of Object.values(materials?.systems ?? {})) material?.dispose?.();
     materials = null;
     disposed = true;
   };
 
   return { apply, dispose, get applied() { return applied; }, get changedCount() { return saved.size; } };
+}
+
+/** System key of a kept technical object from its own or an ancestor's source extras. */
+export function technicalReviewSystemOf(object, root) {
+  for (let node = object; node && node !== root; node = node.parent) {
+    const system = node.userData?.m5System;
+    if (system === 'SAHKO' || system === 'VESI' || system === 'IV') return system;
+    if (typeof node.name === 'string' && node.name.startsWith('KV17_P02_AXIS_ROOT')) return 'VESI';
+  }
+  return null;
 }

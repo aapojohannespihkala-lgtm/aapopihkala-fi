@@ -2492,7 +2492,7 @@ const title = 'Private 3D viewer';
       import { V69_SOURCE_SHA256 } from '../../scripts/privateModelC80R2V69LayerSourceProfile.mjs';
       import { V69P12R1_SOURCE_SHA256, resolveV69P12R1SourceContext } from '../../scripts/privateModelC80R2V69P12R1LayerSourceProfile.mjs';
       import { V71_SOURCE_SHA256 } from '../../scripts/privateModelC80R2V71LayerSourceProfile.mjs';
-      import { resolveTechnicalReviewRoots, createTechnicalReviewPresentation } from '../../scripts/privateModelTechnicalReviewPresentation.mjs';
+      import { resolveTechnicalReviewRoots, createTechnicalReviewPresentation, technicalReviewSystemOf } from '../../scripts/privateModelTechnicalReviewPresentation.mjs';
       import { K17_RAIL900_SOURCE_SHA256 } from '../../scripts/privateModelK17Rail900LayerSourceProfile.mjs';
       import { createV69C035WhiteLobbyPresentation } from '../../scripts/privateModelV69C035WhiteLobbyPresentation.mjs';
       import { createV69C020UpperGlassPresentation } from '../../scripts/privateModelV69C020UpperGlassPresentation.mjs';
@@ -14011,6 +14011,11 @@ const title = 'Private 3D viewer';
           color: 0x9aa1a9, roughness: 1, metalness: 0, transparent: true, opacity: 0.14, depthWrite: false,
         }),
         line: new THREE.LineBasicMaterial({ color: 0x9aa1a9, transparent: true, opacity: 0.18, depthWrite: false }),
+        // Opaque-looking but in the transparent pass so they draw after the grey shell.
+        systems: Object.fromEntries(([['SAHKO', 0xff7a1a], ['VESI', 0x1e88e5], ['IV', 0x2fa84f]] as const)
+          .map(([key, color]) => [key, new THREE.MeshStandardMaterial({
+            color, roughness: 0.6, metalness: 0, transparent: true, opacity: 1, depthWrite: true,
+          })])),
       });
       technicalReviewInput.addEventListener('change', () => {
         technicalReviewOn = technicalReviewInput.checked;
@@ -14176,7 +14181,8 @@ const title = 'Private 3D viewer';
             const reviewRoots = resolveTechnicalReviewRoots(source, root, sceneIndex, layersLoadedSha, layersExpectedSha);
             if (reviewRoots) {
               technicalReview = createTechnicalReviewPresentation(root,
-                [...reviewRoots, ...technical.boundObjects.map(item => item.object)], createTechnicalReviewMaterials);
+                [...reviewRoots, ...technical.boundObjects.map(item => item.object)], createTechnicalReviewMaterials,
+                (object: THREE.Object3D) => technicalReviewSystemOf(object, root));
               technicalReviewInput.checked = technicalReviewOn;
               technicalReview.apply(technicalReviewOn);
               canvas.dataset.technicalReview = technicalReviewOn && technicalReview.applied ? 'on' : 'off';
