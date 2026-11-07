@@ -190,6 +190,7 @@ jobs:
             tests/unit/private-model-t04-primitive-source-binding.test.mjs \
             tests/unit/private-model-source-node-associations.test.mjs \
             tests/unit/private-model-building-part-layer-bindings.test.mjs \
+            tests/unit/private-model-technical-review-presentation.test.mjs \
             tests/unit/private-model-hl4-furniture-runtime-bindings.test.mjs \
             tests/unit/private-model-furniture-layer-source-profile.test.mjs \
             tests/unit/private-model-hi20-unified52-source-scenes.test.mjs \

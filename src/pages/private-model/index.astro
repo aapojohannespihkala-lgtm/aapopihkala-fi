@@ -1996,6 +1996,13 @@ const title = 'Private 3D viewer';
             </label>
             <div id="layers-source-context-note" class="layer-note"></div>
           </div>
+          <div id="layers-technical-review" class="layer-section" hidden>
+            <label class="layer-row">
+              <input id="layers-technical-review-on" type="checkbox" aria-describedby="layers-technical-review-note" />
+              <span>Talotekniikka korostettuna, muut harmaana</span>
+            </label>
+            <div id="layers-technical-review-note" class="layer-note">Sähkö, vesi, viemäri ja IV omilla väreillään; rakennus ja kalusteet läpikuultavan harmaina. WORK_TEST, ei toteumatieto.</div>
+          </div>
           <div id="c80-shell-focus-layer" hidden>
             <label class="layer-row">
               <input id="c80-shell-focus" type="checkbox" checked />
@@ -2484,6 +2491,8 @@ const title = 'Private 3D viewer';
       import { V67_SOURCE_SHA256 } from '../../scripts/privateModelC80R2V67LayerSourceProfile.mjs';
       import { V69_SOURCE_SHA256 } from '../../scripts/privateModelC80R2V69LayerSourceProfile.mjs';
       import { V69P12R1_SOURCE_SHA256, resolveV69P12R1SourceContext } from '../../scripts/privateModelC80R2V69P12R1LayerSourceProfile.mjs';
+      import { V71_SOURCE_SHA256 } from '../../scripts/privateModelC80R2V71LayerSourceProfile.mjs';
+      import { resolveTechnicalReviewRoots, createTechnicalReviewPresentation } from '../../scripts/privateModelTechnicalReviewPresentation.mjs';
       import { K17_RAIL900_SOURCE_SHA256 } from '../../scripts/privateModelK17Rail900LayerSourceProfile.mjs';
       import { createV69C035WhiteLobbyPresentation } from '../../scripts/privateModelV69C035WhiteLobbyPresentation.mjs';
       import { createV69C020UpperGlassPresentation } from '../../scripts/privateModelV69C020UpperGlassPresentation.mjs';
@@ -13993,6 +14002,23 @@ const title = 'Private 3D viewer';
       let layersContextVisible = true;
       let layersContext: { root: THREE.Object3D; baseline: boolean } | null = null;
 
+      const technicalReviewRow = document.querySelector<HTMLElement>('#layers-technical-review')!;
+      const technicalReviewInput = document.querySelector<HTMLInputElement>('#layers-technical-review-on')!;
+      let technicalReviewOn = false;
+      let technicalReview: ReturnType<typeof createTechnicalReviewPresentation> | null = null;
+      const createTechnicalReviewMaterials = () => ({
+        surface: new THREE.MeshStandardMaterial({
+          color: 0x9aa1a9, roughness: 1, metalness: 0, transparent: true, opacity: 0.14, depthWrite: false,
+        }),
+        line: new THREE.LineBasicMaterial({ color: 0x9aa1a9, transparent: true, opacity: 0.18, depthWrite: false }),
+      });
+      technicalReviewInput.addEventListener('change', () => {
+        technicalReviewOn = technicalReviewInput.checked;
+        technicalReview?.apply(technicalReviewOn);
+        canvas.dataset.technicalReview = technicalReviewOn && technicalReview?.applied ? 'on' : 'off';
+        refreshEdgeRendering(modelRoot.children[0] ?? null);
+      });
+
       layersContextInput.addEventListener('change', () => {
         if (!layersContext || layersContextInput.disabled) return;
         layersContextVisible = layersContextInput.checked;
@@ -14002,6 +14028,11 @@ const title = 'Private 3D viewer';
       });
 
       const disposeLayersPresentation = () => {
+        // Restore the review materials first: they were applied after Layers.
+        technicalReview?.dispose();
+        technicalReview = null;
+        technicalReviewRow.hidden = true;
+        delete canvas.dataset.technicalReview;
         if (layersContext) layersContext.root.visible = layersContext.baseline;
         layersContext = null;
         layersContextRow.hidden = true;
@@ -14140,6 +14171,17 @@ const title = 'Private 3D viewer';
                 layersContextRow.hidden = false;
               }
             }
+            // Technical review: exact-source technical roots plus the devices
+            // already bound by the technical Layers inventory keep their colors.
+            const reviewRoots = resolveTechnicalReviewRoots(source, root, sceneIndex, layersLoadedSha, layersExpectedSha);
+            if (reviewRoots) {
+              technicalReview = createTechnicalReviewPresentation(root,
+                [...reviewRoots, ...technical.boundObjects.map(item => item.object)], createTechnicalReviewMaterials);
+              technicalReviewInput.checked = technicalReviewOn;
+              technicalReview.apply(technicalReviewOn);
+              canvas.dataset.technicalReview = technicalReviewOn && technicalReview.applied ? 'on' : 'off';
+              technicalReviewRow.hidden = false;
+            }
             canvas.dataset.layersBindingCount = String(bindings.length);
             canvas.dataset.layersSourceSceneIndex = String(sceneIndex);
             canvas.dataset.layersSourceSha256 = layersLoadedSha!;
@@ -14209,6 +14251,7 @@ const title = 'Private 3D viewer';
           layersLoadedSha === V68_SOURCE_SHA256 ||
           layersLoadedSha === V69_SOURCE_SHA256 ||
           layersLoadedSha === V69P12R1_SOURCE_SHA256 ||
+          layersLoadedSha === V71_SOURCE_SHA256 ||
           layersLoadedSha === K17_RAIL900_SOURCE_SHA256
             ? layersLoadedSha : null;
         layersExpectedSha = session?.contract?.glbSha256 ?? verifiedChainSourceSha;
