@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   createTechnicalReviewPresentation,
+  technicalReviewSystemOf,
   resolveTechnicalReviewRoots,
 } from '../../src/scripts/privateModelTechnicalReviewPresentation.mjs';
 import {
@@ -101,4 +102,23 @@ test('technical roots resolve only for the exact V71 source scene', () => {
   assert.equal(resolveTechnicalReviewRoots(gltf, scene, 294, V71_SOURCE_SHA256, V71_SOURCE_SHA256), null);
   gltf.parser.json.asset.extras.current = true;
   assert.equal(resolveTechnicalReviewRoots(gltf, scene, sceneIndex, V71_SOURCE_SHA256, V71_SOURCE_SHA256), null);
+});
+
+test('kept technical meshes get their system highlight and are restored', () => {
+  const root = node('scene');
+  const tech = node('M5_ROOT');
+  const cableMaterial = disposable('cable');
+  const cable = node('cable', { isMesh: true, material: cableMaterial, userData: { m5System: 'SAHKO' } });
+  const device = node('device', { isMesh: true, material: disposable('device'), userData: {} });
+  tech.userData = {};
+  root.add(tech).add(device);
+  tech.add(cable);
+  const review = createTechnicalReviewPresentation(root, [tech, device], () => ({
+    surface: disposable('grey'), line: disposable('greyLine'), systems: { SAHKO: disposable('orange') },
+  }), object => technicalReviewSystemOf(object, root));
+  review.apply(true);
+  assert.equal(cable.material.label, 'orange');
+  assert.equal(device.material.label, 'device', 'unclassified kept device keeps its own material');
+  review.apply(false);
+  assert.equal(cable.material, cableMaterial);
 });
