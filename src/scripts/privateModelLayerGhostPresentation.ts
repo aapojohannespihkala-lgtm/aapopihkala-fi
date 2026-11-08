@@ -61,8 +61,62 @@ export const createViewerLayerGhostPresentation = (root: Object3D) => {
   const changed = new Map<Mesh, MeshSnapshot>();
   const changedLinesAndPoints = new Map<Line | Points, LinePointSnapshot>();
   let disposed = false;
+  let lastGhostSignature: string | null = null;
+
+  // An unchanged Layers refresh must not rebuild hundreds of EdgesGeometry
+  // objects and clone/dispose the same material set again. Reuse only when
+  // the *actual* scene members, source AND temporary materials, selection,
+  // clipping and geometry versions are still identical. In every ambiguous
+  // case, fall back to the existing full restoration/rebuild path.
+  const ghostSignature = (options: ViewerLayerGhostOptions, opacity: number) => {
+    if (!root.visible) return null;
+    const signature: unknown[] = [opacity, options.preferEdges === true];
+    const materialState = (material: Material) => {
+      const m = material as Material & {
+        color?: { getHexString(): string };
+        map?: { uuid: string; version: number };
+        alphaTest?: number;
+        metalness?: number;
+        roughness?: number;
+      };
+      return [
+        material.uuid, material.version, material.visible, material.opacity,
+        material.transparent, material.blending, material.side,
+        material.depthWrite, material.depthTest, material.colorWrite,
+        material.clipIntersection, material.clippingPlanes?.map((plane) => [
+          plane.normal.x, plane.normal.y, plane.normal.z, plane.constant,
+        ]) ?? null, m.color?.getHexString?.() ?? null,
+        m.map?.uuid ?? null, m.map?.version ?? null, m.alphaTest ?? null,
+        m.metalness ?? null, m.roughness ?? null,
+      ];
+    };
+    root.traverseVisible((object) => {
+      // The ghost helper is derived; it never represents a source object.
+      if (object.name === '__VIEWER_GHOST_EDGES_PRESENTATION_ONLY__') return;
+      if (!(object instanceof Mesh || object instanceof Line || object instanceof Points)) return;
+      const meshSaved = object instanceof Mesh ? changed.get(object) : undefined;
+      const lineSaved = (object instanceof Line || object instanceof Points)
+        ? changedLinesAndPoints.get(object) : undefined;
+      const source = meshSaved?.material ?? lineSaved?.material ?? object.material;
+      const geometry = (object as Mesh).geometry;
+      const position = geometry?.getAttribute?.('position') as
+        | { version?: number; data?: { version?: number } } | undefined;
+      const selected = options.isSelected?.(object) === true;
+      signature.push([
+        object.uuid, object.visible, selected,
+        geometry?.uuid ?? null, position?.version ?? position?.data?.version ?? null,
+        geometry?.getIndex?.()?.version ?? null,
+        materialsOf(source).map(materialState),
+        materialsOf(object.material).map(materialState),
+        meshSaved ? [object.renderOrder, meshSaved.renderOrder, meshSaved.outline?.uuid ?? null,
+          meshSaved.outline?.parent === object] : null,
+      ]);
+    });
+    return JSON.stringify(signature);
+  };
 
   const restoreMaterials = () => {
+    lastGhostSignature = null;
     for (const [mesh, saved] of changed) {
       mesh.material = saved.material;
       mesh.renderOrder = saved.renderOrder;
@@ -102,12 +156,17 @@ export const createViewerLayerGhostPresentation = (root: Object3D) => {
       throw new TypeError('Unknown layer presentation mode');
     }
 
-    restoreMaterials();
     const effectiveMode = options.scopeAllowed === false ? 'hidden' : mode;
+    const opacity = validOpacity(options.opacity);
+    if (effectiveMode === 'ghost' && lastGhostSignature !== null &&
+        lastGhostSignature === ghostSignature(options, opacity)) {
+      return 'ghost';
+    }
+
+    restoreMaterials();
     root.visible = originalRootVisible && effectiveMode !== 'hidden';
     if (effectiveMode !== 'ghost' || !root.visible) return effectiveMode;
 
-    const opacity = validOpacity(options.opacity);
     // Snapshot before inserting helper edges so they cannot be traversed as data.
     const targets: Mesh[] = [];
     const lineAndPointTargets: Array<Line | Points> = [];
@@ -233,6 +292,7 @@ export const createViewerLayerGhostPresentation = (root: Object3D) => {
       object.material = Array.isArray(original) ? copies : copies[0];
       object.raycast = () => {};
     }
+      lastGhostSignature = ghostSignature(options, opacity);
       return effectiveMode;
     } catch (error) {
       // A failed selection callback or clone must not expose a previously hidden
