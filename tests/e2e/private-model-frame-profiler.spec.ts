@@ -8,6 +8,7 @@ import {
 const info = (drawCalls: number) => ({
   drawCalls, triangles: drawCalls * 12, geometries: 7, textures: 2,
 });
+const shaA = 'a'.repeat(64), shaB = 'b'.repeat(64);
 
 test('WP1 profiler returns bounded stage, idle/moving and draw-call samples', () => {
   const results: ViewerFrameProfilerSnapshot[] = [];
@@ -17,19 +18,19 @@ test('WP1 profiler returns bounded stage, idle/moving and draw-call samples', ()
   profiler.mark('scope', 2);
   profiler.mark('layers', 5);
   profiler.mark('render', 10);
-  profiler.end(12, info(10), false, '1F');
+  profiler.end(12, info(10), false, '1F', shaA, 'root-a');
   expect(results).toHaveLength(0);
 
   profiler.begin(20);
   profiler.mark('scope', 21);
   profiler.mark('layers', 23);
   profiler.mark('render', 29);
-  profiler.end(30, info(20), true, '1F');
+  profiler.end(30, info(20), true, '1F', shaA, 'root-a');
 
   expect(results).toHaveLength(1);
   expect(results[0]).toMatchObject({
     samples: 2,
-    view: '1F',
+    view: '1F', sourceSha256: shaA, sceneRootUuid: 'root-a',
     frameMs: { mean: 11, p95: 12, max: 12 },
     idle: { samples: 1, meanMs: 12, p95Ms: 12 },
     moving: { samples: 1, meanMs: 10, p95Ms: 10 },
@@ -41,7 +42,7 @@ test('WP1 profiler returns bounded stage, idle/moving and draw-call samples', ()
 
   profiler.begin(40);
   profiler.mark('scope', 41);
-  profiler.end(42, info(1), false, 'BOTH');
+  profiler.end(42, info(1), false, 'BOTH', shaA, 'root-a');
   expect(results).toHaveLength(1);
 });
 
@@ -53,7 +54,7 @@ test('WP1 profiler discards mixed-view partial windows before reporting 1F/2F/BO
   const frame = (startedAt: number, drawCalls: number, view: string) => {
     profiler.begin(startedAt);
     profiler.mark('scope', startedAt + 1);
-    profiler.end(startedAt + 4, info(drawCalls), false, view);
+    profiler.end(startedAt + 4, info(drawCalls), false, view, shaA, 'root-a');
   };
 
   frame(0, 100, '1F');
@@ -75,21 +76,61 @@ test('WP1 profiler discards mixed-view partial windows before reporting 1F/2F/BO
   });
 });
 
+test('WP1 profiler resets on changed SHA or scene root and ignores unloaded frames', () => {
+  const results: ViewerFrameProfilerSnapshot[] = [];
+  const profiler = createViewerFrameProfiler({
+    sampleSize: 2, onSample: sample => results.push(sample),
+  });
+  const frame = (time: number, calls: number, sha: string | null, root: string | null) => {
+    profiler.begin(time);
+    profiler.mark('scope', time + 1);
+    profiler.end(time + 4, info(calls), false, 'work-test:D:1F:front', sha, root);
+  };
+
+  frame(0, 400, null, null);       // No verified GLB: never record.
+  frame(10, 100, shaA, 'root-a');
+  frame(20, 1, shaB, 'root-a');   // Same floor, different GLB: drop shaA.
+  expect(results).toHaveLength(0);
+  frame(30, 3, shaB, 'root-a');
+  expect(results).toHaveLength(1);
+  expect(results[0]).toMatchObject({
+    view: 'work-test:D:1F:front', sourceSha256: shaB, sceneRootUuid: 'root-a',
+    drawCallsMean: 2, trianglesMean: 24,
+  });
+
+  frame(40, 500, shaB, 'root-a');
+  frame(50, 6, shaB, 'root-b');   // Same GLB and floor, different scene root.
+  expect(results).toHaveLength(1);
+  frame(60, 8, shaB, 'root-b');
+  expect(results).toHaveLength(2);
+  expect(results[1]).toMatchObject({
+    sourceSha256: shaB, sceneRootUuid: 'root-b', drawCallsMean: 7,
+  });
+
+  frame(70, 999, shaB, 'root-b');
+  frame(80, 888, shaB, null);     // A missing scene root voids the partial window.
+  frame(90, 4, shaB, 'root-b');
+  expect(results).toHaveLength(2);
+  frame(100, 6, shaB, 'root-b');
+  expect(results).toHaveLength(3);
+  expect(results[2].drawCallsMean).toBe(5);
+});
+
 test('WP1 profiler discards nonmonotonic timing and does not emit partial windows', () => {
   const results: ViewerFrameProfilerSnapshot[] = [];
   const profiler = createViewerFrameProfiler({ sampleSize: 2,
     onSample: sample => results.push(sample) });
   profiler.begin(10);
   profiler.mark('scope', 9);
-  profiler.end(12, info(1), true, 'BOTH');
+  profiler.end(12, info(1), true, 'BOTH', shaA, 'root-a');
   expect(results).toHaveLength(0);
   profiler.begin(20);
   profiler.mark('scope', 21);
-  profiler.end(22, info(1), false, 'BOTH');
+  profiler.end(22, info(1), false, 'BOTH', shaA, 'root-a');
   expect(results).toHaveLength(0);
   profiler.begin(30);
   profiler.mark('scope', 31);
-  profiler.end(32, info(1), false, 'BOTH');
+  profiler.end(32, info(1), false, 'BOTH', shaA, 'root-a');
   expect(results).toHaveLength(1);
   expect(results[0].idle.samples).toBe(2);
   expect(results[0].moving.samples).toBe(0);
@@ -104,6 +145,12 @@ test('WP1 viewer instrumentation is URL opt-in and preserves the render pipeline
   expect(source).toContain('refreshEdgeRendering(root)');
   expect(source).toContain('renderer.render(scene, activeCamera)');
   expect(source).toContain('layersRuntime?.enforce(modelRoot.children[0] ?? null, layersLoadedSha)');
+  // The sampled source and floor must come from current viewer context,
+  // not only the orbit camera preset or the last selected GLB.
+  expect(source).toContain('canvas.dataset.mainViewArea');
+  expect(source).toContain('canvas.dataset.mainViewFloor');
+  expect(source).toContain('layersLoadedSha === layersExpectedSha');
+  expect(source).toContain('modelRoot.children[0]?.uuid ?? null');
 });
 
 test('WP1 navigator skips repeated camera-bound recomputation only when source and view remain unchanged', () => {
