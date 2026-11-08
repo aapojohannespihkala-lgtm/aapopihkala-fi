@@ -99,10 +99,12 @@ export const createViewerLayerGhostPresentation = (root: Object3D) => {
         ? changedLinesAndPoints.get(object) : undefined;
       const source = meshSaved?.material ?? lineSaved?.material ?? object.material;
       const geometry = (object as Mesh).geometry;
+      const position = geometry?.getAttribute?.('position') as
+        | { version?: number; data?: { version?: number } } | undefined;
       const selected = options.isSelected?.(object) === true;
       signature.push([
         object.uuid, object.visible, selected,
-        geometry?.uuid ?? null, geometry?.getAttribute?.('position')?.version ?? null,
+        geometry?.uuid ?? null, position?.version ?? position?.data?.version ?? null,
         geometry?.getIndex?.()?.version ?? null,
         materialsOf(source).map(materialState),
         materialsOf(object.material).map(materialState),
