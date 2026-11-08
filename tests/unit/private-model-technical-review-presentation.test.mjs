@@ -205,3 +205,14 @@ test('V77 profile reuses V76 roots and paths under its own scene names and SHA',
     assert.match(v77.V77_BUILDING_SCENES[index].name, /^C80R2_V77_K17_STAIR900_NWALL110_(1F|2F|BOTH)_WORK_TEST_HOST_HOLD_20261108$/);
   }
 });
+
+test('V78 profile reuses V77 roots and paths under its own scene names and SHA', async () => {
+  const v77 = await import('../../src/scripts/privateModelC80R2V77LayerSourceProfile.mjs');
+  const v78 = await import('../../src/scripts/privateModelC80R2V78LayerSourceProfile.mjs');
+  assert.equal(v78.V78_SOURCE_SHA256, '63e4764e4c60c412497376e8ac41978d00fa0f7c84d85ad5088e206479e4cefa');
+  for (const index of [295, 296, 297]) {
+    assert.deepEqual(v78.V78_BUILDING_SCENES[index].rootNodes, v77.V77_BUILDING_SCENES[index].rootNodes);
+    assert.deepEqual(v78.V78_BUILDING_SCENES[index].paths, v77.V77_BUILDING_SCENES[index].paths);
+    assert.match(v78.V78_BUILDING_SCENES[index].name, /^C80R2_V78_ZFIGHT_CEIL_FIX_(1F|2F|BOTH)_WORK_TEST_HOST_HOLD_20261108$/);
+  }
+});
