@@ -68,6 +68,7 @@ export const createViewerFrameProfiler = (config: {
   const sampleSize = Math.max(2, Math.min(600, Math.floor(config.sampleSize ?? 180)));
   const samples: Sample[] = [];
   let current: Frame | null = null;
+  let sampleView: string | null = null;
 
   const begin = (time: number) => {
     current = Number.isFinite(time)
@@ -96,6 +97,12 @@ export const createViewerFrameProfiler = (config: {
     if (elapsedMs < 0) {
       current = null;
       return;
+    }
+    // Never label a mixed 1F/2F/BOTH window as the last selected view.
+    // Partial windows are intentionally dropped when the view changes.
+    if (sampleView !== view) {
+      samples.length = 0;
+      sampleView = view;
     }
     samples.push({
       elapsedMs,
