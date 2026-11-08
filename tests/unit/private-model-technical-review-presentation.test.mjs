@@ -307,7 +307,7 @@ test('V84 profile maps the D2F kitchen COW copies and keeps technical roots in s
 
 test('V85 profile keeps V84 part meshes and adds the restored ROOM3 wardrobe and island plinth', async () => {
   const v85 = await import('../../src/scripts/privateModelC80R2V85LayerSourceProfile.mjs');
-  assert.equal(v85.V85_SOURCE_SHA256, '9f811041ae31a582613fa9923be1c02a71031255c1bca11681f8298033154acf');
+  assert.equal(v85.V85_SOURCE_SHA256, 'a2e5e2d12574cbb4312ce829cb1ad6e50477e51c7d422bf7464e013b223b3ccb');
   assert.deepEqual(Object.keys(v85.V85_NEW_PARTS).map(Number), [11298, 11299, 11300, 11301, 11302, 11303]);
   for (const index of [296, 297]) for (const added of [11298, 11299, 11303]) assert.ok(v85.V85_BUILDING_SCENES[index].paths[added]);
   assert.equal(v85.V85_BUILDING_SCENES[295].paths[11299], undefined);

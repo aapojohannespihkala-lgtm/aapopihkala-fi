@@ -1,4 +1,4 @@
-// Exact V85 WORK_TEST source: V84 (6cac4a3b...) + owner V84 review fixes 8.11.2026 21.25 (Claude): hob photo quad
+// Exact V85 WORK_TEST source (rebuilt: drain pipe ends at Z0.0): V84 (6cac4a3b...) + owner V84 review fixes 8.11.2026 21.25 (Claude): hob photo quad
 // (white in viewer) out, dark recessed island plinth, faucet centred on the sink ledge, fence lattice stretched evenly,
 // end-wall siding/overlap cleanup, stair fill and 1F wall top under the 2F planks, 2F interior walls up to the beam top,
 // ROOM3 wardrobe restored, drain pipe ends under the covers, sauna one wood tone, round 435 mm heater hole with Harvia
@@ -6,7 +6,7 @@
 // All existing part meshes edited in place (no drift); wardrobe + plinth are new fixture parts.
 // WORK_TEST / HOST_HOLD; not CURRENT, canonical or as-built.
 import { V84_BUILDING_PARTS, V84_BUILDING_SCENES, V84_TECHNICAL_REVIEW_ROOTS } from './privateModelC80R2V84LayerSourceProfile.mjs';
-export const V85_SOURCE_SHA256 = '9f811041ae31a582613fa9923be1c02a71031255c1bca11681f8298033154acf';
+export const V85_SOURCE_SHA256 = 'a2e5e2d12574cbb4312ce829cb1ad6e50477e51c7d422bf7464e013b223b3ccb';
 export const V85_SOURCE_SCENE_COUNT = 298;
 export const V85_FLOORS = Object.freeze({ '1F': 295, '2F': 296, BOTH: 297 });
 export const V85_NEW_PARTS = Object.freeze(JSON.parse('{"11298":{"id":"architecture-fixtures","mesh":4194,"name":"V85_D2F_ISLAND_PLINTH_100MM_DARK_RECESSED_30MM"},"11299":{"id":"architecture-fixtures","mesh":2247,"name":"V85_D2F_ROOM3_WARDROBE_MIRROR_CABINET_WEST_500"},"11300":{"id":"architecture-fixtures","mesh":2246,"name":"V85_D2F_ROOM3_WARDROBE_TWO_DOOR_CABINET_EAST_1000"},"11301":{"id":"architecture-fixtures","mesh":508,"name":"V85_D2F_ROOM3_WARDROBE_MIRROR_FACE_WEST"},"11302":{"id":"architecture-fixtures","mesh":509,"name":"V85_D2F_ROOM3_WARDROBE_TWO_DOOR_LEFT_PANEL"},"11303":{"id":"architecture-fixtures","mesh":510,"name":"V85_D2F_ROOM3_WARDROBE_TWO_DOOR_RIGHT_PANEL"}}'));
