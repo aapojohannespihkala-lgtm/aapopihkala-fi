@@ -484,6 +484,7 @@ test('ghost cache invalidates for selection, geometry and hidden-descendant chan
   const source = new MeshBasicMaterial({ transparent: true, opacity: 0.25 });
   const mesh = makeMesh(source);
   const group = new Group(), second = makeMesh(new MeshBasicMaterial());
+  const secondSourceMaterial = second.material;
   group.add(second);
   root.add(mesh, group);
   const adapter = createViewerLayerGhostPresentation(root);
@@ -511,14 +512,13 @@ test('ghost cache invalidates for selection, geometry and hidden-descendant chan
   expect(mesh.material).not.toBe(material1);
   expect(mesh.children).toHaveLength(1);
 
-  const thirdMaterial = second.material;
   group.visible = false;
   adapter.apply('ghost', options);
-  expect(second.material).toBe(thirdMaterial);
+  expect(second.material).toBe(secondSourceMaterial);
   group.visible = true;
   adapter.apply('ghost', options);
-  expect(second.material).not.toBe(thirdMaterial);
+  expect(second.material).not.toBe(secondSourceMaterial);
   adapter.dispose();
   expect(mesh.material).toBe(source);
-  expect(second.material).toBe(thirdMaterial);
+  expect(second.material).toBe(secondSourceMaterial);
 });
