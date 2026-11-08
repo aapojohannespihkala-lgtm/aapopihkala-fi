@@ -4130,6 +4130,28 @@ const AUTO_YLISRINNE_C80R2_V74_M5_HOSTED_ROUTES_ON_V71_WORK_TEST_HOST_HOLD_20261
   expectedSha256: '76e737678c3c2d25484459eb7f192becfb1084fbdfc4ed1830ea852e8834ea1d',
 } as const satisfies PrivateWorkTestCandidate;
 
+// Auto-registered 2026-11-08 from Drive queue file 13LO7SCOscF3H5jTpxbXNFbVcOLxhzleZ
+// by auto-publish-work-test. WORK_TEST, never as-built.
+const AUTO_YLISRINNE_C80R2_V75_M5_CONNECTED_SYSTEMS_ON_V71_WORK_TEST_HOST_HOLD_20261108_13LO7SCO_CANDIDATE = {
+  id: 'auto-ylisrinne-c80r2-v75-m5-connected-systems-on-v71-work-test-host-hold-20261108-13lo7sco',
+  label: 'Auto: Ylisrinne C80R2 V75 M5 CONNECTED SYSTEMS ON V71 WORK TEST HOST HOLD 20261108 (scene297) - WORK_TEST',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/auto-ylisrinne-c80r2-v75-m5-connected-systems-on-v71-work-test-host-hold-20261108-13lo7sco.glb`,
+  objectKey: 'work-test/auto-ylisrinne-c80r2-v75-m5-connected-systems-on-v71-work-test-host-hold-20261108-13lo7sco.glb',
+  expectedSize: 42788364,
+  expectedSha256: '2377e02d8843b07665a819965217ae20053be9ab82e02d9aad05cf1cc8e69070',
+} as const satisfies PrivateWorkTestCandidate;
+
+// Auto-registered 2026-11-08 from Drive queue file 13SbPMlduv6WFtZqXQhv6uon1_BXX3jna
+// by auto-publish-work-test. WORK_TEST, never as-built.
+const AUTO_YLISRINNE_C80R2_V76_M5_SYSTEMS_K17_STAIR900_ON_V71_WORK_TEST_HOST_HOLD_20261108_13SBPMLD_CANDIDATE = {
+  id: 'auto-ylisrinne-c80r2-v76-m5-systems-k17-stair900-on-v71-work-test-host-hold-20261108-13sbpmld',
+  label: 'Auto: Ylisrinne C80R2 V76 M5 SYSTEMS K17 STAIR900 ON V71 WORK TEST HOST HOLD 20261108 (scene297) - WORK_TEST',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/auto-ylisrinne-c80r2-v76-m5-systems-k17-stair900-on-v71-work-test-host-hold-20261108-13sbpmld.glb`,
+  objectKey: 'work-test/auto-ylisrinne-c80r2-v76-m5-systems-k17-stair900-on-v71-work-test-host-hold-20261108-13sbpmld.glb',
+  expectedSize: 43158048,
+  expectedSha256: '3ef900c1f5e88d65df99d2875022c152116d2a8a9b14dd52b53d4de4394a0971',
+} as const satisfies PrivateWorkTestCandidate;
+
 const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
   V69P12R1_SINK_FAUCET_WORK_TEST_CANDIDATE,
   SIX6_RAIL900_WORK_TEST_CANDIDATE,
@@ -4461,6 +4483,8 @@ const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
   AUTO_YLISRINNE_C80R2_V71_M5_INTEGRATED_ON_V69P12R1_WORK_TEST_HOST_HOLD_20261107_1XNA0IJW_CANDIDATE,
   AUTO_YLISRINNE_C80R2_V73_M5_ANCHORED_ROUTES_ON_V71_WORK_TEST_HOST_HOLD_20261108_1TOR07OQ_CANDIDATE,
   AUTO_YLISRINNE_C80R2_V74_M5_HOSTED_ROUTES_ON_V71_WORK_TEST_HOST_HOLD_20261108_1UEJJX8G_CANDIDATE,
+  AUTO_YLISRINNE_C80R2_V75_M5_CONNECTED_SYSTEMS_ON_V71_WORK_TEST_HOST_HOLD_20261108_13LO7SCO_CANDIDATE,
+  AUTO_YLISRINNE_C80R2_V76_M5_SYSTEMS_K17_STAIR900_ON_V71_WORK_TEST_HOST_HOLD_20261108_13SBPMLD_CANDIDATE,
 ] as const satisfies readonly PrivateWorkTestCandidate[];
 
 type PrivateWorkTestObjectMetadata = {
