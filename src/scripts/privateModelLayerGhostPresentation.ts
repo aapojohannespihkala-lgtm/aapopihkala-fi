@@ -77,6 +77,7 @@ export const createViewerLayerGhostPresentation = (root: Object3D) => {
         emissive?: { getHexString(): string };
         emissiveIntensity?: number;
         map?: { uuid: string; version: number };
+        alphaMap?: { uuid: string; version: number };
         alphaTest?: number;
         metalness?: number;
         roughness?: number;
@@ -88,7 +89,11 @@ export const createViewerLayerGhostPresentation = (root: Object3D) => {
         material.clipIntersection, material.clippingPlanes?.map((plane) => [
           plane.normal.x, plane.normal.y, plane.normal.z, plane.constant,
         ]) ?? null, m.color?.getHexString?.() ?? null,
-        m.map?.uuid ?? null, m.map?.version ?? null, m.alphaTest ?? null,
+        m.map?.uuid ?? null, m.map?.version ?? null,
+        // A direct source alphaMap swap does not increment Material.version,
+        // but the existing ghost clone still holds the previous texture.
+        m.alphaMap?.uuid ?? null, m.alphaMap?.version ?? null,
+        m.alphaTest ?? null,
         m.metalness ?? null, m.roughness ?? null,
         // Emissive RGB/intensity can change without Material.version changing.
         // A cloned opaque ghost must then be rebuilt from the source material.
