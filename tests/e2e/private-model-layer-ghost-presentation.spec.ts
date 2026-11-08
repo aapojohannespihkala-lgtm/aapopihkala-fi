@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { BoxGeometry, BufferGeometry, Group, LineBasicMaterial, LineSegments, Mesh, MeshBasicMaterial, MeshStandardMaterial, Plane, Points, PointsMaterial, Raycaster, Vector3 } from 'three';
+import { BoxGeometry, BufferGeometry, Group, LineBasicMaterial, LineSegments, Mesh, MeshBasicMaterial, MeshStandardMaterial, Plane, Points, PointsMaterial, Raycaster, Texture, Vector3 } from 'three';
 import { createViewerLayerGhostPresentation } from '../../src/scripts/privateModelLayerGhostPresentation';
 
 const makeMesh = (material = new MeshBasicMaterial()) =>
@@ -560,4 +560,38 @@ test('ghost cache detects source emissive color and intensity changes without mu
   expect(mesh.material).toBe(source);
   adapter.dispose();
   expect(sourceDisposals).toBe(0);
+});
+
+test('ghost cache notices an alphaMap replacement without Material.version changing', () => {
+  const source = new MeshBasicMaterial({ color: 0x8899aa, alphaTest: 0.5 });
+  const firstAlphaMap = new Texture();
+  const secondAlphaMap = new Texture();
+  source.alphaMap = firstAlphaMap;
+  const mesh = makeMesh(source);
+  const root = new Group();
+  root.add(mesh);
+  const adapter = createViewerLayerGhostPresentation(root);
+  const options = { opacity: 0.18 };
+  const originalVersion = source.version;
+
+  expect(adapter.apply('ghost', options)).toBe('ghost');
+  const firstGhost = mesh.material as MeshBasicMaterial;
+  expect(firstGhost).not.toBe(source);
+  expect(firstGhost.alphaMap).toBe(firstAlphaMap);
+  expect(adapter.apply('ghost', options)).toBe('ghost');
+  expect(mesh.material).toBe(firstGhost);
+
+  source.alphaMap = secondAlphaMap;
+  expect(source.version).toBe(originalVersion);
+  expect(adapter.apply('ghost', options)).toBe('ghost');
+  const secondGhost = mesh.material as MeshBasicMaterial;
+  expect(secondGhost).not.toBe(firstGhost);
+  expect(secondGhost.alphaMap).toBe(secondAlphaMap);
+  expect(source.alphaMap).toBe(secondAlphaMap);
+  adapter.apply('ghost', options);
+  expect(mesh.material).toBe(secondGhost);
+
+  adapter.apply('visible');
+  expect(mesh.material).toBe(source);
+  adapter.dispose();
 });
