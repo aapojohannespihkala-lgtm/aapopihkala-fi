@@ -167,3 +167,12 @@ test('V74 profile keeps V71 roots under its own scene names and SHA', async () =
     assert.match(v74.V74_BUILDING_SCENES[index].name, /^C80R2_V74_M5_HOSTED_ROUTES_(1F|2F|BOTH)_WORK_TEST_HOST_HOLD_20261108$/);
   }
 });
+
+test('V75 profile keeps V71 roots under its own scene names and SHA', async () => {
+  const v75 = await import('../../src/scripts/privateModelC80R2V75LayerSourceProfile.mjs');
+  assert.equal(v75.V75_SOURCE_SHA256, '2377e02d8843b07665a819965217ae20053be9ab82e02d9aad05cf1cc8e69070');
+  for (const index of [295, 296, 297]) {
+    assert.deepEqual(v75.V75_BUILDING_SCENES[index].rootNodes, V71_BUILDING_SCENES[index].rootNodes);
+    assert.match(v75.V75_BUILDING_SCENES[index].name, /^C80R2_V75_M5_CONNECTED_SYSTEMS_(1F|2F|BOTH)_WORK_TEST_HOST_HOLD_20261108$/);
+  }
+});
