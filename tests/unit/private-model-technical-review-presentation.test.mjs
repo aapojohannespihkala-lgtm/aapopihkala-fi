@@ -216,3 +216,18 @@ test('V78 profile reuses V77 roots and paths under its own scene names and SHA',
     assert.match(v78.V78_BUILDING_SCENES[index].name, /^C80R2_V78_ZFIGHT_CEIL_FIX_(1F|2F|BOTH)_WORK_TEST_HOST_HOLD_20261108$/);
   }
 });
+
+test('V79 profile drops old kitchen duplicates and the NE eave closure, adds balcony glass roots', async () => {
+  const v79 = await import('../../src/scripts/privateModelC80R2V79LayerSourceProfile.mjs');
+  assert.equal(v79.V79_SOURCE_SHA256, '77cfe743ff8a190944bdf91c0e4e6ee6b81384cbecad6bb17882326a0f890cc4');
+  for (const index of [295, 296, 297]) {
+    const scene = v79.V79_BUILDING_SCENES[index];
+    assert.match(scene.name, /^C80R2_V79_OWNER_FIXES_(1F|2F|BOTH)_WORK_TEST_HOST_HOLD_20261108$/);
+    for (const removed of [7748, 7766, 9259]) assert.ok(!scene.rootNodes.includes(removed));
+    for (const [node, paths] of Object.entries(scene.paths)) {
+      assert.ok(v79.V79_BUILDING_PARTS[node]);
+      for (const path of paths) assert.ok(scene.rootNodes.includes(path[0]) && path.at(-1) === Number(node));
+    }
+  }
+  for (const index of [296, 297]) assert.ok(v79.V79_BUILDING_SCENES[index].rootNodes.includes(10555));
+});
