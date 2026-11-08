@@ -33,6 +33,8 @@ type Sample = {
 export type ViewerFrameProfilerSnapshot = {
   samples: number;
   view: string;
+  sourceSha256: string;
+  sceneRootUuid: string;
   frameMs: { mean: number; p95: number; max: number };
   idle: { samples: number; meanMs: number | null; p95Ms: number | null };
   moving: { samples: number; meanMs: number | null; p95Ms: number | null };
@@ -69,6 +71,8 @@ export const createViewerFrameProfiler = (config: {
   const samples: Sample[] = [];
   let current: Frame | null = null;
   let sampleView: string | null = null;
+  let sampleSourceSha256: string | null = null;
+  let sampleSceneRootUuid: string | null = null;
 
   const begin = (time: number) => {
     current = Number.isFinite(time)
@@ -87,7 +91,8 @@ export const createViewerFrameProfiler = (config: {
   };
 
   const end = (time: number, counters: ViewerFrameRenderCounters,
-    moving: boolean, view: string) => {
+    moving: boolean, view: string, sourceSha256: string | null,
+    sceneRootUuid: string | null) => {
     if (!current) return;
     if (!Number.isFinite(time) || time < current.previousMark) {
       current = null;
@@ -98,11 +103,22 @@ export const createViewerFrameProfiler = (config: {
       current = null;
       return;
     }
-    // Never label a mixed 1F/2F/BOTH window as the last selected view.
-    // Partial windows are intentionally dropped when the view changes.
-    if (sampleView !== view) {
+    // Fail closed until the model has a real SHA-bound active scene root.
+    // A transition across source, scene, area or floor invalidates the window.
+    if (!sourceSha256 || !/^[0-9a-f]{64}$/i.test(sourceSha256) || !sceneRootUuid) {
+      samples.length = 0;
+      sampleView = null;
+      sampleSourceSha256 = null;
+      sampleSceneRootUuid = null;
+      current = null;
+      return;
+    }
+    if (sampleView !== view || sampleSourceSha256 !== sourceSha256 ||
+        sampleSceneRootUuid !== sceneRootUuid) {
       samples.length = 0;
       sampleView = view;
+      sampleSourceSha256 = sourceSha256;
+      sampleSceneRootUuid = sceneRootUuid;
     }
     samples.push({
       elapsedMs,
@@ -122,6 +138,8 @@ export const createViewerFrameProfiler = (config: {
     const snapshot: ViewerFrameProfilerSnapshot = {
       samples: samples.length,
       view,
+      sourceSha256,
+      sceneRootUuid,
       frameMs: {
         mean: rounded(mean(frameTimes)),
         p95: rounded(percentile95(frameTimes)),
