@@ -200,7 +200,7 @@ test('Layers WP1 explicit scope/storey gate beats even a visible or ghost layer'
   const ghostWalls = setViewerLayerMode(map, 'architecture-walls', 'ghost');
   expect(getViewerLayerEffectiveMode(ghostWalls, 'architecture-walls-exterior')).toBe('ghost');
   expect(getViewerLayerEffectiveMode(map, 'architecture-walls-exterior')).toBe('visible');
-  expect(Object.keys(viewerLayerNodeCapabilities).length).toBe(23);
+  expect(Object.keys(viewerLayerNodeCapabilities).length).toBe(25);
 });
 
 test('Layers WP1 unknown runtime IDs cannot mutate or crash semantic visibility', () => {

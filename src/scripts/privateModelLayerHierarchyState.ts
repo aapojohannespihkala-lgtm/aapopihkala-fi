@@ -34,7 +34,9 @@ export type ViewerTechnicalLayerNodeId =
   | 'technical'
   | 'technical-ventilation'
   | 'technical-heating'
-  | 'technical-electrical';
+  | 'technical-electrical'
+  | 'technical-water'
+  | 'technical-drainage';
 
 export type ViewerLayerNodeId =
   | ViewerTechnicalLayerNodeId
@@ -50,6 +52,8 @@ export type ViewerLayerControlsState = {
   technicalVentilationVisible: boolean;
   technicalHeatingVisible: boolean;
   technicalElectricalVisible: boolean;
+  technicalWaterVisible: boolean;
+  technicalDrainageVisible: boolean;
   roofVisible: boolean;
   roofOpacity: number;
   locusVisible: boolean;
@@ -84,6 +88,8 @@ export const viewerLayerNodeCapabilities: Record<
   'technical-ventilation': { parent: 'technical', visibility: true, opacity: false },
   'technical-heating': { parent: 'technical', visibility: true, opacity: false },
   'technical-electrical': { parent: 'technical', visibility: true, opacity: false },
+  'technical-water': { parent: 'technical', visibility: true, opacity: false },
+  'technical-drainage': { parent: 'technical', visibility: true, opacity: false },
   roof: { parent: 'architecture', visibility: true, opacity: true },
   locus: { parent: null, visibility: true, opacity: false },
   'locus-water': { parent: 'locus', visibility: true, opacity: false },
@@ -172,6 +178,8 @@ export const viewerLayerControlsDefaults: ViewerLayerControlsState = {
   technicalVentilationVisible: true,
   technicalHeatingVisible: true,
   technicalElectricalVisible: true,
+  technicalWaterVisible: true,
+  technicalDrainageVisible: true,
   roofVisible: true,
   roofOpacity: 1,
   locusVisible: false,
@@ -202,6 +210,8 @@ export const mergeViewerLayerControlsState = (
   technicalVentilationVisible: typeof next.technicalVentilationVisible === 'boolean' ? next.technicalVentilationVisible : current.technicalVentilationVisible,
   technicalHeatingVisible: typeof next.technicalHeatingVisible === 'boolean' ? next.technicalHeatingVisible : current.technicalHeatingVisible,
   technicalElectricalVisible: typeof next.technicalElectricalVisible === 'boolean' ? next.technicalElectricalVisible : current.technicalElectricalVisible,
+  technicalWaterVisible: typeof next.technicalWaterVisible === 'boolean' ? next.technicalWaterVisible : current.technicalWaterVisible,
+  technicalDrainageVisible: typeof next.technicalDrainageVisible === 'boolean' ? next.technicalDrainageVisible : current.technicalDrainageVisible,
   roofVisible:
     typeof next.roofVisible === 'boolean' ? next.roofVisible : current.roofVisible,
   roofOpacity:
@@ -325,6 +335,8 @@ const technicalVisibilityKeys = {
   'technical-ventilation': 'technicalVentilationVisible',
   'technical-heating': 'technicalHeatingVisible',
   'technical-electrical': 'technicalElectricalVisible',
+  'technical-water': 'technicalWaterVisible',
+  'technical-drainage': 'technicalDrainageVisible',
 } as const;
 
 const isTechnicalNode = (id: ViewerLayerNodeId): id is ViewerTechnicalLayerNodeId =>
