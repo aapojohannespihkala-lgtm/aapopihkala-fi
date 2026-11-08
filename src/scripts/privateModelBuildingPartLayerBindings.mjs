@@ -4,6 +4,7 @@ import { V73_SOURCE_SHA256, V73_SOURCE_SCENE_COUNT, V73_BUILDING_PARTS, V73_BUIL
 import { V74_SOURCE_SHA256, V74_SOURCE_SCENE_COUNT, V74_BUILDING_PARTS, V74_BUILDING_SCENES, V74_FLOORS } from './privateModelC80R2V74LayerSourceProfile.mjs';
 import { V75_SOURCE_SHA256, V75_SOURCE_SCENE_COUNT, V75_BUILDING_PARTS, V75_BUILDING_SCENES, V75_FLOORS } from './privateModelC80R2V75LayerSourceProfile.mjs';
 import { V76_SOURCE_SHA256, V76_SOURCE_SCENE_COUNT, V76_BUILDING_PARTS, V76_BUILDING_SCENES, V76_FLOORS } from './privateModelC80R2V76LayerSourceProfile.mjs';
+import { V77_SOURCE_SHA256, V77_SOURCE_SCENE_COUNT, V77_BUILDING_PARTS, V77_BUILDING_SCENES, V77_FLOORS } from './privateModelC80R2V77LayerSourceProfile.mjs';
 import { V69P12R1_SOURCE_SHA256, V69P12R1_SOURCE_SCENE_COUNT, V69P12R1_BUILDING_PARTS, V69P12R1_BUILDING_SCENES, V69P12R1_FLOORS } from './privateModelC80R2V69P12R1LayerSourceProfile.mjs';
 import { K17_RAIL900_SOURCE_SHA256, K17_RAIL900_SOURCE_SCENE_COUNT, K17_RAIL900_BUILDING_PARTS, K17_RAIL900_BUILDING_SCENES } from './privateModelK17Rail900LayerSourceProfile.mjs';
 import { V69_SOURCE_SHA256, V69_SOURCE_SCENE_COUNT, V69_BUILDING_PARTS, V69_BUILDING_SCENES } from './privateModelC80R2V69LayerSourceProfile.mjs';
@@ -309,7 +310,7 @@ const matchesSourceName = (actual, expected) => {
 };
 
 const v26SourcePart = (json, sha, sceneIndex, floor, source, associations, mesh) => {
-  const version = sha === V76_SOURCE_SHA256 ? 'V76' : sha === V75_SOURCE_SHA256 ? 'V75' : sha === V74_SOURCE_SHA256 ? 'V74' : sha === V73_SOURCE_SHA256 ? 'V73' : sha === V72_SOURCE_SHA256 ? 'V72' : sha === V71_SOURCE_SHA256 ? 'V71'
+  const version = sha === V77_SOURCE_SHA256 ? 'V77' : sha === V76_SOURCE_SHA256 ? 'V76' : sha === V75_SOURCE_SHA256 ? 'V75' : sha === V74_SOURCE_SHA256 ? 'V74' : sha === V73_SOURCE_SHA256 ? 'V73' : sha === V72_SOURCE_SHA256 ? 'V72' : sha === V71_SOURCE_SHA256 ? 'V71'
     : sha === V69P12R1_SOURCE_SHA256 ? 'V69P12R1'
     : sha === K17_RAIL900_SOURCE_SHA256 ? 'K17_RAIL900'
     : sha === V69_SOURCE_SHA256 ? 'V69'
@@ -325,11 +326,11 @@ const v26SourcePart = (json, sha, sceneIndex, floor, source, associations, mesh)
       json.asset?.extras?.asBuilt !== false ||
       !Object.entries(V69P12R1_FLOORS).every(([key, index]) =>
         json.asset?.extras?.viewerFloorScenes?.[key] === index))) return null;
-  if ((version === 'V71' || version === 'V72' || version === 'V73' || version === 'V74' || version === 'V75' || version === 'V76') && (json.asset?.extras?.current !== false ||
+  if ((version === 'V71' || version === 'V72' || version === 'V73' || version === 'V74' || version === 'V75' || version === 'V76' || version === 'V77') && (json.asset?.extras?.current !== false ||
       json.asset?.extras?.asBuilt !== false ||
-      !Object.entries(version === 'V76' ? V76_FLOORS : version === 'V75' ? V75_FLOORS : version === 'V74' ? V74_FLOORS : version === 'V73' ? V73_FLOORS : version === 'V72' ? V72_FLOORS : V71_FLOORS).every(([key, index]) =>
+      !Object.entries(version === 'V77' ? V77_FLOORS : version === 'V76' ? V76_FLOORS : version === 'V75' ? V75_FLOORS : version === 'V74' ? V74_FLOORS : version === 'V73' ? V73_FLOORS : version === 'V72' ? V72_FLOORS : V71_FLOORS).every(([key, index]) =>
         json.asset?.extras?.viewerFloorScenes?.[key] === index))) return null;
-  const sceneProfile = version === 'V76' ? V76_BUILDING_SCENES : version === 'V75' ? V75_BUILDING_SCENES : version === 'V74' ? V74_BUILDING_SCENES : version === 'V73' ? V73_BUILDING_SCENES : version === 'V72' ? V72_BUILDING_SCENES : version === 'V71' ? V71_BUILDING_SCENES : version === 'V69P12R1' ? V69P12R1_BUILDING_SCENES
+  const sceneProfile = version === 'V77' ? V77_BUILDING_SCENES : version === 'V76' ? V76_BUILDING_SCENES : version === 'V75' ? V75_BUILDING_SCENES : version === 'V74' ? V74_BUILDING_SCENES : version === 'V73' ? V73_BUILDING_SCENES : version === 'V72' ? V72_BUILDING_SCENES : version === 'V71' ? V71_BUILDING_SCENES : version === 'V69P12R1' ? V69P12R1_BUILDING_SCENES
     : version === 'K17_RAIL900' ? K17_RAIL900_BUILDING_SCENES
     : version === 'V69' ? V69_BUILDING_SCENES
     : version === 'V68' ? V68_BUILDING_SCENES
@@ -339,7 +340,7 @@ const v26SourcePart = (json, sha, sceneIndex, floor, source, associations, mesh)
     : version === 'V33' ? V33_BUILDING_SCENES
     : version === 'V29' ? V29_BUILDING_SCENES
     : version === 'V27' ? V27_BUILDING_SCENES : v26Scenes;
-  const partProfile = version === 'V76' ? V76_BUILDING_PARTS : version === 'V75' ? V75_BUILDING_PARTS : version === 'V74' ? V74_BUILDING_PARTS : version === 'V73' ? V73_BUILDING_PARTS : version === 'V72' ? V72_BUILDING_PARTS : version === 'V71' ? V71_BUILDING_PARTS : version === 'V69P12R1' ? V69P12R1_BUILDING_PARTS
+  const partProfile = version === 'V77' ? V77_BUILDING_PARTS : version === 'V76' ? V76_BUILDING_PARTS : version === 'V75' ? V75_BUILDING_PARTS : version === 'V74' ? V74_BUILDING_PARTS : version === 'V73' ? V73_BUILDING_PARTS : version === 'V72' ? V72_BUILDING_PARTS : version === 'V71' ? V71_BUILDING_PARTS : version === 'V69P12R1' ? V69P12R1_BUILDING_PARTS
     : version === 'K17_RAIL900' ? K17_RAIL900_BUILDING_PARTS
     : version === 'V69' ? V69_BUILDING_PARTS
     : version === 'V68' ? V68_BUILDING_PARTS
@@ -349,7 +350,7 @@ const v26SourcePart = (json, sha, sceneIndex, floor, source, associations, mesh)
     : version === 'V33' ? V33_BUILDING_PARTS
     : version === 'V29' ? V29_BUILDING_PARTS
     : version === 'V27' ? V27_BUILDING_PARTS : v26Parts;
-  const count = version === 'V76' ? V76_SOURCE_SCENE_COUNT : version === 'V75' ? V75_SOURCE_SCENE_COUNT : version === 'V74' ? V74_SOURCE_SCENE_COUNT : version === 'V73' ? V73_SOURCE_SCENE_COUNT : version === 'V72' ? V72_SOURCE_SCENE_COUNT : version === 'V71' ? V71_SOURCE_SCENE_COUNT : version === 'V69P12R1' ? V69P12R1_SOURCE_SCENE_COUNT
+  const count = version === 'V77' ? V77_SOURCE_SCENE_COUNT : version === 'V76' ? V76_SOURCE_SCENE_COUNT : version === 'V75' ? V75_SOURCE_SCENE_COUNT : version === 'V74' ? V74_SOURCE_SCENE_COUNT : version === 'V73' ? V73_SOURCE_SCENE_COUNT : version === 'V72' ? V72_SOURCE_SCENE_COUNT : version === 'V71' ? V71_SOURCE_SCENE_COUNT : version === 'V69P12R1' ? V69P12R1_SOURCE_SCENE_COUNT
     : version === 'K17_RAIL900' ? K17_RAIL900_SOURCE_SCENE_COUNT
     : version === 'V69' ? V69_SOURCE_SCENE_COUNT
     : version === 'V68' ? V68_SOURCE_SCENE_COUNT
@@ -366,7 +367,7 @@ const v26SourcePart = (json, sha, sceneIndex, floor, source, associations, mesh)
   const def = json.nodes[source.index];
   if (!scene || !part || scene.floor !== floor ||
       json.scenes.length !== count || json.scenes[sceneIndex]?.name !== (donorScene?.name ?? scene.name) ||
-      (['V67', 'V68', 'V69', 'V69P12R1', 'V71', 'V72', 'V73', 'V74', 'V75', 'V76', 'K17_RAIL900'].includes(version) && (!Array.isArray(json.scenes[sceneIndex]?.nodes) ||
+      (['V67', 'V68', 'V69', 'V69P12R1', 'V71', 'V72', 'V73', 'V74', 'V75', 'V76', 'V77', 'K17_RAIL900'].includes(version) && (!Array.isArray(json.scenes[sceneIndex]?.nodes) ||
         !samePath(json.scenes[sceneIndex].nodes, scene.rootNodes))) ||
       def?.mesh !== part.mesh || def?.name !== part.name ||
       !scene.paths[source.index]?.some(path => samePath(path, source.path)) ||
@@ -580,10 +581,10 @@ export function resolveBuildingPartLayerBindings(input) {
       sourceNodePath: [...source.path], sceneIndex,
       sourceSha256: String(loadedSourceSha256).toLowerCase(),
       sourceLinks: hierarchy.nodes[sourceNodeIndex]?.extras?.sourceLinks ?? [],
-      objectKey: scope?.objectKey ?? `${sha === V76_SOURCE_SHA256 ? 'V76' : sha === V75_SOURCE_SHA256 ? 'V75' : sha === V74_SOURCE_SHA256 ? 'V74' : sha === V73_SOURCE_SHA256 ? 'V73' : sha === V72_SOURCE_SHA256 ? 'V72' : sha === V71_SOURCE_SHA256 ? 'V71' : sha === V69P12R1_SOURCE_SHA256 ? 'V69P12R1' : sha === K17_RAIL900_SOURCE_SHA256 ? 'K17_RAIL900' : sha === V69_SOURCE_SHA256 ? 'V69' : sha === V68_SOURCE_SHA256 ? 'V68' : sha === V67_SOURCE_SHA256 ? 'V67' : String(loadedSourceSha256).toLowerCase() === V35_HL1_DONOR_SHA256 ? 'V35_HL1_DONOR' : String(loadedSourceSha256).toLowerCase() === V35_SOURCE_SHA256 ? 'V35' : String(loadedSourceSha256).toLowerCase() === V34_SOURCE_SHA256 ? 'V34' : String(loadedSourceSha256).toLowerCase() === V33_SOURCE_SHA256 ? 'V33' : String(loadedSourceSha256).toLowerCase() === V29_SOURCE_SHA256 ? 'V29' : String(loadedSourceSha256).toLowerCase() === V27_SOURCE_SHA256 ? 'V27' : 'V26'}:${sceneIndex}:${sourceNodeIndex}`,
+      objectKey: scope?.objectKey ?? `${sha === V77_SOURCE_SHA256 ? 'V77' : sha === V76_SOURCE_SHA256 ? 'V76' : sha === V75_SOURCE_SHA256 ? 'V75' : sha === V74_SOURCE_SHA256 ? 'V74' : sha === V73_SOURCE_SHA256 ? 'V73' : sha === V72_SOURCE_SHA256 ? 'V72' : sha === V71_SOURCE_SHA256 ? 'V71' : sha === V69P12R1_SOURCE_SHA256 ? 'V69P12R1' : sha === K17_RAIL900_SOURCE_SHA256 ? 'K17_RAIL900' : sha === V69_SOURCE_SHA256 ? 'V69' : sha === V68_SOURCE_SHA256 ? 'V68' : sha === V67_SOURCE_SHA256 ? 'V67' : String(loadedSourceSha256).toLowerCase() === V35_HL1_DONOR_SHA256 ? 'V35_HL1_DONOR' : String(loadedSourceSha256).toLowerCase() === V35_SOURCE_SHA256 ? 'V35' : String(loadedSourceSha256).toLowerCase() === V34_SOURCE_SHA256 ? 'V34' : String(loadedSourceSha256).toLowerCase() === V33_SOURCE_SHA256 ? 'V33' : String(loadedSourceSha256).toLowerCase() === V29_SOURCE_SHA256 ? 'V29' : String(loadedSourceSha256).toLowerCase() === V27_SOURCE_SHA256 ? 'V27' : 'V26'}:${sceneIndex}:${sourceNodeIndex}`,
       storeyScope: scope?.storeyScope ?? floor,
       apartmentScope: scope?.apartmentScope ?? 'D',
-      bindingKind: verifiedLillangen ? verifiedLillangen.bindingKind : splitPart ? 'EXACT_V35_HL1_WC_SPLIT_DONOR_PROFILE' : profile ? (sha === V76_SOURCE_SHA256 ? 'EXACT_V76_V71_PLUS_K17_STAIR900_PROFILE' : sha === V75_SOURCE_SHA256 ? 'EXACT_V75_INHERITED_V71_PROFILE' : sha === V74_SOURCE_SHA256 ? 'EXACT_V74_INHERITED_V71_PROFILE' : sha === V73_SOURCE_SHA256 ? 'EXACT_V73_INHERITED_V71_PROFILE' : sha === V72_SOURCE_SHA256 ? 'EXACT_V72_INHERITED_V71_PROFILE' : sha === V71_SOURCE_SHA256 ? 'EXACT_V71_INHERITED_V69P12R1_PROFILE' : sha === V69P12R1_SOURCE_SHA256 ? 'EXACT_V69P12R1_INHERITED_V69_PROFILE' : sha === K17_RAIL900_SOURCE_SHA256 ? 'EXACT_K17_RAIL900_SOURCE_PROFILE' : sha === V69_SOURCE_SHA256 ? 'EXACT_V69_SOURCE_PROFILE' : sha === V68_SOURCE_SHA256 ? 'EXACT_V68_SOURCE_PROFILE' : sha === V67_SOURCE_SHA256 ? 'EXACT_V67_SOURCE_PROFILE' : sha === V35_HL1_DONOR_SHA256 ? 'INHERITED_V35_HL1_DONOR_PROFILE' : String(loadedSourceSha256).toLowerCase() === V35_SOURCE_SHA256 ? 'EXACT_V35_SOURCE_PROFILE' : String(loadedSourceSha256).toLowerCase() === V34_SOURCE_SHA256 ? 'EXACT_V34_SOURCE_PROFILE' : String(loadedSourceSha256).toLowerCase() === V33_SOURCE_SHA256 ? 'EXACT_V33_SOURCE_PROFILE' : String(loadedSourceSha256).toLowerCase() === V29_SOURCE_SHA256 ? 'EXACT_V29_SOURCE_PROFILE' : String(loadedSourceSha256).toLowerCase() === V27_SOURCE_SHA256 ? 'EXACT_V27_SOURCE_PROFILE' : 'EXACT_V26_SOURCE_PROFILE') : 'EXPLICIT_SOURCE_METADATA',
+      bindingKind: verifiedLillangen ? verifiedLillangen.bindingKind : splitPart ? 'EXACT_V35_HL1_WC_SPLIT_DONOR_PROFILE' : profile ? (sha === V77_SOURCE_SHA256 ? 'EXACT_V77_INHERITED_V76_PROFILE' : sha === V76_SOURCE_SHA256 ? 'EXACT_V76_V71_PLUS_K17_STAIR900_PROFILE' : sha === V75_SOURCE_SHA256 ? 'EXACT_V75_INHERITED_V71_PROFILE' : sha === V74_SOURCE_SHA256 ? 'EXACT_V74_INHERITED_V71_PROFILE' : sha === V73_SOURCE_SHA256 ? 'EXACT_V73_INHERITED_V71_PROFILE' : sha === V72_SOURCE_SHA256 ? 'EXACT_V72_INHERITED_V71_PROFILE' : sha === V71_SOURCE_SHA256 ? 'EXACT_V71_INHERITED_V69P12R1_PROFILE' : sha === V69P12R1_SOURCE_SHA256 ? 'EXACT_V69P12R1_INHERITED_V69_PROFILE' : sha === K17_RAIL900_SOURCE_SHA256 ? 'EXACT_K17_RAIL900_SOURCE_PROFILE' : sha === V69_SOURCE_SHA256 ? 'EXACT_V69_SOURCE_PROFILE' : sha === V68_SOURCE_SHA256 ? 'EXACT_V68_SOURCE_PROFILE' : sha === V67_SOURCE_SHA256 ? 'EXACT_V67_SOURCE_PROFILE' : sha === V35_HL1_DONOR_SHA256 ? 'INHERITED_V35_HL1_DONOR_PROFILE' : String(loadedSourceSha256).toLowerCase() === V35_SOURCE_SHA256 ? 'EXACT_V35_SOURCE_PROFILE' : String(loadedSourceSha256).toLowerCase() === V34_SOURCE_SHA256 ? 'EXACT_V34_SOURCE_PROFILE' : String(loadedSourceSha256).toLowerCase() === V33_SOURCE_SHA256 ? 'EXACT_V33_SOURCE_PROFILE' : String(loadedSourceSha256).toLowerCase() === V29_SOURCE_SHA256 ? 'EXACT_V29_SOURCE_PROFILE' : String(loadedSourceSha256).toLowerCase() === V27_SOURCE_SHA256 ? 'EXACT_V27_SOURCE_PROFILE' : 'EXACT_V26_SOURCE_PROFILE') : 'EXPLICIT_SOURCE_METADATA',
     });
   });
   return {

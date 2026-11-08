@@ -194,3 +194,14 @@ test('V76 profile replaces only the old stair roots with the K17 900 mm stair an
   }
   assert.equal(v76.V76_BUILDING_PARTS[10538].name, 'K17_RAIL_HANDRAIL_FITTED_TO_900MM_STAIR');
 });
+
+test('V77 profile reuses V76 roots and paths under its own scene names and SHA', async () => {
+  const v76 = await import('../../src/scripts/privateModelC80R2V76LayerSourceProfile.mjs');
+  const v77 = await import('../../src/scripts/privateModelC80R2V77LayerSourceProfile.mjs');
+  assert.equal(v77.V77_SOURCE_SHA256, 'f2332d26637187871b20e52b6d4251b80325db47df87b82f39c5e382312aa9df');
+  for (const index of [295, 296, 297]) {
+    assert.deepEqual(v77.V77_BUILDING_SCENES[index].rootNodes, v76.V76_BUILDING_SCENES[index].rootNodes);
+    assert.deepEqual(v77.V77_BUILDING_SCENES[index].paths, v76.V76_BUILDING_SCENES[index].paths);
+    assert.match(v77.V77_BUILDING_SCENES[index].name, /^C80R2_V77_K17_STAIR900_NWALL110_(1F|2F|BOTH)_WORK_TEST_HOST_HOLD_20261108$/);
+  }
+});
