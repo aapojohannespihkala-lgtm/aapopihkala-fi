@@ -5,7 +5,7 @@
  */
 export const viewerFrameProfilerStages = [
   'scope', 'corrections', 'layers', 'resize', 'controls',
-  'pixelPins', 'selection', 'labels', 'gizmo', 'render',
+  'pixelPins', 'selection', 'labels', 'gizmo', 'latePins', 'render',
 ] as const;
 
 export type ViewerFrameProfilerStage = typeof viewerFrameProfilerStages[number];
