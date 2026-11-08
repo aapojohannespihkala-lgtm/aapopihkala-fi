@@ -4,6 +4,7 @@ import { BoxGeometry, Group, Mesh, MeshBasicMaterial, Scene } from 'three';
 import {
   createTechnicalSystemLayerInventory,
   createTechnicalSystemPresentation,
+  m5System,
   type TechnicalSourceNode,
   type TechnicalSystemsContext,
   V26_TECHNICAL_SOURCE_SHA256,
@@ -55,7 +56,7 @@ test('HI20 scene without explicit system metadata reports unavailable technical 
     viewerScope: 'd-2f', allowSourceOnly: true, allowHistoricalPlans: true,
   });
   expect(item.bridgeBindings).toHaveLength(0);
-  expect(item.summary).toHaveLength(8);
+  expect(item.summary).toHaveLength(10);
   expect(item.summary.every((entry) => entry.reason === 'NO_OBJECTS_IN_SCENE')).toBe(true);
   expect(item.summary.every((entry) => entry.currentInstallationVerified === false)).toBe(true);
 });
@@ -424,3 +425,16 @@ for (const model of [
   expect(createTechnicalSystemLayerInventory(f.context).bridgeBindings).toHaveLength(0);
 });
 
+
+test('M5 integration routes split into Talotekniikka groups by builder names', () => {
+  for (const [name, id] of [
+    ['M5_IV2015_D1F_SK1_TRANSFER_GRILLE_002_C80_YUP_NEWVISIBLE_REF_FROM_NODE453', 'technical-ventilation'],
+    ['C80_KV17_IV15_OPTIN__D1F_HOST_XMIRROR_IV15_D1F_AV1_125_INLINE_TUBE', 'technical-ventilation'],
+    ['V75_D5_D2F_KITCHEN_SINK_TO_V75', 'technical-drainage'],
+    ['M5_WW2015_D2F_C80_WC1_SOURCE_EXACT_T110_VENT_HOSTX_EXISTING_DONOR_GEOMETRY', 'technical-drainage'],
+    ['V75_W4_D2F_KITCHEN_SINK_KV_LV', 'technical-water'],
+    ['D1F_NEW_P210_214_NORTH_CURVE', 'technical-water'],
+    ['KV2015_D2F_WC1_LVV_KV12_P185C_HOST_XMIRROR_OPEN', 'technical-water'],
+    ['V72R_N_RK14_14_1_FULL_CONTINUOUS_PORTFIT', 'technical-electrical'],
+  ] as const) expect(m5System(name), name).toBe(id);
+});

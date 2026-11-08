@@ -415,6 +415,8 @@ const legacyVisibilityFields = {
   'technical-ventilation': 'technicalVentilationVisible',
   'technical-heating': 'technicalHeatingVisible',
   'technical-electrical': 'technicalElectricalVisible',
+  'technical-water': 'technicalWaterVisible',
+  'technical-drainage': 'technicalDrainageVisible',
   roof: 'roofVisible',
   locus: 'locusVisible',
   'locus-water': 'locusWaterVisible',

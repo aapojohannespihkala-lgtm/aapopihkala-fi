@@ -216,3 +216,62 @@ test('V78 profile reuses V77 roots and paths under its own scene names and SHA',
     assert.match(v78.V78_BUILDING_SCENES[index].name, /^C80R2_V78_ZFIGHT_CEIL_FIX_(1F|2F|BOTH)_WORK_TEST_HOST_HOLD_20261108$/);
   }
 });
+
+test('V79 profile drops old kitchen duplicates and the NE eave closure, adds balcony glass roots', async () => {
+  const v79 = await import('../../src/scripts/privateModelC80R2V79LayerSourceProfile.mjs');
+  assert.equal(v79.V79_SOURCE_SHA256, '77cfe743ff8a190944bdf91c0e4e6ee6b81384cbecad6bb17882326a0f890cc4');
+  for (const index of [295, 296, 297]) {
+    const scene = v79.V79_BUILDING_SCENES[index];
+    assert.match(scene.name, /^C80R2_V79_OWNER_FIXES_(1F|2F|BOTH)_WORK_TEST_HOST_HOLD_20261108$/);
+    for (const removed of [7748, 7766, 9259]) assert.ok(!scene.rootNodes.includes(removed));
+    for (const [node, paths] of Object.entries(scene.paths)) {
+      assert.ok(v79.V79_BUILDING_PARTS[node]);
+      for (const path of paths) assert.ok(scene.rootNodes.includes(path[0]) && path.at(-1) === Number(node));
+    }
+  }
+  for (const index of [296, 297]) assert.ok(v79.V79_BUILDING_SCENES[index].rootNodes.includes(10555));
+});
+
+test('V80 profile swaps the legacy terrace window roots for the C80-012 V4 window', async () => {
+  const v80 = await import('../../src/scripts/privateModelC80R2V80LayerSourceProfile.mjs');
+  assert.equal(v80.V80_SOURCE_SHA256, '3b2916a1d439b88878685b035121f6ad3aeee85e55ef74dab20e80a943ebaeab');
+  for (const index of [295, 297]) {
+    const scene = v80.V80_BUILDING_SCENES[index];
+    for (const legacy of [7649, 7650, 7659]) assert.ok(!scene.rootNodes.includes(legacy));
+    assert.ok(scene.rootNodes.includes(10563) && scene.rootNodes.includes(8843));
+  }
+  for (const index of [295, 296, 297]) {
+    const scene = v80.V80_BUILDING_SCENES[index];
+    assert.match(scene.name, /^C80R2_V80_GPT_FIXES_(1F|2F|BOTH)_WORK_TEST_HOST_HOLD_20261108$/);
+    for (const [node, paths] of Object.entries(scene.paths)) for (const path of paths) assert.ok(scene.rootNodes.includes(path[0]) && path.at(-1) === Number(node));
+  }
+});
+
+test('V81 profile carries the owner fixes: stairwell infill, balcony slab, 1F reference soffit, no hidden BOTH posts', async () => {
+  const v81 = await import('../../src/scripts/privateModelC80R2V81LayerSourceProfile.mjs');
+  assert.equal(v81.V81_SOURCE_SHA256, 'f57a11cb2dab3b92dc02e11842821c4b940e9225bc9133fe7e7a6979198d5ccd');
+  assert.equal(v81.V81_BUILDING_PARTS[10658].id, 'architecture-walls-interior');
+  assert.equal(v81.V81_BUILDING_PARTS[10659].id, 'architecture-floors');
+  for (const index of [295, 296, 297]) assert.ok(v81.V81_BUILDING_SCENES[index].rootNodes.includes(10658));
+  assert.ok(v81.V81_BUILDING_SCENES[295].rootNodes.includes(10660) && !v81.V81_BUILDING_SCENES[295].rootNodes.includes(9276));
+  assert.ok(v81.V81_BUILDING_SCENES[297].rootNodes.includes(9276) && !v81.V81_BUILDING_SCENES[297].rootNodes.includes(6727));
+  for (const post of [9357, 9359, 9361, 9363]) assert.ok(!v81.V81_BUILDING_SCENES[297].rootNodes.includes(post));
+  for (const index of [295, 296, 297]) {
+    const scene = v81.V81_BUILDING_SCENES[index];
+    assert.match(scene.name, /^C80R2_V81_OWNER_FIXES2_(1F|2F|BOTH)_WORK_TEST_HOST_HOLD_20261108$/);
+    for (const [node, paths] of Object.entries(scene.paths)) for (const path of paths) assert.ok(scene.rootNodes.includes(path[0]) && path.at(-1) === Number(node));
+  }
+});
+
+test('V82 profile keeps V81 parts and renames the sauna scenes', async () => {
+  const v82 = await import('../../src/scripts/privateModelC80R2V82LayerSourceProfile.mjs');
+  const v81 = await import('../../src/scripts/privateModelC80R2V81LayerSourceProfile.mjs');
+  assert.equal(v82.V82_SOURCE_SHA256, 'd027eb4689f3dfda5a401dbb510253dbc197cf3b11dfbba5cadd1eca180ea8b8');
+  assert.equal(v82.V82_BUILDING_PARTS, v81.V81_BUILDING_PARTS);
+  for (const index of [295, 297]) for (const root of [10755, 10761]) assert.ok(v82.V82_BUILDING_SCENES[index].rootNodes.includes(root));
+  for (const index of [295, 296, 297]) {
+    const scene = v82.V82_BUILDING_SCENES[index];
+    assert.match(scene.name, /^C80R2_V82_SAUNA_V29U_V35_(1F|2F|BOTH)_WORK_TEST_HOST_HOLD_20261108$/);
+    for (const [node, paths] of Object.entries(scene.paths)) for (const path of paths) assert.ok(scene.rootNodes.includes(path[0]) && path.at(-1) === Number(node));
+  }
+});

@@ -6,6 +6,10 @@ import { V75_SOURCE_SHA256, V75_SOURCE_SCENE_COUNT, V75_FLOORS, V75_BUILDING_SCE
 import { V76_SOURCE_SHA256, V76_SOURCE_SCENE_COUNT, V76_FLOORS, V76_BUILDING_SCENES, V76_TECHNICAL_REVIEW_ROOTS } from './privateModelC80R2V76LayerSourceProfile.mjs';
 import { V77_SOURCE_SHA256, V77_SOURCE_SCENE_COUNT, V77_FLOORS, V77_BUILDING_SCENES, V77_TECHNICAL_REVIEW_ROOTS } from './privateModelC80R2V77LayerSourceProfile.mjs';
 import { V78_SOURCE_SHA256, V78_SOURCE_SCENE_COUNT, V78_FLOORS, V78_BUILDING_SCENES, V78_TECHNICAL_REVIEW_ROOTS } from './privateModelC80R2V78LayerSourceProfile.mjs';
+import { V79_SOURCE_SHA256, V79_SOURCE_SCENE_COUNT, V79_FLOORS, V79_BUILDING_SCENES, V79_TECHNICAL_REVIEW_ROOTS } from './privateModelC80R2V79LayerSourceProfile.mjs';
+import { V80_SOURCE_SHA256, V80_SOURCE_SCENE_COUNT, V80_FLOORS, V80_BUILDING_SCENES, V80_TECHNICAL_REVIEW_ROOTS } from './privateModelC80R2V80LayerSourceProfile.mjs';
+import { V81_SOURCE_SHA256, V81_SOURCE_SCENE_COUNT, V81_FLOORS, V81_BUILDING_SCENES, V81_TECHNICAL_REVIEW_ROOTS } from './privateModelC80R2V81LayerSourceProfile.mjs';
+import { V82_SOURCE_SHA256, V82_SOURCE_SCENE_COUNT, V82_FLOORS, V82_BUILDING_SCENES, V82_TECHNICAL_REVIEW_ROOTS } from './privateModelC80R2V82LayerSourceProfile.mjs';
 
 /** Exact M5-integrated sources that carry technical review roots. */
 const REVIEW_SOURCES = Object.freeze({
@@ -17,6 +21,10 @@ const REVIEW_SOURCES = Object.freeze({
   [V76_SOURCE_SHA256]: { count: V76_SOURCE_SCENE_COUNT, floors: V76_FLOORS, scenes: V76_BUILDING_SCENES, roots: V76_TECHNICAL_REVIEW_ROOTS },
   [V77_SOURCE_SHA256]: { count: V77_SOURCE_SCENE_COUNT, floors: V77_FLOORS, scenes: V77_BUILDING_SCENES, roots: V77_TECHNICAL_REVIEW_ROOTS },
   [V78_SOURCE_SHA256]: { count: V78_SOURCE_SCENE_COUNT, floors: V78_FLOORS, scenes: V78_BUILDING_SCENES, roots: V78_TECHNICAL_REVIEW_ROOTS },
+  [V79_SOURCE_SHA256]: { count: V79_SOURCE_SCENE_COUNT, floors: V79_FLOORS, scenes: V79_BUILDING_SCENES, roots: V79_TECHNICAL_REVIEW_ROOTS },
+  [V80_SOURCE_SHA256]: { count: V80_SOURCE_SCENE_COUNT, floors: V80_FLOORS, scenes: V80_BUILDING_SCENES, roots: V80_TECHNICAL_REVIEW_ROOTS },
+  [V81_SOURCE_SHA256]: { count: V81_SOURCE_SCENE_COUNT, floors: V81_FLOORS, scenes: V81_BUILDING_SCENES, roots: V81_TECHNICAL_REVIEW_ROOTS },
+  [V82_SOURCE_SHA256]: { count: V82_SOURCE_SCENE_COUNT, floors: V82_FLOORS, scenes: V82_BUILDING_SCENES, roots: V82_TECHNICAL_REVIEW_ROOTS },
 });
 import { sameSourceName } from './privateModelSourceNodeAssociations.mjs';
 
@@ -28,7 +36,7 @@ import { sameSourceName } from './privateModelSourceNodeAssociations.mjs';
  * The GLB, source links, scene membership, visibility and camera are untouched.
  */
 
-/** Resolve exact technical roots of the active V71-V78 scene. Fails closed (null). */
+/** Resolve exact technical roots of the active V71-V82 scene. Fails closed (null). */
 export function resolveTechnicalReviewRoots(gltf, scene, sceneIndex, loadedSha, expectedSha) {
   const json = gltf?.parser?.json;
   const associations = gltf?.parser?.associations;
@@ -81,37 +89,52 @@ export function createTechnicalReviewPresentation(root, keepRoots, createMateria
     applied = false;
   };
 
+  const releasePalette = () => {
+    // Only these viewer-owned presentation materials may be disposed.
+    // The original GLB materials remain owned by the source loader.
+    const owned = materials;
+    materials = null;
+    owned?.surface?.dispose?.();
+    owned?.line?.dispose?.();
+    for (const material of Object.values(owned?.systems ?? {})) material?.dispose?.();
+  };
+
   const apply = on => {
     if (disposed) return false;
     if (!on) { restore(); return false; }
     if (applied) return true;
-    materials ??= createMaterials();
-    root.traverse(object => {
-      if (object === root || !isRenderable(object) || saved.has(object)) return;
-      let shared;
-      if (kept(object)) {
-        // Technical geometry is drawn in a clear system color so that it stays
-        // readable through the translucent grey building.
-        const highlight = object.isMesh ? materials.systems?.[systemOf(object) ?? ''] : null;
-        if (!highlight) return;
-        shared = highlight;
-      } else {
-        shared = object.isMesh ? materials.surface : materials.line;
-      }
-      saved.set(object, object.material);
-      object.material = Array.isArray(object.material) ? object.material.map(() => shared) : shared;
-    });
-    applied = true;
-    return true;
+    try {
+      materials ??= createMaterials();
+      root.traverse(object => {
+        if (object === root || !isRenderable(object) || saved.has(object)) return;
+        let shared;
+        if (kept(object)) {
+          // Technical geometry is drawn in a clear system color so that it stays
+          // readable through the translucent grey building.
+          const highlight = object.isMesh ? materials.systems?.[systemOf(object) ?? ''] : null;
+          if (!highlight) return;
+          shared = highlight;
+        } else {
+          shared = object.isMesh ? materials.surface : materials.line;
+        }
+        saved.set(object, object.material);
+        object.material = Array.isArray(object.material) ? object.material.map(() => shared) : shared;
+      });
+      applied = true;
+      return true;
+    } catch (error) {
+      // A late source classifier or material assignment can fail after earlier
+      // objects have been recolored. Never leave a partially presented scene
+      // or retain its temporary GPU palette after that failed attempt.
+      try { restore(); } finally { releasePalette(); }
+      throw error;
+    }
   };
 
   const dispose = () => {
     if (disposed) return;
     restore();
-    materials?.surface?.dispose?.();
-    materials?.line?.dispose?.();
-    for (const material of Object.values(materials?.systems ?? {})) material?.dispose?.();
-    materials = null;
+    releasePalette();
     disposed = true;
   };
 

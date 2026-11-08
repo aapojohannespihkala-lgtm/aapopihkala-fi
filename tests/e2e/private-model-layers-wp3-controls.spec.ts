@@ -25,7 +25,7 @@ const treeIds = [
   'architecture-walls-party', 'architecture-walls-interior', 'architecture-floors',
   'architecture-ceilings', 'roof', 'architecture-doors', 'architecture-windows',
   'architecture-fixtures', 'architecture-other', 'technical', 'technical-ventilation',
-  'technical-heating', 'technical-electrical', 'architecture-review-helpers',
+  'technical-heating', 'technical-electrical', 'technical-water', 'technical-drainage', 'architecture-review-helpers',
   'locus', 'locus-water', 'locus-wastewater', 'p161-kvv-2017',
   'p161-iv-1974-plan', 'p161-iv-1974-section',
 ];
