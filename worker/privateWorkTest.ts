@@ -4119,6 +4119,17 @@ const AUTO_YLISRINNE_C80R2_V73_M5_ANCHORED_ROUTES_ON_V71_WORK_TEST_HOST_HOLD_202
   expectedSha256: 'c84f087b8a5f8db0cd9dfb9a0eefec7e13328ca3dc84d46c5bbde1bf996e6e35',
 } as const satisfies PrivateWorkTestCandidate;
 
+// Auto-registered 2026-11-08 from Drive queue file 1uejJx8GjSfT84wzTE_uEqxyH95CPztSP
+// by auto-publish-work-test. WORK_TEST, never as-built.
+const AUTO_YLISRINNE_C80R2_V74_M5_HOSTED_ROUTES_ON_V71_WORK_TEST_HOST_HOLD_20261108_1UEJJX8G_CANDIDATE = {
+  id: 'auto-ylisrinne-c80r2-v74-m5-hosted-routes-on-v71-work-test-host-hold-20261108-1uejjx8g',
+  label: 'Auto: Ylisrinne C80R2 V74 M5 HOSTED ROUTES ON V71 WORK TEST HOST HOLD 20261108 (scene297) - WORK_TEST',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/auto-ylisrinne-c80r2-v74-m5-hosted-routes-on-v71-work-test-host-hold-20261108-1uejjx8g.glb`,
+  objectKey: 'work-test/auto-ylisrinne-c80r2-v74-m5-hosted-routes-on-v71-work-test-host-hold-20261108-1uejjx8g.glb',
+  expectedSize: 42685064,
+  expectedSha256: '76e737678c3c2d25484459eb7f192becfb1084fbdfc4ed1830ea852e8834ea1d',
+} as const satisfies PrivateWorkTestCandidate;
+
 const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
   V69P12R1_SINK_FAUCET_WORK_TEST_CANDIDATE,
   SIX6_RAIL900_WORK_TEST_CANDIDATE,
@@ -4449,6 +4460,7 @@ const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
   AUTO_YLISRINNE_C80R2_V69_INTEGRATED_V68_H3_FLOOR_H4_STORAGE_LAYERS_WORK_TEST_HOST_HOLD_20261104_1ZROPKZ2_CANDIDATE,
   AUTO_YLISRINNE_C80R2_V71_M5_INTEGRATED_ON_V69P12R1_WORK_TEST_HOST_HOLD_20261107_1XNA0IJW_CANDIDATE,
   AUTO_YLISRINNE_C80R2_V73_M5_ANCHORED_ROUTES_ON_V71_WORK_TEST_HOST_HOLD_20261108_1TOR07OQ_CANDIDATE,
+  AUTO_YLISRINNE_C80R2_V74_M5_HOSTED_ROUTES_ON_V71_WORK_TEST_HOST_HOLD_20261108_1UEJJX8G_CANDIDATE,
 ] as const satisfies readonly PrivateWorkTestCandidate[];
 
 type PrivateWorkTestObjectMetadata = {
