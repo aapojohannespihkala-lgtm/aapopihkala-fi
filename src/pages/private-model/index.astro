@@ -7086,11 +7086,11 @@ const title = 'Private 3D viewer';
       const clearP186dReviewRoomContextBridge = () => {
         if (!p186dReviewRoomContextGroup) return;
 
-        p186dReviewRoomContextGroup.traverse((object: any) => {
-          if (!object?.isMesh || !object.userData?.p186dReviewRoomContextBridge) return;
-          const materials = Array.isArray(object.material) ? object.material : [object.material];
-          for (const material of materials) material?.dispose?.();
-        });
+        // P186D bridges borrow the original room meshes' geometry AND material
+        // (see clone.geometry/material below). Their owner is the loaded GLB,
+        // not this temporary context group. Disposing a borrowed material here
+        // invalidates the still-live source mesh's GPU resource on every toggle.
+        // Only detach the viewer-owned group; do not dispose borrowed assets.
         p186dReviewRoomContextGroup.parent?.remove(p186dReviewRoomContextGroup);
         p186dReviewRoomContextGroup = null;
         delete canvas.dataset.p186dReviewRoomContextBridgeCount;
