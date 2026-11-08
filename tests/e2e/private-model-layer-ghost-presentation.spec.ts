@@ -488,7 +488,7 @@ test('ghost cache invalidates for selection, geometry and hidden-descendant chan
   root.add(mesh, group);
   const adapter = createViewerLayerGhostPresentation(root);
   let selected = false;
-  const options = { isSelected: (object: Mesh | LineSegments | Points) => selected && object === mesh };
+  const options = { isSelected: (object: unknown) => selected && object === mesh };
   adapter.apply('ghost', options);
   const material0 = mesh.material;
   const outline0 = mesh.children[0];
