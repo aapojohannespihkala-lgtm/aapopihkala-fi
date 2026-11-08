@@ -4240,6 +4240,28 @@ const AUTO_YLISRINNE_C80R2_V84_D2F_KITCHEN_MEAS_ON_V71_WORK_TEST_HOST_HOLD_20261
   expectedSha256: '6cac4a3b91323043e1a700678c95ac19aa602b783b77f4c1426e613312f55e51',
 } as const satisfies PrivateWorkTestCandidate;
 
+// Auto-registered 2026-11-08 from Drive queue file 1nl4APkYtxnElowXEuBIc3cEuOtYcPUg7
+// by auto-publish-work-test. WORK_TEST, never as-built.
+const AUTO_YLISRINNE_M5_IV2015_E220S_ONEBORE_ISOLATED_REVIEW_LEAN_R3_SOURCELINKS_WORK_TEST_HOST_HOLD_20261108_1NL4APKY_CANDIDATE = {
+  id: 'auto-ylisrinne-m5-iv2015-e220s-onebore-isolated-review-lean-r3-sourcelinks-work-test-host-hold-20261108-1nl4apky',
+  label: 'Auto: Ylisrinne M5 IV2015 E220S ONEBORE ISOLATED REVIEW LEAN R3 SOURCELINKS WORK TEST HOST HOLD 20261108 (scene8) - WORK_TEST',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/auto-ylisrinne-m5-iv2015-e220s-onebore-isolated-review-lean-r3-sourcelinks-work-test-host-hold-20261108-1nl4apky.glb`,
+  objectKey: 'work-test/auto-ylisrinne-m5-iv2015-e220s-onebore-isolated-review-lean-r3-sourcelinks-work-test-host-hold-20261108-1nl4apky.glb',
+  expectedSize: 238964,
+  expectedSha256: 'd56b4692599eef57d4c88823a3fe75fdae140158a65530dccd39f06732297e5c',
+} as const satisfies PrivateWorkTestCandidate;
+
+// Auto-registered 2026-11-08 from Drive queue file 1WX8f11v-xWGloh1WNUehzrXuwxJbhkl3
+// by auto-publish-work-test. WORK_TEST, never as-built.
+const AUTO_YLISRINNE_C80R2_V85_OWNER_FIXES4_ON_V71_WORK_TEST_HOST_HOLD_20261108_1WX8F11V_CANDIDATE = {
+  id: 'auto-ylisrinne-c80r2-v85-owner-fixes4-on-v71-work-test-host-hold-20261108-1wx8f11v',
+  label: 'Auto: Ylisrinne C80R2 V85 OWNER FIXES4 ON V71 WORK TEST HOST HOLD 20261108 (scene297) - WORK_TEST',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/auto-ylisrinne-c80r2-v85-owner-fixes4-on-v71-work-test-host-hold-20261108-1wx8f11v.glb`,
+  objectKey: 'work-test/auto-ylisrinne-c80r2-v85-owner-fixes4-on-v71-work-test-host-hold-20261108-1wx8f11v.glb',
+  expectedSize: 46454268,
+  expectedSha256: 'a2e5e2d12574cbb4312ce829cb1ad6e50477e51c7d422bf7464e013b223b3ccb',
+} as const satisfies PrivateWorkTestCandidate;
+
 const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
   V69P12R1_SINK_FAUCET_WORK_TEST_CANDIDATE,
   SIX6_RAIL900_WORK_TEST_CANDIDATE,
@@ -4581,6 +4603,8 @@ const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
   AUTO_YLISRINNE_C80R2_V82_SAUNA_V29U_V35_ON_V71_WORK_TEST_HOST_HOLD_20261108_1JWDDU3Z_CANDIDATE,
   AUTO_YLISRINNE_C80R2_V83_OWNER_FIXES3_ON_V71_WORK_TEST_HOST_HOLD_20261108_1QNCB7MY_CANDIDATE,
   AUTO_YLISRINNE_C80R2_V84_D2F_KITCHEN_MEAS_ON_V71_WORK_TEST_HOST_HOLD_20261108_1KFKJZFD_CANDIDATE,
+  AUTO_YLISRINNE_M5_IV2015_E220S_ONEBORE_ISOLATED_REVIEW_LEAN_R3_SOURCELINKS_WORK_TEST_HOST_HOLD_20261108_1NL4APKY_CANDIDATE,
+  AUTO_YLISRINNE_C80R2_V85_OWNER_FIXES4_ON_V71_WORK_TEST_HOST_HOLD_20261108_1WX8F11V_CANDIDATE,
 ] as const satisfies readonly PrivateWorkTestCandidate[];
 
 type PrivateWorkTestObjectMetadata = {
