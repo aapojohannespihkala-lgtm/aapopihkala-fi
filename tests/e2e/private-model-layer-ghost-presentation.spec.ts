@@ -525,7 +525,7 @@ test('ghost cache invalidates for selection, geometry and hidden-descendant chan
 
 test('ghost cache detects source emissive color and intensity changes without mutating source ownership', () => {
   const source = new MeshStandardMaterial({ color: 0x556677, emissive: 0x000000, emissiveIntensity: 1 });
-  const mesh = makeMesh(source);
+  const mesh = new Mesh(new BoxGeometry(1, 1, 1), source);
   const root = new Group();
   root.add(mesh);
   const adapter = createViewerLayerGhostPresentation(root);
