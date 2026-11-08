@@ -1,4 +1,11 @@
 import { V71_SOURCE_SHA256, V71_SOURCE_SCENE_COUNT, V71_FLOORS, V71_BUILDING_SCENES, V71_TECHNICAL_REVIEW_ROOTS } from './privateModelC80R2V71LayerSourceProfile.mjs';
+import { V72_SOURCE_SHA256, V72_SOURCE_SCENE_COUNT, V72_FLOORS, V72_BUILDING_SCENES, V72_TECHNICAL_REVIEW_ROOTS } from './privateModelC80R2V72LayerSourceProfile.mjs';
+
+/** Exact M5-integrated sources that carry technical review roots. */
+const REVIEW_SOURCES = Object.freeze({
+  [V71_SOURCE_SHA256]: { count: V71_SOURCE_SCENE_COUNT, floors: V71_FLOORS, scenes: V71_BUILDING_SCENES, roots: V71_TECHNICAL_REVIEW_ROOTS },
+  [V72_SOURCE_SHA256]: { count: V72_SOURCE_SCENE_COUNT, floors: V72_FLOORS, scenes: V72_BUILDING_SCENES, roots: V72_TECHNICAL_REVIEW_ROOTS },
+});
 import { sameSourceName } from './privateModelSourceNodeAssociations.mjs';
 
 /**
@@ -9,17 +16,18 @@ import { sameSourceName } from './privateModelSourceNodeAssociations.mjs';
  * The GLB, source links, scene membership, visibility and camera are untouched.
  */
 
-/** Resolve exact technical roots of the active V71 scene. Fails closed (null). */
+/** Resolve exact technical roots of the active V71/V72 scene. Fails closed (null). */
 export function resolveTechnicalReviewRoots(gltf, scene, sceneIndex, loadedSha, expectedSha) {
   const json = gltf?.parser?.json;
   const associations = gltf?.parser?.associations;
-  const profile = V71_TECHNICAL_REVIEW_ROOTS[sceneIndex];
-  const sceneProfile = V71_BUILDING_SCENES[sceneIndex];
+  const source = Object.hasOwn(REVIEW_SOURCES, loadedSha) ? REVIEW_SOURCES[loadedSha] : null;
+  const profile = source?.roots[sceneIndex];
+  const sceneProfile = source?.scenes[sceneIndex];
   const extras = json?.asset?.extras;
-  if (!profile || !sceneProfile || loadedSha !== V71_SOURCE_SHA256 || expectedSha !== loadedSha ||
-      json?.scenes?.length !== V71_SOURCE_SCENE_COUNT || gltf?.scenes?.[sceneIndex] !== scene ||
+  if (!profile || !sceneProfile || expectedSha !== loadedSha ||
+      json?.scenes?.length !== source.count || gltf?.scenes?.[sceneIndex] !== scene ||
       extras?.current !== false || extras?.asBuilt !== false ||
-      !Object.entries(V71_FLOORS).every(([floor, index]) => extras?.viewerFloorScenes?.[floor] === index) ||
+      !Object.entries(source.floors).every(([floor, index]) => extras?.viewerFloorScenes?.[floor] === index) ||
       json.scenes[sceneIndex]?.name !== sceneProfile.name ||
       typeof associations?.get !== 'function' || !Array.isArray(scene?.children)) return null;
   const sourceRoots = json.scenes[sceneIndex].nodes;

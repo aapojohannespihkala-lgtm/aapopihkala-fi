@@ -122,3 +122,30 @@ test('kept technical meshes get their system highlight and are restored', () => 
   review.apply(false);
   assert.equal(cable.material, cableMaterial);
 });
+
+test('V72 reuses V71 scene roots under renamed scenes and resolves its exact technical roots', async () => {
+  const v72 = await import('../../src/scripts/privateModelC80R2V72LayerSourceProfile.mjs');
+  assert.equal(v72.V72_SOURCE_SCENE_COUNT, V71_SOURCE_SCENE_COUNT);
+  assert.deepEqual({ ...v72.V72_FLOORS }, { ...V71_FLOORS });
+  for (const index of [295, 296, 297]) {
+    assert.deepEqual(v72.V72_BUILDING_SCENES[index].rootNodes, V71_BUILDING_SCENES[index].rootNodes);
+    assert.match(v72.V72_BUILDING_SCENES[index].name, /^C80R2_V72_M5_CONCEALED_ROUTES_(1F|2F|BOTH)_WORK_TEST_HOST_HOLD_20261108$/);
+  }
+  const sceneIndex = 296;
+  const scene = node('Scene');
+  const associations = new Map();
+  const nodes = [];
+  const jsonScenes = Array.from({ length: 298 }, () => ({ nodes: [] }));
+  jsonScenes[sceneIndex] = { name: v72.V72_BUILDING_SCENES[sceneIndex].name, nodes: [] };
+  for (const { node: index, name } of v72.V72_TECHNICAL_REVIEW_ROOTS[sceneIndex]) {
+    nodes[index] = { name };
+    jsonScenes[sceneIndex].nodes.push(index);
+    const object = node(name);
+    scene.add(object);
+    associations.set(object, { nodes: index });
+  }
+  const gltf = { scenes: Object.assign([], { [sceneIndex]: scene }), parser: { associations, json: {
+    scenes: jsonScenes, nodes, asset: { extras: { current: false, asBuilt: false, viewerFloorScenes: { ...v72.V72_FLOORS } } } } } };
+  assert.equal(resolveTechnicalReviewRoots(gltf, scene, sceneIndex, v72.V72_SOURCE_SHA256, v72.V72_SOURCE_SHA256)?.length, 1);
+  assert.equal(resolveTechnicalReviewRoots(gltf, scene, sceneIndex, V71_SOURCE_SHA256, V71_SOURCE_SHA256), null, 'V71 scene name does not match V72 scene');
+});
