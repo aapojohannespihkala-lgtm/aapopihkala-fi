@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { BoxGeometry, BufferGeometry, Group, LineBasicMaterial, LineSegments, Mesh, MeshBasicMaterial, Plane, Points, PointsMaterial, Raycaster, Vector3 } from 'three';
+import { BoxGeometry, BufferGeometry, Group, LineBasicMaterial, LineSegments, Mesh, MeshBasicMaterial, MeshStandardMaterial, Plane, Points, PointsMaterial, Raycaster, Vector3 } from 'three';
 import { createViewerLayerGhostPresentation } from '../../src/scripts/privateModelLayerGhostPresentation';
 
 const makeMesh = (material = new MeshBasicMaterial()) =>
@@ -433,4 +433,131 @@ test('point clone failure rolls back an earlier ghost line and hides the source 
   expect(route.raycast).toBe(originalRaycast);
   expect(markers.material).toBe(badMaterial);
   adapter.dispose();
+});
+
+
+test('identical ghost refresh reuses derived material and edges without GPU disposal churn', () => {
+  const source = new MeshBasicMaterial({ transparent: true, opacity: 0.35, color: 0x123456 });
+  const mesh = makeMesh(source);
+  const root = new Group();
+  root.add(mesh);
+  const adapter = createViewerLayerGhostPresentation(root);
+  const options = { opacity: 0.17, isSelected: () => false };
+  expect(adapter.apply('ghost', options)).toBe('ghost');
+  const material = mesh.material as MeshBasicMaterial;
+  const outline = mesh.children[0] as LineSegments;
+  const geometry = outline.geometry;
+  let materialDisposals = 0, edgeDisposals = 0;
+  material.addEventListener('dispose', () => materialDisposals++);
+  geometry.addEventListener('dispose', () => edgeDisposals++);
+
+  for (let i = 0; i < 12; i++) {
+    expect(adapter.apply('ghost', { opacity: 0.17, isSelected: () => false })).toBe('ghost');
+    expect(mesh.material).toBe(material);
+    expect(mesh.children[0]).toBe(outline);
+  }
+  expect(materialDisposals).toBe(0);
+  expect(edgeDisposals).toBe(0);
+  expect(mesh.material).not.toBe(source);
+  expect(source.visible).toBe(true);
+
+  // A real source color change must rebuild, not keep an outdated ghost.
+  source.color.setHex(0xff0000);
+  expect(adapter.apply('ghost', options)).toBe('ghost');
+  expect(mesh.material).not.toBe(material);
+  expect(mesh.children[0]).not.toBe(outline);
+  expect(materialDisposals).toBe(1);
+  expect(edgeDisposals).toBe(1);
+
+  const changed = mesh.material as MeshBasicMaterial;
+  const nextOutline = mesh.children[0];
+  adapter.apply('ghost', { opacity: 0.25, isSelected: () => false });
+  expect(mesh.material).not.toBe(changed);
+  expect(mesh.children[0]).not.toBe(nextOutline);
+  adapter.dispose();
+  expect(mesh.material).toBe(source);
+  expect(mesh.children).toHaveLength(0);
+});
+
+test('ghost cache invalidates for selection, geometry and hidden-descendant changes', () => {
+  const root = new Group();
+  const source = new MeshBasicMaterial({ transparent: true, opacity: 0.25 });
+  const mesh = makeMesh(source);
+  const group = new Group(), second = makeMesh(new MeshBasicMaterial());
+  const secondSourceMaterial = second.material;
+  group.add(second);
+  root.add(mesh, group);
+  const adapter = createViewerLayerGhostPresentation(root);
+  let selected = false;
+  const options = { isSelected: (object: unknown) => selected && object === mesh };
+  adapter.apply('ghost', options);
+  const material0 = mesh.material;
+  const outline0 = mesh.children[0];
+  adapter.apply('ghost', options);
+  expect(mesh.material).toBe(material0);
+  expect(mesh.children[0]).toBe(outline0);
+
+  selected = true;
+  adapter.apply('ghost', options);
+  expect(mesh.material).toBe(source);
+  expect(mesh.children).toHaveLength(0);
+  selected = false;
+  adapter.apply('ghost', options);
+  expect(mesh.material).not.toBe(source);
+  const material1 = mesh.material;
+
+  const replacementGeometry = new BoxGeometry(2, 2, 2);
+  mesh.geometry = replacementGeometry;
+  adapter.apply('ghost', options);
+  expect(mesh.material).not.toBe(material1);
+  expect(mesh.children).toHaveLength(1);
+
+  group.visible = false;
+  adapter.apply('ghost', options);
+  expect(second.material).toBe(secondSourceMaterial);
+  group.visible = true;
+  adapter.apply('ghost', options);
+  expect(second.material).not.toBe(secondSourceMaterial);
+  adapter.dispose();
+  expect(mesh.material).toBe(source);
+  expect(second.material).toBe(secondSourceMaterial);
+});
+
+test('ghost cache detects source emissive color and intensity changes without mutating source ownership', () => {
+  const source = new MeshStandardMaterial({ color: 0x556677, emissive: 0x000000, emissiveIntensity: 1 });
+  const mesh = new Mesh(new BoxGeometry(1, 1, 1), source);
+  const root = new Group();
+  root.add(mesh);
+  const adapter = createViewerLayerGhostPresentation(root);
+  const opts = { opacity: 0.17 };
+  let sourceDisposals = 0;
+  source.addEventListener('dispose', () => { sourceDisposals++; });
+
+  expect(adapter.apply('ghost', opts)).toBe('ghost');
+  const first = mesh.material as MeshStandardMaterial;
+  expect(first).not.toBe(source);
+  expect(first.emissive.getHexString()).toBe(source.emissive.getHexString());
+  adapter.apply('ghost', opts);
+  expect(mesh.material).toBe(first); // Unchanged inputs still reuse the derived material.
+
+  source.emissive.setHex(0x225588);
+  expect(adapter.apply('ghost', opts)).toBe('ghost');
+  const second = mesh.material as MeshStandardMaterial;
+  expect(second).not.toBe(first);
+  expect(second.emissive.getHexString()).toBe(source.emissive.getHexString());
+  expect(sourceDisposals).toBe(0);
+
+  adapter.apply('ghost', opts);
+  expect(mesh.material).toBe(second);
+  source.emissiveIntensity = 2.5;
+  expect(adapter.apply('ghost', opts)).toBe('ghost');
+  const third = mesh.material as MeshStandardMaterial;
+  expect(third).not.toBe(second);
+  expect(third.emissiveIntensity).toBe(2.5);
+  expect(third.emissive.getHexString()).toBe(source.emissive.getHexString());
+
+  adapter.apply('visible');
+  expect(mesh.material).toBe(source);
+  adapter.dispose();
+  expect(sourceDisposals).toBe(0);
 });
