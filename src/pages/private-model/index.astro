@@ -2545,6 +2545,7 @@ const title = 'Private 3D viewer';
       } from '../../scripts/privateModelReviewMath';
       import { createHeightScaleController } from '../../scripts/privateModelHeightScale';
       import { createOrientationGizmoController } from '../../scripts/privateModelOrientationGizmo';
+      import { createViewerFrameProfiler } from '../../scripts/privateModelFrameProfiler';
       import {
         activateReviewCoordinatePanel,
         clearReviewAnchorState,
@@ -14721,32 +14722,70 @@ const title = 'Private 3D viewer';
         canvas.addEventListener('c80-008-observe', () => { c008ObservationRequested = true; });
       }
 
+      // WP1: diagnostic data stays in this tab's canvas dataset; no telemetry.
+      // Disabled by default, with zero performance.now() calls on the normal path.
+      const frameProfiler = new URLSearchParams(window.location.search).get('viewerPerf') === '1'
+        ? createViewerFrameProfiler({
+            sampleSize: 180,
+            onSample: sample => {
+              canvas.dataset.viewerPerfStats = JSON.stringify(sample);
+            },
+          })
+        : null;
+
       renderer.setAnimationLoop(() => {
+        frameProfiler?.begin(performance.now());
         mainViewScope?.enforce();
+        frameProfiler?.mark('scope', performance.now());
         // The floor-scoping runtime may reset object.visible each frame.
         // Keep exact-source C045/C050 user-visible corrections after that pass.
         if (hi20C045Presentation?.corrected) hi20C045Presentation.setCorrected(true);
         if (hi20C050GuidesPresentation?.cleaned) hi20C050GuidesPresentation.setCleaned(true);
+        frameProfiler?.mark('corrections', performance.now());
         layersRuntime?.enforce(modelRoot.children[0] ?? null, layersLoadedSha);
+        frameProfiler?.mark('layers', performance.now());
         updateSize();
-        controls.update();
-        planControls.update();
-        isoControls.update();
+        frameProfiler?.mark('resize', performance.now());
+        const perspectiveMoved = controls.update();
+        const planMoved = planControls.update();
+        const isoMoved = isoControls.update();
+        frameProfiler?.mark('controls', performance.now());
         // Screenshot input pins the exact prepared pose after orbit updates.
         d1fCombinedPixelRuntime?.pinFrame();
+        frameProfiler?.mark('pixelPins', performance.now());
         selectionHighlightController.update();
+        frameProfiler?.mark('selection', performance.now());
         updateD1KnownDoorReviewLabelPositions();
         updateHeightScale();
         updateDAxisMeasurementLabel();
+        frameProfiler?.mark('labels', performance.now());
         orientationGizmoController.render({
           quaternion: activeCamera.quaternion,
           projection: (activeCamera as any).isOrthographicCamera === true ? 'orthographic' : 'perspective',
         });
+        frameProfiler?.mark('gizmo', performance.now());
         d1fCombinedPixelRuntime?.pinFrame();
         d1fService?.pinFrame();
         p186ePixelRuntime?.pinFrame();
         if (isP186eElectricalLabelReviewRequested()) p186eCaptionLayout?.update(activeCamera);
+        frameProfiler?.mark('latePins', performance.now());
         renderer.render(scene, activeCamera);
+        frameProfiler?.mark('render', performance.now());
+        frameProfiler?.end(performance.now(), {
+          drawCalls: renderer.info.render.calls,
+          triangles: renderer.info.render.triangles,
+          geometries: renderer.info.memory.geometries,
+          textures: renderer.info.memory.textures,
+        }, activeCamera === camera ? perspectiveMoved
+          : activeCamera === planCamera ? planMoved : isoMoved,
+        [
+          canvas.dataset.modelSource ?? 'unknown',
+          canvas.dataset.mainViewArea ?? 'WHOLE',
+          canvas.dataset.mainViewFloor ?? 'BOTH',
+          canvas.dataset.viewPreset || (activeCamera === planCamera ? 'PLAN' : 'VIEW'),
+        ].join(':'),
+        layersLoadedSha && layersLoadedSha === layersExpectedSha ? layersLoadedSha : null,
+        modelRoot.children[0]?.uuid ?? null);
         if (c008ObservationRequested) {
           c008ObservationRequested = false;
           const observation = observeC008Depth({ source: sourceNodeModel(layersGltf),
