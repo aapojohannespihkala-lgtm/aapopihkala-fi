@@ -4218,6 +4218,17 @@ const AUTO_YLISRINNE_C80R2_V82_SAUNA_V29U_V35_ON_V71_WORK_TEST_HOST_HOLD_2026110
   expectedSha256: 'd027eb4689f3dfda5a401dbb510253dbc197cf3b11dfbba5cadd1eca180ea8b8',
 } as const satisfies PrivateWorkTestCandidate;
 
+// Auto-registered 2026-11-08 from Drive queue file 1QnCB7MyIVNjiFQvcrdfu-RGItl421si8
+// by auto-publish-work-test. WORK_TEST, never as-built.
+const AUTO_YLISRINNE_C80R2_V83_OWNER_FIXES3_ON_V71_WORK_TEST_HOST_HOLD_20261108_1QNCB7MY_CANDIDATE = {
+  id: 'auto-ylisrinne-c80r2-v83-owner-fixes3-on-v71-work-test-host-hold-20261108-1qncb7my',
+  label: 'Auto: Ylisrinne C80R2 V83 OWNER FIXES3 ON V71 WORK TEST HOST HOLD 20261108 (scene297) - WORK_TEST',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/auto-ylisrinne-c80r2-v83-owner-fixes3-on-v71-work-test-host-hold-20261108-1qncb7my.glb`,
+  objectKey: 'work-test/auto-ylisrinne-c80r2-v83-owner-fixes3-on-v71-work-test-host-hold-20261108-1qncb7my.glb',
+  expectedSize: 45383764,
+  expectedSha256: '4a724a1840e87cc54d1a23fc77ff3638754364c1109b86ca2f44738f1de50db9',
+} as const satisfies PrivateWorkTestCandidate;
+
 const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
   V69P12R1_SINK_FAUCET_WORK_TEST_CANDIDATE,
   SIX6_RAIL900_WORK_TEST_CANDIDATE,
@@ -4557,6 +4568,7 @@ const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
   AUTO_YLISRINNE_C80R2_V80_GPT_FIXES_ON_V71_WORK_TEST_HOST_HOLD_20261108_1F6WVEZC_CANDIDATE,
   AUTO_YLISRINNE_C80R2_V81_OWNER_FIXES2_ON_V71_WORK_TEST_HOST_HOLD_20261108_1KLNMDYO_CANDIDATE,
   AUTO_YLISRINNE_C80R2_V82_SAUNA_V29U_V35_ON_V71_WORK_TEST_HOST_HOLD_20261108_1JWDDU3Z_CANDIDATE,
+  AUTO_YLISRINNE_C80R2_V83_OWNER_FIXES3_ON_V71_WORK_TEST_HOST_HOLD_20261108_1QNCB7MY_CANDIDATE,
 ] as const satisfies readonly PrivateWorkTestCandidate[];
 
 type PrivateWorkTestObjectMetadata = {
