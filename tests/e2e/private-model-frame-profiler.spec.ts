@@ -24,12 +24,12 @@ test('WP1 profiler returns bounded stage, idle/moving and draw-call samples', ()
   profiler.mark('scope', 21);
   profiler.mark('layers', 23);
   profiler.mark('render', 29);
-  profiler.end(30, info(20), true, '2F');
+  profiler.end(30, info(20), true, '1F');
 
   expect(results).toHaveLength(1);
   expect(results[0]).toMatchObject({
     samples: 2,
-    view: '2F',
+    view: '1F',
     frameMs: { mean: 11, p95: 12, max: 12 },
     idle: { samples: 1, meanMs: 12, p95Ms: 12 },
     moving: { samples: 1, meanMs: 10, p95Ms: 10 },
@@ -43,6 +43,36 @@ test('WP1 profiler returns bounded stage, idle/moving and draw-call samples', ()
   profiler.mark('scope', 41);
   profiler.end(42, info(1), false, 'BOTH');
   expect(results).toHaveLength(1);
+});
+
+test('WP1 profiler discards mixed-view partial windows before reporting 1F/2F/BOTH', () => {
+  const results: ViewerFrameProfilerSnapshot[] = [];
+  const profiler = createViewerFrameProfiler({
+    sampleSize: 2, onSample: sample => results.push(sample),
+  });
+  const frame = (startedAt: number, drawCalls: number, view: string) => {
+    profiler.begin(startedAt);
+    profiler.mark('scope', startedAt + 1);
+    profiler.end(startedAt + 4, info(drawCalls), false, view);
+  };
+
+  frame(0, 100, '1F');
+  frame(10, 1, '2F'); // Drops the unfinished 1F window.
+  expect(results).toHaveLength(0);
+  frame(20, 3, '2F');
+  expect(results).toHaveLength(1);
+  expect(results[0]).toMatchObject({
+    samples: 2, view: '2F', drawCallsMean: 2, trianglesMean: 24,
+  });
+
+  frame(30, 100, 'BOTH');
+  frame(40, 6, '1F'); // Drops the unfinished BOTH window.
+  expect(results).toHaveLength(1);
+  frame(50, 8, '1F');
+  expect(results).toHaveLength(2);
+  expect(results[1]).toMatchObject({
+    samples: 2, view: '1F', drawCallsMean: 7, trianglesMean: 84,
+  });
 });
 
 test('WP1 profiler discards nonmonotonic timing and does not emit partial windows', () => {
