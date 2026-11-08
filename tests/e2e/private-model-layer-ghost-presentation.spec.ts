@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { BoxGeometry, BufferGeometry, Group, LineBasicMaterial, LineSegments, Mesh, MeshBasicMaterial, Plane, Points, PointsMaterial, Raycaster, Vector3 } from 'three';
+import { BoxGeometry, BufferGeometry, Group, LineBasicMaterial, LineSegments, Mesh, MeshBasicMaterial, MeshStandardMaterial, Plane, Points, PointsMaterial, Raycaster, Vector3 } from 'three';
 import { createViewerLayerGhostPresentation } from '../../src/scripts/privateModelLayerGhostPresentation';
 
 const makeMesh = (material = new MeshBasicMaterial()) =>
@@ -521,4 +521,43 @@ test('ghost cache invalidates for selection, geometry and hidden-descendant chan
   adapter.dispose();
   expect(mesh.material).toBe(source);
   expect(second.material).toBe(secondSourceMaterial);
+});
+
+test('ghost cache detects source emissive color and intensity changes without mutating source ownership', () => {
+  const source = new MeshStandardMaterial({ color: 0x556677, emissive: 0x000000, emissiveIntensity: 1 });
+  const mesh = makeMesh(source);
+  const root = new Group();
+  root.add(mesh);
+  const adapter = createViewerLayerGhostPresentation(root);
+  const opts = { opacity: 0.17 };
+  let sourceDisposals = 0;
+  source.addEventListener('dispose', () => { sourceDisposals++; });
+
+  expect(adapter.apply('ghost', opts)).toBe('ghost');
+  const first = mesh.material as MeshStandardMaterial;
+  expect(first).not.toBe(source);
+  expect(first.emissive.getHexString()).toBe(source.emissive.getHexString());
+  adapter.apply('ghost', opts);
+  expect(mesh.material).toBe(first); // Unchanged inputs still reuse the derived material.
+
+  source.emissive.setHex(0x225588);
+  expect(adapter.apply('ghost', opts)).toBe('ghost');
+  const second = mesh.material as MeshStandardMaterial;
+  expect(second).not.toBe(first);
+  expect(second.emissive.getHexString()).toBe(source.emissive.getHexString());
+  expect(sourceDisposals).toBe(0);
+
+  adapter.apply('ghost', opts);
+  expect(mesh.material).toBe(second);
+  source.emissiveIntensity = 2.5;
+  expect(adapter.apply('ghost', opts)).toBe('ghost');
+  const third = mesh.material as MeshStandardMaterial;
+  expect(third).not.toBe(second);
+  expect(third.emissiveIntensity).toBe(2.5);
+  expect(third.emissive.getHexString()).toBe(source.emissive.getHexString());
+
+  adapter.apply('visible');
+  expect(mesh.material).toBe(source);
+  adapter.dispose();
+  expect(sourceDisposals).toBe(0);
 });
