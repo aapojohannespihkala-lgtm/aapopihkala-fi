@@ -14768,7 +14768,14 @@ const title = 'Private 3D viewer';
           textures: renderer.info.memory.textures,
         }, activeCamera === camera ? perspectiveMoved
           : activeCamera === planCamera ? planMoved : isoMoved,
-        canvas.dataset.viewPreset || (activeCamera === planCamera ? 'PLAN' : 'VIEW'));
+        [
+          canvas.dataset.modelSource ?? 'unknown',
+          canvas.dataset.mainViewArea ?? 'WHOLE',
+          canvas.dataset.mainViewFloor ?? 'BOTH',
+          canvas.dataset.viewPreset || (activeCamera === planCamera ? 'PLAN' : 'VIEW'),
+        ].join(':'),
+        layersLoadedSha && layersLoadedSha === layersExpectedSha ? layersLoadedSha : null,
+        modelRoot.children[0]?.uuid ?? null);
         if (c008ObservationRequested) {
           c008ObservationRequested = false;
           const observation = observeC008Depth({ source: sourceNodeModel(layersGltf),
