@@ -330,3 +330,18 @@ test('V86 profile keeps V85 part meshes, adds stair fills, terrace plinth, Harvi
     for (const [node, paths] of Object.entries(scene.paths)) for (const path of paths) assert.ok(scene.rootNodes.includes(path[0]) && path.at(-1) === Number(node));
   }
 });
+
+test('V87 profile keeps V86 part meshes and adds the 2F IV riser shaft boxing', async () => {
+  const v87 = await import('../../src/scripts/privateModelC80R2V87LayerSourceProfile.mjs');
+  const v86 = await import('../../src/scripts/privateModelC80R2V86LayerSourceProfile.mjs');
+  assert.equal(v87.V87_SOURCE_SHA256, '438d5bcace7b66a2ca08100ff56e56989b11139035696258900aa5043d988c1e');
+  assert.deepEqual(Object.keys(v87.V87_NEW_PARTS).map(Number), [11319]);
+  for (const [node, part] of Object.entries(v86.V86_BUILDING_PARTS)) assert.deepEqual(v87.V87_BUILDING_PARTS[node], part);
+  for (const index of [296, 297]) assert.ok(v87.V87_BUILDING_SCENES[index].paths[11319]);
+  assert.equal(v87.V87_BUILDING_SCENES[295].paths[11319], undefined);
+  for (const index of [295, 296, 297]) {
+    const scene = v87.V87_BUILDING_SCENES[index];
+    assert.match(scene.name, /^C80R2_V87_TATE_CONTINUITY_(1F|2F|BOTH)_WORK_TEST_HOST_HOLD_20261108$/);
+    for (const [node, paths] of Object.entries(scene.paths)) for (const path of paths) assert.ok(scene.rootNodes.includes(path[0]) && path.at(-1) === Number(node));
+  }
+});
