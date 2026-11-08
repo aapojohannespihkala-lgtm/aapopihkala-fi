@@ -262,3 +262,16 @@ test('V81 profile carries the owner fixes: stairwell infill, balcony slab, 1F re
     for (const [node, paths] of Object.entries(scene.paths)) for (const path of paths) assert.ok(scene.rootNodes.includes(path[0]) && path.at(-1) === Number(node));
   }
 });
+
+test('V82 profile keeps V81 parts and renames the sauna scenes', async () => {
+  const v82 = await import('../../src/scripts/privateModelC80R2V82LayerSourceProfile.mjs');
+  const v81 = await import('../../src/scripts/privateModelC80R2V81LayerSourceProfile.mjs');
+  assert.equal(v82.V82_SOURCE_SHA256, 'd027eb4689f3dfda5a401dbb510253dbc197cf3b11dfbba5cadd1eca180ea8b8');
+  assert.equal(v82.V82_BUILDING_PARTS, v81.V81_BUILDING_PARTS);
+  for (const index of [295, 297]) for (const root of [10755, 10761]) assert.ok(v82.V82_BUILDING_SCENES[index].rootNodes.includes(root));
+  for (const index of [295, 296, 297]) {
+    const scene = v82.V82_BUILDING_SCENES[index];
+    assert.match(scene.name, /^C80R2_V82_SAUNA_V29U_V35_(1F|2F|BOTH)_WORK_TEST_HOST_HOLD_20261108$/);
+    for (const [node, paths] of Object.entries(scene.paths)) for (const path of paths) assert.ok(scene.rootNodes.includes(path[0]) && path.at(-1) === Number(node));
+  }
+});
