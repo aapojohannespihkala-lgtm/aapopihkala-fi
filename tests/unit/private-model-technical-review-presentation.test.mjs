@@ -290,3 +290,17 @@ test('V83 profile re-keys mesh-drifted parts and renames the owner fixes 3 scene
     for (const [node, paths] of Object.entries(scene.paths)) for (const path of paths) assert.ok(scene.rootNodes.includes(path[0]) && path.at(-1) === Number(node));
   }
 });
+
+test('V84 profile maps the D2F kitchen COW copies and keeps technical roots in scene', async () => {
+  const v84 = await import('../../src/scripts/privateModelC80R2V84LayerSourceProfile.mjs');
+  assert.equal(v84.V84_SOURCE_SHA256, '6cac4a3b91323043e1a700678c95ac19aa602b783b77f4c1426e613312f55e51');
+  assert.equal(Object.keys(v84.V84_NEW_PARTS).length, 172);
+  assert.equal(v84.V84_BUILDING_PARTS[10793].id, 'architecture-walls-interior');
+  assert.equal(v84.V84_BUILDING_PARTS[10770].id, 'architecture-fixtures');
+  for (const index of [296, 297]) for (const gone of [7222, 9258, 9415]) assert.equal(v84.V84_BUILDING_SCENES[index].paths[gone], undefined);
+  for (const index of [295, 296, 297]) {
+    const scene = v84.V84_BUILDING_SCENES[index];
+    assert.match(scene.name, /^C80R2_V84_D2F_KITCHEN_MEAS_(1F|2F|BOTH)_WORK_TEST_HOST_HOLD_20261108$/);
+    for (const [node, paths] of Object.entries(scene.paths)) for (const path of paths) assert.ok(scene.rootNodes.includes(path[0]) && path.at(-1) === Number(node));
+  }
+});
