@@ -87,37 +87,52 @@ export function createTechnicalReviewPresentation(root, keepRoots, createMateria
     applied = false;
   };
 
+  const releasePalette = () => {
+    // Only these viewer-owned presentation materials may be disposed.
+    // The original GLB materials remain owned by the source loader.
+    const owned = materials;
+    materials = null;
+    owned?.surface?.dispose?.();
+    owned?.line?.dispose?.();
+    for (const material of Object.values(owned?.systems ?? {})) material?.dispose?.();
+  };
+
   const apply = on => {
     if (disposed) return false;
     if (!on) { restore(); return false; }
     if (applied) return true;
-    materials ??= createMaterials();
-    root.traverse(object => {
-      if (object === root || !isRenderable(object) || saved.has(object)) return;
-      let shared;
-      if (kept(object)) {
-        // Technical geometry is drawn in a clear system color so that it stays
-        // readable through the translucent grey building.
-        const highlight = object.isMesh ? materials.systems?.[systemOf(object) ?? ''] : null;
-        if (!highlight) return;
-        shared = highlight;
-      } else {
-        shared = object.isMesh ? materials.surface : materials.line;
-      }
-      saved.set(object, object.material);
-      object.material = Array.isArray(object.material) ? object.material.map(() => shared) : shared;
-    });
-    applied = true;
-    return true;
+    try {
+      materials ??= createMaterials();
+      root.traverse(object => {
+        if (object === root || !isRenderable(object) || saved.has(object)) return;
+        let shared;
+        if (kept(object)) {
+          // Technical geometry is drawn in a clear system color so that it stays
+          // readable through the translucent grey building.
+          const highlight = object.isMesh ? materials.systems?.[systemOf(object) ?? ''] : null;
+          if (!highlight) return;
+          shared = highlight;
+        } else {
+          shared = object.isMesh ? materials.surface : materials.line;
+        }
+        saved.set(object, object.material);
+        object.material = Array.isArray(object.material) ? object.material.map(() => shared) : shared;
+      });
+      applied = true;
+      return true;
+    } catch (error) {
+      // A late source classifier or material assignment can fail after earlier
+      // objects have been recolored. Never leave a partially presented scene
+      // or retain its temporary GPU palette after that failed attempt.
+      try { restore(); } finally { releasePalette(); }
+      throw error;
+    }
   };
 
   const dispose = () => {
     if (disposed) return;
     restore();
-    materials?.surface?.dispose?.();
-    materials?.line?.dispose?.();
-    for (const material of Object.values(materials?.systems ?? {})) material?.dispose?.();
-    materials = null;
+    releasePalette();
     disposed = true;
   };
 
