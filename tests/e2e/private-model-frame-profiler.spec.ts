@@ -75,3 +75,37 @@ test('WP1 viewer instrumentation is URL opt-in and preserves the render pipeline
   expect(source).toContain('renderer.render(scene, activeCamera)');
   expect(source).toContain('layersRuntime?.enforce(modelRoot.children[0] ?? null, layersLoadedSha)');
 });
+
+test('WP1 navigator skips repeated camera-bound recomputation only when source and view remain unchanged', () => {
+  const source = readFileSync('src/scripts/privateModelOrientationGizmo.ts', 'utf8');
+  const start = source.indexOf('const renderNavigator = (');
+  const signature = source.indexOf('const navigatorInputSignature = JSON.stringify([', start);
+  const guard = source.indexOf('lastNavigatorInputSignature === navigatorInputSignature', start);
+  const work = source.indexOf('const look = new THREE.Vector3(0, 0, -1)', start);
+  expect(start).toBeGreaterThan(0);
+  expect(signature).toBeGreaterThan(start);
+  expect(guard).toBeGreaterThan(signature);
+  expect(guard, 'Idle fast path must precede world-pose and bounds allocation').toBeLessThan(work);
+  const inputFields = source.slice(signature, guard);
+  for (const field of [
+    'camera.position.x', 'camera.position.y', 'camera.position.z',
+    'camera.quaternion.x', 'camera.quaternion.y',
+    'camera.quaternion.z', 'camera.quaternion.w',
+    'controls.target.x', 'controls.target.y', 'controls.target.z',
+    'camera.fov', 'camera.aspect', 'camera.zoom', 'camera.left',
+    'camera.right', 'camera.top', 'camera.bottom',
+    'canvas.dataset.viewPreset', 'canvas.dataset.elevationDirection',
+    'canvas.dataset.modelSource', 'canvas.dataset.workTestReviewCandidate',
+    'workTestSelect?.value', 'badge?.dataset.kind',
+    'canvas.dataset.horizontalClip', 'canvas.dataset.horizontalClipHeightM',
+    'canvas.dataset.layerRoofVisible', 'canvas.dataset.layerRoofOpacity',
+    'canvas.dataset.objectVisibilityFilter', 'canvas.dataset.objectVisibilityMode',
+    'canvas.dataset.reviewAnchorX', 'canvas.dataset.reviewAnchorY',
+    'canvas.dataset.reviewAnchorZ',
+  ]) expect(inputFields, `Missing invalidation input: ${field}`).toContain(field);
+  expect(source).toContain('if (lastCompact !== compact)');
+  expect(source).toContain("readout.dataset.ready === 'true'");
+  expect(source).toContain("root.dataset.aiNavigatorReady === 'true'");
+  expect(source).toContain("canvas.dataset.aiNavigator === 'ready'");
+  expect(source).toContain('lastNavigatorInputSignature = navigatorInputSignature;');
+});
