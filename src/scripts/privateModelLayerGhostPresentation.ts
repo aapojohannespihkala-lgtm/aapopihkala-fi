@@ -74,6 +74,8 @@ export const createViewerLayerGhostPresentation = (root: Object3D) => {
     const materialState = (material: Material) => {
       const m = material as Material & {
         color?: { getHexString(): string };
+        emissive?: { getHexString(): string };
+        emissiveIntensity?: number;
         map?: { uuid: string; version: number };
         alphaTest?: number;
         metalness?: number;
@@ -88,6 +90,9 @@ export const createViewerLayerGhostPresentation = (root: Object3D) => {
         ]) ?? null, m.color?.getHexString?.() ?? null,
         m.map?.uuid ?? null, m.map?.version ?? null, m.alphaTest ?? null,
         m.metalness ?? null, m.roughness ?? null,
+        // Emissive RGB/intensity can change without Material.version changing.
+        // A cloned opaque ghost must then be rebuilt from the source material.
+        m.emissive?.getHexString?.() ?? null, m.emissiveIntensity ?? null,
       ];
     };
     root.traverseVisible((object) => {
