@@ -34,6 +34,8 @@ export type TechnicalSystemId =
   | 'technical-electrical'
   | 'technical-ventilation'
   | 'technical-heating'
+  | 'technical-water'
+  | 'technical-drainage'
   | 'locus-water'
   | 'locus-wastewater'
   | 'p161-kvv-2017'
@@ -122,6 +124,8 @@ const groups: ReadonlyArray<{
   { id: 'technical-electrical', labelFi: 'Sähkölaitteet ja valaisimet', sourceRole: 'WORK_TEST_SOURCE', sourceDescription: 'Lähteen nimetyt sähkö- ja valaisinosat, ei johdotusverkosto' },
   { id: 'technical-ventilation', labelFi: 'IV-laitteet ja venttiilit', sourceRole: 'WORK_TEST_SOURCE', sourceDescription: 'Lähteen nimetyt IV-osat, ei varmennettu nykyverkosto' },
   { id: 'technical-heating', labelFi: 'Patterit ja lämpöpumppu', sourceRole: 'WORK_TEST_SOURCE', sourceDescription: 'Lähteen nimetyt lämmityslaitteet, WORK_TEST-esitys' },
+  { id: 'technical-water', labelFi: 'Vesijohdot', sourceRole: 'WORK_TEST_SOURCE', sourceDescription: 'M5-vesijohtoreitit, WORK_ASSUMPTION/HOST_HOLD' },
+  { id: 'technical-drainage', labelFi: 'Viemärit', sourceRole: 'WORK_TEST_SOURCE', sourceDescription: 'M5-viemärireitit, WORK_ASSUMPTION/HOST_HOLD' },
   { id: 'locus-water', labelFi: 'Vesi, Locus', sourceRole: 'REFERENCE_ONLY', sourceDescription: 'Locus-kunnallistekniikka, lähdereitit' },
   { id: 'locus-wastewater', labelFi: 'Viemärit, Locus', sourceRole: 'REFERENCE_ONLY', sourceDescription: 'Locus-kunnallistekniikka, lähdereitit' },
   { id: 'p161-kvv-2017', labelFi: 'KVV 2017', sourceRole: 'HISTORICAL_PLAN', sourceDescription: 'Vuoden 2017 KVV-suunnitelmat, ei as-built-reitti' },
@@ -235,6 +239,32 @@ const withinScope = (scope: Scope, preset: TechnicalViewerScope): boolean => {
   return scope.storey === floor || scope.storey === 'OUTSIDE_' + floor;
 };
 
+const m5Parents = new WeakMap<object, Map<number, number>>();
+/** True when the node sits under one of the Claude M5 integration roots (V71+ serial models). */
+const m5Root = (json: TechnicalSourceJson, nodeIndex: number): boolean => {
+  let parents = m5Parents.get(json);
+  if (!parents) {
+    parents = new Map();
+    (json.nodes ?? []).forEach((node, index) => {
+      for (const child of (node as { children?: number[] }).children ?? []) parents!.set(child, index);
+    });
+    m5Parents.set(json, parents);
+  }
+  let current: number | undefined = nodeIndex;
+  for (let i = 0; current !== undefined && i < 64; i += 1) {
+    if (/^M5_INTEGRATION_CLAUDE_/.test(json.nodes?.[current]?.name ?? '')) return true;
+    current = parents.get(current);
+  }
+  return false;
+};
+/** Name-based M5 system split; the names are written by the M5 builders, not guessed from geometry. */
+export const m5System = (name: string): TechnicalSystemId => {
+  if (/(?:^|_)IV\d|TRANSFER_GRILLE|ONEBORE/.test(name)) return 'technical-ventilation';
+  if (/^V75_D\d|(?:^|_)(?:VV|WW)20\d\d|DRAIN|V110|T110/.test(name)) return 'technical-drainage';
+  if (/^V75_W\d|(?:^|_)(?:KV|LV)\d|KV20\d\d|VM\d|(?:^|_)P\d+|PEX|WATER/.test(name)) return 'technical-water';
+  return 'technical-electrical';
+};
+
 const normalizedSha = (sha: string) => /^[0-9a-f]{64}$/.test(sha) ? sha : null;
 
 /** V26 device identifiers inspected in its immutable original source JSON.
@@ -302,6 +332,14 @@ const v26Device = (context: TechnicalSystemsContext, binding: TechnicalSourceNod
   const name = context.sourceJson.nodes?.[binding.nodeIndex]?.name ?? '';
   let id: TechnicalSystemId | null = null;
   let floor: '1F' | '2F' | null = null;
+  // M5 routes and equipment of the integrated serial models (V71+) live under the three
+  // Claude M5 integration roots. Classify them by system for the Talotekniikka layers.
+  if (integratedScenes && m5Root(context.sourceJson, binding.nodeIndex)) {
+    const m5 = m5System(name);
+    const sceneFloor = context.sourceSceneIndex === scenes['2F'] ? '2F'
+      : context.sourceSceneIndex === scenes['1F'] ? '1F' : /D2F|_2F_/.test(name) ? '2F' : '1F';
+    return { id: m5, scope: { apartment: 'D', storey: sceneFloor, phase: 'ACTIVE_IN_SELECTED_WORKTEST' } };
+  }
   const kiv = /^K10_R3_WORLD10_SC19_K10_R3_D([12])F_KIV100_ANCHOR_/.exec(name);
   if (kiv) { id = 'technical-ventilation'; floor = kiv[1] === '1' ? '1F' : '2F'; }
   else if (/^TOSHIBA_DAISEIKAI8_2026_OWNER_PHOTO_INDOOR_/.test(name)) {

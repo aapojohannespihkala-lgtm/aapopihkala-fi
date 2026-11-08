@@ -159,9 +159,10 @@ test('technical inventory rejects unknown group IDs without hiding valid sibling
   expect(rows).toHaveLength(1);
   expect(rows[0]).toMatchObject({ id: 'technical-heating', supported: true, count: 2 });
 
-  // Keep all eight existing source-owned IDs, including reference-only groups.
+  // Keep all ten existing source-owned IDs, including reference-only groups.
   const known: TechnicalSystemSummary['id'][] = [
     'technical-electrical', 'technical-ventilation', 'technical-heating',
+    'technical-water', 'technical-drainage',
     'locus-water', 'locus-wastewater', 'p161-kvv-2017',
     'p161-iv-1974-plan', 'p161-iv-1974-section',
   ];
