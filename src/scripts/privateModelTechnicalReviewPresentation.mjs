@@ -3,6 +3,7 @@ import { V72_SOURCE_SHA256, V72_SOURCE_SCENE_COUNT, V72_FLOORS, V72_BUILDING_SCE
 import { V73_SOURCE_SHA256, V73_SOURCE_SCENE_COUNT, V73_FLOORS, V73_BUILDING_SCENES, V73_TECHNICAL_REVIEW_ROOTS } from './privateModelC80R2V73LayerSourceProfile.mjs';
 import { V74_SOURCE_SHA256, V74_SOURCE_SCENE_COUNT, V74_FLOORS, V74_BUILDING_SCENES, V74_TECHNICAL_REVIEW_ROOTS } from './privateModelC80R2V74LayerSourceProfile.mjs';
 import { V75_SOURCE_SHA256, V75_SOURCE_SCENE_COUNT, V75_FLOORS, V75_BUILDING_SCENES, V75_TECHNICAL_REVIEW_ROOTS } from './privateModelC80R2V75LayerSourceProfile.mjs';
+import { V76_SOURCE_SHA256, V76_SOURCE_SCENE_COUNT, V76_FLOORS, V76_BUILDING_SCENES, V76_TECHNICAL_REVIEW_ROOTS } from './privateModelC80R2V76LayerSourceProfile.mjs';
 
 /** Exact M5-integrated sources that carry technical review roots. */
 const REVIEW_SOURCES = Object.freeze({
@@ -11,6 +12,7 @@ const REVIEW_SOURCES = Object.freeze({
   [V73_SOURCE_SHA256]: { count: V73_SOURCE_SCENE_COUNT, floors: V73_FLOORS, scenes: V73_BUILDING_SCENES, roots: V73_TECHNICAL_REVIEW_ROOTS },
   [V74_SOURCE_SHA256]: { count: V74_SOURCE_SCENE_COUNT, floors: V74_FLOORS, scenes: V74_BUILDING_SCENES, roots: V74_TECHNICAL_REVIEW_ROOTS },
   [V75_SOURCE_SHA256]: { count: V75_SOURCE_SCENE_COUNT, floors: V75_FLOORS, scenes: V75_BUILDING_SCENES, roots: V75_TECHNICAL_REVIEW_ROOTS },
+  [V76_SOURCE_SHA256]: { count: V76_SOURCE_SCENE_COUNT, floors: V76_FLOORS, scenes: V76_BUILDING_SCENES, roots: V76_TECHNICAL_REVIEW_ROOTS },
 });
 import { sameSourceName } from './privateModelSourceNodeAssociations.mjs';
 
@@ -22,7 +24,7 @@ import { sameSourceName } from './privateModelSourceNodeAssociations.mjs';
  * The GLB, source links, scene membership, visibility and camera are untouched.
  */
 
-/** Resolve exact technical roots of the active V71-V75 scene. Fails closed (null). */
+/** Resolve exact technical roots of the active V71-V76 scene. Fails closed (null). */
 export function resolveTechnicalReviewRoots(gltf, scene, sceneIndex, loadedSha, expectedSha) {
   const json = gltf?.parser?.json;
   const associations = gltf?.parser?.associations;

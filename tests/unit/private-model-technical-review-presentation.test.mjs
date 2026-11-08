@@ -176,3 +176,21 @@ test('V75 profile keeps V71 roots under its own scene names and SHA', async () =
     assert.match(v75.V75_BUILDING_SCENES[index].name, /^C80R2_V75_M5_CONNECTED_SYSTEMS_(1F|2F|BOTH)_WORK_TEST_HOST_HOLD_20261108$/);
   }
 });
+
+test('V76 profile replaces only the old stair roots with the K17 900 mm stair and rail', async () => {
+  const v76 = await import('../../src/scripts/privateModelC80R2V76LayerSourceProfile.mjs');
+  assert.equal(v76.V76_SOURCE_SHA256, '3ef900c1f5e88d65df99d2875022c152116d2a8a9b14dd52b53d4de4394a0971');
+  const removed = new Set([9841, 9842, 9843, 9800, 9801, 9802, 9803, 9844, 9805]);
+  for (const index of [295, 296, 297]) {
+    const scene = v76.V76_BUILDING_SCENES[index];
+    assert.ok(!scene.rootNodes.some(n => removed.has(n)), 'old 950 mm stair roots removed');
+    assert.match(scene.name, /^C80R2_V76_M5_SYSTEMS_K17_STAIR900_(1F|2F|BOTH)_WORK_TEST_HOST_HOLD_20261108$/);
+    assert.deepEqual(scene.rootNodes.filter(n => n < 10518), V71_BUILDING_SCENES[index].rootNodes.filter(n => !removed.has(n)));
+    assert.ok(scene.rootNodes.includes(10538), 'fitted K17 handrail root present');
+    for (const [node, paths] of Object.entries(scene.paths)) {
+      assert.ok(v76.V76_BUILDING_PARTS[node], `part ${node} has profile`);
+      for (const path of paths) assert.ok(scene.rootNodes.includes(path[0]) && path.at(-1) === Number(node));
+    }
+  }
+  assert.equal(v76.V76_BUILDING_PARTS[10538].name, 'K17_RAIL_HANDRAIL_FITTED_TO_900MM_STAIR');
+});
