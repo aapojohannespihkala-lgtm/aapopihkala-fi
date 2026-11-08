@@ -231,3 +231,18 @@ test('V79 profile drops old kitchen duplicates and the NE eave closure, adds bal
   }
   for (const index of [296, 297]) assert.ok(v79.V79_BUILDING_SCENES[index].rootNodes.includes(10555));
 });
+
+test('V80 profile swaps the legacy terrace window roots for the C80-012 V4 window', async () => {
+  const v80 = await import('../../src/scripts/privateModelC80R2V80LayerSourceProfile.mjs');
+  assert.equal(v80.V80_SOURCE_SHA256, '3b2916a1d439b88878685b035121f6ad3aeee85e55ef74dab20e80a943ebaeab');
+  for (const index of [295, 297]) {
+    const scene = v80.V80_BUILDING_SCENES[index];
+    for (const legacy of [7649, 7650, 7659]) assert.ok(!scene.rootNodes.includes(legacy));
+    assert.ok(scene.rootNodes.includes(10563) && scene.rootNodes.includes(8843));
+  }
+  for (const index of [295, 296, 297]) {
+    const scene = v80.V80_BUILDING_SCENES[index];
+    assert.match(scene.name, /^C80R2_V80_GPT_FIXES_(1F|2F|BOTH)_WORK_TEST_HOST_HOLD_20261108$/);
+    for (const [node, paths] of Object.entries(scene.paths)) for (const path of paths) assert.ok(scene.rootNodes.includes(path[0]) && path.at(-1) === Number(node));
+  }
+});
