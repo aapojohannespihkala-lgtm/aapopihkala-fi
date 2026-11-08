@@ -246,3 +246,19 @@ test('V80 profile swaps the legacy terrace window roots for the C80-012 V4 windo
     for (const [node, paths] of Object.entries(scene.paths)) for (const path of paths) assert.ok(scene.rootNodes.includes(path[0]) && path.at(-1) === Number(node));
   }
 });
+
+test('V81 profile carries the owner fixes: stairwell infill, balcony slab, 1F reference soffit, no hidden BOTH posts', async () => {
+  const v81 = await import('../../src/scripts/privateModelC80R2V81LayerSourceProfile.mjs');
+  assert.equal(v81.V81_SOURCE_SHA256, 'f57a11cb2dab3b92dc02e11842821c4b940e9225bc9133fe7e7a6979198d5ccd');
+  assert.equal(v81.V81_BUILDING_PARTS[10658].id, 'architecture-walls-interior');
+  assert.equal(v81.V81_BUILDING_PARTS[10659].id, 'architecture-floors');
+  for (const index of [295, 296, 297]) assert.ok(v81.V81_BUILDING_SCENES[index].rootNodes.includes(10658));
+  assert.ok(v81.V81_BUILDING_SCENES[295].rootNodes.includes(10660) && !v81.V81_BUILDING_SCENES[295].rootNodes.includes(9276));
+  assert.ok(v81.V81_BUILDING_SCENES[297].rootNodes.includes(9276) && !v81.V81_BUILDING_SCENES[297].rootNodes.includes(6727));
+  for (const post of [9357, 9359, 9361, 9363]) assert.ok(!v81.V81_BUILDING_SCENES[297].rootNodes.includes(post));
+  for (const index of [295, 296, 297]) {
+    const scene = v81.V81_BUILDING_SCENES[index];
+    assert.match(scene.name, /^C80R2_V81_OWNER_FIXES2_(1F|2F|BOTH)_WORK_TEST_HOST_HOLD_20261108$/);
+    for (const [node, paths] of Object.entries(scene.paths)) for (const path of paths) assert.ok(scene.rootNodes.includes(path[0]) && path.at(-1) === Number(node));
+  }
+});
