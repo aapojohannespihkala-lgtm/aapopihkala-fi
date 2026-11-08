@@ -317,3 +317,16 @@ test('V85 profile keeps V84 part meshes and adds the restored ROOM3 wardrobe and
     for (const [node, paths] of Object.entries(scene.paths)) for (const path of paths) assert.ok(scene.rootNodes.includes(path[0]) && path.at(-1) === Number(node));
   }
 });
+
+test('V86 profile keeps V85 part meshes, adds stair fills, terrace plinth, Harvia PC90 and bathroom ceiling, drops fill 9765', async () => {
+  const v86 = await import('../../src/scripts/privateModelC80R2V86LayerSourceProfile.mjs');
+  assert.equal(v86.V86_SOURCE_SHA256, 'fdcae4643adb54c63b7292206aa9029d3e35286dbd3e908644f72ba4aefb5a43');
+  assert.deepEqual(Object.keys(v86.V86_NEW_PARTS).map(Number), [11309, 11310, 11311, 11316]);
+  for (const index of [295, 297]) for (const added of [11309, 11310, 11311, 11316]) assert.ok(v86.V86_BUILDING_SCENES[index].paths[added]);
+  for (const index of [296, 297]) assert.equal(v86.V86_BUILDING_SCENES[index].paths[9765], undefined);
+  for (const index of [295, 296, 297]) {
+    const scene = v86.V86_BUILDING_SCENES[index];
+    assert.match(scene.name, /^C80R2_V86_OWNER_FIXES5_(1F|2F|BOTH)_WORK_TEST_HOST_HOLD_20261108$/);
+    for (const [node, paths] of Object.entries(scene.paths)) for (const path of paths) assert.ok(scene.rootNodes.includes(path[0]) && path.at(-1) === Number(node));
+  }
+});
