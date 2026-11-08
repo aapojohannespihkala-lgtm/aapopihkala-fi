@@ -275,3 +275,18 @@ test('V82 profile keeps V81 parts and renames the sauna scenes', async () => {
     for (const [node, paths] of Object.entries(scene.paths)) for (const path of paths) assert.ok(scene.rootNodes.includes(path[0]) && path.at(-1) === Number(node));
   }
 });
+
+test('V83 profile re-keys mesh-drifted parts and renames the owner fixes 3 scenes', async () => {
+  const v83 = await import('../../src/scripts/privateModelC80R2V83LayerSourceProfile.mjs');
+  const v82 = await import('../../src/scripts/privateModelC80R2V82LayerSourceProfile.mjs');
+  assert.equal(v83.V83_SOURCE_SHA256, '4a724a1840e87cc54d1a23fc77ff3638754364c1109b86ca2f44738f1de50db9');
+  assert.equal(Object.keys(v83.V83_BUILDING_PARTS).length, Object.keys(v82.V82_BUILDING_PARTS).length + 1);
+  assert.equal(v83.V83_BUILDING_PARTS[6376].mesh, 4135);
+  assert.equal(v83.V83_BUILDING_PARTS[10763].id, 'architecture-walls-interior');
+  for (const index of [296, 297]) for (const gone of [9766, 9767, 10658]) assert.equal(v83.V83_BUILDING_SCENES[index].paths[gone], undefined);
+  for (const index of [295, 296, 297]) {
+    const scene = v83.V83_BUILDING_SCENES[index];
+    assert.match(scene.name, /^C80R2_V83_OWNER_FIXES3_(1F|2F|BOTH)_WORK_TEST_HOST_HOLD_20261108$/);
+    for (const [node, paths] of Object.entries(scene.paths)) for (const path of paths) assert.ok(scene.rootNodes.includes(path[0]) && path.at(-1) === Number(node));
+  }
+});
