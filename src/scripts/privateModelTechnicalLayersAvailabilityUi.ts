@@ -35,12 +35,14 @@ const provenanceFi: Readonly<Record<TechnicalSourceRole, string>> = {
   REFERENCE_ONLY: 'Lähdeviite tai tutkimusesitys. Ei toteumavarmennus.',
 };
 
-// The source inventory has exactly eight technical-system identities. Runtime
+// The source inventory has exactly ten technical-system identities. Runtime
 // inputs may violate their TypeScript type, so never invent an available row.
 const canonicalTechnicalGroupIds: ReadonlySet<TechnicalSystemSummary['id']> = new Set([
   'technical-electrical',
   'technical-ventilation',
   'technical-heating',
+  'technical-water',
+  'technical-drainage',
   'locus-water',
   'locus-wastewater',
   'p161-kvv-2017',

@@ -77,6 +77,8 @@ const catalog: readonly CatalogNode[] = [
     { id: 'technical-ventilation', label: 'IV-laitteet ja venttiilit' },
     { id: 'technical-heating', label: 'Patterit ja ILP' },
     { id: 'technical-electrical', label: 'Sähkölaitteet ja valaisimet' },
+    { id: 'technical-water', label: 'Vesijohdot' },
+    { id: 'technical-drainage', label: 'Viemärit' },
   ] },
   { id: 'references', label: 'Lähteet ja viitteet', children: [
     { id: 'architecture-review-helpers', label: 'Tarkastelun apukohteet' },
