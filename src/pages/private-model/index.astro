@@ -2547,6 +2547,7 @@ const title = 'Private 3D viewer';
       import { createHeightScaleController } from '../../scripts/privateModelHeightScale';
       import { createOrientationGizmoController } from '../../scripts/privateModelOrientationGizmo';
       import { createViewerFrameProfiler } from '../../scripts/privateModelFrameProfiler';
+      import { createUnifiedEdgeMemo } from '../../scripts/privateModelUnifiedEdgeMemo';
       import {
         activateReviewCoordinatePanel,
         clearReviewAnchorState,
@@ -4483,12 +4484,11 @@ const title = 'Private 3D viewer';
         }
       };
 
-      const buildUnifiedEdgeGeometry = (meshes: any[]) => {
-        const edgeMap = new Map<string, { a: any; b: any; normals: any[] }>();
-        for (const mesh of meshes) addUnifiedMeshEdges(mesh, edgeMap);
+      // VIEWER-PERF: identical input -> identical overlay; skips the ~4.5 s rebuild
+      // repeated by one floor switch / Layers toggle. Output and algorithm unchanged.
+      const unifiedEdgeMemo = createUnifiedEdgeMemo(6);
 
-        const creaseCos = Math.cos(THREE.MathUtils.degToRad(8));
-        const boundaries = [...edgeMap.values()].filter((record) => record.normals.length === 1);
+      const buildUnifiedEdgeGeometry = (meshes: any[]) => {
         // HI20 C80-044: shared coplanar T-junction edges from separately
         // triangulated wall parts are not architectural contours. The default
         // edgeMode=none from PR #1582 is unchanged; this affects manual unified/
@@ -4500,6 +4500,20 @@ const title = 'Private 3D viewer';
           v69SourceSha: V69_SOURCE_SHA256,
           preset: canvas.dataset.standardViewPreset,
         });
+        const memoKey = unifiedEdgeMemo.keyOf(meshes, isC044TwoFloorPreview ? 'c044' : 'plain');
+        const memo = unifiedEdgeMemo.get(memoKey);
+        if (memo) {
+          canvas.dataset.edgeTJunctionSuppressedCount = String(memo.suppressedTJunctions);
+          canvas.dataset.edgeOverlayMemo = 'hit';
+          return new THREE.BufferGeometry().setAttribute(
+            'position', new THREE.Float32BufferAttribute(memo.positions, 3));
+        }
+
+        const edgeMap = new Map<string, { a: any; b: any; normals: any[] }>();
+        for (const mesh of meshes) addUnifiedMeshEdges(mesh, edgeMap);
+
+        const creaseCos = Math.cos(THREE.MathUtils.degToRad(8));
+        const boundaries = [...edgeMap.values()].filter((record) => record.normals.length === 1);
         const suppressedIndexes = isC044TwoFloorPreview
           ? findCoplanarTJunctionBoundaryIndexes(
               boundaries.map((record) => ({
@@ -4527,7 +4541,10 @@ const title = 'Private 3D viewer';
           if (keep) points.push(record.a, record.b);
         }
 
-        return new THREE.BufferGeometry().setFromPoints(points);
+        const geometry = new THREE.BufferGeometry().setFromPoints(points);
+        unifiedEdgeMemo.set(memoKey, geometry.getAttribute('position').array, suppressedBoundaries.size);
+        canvas.dataset.edgeOverlayMemo = 'miss';
+        return geometry;
       };
 
       const refreshEdgeRendering = (root: any) => {
