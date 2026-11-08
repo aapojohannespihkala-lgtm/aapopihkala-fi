@@ -2492,6 +2492,7 @@ const title = 'Private 3D viewer';
       import { V69_SOURCE_SHA256 } from '../../scripts/privateModelC80R2V69LayerSourceProfile.mjs';
       import { V69P12R1_SOURCE_SHA256, resolveV69P12R1SourceContext } from '../../scripts/privateModelC80R2V69P12R1LayerSourceProfile.mjs';
       import { V71_SOURCE_SHA256 } from '../../scripts/privateModelC80R2V71LayerSourceProfile.mjs';
+      import { V72_SOURCE_SHA256 } from '../../scripts/privateModelC80R2V72LayerSourceProfile.mjs';
       import { resolveTechnicalReviewRoots, createTechnicalReviewPresentation, technicalReviewSystemOf } from '../../scripts/privateModelTechnicalReviewPresentation.mjs';
       import { K17_RAIL900_SOURCE_SHA256 } from '../../scripts/privateModelK17Rail900LayerSourceProfile.mjs';
       import { createV69C035WhiteLobbyPresentation } from '../../scripts/privateModelV69C035WhiteLobbyPresentation.mjs';
@@ -14258,6 +14259,7 @@ const title = 'Private 3D viewer';
           layersLoadedSha === V69_SOURCE_SHA256 ||
           layersLoadedSha === V69P12R1_SOURCE_SHA256 ||
           layersLoadedSha === V71_SOURCE_SHA256 ||
+          layersLoadedSha === V72_SOURCE_SHA256 ||
           layersLoadedSha === K17_RAIL900_SOURCE_SHA256
             ? layersLoadedSha : null;
         layersExpectedSha = session?.contract?.glbSha256 ?? verifiedChainSourceSha;

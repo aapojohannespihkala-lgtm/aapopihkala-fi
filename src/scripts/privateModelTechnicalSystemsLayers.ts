@@ -1,4 +1,5 @@
 import { V71_SOURCE_SHA256, V71_SOURCE_SCENE_COUNT, V71_BUILDING_SCENES } from './privateModelC80R2V71LayerSourceProfile.mjs';
+import { V72_SOURCE_SHA256, V72_SOURCE_SCENE_COUNT, V72_BUILDING_SCENES } from './privateModelC80R2V72LayerSourceProfile.mjs';
 import { V69P12R1_SOURCE_SHA256, V69P12R1_SOURCE_SCENE_COUNT, V69P12R1_BUILDING_SCENES } from './privateModelC80R2V69P12R1LayerSourceProfile.mjs';
 import { K17_RAIL900_SOURCE_SHA256, K17_RAIL900_SOURCE_SCENE_COUNT, K17_RAIL900_BUILDING_SCENES } from './privateModelK17Rail900LayerSourceProfile.mjs';
 import { V27_SOURCE_SHA256, V27_SOURCE_SCENE_COUNT, V27_TECHNICAL_SCENES } from './privateModelC80R2V27LayerSourceProfile.mjs';
@@ -238,12 +239,14 @@ const v26Scenes = { '1F': 174, '2F': 162, BOTH: 175 } as const;
 const v26Device = (context: TechnicalSystemsContext, binding: TechnicalSourceNode): {
   id: TechnicalSystemId; scope: Scope;
 } | null => {
-  const integratedScenes = context.loadedGlbSha256 === V71_SOURCE_SHA256 ? V71_BUILDING_SCENES
+  const integratedScenes = context.loadedGlbSha256 === V72_SOURCE_SHA256 ? V72_BUILDING_SCENES
+    : context.loadedGlbSha256 === V71_SOURCE_SHA256 ? V71_BUILDING_SCENES
     : context.loadedGlbSha256 === V69P12R1_SOURCE_SHA256 ? V69P12R1_BUILDING_SCENES
     : context.loadedGlbSha256 === K17_RAIL900_SOURCE_SHA256 ? K17_RAIL900_BUILDING_SCENES
     : context.loadedGlbSha256 === V69_SOURCE_SHA256 ? V69_BUILDING_SCENES
     : context.loadedGlbSha256 === V68_SOURCE_SHA256 ? V68_BUILDING_SCENES : null;
-  const integratedCount = context.loadedGlbSha256 === V71_SOURCE_SHA256 ? V71_SOURCE_SCENE_COUNT
+  const integratedCount = context.loadedGlbSha256 === V72_SOURCE_SHA256 ? V72_SOURCE_SCENE_COUNT
+    : context.loadedGlbSha256 === V71_SOURCE_SHA256 ? V71_SOURCE_SCENE_COUNT
     : context.loadedGlbSha256 === V69P12R1_SOURCE_SHA256 ? V69P12R1_SOURCE_SCENE_COUNT
     : context.loadedGlbSha256 === K17_RAIL900_SOURCE_SHA256 ? K17_RAIL900_SOURCE_SCENE_COUNT
     : context.loadedGlbSha256 === V69_SOURCE_SHA256 ? V69_SOURCE_SCENE_COUNT : V68_SOURCE_SCENE_COUNT;
