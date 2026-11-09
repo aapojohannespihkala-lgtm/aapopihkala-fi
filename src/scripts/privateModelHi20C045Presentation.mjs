@@ -24,7 +24,9 @@ const TARGETS = [
     newName:'HI20_C045_CLIPPED_OWNER_WHITE_C048_BOTH_OPTIN'},
 ];
 function unavailable(reason) {
-  return {available:false,reason,count:0,corrected:false,setCorrected:()=>false,dispose:()=>{}};
+  return {available:false,reason,count:0,corrected:false,
+    c037WasherTopAvailable:false,c037WasherTopApplied:false,c037WasherTopCount:0,
+    setC037WasherTopClean:()=>false,setCorrected:()=>false,dispose:()=>{}};
 }
 export function createHi20C045Presentation(gltf, verifiedSha) {
   if (verifiedSha!==C045_SOURCE_SHA || gltf?.scenes?.length!==52 ||
@@ -117,6 +119,10 @@ export function createHi20C045Presentation(gltf, verifiedSha) {
     c035LobbyCount:lobbyApplied?lobby.count:0,
     k17WhiteApplied,
     k17WhiteCount:k17WhiteApplied?k17White.count:0,
+    get c037WasherTopAvailable(){return k17White.c037WasherTopAvailable;},
+    get c037WasherTopApplied(){return k17White.c037WasherTopApplied;},
+    get c037WasherTopCount(){return k17White.c037WasherTopCount;},
+    setC037WasherTopClean(next){return k17White.setC037WasherTopClean(next);},
     c002StorageRoofsApplied:storageRoofsApplied,
     c002StorageRoofsCount:storageRoofsApplied?storageRoofs.count:0,
     c047StorageDoorWallApplied:doorWallApplied,

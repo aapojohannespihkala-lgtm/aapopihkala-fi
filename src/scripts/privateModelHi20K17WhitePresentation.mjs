@@ -12,6 +12,8 @@ const TARGETS = [
 ];
 const unavailable = (reason) => ({
   available:false, reason, count:0, enabled:false,
+  c037WasherTopAvailable:false, c037WasherTopApplied:false, c037WasherTopCount:0,
+  setC037WasherTopClean:()=>false,
   setEnabled:()=>false, dispose:()=>{},
 });
 function exactMesh(scene,id,associations) {
@@ -110,8 +112,10 @@ export function createHi20K17WhitePresentation(gltf, verifiedSha) {
     available:true, reason:null, count:4,
     c042Kiv003UnhostedHidden:kiv003Hidden,
     c042Kiv003UnhostedCount:kiv003Hidden?kiv003.count:0,
-    c037WasherTopApplied:washerTopApplied,
-    c037WasherTopCount:washerTopApplied?washerTop.count:0,
+    get c037WasherTopAvailable(){return washerTop.available;},
+    get c037WasherTopApplied(){return washerTop.available && washerTop.enabled;},
+    c037WasherTopCount:washerTop.available?washerTop.count:0,
+    setC037WasherTopClean(next){return washerTop.available && washerTop.setEnabled(Boolean(next));},
     c043LegacyWallWhiteApplied:legacyWhiteApplied,
     c043LegacyWallWhiteCount:legacyWhiteApplied?legacyWhite.count:0,
     get enabled(){return enabled;},
