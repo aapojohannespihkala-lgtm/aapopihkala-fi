@@ -19,6 +19,7 @@ import { V88_SOURCE_SHA256, V88_SOURCE_SCENE_COUNT, V88_FLOORS, V88_BUILDING_SCE
 import { V89_SOURCE_SHA256, V89_SOURCE_SCENE_COUNT, V89_FLOORS, V89_BUILDING_SCENES, V89_TECHNICAL_REVIEW_ROOTS } from './privateModelC80R2V89LayerSourceProfile.mjs';
 import { V90_SOURCE_SHA256, V90_SOURCE_SCENE_COUNT, V90_FLOORS, V90_BUILDING_SCENES, V90_TECHNICAL_REVIEW_ROOTS } from './privateModelC80R2V90LayerSourceProfile.mjs';
 import { V90_H20_SOURCE_SHA256, V90_H20_SCENE_COUNT, V90_H20_FLOORS, V90_H20_BUILDING_SCENES, V90_H20_TECHNICAL_REVIEW_ROOTS } from './privateModelC80R2V90H20LayerSourceProfile.mjs';
+import { V90_IV_P04_SOURCE_SHA256, V90_IV_P04_SCENE_COUNT, V90_IV_P04_FLOORS, V90_IV_P04_BUILDING_SCENES, V90_IV_P04_TECHNICAL_REVIEW_ROOTS, V90_IV_P04_OPTIN_SCENES } from './privateModelC80R2V90IVP04LayerSourceProfile.mjs';
 
 /** Exact M5-integrated sources that carry technical review roots. */
 const REVIEW_SOURCES = Object.freeze({
@@ -40,6 +41,7 @@ const REVIEW_SOURCES = Object.freeze({
   [V89_SOURCE_SHA256]: { count: V89_SOURCE_SCENE_COUNT, floors: V89_FLOORS, scenes: V89_BUILDING_SCENES, roots: V89_TECHNICAL_REVIEW_ROOTS },
   [V90_SOURCE_SHA256]: { count: V90_SOURCE_SCENE_COUNT, floors: V90_FLOORS, scenes: V90_BUILDING_SCENES, roots: V90_TECHNICAL_REVIEW_ROOTS },
   [V90_H20_SOURCE_SHA256]: { count: V90_H20_SCENE_COUNT, floors: V90_H20_FLOORS, scenes: V90_H20_BUILDING_SCENES, roots: V90_H20_TECHNICAL_REVIEW_ROOTS },
+  [V90_IV_P04_SOURCE_SHA256]: { count: V90_IV_P04_SCENE_COUNT, floors: V90_IV_P04_FLOORS, scenes: V90_IV_P04_BUILDING_SCENES, roots: V90_IV_P04_TECHNICAL_REVIEW_ROOTS },
   [V84_SOURCE_SHA256]: { count: V84_SOURCE_SCENE_COUNT, floors: V84_FLOORS, scenes: V84_BUILDING_SCENES, roots: V84_TECHNICAL_REVIEW_ROOTS },
   [V83_SOURCE_SHA256]: { count: V83_SOURCE_SCENE_COUNT, floors: V83_FLOORS, scenes: V83_BUILDING_SCENES, roots: V83_TECHNICAL_REVIEW_ROOTS },
   [V82_SOURCE_SHA256]: { count: V82_SOURCE_SCENE_COUNT, floors: V82_FLOORS, scenes: V82_BUILDING_SCENES, roots: V82_TECHNICAL_REVIEW_ROOTS },
@@ -69,11 +71,23 @@ export function resolveTechnicalReviewRoots(gltf, scene, sceneIndex, loadedSha, 
       json.scenes[sceneIndex]?.name !== sceneProfile.name ||
       typeof associations?.get !== 'function' || !Array.isArray(scene?.children)) return null;
   const sourceRoots = json.scenes[sceneIndex].nodes;
+  const exactIvFocus = loadedSha === V90_IV_P04_SOURCE_SHA256 &&
+    Object.values(V90_IV_P04_OPTIN_SCENES).includes(sceneIndex);
+  // The three ventilation-only opt-ins have deliberately no building roots.
+  // Require exact ordered source membership for the trusted SHA; a subset,
+  // reorder or extra root is not an approved source review scene.
+  if (exactIvFocus && (!Array.isArray(sourceRoots) ||
+    sourceRoots.length !== profile.length ||
+    !sourceRoots.every((node, index) => node === profile[index].node))) return null;
   const roots = [];
   for (const { node, name } of profile) {
-    if (sourceRoots.filter(id => id === node).length !== 1 || json.nodes?.[node]?.name !== name) return null;
+    // A null name is valid only for the exact-SHA IV focus: the source hash
+    // locks the immutable node JSON, while the ordered root list locks scope.
+    const expectedName = exactIvFocus && name === null ? json.nodes?.[node]?.name : name;
+    if (!expectedName || sourceRoots.filter(id => id === node).length !== 1 ||
+      json.nodes?.[node]?.name !== expectedName) return null;
     const matches = scene.children.filter(object => associations.get(object)?.nodes === node);
-    if (matches.length !== 1 || matches[0].parent !== scene || !sameSourceName(matches[0].name, name)) return null;
+    if (matches.length !== 1 || matches[0].parent !== scene || !sameSourceName(matches[0].name, expectedName)) return null;
     roots.push(matches[0]);
   }
   return roots;

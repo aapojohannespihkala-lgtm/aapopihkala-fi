@@ -19,6 +19,7 @@ import { V88_SOURCE_SHA256, V88_SOURCE_SCENE_COUNT, V88_BUILDING_SCENES } from '
 import { V89_SOURCE_SHA256, V89_SOURCE_SCENE_COUNT, V89_BUILDING_SCENES } from './privateModelC80R2V89LayerSourceProfile.mjs';
 import { V90_SOURCE_SHA256, V90_SOURCE_SCENE_COUNT, V90_BUILDING_SCENES } from './privateModelC80R2V90LayerSourceProfile.mjs';
 import { V90_H20_SOURCE_SHA256, V90_H20_SCENE_COUNT, V90_H20_BUILDING_SCENES, V90_H20_FLOORS, V90_H20_OPTIN_SCENES, V90_H20_ROOT } from './privateModelC80R2V90H20LayerSourceProfile.mjs';
+import { V90_IV_P04_SOURCE_SHA256, V90_IV_P04_SCENE_COUNT, V90_IV_P04_BUILDING_SCENES, V90_IV_P04_FLOORS, V90_IV_P04_OPTIN_SCENES, V90_IV_P04_ROOT_IDS } from './privateModelC80R2V90IVP04LayerSourceProfile.mjs';
 import { V69P12R1_SOURCE_SHA256, V69P12R1_SOURCE_SCENE_COUNT, V69P12R1_BUILDING_SCENES } from './privateModelC80R2V69P12R1LayerSourceProfile.mjs';
 import { K17_RAIL900_SOURCE_SHA256, K17_RAIL900_SOURCE_SCENE_COUNT, K17_RAIL900_BUILDING_SCENES } from './privateModelK17Rail900LayerSourceProfile.mjs';
 import { V27_SOURCE_SHA256, V27_SOURCE_SCENE_COUNT, V27_TECHNICAL_SCENES } from './privateModelC80R2V27LayerSourceProfile.mjs';
@@ -289,7 +290,8 @@ const v26Device = (context: TechnicalSystemsContext, binding: TechnicalSourceNod
   id: TechnicalSystemId; scope: Scope;
 } | null => {
   const h20Optin = context.loadedGlbSha256 === V90_H20_SOURCE_SHA256;
-  const integratedScenes = h20Optin ? V90_H20_BUILDING_SCENES : context.loadedGlbSha256 === V90_SOURCE_SHA256 ? V90_BUILDING_SCENES : context.loadedGlbSha256 === V89_SOURCE_SHA256 ? V89_BUILDING_SCENES : context.loadedGlbSha256 === V88_SOURCE_SHA256 ? V88_BUILDING_SCENES : context.loadedGlbSha256 === V87_SOURCE_SHA256 ? V87_BUILDING_SCENES : context.loadedGlbSha256 === V86_SOURCE_SHA256 ? V86_BUILDING_SCENES : context.loadedGlbSha256 === V85_SOURCE_SHA256 ? V85_BUILDING_SCENES : context.loadedGlbSha256 === V84_SOURCE_SHA256 ? V84_BUILDING_SCENES : context.loadedGlbSha256 === V83_SOURCE_SHA256 ? V83_BUILDING_SCENES : context.loadedGlbSha256 === V82_SOURCE_SHA256 ? V82_BUILDING_SCENES
+  const ivFocus = context.loadedGlbSha256 === V90_IV_P04_SOURCE_SHA256;
+  const integratedScenes = ivFocus ? V90_IV_P04_BUILDING_SCENES : h20Optin ? V90_H20_BUILDING_SCENES : context.loadedGlbSha256 === V90_SOURCE_SHA256 ? V90_BUILDING_SCENES : context.loadedGlbSha256 === V89_SOURCE_SHA256 ? V89_BUILDING_SCENES : context.loadedGlbSha256 === V88_SOURCE_SHA256 ? V88_BUILDING_SCENES : context.loadedGlbSha256 === V87_SOURCE_SHA256 ? V87_BUILDING_SCENES : context.loadedGlbSha256 === V86_SOURCE_SHA256 ? V86_BUILDING_SCENES : context.loadedGlbSha256 === V85_SOURCE_SHA256 ? V85_BUILDING_SCENES : context.loadedGlbSha256 === V84_SOURCE_SHA256 ? V84_BUILDING_SCENES : context.loadedGlbSha256 === V83_SOURCE_SHA256 ? V83_BUILDING_SCENES : context.loadedGlbSha256 === V82_SOURCE_SHA256 ? V82_BUILDING_SCENES
     : context.loadedGlbSha256 === V81_SOURCE_SHA256 ? V81_BUILDING_SCENES
     : context.loadedGlbSha256 === V80_SOURCE_SHA256 ? V80_BUILDING_SCENES
     : context.loadedGlbSha256 === V79_SOURCE_SHA256 ? V79_BUILDING_SCENES
@@ -305,7 +307,7 @@ const v26Device = (context: TechnicalSystemsContext, binding: TechnicalSourceNod
     : context.loadedGlbSha256 === K17_RAIL900_SOURCE_SHA256 ? K17_RAIL900_BUILDING_SCENES
     : context.loadedGlbSha256 === V69_SOURCE_SHA256 ? V69_BUILDING_SCENES
     : context.loadedGlbSha256 === V68_SOURCE_SHA256 ? V68_BUILDING_SCENES : null;
-  const integratedCount = h20Optin ? V90_H20_SCENE_COUNT : context.loadedGlbSha256 === V90_SOURCE_SHA256 ? V90_SOURCE_SCENE_COUNT : context.loadedGlbSha256 === V89_SOURCE_SHA256 ? V89_SOURCE_SCENE_COUNT : context.loadedGlbSha256 === V88_SOURCE_SHA256 ? V88_SOURCE_SCENE_COUNT : context.loadedGlbSha256 === V87_SOURCE_SHA256 ? V87_SOURCE_SCENE_COUNT : context.loadedGlbSha256 === V86_SOURCE_SHA256 ? V86_SOURCE_SCENE_COUNT : context.loadedGlbSha256 === V85_SOURCE_SHA256 ? V85_SOURCE_SCENE_COUNT : context.loadedGlbSha256 === V84_SOURCE_SHA256 ? V84_SOURCE_SCENE_COUNT : context.loadedGlbSha256 === V83_SOURCE_SHA256 ? V83_SOURCE_SCENE_COUNT : context.loadedGlbSha256 === V82_SOURCE_SHA256 ? V82_SOURCE_SCENE_COUNT
+  const integratedCount = ivFocus ? V90_IV_P04_SCENE_COUNT : h20Optin ? V90_H20_SCENE_COUNT : context.loadedGlbSha256 === V90_SOURCE_SHA256 ? V90_SOURCE_SCENE_COUNT : context.loadedGlbSha256 === V89_SOURCE_SHA256 ? V89_SOURCE_SCENE_COUNT : context.loadedGlbSha256 === V88_SOURCE_SHA256 ? V88_SOURCE_SCENE_COUNT : context.loadedGlbSha256 === V87_SOURCE_SHA256 ? V87_SOURCE_SCENE_COUNT : context.loadedGlbSha256 === V86_SOURCE_SHA256 ? V86_SOURCE_SCENE_COUNT : context.loadedGlbSha256 === V85_SOURCE_SHA256 ? V85_SOURCE_SCENE_COUNT : context.loadedGlbSha256 === V84_SOURCE_SHA256 ? V84_SOURCE_SCENE_COUNT : context.loadedGlbSha256 === V83_SOURCE_SHA256 ? V83_SOURCE_SCENE_COUNT : context.loadedGlbSha256 === V82_SOURCE_SHA256 ? V82_SOURCE_SCENE_COUNT
     : context.loadedGlbSha256 === V81_SOURCE_SHA256 ? V81_SOURCE_SCENE_COUNT
     : context.loadedGlbSha256 === V80_SOURCE_SHA256 ? V80_SOURCE_SCENE_COUNT
     : context.loadedGlbSha256 === V79_SOURCE_SHA256 ? V79_SOURCE_SCENE_COUNT
@@ -325,12 +327,13 @@ const v26Device = (context: TechnicalSystemsContext, binding: TechnicalSourceNod
   const v33 = context.loadedGlbSha256 === V33_SOURCE_SHA256;
   const v29 = context.loadedGlbSha256 === V29_SOURCE_SHA256;
   const v27 = context.loadedGlbSha256 === V27_SOURCE_SHA256;
-  const scenes = h20Optin ? V90_H20_FLOORS : integratedScenes ? Object.fromEntries(Object.entries(integratedScenes).map(([index, scene]) => [scene.floor, Number(index)]))
+  const scenes = ivFocus ? V90_IV_P04_FLOORS : h20Optin ? V90_H20_FLOORS : integratedScenes ? Object.fromEntries(Object.entries(integratedScenes).map(([index, scene]) => [scene.floor, Number(index)]))
     : v35 ? V35_TECHNICAL_SCENES : v34 ? V34_TECHNICAL_SCENES : v33 ? V33_TECHNICAL_SCENES : v29 ? V29_TECHNICAL_SCENES : v27 ? V27_TECHNICAL_SCENES : v26Scenes;
   // No guessed successor or copied metadata from another GLB is accepted.
   if ((!integratedScenes && !v35 && !v34 && !v33 && !v29 && !v27 && context.loadedGlbSha256 !== V26_TECHNICAL_SOURCE_SHA256) ||
       !(Object.values(scenes) as readonly number[]).includes(context.sourceSceneIndex) &&
-        !(h20Optin && (context.sourceSceneIndex === V90_H20_OPTIN_SCENES['1F'] || context.sourceSceneIndex === V90_H20_OPTIN_SCENES.BOTH)) ||
+        !(h20Optin && (context.sourceSceneIndex === V90_H20_OPTIN_SCENES['1F'] || context.sourceSceneIndex === V90_H20_OPTIN_SCENES.BOTH)) &&
+        !(ivFocus && (Object.values(V90_IV_P04_OPTIN_SCENES) as readonly number[]).includes(context.sourceSceneIndex)) ||
       !context.sourceJson ||
       (v35 && context.sourceJson.scenes?.length !== V35_SOURCE_SCENE_COUNT) ||
       (v34 && context.sourceJson.scenes?.length !== V34_SOURCE_SCENE_COUNT) ||
@@ -345,6 +348,25 @@ const v26Device = (context: TechnicalSystemsContext, binding: TechnicalSourceNod
     if (context.sourceJson.scenes?.length !== integratedCount || !profile || !source ||
         source.name !== profile.name ||
         JSON.stringify(source.nodes) !== JSON.stringify(profile.rootNodes)) return null;
+  }
+  // The IV focus has no invented 3D geometry. Treat only existing geometry
+  // whose source-node chain leads to an exact focus root as ventilation.
+  if (ivFocus && (Object.values(V90_IV_P04_OPTIN_SCENES) as readonly number[]).includes(context.sourceSceneIndex)) {
+    const roots = V90_IV_P04_ROOT_IDS[context.sourceSceneIndex as 298 | 299 | 300];
+    const seen = new Set<number>();
+    let index: number | null = binding.nodeIndex;
+    while (index !== null && !seen.has(index)) {
+      if (roots.includes(index)) {
+        const n = context.sourceJson.nodes?.[binding.nodeIndex]?.name ?? '';
+        const storey = context.sourceSceneIndex === 299 ? '2F'
+          : context.sourceSceneIndex === 298 ? '1F' : /D2F|_2F_|ROOF160|E220S/.test(n) ? '2F' : '1F';
+        return { id: 'technical-ventilation', scope: { apartment: 'D', storey, phase: 'ACTIVE_IN_SELECTED_WORKTEST' } };
+      }
+      seen.add(index);
+      const current = context.sourceNodes.find(node => node.sceneIndex === context.sourceSceneIndex && node.nodeIndex === index);
+      index = current?.parentNodeIndex ?? null;
+    }
+    return null;
   }
   const name = context.sourceJson.nodes?.[binding.nodeIndex]?.name ?? '';
   let id: TechnicalSystemId | null = null;
