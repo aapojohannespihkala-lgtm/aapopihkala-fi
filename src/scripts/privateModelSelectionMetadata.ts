@@ -195,6 +195,37 @@ const sourceLinkText = (value: unknown) => {
 };
 
 /**
+ * V90 H21/H22 use verified 2026 photo Drive IDs rather than sourceLinks.
+ * Resolve only these two exact evidence IDs under their V90 integration task,
+ * never an arbitrary userData ID or URL. These are WORK_TEST source photos,
+ * not evidence of current geometry or physical pipe connections.
+ */
+const v90PhotoSourceForNode = (
+  data: Record<string, unknown> | undefined,
+): SelectionSourceLink | null => {
+  const integrated = data?.v90IntegratedFrom;
+  if (!integrated || typeof integrated !== 'object' || Array.isArray(integrated)) return null;
+  const task = (integrated as Record<string, unknown>).task;
+
+  if (task === 'H21' &&
+      (data?.photoSourceDriveId === '1a16hN0pssODwrhazkkyXPzIQf2yeXP7-' ||
+       data?.['2026PhotoZip'] === '1a16hN0pssODwrhazkkyXPzIQf2yeXP7-')) {
+    return {
+      link: 'https://drive.google.com/file/d/1a16hN0pssODwrhazkkyXPzIQf2yeXP7-/view',
+      label: 'H21 - vuoden 2026 WC-valokuvat (WORK_TEST)',
+    };
+  }
+  if (task === 'H22' &&
+      data?.sourcePhoto === '1BmfFwt2R1OzEYzWQPP31CjSpeybxi9uO') {
+    return {
+      link: 'https://drive.google.com/file/d/1BmfFwt2R1OzEYzWQPP31CjSpeybxi9uO/view',
+      label: 'H22 - vuoden 2026 keittio kuva (WORK_TEST)',
+    };
+  }
+  return null;
+};
+
+/**
  * GLB node extras.sourceLinks ({docId, link, role, supports}) or legacy
  * {url, evidence} records from the selected node and
  * its ancestors (same 8-level walk as scalar metadata). Only Google Drive/Docs links are
@@ -228,6 +259,10 @@ export const selectionSourceLinks = (
           'Lähde';
         links.set(link, { link, label: label.length > 240 ? `${label.slice(0, 237)}…` : label });
       }
+    }
+    const photo = v90PhotoSourceForNode(current.userData);
+    if (photo && links.size < maxSelectionSourceLinks && !links.has(photo.link)) {
+      links.set(photo.link, photo);
     }
     current = current.parent;
     depth += 1;
