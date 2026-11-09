@@ -226,6 +226,38 @@ const v90PhotoSourceForNode = (
 };
 
 /**
+ * H23's integrated V90 PA2 group root has an exact pair of 2026 sourcePhoto
+ * IDs but no sourceLinks. Its 23 children already have their own sourceLinks.
+ * Only this source-exact group root may inherit the two verified photo links.
+ * WORK_TEST photo evidence never establishes physical connections or as-built.
+ */
+const v90H23Pa2RootPhotoLinks = (
+  data: Record<string, unknown> | undefined,
+): SelectionSourceLink[] => {
+  const integrated = data?.v90IntegratedFrom;
+  if (!integrated || typeof integrated !== 'object' || Array.isArray(integrated)) return [];
+  const origin = integrated as Record<string, unknown>;
+  if (origin.task !== 'H23' || origin.donorNode !== 11391 ||
+      data?.H23 !== true || data?.modelScope !== 'WORK_TEST/HOST_HOLD' ||
+      data?.canonical !== false || data?.asBuilt !== false ||
+      data?.sourceV89GLBSHA256 !== '718163b76b46aee51193e059c5790d0e22c84a364d82d8d58bc2084776902a2c') return [];
+  const photos = data?.sourcePhotos;
+  if (!Array.isArray(photos) || photos.length !== 2 ||
+      photos[0] !== '1AwU2CHmVnnL4fPoBzBBMkLTU8ppurS3V' ||
+      photos[1] !== '1k9fRDgKfu2mINDru0uqv6C5eVZ0-9kce') return [];
+  return [
+    {
+      link: 'https://drive.google.com/file/d/1AwU2CHmVnnL4fPoBzBBMkLTU8ppurS3V/view',
+      label: 'H23 PA2 - 2026 sulkuventtiilit ja letkut (WORK_TEST)',
+    },
+    {
+      link: 'https://drive.google.com/file/d/1k9fRDgKfu2mINDru0uqv6C5eVZ0-9kce/view',
+      label: 'H23 PA2 - 2026 vesilukko ja poimuletkut (WORK_TEST)',
+    },
+  ];
+};
+
+/**
  * GLB node extras.sourceLinks ({docId, link, role, supports}) or legacy
  * {url, evidence} records from the selected node and
  * its ancestors (same 8-level walk as scalar metadata). Only Google Drive/Docs links are
@@ -263,6 +295,10 @@ export const selectionSourceLinks = (
     const photo = v90PhotoSourceForNode(current.userData);
     if (photo && links.size < maxSelectionSourceLinks && !links.has(photo.link)) {
       links.set(photo.link, photo);
+    }
+    for (const rootPhoto of v90H23Pa2RootPhotoLinks(current.userData)) {
+      if (links.size >= maxSelectionSourceLinks) break;
+      if (!links.has(rootPhoto.link)) links.set(rootPhoto.link, rootPhoto);
     }
     current = current.parent;
     depth += 1;
