@@ -361,6 +361,30 @@ jobs:
           [[ "$GITHUB_REF" == "refs/heads/main" ]]
           gh api --method POST "/repos/${GITHUB_REPOSITORY}/actions/workflows/private-model-d1f-service-review.yml/dispatches" -f ref=main
 
+      - name: Dispatch exact K17 production regression after verified publish
+        if: success() && inputs.candidate == 'ylisrinne-k17-rail900-20261104'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          [[ "$GITHUB_EVENT_NAME" == "workflow_dispatch" ]]
+          [[ "$GITHUB_REF" == "refs/heads/main" ]]
+          [[ "$CANDIDATE_ID" == 'ylisrinne-k17-rail900-20261104' ]]
+          gh api --method POST "/repos/${GITHUB_REPOSITORY}/actions/workflows/d-view-regression.yml/dispatches" -f ref=main -f inputs[source_version]=K17_RAIL900
+
+      - name: Dispatch exact V69P12R1 production regression after verified publish
+        if: success() && inputs.candidate == 'ylisrinne-v69p12r1-sink-faucet-floor-metadata-20261105'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          [[ "$GITHUB_EVENT_NAME" == "workflow_dispatch" ]]
+          [[ "$GITHUB_REF" == "refs/heads/main" ]]
+          [[ "$CANDIDATE_ID" == 'ylisrinne-v69p12r1-sink-faucet-floor-metadata-20261105' ]]
+          gh api --method POST "/repos/${GITHUB_REPOSITORY}/actions/workflows/d-view-regression.yml/dispatches" -f ref=main -f inputs[source_version]=V69P12R1
+
       - name: Remove private temporary files
         if: always()
         shell: bash
@@ -371,5 +395,6 @@ jobs:
             "$RUNNER_TEMP/work-test-production-readback.glb" \
             "$RUNNER_TEMP/publish-response.json" \
             "$RUNNER_TEMP/catalog.json"
+
 
 

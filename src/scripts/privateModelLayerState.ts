@@ -1,5 +1,10 @@
 export type EdgeMode = 'none' | 'object' | 'unified' | 'visible';
 
+/** TypeScript does not validate URL, storage or other runtime-provided values. */
+export const isViewerEdgeMode = (value: unknown): value is EdgeMode =>
+  value === 'none' || value === 'object' ||
+  value === 'unified' || value === 'visible';
+
 export type ViewerLayerState = {
   roofVisible: boolean;
   roofOpacity: number;
@@ -14,11 +19,14 @@ export const createViewerLayerStateForModelLoad = (
 ): ViewerLayerState => ({
   roofVisible: true,
   roofOpacity: 1,
-  locusVisible: options.locusVisible ?? false,
+  // Runtime-provided model-load flags must not expose source-only Locus layers.
+  locusVisible: options.locusVisible === true,
   edgeMode: 'visible',
 });
 
-export const clampViewerLayerOpacity = (value: number) => Math.max(0, Math.min(1, value));
+/** Reject NaN before it can poison material opacity in either layer-state path. */
+export const clampViewerLayerOpacity = (value: number) =>
+  Number.isNaN(value) ? 1 : Math.max(0, Math.min(1, value));
 
 export const mergeViewerLayerState = (
   current: ViewerLayerState,
@@ -32,5 +40,5 @@ export const mergeViewerLayerState = (
       : current.roofOpacity,
   locusVisible:
     typeof next.locusVisible === 'boolean' ? next.locusVisible : current.locusVisible,
-  edgeMode: next.edgeMode ?? current.edgeMode,
+  edgeMode: isViewerEdgeMode(next.edgeMode) ? next.edgeMode : current.edgeMode,
 });

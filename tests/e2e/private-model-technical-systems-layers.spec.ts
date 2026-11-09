@@ -1,0 +1,440 @@
+import { V69P12R1_SOURCE_SHA256, V69P12R1_SOURCE_SCENE_COUNT, V69P12R1_BUILDING_SCENES } from '../../src/scripts/privateModelC80R2V69P12R1LayerSourceProfile.mjs';
+import { expect, test } from '@playwright/test';
+import { BoxGeometry, Group, Mesh, MeshBasicMaterial, Scene } from 'three';
+import {
+  createTechnicalSystemLayerInventory,
+  createTechnicalSystemPresentation,
+  m5System,
+  type TechnicalSourceNode,
+  type TechnicalSystemsContext,
+  V26_TECHNICAL_SOURCE_SHA256,
+} from '../../src/scripts/privateModelTechnicalSystemsLayers';
+import { createViewerInteractionState, setViewerInteractionLayerMode } from '../../src/scripts/privateModelViewerState';
+import {
+  V35_SOURCE_SHA256,
+  V35_SOURCE_SCENE_COUNT,
+} from '../../src/scripts/privateModelC80R2V35LayerSourceProfile.mjs';
+
+const SHA = '8ddb398d9eb981d92ed444afcfad93ceb2224b1ce9898599553ede9b4136b87d';
+const makeFixture = (family: 'electric' | 'kvv' | 'iv') => {
+  const scene = new Scene();
+  const root = new Group(); root.name = 'source-root';
+  const mesh = new Mesh(new BoxGeometry(1, 1, 1), new MeshBasicMaterial());
+  mesh.name = 'verified-mesh';
+  if (family === 'electric') root.userData.presentationLayer = 'MEP_ELECTRICAL';
+  if (family === 'kvv') Object.assign(root.userData, {
+    Pass: 'P170A', presentationVisibilityAid: true, familyRef: 'KVV_2017',
+  });
+  if (family === 'iv') Object.assign(root.userData, {
+    Pass: 'P170D-R2', presentationVisibilityAid: true, familyRef: 'IV_1974_PLAN',
+  });
+  mesh.userData.ylisViewScope = {
+    objectKey: 'source:test', apartmentScope: 'D',
+    storeyScope: '2F', role: 'CONTENT', phaseScope: 'ACTIVE_IN_SELECTED_WORKTEST',
+  };
+  mesh.userData.sourceLinks = [{ title: 'Original source' }];
+  root.add(mesh); scene.add(root);
+  const sourceNodes: TechnicalSourceNode[] = [
+    { object: root, sceneIndex: 24, nodeIndex: 1, parentNodeIndex: null, nodeName: root.name, glbSha256: SHA },
+    { object: mesh, sceneIndex: 24, nodeIndex: 2, parentNodeIndex: 1, nodeName: mesh.name, glbSha256: SHA },
+  ];
+  const context: TechnicalSystemsContext = {
+    sceneRoot: scene, sourceSceneIndex: 24, sourceNodes,
+    loadedGlbSha256: SHA, expectedGlbSha256: SHA,
+    viewerScope: 'd-2f', allowSourceOnly: true, allowHistoricalPlans: true,
+  };
+  return { scene, root, mesh, context };
+};
+const summary = (inventory: ReturnType<typeof createTechnicalSystemLayerInventory>, id: string) =>
+  inventory.summary.find((item) => item.id === id)!;
+
+test('HI20 scene without explicit system metadata reports unavailable technical groups', () => {
+  const scene = new Scene();
+  const item = createTechnicalSystemLayerInventory({
+    sceneRoot: scene, sourceSceneIndex: 24, sourceNodes: [],
+    loadedGlbSha256: SHA, expectedGlbSha256: SHA,
+    viewerScope: 'd-2f', allowSourceOnly: true, allowHistoricalPlans: true,
+  });
+  expect(item.bridgeBindings).toHaveLength(0);
+  expect(item.summary).toHaveLength(10);
+  expect(item.summary.every((entry) => entry.reason === 'NO_OBJECTS_IN_SCENE')).toBe(true);
+  expect(item.summary.every((entry) => entry.currentInstallationVerified === false)).toBe(true);
+});
+
+test('2017 KVV plan binds only one exact-scene renderable and preserves its source card', () => {
+  const f = makeFixture('kvv');
+  const before = f.mesh.userData.sourceLinks;
+  const inv = createTechnicalSystemLayerInventory(f.context);
+  expect(summary(inv, 'p161-kvv-2017')).toMatchObject({
+    reason: 'AVAILABLE', matchedCount: 1, boundCount: 1, sourceRole: 'HISTORICAL_PLAN',
+    currentInstallationVerified: false,
+  });
+  expect(inv.availableNodeIds).toEqual(['p161-kvv-2017']);
+  expect(inv.boundObjects[0].sourceNodeIndex).toBe(2);
+  expect(inv.boundObjects[0].sourceLinks).toEqual(before);
+  expect(f.mesh.userData.sourceLinks).toBe(before);
+  const bridge = createTechnicalSystemPresentation(f.scene, inv);
+  let state = createViewerInteractionState();
+  state = setViewerInteractionLayerMode(state, 'locus', 'visible');
+  state = setViewerInteractionLayerMode(state, 'p161-kvv-2017', 'ghost');
+  const frame = { activeSceneRoot: f.scene, gates: inv.gates, availableNodeIds: inv.availableNodeIds };
+  expect(bridge.apply(state, frame)).toEqual([{ id: 'p161-kvv-2017', mode: 'ghost' }]);
+  bridge.dispose();
+});
+
+test('D 2F electrical source is exposed through its registered layer ID', () => {
+  const f = makeFixture('electric');
+  const inv = createTechnicalSystemLayerInventory(f.context);
+  expect(summary(inv, 'technical-electrical')).toMatchObject({
+    reason: 'AVAILABLE', matchedCount: 1, boundCount: 1,
+    currentInstallationVerified: false,
+  });
+  expect(inv.bridgeBindings).toHaveLength(1);
+  expect(inv.boundObjects[0].id).toBe('technical-electrical');
+});
+
+const v26Fixture = (name = 'C80R2_V17_D2F_RADIATOR_SOUTH_WINDOW1_WEST') => {
+  const scene = new Group();
+  const root = new Group(); root.name = 'source-root';
+  const mesh = new Mesh(new BoxGeometry(1, 1, 1), new MeshBasicMaterial());
+  mesh.name = name;
+  root.add(mesh); scene.add(root);
+  const sourceNodes: TechnicalSourceNode[] = [
+    { object: root, sceneIndex: 162, nodeIndex: 0, parentNodeIndex: null,
+      nodeName: root.name, glbSha256: V26_TECHNICAL_SOURCE_SHA256 },
+    { object: mesh, sceneIndex: 162, nodeIndex: 1, parentNodeIndex: 0,
+      nodeName: mesh.name, meshIndex: 0, glbSha256: V26_TECHNICAL_SOURCE_SHA256 },
+  ];
+  const scenes: { nodes?: number[] }[] = [];
+  scenes[162] = { nodes: [0] };
+  const context: TechnicalSystemsContext = {
+    sceneRoot: scene, sourceSceneIndex: 162, sourceNodes,
+    loadedGlbSha256: V26_TECHNICAL_SOURCE_SHA256,
+    expectedGlbSha256: V26_TECHNICAL_SOURCE_SHA256,
+    viewerScope: 'd-2f', allowSourceOnly: true,
+    sourceJson: {
+      scenes, nodes: [{ name: root.name, children: [1] }, { name, mesh: 0 }],
+      meshes: [{ primitives: [{}] }],
+    },
+  };
+  return { scene, root, mesh, context };
+};
+
+test('V26 named KIV, radiator and light parts bind only in their real floor scene', () => {
+  for (const [name, id] of [
+    ['K10_R3_WORLD10_SC19_K10_R3_D2F_KIV100_ANCHOR_001_WORK_TEST_SLEEVE', 'technical-ventilation'],
+    ['C80R2_V17_D2F_RADIATOR_SOUTH_WINDOW1_WEST', 'technical-heating'],
+    ['D2F_KVIK_SINK_CEILING_RECESSED_SPOT_1_WHITE_TRIM_OWNERPHOTO20261101_WORK_TEST', 'technical-electrical'],
+  ]) {
+    const f = v26Fixture(name);
+    const before = JSON.stringify(f.context.sourceJson);
+    const inv = createTechnicalSystemLayerInventory(f.context);
+    expect(inv.bridgeBindings.map((binding) => binding.id)).toEqual([id]);
+    expect(inv.gates.get(f.mesh)).toEqual({ scopeAllowed: true, floorAllowed: true, sourceAllowed: true });
+    expect(JSON.stringify(f.context.sourceJson)).toBe(before);
+    expect(f.mesh.userData).toEqual({}); // never synthesizes scope/source-card metadata
+    expect(createTechnicalSystemLayerInventory({ ...f.context, viewerScope: 'd-1f' }).bridgeBindings).toHaveLength(0);
+    expect(createTechnicalSystemLayerInventory({ ...f.context, allowSourceOnly: false }).bridgeBindings).toHaveLength(0);
+  }
+});
+
+test('V26 profile never guesses a device on another SHA or without original source JSON', () => {
+  const f = v26Fixture();
+  expect(createTechnicalSystemLayerInventory({ ...f.context, sourceJson: undefined }).bridgeBindings).toHaveLength(0);
+  expect(createTechnicalSystemLayerInventory({
+    ...f.context, loadedGlbSha256: SHA, expectedGlbSha256: SHA,
+    sourceNodes: f.context.sourceNodes.map((node) => ({ ...node, glbSha256: SHA })),
+  }).bridgeBindings).toHaveLength(0);
+  expect(createTechnicalSystemLayerInventory(v26Fixture('WHITE_RECTANGLE_NEAR_WINDOW').context).bridgeBindings).toHaveLength(0);
+  // Combined lamp/heater or passive fibre sockets are deliberately unresolved.
+  expect(createTechnicalSystemLayerInventory(v26Fixture('C80R2_D2F_BALCONY_LAMP_HEATER_ONLY_WORK_TEST').context).bridgeBindings).toHaveLength(0);
+});
+
+test('V26 source mesh, scene-root membership, parent, name and sourceLinks mismatches fail closed', () => {
+  const badMesh = v26Fixture();
+  badMesh.context.sourceNodes = badMesh.context.sourceNodes.map((node) =>
+    node.object === badMesh.mesh ? { ...node, meshIndex: 2 } : node);
+  expect(createTechnicalSystemLayerInventory(badMesh.context).bridgeBindings).toHaveLength(0);
+  const badParent = v26Fixture();
+  badParent.context.sourceJson!.nodes![0].children = [];
+  expect(createTechnicalSystemLayerInventory(badParent.context).bridgeBindings).toHaveLength(0);
+  const badScene = v26Fixture();
+  badScene.context.sourceJson!.scenes![162].nodes = [1];
+  expect(createTechnicalSystemLayerInventory(badScene.context).bridgeBindings).toHaveLength(0);
+  const badName = v26Fixture();
+  badName.mesh.name = 'different';
+  expect(createTechnicalSystemLayerInventory(badName.context).bridgeBindings).toHaveLength(0);
+  const badLinks = v26Fixture();
+  badLinks.mesh.userData.sourceLinks = [{ url: 'changed' }];
+  expect(createTechnicalSystemLayerInventory(badLinks.context).bridgeBindings).toHaveLength(0);
+});
+
+test('cyclic runtime sourceLinks fail closed per node without losing valid siblings', () => {
+  const f = v26Fixture();
+  const sibling = new Mesh(new BoxGeometry(1, 1, 1), new MeshBasicMaterial());
+  sibling.name = 'D2F_KVIK_SINK_CEILING_RECESSED_SPOT_1_WHITE_TRIM_WORK_TEST';
+  f.root.add(sibling);
+  const cyclic: Record<string, unknown> = { title: 'invalid runtime source card' };
+  cyclic.self = cyclic;
+  f.mesh.userData.sourceLinks = cyclic;
+
+  const context: TechnicalSystemsContext = {
+    ...f.context,
+    sourceNodes: [...f.context.sourceNodes, {
+      object: sibling, sceneIndex: 162, nodeIndex: 2, parentNodeIndex: 0,
+      nodeName: sibling.name, meshIndex: 1, glbSha256: V26_TECHNICAL_SOURCE_SHA256,
+    }],
+    sourceJson: {
+      ...f.context.sourceJson,
+      nodes: [
+        { name: f.root.name, children: [1, 2] },
+        { name: f.mesh.name, mesh: 0 },
+        { name: sibling.name, mesh: 1 },
+      ],
+      meshes: [{ primitives: [{}] }, { primitives: [{}] }],
+    },
+  };
+  // One malformed original userData value must not break the whole Layers
+  // inventory or reveal the node whose source card cannot be verified.
+  expect(() => createTechnicalSystemLayerInventory(context)).not.toThrow();
+  const inventory = createTechnicalSystemLayerInventory(context);
+  expect(summary(inventory, 'technical-heating').reason).toBe('UNVERIFIED_NODE_IDENTITY');
+  expect(summary(inventory, 'technical-electrical')).toMatchObject({
+    reason: 'AVAILABLE', matchedCount: 1, boundCount: 1,
+  });
+  expect(inventory.bridgeBindings).toEqual([{ id: 'technical-electrical', root: sibling }]);
+});
+
+test('Viewer-added equipment metadata cannot classify an unclassified original source node', () => {
+  const f = v26Fixture('UNCLASSIFIED_ORIGINAL_NODE');
+  f.mesh.userData.presentationLayer = 'MEP_ELECTRICAL';
+  f.mesh.userData.ylisViewScope = {
+    apartmentScope: 'D', storeyScope: '2F', phaseScope: 'ACTIVE_IN_SELECTED_WORKTEST',
+  };
+  expect(createTechnicalSystemLayerInventory(f.context).bridgeBindings).toHaveLength(0);
+});
+
+test('Technical roots are non-overlapping source leaves even when source meshes are nested', () => {
+  const f = v26Fixture('PHOTO24_R1_WALL_LAMP_MOUNT_1');
+  const child = new Mesh(new BoxGeometry(1, 1, 1), new MeshBasicMaterial());
+  child.name = 'C80R2_V17_D2F_RADIATOR_NORTH_WINDOW_ROOM_WEST';
+  f.mesh.add(child);
+  const context: TechnicalSystemsContext = {
+    ...f.context,
+    sourceNodes: [...f.context.sourceNodes, {
+      object: child, sceneIndex: 162, nodeIndex: 2, parentNodeIndex: 1,
+      nodeName: child.name, meshIndex: 1, glbSha256: V26_TECHNICAL_SOURCE_SHA256,
+    }],
+    sourceJson: {
+      ...f.context.sourceJson,
+      nodes: [
+        { name: f.root.name, children: [1] },
+        { name: f.mesh.name, mesh: 0, children: [2] },
+        { name: child.name, mesh: 1 },
+      ],
+      meshes: [{ primitives: [{}] }, { primitives: [{}] }],
+    },
+  };
+  const inv = createTechnicalSystemLayerInventory(context);
+  expect(inv.bridgeBindings).toEqual([{ id: 'technical-heating', root: child }]);
+  expect(() => createTechnicalSystemPresentation(f.scene, inv)).not.toThrow();
+});
+
+test('Historical IV is opt-in and never promoted to current by the Layer mode', () => {
+  const f = makeFixture('iv');
+  const off = createTechnicalSystemLayerInventory({ ...f.context, allowHistoricalPlans: false });
+  expect(summary(off, 'p161-iv-1974-plan').reason).toBe('OPT_IN_REQUIRED');
+  expect(off.bridgeBindings).toHaveLength(0);
+  const on = createTechnicalSystemLayerInventory(f.context);
+  expect(summary(on, 'p161-iv-1974-plan').sourceRole).toBe('HISTORICAL_PLAN');
+  expect(on.bridgeBindings).toHaveLength(1);
+  expect(f.mesh.visible).toBe(true); // inventory is read-only
+});
+
+test('Changing scene, SHA or node/parent identity fails closed', () => {
+  const f = makeFixture('kvv');
+  const wrongSha = createTechnicalSystemLayerInventory({ ...f.context, expectedGlbSha256: 'a'.repeat(64) });
+  expect(summary(wrongSha, 'p161-kvv-2017').reason).toBe('SOURCE_MISMATCH');
+  expect(wrongSha.bridgeBindings).toHaveLength(0);
+  const wrongScene = createTechnicalSystemLayerInventory({ ...f.context, sourceSceneIndex: 25 });
+  expect(summary(wrongScene, 'p161-kvv-2017').reason).toBe('UNVERIFIED_NODE_IDENTITY');
+  const badParent = f.context.sourceNodes.map((node) =>
+    node.object === f.mesh ? { ...node, parentNodeIndex: 78 } : node);
+  expect(createTechnicalSystemLayerInventory({ ...f.context, sourceNodes: badParent }).bridgeBindings).toHaveLength(0);
+  const badName = f.context.sourceNodes.map((node) =>
+    node.object === f.mesh ? { ...node, nodeName: 'other mesh' } : node);
+  expect(createTechnicalSystemLayerInventory({ ...f.context, sourceNodes: badName }).bridgeBindings).toHaveLength(0);
+});
+
+test('D 2F system mode cannot reveal D 1F or apartment A geometry', () => {
+  const f = makeFixture('kvv');
+  f.mesh.userData.ylisViewScope.storeyScope = '1F';
+  expect(summary(createTechnicalSystemLayerInventory(f.context), 'p161-kvv-2017').reason).toBe('OUTSIDE_SCOPE');
+  f.mesh.userData.ylisViewScope.storeyScope = '2F';
+  f.mesh.userData.ylisViewScope.apartmentScope = 'A';
+  expect(createTechnicalSystemLayerInventory(f.context).bridgeBindings).toHaveLength(0);
+  f.mesh.userData.ylisViewScope.apartmentScope = 'D';
+  delete f.mesh.userData.ylisViewScope;
+  expect(summary(createTechnicalSystemLayerInventory(f.context), 'p161-kvv-2017').reason).toBe('UNVERIFIED_SCOPE');
+});
+
+test('Unknown family or unclassified parent never activates a technical group', () => {
+  const f = makeFixture('kvv');
+  f.root.userData.familyRef = 'MYSTERY';
+  expect(createTechnicalSystemLayerInventory(f.context).bridgeBindings).toHaveLength(0);
+  f.root.userData.familyRef = 'KVV_2017';
+  f.scene.remove(f.root);
+  expect(createTechnicalSystemLayerInventory(f.context).bridgeBindings).toHaveLength(0);
+});
+
+test('Locus requires both ancestor route layer and child water/wastewater subgroup', () => {
+  const f = makeFixture('kvv');
+  delete f.root.userData.Pass;
+  delete f.root.userData.presentationVisibilityAid;
+  delete f.root.userData.familyRef;
+  f.root.userData.presentationLayer = 'G3_LOCUS_SITE';
+  f.mesh.userData.presentationSubgroup = 'WATER';
+  const inv = createTechnicalSystemLayerInventory(f.context);
+  expect(summary(inv, 'locus-water')).toMatchObject({ reason: 'AVAILABLE', boundCount: 1 });
+  expect(summary(inv, 'locus-wastewater').reason).toBe('NO_OBJECTS_IN_SCENE');
+  delete f.root.userData.presentationLayer;
+  expect(createTechnicalSystemLayerInventory(f.context).bridgeBindings).toHaveLength(0);
+});
+
+import { V27_SOURCE_SHA256 } from '../../src/scripts/privateModelC80R2V27LayerSourceProfile.mjs';
+test('V27 successor retains technical floor membership and rejects old V26 scene routing', () => {
+  for (const sceneIndex of [162,177]) {
+    const f=v26Fixture();
+    const scenes=new Array(178);scenes[sceneIndex]={nodes:[0]};
+    const context: TechnicalSystemsContext={...f.context,sourceSceneIndex:sceneIndex,
+      loadedGlbSha256:V27_SOURCE_SHA256,expectedGlbSha256:V27_SOURCE_SHA256,
+      sourceNodes:f.context.sourceNodes.map(n=>({...n,sceneIndex,glbSha256:V27_SOURCE_SHA256})),
+      sourceJson:{...f.context.sourceJson,scenes},
+    };
+    const before=JSON.stringify(context.sourceJson);
+    expect(createTechnicalSystemLayerInventory(context).bridgeBindings.map(b=>b.id)).toEqual(['technical-heating']);
+    expect(JSON.stringify(context.sourceJson)).toBe(before);
+    expect(createTechnicalSystemLayerInventory({...context,sourceSceneIndex:175}).bridgeBindings).toHaveLength(0);
+    expect(createTechnicalSystemLayerInventory({...context,sourceJson:{...context.sourceJson,scenes:new Array(176)}}).bridgeBindings).toHaveLength(0);
+  }
+});
+
+/** Every fixture is a valid source-bound graph in its stated scene, with no
+ * generic MEP metadata. Rejection therefore exercises the exact profile map,
+ * rather than a deliberately malformed source-node or parent association.
+ */
+const v35TechnicalFixture = (sceneIndex: number, name: string) => {
+  const f = v26Fixture(name);
+  const scenes = new Array(V35_SOURCE_SCENE_COUNT);
+  scenes[sceneIndex] = { nodes: [0] };
+  const context: TechnicalSystemsContext = {
+    ...f.context,
+    sourceSceneIndex: sceneIndex,
+    loadedGlbSha256: V35_SOURCE_SHA256,
+    expectedGlbSha256: V35_SOURCE_SHA256,
+    sourceNodes: f.context.sourceNodes.map((node) => ({
+      ...node, sceneIndex, glbSha256: V35_SOURCE_SHA256,
+    })),
+    sourceJson: { ...f.context.sourceJson, scenes },
+  };
+  return { ...f, context };
+};
+
+test('V35 exact source routes retain named devices in 1F194, 2F197 and BOTH198', () => {
+  for (const [sceneIndex, name, viewerScope, id] of [
+    [194, 'TOSHIBA_DAISEIKAI8_2026_OWNER_PHOTO_INDOOR_outer_enclosure', 'd-1f', 'technical-heating'],
+    [197, 'K10_R3_WORLD10_SC19_K10_R3_D2F_KIV100_ANCHOR_001_WORK_TEST_SLEEVE', 'd-2f', 'technical-ventilation'],
+    [198, 'D2F_KVIK_SINK_CEILING_RECESSED_SPOT_1_WHITE_TRIM_OWNERPHOTO20261101_WORK_TEST', 'd-apartment', 'technical-electrical'],
+  ] as const) {
+    const f = v35TechnicalFixture(sceneIndex, name);
+    const context = { ...f.context, viewerScope };
+    const before = JSON.stringify(context.sourceJson);
+    const inventory = createTechnicalSystemLayerInventory(context);
+    expect(inventory.bridgeBindings.map((binding) => binding.id)).toEqual([id]);
+    expect(inventory.boundObjects[0].sourceSceneIndex).toBe(sceneIndex);
+    expect(inventory.boundObjects[0].sourceGlbSha256).toBe(V35_SOURCE_SHA256);
+    expect(inventory.gates.get(f.mesh)).toEqual({ scopeAllowed: true, floorAllowed: true, sourceAllowed: true });
+    expect(JSON.stringify(context.sourceJson)).toBe(before);
+    expect(f.mesh.userData).toEqual({});
+  }
+});
+
+test('V35 rejects the old V34 2F195/BOTH196 routes and an incomplete source scene table', () => {
+  const name = 'K10_R3_WORLD10_SC19_K10_R3_D2F_KIV100_ANCHOR_001_WORK_TEST_SLEEVE';
+  for (const sceneIndex of [195, 196]) {
+    const f = v35TechnicalFixture(sceneIndex, name);
+    expect(createTechnicalSystemLayerInventory(f.context).bridgeBindings).toHaveLength(0);
+  }
+  const f = v35TechnicalFixture(197, name);
+  const truncatedScenes = f.context.sourceJson!.scenes!.slice(0, V35_SOURCE_SCENE_COUNT - 1);
+  expect(createTechnicalSystemLayerInventory({
+    ...f.context, sourceJson: { ...f.context.sourceJson, scenes: truncatedScenes },
+  }).bridgeBindings).toHaveLength(0);
+});
+
+test('V35 source scene and viewer floor gates cannot reveal another floor device', () => {
+  const name = 'K10_R3_WORLD10_SC19_K10_R3_D2F_KIV100_ANCHOR_001_WORK_TEST_SLEEVE';
+  const upstairs = v35TechnicalFixture(197, name);
+  expect(createTechnicalSystemLayerInventory({
+    ...upstairs.context, viewerScope: 'd-1f',
+  }).bridgeBindings).toHaveLength(0);
+  expect(createTechnicalSystemLayerInventory(v35TechnicalFixture(194, name).context).bridgeBindings).toHaveLength(0);
+  expect(createTechnicalSystemLayerInventory({
+    ...upstairs.context, allowSourceOnly: false,
+  }).bridgeBindings).toHaveLength(0);
+});
+
+import { V68_SOURCE_SHA256, V68_SOURCE_SCENE_COUNT, V68_BUILDING_SCENES } from '../../src/scripts/privateModelC80R2V68LayerSourceProfile.mjs';
+import { V69_SOURCE_SHA256, V69_SOURCE_SCENE_COUNT, V69_BUILDING_SCENES } from '../../src/scripts/privateModelC80R2V69LayerSourceProfile.mjs';
+import { K17_RAIL900_SOURCE_SHA256, K17_RAIL900_SOURCE_SCENE_COUNT, K17_RAIL900_BUILDING_SCENES } from '../../src/scripts/privateModelK17Rail900LayerSourceProfile.mjs';
+for (const model of [
+  {sha:V69P12R1_SOURCE_SHA256,count:V69P12R1_SOURCE_SCENE_COUNT,profiles:V69P12R1_BUILDING_SCENES,upstairs:293,both:294},
+  {sha:V68_SOURCE_SHA256,count:V68_SOURCE_SCENE_COUNT,profiles:V68_BUILDING_SCENES,upstairs:284,both:285},
+  {sha:V69_SOURCE_SHA256,count:V69_SOURCE_SCENE_COUNT,profiles:V69_BUILDING_SCENES,upstairs:291,both:292},
+  {sha:K17_RAIL900_SOURCE_SHA256,count:K17_RAIL900_SOURCE_SCENE_COUNT,profiles:K17_RAIL900_BUILDING_SCENES,upstairs:306,both:307},
+]) test(`integrated technical source ${model.sha.slice(0,8)} retains IV with exact scene and parent guards`, () => {
+  const name='K10_R3_WORLD10_SC19_K10_R3_D2F_KIV100_ANCHOR_001_WORK_TEST_SLEEVE_COVER_ORIENT__KIV100_EXTERNAL_SCREEN_WIRE_05_PROXY_V20';
+  const fixture=()=>{
+    const scene=new Scene(),root=new Group(),parent=new Group(),mesh=new Mesh(new BoxGeometry(),new MeshBasicMaterial());
+    root.name='source-root8913';parent.name='source-parent8908';mesh.name=name;
+    const links=[{title:'original source only'}];mesh.userData.sourceLinks=links;
+    scene.add(root);root.add(parent);parent.add(mesh);
+    const nodes:any[]=[];nodes[8913]={name:root.name,children:[8908]};nodes[8908]={name:parent.name,children:[8317]};nodes[8317]={name,mesh:2688,extras:{sourceLinks:links}};
+    const meshes:any[]=[];meshes[2688]={primitives:[{}]};
+    const scenes:any[]=new Array(model.count);const profile=model.profiles[model.upstairs];
+    scenes[model.upstairs]={name:profile.name,nodes:[...profile.rootNodes]};
+    const sourceNodes=[{object:root,nodeIndex:8913,parentNodeIndex:null},{object:parent,nodeIndex:8908,parentNodeIndex:8913},{object:mesh,nodeIndex:8317,parentNodeIndex:8908,meshIndex:2688}].map(n=>({...n,nodeName:n.object.name,glbSha256:model.sha,sceneIndex:model.upstairs}));
+    const context:TechnicalSystemsContext={sceneRoot:scene,sourceSceneIndex:model.upstairs,loadedGlbSha256:model.sha,expectedGlbSha256:model.sha,sourceNodes,sourceJson:{nodes,meshes,scenes},viewerScope:'d-2f',allowSourceOnly:true};
+    return {context,mesh,root,parent};
+  };
+  let f=fixture();const before=JSON.stringify(f.context.sourceJson);
+  const inv=createTechnicalSystemLayerInventory(f.context);
+  expect(inv.bridgeBindings.map(b=>b.id)).toEqual(['technical-ventilation']);
+  expect(inv.boundObjects[0].sourceGlbSha256).toBe(model.sha);
+  expect(inv.boundObjects[0].sourceLinks).toEqual([{title:'original source only'}]);
+  expect(JSON.stringify(f.context.sourceJson)).toBe(before);
+  expect(createTechnicalSystemLayerInventory({...f.context,viewerScope:'d-1f'}).bridgeBindings).toHaveLength(0);
+  expect(createTechnicalSystemLayerInventory({...f.context,expectedGlbSha256:'0'.repeat(64)}).bridgeBindings).toHaveLength(0);
+  f.context.sourceJson!.scenes![model.upstairs].name='altered';
+  expect(createTechnicalSystemLayerInventory(f.context).bridgeBindings).toHaveLength(0);
+  f=fixture();(f.context.sourceJson!.scenes![model.upstairs].nodes as number[]).push(5631);
+  expect(createTechnicalSystemLayerInventory(f.context).bridgeBindings).toHaveLength(0);
+  f=fixture();f.root.add(f.mesh);
+  expect(createTechnicalSystemLayerInventory(f.context).bridgeBindings).toHaveLength(0);
+  f=fixture();f.mesh.userData.sourceLinks=[{title:'other'}];
+  expect(createTechnicalSystemLayerInventory(f.context).bridgeBindings).toHaveLength(0);
+});
+
+
+test('M5 integration routes split into Talotekniikka groups by builder names', () => {
+  for (const [name, id] of [
+    ['M5_IV2015_D1F_SK1_TRANSFER_GRILLE_002_C80_YUP_NEWVISIBLE_REF_FROM_NODE453', 'technical-ventilation'],
+    ['C80_KV17_IV15_OPTIN__D1F_HOST_XMIRROR_IV15_D1F_AV1_125_INLINE_TUBE', 'technical-ventilation'],
+    ['V75_D5_D2F_KITCHEN_SINK_TO_V75', 'technical-drainage'],
+    ['M5_WW2015_D2F_C80_WC1_SOURCE_EXACT_T110_VENT_HOSTX_EXISTING_DONOR_GEOMETRY', 'technical-drainage'],
+    ['V75_W4_D2F_KITCHEN_SINK_KV_LV', 'technical-water'],
+    ['D1F_NEW_P210_214_NORTH_CURVE', 'technical-water'],
+    ['KV2015_D2F_WC1_LVV_KV12_P185C_HOST_XMIRROR_OPEN', 'technical-water'],
+    ['V72R_N_RK14_14_1_FULL_CONTINUOUS_PORTFIT', 'technical-electrical'],
+  ] as const) expect(m5System(name), name).toBe(id);
+});

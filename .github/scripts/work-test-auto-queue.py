@@ -27,6 +27,7 @@ AUTO_PREFIX = "auto-"
 RUNTIME_MARKER = "const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = ["
 END_MARKER = "] as const satisfies readonly PrivateWorkTestCandidate[]"
 SCENE_TOKEN = re.compile(r"__scene(\d{1,4})(?=$|[_.\- ])", re.IGNORECASE)
+C80R2_CHAIN_NAME = re.compile(r"(^|_)C80R2_", re.IGNORECASE)
 ID_RE = re.compile(r"[a-z0-9][a-z0-9-]{0,127}")
 DRIVE_ID_RE = re.compile(r"[A-Za-z0-9_-]{10,128}")
 QUEUE_EXTENSIONS = (".glb", ".zip")
@@ -239,7 +240,9 @@ def apply(registry, worker, file_id, name, size, sha256, date):
     cid = candidate_id(name, file_id, set(candidates))
     _, scene = split_name(name)
     entry = {"driveFileId": file_id}
-    if scene is not None:
+    # A C80R2 main-model file is published whole: the viewer opens its own
+    # latest 1F/2F/BOTH scenes, so its "__sceneN" token stays a label only.
+    if scene is not None and not C80R2_CHAIN_NAME.search(name):
         entry["extractScene"] = scene
     candidates[cid] = entry
 

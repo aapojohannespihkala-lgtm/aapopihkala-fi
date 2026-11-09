@@ -19,16 +19,25 @@ import {
   mergeViewerLayerState,
 } from '../../src/scripts/privateModelLayerState';
 import {
+  applyViewerLayerPreset,
   applyViewerResearchPreset,
   createViewerInteractionState,
   formatViewerResearchPresetLabel,
   patchViewerLayerControls,
   patchViewerPresentationStyle,
   resetViewerInteractionStateToPresetDefaults,
+  resetViewerLayerPresetToDefaults,
   setViewerCameraView,
+  setViewerInteractionLayerMode,
 } from '../../src/scripts/privateModelViewerState';
 
 const expectedDefaultChildren = {
+  technicalVisible: true,
+  technicalVentilationVisible: true,
+  technicalHeatingVisible: true,
+  technicalElectricalVisible: true,
+  technicalWaterVisible: true,
+  technicalDrainageVisible: true,
   locusWaterVisible: true,
   locusWastewaterVisible: true,
   p161KvvVisible: true,
@@ -47,6 +56,49 @@ const expectedDefaultChildren = {
   architectureFixturesVisible: true,
   architectureOtherVisible: true,
 };
+
+test('WP1 malformed persisted preset IDs cannot crash reset or mode/legacy edits', () => {
+  const valid = applyViewerLayerPreset(createViewerInteractionState('d-2f'), 'd-2f');
+  const baselineModes = valid.layerPresetState!.modes;
+
+  for (const id of ['unknown', '__proto__', 'constructor', 'electrical', '']) {
+    const bad = {
+      ...valid,
+      layerPresetState: {
+        ...valid.layerPresetState!,
+        selected: id as unknown as NonNullable<typeof valid.layerPresetState>['selected'],
+      },
+    };
+
+    const reset = resetViewerLayerPresetToDefaults(bad);
+    expect(reset.layerPresetState?.selected).toBe('d-2f');
+    expect(reset.layerPresetState?.customized).toBe(false);
+    expect(reset.layerPresetState?.modes).toEqual(baselineModes);
+    expect(reset.cameraView).toBe(valid.cameraView);
+
+    const edited = setViewerInteractionLayerMode(bad, 'roof', 'hidden');
+    expect(edited.layerPresetState?.selected).toBe('d-2f');
+    expect(edited.layerPresetState?.customized).toBe(true);
+    expect(edited.layerPresetState?.modes.roof).toBe('hidden');
+    expect(edited.cameraView).toBe(valid.cameraView);
+
+    const legacy = patchViewerLayerControls(bad, { roofVisible: true });
+    expect(legacy.layerPresetState?.selected).toBe('d-2f');
+    expect(legacy.layerPresetState?.customized).toBe(true);
+
+    const direct = applyViewerLayerPreset(
+      valid, id as unknown as NonNullable<typeof valid.layerPresetState>['selected'],
+    );
+    expect(direct.layerPresetState?.selected).toBe('d-2f');
+  }
+
+  // Legitimate presets and the original research views retain their semantics.
+  const infra = applyViewerLayerPreset(valid, 'infra');
+  expect(resetViewerLayerPresetToDefaults(infra).layerPresetState?.selected).toBe('infra');
+  const legacyResearch = createViewerInteractionState('electrical');
+  expect(resetViewerLayerPresetToDefaults(legacyResearch).layerPresetState?.selected)
+    .toBe('whole-building');
+});
 
 test('VUX-C model load defaults replace prior manual layer state without losing review locus intent', () => {
   const priorManual = mergeViewerLayerState(createViewerLayerStateForModelLoad(), {
@@ -74,6 +126,70 @@ test('VUX-C model load defaults replace prior manual layer state without losing 
     locusVisible: true,
     edgeMode: 'visible',
   });
+});
+
+test('runtime camera choices reject malformed IDs while preserving the active Layers view', () => {
+  const initial = patchViewerLayerControls(createViewerInteractionState('d-2f'), {
+    roofOpacity: 0.45,
+    locusVisible: true,
+  });
+  const active = setViewerCameraView(initial, 'elev-neg-x');
+  const invalid: unknown[] = [
+    'not-a-camera', '__proto__', 'constructor', '', null, undefined, 0, {},
+  ];
+  for (const choice of invalid) {
+    // DOM, URLs and persisted state can bypass the TypeScript camera union.
+    const unchanged = setViewerCameraView(active, choice as Parameters<typeof setViewerCameraView>[1]);
+    expect(unchanged).toBe(active);
+    expect(unchanged.cameraView).toBe('elev-neg-x');
+    expect(unchanged.layers).toEqual(active.layers);
+  }
+  const legitimate = [
+    'free-3d', 'isometric', 'plan', 'top', 'bottom',
+    'elev-pos-y', 'elev-neg-y', 'elev-pos-x', 'elev-neg-x',
+  ] as const;
+  for (const choice of legitimate) {
+    const next = setViewerCameraView(active, choice);
+    expect(next.cameraView).toBe(choice);
+    expect(next.layers).toEqual(active.layers);
+    expect(next.researchPreset).toBe(active.researchPreset);
+  }
+});
+
+test('legacy research presets reject malformed runtime IDs without state loss', () => {
+  const selected = setViewerCameraView(
+    patchViewerLayerControls(createViewerInteractionState('drainage'), {
+      roofOpacity: 0.42, locusVisible: true,
+    }),
+    'elev-neg-x',
+  );
+  const fallback = createViewerInteractionState('whole-building');
+
+  for (const incoming of ['unknown', '__proto__', 'constructor', 'toString', '']) {
+    const invalid = incoming as NonNullable<Parameters<typeof createViewerInteractionState>[0]>;
+
+    expect(createViewerInteractionState(invalid)).toEqual(fallback);
+    expect(formatViewerResearchPresetLabel(invalid)).toBe('Koko rakennus');
+    expect(formatViewerResearchPresetLabel(invalid, true)).toBe('Koko rakennus · mukautettu');
+
+    // Invalid user actions must not wipe an existing research view or camera.
+    expect(applyViewerResearchPreset(selected, invalid)).toBe(selected);
+
+    // A malformed saved preset must reset safely to a defined default.
+    const persisted = { ...selected, researchPreset: invalid };
+    expect(resetViewerInteractionStateToPresetDefaults(persisted)).toEqual(fallback);
+  }
+
+  // Runtime inputs can be non-strings even though TS only accepts the union.
+  const nonString = null as unknown as NonNullable<Parameters<typeof createViewerInteractionState>[0]>;
+  expect(createViewerInteractionState(nonString)).toEqual(fallback);
+  expect(formatViewerResearchPresetLabel(nonString)).toBe('Koko rakennus');
+  expect(applyViewerResearchPreset(selected, nonString)).toBe(selected);
+
+  // Legitimate historical research presets and the new Layers camera contract stay intact.
+  expect(createViewerInteractionState('electrical').researchPreset).toBe('electrical');
+  expect(applyViewerResearchPreset(selected, 'd-2f').cameraView).toBe('plan');
+  expect(resetViewerInteractionStateToPresetDefaults(selected).researchPreset).toBe('drainage');
 });
 
 test('VUX-E1A research preset labels retain the original context after customization', () => {
@@ -192,6 +308,24 @@ test('VUX-E1A layer changes preserve camera and presentation lanes', () => {
   expect(clampedLow.layers.roofOpacity).toBe(0);
 });
 
+test('VUX-E1A malformed roof opacity cannot poison legacy or WP1 layer state', () => {
+  const initial = createViewerLayerStateForModelLoad();
+  const legacy = mergeViewerLayerState(initial, { roofOpacity: Number.NaN });
+  expect(legacy.roofOpacity).toBe(1);
+  expect(Number.isFinite(legacy.roofOpacity)).toBe(true);
+
+  const initialViewer = createViewerInteractionState('d-2f');
+  const updatedViewer = patchViewerLayerControls(initialViewer, {
+    roofOpacity: Number.NaN,
+  });
+  expect(updatedViewer.layers.roofOpacity).toBe(1);
+  expect(Number.isFinite(updatedViewer.layers.roofOpacity)).toBe(true);
+
+  // Preserve the existing range-clamping behavior for numeric inputs.
+  expect(mergeViewerLayerState(initial, { roofOpacity: -Infinity }).roofOpacity).toBe(0);
+  expect(mergeViewerLayerState(initial, { roofOpacity: Infinity }).roofOpacity).toBe(1);
+});
+
 test('VUX-E1A presentation changes preserve content, camera, and layer lanes', () => {
   const infra = setViewerCameraView(createViewerInteractionState('infra'), 'isometric');
   const updated = patchViewerPresentationStyle(infra, { edgeMode: 'object' });
@@ -251,6 +385,12 @@ test('VUX-C explicit reset restores the active research preset defaults', () => 
 
 test('VUX-E3B exposes only contract-derived layer capabilities', () => {
   expect(Object.keys(viewerLayerNodeCapabilities)).toEqual([
+    'technical',
+    'technical-ventilation',
+    'technical-heating',
+    'technical-electrical',
+    'technical-water',
+    'technical-drainage',
     'roof',
     'locus',
     'locus-water',
@@ -272,7 +412,7 @@ test('VUX-E3B exposes only contract-derived layer capabilities', () => {
     'architecture-other',
   ]);
   expect(viewerLayerNodeCapabilities.roof).toEqual({
-    parent: null,
+    parent: 'architecture',
     visibility: true,
     opacity: true,
   });
@@ -284,7 +424,16 @@ test('VUX-E3B exposes only contract-derived layer capabilities', () => {
   expect(viewerLayerNodeCapabilities['architecture-walls-exterior'].parent).toBe(
     'architecture-walls',
   );
+  for (const id of ['architecture-fixtures', 'architecture-other', 'architecture-review-helpers'] as const) {
+    expect(viewerLayerNodeCapabilities[id].parent).toBeNull();
+  }
   for (const nodeId of [
+    'technical',
+    'technical-ventilation',
+    'technical-heating',
+    'technical-electrical',
+    'technical-water',
+    'technical-drainage',
     'locus',
     'locus-water',
     'locus-wastewater',
@@ -306,6 +455,31 @@ test('VUX-E3B exposes only contract-derived layer capabilities', () => {
   ] as const) {
     expect(viewerLayerNodeCapabilities[nodeId].opacity).toBe(false);
   }
+});
+
+test('unknown runtime node IDs cannot change or impersonate the 1974 IV section layer', () => {
+  const initial = createViewerInteractionState('infra').layers;
+  expect(initial.locusVisible).toBe(true);
+  expect(initial.p161IvSectionVisible).toBe(true);
+  expect(isViewerLayerNodeEffectivelyVisible(initial, 'p161-iv-1974-section')).toBe(true);
+
+  for (const id of ['no-such-layer', 'technical-unknown', '__proto__', 'constructor']) {
+    // Source-provided IDs can be malformed at runtime despite the TS union.
+    const result = setViewerLayerNodeVisible(
+      initial, id as Parameters<typeof setViewerLayerNodeVisible>[1], false,
+    );
+    expect(result).toEqual(initial);
+    expect(result.p161IvSectionVisible).toBe(true);
+    // A malformed source ID must not borrow the visible IV-section state.
+    expect(isViewerLayerNodeEffectivelyVisible(
+      initial, id as Parameters<typeof isViewerLayerNodeEffectivelyVisible>[1],
+    )).toBe(false);
+  }
+
+  // A real ID remains independently adjustable.
+  const changed = setViewerLayerNodeVisible(initial, 'p161-iv-1974-section', false);
+  expect(changed.p161IvSectionVisible).toBe(false);
+  expect(changed.p161IvPlanVisible).toBe(initial.p161IvPlanVisible);
 });
 
 test('VUX-E3B parent visibility suppresses children without destroying child preferences', () => {

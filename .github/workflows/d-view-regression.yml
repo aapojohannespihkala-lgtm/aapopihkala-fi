@@ -2,6 +2,12 @@ name: D-view exact-source WebGL regression
 
 on:
   workflow_dispatch:
+    inputs:
+      source_version:
+        description: Exact published source, or all established regressions
+        type: choice
+        default: all
+        options: [all, V68, V69, K17_RAIL900, V69P12R1]
   # GITHUB_TOKEN automerge may not emit a new push-triggered workflow.
   # After the trusted main Build check succeeds, run the exact-source browser
   # gate for that same main commit. Keep WIF/GLB out of all PR workflows.
@@ -51,7 +57,9 @@ permissions:
   id-token: write
 
 concurrency:
-  group: d-view-exact-source-webgl
+  # The established all matrix excludes P12R1. Its automatic replay must not
+  # cancel the dedicated P12R1 capture of the same trusted main head.
+  group: d-view-exact-source-webgl${{ inputs.source_version == 'V69P12R1' && '-v69p12r1' || '' }}
   # Read-only viewer QA is bound to one exact main head. A newer head supersedes it.
   cancel-in-progress: true
 
@@ -71,7 +79,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        mode: [source, c70-production, c80-production, hi12-production, hi13-source, hi13-production, hi14-source, hi14-production, hi18-source, hi18-production, hi19-source, hi19-production, hi20-unified52-production]
+        mode: ${{ fromJSON(github.event_name == 'workflow_dispatch' && inputs.source_version == 'V69P12R1' && '["layers-v69p12r1-production"]' || github.event_name == 'workflow_dispatch' && inputs.source_version == 'K17_RAIL900' && '["layers-k17-rail900-production"]' || github.event_name == 'workflow_dispatch' && inputs.source_version == 'V69' && '["layers-v69-production"]' || github.event_name == 'workflow_dispatch' && inputs.source_version == 'V68' && '["layers-v68-production"]' || '["source","c70-production","c80-production","hi12-production","hi13-source","hi13-production","hi14-source","hi14-production","hi18-source","hi18-production","hi19-source","hi19-production","hi20-unified52-production","layers-v26-production","layers-v29-production","layers-v35-production","v27-terrace-production","layers-v68-production","layers-v69-production"]') }}
     name: Exact WebGL / ${{ matrix.mode }}
     # Match the build job's supported, stable browser dependency environment.
     runs-on: ubuntu-24.04
@@ -88,6 +96,7 @@ jobs:
       - run: npm run build
       - run: npx playwright install --with-deps chromium
       - name: Authenticate read-only Drive source access on trusted main
+        if: matrix.mode != 'layers-v26-production' && matrix.mode != 'layers-v29-production' && matrix.mode != 'layers-v35-production' && matrix.mode != 'layers-v68-production' && matrix.mode != 'layers-v69-production' && matrix.mode != 'layers-k17-rail900-production' && matrix.mode != 'layers-v69p12r1-production' && matrix.mode != 'v27-terrace-production'
         id: google-auth
         uses: google-github-actions/auth@v3
         with:
@@ -98,6 +107,7 @@ jobs:
           create_credentials_file: false
           export_environment_variables: false
       - name: Fetch immutable sources and verify ZIP CRC and SHA
+        if: matrix.mode != 'layers-v26-production' && matrix.mode != 'layers-v29-production' && matrix.mode != 'layers-v35-production' && matrix.mode != 'layers-v68-production' && matrix.mode != 'layers-v69-production' && matrix.mode != 'layers-k17-rail900-production' && matrix.mode != 'layers-v69p12r1-production' && matrix.mode != 'v27-terrace-production'
         env:
           GDRIVE_ACCESS_TOKEN: ${{ steps.google-auth.outputs.access_token }}
         shell: bash
@@ -311,12 +321,342 @@ jobs:
           CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET: ${{ secrets.CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET }}
           D_VIEW_TESTED_COMMIT: ${{ github.event.workflow_run.head_sha || github.sha }}
         run: npx playwright test tests/e2e/private-model-hi20-unified52-production.spec.ts --workers=1 --trace=off --output=test-results/hi20-unified52-production --reporter=line
+      - name: Read exact published V26 for Layers regression
+        if: matrix.mode == 'layers-v26-production'
+        shell: bash
+        env:
+          CF_ACCESS_READBACK_CLIENT_ID: ${{ secrets.CF_ACCESS_READBACK_CLIENT_ID }}
+          CF_ACCESS_READBACK_CLIENT_SECRET: ${{ secrets.CF_ACCESS_READBACK_CLIENT_SECRET }}
+        run: |
+          set -euo pipefail
+          [[ -n "$CF_ACCESS_READBACK_CLIENT_ID" && -n "$CF_ACCESS_READBACK_CLIENT_SECRET" ]]
+          file="$RUNNER_TEMP/layers-v26-production.glb"
+          curl --fail --location --silent --show-error --connect-timeout 12 --max-time 90 \
+            -H "CF-Access-Client-Id: $CF_ACCESS_READBACK_CLIENT_ID" \
+            -H "CF-Access-Client-Secret: $CF_ACCESS_READBACK_CLIENT_SECRET" \
+            --output "$file" \
+            "https://aapopihkala.fi/private-model/work-test/verify/auto-ylisrinne-d-c80r2-v26-stair-rail-landing-end-plywood-work-test-host-hold-20261102-1jglt7no.glb"
+          [[ "$(stat -c %s "$file")" = '24205548' ]]
+          [[ "$(sha256sum "$file" | cut -d' ' -f1)" = 'cff2dbead53b7836747e10ef359637114ff723690ec380e313cec817e4f71d31' ]]
+          printf 'YLIS_LAYERS_GLB=%s\n' "$file" >> "$GITHUB_ENV"
+      - name: Protected production Layers, actual V26, scope, camera, reset and mobile
+        if: matrix.mode == 'layers-v26-production'
+        env:
+          YLIS_LAYERS_PRODUCTION: '1'
+          CF_ACCESS_VIEWER_PROBE_CLIENT_ID: ${{ secrets.CF_ACCESS_VIEWER_PROBE_CLIENT_ID }}
+          CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET: ${{ secrets.CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET }}
+          D_VIEW_TESTED_COMMIT: ${{ github.event.workflow_run.head_sha || github.sha }}
+        run: npx playwright test tests/e2e/private-model-layers-runtime.spec.ts --workers=1 --trace=off --output=test-results/layers-v26-production --reporter=line
+      - name: Read exact published V29 main-chain source for Layers regression
+        if: matrix.mode == 'layers-v29-production'
+        shell: bash
+        env:
+          CF_ACCESS_READBACK_CLIENT_ID: ${{ secrets.CF_ACCESS_READBACK_CLIENT_ID }}
+          CF_ACCESS_READBACK_CLIENT_SECRET: ${{ secrets.CF_ACCESS_READBACK_CLIENT_SECRET }}
+        run: |
+          set -euo pipefail
+          [[ -n "$CF_ACCESS_READBACK_CLIENT_ID" && -n "$CF_ACCESS_READBACK_CLIENT_SECRET" ]]
+          file="$RUNNER_TEMP/layers-v29-production.glb"
+          curl --fail --location --silent --show-error --connect-timeout 12 --max-time 90 \
+            -H "CF-Access-Client-Id: $CF_ACCESS_READBACK_CLIENT_ID" \
+            -H "CF-Access-Client-Secret: $CF_ACCESS_READBACK_CLIENT_SECRET" \
+            --output "$file" \
+            "https://aapopihkala.fi/private-model/work-test/verify/auto-ylisrinne-d-c80r2-v29-west-full-facade-plinth-work-test-host-hold-20261102-1vfk15ke.glb"
+          [[ "$(stat -c %s "$file")" = '26840880' ]]
+          [[ "$(sha256sum "$file" | cut -d' ' -f1)" = '5325da8472055379f30be59e22be3b6237093e59e6a21999471a2c2b28c784f6' ]]
+          printf 'YLIS_LAYERS_V29_GLB=%s\n' "$file" >> "$GITHUB_ENV"
+      - name: Protected production Layers, actual V29 main chain, camera, reset and mobile
+        if: matrix.mode == 'layers-v29-production'
+        env:
+          YLIS_LAYERS_V29_PRODUCTION: '1'
+          CF_ACCESS_VIEWER_PROBE_CLIENT_ID: ${{ secrets.CF_ACCESS_VIEWER_PROBE_CLIENT_ID }}
+          CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET: ${{ secrets.CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET }}
+          D_VIEW_TESTED_COMMIT: ${{ github.event.workflow_run.head_sha || github.sha }}
+        run: npx playwright test tests/e2e/private-model-layers-runtime.spec.ts --workers=1 --trace=off --output=test-results/layers-v29-production --reporter=line
+      - name: Remove temporary protected V29 model
+        if: always() && matrix.mode == 'layers-v29-production'
+        run: rm -f "$RUNNER_TEMP/layers-v29-production.glb"
+      - name: Read exact published V35 main-chain source for Layers regression
+        if: matrix.mode == 'layers-v35-production'
+        shell: bash
+        env:
+          CF_ACCESS_READBACK_CLIENT_ID: ${{ secrets.CF_ACCESS_READBACK_CLIENT_ID }}
+          CF_ACCESS_READBACK_CLIENT_SECRET: ${{ secrets.CF_ACCESS_READBACK_CLIENT_SECRET }}
+        run: |
+          set -euo pipefail
+          [[ -n "$CF_ACCESS_READBACK_CLIENT_ID" && -n "$CF_ACCESS_READBACK_CLIENT_SECRET" ]]
+          file="$RUNNER_TEMP/layers-v35-production.glb"
+          curl --fail --location --silent --show-error --connect-timeout 12 --max-time 90 \
+            -H "CF-Access-Client-Id: $CF_ACCESS_READBACK_CLIENT_ID" \
+            -H "CF-Access-Client-Secret: $CF_ACCESS_READBACK_CLIENT_SECRET" \
+            --output "$file" \
+            "https://aapopihkala.fi/private-model/work-test/verify/auto-ylisrinne-d-c80r2-v35-2f-wc-yellow-tiles-photo-work-test-host-hold-20261102-11iiyoiu.glb"
+          [[ "$(stat -c %s "$file")" = '30023592' ]]
+          [[ "$(sha256sum "$file" | cut -d' ' -f1)" = 'f81e0915711b798ec4a02472202a3372a4a77057cd8a150cc17f89bef3cd4789' ]]
+          printf 'YLIS_LAYERS_V35_GLB=%s\n' "$file" >> "$GITHUB_ENV"
+          node scripts/verify-v35-layer-source.mjs "$file"
+      - name: Protected production Layers, actual V35 main chain, camera, reset and mobile
+        if: matrix.mode == 'layers-v35-production'
+        env:
+          YLIS_LAYERS_V35_PRODUCTION: '1'
+          CF_ACCESS_VIEWER_PROBE_CLIENT_ID: ${{ secrets.CF_ACCESS_VIEWER_PROBE_CLIENT_ID }}
+          CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET: ${{ secrets.CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET }}
+          D_VIEW_TESTED_COMMIT: ${{ github.event.workflow_run.head_sha || github.sha }}
+        run: npx playwright test tests/e2e/private-model-layers-runtime.spec.ts --workers=1 --trace=off --output=test-results/layers-v35-production --reporter=line
+      - name: Remove temporary protected V35 model
+        if: always() && matrix.mode == 'layers-v35-production'
+        run: rm -f "$RUNNER_TEMP/layers-v35-production.glb"
+      - name: Read exact published V68 main-chain source for Layers regression
+        if: matrix.mode == 'layers-v68-production'
+        shell: bash
+        env:
+          CF_ACCESS_READBACK_CLIENT_ID: ${{ secrets.CF_ACCESS_READBACK_CLIENT_ID }}
+          CF_ACCESS_READBACK_CLIENT_SECRET: ${{ secrets.CF_ACCESS_READBACK_CLIENT_SECRET }}
+        run: |
+          set -euo pipefail
+          [[ -n "$CF_ACCESS_READBACK_CLIENT_ID" && -n "$CF_ACCESS_READBACK_CLIENT_SECRET" ]]
+          file="$RUNNER_TEMP/layers-v68-production.glb"
+          curl --fail --location --silent --show-error --connect-timeout 12 --max-time 90 \
+            -H "CF-Access-Client-Id: $CF_ACCESS_READBACK_CLIENT_ID" \
+            -H "CF-Access-Client-Secret: $CF_ACCESS_READBACK_CLIENT_SECRET" \
+            --output "$file" \
+            "https://aapopihkala.fi/private-model/work-test/verify/auto-ylisrinne-c80r2-v68-integrated-v66-k17-v59p2-sink-hl1-wc-layers-work-test-host-hold-20261104-19aqqecn.glb"
+          [[ "$(stat -c %s "$file")" = '31381740' ]]
+          [[ "$(sha256sum "$file" | cut -d' ' -f1)" = '48116fd649c1100dcc1054170d0b32e94408c0c040af32d5a4a37b6e75dd7d90' ]]
+          printf 'YLIS_LAYERS_V68_GLB=%s\n' "$file" >> "$GITHUB_ENV"
+      - name: Protected production Layers, actual V68 main chain, camera, reset and mobile
+        if: matrix.mode == 'layers-v68-production'
+        env:
+          YLIS_LAYERS_V68_PRODUCTION: '1'
+          CF_ACCESS_VIEWER_PROBE_CLIENT_ID: ${{ secrets.CF_ACCESS_VIEWER_PROBE_CLIENT_ID }}
+          CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET: ${{ secrets.CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET }}
+          D_VIEW_TESTED_COMMIT: ${{ github.event.workflow_run.head_sha || github.sha }}
+        run: npx playwright test tests/e2e/private-model-layers-runtime.spec.ts --workers=1 --trace=off --output=test-results/layers-v68-production --reporter=line
+      - name: Remove temporary protected V68 model
+        if: always() && matrix.mode == 'layers-v68-production'
+        run: rm -f "$RUNNER_TEMP/layers-v68-production.glb"
+      - name: Read exact published V69 main-chain source for Layers regression
+        if: matrix.mode == 'layers-v69-production'
+        shell: bash
+        env:
+          CF_ACCESS_READBACK_CLIENT_ID: ${{ secrets.CF_ACCESS_READBACK_CLIENT_ID }}
+          CF_ACCESS_READBACK_CLIENT_SECRET: ${{ secrets.CF_ACCESS_READBACK_CLIENT_SECRET }}
+        run: |
+          set -euo pipefail
+          [[ -n "$CF_ACCESS_READBACK_CLIENT_ID" && -n "$CF_ACCESS_READBACK_CLIENT_SECRET" ]]
+          file="$RUNNER_TEMP/layers-v69-production.glb"
+          curl --fail --location --silent --show-error --connect-timeout 12 --max-time 90 \
+            -H "CF-Access-Client-Id: $CF_ACCESS_READBACK_CLIENT_ID" \
+            -H "CF-Access-Client-Secret: $CF_ACCESS_READBACK_CLIENT_SECRET" \
+            --output "$file" \
+            "https://aapopihkala.fi/private-model/work-test/verify/auto-ylisrinne-c80r2-v69-integrated-v68-h3-floor-h4-storage-layers-work-test-host-hold-20261104-1zropkz2.glb"
+          [[ "$(stat -c %s "$file")" = '31397788' ]]
+          [[ "$(sha256sum "$file" | cut -d' ' -f1)" = '5b720c9b9f87358867463e725b1500c63bafd9de15d121cdf6c36a3e23ca36fd' ]]
+          printf 'YLIS_LAYERS_V69_GLB=%s\n' "$file" >> "$GITHUB_ENV"
+      - name: Protected production Layers, actual V69 main chain, camera, reset and mobile
+        if: matrix.mode == 'layers-v69-production'
+        env:
+          YLIS_LAYERS_V69_PRODUCTION: '1'
+          CF_ACCESS_VIEWER_PROBE_CLIENT_ID: ${{ secrets.CF_ACCESS_VIEWER_PROBE_CLIENT_ID }}
+          CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET: ${{ secrets.CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET }}
+          D_VIEW_TESTED_COMMIT: ${{ github.event.workflow_run.head_sha || github.sha }}
+        run: npx playwright test tests/e2e/private-model-layers-runtime.spec.ts --workers=1 --trace=off --output=test-results/layers-v69-production --reporter=line
+      - name: Remove temporary protected V69 model
+        if: always() && matrix.mode == 'layers-v69-production'
+        run: rm -f "$RUNNER_TEMP/layers-v69-production.glb"
+      - name: Read exact published V69P12R1 source
+        if: matrix.mode == 'layers-v69p12r1-production'
+        shell: bash
+        env:
+          CF_ACCESS_READBACK_CLIENT_ID: ${{ secrets.CF_ACCESS_READBACK_CLIENT_ID }}
+          CF_ACCESS_READBACK_CLIENT_SECRET: ${{ secrets.CF_ACCESS_READBACK_CLIENT_SECRET }}
+        run: |
+          set -euo pipefail
+          [[ -n "$CF_ACCESS_READBACK_CLIENT_ID" && -n "$CF_ACCESS_READBACK_CLIENT_SECRET" ]]
+          file="$RUNNER_TEMP/layers-v69p12r1-production.glb"
+          curl --fail --location --silent --show-error --connect-timeout 12 --max-time 90 \
+            -H "CF-Access-Client-Id: $CF_ACCESS_READBACK_CLIENT_ID" \
+            -H "CF-Access-Client-Secret: $CF_ACCESS_READBACK_CLIENT_SECRET" \
+            --output "$file" \
+            "https://aapopihkala.fi/private-model/work-test/verify/ylisrinne-v69p12r1-sink-faucet-floor-metadata-20261105.glb"
+          python3 - "$file" <<'PY'
+          import hashlib, json, pathlib, struct, sys
+          data = pathlib.Path(sys.argv[1]).read_bytes()
+          assert len(data) == 32610084
+          assert hashlib.sha256(data).hexdigest() == 'd39102890470f59d7c2a2e033851a6f3d1481a83fb6180b549acd4cbf22182b3'
+          source = json.loads(data[20:20 + struct.unpack_from('<I', data, 12)[0]])
+          assert len(source['scenes']) == 295 and source['scene'] == 292
+          extras = source['asset']['extras']
+          assert extras['current'] is False and extras['asBuilt'] is False
+          assert extras['viewerFloorScenes'] == {'1F': 290, '2F': 293, 'BOTH': 294}
+          def nodes(scene):
+              found = set()
+              def walk(index):
+                  found.add(index)
+                  for child in source['nodes'][index].get('children', []): walk(child)
+              for root in source['scenes'][scene]['nodes']: walk(root)
+              return found
+          for scene in (293, 294):
+              assert {8028, 8030}.issubset(nodes(scene))
+          for index, mesh in ((8028, 2461), (8030, 2462)):
+              assert source['nodes'][index]['mesh'] == mesh
+              for primitive in source['meshes'][mesh]['primitives']:
+                  material = source['materials'][primitive['material']]
+                  assert material.get('alphaMode', 'OPAQUE') == 'OPAQUE'
+          assert 7645 in nodes(290) and 7645 in nodes(294)
+          assert source['nodes'][7645]['extras']['sourceOnly'] is True
+          assert source['nodes'][7645]['extras']['canApplyToViewer'] is False
+          print('Exact V69P12R1 source, floor map, opaque doors and terrace source gate verified; no visibility override.')
+          PY
+          printf 'YLIS_LAYERS_V69P12R1_GLB=%s\n' "$file" >> "$GITHUB_ENV"
+      - name: Protected V69P12R1 Layers, floor runtime, real orbit and mobile
+        if: matrix.mode == 'layers-v69p12r1-production'
+        env:
+          YLIS_LAYERS_V69P12R1_PRODUCTION: '1'
+          YLIS_C008_DEPTH: '1'
+          CF_ACCESS_VIEWER_PROBE_CLIENT_ID: ${{ secrets.CF_ACCESS_VIEWER_PROBE_CLIENT_ID }}
+          CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET: ${{ secrets.CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET }}
+          D_VIEW_TESTED_COMMIT: ${{ github.event.workflow_run.head_sha || github.sha }}
+        run: npx playwright test tests/e2e/private-model-layers-runtime.spec.ts --workers=1 --trace=off --output=test-results/layers-v69p12r1-production --reporter=line --retries=0
+      - name: Remove temporary protected V69P12R1 source
+        if: always() && matrix.mode == 'layers-v69p12r1-production'
+        run: rm -f "$RUNNER_TEMP/layers-v69p12r1-production.glb"
+      - name: Read exact published owner-corrected K17 source
+        if: matrix.mode == 'layers-k17-rail900-production'
+        shell: bash
+        env:
+          CF_ACCESS_READBACK_CLIENT_ID: ${{ secrets.CF_ACCESS_READBACK_CLIENT_ID }}
+          CF_ACCESS_READBACK_CLIENT_SECRET: ${{ secrets.CF_ACCESS_READBACK_CLIENT_SECRET }}
+        run: |
+          set -euo pipefail
+          [[ -n "$CF_ACCESS_READBACK_CLIENT_ID" && -n "$CF_ACCESS_READBACK_CLIENT_SECRET" ]]
+          file="$RUNNER_TEMP/layers-k17-rail900-production.glb"
+          curl --fail --location --silent --show-error --connect-timeout 12 --max-time 90 \
+            -H "CF-Access-Client-Id: $CF_ACCESS_READBACK_CLIENT_ID" \
+            -H "CF-Access-Client-Secret: $CF_ACCESS_READBACK_CLIENT_SECRET" \
+            --output "$file" \
+            "https://aapopihkala.fi/private-model/work-test/verify/ylisrinne-k17-rail900-20261104.glb"
+          node scripts/verify-k17-rail900-source.mjs "$file"
+          printf 'YLIS_LAYERS_K17_RAIL900_GLB=%s\n' "$file" >> "$GITHUB_ENV"
+      - name: Protected K17 exact source, 1F 2F BOTH, Layers, camera and mobile
+        if: matrix.mode == 'layers-k17-rail900-production'
+        env:
+          YLIS_LAYERS_K17_RAIL900_PRODUCTION: '1'
+          CF_ACCESS_VIEWER_PROBE_CLIENT_ID: ${{ secrets.CF_ACCESS_VIEWER_PROBE_CLIENT_ID }}
+          CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET: ${{ secrets.CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET }}
+          D_VIEW_TESTED_COMMIT: ${{ github.event.workflow_run.head_sha || github.sha }}
+        run: npx playwright test tests/e2e/private-model-layers-runtime.spec.ts --workers=1 --trace=off --output=test-results/layers-k17-rail900-production --reporter=line
+      - name: Remove temporary protected K17 source
+        if: always() && matrix.mode == 'layers-k17-rail900-production'
+        run: rm -f "$RUNNER_TEMP/layers-k17-rail900-production.glb"
+      - name: Read exact published V27 terrace source
+        if: matrix.mode == 'v27-terrace-production'
+        shell: bash
+        env:
+          CF_ACCESS_READBACK_CLIENT_ID: ${{ secrets.CF_ACCESS_READBACK_CLIENT_ID }}
+          CF_ACCESS_READBACK_CLIENT_SECRET: ${{ secrets.CF_ACCESS_READBACK_CLIENT_SECRET }}
+        run: |
+          set -euo pipefail
+          [[ -n "$CF_ACCESS_READBACK_CLIENT_ID" && -n "$CF_ACCESS_READBACK_CLIENT_SECRET" ]]
+          file="$RUNNER_TEMP/v27-terrace-production.glb"
+          curl --fail --location --silent --show-error --connect-timeout 12 --max-time 90 \
+            -H "CF-Access-Client-Id: $CF_ACCESS_READBACK_CLIENT_ID" \
+            -H "CF-Access-Client-Secret: $CF_ACCESS_READBACK_CLIENT_SECRET" \
+            --output "$file" \
+            "https://aapopihkala.fi/private-model/work-test/verify/c80r2-v27-d-terrace-165mm-20261102.glb"
+          [[ "$(stat -c %s "$file")" = '26768768' ]]
+          [[ "$(sha256sum "$file" | cut -d' ' -f1)" = '7dfc4842781e0c26ba85a46e38b322925830310b68a5054fa634baa5d2f7ce60' ]]
+          printf 'YLIS_V27_TERRACE_GLB=%s\n' "$file" >> "$GITHUB_ENV"
+      - name: Protected V27 terrace exact source and Layers 1F 2F BOTH mobile
+        if: matrix.mode == 'v27-terrace-production'
+        env:
+          YLIS_V27_TERRACE_PRODUCTION: '1'
+          CF_ACCESS_VIEWER_PROBE_CLIENT_ID: ${{ secrets.CF_ACCESS_VIEWER_PROBE_CLIENT_ID }}
+          CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET: ${{ secrets.CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET }}
+          D_VIEW_TESTED_COMMIT: ${{ github.event.workflow_run.head_sha || github.sha }}
+        run: npx playwright test tests/e2e/private-model-v27-terrace-production.spec.ts --workers=1 --trace=off --output=test-results/v27-terrace-production --reporter=line
+      - name: Remove temporary protected V27 terrace source
+        if: always() && matrix.mode == 'v27-terrace-production'
+        run: rm -f "$RUNNER_TEMP/v27-terrace-production.glb"
+      - name: Remove temporary protected V26 model
+        if: always() && matrix.mode == 'layers-v26-production'
+        run: rm -f "$RUNNER_TEMP/layers-v26-production.glb"
       - name: Remove temporary protected full model
         if: always() && matrix.mode == 'hi20-unified52-production'
         run: rm -f "$RUNNER_TEMP/hi20-unified52-production.glb"
       - name: Encrypt private model screenshots before artifact storage
         if: always()
         env:
+          V27_REVIEW_PUBLIC_KEY: |
+            -----BEGIN PUBLIC KEY-----
+            MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAsbw6ANTfEtPZ289rYkqp
+            gr/38Ve86IfyOY7+QH+65X6d05KVXIeGU9kiLUHcLRfP5cYZxNK1NWDQva+9Se50
+            mH0aZqdpC4LEtvUoLB81qBktspsMu//H4sKpEWGmDxiUyGJOcsZa5hoC5UCW2ifN
+            RwVT73DCrJu7ZfIYm4q15A3FkGP8M65u3z2DIzrVfQ9BJreXbnqoP+wEDfm6/e3v
+            gass9wcopzLRxlmu0jh22G3U/UbEXsPqrYntuwbrD7fJrc41lb9gOmJEwpEuzqE/
+            WPvmU21EqmW63i5YSB9n9F+IEtq3lWmcIOzFlurTa+6UZPWQvsBrGGeIBhpga1xE
+            EwIDAQAB
+            -----END PUBLIC KEY-----
+          C008_LAYERS_REVIEW_PUBLIC_KEY: |
+            -----BEGIN PUBLIC KEY-----
+            MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAzqE7rmrxjbvEGvK5PTaK
+            QTR+wnogTV4LkbnPdKMLtCUQg4G5LTXs/5YbCkWkrXm3qqn/+coVJofUmS1pPLZS
+            eh7YlwcrfYoBT7rnrpnh1BIKYK8kPi3zCvjsg9K5As7M5A6lOKaF1hFMXJ8ManSQ
+            ZfIfkpCHJ0yZDEtCy4lmPEJRpGKcsBgHBEo3kTm1bovUhh1zeQr+O5ZX1YC7Zcr/
+            Jt58zihAD+Ka3HjJoWzKWsgyUyoSqNd6QCUKH9sCXzuEUl/+TyHhxBwD+Jrr9E5c
+            CUgInLgHZRJqv+T0rT+625Y9qSxnfj7mJv/wVoOYBiOmK+bkQCUnt79XkgXQnWUf
+            NQIDAQAB
+            -----END PUBLIC KEY-----
+          C008_WORK_REVIEW_PUBLIC_KEY: |
+            -----BEGIN PUBLIC KEY-----
+            MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAsE/CPQTjD+3wLn8Stvbp
+            N7yCRo7qPWaIydm/e6MfZiDsSGVvT+V8RsqBkCxl5M2lFSDYjN7TG4xBdWj/BIYy
+            wDq5hhS/rk85HMD7pSeDgXZQKieIrbFRQ7IgPZTZ69XRQNO7FAmF8j54rXtcD7vq
+            8MX59mwwJE50efd5d0bcK6DCYuMbPgoTOi0xQ7//CJPL/YstOyCth2+/ENKQO8n+
+            JKPGKuSFMokgmBkR7ZEDHHumlO812BJx4VrntTyE6NC58LBAfmhIgVfOwB/jU/RO
+            u2zoKua/RS+6uA/ZOoBSOx6VURVb1u6pPdy72A7LlURgZed1uDKirWW203/CHtIE
+            qQIDAQAB
+            -----END PUBLIC KEY-----
+          C008_REVIEW_PUBLIC_KEY: |
+            -----BEGIN PUBLIC KEY-----
+            MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA1A9+j9cdnAzJSte3Q4Rn
+            czNa3HUGFuovLUCv8pohsrsCxKPxKw+9EACWeEm5Cqb8MGHVguEp3Lb2KJfQc606
+            w4ktMj9bOo/E9wRLh3LDseALL7TMGaK+/OBRIxMAukaJ4Xq9/Ak3cO4u9SgaF7nl
+            ZAO1I2UnRemv+ukT8jz6v2LDCPl+j35VjDTb6fsznMdFpTZMto+r0Jv72v5XPXm0
+            1F1k8x5E8NKr4y6Z7w3h0wF2f42W/BBPxWLA/lBwongeGjeUw7QvEIaHhH9NSBAL
+            /2A6sj0ADN2OTCZIpAbZUhy/KQxVwf5s5BDqdfLqVgp+GQl+WyGQyCs96552pSU6
+            dwIDAQAB
+            -----END PUBLIC KEY-----
+          V69P12R1_REVIEW_PUBLIC_KEY: |
+            -----BEGIN PUBLIC KEY-----
+            MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA7bX0EM8uGf+MN7HFPBDF
+            lpZIO2vecAkVPJkaWTVlFmSsdaheb0cL5m0tr4Ahbu1lC5ioEx9K/sbqKaICfkhS
+            8X1zLsHibXzls1o2H5M1JQw3HoTxLlhF9uqOX5fs7FVTzJJRt/Ff9XcoV6CBUqDV
+            ICq+JCad8/bM1b7u8B4tQM1XliV5mTDAywgrbUVVQjiqJCL8O9/B+lJx8fcy1WSv
+            LubFUSyKg+Dp+sCSCSwa5ZAEIMOVG3EDhPUOrxkz/Mx1uAg12+K/5KeZfBbPSgce
+            x6nIZE9A18KIStfdzkax3qJVAuO8esSPcYAPQ7I2BDjj96TN0K2I4Rj5Ha1zJZxr
+            8QIDAQAB
+            -----END PUBLIC KEY-----
+          K17_REVIEW_PUBLIC_KEY: |
+            -----BEGIN PUBLIC KEY-----
+            MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEArA6RmagYukBOAk0c20/G
+            UOhriPb6IHTZ2ZjlqiJRju9Q+jlMRiL4Xaol/2npBKFp4gLp/iozQDEKwFTx/13F
+            APvlZnc7lHOFCOfhCtQV+rkaQlDcMc9Qvd6IlNoENGjn8mUL5cOFzN0xunbMZKdx
+            gCEHREJzi5y10417bhF0eNf7pL2BgeM78UGY2MjQN/8vv1Jx89+h1JKUWnj1rZQR
+            hzCM3UsyhiAZGJ8ppfJnsgnJQ3dP7r6RWlgtgIyWKD0lNKuDLCg7sbv+xRGv+At+
+            F2IKWLfIJbXNOZGkiWWxEIrXbjsEFHse7M643cpwqf/hef/wYVYdkpcF1nOXEVrM
+            rQIDAQAB
+            -----END PUBLIC KEY-----
+          LAYERS_REVIEW_PUBLIC_KEY: |
+            -----BEGIN PUBLIC KEY-----
+            MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAhCsUKydu8/wzG4CXtjcc
+            g9Kzi//Czu5dKRvyKtKev392mDn2jZrGJ+mrrcoWBzOosUZX+56kKW68/Vl5dhW6
+            7gQtwXCaumlDrVB/6X/00vvR5TMeEHe+SWb0N+zX/DupxsIjXlg0tr6mHz1q39tA
+            v7uwhciyYkTDomPuMPJSPoysRkI70QEGR/wHobOjPJe8TdlRTCEA2jzuiuYaccLh
+            Ve6Ui/4vub3Dp1kTXAapZm2Nh7FV8kc93B4ALyJDFZk2r0PPvu6YNqUS3uj5NCka
+            Utvlb2AYToaT+1A4Xu5nTb/Zr2E0I5du81m5NYZATjX0t7lhnClwHJyD80yGZ1XK
+            jwIDAQAB
+            -----END PUBLIC KEY-----
           D_VIEW_EVIDENCE_PUBLIC_KEY: |
             -----BEGIN PUBLIC KEY-----
             MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA2Wb28lKfJ8xHD91rtdd8
@@ -343,6 +683,15 @@ jobs:
           [[ -d test-results ]] || exit 0
           mkdir -p "$RUNNER_TEMP/d-view-evidence"
           printf '%s\n' "$D_VIEW_EVIDENCE_PUBLIC_KEY" > "$RUNNER_TEMP/d-view-evidence-public.pem"
+          if [[ '${{ matrix.mode }}' == 'layers-v26-production' || '${{ matrix.mode }}' == 'layers-v29-production' || '${{ matrix.mode }}' == 'layers-v35-production' || '${{ matrix.mode }}' == 'layers-v68-production' || '${{ matrix.mode }}' == 'layers-v69-production' ]]; then
+            D_VIEW_EVIDENCE_AUDIT_PUBLIC_KEY="$LAYERS_REVIEW_PUBLIC_KEY"
+          elif [[ '${{ matrix.mode }}' == 'layers-v69p12r1-production' ]]; then
+            D_VIEW_EVIDENCE_AUDIT_PUBLIC_KEY="$V69P12R1_REVIEW_PUBLIC_KEY"
+          elif [[ '${{ matrix.mode }}' == 'layers-k17-rail900-production' ]]; then
+            D_VIEW_EVIDENCE_AUDIT_PUBLIC_KEY="$K17_REVIEW_PUBLIC_KEY"
+          elif [[ '${{ matrix.mode }}' == 'v27-terrace-production' ]]; then
+            D_VIEW_EVIDENCE_AUDIT_PUBLIC_KEY="$V27_REVIEW_PUBLIC_KEY"
+          fi
           printf '%s\n' "$D_VIEW_EVIDENCE_AUDIT_PUBLIC_KEY" > "$RUNNER_TEMP/d-view-evidence-audit-public.pem"
           openssl rand -base64 48 > "$RUNNER_TEMP/d-view-evidence-password"
           tar -czf "$RUNNER_TEMP/d-view-evidence.tar.gz" test-results
@@ -356,6 +705,22 @@ jobs:
           openssl pkeyutl -encrypt -pubin -inkey "$RUNNER_TEMP/d-view-evidence-audit-public.pem" \
             -pkeyopt rsa_padding_mode:oaep -pkeyopt rsa_oaep_md:sha256 \
             -in "$RUNNER_TEMP/d-view-evidence-password" -out "$RUNNER_TEMP/d-view-evidence/password.audit.rsa"
+          # Additional recipient for this exact C008 inspection only. Retain
+          # both established encrypted password recipients above.
+          if [[ '${{ matrix.mode }}' == 'layers-v69p12r1-production' ]]; then
+            printf '%s\n' "$C008_REVIEW_PUBLIC_KEY" > "$RUNNER_TEMP/c008-evidence-public.pem"
+            openssl pkeyutl -encrypt -pubin -inkey "$RUNNER_TEMP/c008-evidence-public.pem" \
+              -pkeyopt rsa_padding_mode:oaep -pkeyopt rsa_oaep_md:sha256 \
+              -in "$RUNNER_TEMP/d-view-evidence-password" -out "$RUNNER_TEMP/d-view-evidence/password.c008.rsa"
+            printf '%s\n' "$C008_LAYERS_REVIEW_PUBLIC_KEY" > "$RUNNER_TEMP/c008-layers-evidence-public.pem"
+            openssl pkeyutl -encrypt -pubin -inkey "$RUNNER_TEMP/c008-layers-evidence-public.pem" \
+              -pkeyopt rsa_padding_mode:oaep -pkeyopt rsa_oaep_md:sha256 \
+              -in "$RUNNER_TEMP/d-view-evidence-password" -out "$RUNNER_TEMP/d-view-evidence/password.c008layers.rsa"
+            printf '%s\n' "$C008_WORK_REVIEW_PUBLIC_KEY" > "$RUNNER_TEMP/c008-work-evidence-public.pem"
+            openssl pkeyutl -encrypt -pubin -inkey "$RUNNER_TEMP/c008-work-evidence-public.pem" \
+              -pkeyopt rsa_padding_mode:oaep -pkeyopt rsa_oaep_md:sha256 \
+              -in "$RUNNER_TEMP/d-view-evidence-password" -out "$RUNNER_TEMP/d-view-evidence/password.c008work.rsa"
+          fi
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -363,5 +728,7 @@ jobs:
           path: ${{ runner.temp }}/d-view-evidence/
           if-no-files-found: warn
           retention-days: 3
+
+
 
 

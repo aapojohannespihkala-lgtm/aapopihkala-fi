@@ -1,3 +1,5 @@
+import { createHi20C042Kiv003Presentation } from './privateModelHi20C042Kiv003Presentation.mjs';
+import { createHi20C037WasherTopPresentation } from './privateModelHi20C037WasherTopPresentation.mjs';
 import { createHi20C043LegacyWallWhitePresentation } from './privateModelHi20C043LegacyWallWhitePresentation.mjs';
 // C80-043 / K17: keep the owner's 1125 mm low stair-wall geometry,
 // but use the same white WORK_TEST wall material as adjacent physical walls.
@@ -10,6 +12,8 @@ const TARGETS = [
 ];
 const unavailable = (reason) => ({
   available:false, reason, count:0, enabled:false,
+  c037WasherTopAvailable:false, c037WasherTopApplied:false, c037WasherTopCount:0,
+  setC037WasherTopClean:()=>false,
   setEnabled:()=>false, dispose:()=>{},
 });
 function exactMesh(scene,id,associations) {
@@ -85,6 +89,15 @@ export function createHi20K17WhitePresentation(gltf, verifiedSha) {
   // The independent helper is fail-closed and never changes K17 geometry.
   const legacyWhite=createHi20C043LegacyWallWhitePresentation(gltf,verifiedSha);
   const legacyWhiteApplied=legacyWhite.available && legacyWhite.setEnabled(true);
+  // C80-037 is an independent 1F/BOTH exact-SHA presentation fix.
+  // Reuse the already tested PR1602 geometry guard and reversible COW index,
+  // without altering the source GLB, the 2F scene, or the K17 wall.
+  const washerTop=createHi20C037WasherTopPresentation(gltf,verifiedSha);
+  const washerTopApplied=washerTop.available && washerTop.setEnabled(true);
+  // C80-042 1F/BOTH: reversible concealment of the unhosted KIV100 #003
+  // reference sitting over a window. This does not relocate an actual vent.
+  const kiv003=createHi20C042Kiv003Presentation(gltf,verifiedSha);
+  const kiv003Hidden=kiv003.available && kiv003.setEnabled(true);
   let enabled=false;
   const restore=()=>{
     if(!enabled) return;
@@ -97,6 +110,12 @@ export function createHi20K17WhitePresentation(gltf, verifiedSha) {
   };
   return {
     available:true, reason:null, count:4,
+    c042Kiv003UnhostedHidden:kiv003Hidden,
+    c042Kiv003UnhostedCount:kiv003Hidden?kiv003.count:0,
+    get c037WasherTopAvailable(){return washerTop.available;},
+    get c037WasherTopApplied(){return washerTop.available && washerTop.enabled;},
+    c037WasherTopCount:washerTop.available?washerTop.count:0,
+    setC037WasherTopClean(next){return washerTop.available && washerTop.setEnabled(Boolean(next));},
     c043LegacyWallWhiteApplied:legacyWhiteApplied,
     c043LegacyWallWhiteCount:legacyWhiteApplied?legacyWhite.count:0,
     get enabled(){return enabled;},
@@ -118,6 +137,6 @@ export function createHi20K17WhitePresentation(gltf, verifiedSha) {
       enabled=true;
       return true;
     },
-    dispose(){restore();legacyWhite.dispose();},
+    dispose(){restore();legacyWhite.dispose();washerTop.dispose();kiv003.dispose();},
   };
 }

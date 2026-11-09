@@ -182,7 +182,8 @@ if trigger.count("actions/workflows/publish-work-test.yml/dispatches") != 1:
 routing_required = {
     "conventional suffix": "const conventionalReviewSuffix = '-review';",
     "conventional id guard": "/^[a-z0-9][a-z0-9-]*-review$/",
-    "legacy-first fallback": "reviewCandidateById[reviewId] ?? getConventionalReviewCandidateId(reviewId)",
+    "own-key mapping guard": "Object.hasOwn(reviewCandidateById, reviewId)",
+    "legacy-first fallback": "mappedCandidateId ?? getConventionalReviewCandidateId(reviewId)",
     "legacy P183 alias": "[p183P160ClosureReviewId]: p178bCandidateId",
     "legacy P143D alias": "[p143dReviewId]: p143aCandidateId",
 }

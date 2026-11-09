@@ -74,6 +74,106 @@ class SelectionTests(unittest.TestCase):
             'tests/e2e/private-model-work-test-load-diagnostics.spec.ts',
         ])
 
+    def test_layers_wp3_source_and_css_changes_select_existing_dom_regression(self):
+        spec = 'tests/e2e/private-model-layers-wp3-controls.spec.ts'
+        paths = ('src/scripts/privateModelLayersPresetControls.ts',
+                 'src/styles/privateModelLayersPresetControls.css')
+        for path in paths:
+            with self.subTest(path=path):
+                self.assertEqual(selected(path), [spec])
+        # Multiple edits to the same pane must not duplicate its browser run.
+        self.assertEqual(selected(*paths, *paths), [spec])
+        self.assertEqual(selected('src/scripts/unrelated-layer-script.ts'), [])
+
+    def test_layers_wp2_ghost_and_scope_bridge_select_existing_browser_regressions(self):
+        ghost = 'tests/e2e/private-model-layer-ghost-presentation.spec.ts'
+        scoped = 'tests/e2e/private-model-layers-wp3-scoped-runtime.spec.ts'
+        controls = 'tests/e2e/private-model-layers-wp3-controls.spec.ts'
+        source = 'src/scripts/privateModelLayerGhostPresentation.ts'
+        bridge = 'src/scripts/privateModelLayerScopedPresentationBridge.ts'
+        self.assertEqual(selected(source), [ghost, scoped])
+        self.assertEqual(selected(bridge), [ghost, scoped])
+        # Mixed changes never duplicate existing guards, including bridge and WP3.
+        self.assertEqual(selected(source, bridge, source,
+                                  'src/scripts/privateModelLayersPresetControls.ts'),
+                         [ghost, controls, scoped])
+
+    def test_layers_wp1_and_viewer_state_changes_select_existing_contract_and_dom_guards(self):
+        expected = [
+            'tests/e2e/private-model-layers-wp1.spec.ts',
+            'tests/e2e/private-model-layers-wp3-controls.spec.ts',
+            'tests/e2e/private-model-viewer-state.spec.ts',
+        ]
+        paths = (
+            'src/scripts/privateModelLayerHierarchyState.ts',
+            'src/scripts/privateModelViewerState.ts',
+        )
+        for path in paths:
+            with self.subTest(path=path):
+                self.assertEqual(selected(path), expected)
+        self.assertEqual(selected(*paths, *paths), expected)
+        # WP1 changes must not accidentally select unrelated site tests.
+        self.assertFalse(any('/current-' in path for path in selected(*paths)))
+        self.assertEqual(
+            selected('src/styles/privateModelLayersPresetControls.css'),
+            ['tests/e2e/private-model-layers-wp3-controls.spec.ts'],
+        )
+
+    def test_layers_exact_building_and_furniture_profiles_select_existing_browser_guards(self):
+        expected = [
+            'tests/e2e/private-model-architectural-layer-runtime.spec.ts',
+            'tests/e2e/private-model-layers-runtime.spec.ts',
+        ]
+        paths = (
+            'src/scripts/privateModelBuildingPartLayerBindings.mjs',
+            'src/scripts/privateModelC80R2V27LayerSourceProfile.mjs',
+            'src/scripts/privateModelC80R2V35LayerSourceProfile.mjs',
+            'src/scripts/privateModelFurnitureLayerSourceProfile.mjs',
+            'src/scripts/privateModelV35LillangenMirrorSourceProfile.mjs',
+        )
+        for path in paths:
+            with self.subTest(path=path):
+                self.assertEqual(selected(path), expected)
+        self.assertEqual(selected(*paths, *paths), expected)
+        self.assertEqual(selected('src/scripts/unrelated-layer-profile.mjs'), [])
+
+    def test_architectural_runtime_and_wiring_select_existing_browser_guards(self):
+        runtime = 'tests/e2e/private-model-architectural-layer-runtime.spec.ts'
+        wiring = 'tests/e2e/private-model-architectural-layer-wiring.spec.ts'
+        model = 'src/scripts/privateModelArchitecturalLayerRuntime.ts'
+        viewer = 'src/scripts/privateModelArchitecturalLayersRuntime.ts'
+        self.assertEqual(selected(model), [runtime])
+        self.assertEqual(selected(viewer), [runtime, wiring])
+        self.assertEqual(selected(model, viewer, model), [runtime, wiring])
+        # Exact-source profile + viewer wiring changes must union without
+        # repeating the architectural runtime regression.
+        profile = 'src/scripts/privateModelBuildingPartLayerBindings.mjs'
+        layers = 'tests/e2e/private-model-layers-runtime.spec.ts'
+        self.assertEqual(selected(profile, model, viewer, profile),
+                         [runtime, wiring, layers])
+
+        self.assertEqual(selected('src/scripts/unrelated-architectural-module.ts'), [])
+
+    def test_layers_runtime_and_loader_state_select_existing_browser_guards(self):
+        scoped = 'tests/e2e/private-model-layers-wp3-scoped-runtime.spec.ts'
+        wp1 = 'tests/e2e/private-model-layers-wp1.spec.ts'
+        state = 'tests/e2e/private-model-viewer-state.spec.ts'
+        runtime_path = 'src/scripts/privateModelLayersRuntime.ts'
+        load_path = 'src/scripts/privateModelLayerState.ts'
+        self.assertEqual(selected(runtime_path), [scoped])
+        self.assertEqual(selected(load_path), [wp1, state])
+        self.assertEqual(selected(runtime_path, load_path, runtime_path),
+                         [wp1, scoped, state])
+        self.assertFalse(any('/current-' in spec for spec in
+                             selected(runtime_path, load_path)))
+
+    def test_object_visibility_changes_select_existing_root_guard_regression(self):
+        spec = 'tests/e2e/private-model-object-visibility.spec.ts'
+        source = 'src/scripts/privateModelObjectVisibility.ts'
+        self.assertEqual(selected(source), [spec])
+        self.assertEqual(selected(source, source), [spec])
+        self.assertFalse(any('/current-' in item for item in selected(source)))
+
     def test_work_test_loader_changes_run_diagnostics(self):
         self.assertEqual(selected('src/scripts/privateModelWorkTest.ts'), [
             'tests/e2e/private-model-work-test-load-diagnostics.spec.ts',

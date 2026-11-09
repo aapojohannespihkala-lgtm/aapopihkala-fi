@@ -13,6 +13,8 @@ export type ObjectVisibilityNode = {
 
 type VisibilityMaterial = {
   opacity?: number;
+  visible?: boolean;
+  colorWrite?: boolean;
 };
 
 type VisibilitySnapshot = {
@@ -43,8 +45,15 @@ export const hasVisibleMaterial = (
     | undefined,
 ) => {
   const materials = Array.isArray(object?.material) ? object.material : [object?.material];
+  // Raycaster can intersect surfaces that Three.js never draws.
+  // Keep the existing no-material fallback, but exclude source materials
+  // explicitly hidden or configured as depth-only/non-color-writing.
   return materials.some(
-    (material) => !material || material.opacity === undefined || material.opacity > 0.01,
+    (material) => !material || (
+      material.visible !== false &&
+      material.colorWrite !== false &&
+      (material.opacity === undefined || material.opacity > 0.01)
+    ),
   );
 };
 
@@ -82,6 +91,15 @@ export const createObjectVisibilityFilter = () => {
     if (history.length > VISIBILITY_HISTORY_LIMIT) history.shift();
   };
 
+  // Selection can outlive a scene switch. It must never drive another scene's
+  // visibility history, nor turn an empty isolate set into a blank model.
+  const isCurrentTarget = (root: ObjectVisibilityNode, target: ObjectVisibilityNode) => {
+    if (active && capturedRoot !== root) return false;
+    let current: ObjectVisibilityNode | null | undefined = target;
+    while (current && current !== root) current = current.parent;
+    return target !== root && current === root;
+  };
+
   const overlayAllows = (object: ObjectVisibilityNode) => {
     if (hidden.has(object)) return false;
     if (isolateKeepVisible) return isolateKeepVisible.has(object);
@@ -89,7 +107,7 @@ export const createObjectVisibilityFilter = () => {
   };
 
   const reapply = (root: ObjectVisibilityNode = capturedRoot as ObjectVisibilityNode) => {
-    if (!active || !root) return false;
+    if (!active || !root || root !== capturedRoot) return false;
     root.traverse((object) => {
       if (!isObjectVisibilityRenderable(object)) return;
       const baseVisible = baseline.get(object) ?? object.visible;
@@ -133,6 +151,7 @@ export const createObjectVisibilityFilter = () => {
   };
 
   const hide = (root: ObjectVisibilityNode, nextTarget: ObjectVisibilityNode) => {
+    if (!isCurrentTarget(root, nextTarget)) return false;
     capture(root);
     if (hidden.has(nextTarget)) return false;
     pushHistory();
@@ -143,7 +162,7 @@ export const createObjectVisibilityFilter = () => {
   };
 
   const show = (root: ObjectVisibilityNode, nextTarget: ObjectVisibilityNode) => {
-    if (!active || !hidden.has(nextTarget)) return false;
+    if (!active || !isCurrentTarget(root, nextTarget) || !hidden.has(nextTarget)) return false;
     pushHistory();
     hidden.delete(nextTarget);
     reapply(root);
@@ -152,6 +171,7 @@ export const createObjectVisibilityFilter = () => {
   };
 
   const isolate = (root: ObjectVisibilityNode, nextTarget: ObjectVisibilityNode) => {
+    if (!isCurrentTarget(root, nextTarget)) return false;
     capture(root);
     pushHistory();
     isolateReturnHidden = new Set(hidden);
@@ -169,7 +189,7 @@ export const createObjectVisibilityFilter = () => {
   };
 
   const endIsolate = (root: ObjectVisibilityNode = capturedRoot as ObjectVisibilityNode) => {
-    if (!active || !root || !isolateKeepVisible) return false;
+    if (!active || !root || root !== capturedRoot || !isolateKeepVisible) return false;
     pushHistory();
     hidden = new Set(isolateReturnHidden ?? hidden);
     isolateKeepVisible = null;
@@ -180,7 +200,7 @@ export const createObjectVisibilityFilter = () => {
   };
 
   const showAll = (root: ObjectVisibilityNode = capturedRoot as ObjectVisibilityNode) => {
-    if (!active || !root || (hidden.size === 0 && !isolateKeepVisible)) return false;
+    if (!active || !root || root !== capturedRoot || (hidden.size === 0 && !isolateKeepVisible)) return false;
     pushHistory();
     hidden.clear();
     isolateKeepVisible = null;
@@ -191,7 +211,7 @@ export const createObjectVisibilityFilter = () => {
   };
 
   const undo = (root: ObjectVisibilityNode = capturedRoot as ObjectVisibilityNode) => {
-    if (!active || !root || history.length === 0) return false;
+    if (!active || !root || root !== capturedRoot || history.length === 0) return false;
     const previous = history.pop();
     if (!previous) return false;
     hidden = new Set(previous.hidden);

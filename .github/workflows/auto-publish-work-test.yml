@@ -1,7 +1,10 @@
 name: Auto-publish WORK_TEST from Drive queue
 
 # Drive folder "G2b-JULKAISUJONO" -> registry + Worker allowlist PR -> build ->
-# squash merge -> (after Cloudflare deploy) publish-work-test.
+# squash merge -> wait for Cloudflare's "Workers Builds" check on the merge
+# commit -> publish-work-test in the SAME run (typically 2-5 min end to end).
+# Fallback: anything not published right away is published by a later run once
+# it is >= 15 min old (PUBLISH_MIN_AGE).
 # Batch mode: one run publishes every auto candidate registered in the last 6 h
 # that is deployed (>= 15 min) and not yet in the catalog, then registers up to
 # 15 new queue files in ONE PR (one build, one merge, one deploy). Exact size and
@@ -107,33 +110,7 @@ jobs:
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
-        run: |
-          set -euo pipefail
-          # Dispatch-and-wait sequentially: publish-work-test shares one concurrency group,
-          # and GitHub cancels an already pending run when another one is queued.
-          failed=0
-          while IFS= read -r candidate; do
-            [[ "$candidate" =~ ^auto-[a-z0-9-]{1,123}$ ]] || { echo "::error::invalid id"; exit 1; }
-            since="$(date -u -d '-10 seconds' +%Y-%m-%dT%H:%M:%SZ)"
-            gh api --method POST \
-              "/repos/${GITHUB_REPOSITORY}/actions/workflows/publish-work-test.yml/dispatches" \
-              -f ref=main -f "inputs[candidate]=$candidate"
-            result=""
-            for _ in $(seq 1 36); do
-              sleep 10
-              run="$(gh api "/repos/${GITHUB_REPOSITORY}/actions/workflows/publish-work-test.yml/runs?event=workflow_dispatch&created=%3E%3D${since}&per_page=20" \
-                --jq "[.workflow_runs[] | select(.display_title == \"Publish WORK_TEST - ${candidate}\")][0] // {} | \"\(.status // \"\") \(.conclusion // \"\")\"")"
-              read -r status conclusion <<<"$run" || true
-              if [[ "$status" == "completed" ]]; then result="$conclusion"; break; fi
-            done
-            if [[ "$result" == "success" ]]; then
-              echo "Published $candidate."
-            else
-              failed=$((failed + 1))
-              echo "::warning::Publish of $candidate ended: ${result:-timeout}. Retried in a later run (skipped after 3 failures)."
-            fi
-          done < "$RUNNER_TEMP/publish.txt"
-          echo "Publish failures this run: $failed"
+        run: bash .github/scripts/work-test-publish-sequential.sh "$RUNNER_TEMP/publish.txt"
 
       - name: Download and derive exact GLB identities
         id: derive
@@ -154,6 +131,9 @@ jobs:
                       raise SystemExit("invalid Drive file id")
                   stem = re.sub(r"\.(glb|zip)$", "", item["name"], flags=re.IGNORECASE)
                   match = scene_re.search(stem)
+                  # C80R2 main-model files are published whole (see helper apply()).
+                  if re.search(r"(^|_)C80R2_", item["name"], re.IGNORECASE):
+                      match = None
                   out.write(f"{n}\t{item['file_id']}\t{match.group(1) if match else ''}\n")
           PY
           : > "$RUNNER_TEMP/derived.tsv"
@@ -278,10 +258,10 @@ jobs:
               exit 1
             fi
 
-            local merged=false
+            local merged=false merge_sha=""
             for _ in $(seq 1 6); do
-              if gh api --method PUT "/repos/${GITHUB_REPOSITORY}/pulls/${pr_number}/merge" \
-                -f merge_method=squash -f "sha=$head_sha" --jq '.merged' | grep -q true; then
+              if merge_sha="$(gh api --method PUT "/repos/${GITHUB_REPOSITORY}/pulls/${pr_number}/merge" \
+                -f merge_method=squash -f "sha=$head_sha" --jq 'select(.merged == true) | .sha')" && [[ -n "$merge_sha" ]]; then
                 merged=true
                 break
               fi
@@ -292,7 +272,9 @@ jobs:
               exit 1
             fi
             gh api --method DELETE "/repos/${GITHUB_REPOSITORY}/git/refs/heads/${branch}" || true
-            echo "Merged PR #$pr_number. Publish follows in a later run after the Cloudflare deploy."
+            echo "Merged PR #$pr_number as $merge_sha."
+            echo "$merge_sha" > "$RUNNER_TEMP/merge_sha.txt"
+            cp "$RUNNER_TEMP/ids.txt" "$RUNNER_TEMP/registered_ids.txt"
           }
 
           if ! register "$RUNNER_TEMP/items.json"; then
@@ -302,3 +284,31 @@ jobs:
               "$RUNNER_TEMP/items.json" "$RUNNER_TEMP/items-first.json"
             register "$RUNNER_TEMP/items-first.json" || exit 1
           fi
+
+      - name: Publish this batch as soon as its Cloudflare deploy has succeeded
+        if: steps.plan.outputs.register_count != '0' && steps.derive.outputs.derived_count != '0'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          [[ -s "$RUNNER_TEMP/merge_sha.txt" && -s "$RUNNER_TEMP/registered_ids.txt" ]] || { echo "Nothing merged."; exit 0; }
+          merge_sha="$(cat "$RUNNER_TEMP/merge_sha.txt")"
+          [[ "$merge_sha" =~ ^[0-9a-f]{40}$ ]] || { echo "::error::invalid merge sha"; exit 1; }
+          # The Worker allowlist is live once Cloudflare's own build check on the
+          # merge commit has succeeded; no fixed wait. If it does not succeed within
+          # 15 min, the scheduled run publishes later (PUBLISH_MIN_AGE fallback).
+          deployed=""
+          for _ in $(seq 1 60); do
+            sleep 15
+            state="$(gh api "/repos/${GITHUB_REPOSITORY}/commits/${merge_sha}/check-runs?per_page=100" \
+              --jq '[.check_runs[] | select(.name | startswith("Workers Builds"))][0] // {} | "\(.status // "") \(.conclusion // "")"')"
+            read -r status conclusion <<<"$state" || true
+            if [[ "${status:-}" == "completed" ]]; then deployed="${conclusion:-}"; break; fi
+          done
+          if [[ "$deployed" != "success" ]]; then
+            echo "::warning::Cloudflare deploy of $merge_sha: ${deployed:-not finished}. Publish left to a later run."
+            exit 0
+          fi
+          echo "Cloudflare deploy of $merge_sha succeeded; publishing now."
+          bash .github/scripts/work-test-publish-sequential.sh "$RUNNER_TEMP/registered_ids.txt"

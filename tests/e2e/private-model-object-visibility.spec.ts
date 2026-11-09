@@ -1,6 +1,7 @@
 import { readFile } from 'node:fs/promises';
 
 import { expect, test } from '@playwright/test';
+import { pickSelectableObjectAtClientPoint } from '../../src/scripts/privateModelSelectionPicking';
 
 import {
   createObjectVisibilityFilter,
@@ -61,6 +62,52 @@ test('visible-material predicate preserves the existing opacity threshold', () =
   expect(hasVisibleMaterial({ material: { opacity: 0.011 } })).toBe(true);
   expect(hasVisibleMaterial({ material: { opacity: 0.01 } })).toBe(false);
   expect(hasVisibleMaterial({ material: [{ opacity: 0 }, { opacity: 0.5 }] })).toBe(true);
+});
+
+test('source-hidden materials cannot intercept model selections', () => {
+  const root = makeNode('scene-root', true, null, false);
+  const hidden = makeNode('hidden-material', true, root);
+  const depthOnly = makeNode('depth-only', true, root);
+  const visible = makeNode('visible-wall', true, root);
+  Object.assign(hidden, { material: { visible: false, opacity: 1 } });
+  Object.assign(depthOnly, { material: { colorWrite: false, opacity: 1 } });
+  Object.assign(visible, { material: { visible: true, colorWrite: true, opacity: 1 } });
+
+  const picked = pickSelectableObjectAtClientPoint({
+    canvas: {
+      dataset: { interactionMode: 'select' },
+      getBoundingClientRect: () => ({ left: 0, top: 0, width: 100, height: 100 }),
+    },
+    camera: {},
+    modelRoot: root,
+    raycaster: {
+      setFromCamera: () => {},
+      intersectObjects: () => [{ object: hidden }, { object: depthOnly }, { object: visible }],
+    },
+    pointer: { x: 0, y: 0 },
+    clientX: 50, clientY: 50,
+    isEffectivelyVisible,
+    hasVisibleMaterial,
+  });
+  expect(picked).toBe(visible);
+});
+
+test('visibility picking filters explicit non-drawing materials without rejecting visible siblings', () => {
+  expect(hasVisibleMaterial({ material: { visible: false, opacity: 1 } })).toBe(false);
+  expect(hasVisibleMaterial({ material: { colorWrite: false, opacity: 1 } })).toBe(false);
+  expect(hasVisibleMaterial({
+    material: [
+      { visible: false, opacity: 1 },
+      { colorWrite: false, opacity: 1 },
+      { opacity: 0.01 },
+    ],
+  })).toBe(false);
+  expect(hasVisibleMaterial({
+    material: [{ visible: false, opacity: 1 }, { visible: true, opacity: 0.5 }],
+  })).toBe(true);
+  expect(hasVisibleMaterial({ material: { visible: true, colorWrite: true } })).toBe(true);
+  // Existing behavior for objects without source materials is unchanged.
+  expect(hasVisibleMaterial(null)).toBe(true);
 });
 
 test('object visibility core keeps cumulative hides and restores one object at a time', () => {
@@ -142,6 +189,62 @@ test('visibility undo is bounded LIFO state and never overrides the captured bas
   expect(b.visible).toBe(true);
   expect(suppressed.visible).toBe(false);
   expect(filter.canUndo()).toBe(false);
+});
+
+test('stale or detached selection cannot blank the active model or enter visibility history', () => {
+  const root = makeNode('active-model', true, null, false);
+  const active = makeNode('active-mesh', true, root);
+  const sibling = makeNode('sibling', true, root);
+  const anotherRoot = makeNode('old-model', true, null, false);
+  const stale = makeNode('old-selected-mesh', true, anotherRoot);
+  const filter = createObjectVisibilityFilter();
+
+  expect(filter.isolate(root, stale)).toBe(false);
+  expect(filter.hide(root, stale)).toBe(false);
+  expect(filter.isolate(root, root)).toBe(false);
+  expect(filter.isActive()).toBe(false);
+  expect(filter.canUndo()).toBe(false);
+  expect(active.visible).toBe(true);
+  expect(sibling.visible).toBe(true);
+
+  expect(filter.hide(root, active)).toBe(true);
+  expect(active.visible).toBe(false);
+  expect(filter.isolate(root, stale)).toBe(false);
+  expect(filter.hide(root, stale)).toBe(false);
+  expect(filter.getHiddenObjects()).toEqual([active]);
+  expect(filter.isIsolating()).toBe(false);
+  expect(sibling.visible).toBe(true);
+
+  expect(filter.undo(root)).toBe(true);
+  expect(active.visible).toBe(true);
+  expect(filter.canUndo()).toBe(false);
+});
+
+test('visibility history stays tied to its captured scene root until reset', () => {
+  const firstRoot = makeNode('scene-a', true, null, false);
+  const firstMesh = makeNode('mesh-a', true, firstRoot);
+  const secondRoot = makeNode('scene-b', true, null, false);
+  const secondMesh = makeNode('mesh-b', true, secondRoot);
+  const filter = createObjectVisibilityFilter();
+
+  expect(filter.hide(firstRoot, firstMesh)).toBe(true);
+  expect(firstMesh.visible).toBe(false);
+  expect(filter.hide(secondRoot, secondMesh)).toBe(false);
+  expect(filter.isolate(secondRoot, secondMesh)).toBe(false);
+  expect(filter.reapply(secondRoot)).toBe(false);
+  expect(filter.showAll(secondRoot)).toBe(false);
+  expect(filter.undo(secondRoot)).toBe(false);
+  expect(filter.endIsolate(secondRoot)).toBe(false);
+  expect(filter.getHiddenObjects()).toEqual([firstMesh]);
+  expect(secondMesh.visible).toBe(true);
+  expect(firstMesh.visible).toBe(false);
+
+  filter.reset();
+  expect(filter.isolate(secondRoot, secondMesh)).toBe(true);
+  expect(filter.isIsolating()).toBe(true);
+  expect(secondMesh.visible).toBe(true);
+  expect(filter.endIsolate(secondRoot)).toBe(true);
+  expect(filter.showAll(secondRoot)).toBe(false);
 });
 
 test('reset clears object visibility history for a model switch', () => {

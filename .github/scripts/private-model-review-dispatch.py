@@ -34,13 +34,16 @@ def validate_request(payload, trusted_main_sha):
     require(isinstance(payload, dict) and set(payload) == {
         "probeMode", "requestId", "expectedMainSha",
     }, "REQUEST_KEYS")
-    require(payload["probeMode"] == "p186e-labels-render", "FIXED_PROBE_MODE")
+    require(payload["probeMode"] in ("p186e-labels-render", "d-view-v68", "d-view-v69", "d-view-v69p12r1"), "FIXED_PROBE_MODE")
     request_id = payload["requestId"]
     require(isinstance(request_id, str) and
             re.fullmatch(r"[A-Za-z0-9._:-]{1,128}", request_id), "REQUEST_ID")
     require(isinstance(trusted_main_sha, str) and SHA.fullmatch(trusted_main_sha)
             and trusted_main_sha != "0" * 40
             and payload["expectedMainSha"] == trusted_main_sha, "TRUSTED_MAIN")
+    if payload["probeMode"] in ("d-view-v68", "d-view-v69", "d-view-v69p12r1"):
+        return {"ref": "main", "inputs": {"source_version": {"d-view-v68": "V68", "d-view-v69": "V69", "d-view-v69p12r1": "V69P12R1"}[payload["probeMode"]]},
+                "_workflow": "d-view-regression.yml"}
     return {"ref": "main", "inputs": {"probe_mode": "p186e-labels-render"}}
 
 
@@ -73,9 +76,14 @@ def prepare_dispatch(env):
 
 def main():
     try:
-        require(len(sys.argv) == 2, "OUTPUT_ARGUMENT")
+        require(len(sys.argv) in (2, 3), "OUTPUT_ARGUMENT")
         dispatch = prepare_dispatch(os.environ)
+        workflow = dispatch.pop("_workflow", "private-model-production-review-smoke.yml")
+        require(workflow in ("private-model-production-review-smoke.yml", "d-view-regression.yml"), "WORKFLOW")
+        require(len(sys.argv) == 3 or workflow == "private-model-production-review-smoke.yml", "WORKFLOW_OUTPUT")
         Path(sys.argv[1]).write_text(json.dumps(dispatch) + "\n", encoding="utf-8")
+        if len(sys.argv) == 3:
+            Path(sys.argv[2]).write_text(workflow + "\n", encoding="utf-8")
         print("P186E trusted request verified. Canonical main dispatch prepared.")
     except (ValueError, OSError, subprocess.CalledProcessError):
         # Do not serialize request contents, environment, remote errors or tokens.
@@ -86,3 +94,4 @@ def main():
 
 if __name__ == "__main__":
     raise SystemExit(main())
+

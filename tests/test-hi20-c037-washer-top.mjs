@@ -70,3 +70,30 @@ test('stale parent, missing provenance or altered top prevents partial patch',()
   assert.equal(x.siblings[0][0].geometry.index.count,36,bad);
  }
 });
+
+test('C80-037 is actually mounted into and disposed with the existing 52-scene viewer lifecycle', async () => {
+  const { readFileSync } = await import('node:fs');
+  const source = readFileSync(
+    new URL('../src/scripts/privateModelHi20K17WhitePresentation.mjs', import.meta.url),
+    'utf8',
+  );
+  assert.match(source, /createHi20C037WasherTopPresentation\(gltf,verifiedSha\)/);
+  assert.match(source, /washerTop\.available && washerTop\.setEnabled\(true\)/);
+  assert.match(source, /washerTop\.dispose\(\)/);
+});
+
+// C80-037 control must delegate to the ONE already-mounted source COW adapter.
+// The old PR1602 direct adapter would double-patch the same cabinet geometry.
+test('C80-037 viewer toggle delegates through the existing C045/K17 source COW exactly once', () => {
+  const k17 = readFileSync(new URL('../src/scripts/privateModelHi20K17WhitePresentation.mjs', import.meta.url), 'utf8');
+  const c045 = readFileSync(new URL('../src/scripts/privateModelHi20C045Presentation.mjs', import.meta.url), 'utf8');
+  const viewer = readFileSync(new URL('../src/pages/private-model/index.astro', import.meta.url), 'utf8');
+  assert.match(k17, /get c037WasherTopApplied\(\)\{return washerTop\.available && washerTop\.enabled;\}/);
+  assert.match(k17, /setC037WasherTopClean\(next\)\{return washerTop\.available && washerTop\.setEnabled\(Boolean\(next\)\);\}/);
+  assert.match(c045, /get c037WasherTopApplied\(\)\{return k17White\.c037WasherTopApplied;\}/);
+  assert.match(c045, /setC037WasherTopClean\(next\)\{return k17White\.setC037WasherTopClean\(next\);\}/);
+  assert.match(viewer, /hi20C045Presentation\.setC037WasherTopClean\(hi20C037WasherInput\.checked\)/);
+  assert.match(viewer, /hi20C037WasherInput\.checked = hi20C045Presentation\.c037WasherTopApplied/);
+  assert.match(viewer, /hi20C045Presentation\?\.dispose\(\)/);
+  assert.doesNotMatch(viewer, /createHi20C037WasherTopPresentation\s*\(/);
+});

@@ -7,6 +7,10 @@ import { createHi20C047DoorWallPresentation } from './privateModelHi20C047DoorWa
 import { createHi20C036R5DoorPresentation } from './privateModelHi20C036R5DoorPresentation.mjs';
 import { createHi20C020WhiteSideWallPresentation } from './privateModelHi20C020WhiteSideWallPresentation.mjs';
 import { createHi20C020BoardPresentation } from './privateModelHi20C020BoardPresentation.mjs';
+import { createHi20C026TerrainPresentation } from './privateModelHi20C026TerrainPresentation.mjs';
+import { createHi20C027ContourPresentation } from './privateModelHi20C027ContourPresentation.mjs';
+import { createHi20C049FenceJunctionPresentation } from './privateModelHi20C049FenceJunctionPresentation.mjs';
+import { createHi20C016NorthWallPresentation } from './privateModelHi20C016NorthWallPresentation.mjs';
 // C80-045: WORK_TEST presentation only, immutable original 52-scene GLB.
 // The 3.635 m old terrace wall must not be rendered together with the existing
 // 1.709 m replacement. Never change geometry, source links or default/C70.
@@ -20,7 +24,9 @@ const TARGETS = [
     newName:'HI20_C045_CLIPPED_OWNER_WHITE_C048_BOTH_OPTIN'},
 ];
 function unavailable(reason) {
-  return {available:false,reason,count:0,corrected:false,setCorrected:()=>false,dispose:()=>{}};
+  return {available:false,reason,count:0,corrected:false,
+    c037WasherTopAvailable:false,c037WasherTopApplied:false,c037WasherTopCount:0,
+    setC037WasherTopClean:()=>false,setCorrected:()=>false,dispose:()=>{}};
 }
 export function createHi20C045Presentation(gltf, verifiedSha) {
   if (verifiedSha!==C045_SOURCE_SHA || gltf?.scenes?.length!==52 ||
@@ -84,6 +90,23 @@ export function createHi20C045Presentation(gltf, verifiedSha) {
   // Independent reversible COW, no added overlapping geometry.
   const balconyBoards=createHi20C020BoardPresentation(gltf,verifiedSha);
   const balconyBoardsApplied=balconyBoards.available && balconyBoards.setEnabled(true);
+  // C80-026: use the exact validated 56scene terrain patches in the existing
+  // 52scene 1F/BOTH viewer, WITHOUT altering source terrain or 1F geometry.
+  // The remaining white source-clip region stays unfilled (HOST_HOLD).
+  const terrain=createHi20C026TerrainPresentation(gltf,verifiedSha);
+  const terrainApplied=terrain.available && terrain.setEnabled(true);
+  // C80-027: source-locked 1m major / 0.5m minor contour display.
+  // Independent reversible COW, no duplicate terrain geometry.
+  const contours=createHi20C027ContourPresentation(gltf,verifiedSha);
+  const contoursApplied=contours.available && contours.setEnabled(true);
+  // C80-016: the existing 2F/BOTH north wall ends 260 mm too far north.
+  // Source-bound reversible clone; original 52-scene GLB remains immutable.
+  const northWall=createHi20C016NorthWallPresentation(gltf,verifiedSha);
+  const northWallApplied=northWall.available && northWall.setEnabled(true);
+  // C80-049: source-only D/C wall endcap is still coplanar with the existing
+  // screenpost bottom after the prior 46 mm wall trim. Independent COW.
+  const fenceJunction=createHi20C049FenceJunctionPresentation(gltf,verifiedSha);
+  const fenceJunctionApplied=fenceJunction.available && fenceJunction.setEnabled(true);
   const originals=roots.map(obj=>obj.visible);
   let corrected=false;
   return {
@@ -96,6 +119,10 @@ export function createHi20C045Presentation(gltf, verifiedSha) {
     c035LobbyCount:lobbyApplied?lobby.count:0,
     k17WhiteApplied,
     k17WhiteCount:k17WhiteApplied?k17White.count:0,
+    get c037WasherTopAvailable(){return k17White.c037WasherTopAvailable;},
+    get c037WasherTopApplied(){return k17White.c037WasherTopApplied;},
+    get c037WasherTopCount(){return k17White.c037WasherTopCount;},
+    setC037WasherTopClean(next){return k17White.setC037WasherTopClean(next);},
     c002StorageRoofsApplied:storageRoofsApplied,
     c002StorageRoofsCount:storageRoofsApplied?storageRoofs.count:0,
     c047StorageDoorWallApplied:doorWallApplied,
@@ -106,6 +133,14 @@ export function createHi20C045Presentation(gltf, verifiedSha) {
     c020WhiteSideWallCount:whiteSideWallApplied?whiteSideWall.count:0,
     c020BalconyBoardsApplied:balconyBoardsApplied,
     c020BalconyBoardsCount:balconyBoardsApplied?balconyBoards.count:0,
+    c026TerrainApplied:terrainApplied,
+    c026TerrainCount:terrainApplied?terrain.count:0,
+    c027ContoursApplied:contoursApplied,
+    c027ContoursCount:contoursApplied?contours.count:0,
+    c049FenceJunctionApplied:fenceJunctionApplied,
+    c049FenceJunctionCount:fenceJunctionApplied?fenceJunction.count:0,
+    c016NorthWallApplied:northWallApplied,
+    c016NorthWallCount:northWallApplied?northWall.count:0,
     get corrected(){return corrected;},
     setCorrected(next){
       const enabled=Boolean(next);
@@ -114,6 +149,10 @@ export function createHi20C045Presentation(gltf, verifiedSha) {
       return true;
     },
     dispose(){
+      fenceJunction.dispose();
+      northWall.dispose();
+      contours.dispose();
+      terrain.dispose();
       r5WhiteDoor.dispose();
       balconyBoards.dispose();
       whiteSideWall.dispose();

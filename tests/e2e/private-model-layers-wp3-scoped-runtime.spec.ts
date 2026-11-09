@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { BoxGeometry, Group, Mesh, MeshBasicMaterial, Scene } from 'three';
+import { BoxGeometry, Group, Mesh, MeshBasicMaterial, Scene, type Object3D } from 'three';
 import {
   createViewerScopedLayerPresentation,
   type ViewerScopedLayerGate,
@@ -10,6 +10,8 @@ import {
   createViewerInteractionState,
   setViewerCameraView,
   setViewerInteractionLayerMode,
+  setViewerInteractionLayerBranchMode,
+  withViewerLayerBranchVisibility,
 } from '../../src/scripts/privateModelViewerState';
 
 const makeRoot = (scene: Scene, material = new MeshBasicMaterial()) => {
@@ -31,6 +33,42 @@ const frameFor = (
   activeSceneRoot: scene,
   gates,
   availableNodeIds,
+});
+
+test('R1 branch visibility reopens only the selected system inside authoritative source and floor gates', () => {
+  const scene = new Scene();
+  const iv = makeRoot(scene), electrical = makeRoot(scene), outside = makeRoot(scene), noSource = makeRoot(scene);
+  const bindings = [
+    { id: 'technical-ventilation' as const, root: iv.root },
+    { id: 'technical-electrical' as const, root: electrical.root },
+    { id: 'technical-ventilation' as const, root: outside.root },
+    { id: 'technical-ventilation' as const, root: noSource.root },
+  ];
+  const available = ['technical', 'technical-ventilation', 'technical-electrical'];
+  const gates = new Map([
+    [iv.root, allow()], [electrical.root, allow()],
+    [outside.root, { ...allow(), floorAllowed: false }],
+    [noSource.root, { ...allow(), sourceAllowed: false }],
+  ]);
+  const bridge = createViewerScopedLayerPresentation(scene, bindings);
+  let state = withViewerLayerBranchVisibility(applyViewerLayerPreset(createViewerInteractionState(), 'd-2f'));
+  state = setViewerInteractionLayerBranchMode(state, 'technical', 'hidden', available);
+  bridge.apply(state, frameFor(scene, gates, available));
+  expect(iv.root.visible).toBe(false);
+  state = setViewerInteractionLayerBranchMode(state, 'technical-ventilation', 'visible', available);
+  bridge.apply(state, frameFor(scene, gates, available));
+  expect(iv.root.visible).toBe(true);
+  expect(electrical.root.visible).toBe(false);
+  expect(outside.root.visible).toBe(false);
+  expect(noSource.root.visible).toBe(false);
+  state = setViewerInteractionLayerBranchMode(state, 'technical', 'ghost', available);
+  bridge.apply(state, frameFor(scene, gates, available));
+  expect(iv.mesh.material).not.toBe(iv.material);
+  expect(electrical.mesh.material).not.toBe(electrical.material);
+  expect(outside.root.visible).toBe(false);
+  bridge.dispose();
+  expect(iv.mesh.material).toBe(iv.material);
+  expect(electrical.mesh.material).toBe(electrical.material);
 });
 
 test('WP3 bridge makes D 2F roof a reversible ghost without changing camera or legacy source material', () => {
@@ -166,7 +204,7 @@ test('WP3 ghost keeps selection intact and applies parent ghost mode only inside
   state = setViewerInteractionLayerMode(state, 'architecture-walls', 'ghost');
   const f = {
     ...frameFor(scene, new Map([[wall.root, allow()]]), ['architecture-walls-party']),
-    isSelected: (mesh: Mesh) => mesh === selected,
+    isSelected: (object: Object3D) => object === selected,
   };
   expect(bridge.apply(state, f)[0].mode).toBe('ghost');
   expect(selected.material).toBe(wall.material);
@@ -194,8 +232,8 @@ test('WP3 presentation failure hides all roots and restores any earlier ghost ma
   const gates = new Map([[first.root, allow()], [second.root, allow()]]);
   const frame = {
     ...frameFor(scene, gates, ['roof', 'architecture-walls-party']),
-    isSelected: (mesh: Mesh) => {
-      if (mesh === second.mesh) throw new Error('selection callback failed');
+    isSelected: (object: Object3D) => {
+      if (object === second.mesh) throw new Error('selection callback failed');
       return false;
     },
   };
@@ -218,4 +256,35 @@ test('WP3 presentation failure hides all roots and restores any earlier ghost ma
   bridge.dispose();
   expect(first.mesh.material).toBe(first.material);
   expect(second.mesh.material).toBe(second.material);
+});
+
+test('WP3 missing source availability or gate metadata revokes earlier visible and ghost roots', () => {
+  const scene = new Scene();
+  const part = makeRoot(scene);
+  const bridge = createViewerScopedLayerPresentation(scene, [{ id: 'roof', root: part.root }]);
+  const visible = applyViewerLayerPreset(createViewerInteractionState(), 'whole-building');
+  const frame = frameFor(scene, new Map([[part.root, allow()]]), ['roof']);
+
+  expect(bridge.apply(visible, frame)[0].mode).toBe('visible');
+  expect(part.root.visible).toBe(true);
+  const missingAvailability = { ...frame, availableNodeIds: undefined as unknown as string[] };
+  expect(bridge.apply(visible, missingAvailability)[0].mode).toBe('hidden');
+  expect(part.root.visible).toBe(false);
+  expect(bridge.apply(visible, frame)[0].mode).toBe('visible');
+
+  const ghost = setViewerInteractionLayerMode(visible, 'roof', 'ghost');
+  expect(bridge.apply(ghost, frame)[0].mode).toBe('ghost');
+  expect(part.mesh.material).not.toBe(part.material);
+  const missingGates = {
+    ...frame,
+    gates: undefined as unknown as ViewerScopedLayerFrame['gates'],
+  };
+  expect(bridge.apply(ghost, missingGates)[0].mode).toBe('hidden');
+  expect(part.root.visible).toBe(false);
+  expect(part.mesh.material).toBe(part.material);
+
+  expect(bridge.apply(visible, frame)[0].mode).toBe('visible');
+  expect(part.root.visible).toBe(true);
+  bridge.dispose();
+  expect(part.mesh.material).toBe(part.material);
 });

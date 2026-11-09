@@ -30,7 +30,16 @@ export type ViewerArchitecturalParentNodeId =
   | 'architecture'
   | 'architecture-walls';
 
+export type ViewerTechnicalLayerNodeId =
+  | 'technical'
+  | 'technical-ventilation'
+  | 'technical-heating'
+  | 'technical-electrical'
+  | 'technical-water'
+  | 'technical-drainage';
+
 export type ViewerLayerNodeId =
+  | ViewerTechnicalLayerNodeId
   | 'roof'
   | 'locus'
   | ViewerLocusChildNodeId
@@ -39,6 +48,12 @@ export type ViewerLayerNodeId =
 export type ViewerLayerParentVisibilityState = 'off' | 'none' | 'mixed' | 'all';
 
 export type ViewerLayerControlsState = {
+  technicalVisible: boolean;
+  technicalVentilationVisible: boolean;
+  technicalHeatingVisible: boolean;
+  technicalElectricalVisible: boolean;
+  technicalWaterVisible: boolean;
+  technicalDrainageVisible: boolean;
   roofVisible: boolean;
   roofOpacity: number;
   locusVisible: boolean;
@@ -69,7 +84,13 @@ export const viewerLayerNodeCapabilities: Record<
     opacity: boolean;
   }
 > = {
-  roof: { parent: null, visibility: true, opacity: true },
+  technical: { parent: null, visibility: true, opacity: false },
+  'technical-ventilation': { parent: 'technical', visibility: true, opacity: false },
+  'technical-heating': { parent: 'technical', visibility: true, opacity: false },
+  'technical-electrical': { parent: 'technical', visibility: true, opacity: false },
+  'technical-water': { parent: 'technical', visibility: true, opacity: false },
+  'technical-drainage': { parent: 'technical', visibility: true, opacity: false },
+  roof: { parent: 'architecture', visibility: true, opacity: true },
   locus: { parent: null, visibility: true, opacity: false },
   'locus-water': { parent: 'locus', visibility: true, opacity: false },
   'locus-wastewater': { parent: 'locus', visibility: true, opacity: false },
@@ -108,15 +129,15 @@ export const viewerLayerNodeCapabilities: Record<
     opacity: false,
   },
   'architecture-review-helpers': {
-    parent: 'architecture',
+    parent: null,
     visibility: true,
     opacity: false,
   },
   'architecture-floors': { parent: 'architecture', visibility: true, opacity: false },
   'architecture-ceilings': { parent: 'architecture', visibility: true, opacity: false },
-  'architecture-fixtures': { parent: 'architecture', visibility: true, opacity: false },
+  'architecture-fixtures': { parent: null, visibility: true, opacity: false },
   'architecture-other': {
-    parent: 'architecture',
+    parent: null,
     visibility: true,
     opacity: false,
   },
@@ -133,6 +154,8 @@ export const viewerP161SystemChildNodeIds = [
   'p161-iv-1974-section',
 ] as const satisfies readonly ViewerLocusChildNodeId[];
 
+// Legacy checkbox inventory. The R1 source-bound tree uses capabilities
+// above and deliberately does not reuse this historical parent grouping.
 export const viewerArchitecturalRootChildNodeIds = [
   'architecture-walls',
   'architecture-doors',
@@ -151,6 +174,12 @@ export const viewerArchitecturalWallChildNodeIds = [
 ] as const satisfies readonly ViewerArchitecturalLayerChildNodeId[];
 
 export const viewerLayerControlsDefaults: ViewerLayerControlsState = {
+  technicalVisible: true,
+  technicalVentilationVisible: true,
+  technicalHeatingVisible: true,
+  technicalElectricalVisible: true,
+  technicalWaterVisible: true,
+  technicalDrainageVisible: true,
   roofVisible: true,
   roofOpacity: 1,
   locusVisible: false,
@@ -177,6 +206,12 @@ export const mergeViewerLayerControlsState = (
   current: ViewerLayerControlsState,
   next: Partial<ViewerLayerControlsState>,
 ): ViewerLayerControlsState => ({
+  technicalVisible: typeof next.technicalVisible === 'boolean' ? next.technicalVisible : current.technicalVisible,
+  technicalVentilationVisible: typeof next.technicalVentilationVisible === 'boolean' ? next.technicalVentilationVisible : current.technicalVentilationVisible,
+  technicalHeatingVisible: typeof next.technicalHeatingVisible === 'boolean' ? next.technicalHeatingVisible : current.technicalHeatingVisible,
+  technicalElectricalVisible: typeof next.technicalElectricalVisible === 'boolean' ? next.technicalElectricalVisible : current.technicalElectricalVisible,
+  technicalWaterVisible: typeof next.technicalWaterVisible === 'boolean' ? next.technicalWaterVisible : current.technicalWaterVisible,
+  technicalDrainageVisible: typeof next.technicalDrainageVisible === 'boolean' ? next.technicalDrainageVisible : current.technicalDrainageVisible,
   roofVisible:
     typeof next.roofVisible === 'boolean' ? next.roofVisible : current.roofVisible,
   roofOpacity:
@@ -295,11 +330,31 @@ const architecturalVisibilityKey = (
   nodeId: ViewerArchitecturalLayerNodeId,
 ) => viewerArchitecturalVisibilityKeys[nodeId];
 
+const technicalVisibilityKeys = {
+  technical: 'technicalVisible',
+  'technical-ventilation': 'technicalVentilationVisible',
+  'technical-heating': 'technicalHeatingVisible',
+  'technical-electrical': 'technicalElectricalVisible',
+  'technical-water': 'technicalWaterVisible',
+  'technical-drainage': 'technicalDrainageVisible',
+} as const;
+
+const isTechnicalNode = (id: ViewerLayerNodeId): id is ViewerTechnicalLayerNodeId =>
+  Object.prototype.hasOwnProperty.call(technicalVisibilityKeys, id);
+
 export const setViewerLayerNodeVisible = (
   current: ViewerLayerControlsState,
   nodeId: ViewerLayerNodeId,
   visible: boolean,
 ): ViewerLayerControlsState => {
+  // Runtime callers can supply an unrecognized ID despite the static type.
+  // Do not let childVisibilityKey's final branch toggle the 1974 IV section.
+  if (!Object.prototype.hasOwnProperty.call(viewerLayerNodeCapabilities, nodeId)) {
+    return current;
+  }
+  if (isTechnicalNode(nodeId)) {
+    return mergeViewerLayerControlsState(current, { [technicalVisibilityKeys[nodeId]]: visible });
+  }
   if (nodeId === 'roof') {
     return mergeViewerLayerControlsState(current, { roofVisible: visible });
   }
@@ -326,6 +381,11 @@ export const isViewerLayerNodeEffectivelyVisible = (
   current: ViewerLayerControlsState,
   nodeId: ViewerLayerNodeId,
 ): boolean => {
+  // Unknown runtime IDs must not inherit the 1974 IV-section fallback.
+  if (!Object.prototype.hasOwnProperty.call(viewerLayerNodeCapabilities, nodeId)) {
+    return false;
+  }
+  if (isTechnicalNode(nodeId)) return current.technicalVisible && current[technicalVisibilityKeys[nodeId]];
   if (nodeId === 'roof') return current.roofVisible;
   if (nodeId === 'locus') return current.locusVisible;
   if (isViewerArchitecturalLayerNodeId(nodeId)) {
@@ -355,7 +415,12 @@ export const viewerLocusParentVisibilityState = (
   if (childNodeIds.length === 0) return 'all';
 
   const visibleCount = childNodeIds.filter(
-    (nodeId) => current[childVisibilityKey(nodeId)],
+    (nodeId) =>
+      // A malformed runtime child ID must not fall through to the 1974 IV
+      // section key in childVisibilityKey and appear as a visible Locus node.
+      Object.prototype.hasOwnProperty.call(viewerLayerNodeCapabilities, nodeId) &&
+      viewerLayerNodeCapabilities[nodeId].parent === 'locus' &&
+      current[childVisibilityKey(nodeId)],
   ).length;
 
   if (visibleCount === 0) return 'none';
@@ -371,7 +436,15 @@ export const viewerArchitecturalParentVisibilityState = (
   if (!isViewerLayerNodeEffectivelyVisible(current, parentNodeId)) return 'off';
   if (childNodeIds.length === 0) return 'all';
 
+  // The legacy architecture summary has its own explicit child groups.
+  // Do not count a known ID from another branch (or an unknown runtime ID)
+  // as a child of this parent. Some legacy root children intentionally use
+  // null capability parents, so the curated lists remain authoritative.
+  const directChildren: readonly string[] = parentNodeId === 'architecture'
+    ? viewerArchitecturalRootChildNodeIds
+    : viewerArchitecturalWallChildNodeIds;
   const visibleCount = childNodeIds.filter((nodeId) =>
+    directChildren.includes(nodeId) &&
     isViewerLayerNodeEffectivelyVisible(current, nodeId),
   ).length;
 
@@ -394,6 +467,7 @@ const viewerLayerOwnVisible = (
   controls: ViewerLayerControlsState,
   nodeId: ViewerLayerNodeId,
 ): boolean => {
+  if (isTechnicalNode(nodeId)) return controls[technicalVisibilityKeys[nodeId]];
   if (nodeId === 'roof') return controls.roofVisible;
   if (nodeId === 'locus') return controls.locusVisible;
   if (isViewerArchitecturalLayerNodeId(nodeId)) {
@@ -417,29 +491,52 @@ export const createViewerLayerModeMap = (
 export const getViewerLayerEffectiveMode = (
   modes: ViewerLayerModeMap,
   nodeId: ViewerLayerNodeId,
+  independent = false,
 ): ViewerLayerVisibilityMode => {
-  const ownMode = modes[nodeId];
+  // Runtime source IDs are not guaranteed to belong to the declared hierarchy.
+  // Reject an unknown ID before dereferencing its missing parent capability.
+  if (!Object.prototype.hasOwnProperty.call(viewerLayerNodeCapabilities, nodeId)) {
+    return 'hidden';
+  }
+  // A missing/non-record persisted mode map must not throw or reveal a layer.
+  if (!modes || typeof modes !== 'object' || Array.isArray(modes)) return 'hidden';
+  // Only a node's own saved value can establish its presentation mode.
+  const ownMode = Object.hasOwn(modes, nodeId) ? modes[nodeId] : undefined;
   // External/persisted mode maps can be incomplete or malformed at runtime.
   // Never reinterpret an unrecognized state as visible in a scoped viewer.
   if (ownMode !== 'visible' && ownMode !== 'ghost') return 'hidden';
-  const parentId = viewerLayerNodeCapabilities[nodeId].parent;
+  // R1 branch commands already write the requested descendants. They must
+  // not leave an invisible parent gate above a directly re-enabled child.
+  // Maps without this explicit opt-in retain the legacy gate behavior.
+  if (independent) return ownMode;
+  // The old boolean viewer used a different grouping. Keep its saved maps
+  // compatible while the source-bound R1 UI uses independent branch modes.
+  const parentId = nodeId === 'roof' ? null
+    : nodeId === 'architecture-fixtures' || nodeId === 'architecture-other' || nodeId === 'architecture-review-helpers'
+      ? 'architecture' : viewerLayerNodeCapabilities[nodeId].parent;
   if (parentId === null) return ownMode;
   const parentMode = getViewerLayerEffectiveMode(modes, parentId);
   if (parentMode === 'hidden') return 'hidden';
   return ownMode === 'ghost' || parentMode === 'ghost' ? 'ghost' : 'visible';
 };
 
-/** A parent's mixed state is a read-only aggregation of current children. */
+/**
+ * Report the parent's own selection and child preferences, not the modes
+ * flattened by an ancestor's ghost gate. A hidden parent remains authoritative.
+ * Rendering still uses getViewerLayerEffectiveMode (scope > parent > child).
+ */
 export const getViewerLayerParentMode = (
   modes: ViewerLayerModeMap,
   parentId: ViewerLayerNodeId,
   children: readonly ViewerLayerNodeId[],
 ): ViewerLayerParentMode => {
-  if (getViewerLayerEffectiveMode(modes, parentId) === 'hidden') return 'hidden';
-  if (children.length === 0) return getViewerLayerEffectiveMode(modes, parentId);
-  const first = getViewerLayerEffectiveMode(modes, children[0]);
-  return children.every((child) => getViewerLayerEffectiveMode(modes, child) === first)
-    ? first
+  if (!modes || typeof modes !== 'object' || Array.isArray(modes)) return 'hidden';
+  const parent = Object.hasOwn(modes, parentId) ? modes[parentId] : undefined;
+  // Persisted maps may be incomplete: never expose an invalid parent mode.
+  if (parent !== 'visible' && parent !== 'ghost') return 'hidden';
+  if (children.length === 0) return parent;
+  return children.every((child) => Object.hasOwn(modes, child) && modes[child] === parent)
+    ? parent
     : 'mixed';
 };
 
@@ -447,7 +544,10 @@ export const setViewerLayerMode = (
   modes: ViewerLayerModeMap,
   nodeId: ViewerLayerNodeId,
   mode: ViewerLayerVisibilityMode,
-): ViewerLayerModeMap => ({ ...modes, [nodeId]: mode });
+): ViewerLayerModeMap =>
+  Object.prototype.hasOwnProperty.call(viewerLayerNodeCapabilities, nodeId)
+    ? { ...modes, [nodeId]: mode }
+    : modes;
 
 /** Ordered fail-closed decision: scope > storey > presentation layer. */
 export const resolveScopedViewerLayerMode = (

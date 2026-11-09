@@ -1169,8 +1169,234 @@
       "driveFileId": "13ZlpGX5PYhQ4VYGVpkFifyv38-UXwDLR",
       "extractScene": 49
     },
+    "ylisrinne-d-c80r2-unified64-c018-c050-1f2fboth-work-test-20261031": {
+      "driveFileId": "1M5BD0GrLdJTWPBq-auuEBzCnr9KsHhfq"
+    },
     "ylisrinne-d-c80-hi20-unified52-both-sc51-work-test-20261030": {
       "driveFileId": "1Jee3b6wKBnEDgm43XND-4A9ODVn2ODXs"
+    },
+    "ylisrinne-d-c80r2-108scene-k17-mat01-work-test-20261101": {
+      "driveFileId": "1pMK1MlaZ6DO3ZWrN0Q6TEnJdd1L28Ck3"
+    },
+    "auto-ylisrinne-d-c80r2-k11-east-restored-cl01-trim-work-test-host-hold-20261101-14zsgzul": {
+      "driveFileId": "14ZSgZu__l_ihEYMoe4DWd9jimP4iAQo-"
+    },
+    "auto-ylisrinne-d-c80r2-facade-ark3-gable-roof-west-brick-work-test-host-hold-20261101-1e46nbpc": {
+      "driveFileId": "1e46NBp_c4_4Eh2UFBATf_2QJ07iDbhJA"
+    },
+    "auto-ylisrinne-d-c80r2-west-brick-unified-pier-roof-work-test-host-hold-20261101-1gyigm6l": {
+      "driveFileId": "1gyigm6lqKO1v9jc1WMbnG54dbcKjepEp"
+    },
+    "auto-ylisrinne-d-c80r2-review120-east-unified-ref-ceilings-work-test-host-hold-20261101-1dgzi9kx": {
+      "driveFileId": "1Dgzi9KXr3zepWH4KcMmz1ymHGisj3ewD"
+    },
+    "auto-ylisrinne-c80r2-savo-white-full-length-hist2024-work-test-20261101-1hpzcmsy": {
+      "driveFileId": "1hpzcM_sYGR2WcfzS5NmPGKOsZ371m-SW"
+    },
+    "auto-ylisrinne-d-c80r2-review123-balcony-frame-terrain-ref-ceilings-work-test-host-hold-20261101-1oigbvgy": {
+      "driveFileId": "1OIGbvgyRX3C_b6oXCMXkYEEhOQM8rAfA"
+    },
+    "auto-ylisrinne-d-c80r2-dp01-west-roof-s-gutter-pw26-pink-integrated-work-test-host-hold-20261101-1inoz4xm": {
+      "driveFileId": "1inoz4XMBnjB9OWCXV7XgGvxfIZydWauP"
+    },
+    "auto-ylisrinne-d-c80r2-west-roof-s-gutter-pw26-kvik-joint3-work-test-host-hold-20261101-1ah9izb4": {
+      "driveFileId": "1ah9IZB4AoQ__dYhxqVPB0_YjfSYeeVxB"
+    },
+    "auto-ylisrinne-d-c80r2-d1f-terrassi-sokkeli-kaikki-seinat-work-test-20261101-1pykdlow": {
+      "driveFileId": "1pykdLowXVkmIxiS_3vTkK1gv59qCA3fe"
+    },
+    "auto-ylisrinne-c80r2-k17-freepost-whitelowwall-nine-risers-combined-work-test-host-hold-20261101-1r3fousp": {
+      "driveFileId": "1R3FOUsPqkwxn1uRew-ErnxbFGc6tkTyu"
+    },
+    "auto-ylisrinne-d-c80r2-kvik-joint6-panel-z-aligned-real-3faces-work-test-host-hold-20261101-1mccebny": {
+      "driveFileId": "1MCcebnYplibqB376mx2RchmqCj4umAb8"
+    },
+    "auto-ylisrinne-d-c80r2-review126-door-walls-terrain-brown-work-test-host-hold-20261101-1ce3jptz": {
+      "driveFileId": "1cE3jptZL2kBuB7obRZVfk4JKA6Uomfj3"
+    },
+    "auto-ylisrinne-c80r2-k17-ps1-rs9-white-lowwall-freepost-all4-integrated-work-test-host-hold-20261101-19mga3rf": {
+      "driveFileId": "19MGA3RffxAOT7u1RlEfJiqwtZfEbGSpy"
+    },
+    "auto-ylisrinne-d-c80r2-d1f-entry-20261101-two-white-wall-utility-boxes-work-test-host-hold-1suhafeq": {
+      "driveFileId": "1SUHaFEQjse14HveAzZ_dSzuJ6VxuSsQO"
+    },
+    "auto-ylisrinne-d-c80r2-hob30-bd01-pois-work-test-host-hold-20261101-1tzusaeq": {
+      "driveFileId": "1tZusaEQa52KaZhqbHQ66DBG5F5S6nvNR"
+    },
+    "auto-ylisrinne-d-c80r2-hob31-hob30-bd01-pois-sink-owner2026-3x3-hob25-liesi-work-test-host-hold-20261101-1h1ywxvo": {
+      "driveFileId": "1H1YwXvoZCl8iSS8EI9C8XlrSAWAAcCso"
+    },
+    "auto-ylisrinne-d-c80r2-review132-terrace-windows-brown-contours-walls-work-test-host-hold-20261101-1poj6swp": {
+      "driveFileId": "1Poj6SWpbJ3Z6pMF2SWLZQBG2abb4fuK_"
+    },
+    "auto-ylisrinne-d-c80r2-hob31-owner2026-sink3x3-bd01-pois-s-gutter-blue-plinth-work-test-host-hold-2026110-1ishttzp": {
+      "driveFileId": "1IsHTtzpOa0wGfrWt5ytyA1x_SNdDbKTm"
+    },
+    "auto-ylisrinne-d-c80r2-joint12-2026-kvik3x3-k17-all4-white-island-bell2-spot3-bd01-off-work-test-host-hol-1um8d50a": {
+      "driveFileId": "1UM8d50A_fKlduFRg7jq1DkWu-k9u--fp"
+    },
+    "auto-ylisrinne-d-c80r2-review132-terrace-windows-v11-brown-contours-walls-work-test-host-hold-20261101-1q51jx1f": {
+      "driveFileId": "1q51Jx1fVaJQ1inNusTND12DXL5RWEKrh"
+    },
+    "auto-ylisrinne-d-c80r2-joint16-r9grey-rad26-savo26-3spot-2bell-sok26blue-kvik3x3-k17-bd01off-work-test-ho-1hikxree": {
+      "driveFileId": "1hikxREeY0CLkJqWc0MlSR9FbSHT7mZm9"
+    },
+    "auto-ylisrinne-d-c80r2-merge1-v11-kitchen2026-hob40-cur26-pf26-work-test-host-hold-20261101-1juracoc": {
+      "driveFileId": "1J_URAcOCr3vZqTCRRwcTgrwfCoViQc_u"
+    },
+    "auto-ylisrinne-d-c80r2-v12-merge1-siding150-work-test-host-hold-20261101-1yr2b3vd": {
+      "driveFileId": "1yR2b3VDezdNU3z_4C-QEtWv8anguwJ0h"
+    },
+    "auto-ylisrinne-d-c80r2-v13-k17all4-balcony-dedup-work-test-host-hold-20261101-1mukkrjs": {
+      "driveFileId": "1MukkRJSz1PtId9pT6DinbwZMYs0FIeMO"
+    },
+    "auto-ylisrinne-d-c80r2-v14b-k17-understair-recess-photo-fit-work-test-host-hold-20261101-1tnnuxr2": {
+      "driveFileId": "1tNnUXr2NH3buzkchOgLz_ix_eIS8xFsT"
+    },
+    "auto-ylisrinne-d-c80r2-v15-entry-tech-boxout-door-shift-work-test-host-hold-20261101-1i8q28fu": {
+      "driveFileId": "1I8Q28fuDf_3CBmn9dZccsKkDg49ij3JW"
+    },
+    "auto-ylisrinne-d-c80r2-v16-round2-kitchen-gutter-sauna-tiles-work-test-host-hold-20261101-1h5sk02j": {
+      "driveFileId": "1H5Sk02J6cnmDc6NNi5VH89D_0E_dxvqf"
+    },
+    "auto-ylisrinne-d-c80r2-v17-upstairs-floor-doors-frame-radiators-kitchen-work-test-host-hold-20261101-1xgq3ngt": {
+      "driveFileId": "1xGQ3ngT4zdUZvs-3FBaxuPjrVccSENUy"
+    },
+    "auto-ylisrinne-d-c80r2-v18c-understair-recess-open-side-work-test-host-hold-20261101-1mqwo99r": {
+      "driveFileId": "1MQwo99RTBJyWiPWuCI2ajRwZJhUTr6EF"
+    },
+    "auto-ylisrinne-d-c80r2-v17-lobby-ilp-kiv2-r3-scene-map-work-test-host-hold-20261101-1zhw0dvi": {
+      "driveFileId": "1zHW0dviahcr7xwDCzawNJlO5qKBuFYNt"
+    },
+    "auto-ylisrinne-d-c80r2-v19-v18c-plus-lobby-toshiba-kiv2-work-test-host-hold-20261101-1nxl22f2": {
+      "driveFileId": "1nXl22f2ACY5sUSCX5ecbtkS1dTEHWwLZ"
+    },
+    "auto-ylisrinne-d-c80r2-v20-x491-tile-risers-floor-island-kiv-work-test-host-hold-20261102-1vhdw2sy": {
+      "driveFileId": "1Vhdw2sYwsKqsr1Eh2r6nrxTJ8uVfkR-q"
+    },
+    "auto-ylisrinne-d-c80r2-v21-v20-plus-wood-tread-fronts-work-test-host-hold-20261102-1purbjhx": {
+      "driveFileId": "1PuRBjHX_GaO_wKG8hIAQ2yE5zXPMvgqj"
+    },
+    "auto-ylisrinne-d-c80r2-v23-stair-rail-rebuild-work-test-host-hold-20261102-1oaxvsga": {
+      "driveFileId": "1oaXVSgaViS_Rv22V8ilgn9W9TMSaWhSI"
+    },
+    "auto-ylisrinne-d-c80r2-v26-stair-rail-landing-end-plywood-work-test-host-hold-20261102-1jglt7no": {
+      "driveFileId": "1jG-LT7nOO-6i8yWdwaXXZajHw83CVbgX"
+    },
+    "c80r2-v27-d-terrace-165mm-20261102": {
+      "driveFileId": "1Pj1VDcukHL7QWHJ8sHzchr8DK_A7g8Kc"
+    },
+    "auto-ylisrinne-d-c80r2-v26-aeg-hk654200fb-owner-approved-viewer-floor-scenes-work-test-host-hold-20261102-1stmzpyz": {
+      "driveFileId": "1sTMZPyzHlBSd0gFmPZbG1jiFQIJ6i1Yq"
+    },
+    "auto-ylisrinne-d-c80r2-v29-west-full-facade-plinth-work-test-host-hold-20261102-1vfk15ke": {
+      "driveFileId": "1vfk15keKvEzXiqCKVCZBmI5zS6i5qbk7"
+    },
+    "auto-ylisrinne-d-c80r2-v33-merge-v29-hj-kiv8-aeg-rail-floors-island-ne-work-test-host-hold-20261102-1xbjbwwp": {
+      "driveFileId": "1xBjbwWpWm2RACbVwmPl3XPQ-3OON41AU"
+    },
+    "auto-ylisrinne-d-c80r2-v34-v33-review-fixes-corner-wc-hob-lightwells-plinth-work-test-host-hold-20261102-1ptgtrs4": {
+      "driveFileId": "1pTGtrS4Oe5Bga8JaIZ6aQMIChgOlu69h"
+    },
+    "auto-ylisrinne-d-c80r2-v35-2f-wc-yellow-tiles-photo-work-test-host-hold-20261102-11iiyoiu": {
+      "driveFileId": "11IiYOiuQE7Sggjj1f0AWRRSNmD8MyoEE"
+    },
+    "auto-ylisrinne-d-c80r2-v56-gpt-v55-all7-toshiba-sconces-join03-floors-wired-work-test-host-hold-20261103-1okpbnaw": {
+      "driveFileId": "1oKPbnawWagxFvvz_NHxLzFqtFrhHEruW"
+    },
+    "auto-ylisrinne-d-c80r2-v57-kitchen-cabinets-uniform-worktop15-one-tap-work-test-host-hold-20261103-1wkmdaq6": {
+      "driveFileId": "1wkmdaq6UuyWHAezGCqODG9KxJc3VhDJX"
+    },
+    "auto-ylisrinne-d-c80r2-v58-kitchen-worktop-same-as-island-work-test-host-hold-20261103-19rlwc4q": {
+      "driveFileId": "19rLWC4QWemRWTLen0XUie-hf8XvKAhx_"
+    },
+    "auto-ylisrinne-d-c80r2-v58r2-kitchen-worktop-same-as-island-floorscenes-work-test-host-hold-20261103-1o4sw0hf": {
+      "driveFileId": "1O4SW0hFKOHfQDkdO7ZuXeNYkXaZEs1xP"
+    },
+    "auto-ylisrinne-c80r2-v67-integrated-v66-k17-v59p2-sink-layers-work-test-host-hold-20261104-1bn4iqvp": {
+      "driveFileId": "1b-N4iqVpGaQKqrFc701oXBSv2G2YF3Um"
+    },
+    "auto-ylisrinne-c80r2-v68-integrated-v66-k17-v59p2-sink-hl1-wc-layers-work-test-host-hold-20261104-19aqqecn": {
+      "driveFileId": "19AQQEcNpumu-MDOs9C4pO2ghQhY0iniH"
+    },
+    "auto-ylisrinne-c80r2-v69-integrated-v68-h3-floor-h4-storage-layers-work-test-host-hold-20261104-1zropkz2": {
+      "driveFileId": "1zrOpkz20XN_iv7vYTdWycJehJM7kzNQ2"
+    },
+    "ylisrinne-k17-rail900-20261104": {
+      "driveFileId": "1J53QV9-XcOJr6JloXwJDOLJ4ej5t97P7"
+    },
+    "ylisrinne-v69p12r1-sink-faucet-floor-metadata-20261105": {
+      "driveFileId": "1Jh-ssNwDO_k6byI8M0jrE7GiOgBNktMM"
+    },
+    "ylisrinne-v69-six6-k17-rail900-20261104": {
+      "driveFileId": "1xHJfOqoS7mzd7bpt527nziQl7cHhUMQv"
+    },
+    "auto-ylisrinne-c80r2-v71-m5-integrated-on-v69p12r1-work-test-host-hold-20261107-1xna0ijw": {
+      "driveFileId": "1-Xna0ijwbdNaoyWdUlJ53vOGOvmkAWdo"
+    },
+    "auto-ylisrinne-c80r2-v73-m5-anchored-routes-on-v71-work-test-host-hold-20261108-1tor07oq": {
+      "driveFileId": "1tOR07Oq_IQMlqtCKcFuonu-jCt-6mni6"
+    },
+    "auto-ylisrinne-c80r2-v74-m5-hosted-routes-on-v71-work-test-host-hold-20261108-1uejjx8g": {
+      "driveFileId": "1uejJx8GjSfT84wzTE_uEqxyH95CPztSP"
+    },
+    "auto-ylisrinne-c80r2-v75-m5-connected-systems-on-v71-work-test-host-hold-20261108-13lo7sco": {
+      "driveFileId": "13LO7SCOscF3H5jTpxbXNFbVcOLxhzleZ"
+    },
+    "auto-ylisrinne-c80r2-v76-m5-systems-k17-stair900-on-v71-work-test-host-hold-20261108-13sbpmld": {
+      "driveFileId": "13SbPMlduv6WFtZqXQhv6uon1_BXX3jna"
+    },
+    "auto-ylisrinne-c80r2-v77-k17-stair900-nwall110-on-v71-work-test-host-hold-20261108-1t9qec8q": {
+      "driveFileId": "1t9QEc-8Qjk5RUl519vQbypOAUZsnEWcm"
+    },
+    "auto-ylisrinne-c80r2-v78-zfight-ceil-fix-on-v71-work-test-host-hold-20261108-10ksnx5u": {
+      "driveFileId": "10KsNX5U_cc9PLcxS45O8b8N53-SUStJF"
+    },
+    "auto-ylisrinne-c80r2-v79-owner-fixes-on-v71-work-test-host-hold-20261108-1sk1w8z1": {
+      "driveFileId": "1sk1w8z1iCBa675xo9t_6BjUFWiDYws7X"
+    },
+    "auto-ylisrinne-c80r2-v80-gpt-fixes-on-v71-work-test-host-hold-20261108-1f6wvezc": {
+      "driveFileId": "1f6wVeZcVcFYqdZs9nz9Desi300TX81SS"
+    },
+    "auto-ylisrinne-c80r2-v81-owner-fixes2-on-v71-work-test-host-hold-20261108-1klnmdyo": {
+      "driveFileId": "1klNmDYo4cCNV-XqPizkMd2uQVHS6JU0B"
+    },
+    "auto-ylisrinne-c80r2-v82-sauna-v29u-v35-on-v71-work-test-host-hold-20261108-1jwddu3z": {
+      "driveFileId": "1jwdDu3ZMnFezuTkPkWRdBTUBehy2N-Ll"
+    },
+    "auto-ylisrinne-c80r2-v83-owner-fixes3-on-v71-work-test-host-hold-20261108-1qncb7my": {
+      "driveFileId": "1QnCB7MyIVNjiFQvcrdfu-RGItl421si8"
+    },
+    "auto-ylisrinne-c80r2-v84-d2f-kitchen-meas-on-v71-work-test-host-hold-20261108-1kfkjzfd": {
+      "driveFileId": "1kFKjZfd-GyeZ2a-lDXUY_RmzOtVMKWzr"
+    },
+    "auto-ylisrinne-m5-iv2015-e220s-onebore-isolated-review-lean-r3-sourcelinks-work-test-host-hold-20261108-1nl4apky": {
+      "driveFileId": "1nl4APkYtxnElowXEuBIc3cEuOtYcPUg7",
+      "extractScene": 8
+    },
+    "auto-ylisrinne-c80r2-v85-owner-fixes4-on-v71-work-test-host-hold-20261108-1wx8f11v": {
+      "driveFileId": "1WX8f11v-xWGloh1WNUehzrXuwxJbhkl3"
+    },
+    "auto-ylisrinne-c80r2-v86-owner-fixes5-on-v71-work-test-host-hold-20261109-1j5mgf6a": {
+      "driveFileId": "1-J5_mgf6Av6CFuTLCZggoHOwgaadnkL4"
+    },
+    "auto-ylisrinne-c80r2-v87-tate-continuity-on-v71-work-test-host-hold-20261109-1wqmpwkz": {
+      "driveFileId": "1WQMPWkZPaG89gj0_AHxE4PTCy7yi-tiP"
+    },
+    "auto-ylisrinne-c80r2-v88-integration-on-v71-work-test-host-hold-20261109-1covwwkg": {
+      "driveFileId": "1COvwWKgZlC-0zlABGnuVNMlHEqIWdd1v"
+    },
+    "auto-ylisrinne-c80r2-v89-photo-tate-on-v71-work-test-host-hold-20261109-1lit8ius": {
+      "driveFileId": "1liT8IuS-mBfbtMBU2YKp8ysDlEhjPV7n"
+    },
+    "auto-ylisrinne-c80r2-v90-high-integration-on-v71-work-test-host-hold-20261109-1qjb3sqn": {
+      "driveFileId": "1qjb3sqnWmxgsYSxd7gphfS0TDZBNgDO4"
+    },
+    "auto-ylisrinne-c80r2-v91-owner-review-fix-on-v71-work-test-host-hold-20261109-1j6kojrh": {
+      "driveFileId": "1j6KoJ_rhKwPPaj7IGv8o038-h1NqiLuN"
+    },
+    "auto-ylisrinne-c80r2-v92-h30-smoke-on-v71-work-test-host-hold-20261109-1mv7qbyq": {
+      "driveFileId": "1Mv_7QbyQRYym9GFI9YKc_Uh1QxUPEQgn"
     }
   }
 }

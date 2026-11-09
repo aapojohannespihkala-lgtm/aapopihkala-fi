@@ -61,6 +61,45 @@ for file in "$@"; do
       add current-worker-regression current-portfolio-resilience current-markets-fallback current-markets-timeout ;;
     src/pages/private-model/index.astro)
       add private-model-d1f-combined-wall-scene-contract private-model-main-view-scope private-model-other-floor-reference private-model-work-test-load-diagnostics; p4 ;;
+    src/scripts/privateModelBuildingPartLayerBindings.mjs|src/scripts/privateModelC80R2V*LayerSourceProfile.mjs|src/scripts/privateModelFurnitureLayerSourceProfile.mjs|src/scripts/privateModelV35LillangenMirrorSourceProfile.mjs)
+      # Changes to exact-source building/furniture profiles must recheck the
+      # existing Layers runtime and architectural representation contracts.
+      add private-model-layers-runtime private-model-architectural-layer-runtime ;;
+    src/scripts/privateModelArchitecturalLayerRuntime.ts)
+      # Semantic membership and parent visibility drive architectural Layers.
+      add private-model-architectural-layer-runtime ;;
+    src/scripts/privateModelArchitecturalLayersRuntime.ts)
+      # The installed legacy tree adapter must retain its viewer wiring and
+      # semantic architecture checks when its presentation code changes.
+      add private-model-architectural-layer-runtime private-model-architectural-layer-wiring ;;
+    src/scripts/privateModelLayersRuntime.ts)
+      # Runtime changes must recheck the existing scoped Layers presentation contract.
+      add private-model-layers-wp3-scoped-runtime ;;
+    src/scripts/privateModelLayerState.ts)
+      # Loader defaults and legacy layer flags are exercised in both state guards.
+      add private-model-layers-wp1 private-model-viewer-state ;;
+    src/scripts/privateModelLayerHierarchyState.ts|src/scripts/privateModelViewerState.ts)
+      # WP1 state, scope defaults and parent-child visibility feed both the
+      # existing WP1 contract and the WP3 on-screen controls.
+      add private-model-layers-wp1 private-model-viewer-state private-model-layers-wp3-controls ;;
+    src/scripts/privateModelLayerGhostPresentation.ts)
+      # WP2 material/pickability behaviour must also preserve scoped bridge behaviour.
+      add private-model-layer-ghost-presentation private-model-layers-wp3-scoped-runtime ;;
+    src/scripts/privateModelLayerScopedPresentationBridge.ts)
+      # Bridge changes affect both source-gated adapters and reversible ghost
+      # materials/pickability; recheck both existing browser regressions.
+      add private-model-layer-ghost-presentation private-model-layers-wp3-scoped-runtime ;;
+    src/scripts/privateModelLayersPresetControls.ts|src/styles/privateModelLayersPresetControls.css)
+      # Reuse the existing real-DOM WP3 regression whenever Layers controls
+      # or their scoped responsive stylesheet changes.
+      add private-model-layers-wp3-controls ;;
+    src/scripts/privateModelTechnicalSystemsLayers.ts|src/scripts/privateModelTechnicalLayersAvailabilityUi.ts|src/styles/privateModelTechnicalLayersAvailability.css)
+      # HIGH2 source bindings and source-availability UI share one verified
+      # technical inventory. Re-run their existing browser and DOM guards.
+      add private-model-technical-systems-layers private-model-technical-layers-availability-ui private-model-technical-layers-availability-dom ;;
+    src/scripts/privateModelObjectVisibility.ts)
+      # Scene-root-scoped hide/isolate must retain stale-target and model-swap guards.
+      add private-model-object-visibility ;;
     src/scripts/privateModelWorkTest.ts)
       add private-model-work-test-load-diagnostics ;;
     src/scripts/privateModelMainViewScope.ts)

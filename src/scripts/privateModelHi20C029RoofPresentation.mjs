@@ -1,3 +1,5 @@
+import { createHi20C025RoofGhostPresentation } from './privateModelHi20C025RoofGhostPresentation.mjs';
+import { isSourceSceneRoot, sameSourceName } from './privateModelSourceNodeAssociations.mjs';
 // C80-029 / D1F-WP3: reuse the source 52-scene GLB's existing orphan
 // D storage roof roots in the 1F/BOTH viewer scenes. NO mesh, material,
 // binary, geometry or sourceLinks are invented or changed. WORK_TEST only.
@@ -37,7 +39,7 @@ export async function createHi20C029RoofPresentation(gltf, verifiedSha) {
         typeof node.name !== 'string' || !/ROOF/i.test(node.name) ||
         node.extras?.presentationOnly !== true ||
         typeof node.extras?.sourceDriveId !== 'string' ||
-        !gltf.scenes[target.scene]?.isScene ||
+        !isSourceSceneRoot(gltf.scenes[target.scene]) ||
         json.scenes[target.scene]?.nodes?.includes(target.node) ||
         json.nodes.some((parent) => parent.children?.includes(target.node)))
       return unavailable('source-roof-orphan-identity');
@@ -51,7 +53,7 @@ export async function createHi20C029RoofPresentation(gltf, verifiedSha) {
   }
   if (roots.length !== 2 || roots[0] === roots[1] ||
       roots.some((root, i) =>
-        !root?.isMesh || root.name !== json.nodes[TARGETS[i].node].name ||
+        !root?.isMesh || !sameSourceName(root.name, json.nodes[TARGETS[i].node].name) ||
         root.visible !== true || !root.geometry || !root.material))
     return unavailable('loaded-roof-identity');
   const mounts = [];
@@ -73,9 +75,18 @@ export async function createHi20C029RoofPresentation(gltf, verifiedSha) {
     mounts.forEach(({destination,copy}) => destination.remove(copy));
     return unavailable('roof-mount');
   }
+  // Independent owner-requested roof ghost: separate explicit opt-in, OFF by default.
+  // Reuses source meshes 5846/5847 in 2F48/BOTH51 and never follows C029 toggle.
+  const ghost = await createHi20C025RoofGhostPresentation(gltf, verifiedSha);
+  if (ghost.available && typeof document !== 'undefined')
+    ghost.mountControl(document.getElementById('hi20-c029-roof-layer'));
   let visible = true;
   return {
     available: true, reason: null, count: 2,
+    c025RoofGhostAvailable: ghost.available,
+    c025RoofGhostCount: ghost.count,
+    get c025RoofGhostVisible() { return ghost.visible; },
+    setC025RoofGhostVisible(next) { return ghost.setVisible(next); },
     get visible() { return visible; },
     setVisible(next) {
       visible = Boolean(next);
@@ -83,6 +94,7 @@ export async function createHi20C029RoofPresentation(gltf, verifiedSha) {
       return true;
     },
     dispose() {
+      ghost.dispose();
       for (const { destination, copy } of mounts) destination.remove(copy);
       visible = false;
     },

@@ -176,3 +176,127 @@ test('selection source links collect GLB sourceLinks from node and ancestors as 
   expect(selectionMetadataEntries(node, root).map(([key]) => key)).not.toContain('sourceLinks');
   expect(selectionSourceLinks({ userData: { sourceLinks: 'x' } }, null)).toEqual([]);
 });
+
+test('V87-H3 legacy url/evidence donor links appear without inventing current installation', () => {
+  // Exact field shapes from H3 source GLB SHA 1689cf22: RK4.1 uses
+  // {role, docId, url}, while RK13.2/13.3 use {url, evidence}.
+  const root = {
+    userData: {
+      sourceLinks: [{
+        role: '2015_electrical_board_diagram_4_1',
+        docId: '1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP',
+        url: 'https://drive.google.com/file/d/1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP/view',
+      }],
+    },
+  };
+  const cable = {
+    parent: root,
+    userData: {
+      sourceLinks: [{
+        url: 'https://drive.google.com/file/d/1dzzZsa9FCiyqmv8WholhLxba6Kxobspg/view',
+        evidence: '2015 Johdotus labelled 13.2 / 13.3, not verified XYZ route',
+      }, {
+        url: 'https://docs.google.com/spreadsheets/d/13kmPzhBPKoyXufA6T3tazdt6-D4XJgoW_QIKm40p-QU/edit',
+        evidence: 'G3 network link SOURCE_DIRECT NO_CABLE_GEOMETRY',
+      }, {
+        url: 'https://drive.google.com/file/d/1dzzZsa9FCiyqmv8WholhLxba6Kxobspg/view',
+        evidence: 'duplicate should lose to the first link',
+      }, {
+        url: 'http://drive.google.com/file/d/insecure/view',
+        evidence: 'rejected insecure link',
+      }, {
+        url: 'https://not-google.example.com/injected',
+        evidence: 'rejected external host',
+      }],
+    },
+  };
+
+  expect(selectionSourceLinks(cable, null)).toEqual([
+    {
+      link: 'https://drive.google.com/file/d/1dzzZsa9FCiyqmv8WholhLxba6Kxobspg/view',
+      label: '2015 Johdotus labelled 13.2 / 13.3, not verified XYZ route',
+    }, {
+      link: 'https://docs.google.com/spreadsheets/d/13kmPzhBPKoyXufA6T3tazdt6-D4XJgoW_QIKm40p-QU/edit',
+      label: 'G3 network link SOURCE_DIRECT NO_CABLE_GEOMETRY',
+    }, {
+      link: 'https://drive.google.com/file/d/1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP/view',
+      label: '2015_electrical_board_diagram_4_1',
+    },
+  ]);
+});
+
+test('canonical link wins over legacy url, while unsafe canonical links do not fall back', () => {
+  const node = {
+    userData: {
+      sourceLinks: [
+        {
+          link: 'https://docs.google.com/document/d/preferred/edit',
+          url: 'https://drive.google.com/file/d/legacy/view',
+          role: 'plan',
+          supports: 'verified historical source',
+          evidence: 'not a replacement for supports',
+        },
+        {
+          link: 'https://not-google.example.com/rejected',
+          url: 'https://drive.google.com/file/d/fallback/view',
+          role: 'disallowed',
+        },
+        { url: 'ftp://drive.google.com/file/d/insecure/view' },
+      ],
+    },
+  };
+  expect(selectionSourceLinks(node, null)).toEqual([{
+    link: 'https://docs.google.com/document/d/preferred/edit',
+    label: 'plan · verified historical source',
+  }]);
+});
+
+
+test('legacy H3 evidence arrays preserve HOST_HOLD and blank canonical link fails closed', () => {
+  const node = {
+    userData: {
+      sourceLinks: [
+        {
+          url: 'https://drive.google.com/file/d/historical-wiring/view',
+          supports: [],
+          evidence: ['2015 Johdotus', 'HOST_HOLD / XYZ route not verified'],
+        },
+        {
+          link: '   ',
+          url: 'https://drive.google.com/file/d/unsafe-fallback/view',
+          evidence: 'must not silently replace the canonical link',
+        },
+      ],
+    },
+  };
+
+  expect(selectionSourceLinks(node, null)).toEqual([{
+    link: 'https://drive.google.com/file/d/historical-wiring/view',
+    label: '2015 Johdotus, HOST_HOLD / XYZ route not verified',
+  }]);
+});
+
+import { sceneNameForObject } from '../../src/scripts/privateModelSelectionIdentity';
+
+test('selection follows the exact source-mapped glTF Group across 1F 2F BOTH instead of the default fallback', () => {
+  const stop={name:'viewer-root'};
+  const first={name:'runtime-first',parent:stop};
+  const second={name:'runtime-second',parent:stop};
+  const both={name:'runtime-both',parent:stop};
+  const names=new WeakMap<object,string>([[first,'C80R2_V69_1F'],[second,'C80R2_V69_2F'],[both,'C80R2_V69_BOTH']]);
+  for(const [source,expected] of [[first,'C80R2_V69_1F'],[second,'C80R2_V69_2F'],[both,'C80R2_V69_BOTH']] as const) {
+    const parent={name:'source-part',parent:source};
+    const mesh={name:'source-mesh',parent};
+    expect(sceneNameForObject(mesh,stop,names,both)).toBe(expected);
+  }
+});
+
+test('selection does not infer a source scene from an arbitrary Group name or walk past the model boundary', () => {
+  const outside={name:'outside'},stop={name:'viewer-root',parent:outside};
+  const fallback={name:'fallback'};
+  const impostor={name:'C80R2_V69_2F',parent:stop};
+  const names=new WeakMap<object,string>([[outside,'OUTSIDE'],[fallback,'EXACT_FALLBACK']]);
+  expect(sceneNameForObject({name:'mesh',parent:impostor},stop,names,fallback)).toBe('EXACT_FALLBACK');
+  const legacyScene={isScene:true,name:'legacy scene',parent:stop};
+  expect(sceneNameForObject({name:'mesh',parent:legacyScene},stop,names,fallback)).toBe('legacy scene');
+});

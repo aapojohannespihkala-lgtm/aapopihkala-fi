@@ -195,7 +195,71 @@ const sourceLinkText = (value: unknown) => {
 };
 
 /**
- * GLB node extras.sourceLinks ({docId, link, role, supports}) from the selected node and
+ * V90 H21/H22 use verified 2026 photo Drive IDs rather than sourceLinks.
+ * Resolve only these two exact evidence IDs under their V90 integration task,
+ * never an arbitrary userData ID or URL. These are WORK_TEST source photos,
+ * not evidence of current geometry or physical pipe connections.
+ */
+const v90PhotoSourceForNode = (
+  data: Record<string, unknown> | undefined,
+): SelectionSourceLink | null => {
+  const integrated = data?.v90IntegratedFrom;
+  if (!integrated || typeof integrated !== 'object' || Array.isArray(integrated)) return null;
+  const task = (integrated as Record<string, unknown>).task;
+
+  if (task === 'H21' &&
+      (data?.photoSourceDriveId === '1a16hN0pssODwrhazkkyXPzIQf2yeXP7-' ||
+       data?.['2026PhotoZip'] === '1a16hN0pssODwrhazkkyXPzIQf2yeXP7-')) {
+    return {
+      link: 'https://drive.google.com/file/d/1a16hN0pssODwrhazkkyXPzIQf2yeXP7-/view',
+      label: 'H21 - vuoden 2026 WC-valokuvat (WORK_TEST)',
+    };
+  }
+  if (task === 'H22' &&
+      data?.sourcePhoto === '1BmfFwt2R1OzEYzWQPP31CjSpeybxi9uO') {
+    return {
+      link: 'https://drive.google.com/file/d/1BmfFwt2R1OzEYzWQPP31CjSpeybxi9uO/view',
+      label: 'H22 - vuoden 2026 keittio kuva (WORK_TEST)',
+    };
+  }
+  return null;
+};
+
+/**
+ * H23's integrated V90 PA2 group root has an exact pair of 2026 sourcePhoto
+ * IDs but no sourceLinks. Its 23 children already have their own sourceLinks.
+ * Only this source-exact group root may inherit the two verified photo links.
+ * WORK_TEST photo evidence never establishes physical connections or as-built.
+ */
+const v90H23Pa2RootPhotoLinks = (
+  data: Record<string, unknown> | undefined,
+): SelectionSourceLink[] => {
+  const integrated = data?.v90IntegratedFrom;
+  if (!integrated || typeof integrated !== 'object' || Array.isArray(integrated)) return [];
+  const origin = integrated as Record<string, unknown>;
+  if (origin.task !== 'H23' || origin.donorNode !== 11391 ||
+      data?.H23 !== true || data?.modelScope !== 'WORK_TEST/HOST_HOLD' ||
+      data?.canonical !== false || data?.asBuilt !== false ||
+      data?.sourceV89GLBSHA256 !== '718163b76b46aee51193e059c5790d0e22c84a364d82d8d58bc2084776902a2c') return [];
+  const photos = data?.sourcePhotos;
+  if (!Array.isArray(photos) || photos.length !== 2 ||
+      photos[0] !== '1AwU2CHmVnnL4fPoBzBBMkLTU8ppurS3V' ||
+      photos[1] !== '1k9fRDgKfu2mINDru0uqv6C5eVZ0-9kce') return [];
+  return [
+    {
+      link: 'https://drive.google.com/file/d/1AwU2CHmVnnL4fPoBzBBMkLTU8ppurS3V/view',
+      label: 'H23 PA2 - 2026 sulkuventtiilit ja letkut (WORK_TEST)',
+    },
+    {
+      link: 'https://drive.google.com/file/d/1k9fRDgKfu2mINDru0uqv6C5eVZ0-9kce/view',
+      label: 'H23 PA2 - 2026 vesilukko ja poimuletkut (WORK_TEST)',
+    },
+  ];
+};
+
+/**
+ * GLB node extras.sourceLinks ({docId, link, role, supports}) or legacy
+ * {url, evidence} records from the selected node and
  * its ancestors (same 8-level walk as scalar metadata). Only Google Drive/Docs links are
  * returned, de-duplicated by link. Source references, not current/as-built claims.
  */
@@ -214,15 +278,27 @@ export const selectionSourceLinks = (
         if (links.size >= maxSelectionSourceLinks) break;
         if (!item || typeof item !== 'object') continue;
         const record = item as Record<string, unknown>;
-        const link = typeof record.link === 'string' ? record.link.trim() : '';
+        // Older M5 WORK_TEST donors, including V87-H3, store URL under `url`.
+        // Keep `link` authoritative when present; never invent a source URL.
+        const rawLink = typeof record.link === 'string' ? record.link : record.url;
+        const link = typeof rawLink === 'string' ? rawLink.trim() : '';
         if (!allowedSourceLinkPrefixes.some((prefix) => link.startsWith(prefix))) continue;
         if (links.has(link)) continue;
         const label =
-          [sourceLinkText(record.role), sourceLinkText(record.supports)].filter(Boolean).join(' · ') ||
+          [sourceLinkText(record.role), sourceLinkText(record.supports) || sourceLinkText(record.evidence)]
+            .filter(Boolean).join(' · ') ||
           sourceLinkText(record.docId) ||
           'Lähde';
         links.set(link, { link, label: label.length > 240 ? `${label.slice(0, 237)}…` : label });
       }
+    }
+    const photo = v90PhotoSourceForNode(current.userData);
+    if (photo && links.size < maxSelectionSourceLinks && !links.has(photo.link)) {
+      links.set(photo.link, photo);
+    }
+    for (const rootPhoto of v90H23Pa2RootPhotoLinks(current.userData)) {
+      if (links.size >= maxSelectionSourceLinks) break;
+      if (!links.has(rootPhoto.link)) links.set(rootPhoto.link, rootPhoto);
     }
     current = current.parent;
     depth += 1;

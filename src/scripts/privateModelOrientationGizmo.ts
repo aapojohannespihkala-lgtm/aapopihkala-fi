@@ -154,6 +154,8 @@ export const createOrientationGizmoController = ({
 }: OrientationGizmoControllerArgs) => {
   let signature = '';
   let navigatorSignature = '';
+  let lastNavigatorInputSignature = '';
+  let lastCompact: boolean | null = null;
 
   root.dataset.frame = 'YLIS-G1-LOCAL';
   root.dataset.northAxis = '+Y';
@@ -230,18 +232,23 @@ export const createOrientationGizmoController = ({
     projection: 'perspective' | 'orthographic',
   ) => {
     const compact = window.matchMedia('(max-width: 760px)').matches;
-    root.style.width = compact ? '196px' : '236px';
-    const svg = root.querySelector<SVGElement>('svg');
-    if (svg) {
-      svg.style.width = compact ? '60px' : '78px';
-      svg.style.maxWidth = svg.style.width;
-      svg.style.marginInline = 'auto';
+    // CSS dimensions depend on the viewport breakpoint, not the frame rate.
+    if (lastCompact !== compact) {
+      root.style.width = compact ? '196px' : '236px';
+      const svg = root.querySelector<SVGElement>('svg');
+      if (svg) {
+        svg.style.width = compact ? '60px' : '78px';
+        svg.style.maxWidth = svg.style.width;
+        svg.style.marginInline = 'auto';
+      }
+      readout.style.fontSize = compact ? '7.3px' : '8.2px';
+      lastCompact = compact;
     }
-    readout.style.fontSize = compact ? '7.3px' : '8.2px';
 
     const controls = findControls(quaternion, projection);
     const camera = controls?.object as any;
     if (!canvas || !controls || !camera) {
+      lastNavigatorInputSignature = '';
       readout.dataset.ready = 'partial';
       root.dataset.aiNavigatorReady = 'partial';
       return false;
@@ -261,6 +268,31 @@ export const createOrientationGizmoController = ({
           ? `${candidateTag} · WORK_TEST`
           : 'WORK_TEST'
         : 'CURRENT';
+
+    // The navigator is a read-only presentation of the active camera, scope
+    // and source labels. Skip expensive world vectors, bounds and DOM work
+    // if ALL fields that contribute to that presentation are unchanged.
+    // Use full camera values (not rounded labels) so tiny pose changes still
+    // invalidate. Source, clip and pin changes invalidate even at a fixed pose.
+    const navigatorInputSignature = JSON.stringify([
+      compact, projection, camera.isPerspectiveCamera === true,
+      camera.position.x, camera.position.y, camera.position.z,
+      camera.quaternion.x, camera.quaternion.y, camera.quaternion.z, camera.quaternion.w,
+      controls.target.x, controls.target.y, controls.target.z,
+      camera.fov, camera.aspect, camera.zoom,
+      camera.left, camera.right, camera.top, camera.bottom,
+      badge?.dataset.kind, canvas.dataset.modelSource,
+      canvas.dataset.workTestReviewCandidate, workTestSelect?.value,
+      canvas.dataset.viewPreset, canvas.dataset.elevationDirection,
+      canvas.dataset.horizontalClip, canvas.dataset.horizontalClipHeightM,
+      canvas.dataset.layerRoofVisible, canvas.dataset.layerRoofOpacity,
+      canvas.dataset.objectVisibilityFilter, canvas.dataset.objectVisibilityMode,
+      canvas.dataset.reviewAnchorX, canvas.dataset.reviewAnchorY, canvas.dataset.reviewAnchorZ,
+    ]);
+    if (lastNavigatorInputSignature === navigatorInputSignature &&
+        readout.dataset.ready === 'true' &&
+        root.dataset.aiNavigatorReady === 'true' &&
+        canvas.dataset.aiNavigator === 'ready') return false;
 
     const preset = canvas.dataset.viewPreset ?? 'orbit';
     const elevationDirection = canvas.dataset.elevationDirection;
@@ -369,7 +401,10 @@ export const createOrientationGizmoController = ({
       stateLabel,
       pinLabel,
     ].join('|');
-    if (navigatorSignature === nextNavigatorSignature) return false;
+    if (navigatorSignature === nextNavigatorSignature) {
+      lastNavigatorInputSignature = navigatorInputSignature;
+      return false;
+    }
     navigatorSignature = nextNavigatorSignature;
 
     modelRow.value.textContent = modelLabel;
@@ -402,6 +437,7 @@ export const createOrientationGizmoController = ({
     readout.dataset.ready = 'true';
     root.dataset.aiNavigatorReady = 'true';
     canvas.dataset.aiNavigator = 'ready';
+    lastNavigatorInputSignature = navigatorInputSignature;
     return true;
   };
 

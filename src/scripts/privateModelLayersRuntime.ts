@@ -1,0 +1,146 @@
+import type { Object3D } from 'three';
+import type { TechnicalSourceNode } from './privateModelTechnicalSystemsLayers';
+import { nameMatches } from './privateModelSourceNodeAssociations.mjs';
+import {
+  createViewerScopedLayerPresentation,
+  type ViewerScopedLayerFrame,
+  type ViewerScopedLayerGate,
+  type ViewerScopedLayerRoot,
+} from './privateModelLayerScopedPresentationBridge';
+import {
+  viewerLayerNodeCapabilities,
+  type ViewerLayerNodeId,
+  type ViewerLayerVisibilityMode,
+} from './privateModelLayerHierarchyState';
+import type { ViewerInteractionState } from './privateModelViewerState';
+
+/** Convert only actual loader/source associations, including indexed parents. */
+export const collectViewerLayerSourceNodes = (
+  source: any, root: Object3D, sceneIndex: number, sourceSha256: string,
+): TechnicalSourceNode[] => {
+  const associations = source?.parser?.associations;
+  const json = source?.parser?.json;
+  const nodes: TechnicalSourceNode[] = [];
+  if (source?.scenes?.[sceneIndex] !== root) return nodes;
+  root.traverse(object => {
+    if (object === root) return;
+    const nodeIndex = associations?.get(object)?.nodes;
+    const definition = json?.nodes?.[nodeIndex];
+    if (!Number.isInteger(nodeIndex) || !definition || !nameMatches(object, definition)) return;
+    const parentNodeIndex = object.parent === root ? null : associations?.get(object.parent)?.nodes;
+    if (object.parent !== root && !Number.isInteger(parentNodeIndex)) return;
+    // A parser index and matching name alone do not prove the current parent.
+    // Verify original glTF scene/child membership; a GLTFLoader primitive
+    // wrapper may legitimately share its parent's single source node index.
+    const sourceChildren = object.parent === root
+      ? json?.scenes?.[sceneIndex]?.nodes
+      : json?.nodes?.[parentNodeIndex]?.children;
+    if (parentNodeIndex !== nodeIndex &&
+        (!Array.isArray(sourceChildren) || !sourceChildren.includes(nodeIndex))) return;
+    nodes.push({ object, sceneIndex, nodeIndex, parentNodeIndex,
+      nodeName: object.name, glbSha256: sourceSha256, meshIndex: definition.mesh });
+  });
+  return nodes;
+};
+
+/** Ancestors are controls, never additional overlapping render roots. */
+export const availableViewerLayerIds = (bindings: readonly ViewerScopedLayerRoot[]) => {
+  const ids = new Set<ViewerLayerNodeId>();
+  for (const binding of bindings) {
+    let id: ViewerLayerNodeId | null = binding.id;
+    while (id) {
+      ids.add(id);
+      id = viewerLayerNodeCapabilities[id]?.parent ?? null;
+    }
+  }
+  return [...ids];
+};
+
+/**
+ * Owns only verified non-overlapping meshes in one original glTF scene.
+ * The existing loader, source-card resolver, scope, scene and camera owners
+ * remain authoritative. Dispose BEFORE mounting/releasing another scene.
+ */
+export const createViewerLayersRuntime = (args: {
+  sceneRoot: Object3D;
+  sourceSha256: string;
+  bindings: readonly ViewerScopedLayerRoot[];
+}) => {
+  if (!/^[a-f0-9]{64}$/.test(args.sourceSha256)) throw Error('Layers source digest missing');
+  const bridge = createViewerScopedLayerPresentation(args.sceneRoot, args.bindings);
+  const availableNodeIds = availableViewerLayerIds(args.bindings);
+  // Preserve the exact loader parent chain, not only scene membership.
+  const sourcePaths = args.bindings.map(({ root }) => {
+    const ancestors: Object3D[] = [];
+    for (let parent = root.parent; parent; parent = parent.parent) {
+      ancestors.push(parent);
+      if (parent === args.sceneRoot) break;
+    }
+    return ancestors;
+  });
+  const hasOriginalPath = (root: Object3D, index: number) => {
+    let ancestor = root.parent;
+    for (const expected of sourcePaths[index]) {
+      if (ancestor !== expected) return false;
+      ancestor = ancestor.parent;
+    }
+    return sourcePaths[index].at(-1) === args.sceneRoot;
+  };
+  let disposed = false;
+  let modes: ReadonlyArray<{ id: ViewerLayerNodeId; mode: ViewerLayerVisibilityMode }> = [];
+
+  const apply = (state: ViewerInteractionState, frame: ViewerScopedLayerFrame) => {
+    try {
+      // The bridge verifies current scene ancestry, but source-validated roots
+      // must also retain their exact original glTF parent chain. Apply can
+      // run before enforce(), so deny a relocated root at the gate itself.
+      // Clone only for invalid roots: the caller's immutable gate map remains
+      // intact and independent siblings keep their own verified gates.
+      const displacedRoots = args.bindings.filter(({ root }, index) =>
+        !hasOriginalPath(root, index));
+      let safeFrame = { ...frame, availableNodeIds };
+      if (displacedRoots.length) {
+        // A malformed runtime gate collection must not throw before the
+        // scoped bridge can revoke stale visible/ghost presentation.
+        // Retain support for valid readonly/iterable maps, but fail closed
+        // for invalid collections instead of keeping any previous gates.
+        let gates = new Map<Object3D, ViewerScopedLayerGate>();
+        try {
+          gates = new Map(frame.gates);
+        } catch {
+          // No trusted gate can be retained from a malformed collection.
+        }
+        displacedRoots.forEach(({ root }) => gates.delete(root));
+        safeFrame = { ...safeFrame, gates };
+      }
+      modes = bridge.apply(state, safeFrame);
+      return modes;
+    } catch (error) {
+      modes = [];
+      throw error;
+    }
+  };
+
+  // Runs AFTER the existing scope/floor pass. Only narrows visibility. It
+  // never re-shows a mesh that a scope or object-isolation filter has hidden,
+  // and never allocates ghost materials in the animation loop.
+  const enforce = (activeSceneRoot: Object3D | null, sourceSha256: string | null) => {
+    if (disposed) return;
+    const active = activeSceneRoot === args.sceneRoot && sourceSha256 === args.sourceSha256;
+    args.bindings.forEach(({ root }, index) => {
+      if (!active || !hasOriginalPath(root, index) ||
+        (modes[index]?.mode !== 'visible' && modes[index]?.mode !== 'ghost')) root.visible = false;
+    });
+  };
+
+  const dispose = () => {
+    if (disposed) return;
+    bridge.dispose();
+    disposed = true;
+    modes = [];
+  };
+
+  return { apply, enforce, dispose, availableNodeIds };
+};
+
+export type ViewerLayersRuntime = ReturnType<typeof createViewerLayersRuntime>;
