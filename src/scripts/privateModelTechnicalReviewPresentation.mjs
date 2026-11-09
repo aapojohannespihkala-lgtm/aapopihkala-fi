@@ -19,6 +19,7 @@ import { V88_SOURCE_SHA256, V88_SOURCE_SCENE_COUNT, V88_FLOORS, V88_BUILDING_SCE
 import { V89_SOURCE_SHA256, V89_SOURCE_SCENE_COUNT, V89_FLOORS, V89_BUILDING_SCENES, V89_TECHNICAL_REVIEW_ROOTS } from './privateModelC80R2V89LayerSourceProfile.mjs';
 import { V90_SOURCE_SHA256, V90_SOURCE_SCENE_COUNT, V90_FLOORS, V90_BUILDING_SCENES, V90_TECHNICAL_REVIEW_ROOTS } from './privateModelC80R2V90LayerSourceProfile.mjs';
 import { V91_SOURCE_SHA256, V91_SOURCE_SCENE_COUNT, V91_FLOORS, V91_BUILDING_SCENES, V91_TECHNICAL_REVIEW_ROOTS } from './privateModelC80R2V91LayerSourceProfile.mjs';
+import { V92_SOURCE_SHA256, V92_SOURCE_SCENE_COUNT, V92_FLOORS, V92_BUILDING_SCENES, V92_TECHNICAL_REVIEW_ROOTS } from './privateModelC80R2V92LayerSourceProfile.mjs';
 import { V90_H20_SOURCE_SHA256, V90_H20_SCENE_COUNT, V90_H20_FLOORS, V90_H20_BUILDING_SCENES, V90_H20_TECHNICAL_REVIEW_ROOTS } from './privateModelC80R2V90H20LayerSourceProfile.mjs';
 import { V90_IV_P04_SOURCE_SHA256, V90_IV_P04_SCENE_COUNT, V90_IV_P04_FLOORS, V90_IV_P04_BUILDING_SCENES, V90_IV_P04_TECHNICAL_REVIEW_ROOTS, V90_IV_P04_OPTIN_SCENES } from './privateModelC80R2V90IVP04LayerSourceProfile.mjs';
 
@@ -42,6 +43,7 @@ const REVIEW_SOURCES = Object.freeze({
   [V89_SOURCE_SHA256]: { count: V89_SOURCE_SCENE_COUNT, floors: V89_FLOORS, scenes: V89_BUILDING_SCENES, roots: V89_TECHNICAL_REVIEW_ROOTS },
   [V90_SOURCE_SHA256]: { count: V90_SOURCE_SCENE_COUNT, floors: V90_FLOORS, scenes: V90_BUILDING_SCENES, roots: V90_TECHNICAL_REVIEW_ROOTS },
   [V91_SOURCE_SHA256]: { count: V91_SOURCE_SCENE_COUNT, floors: V91_FLOORS, scenes: V91_BUILDING_SCENES, roots: V91_TECHNICAL_REVIEW_ROOTS },
+  [V92_SOURCE_SHA256]: { count: V92_SOURCE_SCENE_COUNT, floors: V92_FLOORS, scenes: V92_BUILDING_SCENES, roots: V92_TECHNICAL_REVIEW_ROOTS },
   [V90_H20_SOURCE_SHA256]: { count: V90_H20_SCENE_COUNT, floors: V90_H20_FLOORS, scenes: V90_H20_BUILDING_SCENES, roots: V90_H20_TECHNICAL_REVIEW_ROOTS },
   [V90_IV_P04_SOURCE_SHA256]: { count: V90_IV_P04_SCENE_COUNT, floors: V90_IV_P04_FLOORS, scenes: V90_IV_P04_BUILDING_SCENES, roots: V90_IV_P04_TECHNICAL_REVIEW_ROOTS },
   [V84_SOURCE_SHA256]: { count: V84_SOURCE_SCENE_COUNT, floors: V84_FLOORS, scenes: V84_BUILDING_SCENES, roots: V84_TECHNICAL_REVIEW_ROOTS },
@@ -58,7 +60,7 @@ import { sameSourceName } from './privateModelSourceNodeAssociations.mjs';
  * The GLB, source links, scene membership, visibility and camera are untouched.
  */
 
-/** Resolve exact technical roots of the active V71-V91 scene. Fails closed (null). */
+/** Resolve exact technical roots of the active V71-V92 scene. Fails closed (null). */
 export function resolveTechnicalReviewRoots(gltf, scene, sceneIndex, loadedSha, expectedSha) {
   const json = gltf?.parser?.json;
   const associations = gltf?.parser?.associations;
