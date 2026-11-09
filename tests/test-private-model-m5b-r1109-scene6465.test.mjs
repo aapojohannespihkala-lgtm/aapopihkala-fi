@@ -18,6 +18,10 @@ const base = {
   unsupportedPhysicalRouteLinks: 0,
   physicalDownspoutHostClaim: false,
   physicalPipeOrGutterGeometryAdded: false,
+  sourceSceneDefaultIndex: 63,
+  exactXYClaim: false,
+  exactZClaim: false,
+  physicalDiameterClaim: false,
   physicalRouteClaim: false,
   hydraulicConnectionToM5A: false,
   asBuiltClaim: false,
@@ -28,6 +32,11 @@ const base = {
   productionWebGL: 'NOT_VERIFIED',
 };
 function fixture() {
+  const nodes = Array.from({ length: 1124 }, () => ({}));
+  // Direct children read from exact G2b source GLB SHA256 b6b5b14c3c7d... .
+  nodes[1123] = { children: [1118, 1119, 1120, 1121, 1122] };
+  nodes[1102] = { children: [1097, 1098] };
+  nodes[1103] = { children: [1099, 1100, 1101] };
   const scenes = Array.from({ length: 66 }, () => ({}));
   scenes[63] = { nodes: [1021, 1123] };
   scenes[64] = {
@@ -61,7 +70,7 @@ function fixture() {
   return {
     parser: { json: {
       scene: 63, scenes,
-      nodes: Array.from({ length: 1124 }, () => ({})),
+      nodes,
       meshes: Array.from({ length: 567 }, () => ({})),
     } },
     scenes: renderable,
@@ -97,6 +106,18 @@ test('R1109 rejects wrong scene, removed root, planned promoted or source mismat
   const missing = fixture();
   missing.scenes[65] = null;
   assert.throws(() => selectM5BR1109RoofOptInScene(missing, 65), /renderable-scene-missing/);
+  const wrongParent = fixture();
+  wrongParent.parser.json.nodes[1103].children = [1099, 1100];
+  assert.throws(() => selectM5BR1109RoofOptInScene(wrongParent, 65), /source-parentage/);
+  const measuredWithoutEvidence = fixture();
+  measuredWithoutEvidence.parser.json.scenes[64].extras.exactXYClaim = true;
+  assert.throws(() => selectM5BR1109RoofOptInScene(measuredWithoutEvidence, 64), /scene-contract/);
+  const falseDiameter = fixture();
+  falseDiameter.parser.json.scenes[65].extras.physicalDiameterClaim = true;
+  assert.throws(() => selectM5BR1109RoofOptInScene(falseDiameter, 65), /scene-contract/);
+  const inheritedDefaultMismatch = fixture();
+  inheritedDefaultMismatch.parser.json.scenes[64].extras.sourceSceneDefaultIndex = 62;
+  assert.throws(() => selectM5BR1109RoofOptInScene(inheritedDefaultMismatch, 64), /scene-contract/);
 });
 test('WORK_TEST transport registers a separate SHA-exact GLB, no old candidate replacement', () => {
   const worker = readFileSync(new URL('../worker/privateWorkTest.ts', import.meta.url), 'utf8');
