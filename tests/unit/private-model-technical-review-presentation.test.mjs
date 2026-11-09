@@ -373,3 +373,18 @@ test('V89 profile keeps V88 parts and activates the NIBE roots in 2F/BOTH', asyn
     for (const [node, paths] of Object.entries(scene.paths)) for (const path of paths) assert.ok(scene.rootNodes.includes(path[0]) && path.at(-1) === Number(node));
   }
 });
+
+test('V90 profile keeps V89 parts and adds the High H21-H25 roots to the floor scenes', async () => {
+  const v90 = await import('../../src/scripts/privateModelC80R2V90LayerSourceProfile.mjs');
+  const v89 = await import('../../src/scripts/privateModelC80R2V89LayerSourceProfile.mjs');
+  assert.equal(v90.V90_SOURCE_SHA256, 'af5f50094df66c88022b1f0feca285aa4fef2360a55f6aab665fc1e35a83ae1e');
+  assert.equal(v90.V90_BUILDING_PARTS, v89.V89_BUILDING_PARTS);
+  for (const added of [11399, 11400, 11403, 11427, 11428, 11429]) assert.ok(v90.V90_BUILDING_SCENES[295].rootNodes.includes(added));
+  for (const added of [11368, 11430, 11431]) assert.ok(v90.V90_BUILDING_SCENES[296].rootNodes.includes(added));
+  for (const added of [11368, 11401, 11402, 11403, 11427, 11428, 11429, 11430, 11431]) assert.ok(v90.V90_BUILDING_SCENES[297].rootNodes.includes(added));
+  for (const index of [295, 296, 297]) {
+    const scene = v90.V90_BUILDING_SCENES[index];
+    assert.match(scene.name, /^C80R2_V90_HIGH_INTEGRATION_(1F|2F|BOTH)_WORK_TEST_HOST_HOLD_20261108$/);
+    for (const [node, paths] of Object.entries(scene.paths)) for (const path of paths) assert.ok(scene.rootNodes.includes(path[0]) && path.at(-1) === Number(node));
+  }
+});
