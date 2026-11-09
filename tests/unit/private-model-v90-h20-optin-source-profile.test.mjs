@@ -96,3 +96,15 @@ test('technical review rejects a missing H20 source root and wrong opt-in scene 
   scene2.children.splice(scene2.children.indexOf(h20),1);
   assert.equal(resolveTechnicalReviewRoots(gltf2,scene2,298,SHA,SHA),null);
 });
+
+test('unchanged V90 floor scenes keep their exact technical roots on the H20 source', () => {
+  for (const floor of ['1F', '2F', 'BOTH']) {
+    const index = V90_H20_FLOORS[floor];
+    assert.strictEqual(V90_H20_TECHNICAL_REVIEW_ROOTS[index],
+      V90_TECHNICAL_REVIEW_ROOTS[index]);
+    assert.ok(V90_H20_BUILDING_SCENES[index].rootNodes.every(
+      node => V90_BUILDING_SCENES[index].rootNodes.includes(node)));
+    assert.ok(!V90_H20_BUILDING_SCENES[index].rootNodes.includes(V90_H20_ROOT.node),
+      'the H20 work assumption must stay opt-in');
+  }
+});
