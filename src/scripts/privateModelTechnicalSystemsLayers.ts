@@ -338,7 +338,7 @@ const v26Device = (context: TechnicalSystemsContext, binding: TechnicalSourceNod
       (v29 && context.sourceJson.scenes?.length !== V29_SOURCE_SCENE_COUNT) ||
       (v27 && context.sourceJson.scenes?.length !== V27_SOURCE_SCENE_COUNT)) return null;
   if (integratedScenes) {
-    const profile = integratedScenes[context.sourceSceneIndex];
+    const profile = Object.entries(integratedScenes).find(([index]) => Number(index) === context.sourceSceneIndex)?.[1];
     const source = context.sourceJson.scenes?.[context.sourceSceneIndex];
     // The serial model retains the supplied original device geometry. Require
     // its complete exact scene, then validNode checks node/mesh/parent/sourceLinks.
