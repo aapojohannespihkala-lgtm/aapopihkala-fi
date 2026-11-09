@@ -195,7 +195,8 @@ const sourceLinkText = (value: unknown) => {
 };
 
 /**
- * GLB node extras.sourceLinks ({docId, link, role, supports}) from the selected node and
+ * GLB node extras.sourceLinks ({docId, link, role, supports}) or legacy
+ * {url, evidence} records from the selected node and
  * its ancestors (same 8-level walk as scalar metadata). Only Google Drive/Docs links are
  * returned, de-duplicated by link. Source references, not current/as-built claims.
  */
@@ -214,11 +215,15 @@ export const selectionSourceLinks = (
         if (links.size >= maxSelectionSourceLinks) break;
         if (!item || typeof item !== 'object') continue;
         const record = item as Record<string, unknown>;
-        const link = typeof record.link === 'string' ? record.link.trim() : '';
+        // Older M5 WORK_TEST donors, including V87-H3, store URL under `url`.
+        // Keep `link` authoritative when present; never invent a source URL.
+        const rawLink = typeof record.link === 'string' ? record.link : record.url;
+        const link = typeof rawLink === 'string' ? rawLink.trim() : '';
         if (!allowedSourceLinkPrefixes.some((prefix) => link.startsWith(prefix))) continue;
         if (links.has(link)) continue;
         const label =
-          [sourceLinkText(record.role), sourceLinkText(record.supports)].filter(Boolean).join(' · ') ||
+          [sourceLinkText(record.role), sourceLinkText(record.supports) || sourceLinkText(record.evidence)]
+            .filter(Boolean).join(' · ') ||
           sourceLinkText(record.docId) ||
           'Lähde';
         links.set(link, { link, label: label.length > 240 ? `${label.slice(0, 237)}…` : label });
