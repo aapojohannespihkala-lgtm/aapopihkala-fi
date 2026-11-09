@@ -251,6 +251,31 @@ test('canonical link wins over legacy url, while unsafe canonical links do not f
   }]);
 });
 
+
+test('legacy H3 evidence arrays preserve HOST_HOLD and blank canonical link fails closed', () => {
+  const node = {
+    userData: {
+      sourceLinks: [
+        {
+          url: 'https://drive.google.com/file/d/historical-wiring/view',
+          supports: [],
+          evidence: ['2015 Johdotus', 'HOST_HOLD / XYZ route not verified'],
+        },
+        {
+          link: '   ',
+          url: 'https://drive.google.com/file/d/unsafe-fallback/view',
+          evidence: 'must not silently replace the canonical link',
+        },
+      ],
+    },
+  };
+
+  expect(selectionSourceLinks(node, null)).toEqual([{
+    link: 'https://drive.google.com/file/d/historical-wiring/view',
+    label: '2015 Johdotus, HOST_HOLD / XYZ route not verified',
+  }]);
+});
+
 import { sceneNameForObject } from '../../src/scripts/privateModelSelectionIdentity';
 
 test('selection follows the exact source-mapped glTF Group across 1F 2F BOTH instead of the default fallback', () => {
