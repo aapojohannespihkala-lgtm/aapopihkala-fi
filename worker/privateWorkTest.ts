@@ -569,6 +569,17 @@ const M5A_R1115_SOK23_PLANNED_RAISE_PRESENCE_CANDIDATE = {
   expectedSha256: '5dd97f9d6b1bd7c2c4c6e39920b5d8899178f01f6857effb05b7b38686cb534b',
 } as const satisfies PrivateWorkTestCandidate;
 
+// Distinct exact-SHA opt-in successor. The existing R1109 scene63 candidate remains unchanged.
+// The new scene64/65 file is WORK_TEST and must be independently staged/verified before viewing.
+const M5B_R1109_ROOF_SCENES64_65_CANDIDATE = {
+  id: 'm5b-r1109-roof-current-planned-optin',
+  label: 'M5B R1109 roof current-reference / planned SOK2 scenes64-65 - WORK_TEST',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/m5b-r1109-roof-current-planned-optin.glb`,
+  objectKey: 'work-test/m5b-r1109-roof-current-planned-optin.glb',
+  expectedSize: 3_104_840,
+  expectedSha256: 'b6b5b14c3c7dc63ec492a20aa3c74403de3ca4acfff8a99e5e37e5b295bcb2f8',
+} as const satisfies PrivateWorkTestCandidate;
+
 const M5B_R1109_FIVE_DOWNSPOUT_PRESENCE_ZONES_CANDIDATE = {
   id: 'm5b-r1109-five-downspout-presence-zones',
   label: 'M5B R1109 five downspout presence zones - WORK_TEST',
@@ -4363,6 +4374,7 @@ const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
   M5A_R1125_PVK_DIAMETER_SOURCE_SPLIT_CANDIDATE,
   M5A_R1125_SCENE64_NUMBERED_ROUTES_CANDIDATE,
   M5B_R1109_FIVE_DOWNSPOUT_PRESENCE_ZONES_CANDIDATE,
+  M5B_R1109_ROOF_SCENES64_65_CANDIDATE,
   M5A_R1115_SOK23_PLANNED_RAISE_PRESENCE_CANDIDATE,
   P137E_D1F_THREE_WALL_MOUNTED_THEMOS_CANDIDATE,
   D1F_COMBINED_WALL_115_100_CANDIDATE,
