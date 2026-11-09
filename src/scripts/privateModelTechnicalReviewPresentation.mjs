@@ -17,6 +17,7 @@ import { V86_SOURCE_SHA256, V86_SOURCE_SCENE_COUNT, V86_FLOORS, V86_BUILDING_SCE
 import { V87_SOURCE_SHA256, V87_SOURCE_SCENE_COUNT, V87_FLOORS, V87_BUILDING_SCENES, V87_TECHNICAL_REVIEW_ROOTS } from './privateModelC80R2V87LayerSourceProfile.mjs';
 import { V88_SOURCE_SHA256, V88_SOURCE_SCENE_COUNT, V88_FLOORS, V88_BUILDING_SCENES, V88_TECHNICAL_REVIEW_ROOTS } from './privateModelC80R2V88LayerSourceProfile.mjs';
 import { V89_SOURCE_SHA256, V89_SOURCE_SCENE_COUNT, V89_FLOORS, V89_BUILDING_SCENES, V89_TECHNICAL_REVIEW_ROOTS } from './privateModelC80R2V89LayerSourceProfile.mjs';
+import { V90_SOURCE_SHA256, V90_SOURCE_SCENE_COUNT, V90_FLOORS, V90_BUILDING_SCENES, V90_TECHNICAL_REVIEW_ROOTS } from './privateModelC80R2V90LayerSourceProfile.mjs';
 
 /** Exact M5-integrated sources that carry technical review roots. */
 const REVIEW_SOURCES = Object.freeze({
@@ -36,6 +37,7 @@ const REVIEW_SOURCES = Object.freeze({
   [V87_SOURCE_SHA256]: { count: V87_SOURCE_SCENE_COUNT, floors: V87_FLOORS, scenes: V87_BUILDING_SCENES, roots: V87_TECHNICAL_REVIEW_ROOTS },
   [V88_SOURCE_SHA256]: { count: V88_SOURCE_SCENE_COUNT, floors: V88_FLOORS, scenes: V88_BUILDING_SCENES, roots: V88_TECHNICAL_REVIEW_ROOTS },
   [V89_SOURCE_SHA256]: { count: V89_SOURCE_SCENE_COUNT, floors: V89_FLOORS, scenes: V89_BUILDING_SCENES, roots: V89_TECHNICAL_REVIEW_ROOTS },
+  [V90_SOURCE_SHA256]: { count: V90_SOURCE_SCENE_COUNT, floors: V90_FLOORS, scenes: V90_BUILDING_SCENES, roots: V90_TECHNICAL_REVIEW_ROOTS },
   [V84_SOURCE_SHA256]: { count: V84_SOURCE_SCENE_COUNT, floors: V84_FLOORS, scenes: V84_BUILDING_SCENES, roots: V84_TECHNICAL_REVIEW_ROOTS },
   [V83_SOURCE_SHA256]: { count: V83_SOURCE_SCENE_COUNT, floors: V83_FLOORS, scenes: V83_BUILDING_SCENES, roots: V83_TECHNICAL_REVIEW_ROOTS },
   [V82_SOURCE_SHA256]: { count: V82_SOURCE_SCENE_COUNT, floors: V82_FLOORS, scenes: V82_BUILDING_SCENES, roots: V82_TECHNICAL_REVIEW_ROOTS },
@@ -50,7 +52,7 @@ import { sameSourceName } from './privateModelSourceNodeAssociations.mjs';
  * The GLB, source links, scene membership, visibility and camera are untouched.
  */
 
-/** Resolve exact technical roots of the active V71-V89 scene. Fails closed (null). */
+/** Resolve exact technical roots of the active V71-V90 scene. Fails closed (null). */
 export function resolveTechnicalReviewRoots(gltf, scene, sceneIndex, loadedSha, expectedSha) {
   const json = gltf?.parser?.json;
   const associations = gltf?.parser?.associations;
