@@ -345,3 +345,17 @@ test('V87 profile keeps V86 part meshes and adds the 2F IV riser shaft boxing', 
     for (const [node, paths] of Object.entries(scene.paths)) for (const path of paths) assert.ok(scene.rootNodes.includes(path[0]) && path.at(-1) === Number(node));
   }
 });
+
+test('V88 profile keeps V87 parts and swaps the WC1/PA1 and HPC1 roots', async () => {
+  const v88 = await import('../../src/scripts/privateModelC80R2V88LayerSourceProfile.mjs');
+  const v87 = await import('../../src/scripts/privateModelC80R2V87LayerSourceProfile.mjs');
+  assert.equal(v88.V88_SOURCE_SHA256, '08a8de2b254df2934d4f2baa81452324a36f3d509e0970624257f2a37238c40d');
+  assert.equal(v88.V88_BUILDING_PARTS, v87.V87_BUILDING_PARTS);
+  for (const index of [296, 297]) for (const gone of [9303, 5837, 5838, 6515]) assert.ok(!v88.V88_BUILDING_SCENES[index].rootNodes.includes(gone));
+  for (const index of [295, 297]) { assert.ok(!v88.V88_BUILDING_SCENES[index].rootNodes.includes(11306)); assert.ok(v88.V88_BUILDING_SCENES[index].rootNodes.includes(11362)); }
+  for (const index of [295, 296, 297]) {
+    const scene = v88.V88_BUILDING_SCENES[index];
+    assert.match(scene.name, /^C80R2_V88_INTEGRATION_(1F|2F|BOTH)_WORK_TEST_HOST_HOLD_20261108$/);
+    for (const [node, paths] of Object.entries(scene.paths)) for (const path of paths) assert.ok(scene.rootNodes.includes(path[0]) && path.at(-1) === Number(node));
+  }
+});
