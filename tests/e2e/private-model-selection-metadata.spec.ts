@@ -177,6 +177,80 @@ test('selection source links collect GLB sourceLinks from node and ancestors as 
   expect(selectionSourceLinks({ userData: { sourceLinks: 'x' } }, null)).toEqual([]);
 });
 
+test('V87-H3 legacy url/evidence donor links appear without inventing current installation', () => {
+  // Exact field shapes from H3 source GLB SHA 1689cf22: RK4.1 uses
+  // {role, docId, url}, while RK13.2/13.3 use {url, evidence}.
+  const root = {
+    userData: {
+      sourceLinks: [{
+        role: '2015_electrical_board_diagram_4_1',
+        docId: '1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP',
+        url: 'https://drive.google.com/file/d/1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP/view',
+      }],
+    },
+  };
+  const cable = {
+    parent: root,
+    userData: {
+      sourceLinks: [{
+        url: 'https://drive.google.com/file/d/1dzzZsa9FCiyqmv8WholhLxba6Kxobspg/view',
+        evidence: '2015 Johdotus labelled 13.2 / 13.3, not verified XYZ route',
+      }, {
+        url: 'https://docs.google.com/spreadsheets/d/13kmPzhBPKoyXufA6T3tazdt6-D4XJgoW_QIKm40p-QU/edit',
+        evidence: 'G3 network link SOURCE_DIRECT NO_CABLE_GEOMETRY',
+      }, {
+        url: 'https://drive.google.com/file/d/1dzzZsa9FCiyqmv8WholhLxba6Kxobspg/view',
+        evidence: 'duplicate should lose to the first link',
+      }, {
+        url: 'http://drive.google.com/file/d/insecure/view',
+        evidence: 'rejected insecure link',
+      }, {
+        url: 'https://not-google.example.com/injected',
+        evidence: 'rejected external host',
+      }],
+    },
+  };
+
+  expect(selectionSourceLinks(cable, null)).toEqual([
+    {
+      link: 'https://drive.google.com/file/d/1dzzZsa9FCiyqmv8WholhLxba6Kxobspg/view',
+      label: '2015 Johdotus labelled 13.2 / 13.3, not verified XYZ route',
+    }, {
+      link: 'https://docs.google.com/spreadsheets/d/13kmPzhBPKoyXufA6T3tazdt6-D4XJgoW_QIKm40p-QU/edit',
+      label: 'G3 network link SOURCE_DIRECT NO_CABLE_GEOMETRY',
+    }, {
+      link: 'https://drive.google.com/file/d/1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP/view',
+      label: '2015_electrical_board_diagram_4_1',
+    },
+  ]);
+});
+
+test('canonical link wins over legacy url, while unsafe canonical links do not fall back', () => {
+  const node = {
+    userData: {
+      sourceLinks: [
+        {
+          link: 'https://docs.google.com/document/d/preferred/edit',
+          url: 'https://drive.google.com/file/d/legacy/view',
+          role: 'plan',
+          supports: 'verified historical source',
+          evidence: 'not a replacement for supports',
+        },
+        {
+          link: 'https://not-google.example.com/rejected',
+          url: 'https://drive.google.com/file/d/fallback/view',
+          role: 'disallowed',
+        },
+        { url: 'ftp://drive.google.com/file/d/insecure/view' },
+      ],
+    },
+  };
+  expect(selectionSourceLinks(node, null)).toEqual([{
+    link: 'https://docs.google.com/document/d/preferred/edit',
+    label: 'plan · verified historical source',
+  }]);
+});
+
 import { sceneNameForObject } from '../../src/scripts/privateModelSelectionIdentity';
 
 test('selection follows the exact source-mapped glTF Group across 1F 2F BOTH instead of the default fallback', () => {
