@@ -388,3 +388,17 @@ test('V90 profile keeps V89 parts and adds the High H21-H25 roots to the floor s
     for (const [node, paths] of Object.entries(scene.paths)) for (const path of paths) assert.ok(scene.rootNodes.includes(path[0]) && path.at(-1) === Number(node));
   }
 });
+
+test('V91 profile keeps V90 parts and drops the owner-rejected V90 roots', async () => {
+  const v91 = await import('../../src/scripts/privateModelC80R2V91LayerSourceProfile.mjs');
+  const v90 = await import('../../src/scripts/privateModelC80R2V90LayerSourceProfile.mjs');
+  assert.equal(v91.V91_SOURCE_SHA256, '9750917717a51b743f5f1f8a1b1691eb851836ec5a2555aee052d44774ea556a');
+  assert.equal(v91.V91_BUILDING_PARTS, v90.V90_BUILDING_PARTS);
+  for (const index of [295, 296, 297]) {
+    const scene = v91.V91_BUILDING_SCENES[index];
+    for (const removed of [11368, 11399, 11400, 11401, 11402, 11429, 11430, 11431]) assert.ok(!scene.rootNodes.includes(removed));
+    assert.match(scene.name, /^C80R2_V91_OWNER_REVIEW_FIX_(1F|2F|BOTH)_WORK_TEST_HOST_HOLD_20261108$/);
+    for (const [node, paths] of Object.entries(scene.paths)) for (const path of paths) assert.ok(scene.rootNodes.includes(path[0]) && path.at(-1) === Number(node));
+  }
+  assert.ok(v91.V91_BUILDING_SCENES[295].rootNodes.includes(11403));
+});
