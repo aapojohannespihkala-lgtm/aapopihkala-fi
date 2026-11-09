@@ -40,6 +40,11 @@ export function selectM5BR1109RoofOptInScene(gltf, requestedIndex) {
       json.nodes?.length !== 1124 || json.meshes?.length !== 567 ||
       !isEqual(json.scenes?.[63]?.nodes, [1021, 1123]))
     fails('source-identity');
+  // Exact source glTF parent-child lists (not ZIP __sceneNN labels).
+  if (!isEqual(json.nodes?.[1123]?.children, [1118, 1119, 1120, 1121, 1122]) ||
+      !isEqual(json.nodes?.[1102]?.children, [1097, 1098]) ||
+      !isEqual(json.nodes?.[1103]?.children, [1099, 1100, 1101]))
+    fails('source-parentage');
 
   const scene = json.scenes?.[requestedIndex];
   const extras = scene?.extras;
@@ -55,6 +60,10 @@ export function selectM5BR1109RoofOptInScene(gltf, requestedIndex) {
       extras?.unsupportedPhysicalRouteLinks !== 0 ||
       extras?.physicalDownspoutHostClaim !== false ||
       extras?.physicalPipeOrGutterGeometryAdded !== false ||
+      extras?.sourceSceneDefaultIndex !== 63 ||
+      extras?.exactXYClaim !== false ||
+      extras?.exactZClaim !== false ||
+      extras?.physicalDiameterClaim !== false ||
       extras?.physicalRouteClaim !== false ||
       extras?.hydraulicConnectionToM5A !== false ||
       extras?.asBuiltClaim !== false ||
