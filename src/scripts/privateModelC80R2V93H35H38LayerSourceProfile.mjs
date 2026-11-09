@@ -35,6 +35,17 @@ export const V93_H35H38_BUILDING_SCENES = Object.freeze({
   302: withRoots(296, 'V93_H35_H38_2F_CABLE_HIDDEN_OPTIN_WORK_TEST_HOST_HOLD', 10057, 11478),
 });
 
-// Technical review is inherited only for the original 295/296/297 scenes.
-// The opt-in cloned tech roots 11476-11478 are NOT auto-authorized for review.
-export const V93_H35H38_TECHNICAL_REVIEW_ROOTS = V92_TECHNICAL_REVIEW_ROOTS;
+// The exact V93 GLB contains H35 manifold root 11435 (40 mesh children)
+// once in original 1F295 and BOTH297. Keep its original red/blue WORK_TEST
+// materials visible during the technical review, without granting a physical
+// host or attachment PASS. V92 and V93 2F296 are unchanged.
+// Opt-in cloned technical roots 11476-11478 are NOT auto-authorized.
+const H35_MANIFOLD_SOURCE_ROOT = Object.freeze({
+  node: 11435,
+  name: 'H20_D1F_WC_UPPERHATCH_MANIFOLD_WORK_TEST_HOST_HOLD_ROOT',
+});
+export const V93_H35H38_TECHNICAL_REVIEW_ROOTS = Object.freeze({
+  ...V92_TECHNICAL_REVIEW_ROOTS,
+  295: Object.freeze([...V92_TECHNICAL_REVIEW_ROOTS[295], H35_MANIFOLD_SOURCE_ROOT]),
+  297: Object.freeze([...V92_TECHNICAL_REVIEW_ROOTS[297], H35_MANIFOLD_SOURCE_ROOT]),
+});
