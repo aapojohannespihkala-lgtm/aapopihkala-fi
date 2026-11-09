@@ -402,3 +402,18 @@ test('V91 profile keeps V90 parts and drops the owner-rejected V90 roots', async
   }
   assert.ok(v91.V91_BUILDING_SCENES[295].rootNodes.includes(11403));
 });
+
+test('V92 profile keeps V91 parts and adds the three H30 smoke detector roots', async () => {
+  const v92 = await import('../../src/scripts/privateModelC80R2V92LayerSourceProfile.mjs');
+  const v91 = await import('../../src/scripts/privateModelC80R2V91LayerSourceProfile.mjs');
+  assert.equal(v92.V92_SOURCE_SHA256, 'a027108cf1a08be377b060143f40580359c029d8cc1f77f3122a6ba46cc931af');
+  assert.equal(v92.V92_BUILDING_PARTS, v91.V91_BUILDING_PARTS);
+  assert.ok(v92.V92_BUILDING_SCENES[295].rootNodes.includes(11432));
+  for (const added of [11433, 11434]) assert.ok(v92.V92_BUILDING_SCENES[296].rootNodes.includes(added));
+  for (const added of [11432, 11433, 11434]) assert.ok(v92.V92_BUILDING_SCENES[297].rootNodes.includes(added));
+  for (const index of [295, 296, 297]) {
+    const scene = v92.V92_BUILDING_SCENES[index];
+    assert.match(scene.name, /^C80R2_V92_H30_SMOKE_(1F|2F|BOTH)_WORK_TEST_HOST_HOLD_20261108$/);
+    for (const [node, paths] of Object.entries(scene.paths)) for (const path of paths) assert.ok(scene.rootNodes.includes(path[0]) && path.at(-1) === Number(node));
+  }
+});
