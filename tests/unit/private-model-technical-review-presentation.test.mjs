@@ -359,3 +359,17 @@ test('V88 profile keeps V87 parts and swaps the WC1/PA1 and HPC1 roots', async (
     for (const [node, paths] of Object.entries(scene.paths)) for (const path of paths) assert.ok(scene.rootNodes.includes(path[0]) && path.at(-1) === Number(node));
   }
 });
+
+test('V89 profile keeps V88 parts and activates the NIBE roots in 2F/BOTH', async () => {
+  const v89 = await import('../../src/scripts/privateModelC80R2V89LayerSourceProfile.mjs');
+  const v88 = await import('../../src/scripts/privateModelC80R2V88LayerSourceProfile.mjs');
+  assert.equal(v89.V89_SOURCE_SHA256, '718163b76b46aee51193e059c5790d0e22c84a364d82d8d58bc2084776902a2c');
+  assert.equal(v89.V89_BUILDING_PARTS, v88.V88_BUILDING_PARTS);
+  for (const index of [296, 297]) for (const added of [5839, 5840, 5841]) assert.ok(v89.V89_BUILDING_SCENES[index].rootNodes.includes(added));
+  assert.ok(!v89.V89_BUILDING_SCENES[295].rootNodes.includes(5839));
+  for (const index of [295, 296, 297]) {
+    const scene = v89.V89_BUILDING_SCENES[index];
+    assert.match(scene.name, /^C80R2_V89_PHOTO_TATE_(1F|2F|BOTH)_WORK_TEST_HOST_HOLD_20261108$/);
+    for (const [node, paths] of Object.entries(scene.paths)) for (const path of paths) assert.ok(scene.rootNodes.includes(path[0]) && path.at(-1) === Number(node));
+  }
+});
