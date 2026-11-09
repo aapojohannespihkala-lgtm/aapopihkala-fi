@@ -2043,6 +2043,13 @@ const title = 'Private 3D viewer';
             </label>
             <div class="layer-note">52-scene WORK_TEST: alkuperäinen 3,635 m seinä pois näkyvistä, valmis 1,709 m seinä säilyy. Poista valinta nähdäksesi alkuperäisen.</div>
           </div>
+          <div id="hi20-c037-washer-top-layer" class="layer-section" hidden>
+            <label class="layer-row">
+              <input id="hi20-c037-washer-top-clean" type="checkbox" checked />
+              <span>Pesukoneen kaksoisyläpinta pois (C80-037)</span>
+            </label>
+            <div class="layer-note">52-scene WORK_TEST 1F/BOTH: käyttää jo päällä olevaa C045/K17-esityskorjausta, ei toista sitä. Poista valinta palauttaaksesi alkuperäisen GLB-yläpinnan.</div>
+          </div>
           <div id="hi20-balcony-glass-contrast-layer" class="layer-section" hidden>
             <label class="layer-row">
               <input id="hi20-balcony-glass-contrast" type="checkbox" checked />
@@ -2811,6 +2818,8 @@ const title = 'Private 3D viewer';
       const hi20C045WallLayer = document.querySelector<HTMLElement>('#hi20-c045-wall-layer')!;
       const hi20C045WallInput = document.querySelector<HTMLInputElement>('#hi20-c045-wall-corrected')!;
       let hi20C045Presentation: ReturnType<typeof createHi20C045Presentation> | null = null;
+      const hi20C037WasherLayer = document.querySelector<HTMLElement>('#hi20-c037-washer-top-layer')!;
+      const hi20C037WasherInput = document.querySelector<HTMLInputElement>('#hi20-c037-washer-top-clean')!;
       const hi20C015WholeFloorLayer = document.querySelector<HTMLElement>('#hi20-c015-whole-floor-layer')!;
       const hi20C015WholeFloorInput = document.querySelector<HTMLInputElement>('#hi20-c015-whole-floor-visible')!;
       let hi20C015WholeFloorPresentation: ReturnType<typeof createHi20C015WholeFloorPresentation> | null = null;
@@ -7362,6 +7371,10 @@ const title = 'Private 3D viewer';
         hi20C045WallInput.checked = false;
         delete canvas.dataset.hi20C045WallCorrected;
         delete canvas.dataset.hi20C045WallCount;
+        hi20C037WasherLayer.hidden = true;
+        hi20C037WasherInput.checked = false;
+        delete canvas.dataset.hi20C037WasherTopClean;
+        delete canvas.dataset.hi20C037WasherTopTriangles;
         hi20BalconyGlassPresentation?.dispose();
         hi20BalconyGlassPresentation = null;
         hi20BalconyGlassLayer.hidden = true;
@@ -7528,6 +7541,13 @@ const title = 'Private 3D viewer';
           hi20C045WallInput.checked ? 'true' : 'unavailable';
         canvas.dataset.hi20C045WallCount = String(hi20C045Presentation.count);
         canvas.dataset.hi20C045WallReason = hi20C045Presentation.reason ?? '';
+        // C80-037 has already been applied by K17White inside C045. Only
+        // expose that one reversible source-locked adapter; do not create a second COW.
+        hi20C037WasherLayer.hidden = !hi20C045Presentation.c037WasherTopAvailable;
+        hi20C037WasherInput.checked = hi20C045Presentation.c037WasherTopApplied;
+        canvas.dataset.hi20C037WasherTopClean = hi20C045Presentation.c037WasherTopAvailable
+          ? (hi20C037WasherInput.checked ? 'enabled' : 'source') : 'unavailable';
+        canvas.dataset.hi20C037WasherTopTriangles = String(hi20C045Presentation.c037WasherTopCount);
         // C015: WHOLE23 alone omits the existing unified 2F/BOTH 63m² floor.
         // Exact HI20 SHA, scene root and mesh required. No new geometry.
         hi20C015WholeFloorPresentation = createHi20C015WholeFloorPresentation(
@@ -14592,6 +14612,18 @@ const title = 'Private 3D viewer';
         }
         hi20C045Presentation.setCorrected(hi20C045WallInput.checked);
         canvas.dataset.hi20C045WallCorrected = String(hi20C045WallInput.checked);
+        refreshEdgeRendering(modelRoot.children[0] ?? null);
+        if (selectedObject && !isEffectivelyVisible(selectedObject, modelRoot)) clearSelection();
+      });
+      hi20C037WasherInput.addEventListener('change', () => {
+        if (!hi20C045Presentation?.c037WasherTopAvailable) {
+          hi20C037WasherInput.checked = false;
+          return;
+        }
+        hi20C045Presentation.setC037WasherTopClean(hi20C037WasherInput.checked);
+        // A failed COW toggle must never leave the checkbox contradicting the geometry.
+        hi20C037WasherInput.checked = hi20C045Presentation.c037WasherTopApplied;
+        canvas.dataset.hi20C037WasherTopClean = hi20C037WasherInput.checked ? 'enabled' : 'source';
         refreshEdgeRendering(modelRoot.children[0] ?? null);
         if (selectedObject && !isEffectivelyVisible(selectedObject, modelRoot)) clearSelection();
       });
