@@ -10,6 +10,7 @@ on:
       - feat/v93-owner-led24-grid-sc325327-source-20261110
       - feat/v93-owner-orange9-blue3-ceiling-sc328330-source-20261110
       - feat/v93-owner-switch11-wallhost-sc339340-viewer-20261110
+      - feat/v93-d2f-sw05-doorwall-sc341342-viewer-20261110
   pull_request:
     types:
       - opened
