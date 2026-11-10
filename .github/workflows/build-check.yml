@@ -195,7 +195,8 @@ jobs:
             tests/unit/private-model-furniture-layer-source-profile.test.mjs \
             tests/unit/private-model-hi20-unified52-source-scenes.test.mjs \
             tests/unit/private-model-source-scene-rehydrate.test.mjs \
-            tests/unit/private-model-c80r2-chain-scenes.test.mjs
+            tests/unit/private-model-c80r2-chain-scenes.test.mjs \
+            tests/unit/private-model-v93-mj49-owner-ns-savo-source-profile.test.mjs
 
       # Four self-contained K16-b/c scene33 builder guards run on every
       # executable PR. The optional original-Drive-source replay remains
