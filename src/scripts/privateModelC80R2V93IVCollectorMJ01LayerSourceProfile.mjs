@@ -30,7 +30,7 @@ const exactScene = (baseIndex, name, oldTechnical, newTechnical, plexi) => {
     .map(node => node === oldTechnical ? newTechnical : node);
   roots.push(...COMMON_NEW_ROOTS.slice(0, 3),
     ...(plexi ? [11587] : []), ...COMMON_NEW_ROOTS.slice(3));
-  return Object.freeze({ ...base, name, rootNodes: Object.freeze(roots), paths: Object.freeze({}) });
+  return Object.freeze({ ...base, name, rootNodes: Object.freeze(roots) });
 };
 
 export const IV_MJ01_BUILDING_SCENES = Object.freeze({
