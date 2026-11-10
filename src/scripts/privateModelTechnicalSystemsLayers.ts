@@ -20,6 +20,7 @@ import { V89_SOURCE_SHA256, V89_SOURCE_SCENE_COUNT, V89_BUILDING_SCENES } from '
 import { V90_SOURCE_SHA256, V90_SOURCE_SCENE_COUNT, V90_BUILDING_SCENES } from './privateModelC80R2V90LayerSourceProfile.mjs';
 import { V91_SOURCE_SHA256, V91_SOURCE_SCENE_COUNT, V91_BUILDING_SCENES } from './privateModelC80R2V91LayerSourceProfile.mjs';
 import { V92_SOURCE_SHA256, V92_SOURCE_SCENE_COUNT, V92_BUILDING_SCENES } from './privateModelC80R2V92LayerSourceProfile.mjs';
+import { V93_MJ49_SOURCE_SHA256, isV93MJ49SavoNSScene } from './privateModelV93MJ49SavoNSKIV3SourceProfile.mjs';
 import { V93_H35H38_SOURCE_SHA256, V93_H35H38_SOURCE_SCENE_COUNT, V93_H35H38_BUILDING_SCENES } from './privateModelC80R2V93H35H38LayerSourceProfile.mjs';
 import { V90_H20_SOURCE_SHA256, V90_H20_SCENE_COUNT, V90_H20_BUILDING_SCENES, V90_H20_FLOORS, V90_H20_OPTIN_SCENES, V90_H20_ROOT } from './privateModelC80R2V90H20LayerSourceProfile.mjs';
 import { V90_IV_P04_SOURCE_SHA256, V90_IV_P04_SCENE_COUNT, V90_IV_P04_BUILDING_SCENES, V90_IV_P04_FLOORS, V90_IV_P04_OPTIN_SCENES, V90_IV_P04_ROOT_IDS } from './privateModelC80R2V90IVP04LayerSourceProfile.mjs';
@@ -292,6 +293,23 @@ const v26Scenes = { '1F': 174, '2F': 162, BOTH: 175 } as const;
 const v26Device = (context: TechnicalSystemsContext, binding: TechnicalSourceNode): {
   id: TechnicalSystemId; scope: Scope;
 } | null => {
+  // Exact MJ49 focus: only five active source roots, no physical airflow claim.
+  if (context.loadedGlbSha256 === V93_MJ49_SOURCE_SHA256) {
+    if (!isV93MJ49SavoNSScene(context.sourceJson, context.loadedGlbSha256, context.sourceSceneIndex)) return null;
+    if (context.sourceSceneIndex !== 349) return null;
+    const sceneRoots = context.sourceJson?.scenes?.[349]?.nodes;
+    if (!sceneRoots) return null;
+    const visited = new Set<number>();
+    let node: number | null = binding.nodeIndex;
+    while (node !== null && !visited.has(node)) {
+      if (sceneRoots.includes(node))
+        return { id: 'technical-ventilation', scope: { apartment: 'D', storey: '2F', phase: 'ACTIVE_IN_SELECTED_WORKTEST' } };
+      visited.add(node);
+      const parent = context.sourceNodes.find(candidate => candidate.sceneIndex === 349 && candidate.nodeIndex === node);
+      node = parent?.parentNodeIndex ?? null;
+    }
+    return null;
+  }
   const h20Optin = context.loadedGlbSha256 === V90_H20_SOURCE_SHA256;
   const ivFocus = context.loadedGlbSha256 === V90_IV_P04_SOURCE_SHA256;
   const integratedScenes = ivFocus ? V90_IV_P04_BUILDING_SCENES : h20Optin ? V90_H20_BUILDING_SCENES : context.loadedGlbSha256 === V93_H35H38_SOURCE_SHA256 ? V93_H35H38_BUILDING_SCENES : context.loadedGlbSha256 === V92_SOURCE_SHA256 ? V92_BUILDING_SCENES : context.loadedGlbSha256 === V91_SOURCE_SHA256 ? V91_BUILDING_SCENES : context.loadedGlbSha256 === V90_SOURCE_SHA256 ? V90_BUILDING_SCENES : context.loadedGlbSha256 === V89_SOURCE_SHA256 ? V89_BUILDING_SCENES : context.loadedGlbSha256 === V88_SOURCE_SHA256 ? V88_BUILDING_SCENES : context.loadedGlbSha256 === V87_SOURCE_SHA256 ? V87_BUILDING_SCENES : context.loadedGlbSha256 === V86_SOURCE_SHA256 ? V86_BUILDING_SCENES : context.loadedGlbSha256 === V85_SOURCE_SHA256 ? V85_BUILDING_SCENES : context.loadedGlbSha256 === V84_SOURCE_SHA256 ? V84_BUILDING_SCENES : context.loadedGlbSha256 === V83_SOURCE_SHA256 ? V83_BUILDING_SCENES : context.loadedGlbSha256 === V82_SOURCE_SHA256 ? V82_BUILDING_SCENES
