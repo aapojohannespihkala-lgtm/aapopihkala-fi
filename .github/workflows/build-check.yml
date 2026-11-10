@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - feat/v93-ivb47k-mj01-cofit-sc340343-20261110
+      - feat/v93-ivb-mj01-service-cutaway-viewer-20261110
   pull_request:
     types:
       - opened
@@ -198,7 +199,8 @@ jobs:
             tests/unit/private-model-source-scene-rehydrate.test.mjs \
             tests/unit/private-model-c80r2-chain-scenes.test.mjs \
             tests/unit/private-model-v93-iv125-lowtri-source-profile.test.mjs \
-            tests/unit/private-model-v93-ivb47k-mj01-cofit-source-profile.test.mjs
+            tests/unit/private-model-v93-ivb47k-mj01-cofit-source-profile.test.mjs \
+            tests/unit/private-model-v93-ivb-mj01-service-cutaway-source-profile.test.mjs
 
       # Four self-contained K16-b/c scene33 builder guards run on every
       # executable PR. The optional original-Drive-source replay remains
