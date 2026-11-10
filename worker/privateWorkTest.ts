@@ -4339,7 +4339,19 @@ const AUTO_YLISRINNE_C80R2_V92_H30_SMOKE_ON_V71_WORK_TEST_HOST_HOLD_20261109_1MV
   expectedSha256: 'a027108cf1a08be377b060143f40580359c029d8cc1f77f3122a6ba46cc931af',
 } as const satisfies PrivateWorkTestCandidate;
 
+// Source-exact P0-2 WORK_TEST saved in G2b TYÖ. Publication still uses
+// trusted-main publisher, Access, exact RAW SHA/size and readback gates.
+const C80_P02_WATER_INTEGRATED_WORK_TEST_CANDIDATE = {
+  id: 'c80-p02-water-integrated-20261111',
+  label: 'C80 P0-2 - käyttövesi 1F/2F - WORK_TEST',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/c80-p02-water-integrated-20261111.glb`,
+  objectKey: 'work-test/c80-p02-water-integrated-20261111.glb',
+  expectedSize: 52535692,
+  expectedSha256: 'db5ce3d7ef4c0bc8910de7f46df80029617b37d38ff4ddccd330cf70a2818a2a',
+} as const satisfies PrivateWorkTestCandidate;
+
 const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
+  C80_P02_WATER_INTEGRATED_WORK_TEST_CANDIDATE,
   V69P12R1_SINK_FAUCET_WORK_TEST_CANDIDATE,
   SIX6_RAIL900_WORK_TEST_CANDIDATE,
   K17_RAIL900_WORK_TEST_CANDIDATE,
