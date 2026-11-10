@@ -297,7 +297,8 @@ const v26Device = (context: TechnicalSystemsContext, binding: TechnicalSourceNod
   // exact Bosch/PA2/PK1/S1S2/neck groups, never copied legacy sourceLinks.
   if (context.loadedGlbSha256 === V93_MJ40_SOURCE_SHA256) {
     if (!isV93MJ40BoschOpen90Scene(context.sourceJson, context.loadedGlbSha256, context.sourceSceneIndex)) return null;
-    const sceneRoots = context.sourceJson.scenes[context.sourceSceneIndex].nodes;
+    const sceneRoots = context.sourceJson?.scenes?.[context.sourceSceneIndex]?.nodes;
+    if (!sceneRoots) return null; // Unavailable source JSON fails closed.
     const groups: Record<number, TechnicalSystemId> = {
       11632: 'technical-water', 11403: 'technical-water', 11595: 'technical-drainage',
       11604: 'technical-water', 11609: 'technical-water', 11612: 'technical-drainage',
