@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - feat/v93-ivb47k-mj01-cofit-sc340343-20261110
+      - feat/v93-ivb-mj01-service-cutaway-viewer-20261110
   pull_request:
     types:
       - opened
