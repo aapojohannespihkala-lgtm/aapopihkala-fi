@@ -73,5 +73,5 @@ test('H30 ceiling layer binding rejects another GLB SHA even with matching scene
     sceneIndex: 306, activeSceneRoot: null, area: 'D', floor: '1F',
   });
   assert.equal(wrong.sourceVerified, false);
-  assert.equal(wrong.reason, 'SOURCE_SHA_MISMATCH');
+  assert.deepEqual(wrong.excluded.map(item => item.reason), ['SOURCE_SHA_MISMATCH']);
 });
