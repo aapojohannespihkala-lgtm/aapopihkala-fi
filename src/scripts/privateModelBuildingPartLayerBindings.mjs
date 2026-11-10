@@ -21,6 +21,7 @@ import { V90_SOURCE_SHA256, V90_SOURCE_SCENE_COUNT, V90_BUILDING_PARTS, V90_BUIL
 import { V91_SOURCE_SHA256, V91_SOURCE_SCENE_COUNT, V91_BUILDING_PARTS, V91_BUILDING_SCENES, V91_FLOORS } from './privateModelC80R2V91LayerSourceProfile.mjs';
 import { V92_SOURCE_SHA256, V92_SOURCE_SCENE_COUNT, V92_BUILDING_PARTS, V92_BUILDING_SCENES, V92_FLOORS } from './privateModelC80R2V92LayerSourceProfile.mjs';
 import { V93_H35H38_SOURCE_SHA256, V93_H35H38_SOURCE_SCENE_COUNT, V93_H35H38_BUILDING_PARTS, V93_H35H38_BUILDING_SCENES, V93_H35H38_FLOORS } from './privateModelC80R2V93H35H38LayerSourceProfile.mjs';
+import { V93_MJ40_SOURCE_SHA256, isV93MJ40BoschOpen90Scene } from './privateModelV93MJ40BoschOpen90SourceProfile.mjs';
 import { V90_H20_SOURCE_SHA256, V90_H20_SCENE_COUNT, V90_H20_BUILDING_PARTS, V90_H20_BUILDING_SCENES, V90_H20_FLOORS } from './privateModelC80R2V90H20LayerSourceProfile.mjs';
 import { V90_IV_P04_SOURCE_SHA256, V90_IV_P04_SCENE_COUNT, V90_IV_P04_BUILDING_PARTS, V90_IV_P04_BUILDING_SCENES, V90_IV_P04_FLOORS } from './privateModelC80R2V90IVP04LayerSourceProfile.mjs';
 import { V69P12R1_SOURCE_SHA256, V69P12R1_SOURCE_SCENE_COUNT, V69P12R1_BUILDING_PARTS, V69P12R1_BUILDING_SCENES, V69P12R1_FLOORS } from './privateModelC80R2V69P12R1LayerSourceProfile.mjs';
@@ -476,6 +477,10 @@ export function resolveBuildingPartLayerBindings(input) {
   }
   if (!Number.isInteger(sceneIndex) || gltf?.scenes?.[sceneIndex] !== scene)
     return unavailable('SCENE_MISMATCH', scene);
+  // New Bosch door root is source-only. Do not inherit old V93 part/node paths.
+  if (String(loadedSourceSha256).toLowerCase() === V93_MJ40_SOURCE_SHA256 &&
+      !isV93MJ40BoschOpen90Scene(gltf?.parser?.json, V93_MJ40_SOURCE_SHA256, sceneIndex, floor))
+    return unavailable('V93_MJ40_SOURCE_SCENE_MISMATCH', scene);
   const hierarchy = makeNodeHierarchy(gltf?.parser?.json, sceneIndex);
   const associations = gltf?.parser?.associations;
   if (!hierarchy || !(associations instanceof Map) || typeof scene?.traverse !== 'function')
