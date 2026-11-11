@@ -29,6 +29,7 @@ import { V91_SOURCE_SHA256, V91_SOURCE_SCENE_COUNT, V91_BUILDING_SCENES } from '
 import { V92_SOURCE_SHA256, V92_SOURCE_SCENE_COUNT, V92_BUILDING_SCENES } from './privateModelC80R2V92LayerSourceProfile.mjs';
 import { V93_MJ49_SOURCE_SHA256, isV93MJ49SavoNSScene } from './privateModelV93MJ49SavoNSKIV3SourceProfile.mjs';
 import { V93_H35H38_SOURCE_SHA256, V93_H35H38_SOURCE_SCENE_COUNT, V93_H35H38_BUILDING_SCENES } from './privateModelC80R2V93H35H38LayerSourceProfile.mjs';
+import { V93_MJ40_SOURCE_SHA256, isV93MJ40BoschOpen90Scene } from './privateModelV93MJ40BoschOpen90SourceProfile.mjs';
 import { V90_H20_SOURCE_SHA256, V90_H20_SCENE_COUNT, V90_H20_BUILDING_SCENES, V90_H20_FLOORS, V90_H20_OPTIN_SCENES, V90_H20_ROOT } from './privateModelC80R2V90H20LayerSourceProfile.mjs';
 import { V90_IV_P04_SOURCE_SHA256, V90_IV_P04_SCENE_COUNT, V90_IV_P04_BUILDING_SCENES, V90_IV_P04_FLOORS, V90_IV_P04_OPTIN_SCENES, V90_IV_P04_ROOT_IDS } from './privateModelC80R2V90IVP04LayerSourceProfile.mjs';
 import { V69P12R1_SOURCE_SHA256, V69P12R1_SOURCE_SCENE_COUNT, V69P12R1_BUILDING_SCENES } from './privateModelC80R2V69P12R1LayerSourceProfile.mjs';
@@ -300,6 +301,27 @@ const v26Scenes = { '1F': 174, '2F': 162, BOTH: 175 } as const;
 const v26Device = (context: TechnicalSystemsContext, binding: TechnicalSourceNode): {
   id: TechnicalSystemId; scope: Scope;
 } | null => {
+  // This alternate SHA is intentionally source-limited: classify only the
+  // exact Bosch/PA2/PK1/S1S2/neck groups, never copied legacy sourceLinks.
+  if (context.loadedGlbSha256 === V93_MJ40_SOURCE_SHA256) {
+    if (!isV93MJ40BoschOpen90Scene(context.sourceJson, context.loadedGlbSha256, context.sourceSceneIndex)) return null;
+    const sceneRoots = context.sourceJson?.scenes?.[context.sourceSceneIndex]?.nodes;
+    if (!sceneRoots) return null; // Unavailable source JSON fails closed.
+    const groups: Record<number, TechnicalSystemId> = {
+      11632: 'technical-water', 11403: 'technical-water', 11595: 'technical-drainage',
+      11604: 'technical-water', 11609: 'technical-water', 11612: 'technical-drainage',
+    };
+    const seen = new Set<number>();
+    let index: number | null = binding.nodeIndex;
+    while (index !== null && !seen.has(index)) {
+      if (Object.hasOwn(groups, index) && sceneRoots.includes(index))
+        return { id: groups[index], scope: { apartment: 'D', storey: '1F', phase: 'ACTIVE_IN_SELECTED_WORKTEST' } };
+      seen.add(index);
+      const parent = context.sourceNodes.find(node => node.sceneIndex === context.sourceSceneIndex && node.nodeIndex === index);
+      index = parent?.parentNodeIndex ?? null;
+    }
+    return null;
+  }
   // MJ79: only the two opt-in angled double-outlet roots (and their children)
   // belong to the electrical layer, never the old schematic proxies or media jack.
   if (context.loadedGlbSha256 === MJ79_SOURCE_SHA256) {
