@@ -127,3 +127,65 @@ test('mesh without name returns unknown label without inventing source identity'
   expect(p).not.toBeNull();
   expect(p!.surfaceObjectName).toBeNull();
 });
+
+test('clipped-away front surface cannot be picked; visible rear remains selectable',()=>{
+  const p=hit(220,240,({mesh})=>{
+    const m=mesh.material as THREE.MeshBasicMaterial;
+    m.side=THREE.DoubleSide;
+    // Front box face is world Z=-2, rear Z=-4. Keep only Z <= -3.
+    m.clippingPlanes=[new THREE.Plane(new THREE.Vector3(0,0,-1),-3)];
+  });
+  expect(p).not.toBeNull();
+  expect(p!.yM).toBeCloseTo(4,2);
+  expect(p!.surfaceObjectName).toBe('WORK_TEST_BOX_SURFACE');
+});
+test('no 3D coordinate when every raycast surface is clipped away',()=>{
+  const p=hit(220,240,({mesh})=>{
+    const m=mesh.material as THREE.MeshBasicMaterial;
+    m.side=THREE.DoubleSide;
+    // Both front and rear box faces are on the discarded side.
+    m.clippingPlanes=[new THREE.Plane(new THREE.Vector3(0,0,-1),-5)];
+  });
+  expect(p).toBeNull();
+});
+test('clipIntersection respects Three.js plane combination semantics',()=>{
+  const p=hit(220,240,({mesh})=>{
+    const m=mesh.material as THREE.MeshBasicMaterial;
+    m.side=THREE.DoubleSide;
+    m.clipIntersection=true;
+    m.clippingPlanes=[
+      new THREE.Plane(new THREE.Vector3(0,0,-1),-3),
+      new THREE.Plane(new THREE.Vector3(1,0,0),10),
+    ];
+  });
+  // Only one plane rejects the near face: clipIntersection keeps it.
+  expect(p).not.toBeNull();
+  expect(p!.yM).toBeCloseTo(2,2);
+  const q=hit(220,240,({mesh})=>{
+    const m=mesh.material as THREE.MeshBasicMaterial;
+    m.side=THREE.DoubleSide;
+    m.clipIntersection=true;
+    m.clippingPlanes=[
+      new THREE.Plane(new THREE.Vector3(0,0,-1),-3),
+      new THREE.Plane(new THREE.Vector3(0,0,-1),-2.5),
+    ];
+  });
+  // Both planes reject the near face, leaving only the far face.
+  expect(q).not.toBeNull();
+  expect(q!.yM).toBeCloseTo(4,2);
+});
+test('multi-material clipping applies only to the hit face material',()=>{
+  const p=hit(220,240,({mesh})=>{
+    const materials=Array.from({length:6},()=>
+      new THREE.MeshBasicMaterial({visible:false,side:THREE.DoubleSide}),
+    );
+    materials[4].visible=true;
+    materials[4].clippingPlanes=[
+      new THREE.Plane(new THREE.Vector3(0,0,-1),-3),
+    ];
+    materials[5].visible=true;
+    (mesh as THREE.Mesh).material=materials;
+  });
+  expect(p).not.toBeNull();
+  expect(p!.yM).toBeCloseTo(4,2);
+});
