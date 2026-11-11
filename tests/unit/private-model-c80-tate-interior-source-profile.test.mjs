@@ -52,3 +52,12 @@ test('wrong mesh, parent, source links, scene order and old source identity fail
  assert.equal(result.sourceVerified,false);
  const j=fixture();const c=CARDS[352][receipt.adapter];j.nodes[c.linkNode].extras.sourceLinks=[];assert.equal(resolveTate4CardNode(j,352,receipt.adapter),null);
 });
+
+test('MJ64 rehosted connection ports preserve all 15/15/30 exact water anchors',()=>{
+ for(const [scene,ids] of Object.entries(receipt.waterConnectionNodes)){
+  assert.equal(ids.length,scene==='352'?30:15);assert.equal(new Set(ids).size,ids.length);
+  for(const n of ids){assert.equal(TECH[scene][n].id,'technical-water');assert.ok(resolveTate4TechnicalNode(fixture(),Number(scene),n));}
+ }
+ assert.ok(!receipt.waterConnectionNodes[350].some(n=>n>=11678&&n<=11707));
+ assert.equal(receipt.waterConnectionNodes[352].filter(n=>n>=11678&&n<=11707).length,15);
+});
