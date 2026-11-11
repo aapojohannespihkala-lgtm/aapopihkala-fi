@@ -205,6 +205,7 @@ jobs:
             tests/unit/private-model-v93-mj40-bosch-open90-source-profile.test.mjs \
             tests/unit/private-model-air385-toshiba-service-source-profile.test.mjs \
             tests/unit/private-model-mj84-kso-source-profile.test.mjs \
+            tests/unit/private-model-mj84-hollow-source-profile.test.mjs \
             tests/unit/private-model-mj79-exxact-source-profile.test.mjs
 
       # Four self-contained K16-b/c scene33 builder guards run on every
