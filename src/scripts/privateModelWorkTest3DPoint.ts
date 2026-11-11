@@ -40,11 +40,30 @@ const hasPresentationOnlyAncestor = (node: THREE.Object3D, root: THREE.Object3D)
  */
 const hasVisibleHitMaterial = (hit: THREE.Intersection): boolean => {
   const object = hit.object as THREE.Mesh;
-  if (!Array.isArray(object.material)) return hasVisibleMaterial(object);
   const materialIndex = hit.face?.materialIndex;
-  if (typeof materialIndex !== 'number' || !Number.isInteger(materialIndex) ||
-    materialIndex < 0 || materialIndex >= object.material.length) return false;
-  return hasVisibleMaterial({material: object.material[materialIndex]});
+  const material = Array.isArray(object.material)
+    ? (typeof materialIndex === 'number' && Number.isInteger(materialIndex) &&
+      materialIndex >= 0 && materialIndex < object.material.length
+      ? object.material[materialIndex] : null)
+    : object.material;
+  if (!material || !hasVisibleMaterial({material})) return false;
+
+  // Three.js raycasting ignores local WebGL clipping planes. Without this
+  // check, a hidden cutaway wall may incorrectly win the screenshot XYZ pick.
+  // Clipping planes use world coordinates and discard negative half-spaces.
+  const planes = material.clippingPlanes;
+  if (!planes?.length) return true;
+  let outside = 0;
+  for (const plane of planes) {
+    const distance = plane.distanceToPoint(hit.point);
+    if (!Number.isFinite(distance)) return false;
+    if (distance < -1e-7) outside++;
+  }
+  // Normal union clipping discards any outside plane. clipIntersection
+  // discards only points outside ALL planes, matching the Three.js shader.
+  return material.clipIntersection
+    ? outside < planes.length
+    : outside === 0;
 };
 
 /** Raycast real visible source meshes only. No ground-plane guesses, no
