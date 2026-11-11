@@ -288,7 +288,7 @@ for (const model of [
   { version: 'P02', sourceEnv: 'YLIS_LAYERS_P02_GLB', productionEnv: 'YLIS_LAYERS_P02_PRODUCTION',
     candidateId: 'c80-p02-water-integrated-20261111',
     sha: 'db5ce3d7ef4c0bc8910de7f46df80029617b37d38ff4ddccd330cf70a2818a2a',
-    bytes: 52535692, firstFloor: '338', secondFloor: '339', bothFloors: '340', upstairsRoof: true },
+    bytes: 52535692, firstFloor: '338', secondFloor: '339', bothFloors: '340', upstairsRoof: false },
   { version: 'K17_RAIL_HANDRAIL900', sourceEnv: 'YLIS_LAYERS_K17_RAIL900_GLB', productionEnv: 'YLIS_LAYERS_K17_RAIL900_PRODUCTION',
     candidateId: 'ylisrinne-k17-rail900-20261104',
     sha: '4b8deb415c75de9eee623d8ad84a8cfa24fa8baf2540c19b59c4ec9423c58d99',
