@@ -4341,6 +4341,15 @@ const AUTO_YLISRINNE_C80R2_V92_H30_SMOKE_ON_V71_WORK_TEST_HOST_HOLD_20261109_1MV
 
 // Source-exact P0-2 WORK_TEST saved in G2b TYÖ. Publication still uses
 // trusted-main publisher, Access, exact RAW SHA/size and readback gates.
+const C80_TATE_INTERIOR_WORK_TEST_CANDIDATE = {
+  id: 'c80-tate-interior-integrated-20261111',
+  label: 'C80 TATE + sisätilojen omistajakorjaukset 1F/2F - WORK_TEST',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/c80-tate-interior-integrated-20261111.glb`,
+  objectKey: 'work-test/c80-tate-interior-integrated-20261111.glb',
+  expectedSize: 53872184,
+  expectedSha256: 'ea4050b463a886ff0cb0c7d544495e6c753d9b87e76459f134c1d439e42a215b',
+} as const satisfies PrivateWorkTestCandidate;
+
 const C80_TATE_THREE_DELTA_WORK_TEST_CANDIDATE = {
   id: 'c80-tate-pk1-pa1-apk-20261111',
   label: 'C80 TATE + PK1-poisto, PA1-liitos ja APK-syöttö 1F/2F - WORK_TEST',
@@ -4369,6 +4378,7 @@ const C80_P02_WATER_INTEGRATED_WORK_TEST_CANDIDATE = {
 } as const satisfies PrivateWorkTestCandidate;
 
 const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
+  C80_TATE_INTERIOR_WORK_TEST_CANDIDATE,
   C80_TATE_THREE_DELTA_WORK_TEST_CANDIDATE,
   C80_P02_TATE_INTEGRATED_WORK_TEST_CANDIDATE,
   C80_P02_WATER_INTEGRATED_WORK_TEST_CANDIDATE,

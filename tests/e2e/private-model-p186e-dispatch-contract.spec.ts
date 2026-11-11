@@ -184,3 +184,8 @@ test('new-main request refuses executable drift or a missing old-branch ancestry
   }
 });
 
+
+test('TATE4 request uses the existing trusted-main exact-source WebGL path',()=>{
+ const r=evaluate({...request,probeMode:'d-view-tate4'});expect(r.status).toBe(0);
+ expect(JSON.parse(r.stdout)).toEqual({ref:'main',inputs:{source_version:'TATE4'},_workflow:'d-view-regression.yml'});
+});
