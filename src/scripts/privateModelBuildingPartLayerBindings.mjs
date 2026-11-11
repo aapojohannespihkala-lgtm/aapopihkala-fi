@@ -26,6 +26,7 @@ import { V89_SOURCE_SHA256, V89_SOURCE_SCENE_COUNT, V89_BUILDING_PARTS, V89_BUIL
 import { V90_SOURCE_SHA256, V90_SOURCE_SCENE_COUNT, V90_BUILDING_PARTS, V90_BUILDING_SCENES, V90_FLOORS } from './privateModelC80R2V90LayerSourceProfile.mjs';
 import { V91_SOURCE_SHA256, V91_SOURCE_SCENE_COUNT, V91_BUILDING_PARTS, V91_BUILDING_SCENES, V91_FLOORS } from './privateModelC80R2V91LayerSourceProfile.mjs';
 import { V92_SOURCE_SHA256, V92_SOURCE_SCENE_COUNT, V92_BUILDING_PARTS, V92_BUILDING_SCENES, V92_FLOORS } from './privateModelC80R2V92LayerSourceProfile.mjs';
+import { V93_MJ49_SOURCE_SHA256, isV93MJ49SavoNSScene } from './privateModelV93MJ49SavoNSKIV3SourceProfile.mjs';
 import { V93_H35H38_SOURCE_SHA256, V93_H35H38_SOURCE_SCENE_COUNT, V93_H35H38_BUILDING_PARTS, V93_H35H38_BUILDING_SCENES, V93_H35H38_FLOORS } from './privateModelC80R2V93H35H38LayerSourceProfile.mjs';
 import { V90_H20_SOURCE_SHA256, V90_H20_SCENE_COUNT, V90_H20_BUILDING_PARTS, V90_H20_BUILDING_SCENES, V90_H20_FLOORS } from './privateModelC80R2V90H20LayerSourceProfile.mjs';
 import { V90_IV_P04_SOURCE_SHA256, V90_IV_P04_SCENE_COUNT, V90_IV_P04_BUILDING_PARTS, V90_IV_P04_BUILDING_SCENES, V90_IV_P04_FLOORS } from './privateModelC80R2V90IVP04LayerSourceProfile.mjs';
@@ -482,6 +483,11 @@ export function resolveBuildingPartLayerBindings(input) {
   }
   if (!Number.isInteger(sceneIndex) || gltf?.scenes?.[sceneIndex] !== scene)
     return unavailable('SCENE_MISMATCH', scene);
+  // This SHA only authorizes the three source-exact MJ49 WORK_TEST opt-ins.
+  // Never inherit unrelated V93 part bindings for an altered scene.
+  if (String(loadedSourceSha256).toLowerCase() === V93_MJ49_SOURCE_SHA256 &&
+      !isV93MJ49SavoNSScene(gltf?.parser?.json, V93_MJ49_SOURCE_SHA256, sceneIndex, floor))
+    return unavailable('V93_MJ49_SOURCE_SCENE_MISMATCH', scene);
   // AIR385 is a different GLB. Refuse inherited physical part identities and
   // malformed scene roots rather than trusting a lookalike parent scene.
   if (String(loadedSourceSha256).toLowerCase() === AIR385_SOURCE_SHA256 &&
