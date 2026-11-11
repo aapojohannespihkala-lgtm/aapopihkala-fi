@@ -309,7 +309,7 @@ test(`exact ${model.version} viewer: D upstairs, ghost walls, supported IV, rese
   const depthProbe = model.version === 'V69P12R1' && process.env.YLIS_C008_DEPTH === '1';
   // The depth pass adds 16 independent screenshot pairs to the base lifecycle.
   // Keep its full bounded capture within the trusted job's 30-minute limit.
-  test.setTimeout(depthProbe ? 24 * 60_000 : 540_000);
+  test.setTimeout(depthProbe || model.version === 'TATE' ? 24 * 60_000 : 540_000);
   const source = readFileSync(sourcePath!);
   expect(source.length).toBe(model.bytes);
   expect(createHash('sha256').update(source).digest('hex')).toBe(sha);
@@ -804,6 +804,12 @@ test(`exact ${model.version} viewer: D upstairs, ghost walls, supported IV, rese
       await expect(canvas).toHaveAttribute('data-layers-source-sha256', sha);
       await expect(canvas).toHaveAttribute('data-p02-content-fit', 'source-bound-architecture');
       expect(Number(await canvas.getAttribute('data-fit-radius'))).toBeLessThan(12);
+      if (model.version === 'TATE') {
+        // Inspect authored material pixels separately from derived edge overlays.
+        // The default-edge desktop/mobile lifecycle above remains unchanged.
+        await page.locator('#edge-mode-select').selectOption('none');
+        await expect(canvas).toHaveAttribute('data-edge-mode','none');
+      }
       const active = new Set<number>();
       const walk = (node: number) => {
         if (active.has(node)) return;
@@ -902,9 +908,12 @@ test(`exact ${model.version} viewer: D upstairs, ghost walls, supported IV, rese
             return changed;
           },{visible:visible.toString('base64'),hidden:hidden.toString('base64')});
           systemPixels[id]=changed;
+          Object.assign(p02Evidence.at(-1),{systemPixels});
+          writeFileSync(info.outputPath('tate-system-pixels.json'),JSON.stringify(p02Evidence,null,2));
+          expect(changed,id+' must affect actual protected WebGL pixels').toBeGreaterThan(0);
           await page.locator('#layers-button').click();
           await control.locator('[data-layer-mode="visible"]').click();
-          expect(changed,id+' must affect actual protected WebGL pixels').toBeGreaterThan(0);
+          await expect(control.locator('[data-layer-mode="visible"]')).toHaveAttribute('aria-pressed','true');
         }
         Object.assign(p02Evidence.at(-1),{systemPixels});
         writeFileSync(info.outputPath('tate-system-pixels.json'),JSON.stringify(p02Evidence,null,2));
