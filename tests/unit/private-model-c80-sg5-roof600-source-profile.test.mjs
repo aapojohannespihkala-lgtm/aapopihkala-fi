@@ -13,8 +13,39 @@ import {
 // Immutable ordered scene-root snapshots from the SHA-verified actual private
 // GLB (not filename-based recognition). Only source-root IDs are included.
 const ROOTS_ZLIB_B64 = {
-  370: 'eNotksuRQCEIBBPyICq/WLY2/zSW6beXLgQGEP3J67FOeA3CVrwLjnCXbfe78k5kEEIuvwdfyZpjnF5eteWTdV2I1SeUl1u1XJat2vvOMVU/sZ7gQqxwS6GEXlEapjSMxxMmr/up1PhiRouc5pF3z6g5EdFX+9QePIHjjN77CS5wTKGEHkwXO/vWlKi5eXb2THue4AIXmqP1BGq6VNt0MfWzDiGFEnqS9x54ssSZ5E6HbjNhrJydjq9kXeEJh/bStJs4k4/+ewoNZ7qwKjok+t+jINHY0KBqBplBZpCjrsNkc2nwwM/PLtNhwIQFqVBoC22hLbSFttAW2kJbaAttfy+GttH2aO207njnqYbzBYYXvg0NHnghmc9hwITUeWgdraN1tI7W0TpaR+toHa2jDbTapPl1qMw4D8oTzBPvs6UNaup7jB1Etb2hPIk/T0KDB8pf1ClmKO3HSi9uvTcsKsvW/x6bjk2XDjwREH+i6o/OF7/wwc8TMH//AFmgzY=',
-  371: 'eNotlckVHSEMBBP6B8SiJRY/55+Gu2t86ccAxSKhnj95z/pN1PvN7vXrumkpS1tG8jzwwrIt57f3Xr9KTX5731/eV788Ve5D+lcz40VDU/r9ch6SlrK0ZSS5fq/O+WWesGwtoN0ktI7l/mZCU05qlRvCrk4gEXHHW2p5HU2nz9o/odd9aWG0PeA9OLi2jPW0kw6tE3knYWXRsVp3kLSOv8KyLcdyLQ7WSktZmOe7xrKYCBNhIkyEidBGrVDW3oRSx3pz3Wq3vFRvh+1YruVZdKXljWq8UQYnP+hFH5qoE6fL6a7XopikMiDxZ3uPVArbWc7xcduHdIL7cQINjKbM8n2Xb7l8wRjf43yb+xysVe5UuGM5omqq0xma4wd1dB3JtfDp0QnLsXhgPKArzlN4TuqKEc6BtknumNwxuWNyxyz0mzPWIpvF4TiNnhMKW7AFW7AFW7AN27AN27AN27AN27AN27ADO7ADO7ADO7ADO2ZzLTRQIrgOetGHJlpoo7ABG7ABG7ABG7ABG7ABG7AbdsNu2A27YTfsht2w5CI37IHlEbhKrbC8w+QdJu9QVYXCHtgLe2Ev7sW9Bf2wl7YC3thH+yDfbAPVq6gYiq/Z33HcdTi6PW6XWijY3XUpIEy0zGK67iHSyXi+WRS9z97RPBugnwHmQ7yGuQpyEeQgyAHQQ6CHIRzUEcetG0/O9NedZBt4a3Y3o5GJJ6txy1boq/d0qeDr2e33OeW4iyx/aTnlW1QfWqFnUIed+2At2jZnMueaZ97eg+StshC24dpH8Zllq6yxHmOF3CQ5YeaVyS+eNblinV9jctrXF3jINUsW9ayZS0+y+L/gIJU4/ciD3VW+9jhVH699Ookz8KF9Bmqj27t0jZ8Gc+zpKUsmJHddtlxHoXl38PRDvpHhEWtShuNraoUJsm1bLY3MzynIb1F4bxHwT4K9v+6FOyj2L9fxme/+T1CniszkzmFZRV2VNhRYUdVXz/xw44KOyrsqLCjwo4KOyrsqLCjwo4KOyrsqObLEix2VLaj2PMVweXJUwoHvRTEpSB4+Ocro8vMS4lQCudSTJd1LuyDfbAP9sE+2Af7YB/sg32wFJbfvIrpUHY2jcCCAgsKLCKwhcAKIllzviKjxNPRC//UncHix7HQQDfK6KGfWxN//c28VxONZt/etNmxOW1T7mOjln7tjR70oqxmo47BcgbLGcxmMIPhVLOZc1jBZRD8nnQS5hPDIXpD3IYzDLEa7jvJaDKajBaj342adtMe2jYqldxBL/r1JFp//wEtmfnZ',
+  370: [
+    'eNotksuRQCEIBBPyICq/WLY2/zSW6beXLgQGEP3J67FOeA3CVrwLjnCXbfe78k5k',
+    'EEIuvwdfyZpjnF5eteWTdV2I1SeUl1u1XJat2vvOMVU/sZ7gQqxwS6GEXlEapjSM',
+    'xxMmr/up1PhiRouc5pF3z6g5EdFX+9QePIHjjN77CS5wTKGEHkwXO/vWlKi5eXb2',
+    'THue4AIXmqP1BGq6VNt0MfWzDiGFEnqS9x54ssSZ5E6HbjNhrJydjq9kXeEJh/bS',
+    'tJs4k4/+ewoNZ7qwKjok+t+jINHY0KBqBplBZpCjrsNkc2nwwM/PLtNhwIQFqVBo',
+    'C22hLbSFttAW2kJbaAttfy+GttH2aO207njnqYbzBYYXvg0NHnghmc9hwITUeWgd',
+    'raN1tI7W0TpaR+toHa2jDbTapPl1qMw4D8oTzBPvs6UNaup7jB1Etb2hPIk/T0KD',
+    'B8pf1ClmKO3HSi9uvTcsKsvW/x6bjk2XDjwREH+i6o/OF7/wwc8TMH//AFmgzYQ=',
+  ].join(''),
+  371: [
+    'eNotlckVHSEMBBP6B8SiJRY/55+Gu2t86ccAxSKhnj95z/pN1PvN7vXrumkpS1tG',
+    '8jzwwrIt57f3Xr9KTX5731/eV788Ve5D+lcz40VDU/r9ch6SlrK0ZSS5fq/O+WWe',
+    'sGwtoN0ktI7l/mZCU05qlRvCrk4gEXHHW2p5HU2nz9o/odd9aWG0PeA9OLi2jPW0',
+    'kw6tE3knYWXRsVp3kLSOv8KyLcdyLQ7WSktZmOe7xrKYCBNhIkyEidBGrVDW3oRS',
+    'x3pz3Wq3vFRvh+1YruVZdKXljWq8UQYnP+hFH5qoE6fL6a7XopikMiDxZ3uPVArb',
+    'Wc7xcduHdIL7cQINjKbM8n2Xb7l8wRjf43yb+xysVe5UuGM5omqq0xma4wd1dB3J',
+    'tfDp0QnLsXhgPKArzlN4TuqKEc6BtknumNwxuWNyxyz0mzPWIpvF4TiNnhMKW7AF',
+    'W7AFW7AN27AN27AN27AN27AN27ADO7ADO7ADO7ADO7ADO2ZzLTRQIrgOetGHJlpo',
+    'o7ABG7ABG7ABG7ABG7ABG7AbdsNu2A27YTfsht2w5CI37IHlEbhKrbC8w+QdJu9Q',
+    'VYXCHtgLe2Ev7IW9sBf2wl7YC3thH+yDfbAPVq6gYiq/Z33HcdTi6PW6XWijY3XU',
+    'pIEy0zGK67iHSyXi+WRS9z97RPBugnwHmQ7yGuQpyEeQgyAHQQ6CHIRzUEcetG0/',
+    'O9NedZBt4a3Y3o5GJJ6txy1boq/d0qeDr2e33OeW4iyx/aTnlW1QfWqFnUIed+2A',
+    't2jZnMueaZ97eg+StshC24dpH8Zllq6yxHmOF3CQ5YeaVyS+eNblinV9jctrXF3j',
+    'INUsW9ayZS0+y+L/gIJU4/ciD3VW+9jhVH699Ookz8KF9Bmqj27t0jZ8Gc+zpKUs',
+    'mJHddtlxHoXl38PRDvpHhEWtShuNraoUJsm1bLY3MzynIb1F4bxHwT4K9v+6FOyj',
+    '2L9fxme/+T1CniszkzmFZRV2VNhRYUdVXz/xw44KOyrsqLCjwo4KOyrsqLCjwo4K',
+    'OyrsqLCjwo4KOyrsqObLEix2VLaj2PMVweXJUwoHvRTEpSB4+Ocro8vMS4lQCudS',
+    'TJd1LuyDfbAP9sE+2Af7YB/sg32wFJbfvIrpUHY2jcCCAgsKLCKwhcAKIllzviKj',
+    'xNPRC//UncHix7HQQDfK6KGfWxN//c28VxONZt/etNmxOW1T7mOjln7tjR70oqxm',
+    'o47BcgbLGcxmMIPhVLOZc1jBZRD8nnQS5hPDIXpD3IYzDLEa7jvJaDKajBaj342a',
+    'dtMe2jYqldxBL/r1JFp//wEtmfnZ',
+  ].join(''),
 };
 const sourceRoots = index => JSON.parse(inflateSync(Buffer.from(ROOTS_ZLIB_B64[index], 'base64')).toString('utf8'));
 const sourceFixture = () => {
