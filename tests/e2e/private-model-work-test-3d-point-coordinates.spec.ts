@@ -1,6 +1,7 @@
 import {expect,test} from '@playwright/test';
 import * as THREE from 'three';
 import {pickVisibleWorkTest3DPoint} from '../../src/scripts/privateModelWorkTest3DPoint';
+import {createHorizontalClippingController} from '../../src/scripts/privateModelHorizontalClipping';
 
 const setup=()=>{
   const root=new THREE.Group();
@@ -188,4 +189,59 @@ test('multi-material clipping applies only to the hit face material',()=>{
   });
   expect(p).not.toBeNull();
   expect(p!.yM).toBeCloseTo(4,2);
+});
+
+
+const horizontalViewerClip = () => {
+  // Same controller as the viewer, but with bounded synthetic DOM controls.
+  const canvas = {dataset:{}} as unknown as HTMLElement;
+  const renderer = {clippingPlanes:[] as THREE.Plane[]};
+  const enabledInput = {checked:true,disabled:false} as HTMLInputElement;
+  const heightInput = {value:'0',disabled:false,min:'-1',max:'1',step:'0.05'} as HTMLInputElement;
+  const valueOutput = {textContent:''} as HTMLOutputElement;
+  const controller = createHorizontalClippingController({
+    canvas,renderer,enabledInput,heightInput,valueOutput,
+  });
+  return {canvas,renderer,enabledInput,heightInput,controller};
+};
+
+const doubleSideBox = (s:ReturnType<typeof setup>) => {
+  (s.mesh.material as THREE.MeshBasicMaterial).side = THREE.DoubleSide;
+};
+
+test('global horizontal clipping discards the hidden front hit and selects the visible rear',()=>{
+  const clip=horizontalViewerClip();
+  clip.controller.apply();
+  try {
+    expect(clip.renderer.clippingPlanes).toHaveLength(1);
+    const visible = hit(220,240,doubleSideBox);
+    expect(visible).not.toBeNull();
+    // Horizontal cut at Y=0 removes near front point (Y>0), not rear Y<0.
+    expect(visible!.yM).toBeCloseTo(4,2);
+    expect(visible!.sourceHeightYUpM).toBeLessThan(0);
+    expect(clip.canvas.dataset.horizontalClip).toBe('active');
+  } finally {
+    clip.controller.reset();
+  }
+  // Reset also restores the exact source point, not a stale hidden-plane filter.
+  expect(clip.renderer.clippingPlanes).toHaveLength(0);
+  const restored = hit(220,240,doubleSideBox);
+  expect(restored).not.toBeNull();
+  expect(restored!.yM).toBeCloseTo(2,2);
+});
+
+test('global horizontal clipping has no made-up point when the entire model is cut away',()=>{
+  const clip=horizontalViewerClip();
+  clip.heightInput.value='-2'; // Mesh extends Y=-1..1, so every face is cut.
+  clip.controller.apply();
+  try {
+    expect(hit(220,240,doubleSideBox)).toBeNull();
+  } finally {
+    clip.controller.reset();
+  }
+  clip.enabledInput.checked=false;
+  clip.controller.apply();
+  expect(clip.renderer.clippingPlanes).toHaveLength(0);
+  expect(hit(220,240,doubleSideBox)).not.toBeNull();
+  clip.controller.reset();
 });
