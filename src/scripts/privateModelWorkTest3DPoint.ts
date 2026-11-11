@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import {hasVisibleMaterial, isEffectivelyVisible} from './privateModelObjectVisibility';
+import {isPointVisibleThroughViewerHorizontalClip} from './privateModelHorizontalClipping';
 
 /** A clicked visible mesh point in the viewer's Y-up source-model frame.
  * This is an approximate WORK_TEST observation, NEVER a surveyed coordinate.
@@ -96,6 +97,7 @@ export const pickVisibleWorkTest3DPoint = ({
     return object.isMesh===true &&
       isEffectivelyVisible(object,modelRoot) &&
       hasVisibleHitMaterial(hit) &&
+      isPointVisibleThroughViewerHorizontalClip(hit.point) &&
       !hasPresentationOnlyAncestor(object,modelRoot);
   });
   const p=visibleHit?.point;
