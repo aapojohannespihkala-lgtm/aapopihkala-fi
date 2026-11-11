@@ -1,3 +1,4 @@
+import { AIR385_SOURCE_SHA256, AIR385_COMPONENTS, isAir385SourceScene } from './privateModelAir385ToshibaServiceSourceProfile.mjs';
 import { TATE4_SOURCE_SHA256, TATE4_SOURCE_SCENE_COUNT, TATE4_BUILDING_SCENES, resolveTate4TechnicalNode } from './privateModelC80TateInteriorLayerSourceProfile.mjs';
 import { TATE3_SOURCE_SHA256, TATE3_SOURCE_SCENE_COUNT, TATE3_BUILDING_SCENES, resolveTate3TechnicalNode } from './privateModelC80TateThreeDeltaLayerSourceProfile.mjs';
 import { TATE_SOURCE_SHA256, TATE_SOURCE_SCENE_COUNT, TATE_BUILDING_SCENES, resolveTateTechnicalNode } from './privateModelC80P02TateLayerSourceProfile.mjs';
@@ -296,6 +297,33 @@ const v26Scenes = { '1F': 174, '2F': 162, BOTH: 175 } as const;
 const v26Device = (context: TechnicalSystemsContext, binding: TechnicalSourceNode): {
   id: TechnicalSystemId; scope: Scope;
 } | null => {
+  // AIR385 classifies ONLY the three independently evidenced ventilation
+  // roots. The Toshiba casing and its non-physical filter-motion overlay
+  // are deliberately NOT assigned to the duct/airflow layer.
+  if (context.loadedGlbSha256 === AIR385_SOURCE_SHA256) {
+    if (!isAir385SourceScene(context.sourceJson, context.loadedGlbSha256, context.sourceSceneIndex))
+      return null;
+    if (context.sourceSceneIndex === 384) return null;
+    const allowed = new Set<number>([
+      AIR385_COMPONENTS.wardrobeValve.node,
+      AIR385_COMPONENTS.sealedDuct.node,
+      AIR385_COMPONENTS.storageVent.node,
+    ]);
+    const sourceRoots = context.sourceJson?.scenes?.[context.sourceSceneIndex]?.nodes;
+    if (!sourceRoots) return null;
+    const visited = new Set<number>();
+    let node: number | null = binding.nodeIndex;
+    while (node !== null && !visited.has(node)) {
+      if (allowed.has(node) && sourceRoots.includes(node))
+        return { id:'technical-ventilation',
+          scope:{apartment:'D',storey:'1F',phase:'ACTIVE_IN_SELECTED_WORKTEST'} };
+      visited.add(node);
+      const source = context.sourceNodes.find(candidate =>
+        candidate.sceneIndex === context.sourceSceneIndex && candidate.nodeIndex === node);
+      node = source?.parentNodeIndex ?? null;
+    }
+    return null;
+  }
   const h20Optin = context.loadedGlbSha256 === V90_H20_SOURCE_SHA256;
   const ivFocus = context.loadedGlbSha256 === V90_IV_P04_SOURCE_SHA256;
   const integratedScenes = context.loadedGlbSha256 === TATE4_SOURCE_SHA256 ? TATE4_BUILDING_SCENES : context.loadedGlbSha256 === TATE3_SOURCE_SHA256 ? TATE3_BUILDING_SCENES : context.loadedGlbSha256 === TATE_SOURCE_SHA256 ? TATE_BUILDING_SCENES : context.loadedGlbSha256 === P02_SOURCE_SHA256 ? P02_BUILDING_SCENES : ivFocus ? V90_IV_P04_BUILDING_SCENES : h20Optin ? V90_H20_BUILDING_SCENES : context.loadedGlbSha256 === V93_H35H38_SOURCE_SHA256 ? V93_H35H38_BUILDING_SCENES : context.loadedGlbSha256 === V92_SOURCE_SHA256 ? V92_BUILDING_SCENES : context.loadedGlbSha256 === V91_SOURCE_SHA256 ? V91_BUILDING_SCENES : context.loadedGlbSha256 === V90_SOURCE_SHA256 ? V90_BUILDING_SCENES : context.loadedGlbSha256 === V89_SOURCE_SHA256 ? V89_BUILDING_SCENES : context.loadedGlbSha256 === V88_SOURCE_SHA256 ? V88_BUILDING_SCENES : context.loadedGlbSha256 === V87_SOURCE_SHA256 ? V87_BUILDING_SCENES : context.loadedGlbSha256 === V86_SOURCE_SHA256 ? V86_BUILDING_SCENES : context.loadedGlbSha256 === V85_SOURCE_SHA256 ? V85_BUILDING_SCENES : context.loadedGlbSha256 === V84_SOURCE_SHA256 ? V84_BUILDING_SCENES : context.loadedGlbSha256 === V83_SOURCE_SHA256 ? V83_BUILDING_SCENES : context.loadedGlbSha256 === V82_SOURCE_SHA256 ? V82_BUILDING_SCENES

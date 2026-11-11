@@ -1,3 +1,4 @@
+import { AIR385_SOURCE_SHA256, isAir385SourceScene } from './privateModelAir385ToshibaServiceSourceProfile.mjs';
 import { TATE4_SOURCE_SHA256, TATE4_SOURCE_SCENE_COUNT, TATE4_FLOORS, TATE4_BUILDING_PARTS, TATE4_BUILDING_SCENES } from './privateModelC80TateInteriorLayerSourceProfile.mjs';
 import { TATE3_SOURCE_SHA256, TATE3_SOURCE_SCENE_COUNT, TATE3_FLOORS, TATE3_BUILDING_PARTS, TATE3_BUILDING_SCENES } from './privateModelC80TateThreeDeltaLayerSourceProfile.mjs';
 import { TATE_SOURCE_SHA256, TATE_SOURCE_SCENE_COUNT, TATE_FLOORS, TATE_BUILDING_PARTS, TATE_BUILDING_SCENES } from './privateModelC80P02TateLayerSourceProfile.mjs';
@@ -480,6 +481,11 @@ export function resolveBuildingPartLayerBindings(input) {
   }
   if (!Number.isInteger(sceneIndex) || gltf?.scenes?.[sceneIndex] !== scene)
     return unavailable('SCENE_MISMATCH', scene);
+  // AIR385 is a different GLB. Refuse inherited physical part identities and
+  // malformed scene roots rather than trusting a lookalike parent scene.
+  if (String(loadedSourceSha256).toLowerCase() === AIR385_SOURCE_SHA256 &&
+      !isAir385SourceScene(gltf?.parser?.json, AIR385_SOURCE_SHA256, sceneIndex, floor))
+    return unavailable('AIR385_SOURCE_SCENE_MISMATCH', scene);
   const hierarchy = makeNodeHierarchy(gltf?.parser?.json, sceneIndex);
   const associations = gltf?.parser?.associations;
   if (!hierarchy || !(associations instanceof Map) || typeof scene?.traverse !== 'function')
