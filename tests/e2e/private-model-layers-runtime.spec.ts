@@ -660,7 +660,7 @@ test(`exact ${model.version} viewer: D upstairs, ghost walls, supported IV, rese
     if (model.version === 'TATE4') {
       // Expose the released Savo through the normal visibility controls.
       await page.locator('#layers-button').click();
-      for (const id of ['architecture-walls','architecture-ceilings','roof'])
+      for (const id of ['architecture-walls','architecture-ceilings'])
         await page.locator('[data-layer-node="'+id+'"] [data-layer-mode="hidden"]').click();
       await page.locator('#edge-mode-select').selectOption('none');
       await page.locator('#layers-button').click();
