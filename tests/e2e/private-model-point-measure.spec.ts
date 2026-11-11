@@ -135,3 +135,68 @@ test('point in model shows XYZ and a persistent screenshot marker without changi
   await expect(panel).toBeHidden();
   await expect(page.locator('#point-measure-tool-button')).toHaveText('Mittaa 3D');
 });
+
+/** Screenshot pixel proof: real WebGL marker, not just the DOM picked state.
+ * Synthetic geometry cannot establish production-source or as-built accuracy.
+ */
+test('point in model screenshot pixel proof: real WebGL pin and readable XYZ', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 800 });
+  const model = makeTriangleGlb();
+  await page.route('**/private-model/model.glb', (route) =>
+    route.fulfill({ status: 200, contentType: 'model/gltf-binary', body: model }),
+  );
+  await page.goto('/private-model/');
+  await expect(page.getByRole('status').first()).toHaveText('Malli ladattu');
+
+  const canvas = page.locator('#private-model-canvas');
+  await page.locator('#point-pick-tool-button').click();
+  await expect(page.locator('#point-pick-panel')).toBeVisible();
+  const bounds = await canvas.boundingBox();
+  expect(bounds).not.toBeNull();
+  if (!bounds) return;
+  const cx = Math.round(bounds.x + bounds.width / 2);
+  const cy = Math.round(bounds.y + bounds.height / 2);
+  const before = await page.screenshot({ animations: 'disabled', scale: 'css' });
+  await canvas.click({ position: { x: bounds.width / 2, y: bounds.height / 2 } });
+  await expect(canvas).toHaveAttribute('data-point-pick-state', 'picked');
+  await expect(page.locator('#point-pick-main')).toHaveText(/^X .+ m · Y .+ m · Z .+ m$/);
+  // Allow Three.js to render the overlay before reading actual screenshot pixels.
+  await page.evaluate(() => new Promise<void>(resolve =>
+    requestAnimationFrame(() => requestAnimationFrame(() => resolve()))));
+  const after = await page.screenshot({ animations: 'disabled', scale: 'css' });
+
+  const pixels = await page.evaluate(async ({ before64, after64, cx, cy }) => {
+    const countPin = async (source: string) => {
+      const img = new Image();
+      img.src = 'data:image/png;base64,' + source;
+      await img.decode();
+      const canvas = document.createElement('canvas');
+      canvas.width = img.naturalWidth;
+      canvas.height = img.naturalHeight;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) throw new Error('2D screenshot decoder unavailable');
+      ctx.drawImage(img, 0, 0);
+      const x = Math.max(0, cx - 12);
+      const y = Math.max(0, cy - 12);
+      const w = Math.min(25, canvas.width - x);
+      const h = Math.min(25, canvas.height - y);
+      const data = ctx.getImageData(x, y, w, h).data;
+      let yellow = 0;
+      for (let i = 0; i < data.length; i += 4) {
+        if (data[i] > 220 && data[i + 1] > 140 &&
+            data[i + 1] < 238 && data[i + 2] < 150 && data[i + 3] > 200) yellow++;
+      }
+      return yellow;
+    };
+    return { before: await countPin(before64), after: await countPin(after64) };
+  }, {
+    before64: before.toString('base64'),
+    after64: after.toString('base64'),
+    cx, cy,
+  });
+  // The screenshot, not a canvas dataset flag, must contain the marker.
+  expect(pixels.after).toBeGreaterThanOrEqual(3);
+  expect(pixels.after).toBeGreaterThan(pixels.before);
+  await test.info().attach('point-pick-synthetic-webgl-screenshot.png',
+    { body: after, contentType: 'image/png' });
+});
