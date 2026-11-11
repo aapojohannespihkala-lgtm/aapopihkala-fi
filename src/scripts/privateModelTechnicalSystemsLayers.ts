@@ -1,4 +1,5 @@
 import { AIR385_SOURCE_SHA256, AIR385_COMPONENTS, isAir385SourceScene } from './privateModelAir385ToshibaServiceSourceProfile.mjs';
+import { MJ79_SOURCE_SHA256, MJ79_SOCKETS, isMJ79SourceScene } from './privateModelMJ79ExxactSourceProfile.mjs';
 import { MJ84_SOURCE_SHA256, MJ84_COMPONENTS, isMJ84SourceScene } from './privateModelMJ84KsoSourceProfile.mjs';
 import { TATE4_SOURCE_SHA256, TATE4_SOURCE_SCENE_COUNT, TATE4_BUILDING_SCENES, resolveTate4TechnicalNode } from './privateModelC80TateInteriorLayerSourceProfile.mjs';
 import { TATE3_SOURCE_SHA256, TATE3_SOURCE_SCENE_COUNT, TATE3_BUILDING_SCENES, resolveTate3TechnicalNode } from './privateModelC80TateThreeDeltaLayerSourceProfile.mjs';
@@ -299,6 +300,24 @@ const v26Scenes = { '1F': 174, '2F': 162, BOTH: 175 } as const;
 const v26Device = (context: TechnicalSystemsContext, binding: TechnicalSourceNode): {
   id: TechnicalSystemId; scope: Scope;
 } | null => {
+  // MJ79: only the two opt-in angled double-outlet roots (and their children)
+  // belong to the electrical layer, never the old schematic proxies or media jack.
+  if (context.loadedGlbSha256 === MJ79_SOURCE_SHA256) {
+    if (!isMJ79SourceScene(context.sourceJson, context.loadedGlbSha256, context.sourceSceneIndex))
+      return null;
+    const allowed=new Set<number>(MJ79_SOCKETS.map(part=>part.root));
+    const visited=new Set<number>();
+    let node: number | null = binding.nodeIndex;
+    while(node!==null&&!visited.has(node)) {
+      if(allowed.has(node))
+        return {id:'technical-electrical',scope:{apartment:'D',storey:'1F',phase:'ACTIVE_IN_SELECTED_WORKTEST'}};
+      visited.add(node);
+      const source=context.sourceNodes.find(candidate =>
+        candidate.sceneIndex===context.sourceSceneIndex && candidate.nodeIndex===node);
+      node=source?.parentNodeIndex ?? null;
+    }
+    return null;
+  }
   // Exact MJ49 focus: only five active source roots, no physical airflow claim.
   if (context.loadedGlbSha256 === V93_MJ49_SOURCE_SHA256) {
     if (!isV93MJ49SavoNSScene(context.sourceJson, context.loadedGlbSha256, context.sourceSceneIndex)) return null;

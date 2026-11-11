@@ -1,4 +1,5 @@
 import { AIR385_SOURCE_SHA256, isAir385SourceScene } from './privateModelAir385ToshibaServiceSourceProfile.mjs';
+import { MJ79_SOURCE_SHA256, isMJ79SourceScene } from './privateModelMJ79ExxactSourceProfile.mjs';
 import { MJ84_SOURCE_SHA256, isMJ84SourceScene } from './privateModelMJ84KsoSourceProfile.mjs';
 import { TATE4_SOURCE_SHA256, TATE4_SOURCE_SCENE_COUNT, TATE4_FLOORS, TATE4_BUILDING_PARTS, TATE4_BUILDING_SCENES } from './privateModelC80TateInteriorLayerSourceProfile.mjs';
 import { TATE3_SOURCE_SHA256, TATE3_SOURCE_SCENE_COUNT, TATE3_FLOORS, TATE3_BUILDING_PARTS, TATE3_BUILDING_SCENES } from './privateModelC80TateThreeDeltaLayerSourceProfile.mjs';
@@ -498,6 +499,11 @@ export function resolveBuildingPartLayerBindings(input) {
   if (String(loadedSourceSha256).toLowerCase() === MJ84_SOURCE_SHA256 &&
       !isMJ84SourceScene(gltf?.parser?.json, MJ84_SOURCE_SHA256, sceneIndex, floor))
     return unavailable('MJ84_SOURCE_SCENE_MISMATCH', scene);
+  // Distinct MJ79 raw GLB: only exact PHOTO12 COW scenes receive source layers.
+  // Refuse stale parent scenes or resurrected PR03/PR05 schematic proxies.
+  if (String(loadedSourceSha256).toLowerCase() === MJ79_SOURCE_SHA256 &&
+      !isMJ79SourceScene(gltf?.parser?.json, MJ79_SOURCE_SHA256, sceneIndex, floor))
+    return unavailable('MJ79_SOURCE_SCENE_MISMATCH', scene);
   const hierarchy = makeNodeHierarchy(gltf?.parser?.json, sceneIndex);
   const associations = gltf?.parser?.associations;
   if (!hierarchy || !(associations instanceof Map) || typeof scene?.traverse !== 'function')
