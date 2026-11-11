@@ -34,6 +34,8 @@ test('selection cards use the actual scene parent path and exact copied source l
  for(const i of [11904,11907,11909,receipt.adapter,12057]){
   const result=resolver(objectMap.get(i));assert.equal(result.state,'matched');assert.ok(result.cards[0].sources.length>0);assert.match(result.cards[0].status,/WORK_TEST/);
  }
+ const guarded=objectMap.get(11904),savedLinks=guarded.userData.sourceLinks;
+ guarded.userData.sourceLinks=[];assert.equal(resolver(guarded).state,'mismatch');guarded.userData.sourceLinks=savedLinks;
  const selected=objectMap.get(receipt.adapter);selected.parent=objectMap.get(11908);
  assert.equal(resolver(selected).state,'mismatch');
  assert.equal(createSourceCardResolver(gltf,receipt.sourceSHA256.base,null)(objectMap.get(11904)).state,'unavailable');
@@ -49,4 +51,13 @@ test('wrong mesh, parent, source links, scene order and old source identity fail
  const result=resolveBuildingPartLayerBindings({gltf:{},expectedSourceSha256:SHA,loadedSourceSha256:receipt.sourceSHA256.base,sceneIndex:350,activeSceneRoot:null,area:'D',floor:'1F'});
  assert.equal(result.sourceVerified,false);
  const j=fixture();const c=CARDS[352][receipt.adapter];j.nodes[c.linkNode].extras.sourceLinks=[];assert.equal(resolveTate4CardNode(j,352,receipt.adapter),null);
+});
+
+test('MJ64 rehosted connection ports preserve all 15/15/30 exact water anchors',()=>{
+ for(const [scene,ids] of Object.entries(receipt.waterConnectionNodes)){
+  assert.equal(ids.length,scene==='352'?30:15);assert.equal(new Set(ids).size,ids.length);
+  for(const n of ids){assert.equal(TECH[scene][n].id,'technical-water');assert.ok(resolveTate4TechnicalNode(fixture(),Number(scene),n));}
+ }
+ assert.ok(!receipt.waterConnectionNodes[350].some(n=>n>=11678&&n<=11707));
+ assert.equal(receipt.waterConnectionNodes[352].filter(n=>n>=11678&&n<=11707).length,15);
 });

@@ -659,7 +659,13 @@ test(`exact ${model.version} viewer: D upstairs, ghost walls, supported IV, rese
     const clicks = [[.5,.5],[.4,.5],[.6,.5],[.5,.4],[.5,.6],[.35,.4],[.65,.6]];
     if (model.version === 'TATE4') for (const y of [.25,.35,.45,.55,.65,.75]) for (const x of [.25,.35,.45,.55,.65]) clicks.push([x,y]);
     for (const [x,y] of clicks) {
-      await canvas.click({position:{x:box.width*x,y:box.height*y}});
+      // A previous real hit opens an overlay that can cover the next raycast.
+      // Dismiss it through the normal UI before selecting another object.
+      if (model.version === 'TATE4' && await selection.isVisible()) {
+        await page.locator('#clear-selection-button').click();
+        await expect(selection).toBeHidden();
+      }
+      await canvas.click({position:{x:box.width*x,y:box.height*y},timeout:10_000});
       if (await selection.isVisible() && (model.version !== 'TATE4' ||
           await page.locator('#selection-source-evidence').getAttribute('data-state') === 'matched' &&
           await page.locator('#selection-source-evidence .source-evidence-sources a').count() > 0)) break;
@@ -931,7 +937,12 @@ test(`exact ${model.version} viewer: D upstairs, ghost walls, supported IV, rese
         for (const child of gltf.nodes[node].children ?? []) walk(child);
       };
       gltf.scenes[Number(index)].nodes.forEach(walk);
-      const additions = [...active].filter(node => node >= 11678 && node <= 11707);
+      const waterReceipt = model.version === 'TATE4'
+        ? JSON.parse(readFileSync('tests/fixtures/c80-tate-interior-source-receipt.json','utf8')) : null;
+      if (waterReceipt) expect(waterReceipt.sourceSha256).toBe(sha);
+      const additions: number[] = waterReceipt ? waterReceipt.waterConnectionNodes[index]
+        : [...active].filter(node => node >= 11678 && node <= 11707);
+      for (const node of additions) expect(active.has(node),'Exact source water connection '+node).toBe(true);
       expect(additions).toHaveLength(floor === 'BOTH' ? 30 : 15);
       for (const node of additions) {
         expect(resolveExactTechnicalNode(gltf, Number(index), node)?.id).toBe('technical-water');
