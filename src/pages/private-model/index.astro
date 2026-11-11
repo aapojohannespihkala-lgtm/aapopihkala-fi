@@ -5763,11 +5763,42 @@ const title = 'Private 3D viewer';
         }
       };
 
+      const computeContentFitBounds = (sceneRoot: any) => {
+        delete canvas.dataset.p02ContentFit;
+        // D camera fitting excludes P02's distant terrain/reference networks.
+        // Reuse the existing SHA/scene/node/mesh/parent-bound Layers inventory.
+        // Visibility, picking, source geometry and WHOLE framing stay unchanged.
+        if (mainViewScope?.active && layersLoadedSha === P02_SOURCE_SHA256 &&
+            layersExpectedSha === P02_SOURCE_SHA256 && layersGltf?.parser?.json) {
+          const sceneIndex = layersGltf.scenes?.indexOf(sceneRoot);
+          if (Number.isInteger(sceneIndex) && sceneIndex >= 0) {
+            const building = resolveBuildingPartLayerBindings({
+              gltf: sourceNodeModel(layersGltf),
+              expectedSourceSha256: P02_SOURCE_SHA256,
+              loadedSourceSha256: P02_SOURCE_SHA256,
+              sceneIndex, activeSceneRoot: sceneRoot, area: 'D', floor: mainViewScope.floor,
+            });
+            const box = new THREE.Box3();
+            for (const binding of building.bindings) {
+              if (!binding.id.startsWith('architecture-') ||
+                  !isEffectivelyVisible(binding.root, sceneRoot)) continue;
+              const bounds = computeVisibleBounds(binding.root);
+              if (bounds) box.union(bounds);
+            }
+            if (!box.isEmpty()) {
+              canvas.dataset.p02ContentFit = 'source-bound-architecture';
+              return box;
+            }
+          }
+        }
+        return computeVisibleBounds(sceneRoot, true, true);
+      };
+
       const refreshFullModelFitMetrics = (sceneRoot: any = fullModelScene) => {
         if (mainViewScope && 'isSourceScene' in mainViewScope) sceneRoot = mainViewScope.selectedScene;
         if (!sceneRoot) return false;
 
-        const box = computeVisibleBounds(sceneRoot, true, true);
+        const box = computeContentFitBounds(sceneRoot);
         if (!box) return false;
 
         box.getCenter(modelCenter);
@@ -5826,7 +5857,7 @@ const title = 'Private 3D viewer';
         }
         const root = 'isSourceScene' in mainViewScope
           ? mainViewScope.selectedScene : (modelRoot.children[0] ?? fullModelScene);
-        const box = root ? computeVisibleBounds(root, true, true) : null;
+        const box = root ? computeContentFitBounds(root) : null;
         if (!box) return;
         const canvasRect = canvas.getBoundingClientRect();
         const W = canvasRect.width, H = canvasRect.height;
