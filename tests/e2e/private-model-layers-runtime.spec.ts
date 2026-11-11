@@ -306,10 +306,13 @@ test(`exact ${model.version} viewer: D upstairs, ghost walls, supported IV, rese
   const production = process.env[model.productionEnv] === '1';
   if (production) expect(sourcePath, 'Protected full-source SHA readback is required').toBeTruthy();
   test.skip(!sourcePath, `Actual private ${model.version} bytes are supplied only locally or on trusted main.`);
+  const tateSwitchOnly = model.version === 'TATE' && process.env.YLIS_TATE_SWITCH_ONLY === '1';
+  if (tateSwitchOnly) expect(production, 'Scoped switching uses the protected production viewer').toBe(true);
+  let switchedP02Verified = false;
   const depthProbe = model.version === 'V69P12R1' && process.env.YLIS_C008_DEPTH === '1';
   // The depth pass adds 16 independent screenshot pairs to the base lifecycle.
   // Keep its full bounded capture within the trusted job's 30-minute limit.
-  test.setTimeout(depthProbe ? 24 * 60_000 : 540_000);
+  test.setTimeout(depthProbe || model.version === 'TATE' ? 24 * 60_000 : 540_000);
   const source = readFileSync(sourcePath!);
   expect(source.length).toBe(model.bytes);
   expect(createHash('sha256').update(source).digest('hex')).toBe(sha);
@@ -347,6 +350,13 @@ test(`exact ${model.version} viewer: D upstairs, ghost walls, supported IV, rese
         expect(bytes.length).toBe(source.length);
         expect(createHash('sha256').update(bytes).digest('hex')).toBe(sha);
         sourceVerified = true;
+      }
+      if (model.version === 'TATE' && new URL(route.request().url()).pathname ===
+          '/private-model/work-test/c80-p02-water-integrated-20261111.glb') {
+        const bytes = await response.body();
+        expect(bytes.length).toBe(52535692);
+        expect(createHash('sha256').update(bytes).digest('hex')).toBe('db5ce3d7ef4c0bc8910de7f46df80029617b37d38ff4ddccd330cf70a2818a2a');
+        switchedP02Verified = true;
       }
       await route.fulfill({ response });
     });
@@ -400,6 +410,84 @@ test(`exact ${model.version} viewer: D upstairs, ghost walls, supported IV, rese
   await page.locator('#layers-button').click();
   const preset = page.getByRole('combobox', { name: 'Näkymän esiasetus', exact: true });
   await expect(preset).toBeVisible();
+  const verifyTateModelSwitch = async () => {
+    const receipts: any[] = [];
+    const closeLayers = async () => {
+      if (await page.locator('#layers-button').getAttribute('aria-expanded') === 'true')
+        await page.locator('#layers-button').click();
+    };
+    const openModelMenu = async () => {
+      await closeLayers();
+      if (await page.locator('#model-menu').getAttribute('open') === null)
+        await page.locator('#model-menu > summary').click();
+    };
+    const verifyDFit = async (label: string, expectedSha: string, scene: string) => {
+      await expect(canvas).toHaveAttribute('data-layers-source-sha256', expectedSha);
+      if (await page.locator('#layers-button').getAttribute('aria-expanded') !== 'true')
+        await page.locator('#layers-button').click();
+      // Manual source loads deliberately start at Whole building. Select D
+      // explicitly before asserting the D-only architecture fit contract.
+      await preset.selectOption('d-2f');
+      await expect(canvas).toHaveAttribute('data-main-view-area', 'D');
+      await expect(canvas).toHaveAttribute('data-main-view-floor', '2F');
+      await expect(canvas).toHaveAttribute('data-layers-source-scene-index', scene);
+      await closeLayers();
+      await page.locator('#more-menu > summary').click();
+      await page.locator('#fit-button').click();
+      for (const viewport of [desktopViewport, { width: 390, height: 844 }, desktopViewport]) {
+        await page.setViewportSize(viewport);
+        await expect(canvas).toHaveAttribute('data-p02-content-fit', 'source-bound-architecture');
+        await expect(canvas).toHaveAttribute('data-layers-source-scene-index', scene);
+        await expect(canvas).toHaveAttribute('data-main-view-floor', '2F');
+        await expect.poll(async () => Number(await canvas.getAttribute('data-fit-radius'))).toBeLessThan(12);
+        const box = await canvas.boundingBox();
+        expect(box!.width).toBeGreaterThan(0);
+        expect(box!.width).toBeLessThanOrEqual(viewport.width);
+      }
+      const receipt = { label, sourceSha256: expectedSha, scene: Number(scene),
+        area: await canvas.getAttribute('data-main-view-area'),
+        radius: Number(await canvas.getAttribute('data-fit-radius')), desktopMobileResize: true };
+      receipts.push(receipt);
+      writeFileSync(info.outputPath('tate-model-switch.json'), JSON.stringify({
+        proofPhase: tateSwitchOnly ? 'model-switch' : 'full', production, receipts, humanReview: 'NOT_RUN',
+      }, null, 2));
+      await page.screenshot({ path: info.outputPath('tate-switch-' + label.toLowerCase() + '.png') });
+    };
+    await verifyDFit('TATE-initial', sha, model.secondFloor);
+    await openModelMenu();
+    await page.locator('#work-test-select').selectOption('c80-p02-water-integrated-20261111');
+    await page.locator('#work-test-button').click();
+    await expect(canvas).toHaveAttribute('data-layers-source-sha256', 'db5ce3d7ef4c0bc8910de7f46df80029617b37d38ff4ddccd330cf70a2818a2a', { timeout: 120_000 });
+    if (production) expect(switchedP02Verified).toBe(true);
+    await verifyDFit('P02', 'db5ce3d7ef4c0bc8910de7f46df80029617b37d38ff4ddccd330cf70a2818a2a', '339');
+    await openModelMenu();
+    await page.locator('#current-model-button').click();
+    await expect(canvas).toHaveAttribute('data-model-source', 'current', { timeout: 120_000 });
+    receipts.push({ label: 'CURRENT', sourceSha256: await canvas.getAttribute('data-layers-source-sha256') });
+    await openModelMenu();
+    await page.locator('#work-test-select').selectOption(candidateId);
+    await page.locator('#work-test-button').click();
+    await expect(canvas).toHaveAttribute('data-p137e-loaded-candidate-id', candidateId, { timeout: 120_000 });
+    await expect(canvas).toHaveAttribute('data-work-test-review-mode', candidateId + '-review');
+    await verifyDFit('TATE-restored', sha, model.secondFloor);
+    const webgl = await canvas.evaluate((element: HTMLCanvasElement) => {
+      const gl = element.getContext('webgl2');
+      return { available: !!gl, lost: gl?.isContextLost(), error: gl?.getError() };
+    });
+    expect(webgl).toEqual({ available: true, lost: false, error: 0 });
+    expect(errors).toEqual([]);
+    const result = { proofPhase: tateSwitchOnly ? 'model-switch' : 'full', production,
+      sourceSha256: sha, sourceVerified, switchedP02Verified, reviewUrl: page.url(),
+      modelSwitch: ['TATE', 'P02', 'CURRENT', 'TATE'], receipts, webgl, pageErrors: errors, humanReview: 'NOT_RUN' };
+    writeFileSync(info.outputPath('tate-model-switch.json'), JSON.stringify(result, null, 2));
+    console.log(JSON.stringify(result));
+  };
+  if (tateSwitchOnly) {
+    // Same trusted-main authentication and full-source readback, only the
+    // remaining switching phase. The default full test still runs every gate.
+    await verifyTateModelSwitch();
+    return;
+  }
   await preset.selectOption('d-2f');
   await expect(canvas).toHaveAttribute('data-main-view-floor', '2F');
   await expect(canvas).toHaveAttribute('data-layers-source-scene-index', model.secondFloor);
@@ -804,6 +892,12 @@ test(`exact ${model.version} viewer: D upstairs, ghost walls, supported IV, rese
       await expect(canvas).toHaveAttribute('data-layers-source-sha256', sha);
       await expect(canvas).toHaveAttribute('data-p02-content-fit', 'source-bound-architecture');
       expect(Number(await canvas.getAttribute('data-fit-radius'))).toBeLessThan(12);
+      if (model.version === 'TATE') {
+        // Inspect authored material pixels separately from derived edge overlays.
+        // The default-edge desktop/mobile lifecycle above remains unchanged.
+        await page.locator('#edge-mode-select').selectOption('none');
+        await expect(canvas).toHaveAttribute('data-edge-mode','none');
+      }
       const active = new Set<number>();
       const walk = (node: number) => {
         if (active.has(node)) return;
@@ -902,9 +996,12 @@ test(`exact ${model.version} viewer: D upstairs, ghost walls, supported IV, rese
             return changed;
           },{visible:visible.toString('base64'),hidden:hidden.toString('base64')});
           systemPixels[id]=changed;
+          Object.assign(p02Evidence.at(-1),{systemPixels});
+          writeFileSync(info.outputPath('tate-system-pixels.json'),JSON.stringify(p02Evidence,null,2));
+          expect(changed,id+' must affect actual protected WebGL pixels').toBeGreaterThan(0);
           await page.locator('#layers-button').click();
           await control.locator('[data-layer-mode="visible"]').click();
-          expect(changed,id+' must affect actual protected WebGL pixels').toBeGreaterThan(0);
+          await expect(control.locator('[data-layer-mode="visible"]')).toHaveAttribute('aria-pressed','true');
         }
         Object.assign(p02Evidence.at(-1),{systemPixels});
         writeFileSync(info.outputPath('tate-system-pixels.json'),JSON.stringify(p02Evidence,null,2));
@@ -912,23 +1009,20 @@ test(`exact ${model.version} viewer: D upstairs, ghost walls, supported IV, rese
       await page.getByRole('button',{name:'Palauta näkyvyys'}).click();
     }
     await page.locator('#layers-button').click();
-    await page.locator('#model-menu > summary').click();
     if (model.version === 'TATE') {
-      await page.locator('#work-test-select').selectOption('c80-p02-water-integrated-20261111');
-      await page.locator('#work-test-button').click();
-      await expect(canvas).toHaveAttribute('data-layers-source-sha256','db5ce3d7ef4c0bc8910de7f46df80029617b37d38ff4ddccd330cf70a2818a2a',{timeout:120_000});
-      await expect(canvas).toHaveAttribute('data-p02-content-fit','source-bound-architecture');
-      if(await page.locator('#model-menu').getAttribute('open')===null) await page.locator('#model-menu > summary').click();
-    }
-    await page.locator('#current-model-button').click();
-    await expect(canvas).toHaveAttribute('data-model-source','current',{timeout:120_000});
-    if(await page.locator('#model-menu').getAttribute('open')===null)
+      await verifyTateModelSwitch();
+    } else {
       await page.locator('#model-menu > summary').click();
-    await page.locator('#work-test-select').selectOption(candidateId);
-    await page.locator('#work-test-button').click();
-    await expect(canvas).toHaveAttribute('data-p137e-loaded-candidate-id',candidateId,{timeout:120_000});
-    await expect(canvas).toHaveAttribute('data-layers-source-sha256',sha);
-    await expect(canvas).toHaveAttribute('data-work-test-review-mode',candidateId+'-review');
+      await page.locator('#current-model-button').click();
+      await expect(canvas).toHaveAttribute('data-model-source','current',{timeout:120_000});
+      if(await page.locator('#model-menu').getAttribute('open')===null)
+        await page.locator('#model-menu > summary').click();
+      await page.locator('#work-test-select').selectOption(candidateId);
+      await page.locator('#work-test-button').click();
+      await expect(canvas).toHaveAttribute('data-p137e-loaded-candidate-id',candidateId,{timeout:120_000});
+      await expect(canvas).toHaveAttribute('data-layers-source-sha256',sha);
+      await expect(canvas).toHaveAttribute('data-work-test-review-mode',candidateId+'-review');
+    }
     console.log(JSON.stringify({p02Production:production,sourceSha256:sha,floors:p02Evidence,
       modelSwitch:model.version === 'TATE' ? ['TATE','P02','CURRENT','TATE'] : ['P02','CURRENT','P02'],humanReview:'NOT_RUN'}));
   }
