@@ -98,7 +98,7 @@ export function isMJ84SourceScene(json, loadedSha, sceneIndex, floor=null) {
     if (roots.filter(n=>n===component.node).length !== 1 || !active.has(component.node)) return false;
     const node=json.nodes[component.node];
     if (node.name !== component.name || node.mesh !== component.mesh ||
-        node.extras?.asBuilt !== false ||
+        node.extras?.asBuilt === true ||
         node.extras?.physicalConnectionVerified !== false) return false;
   }
   return true;
