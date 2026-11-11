@@ -285,6 +285,10 @@ for (const model of [
     candidateId: 'ylisrinne-v69p12r1-sink-faucet-floor-metadata-20261105',
     sha: 'd39102890470f59d7c2a2e033851a6f3d1481a83fb6180b549acd4cbf22182b3',
     bytes: 32610084, firstFloor: '290', secondFloor: '293', bothFloors: '294', upstairsRoof: true },
+  { version: 'TATE3', sourceEnv: 'YLIS_LAYERS_TATE3_GLB', productionEnv: 'YLIS_LAYERS_TATE3_PRODUCTION',
+    candidateId: 'c80-tate-pk1-pa1-apk-20261111',
+    sha: 'bb53c85c96bc645632288c0b89c7231709791da9ee54a67d6ee44623bc0be5b0',
+    bytes: 52972084, firstFloor: '347', secondFloor: '348', bothFloors: '349', upstairsRoof: false },
   { version: 'TATE', sourceEnv: 'YLIS_LAYERS_TATE_GLB', productionEnv: 'YLIS_LAYERS_TATE_PRODUCTION',
     candidateId: 'c80-p02-tate-integrated-20261111',
     sha: '69b7adf599d63aa954b5dd93d64ae65baca5c41df7ff3d555bf3236560d9d3b4',
@@ -306,13 +310,14 @@ test(`exact ${model.version} viewer: D upstairs, ghost walls, supported IV, rese
   const production = process.env[model.productionEnv] === '1';
   if (production) expect(sourcePath, 'Protected full-source SHA readback is required').toBeTruthy();
   test.skip(!sourcePath, `Actual private ${model.version} bytes are supplied only locally or on trusted main.`);
-  const tateSwitchOnly = model.version === 'TATE' && process.env.YLIS_TATE_SWITCH_ONLY === '1';
+  const isTate = model.version === 'TATE' || model.version === 'TATE3';
+  const tateSwitchOnly = isTate && process.env.YLIS_TATE_SWITCH_ONLY === '1';
   if (tateSwitchOnly) expect(production, 'Scoped switching uses the protected production viewer').toBe(true);
   let switchedP02Verified = false;
   const depthProbe = model.version === 'V69P12R1' && process.env.YLIS_C008_DEPTH === '1';
   // The depth pass adds 16 independent screenshot pairs to the base lifecycle.
   // Keep its full bounded capture within the trusted job's 30-minute limit.
-  test.setTimeout(depthProbe || model.version === 'TATE' ? 24 * 60_000 : 540_000);
+  test.setTimeout(depthProbe || isTate ? 24 * 60_000 : 540_000);
   const source = readFileSync(sourcePath!);
   expect(source.length).toBe(model.bytes);
   expect(createHash('sha256').update(source).digest('hex')).toBe(sha);
@@ -351,7 +356,7 @@ test(`exact ${model.version} viewer: D upstairs, ghost walls, supported IV, rese
         expect(createHash('sha256').update(bytes).digest('hex')).toBe(sha);
         sourceVerified = true;
       }
-      if (model.version === 'TATE' && new URL(route.request().url()).pathname ===
+      if (isTate && new URL(route.request().url()).pathname ===
           '/private-model/work-test/c80-p02-water-integrated-20261111.glb') {
         const bytes = await response.body();
         expect(bytes.length).toBe(52535692);
@@ -496,7 +501,7 @@ test(`exact ${model.version} viewer: D upstairs, ghost walls, supported IV, rese
   await page.locator('#layers-button').click();
   await page.locator('#more-menu > summary').click();
   await page.locator('#fit-button').click();
-  if (model.version === 'P02' || model.version === 'TATE') {
+  if (model.version === 'P02' || isTate) {
     await expect(canvas).toHaveAttribute('data-p02-content-fit', 'source-bound-architecture');
     expect(Number(await canvas.getAttribute('data-fit-radius'))).toBeLessThan(12);
   }
@@ -871,13 +876,15 @@ test(`exact ${model.version} viewer: D upstairs, ghost walls, supported IV, rese
       visibleDoorPixels: Object.fromEntries(visiblePixels), coveredOpaqueControls: Object.fromEntries(coveredOpaqueControls),
       humanReview: 'NOT_RUN', production }));
   }
-  if (model.version === 'P02' || model.version === 'TATE') {
+  if (model.version === 'P02' || isTate) {
     await page.setViewportSize(desktopViewport);
     await expect(canvas).toHaveAttribute('data-work-test-review-mode', candidateId + '-review');
     const gltf = JSON.parse(source.subarray(20, 20 + source.readUInt32LE(12)).toString('utf8'));
-    expect(gltf.scenes).toHaveLength(model.version === 'TATE' ? 347 : 341);
+    expect(gltf.scenes).toHaveLength(model.version === 'TATE3' ? 350 : isTate ? 347 : 341);
     expect(gltf.asset.extras.viewerFloorScenes).toEqual({'1F':Number(model.firstFloor),'2F':Number(model.secondFloor),BOTH:Number(model.bothFloors)});
-    const resolveExactTechnicalNode = model.version === 'TATE'
+    const resolveExactTechnicalNode = model.version === 'TATE3'
+      ? (await import('../../src/scripts/privateModelC80TateThreeDeltaLayerSourceProfile.mjs')).resolveTate3TechnicalNode
+      : model.version === 'TATE'
       ? (await import('../../src/scripts/privateModelC80P02TateLayerSourceProfile.mjs')).resolveTateTechnicalNode
       : (await import('../../src/scripts/privateModelC80P02WaterLayerSourceProfile.mjs')).resolveP02TechnicalNode;
     const p02Evidence: any[] = [];
@@ -892,7 +899,7 @@ test(`exact ${model.version} viewer: D upstairs, ghost walls, supported IV, rese
       await expect(canvas).toHaveAttribute('data-layers-source-sha256', sha);
       await expect(canvas).toHaveAttribute('data-p02-content-fit', 'source-bound-architecture');
       expect(Number(await canvas.getAttribute('data-fit-radius'))).toBeLessThan(12);
-      if (model.version === 'TATE') {
+      if (isTate) {
         // Inspect authored material pixels separately from derived edge overlays.
         // The default-edge desktop/mobile lifecycle above remains unchanged.
         await page.locator('#edge-mode-select').selectOption('none');
@@ -910,11 +917,18 @@ test(`exact ${model.version} viewer: D upstairs, ghost walls, supported IV, rese
       for (const node of additions) {
         expect(resolveExactTechnicalNode(gltf, Number(index), node)?.id).toBe('technical-water');
       }
-      if (model.version === 'TATE') {
+      if (isTate) {
         for (const node of active) {
           if (node < 11721 || gltf.nodes[node].mesh === undefined) continue;
-          const id = node < 11730 ? 'technical-drainage' : node < 11739 ? 'technical-ventilation' : 'technical-electrical';
+          const id = node >= 11900 ? (node === 11909 ? 'technical-electrical' : 'technical-drainage') : node < 11730 ? 'technical-drainage' : node < 11739 ? 'technical-ventilation' : 'technical-electrical';
           expect(resolveExactTechnicalNode(gltf, Number(index), node)?.id, 'Remapped donor '+node).toBe(id);
+        }
+        if (model.version === 'TATE3') {
+          expect([...active].filter(n=>n>=11900&&n<=11906)).toHaveLength(floor==='2F'?0:7);
+          expect(active.has(11907)).toBe(floor!=='1F');
+          expect(active.has(11908)&&active.has(11909)).toBe(true);
+          expect(resolveExactTechnicalNode(gltf,Number(index),11909)?.path).toEqual([11908,11909]);
+          for (const n of [10516,10517,11429,11430,11431]) expect(active.has(n),'D7/H25 '+n).toBe(false);
         }
         for (const node of [10128,11322,11326,11328,11329,10156,10157,10158,10159,11432,11433,11434])
           expect(active.has(node),'Rejected/superseded node '+node).toBe(false);
@@ -973,7 +987,7 @@ test(`exact ${model.version} viewer: D upstairs, ghost walls, supported IV, rese
       const afterCamera=JSON.parse((await canvas.getAttribute('data-layers-camera-pose'))!);
       for(const key of ['position','quaternion','target']) for(let i=0;i<beforeCamera[key].length;i++)
         expect(afterCamera[key][i]).toBeCloseTo(beforeCamera[key][i],9);
-      if (model.version === 'TATE') {
+      if (isTate) {
         const systemPixels: Record<string,number> = {};
         for (const id of ['technical-drainage','technical-ventilation','technical-electrical']) {
           const control=page.locator('[data-layer-node="'+id+'"]');
@@ -1009,7 +1023,7 @@ test(`exact ${model.version} viewer: D upstairs, ghost walls, supported IV, rese
       await page.getByRole('button',{name:'Palauta näkyvyys'}).click();
     }
     await page.locator('#layers-button').click();
-    if (model.version === 'TATE') {
+    if (isTate) {
       await verifyTateModelSwitch();
     } else {
       await page.locator('#model-menu > summary').click();
@@ -1024,7 +1038,7 @@ test(`exact ${model.version} viewer: D upstairs, ghost walls, supported IV, rese
       await expect(canvas).toHaveAttribute('data-work-test-review-mode',candidateId+'-review');
     }
     console.log(JSON.stringify({p02Production:production,sourceSha256:sha,floors:p02Evidence,
-      modelSwitch:model.version === 'TATE' ? ['TATE','P02','CURRENT','TATE'] : ['P02','CURRENT','P02'],humanReview:'NOT_RUN'}));
+      modelSwitch:isTate ? ['TATE','P02','CURRENT','TATE'] : ['P02','CURRENT','P02'],humanReview:'NOT_RUN'}));
   }
   const webgl = await canvas.evaluate((element: HTMLCanvasElement) => {
     const gl = element.getContext('webgl2');

@@ -2520,6 +2520,7 @@ const title = 'Private 3D viewer';
       import { V90_SOURCE_SHA256 } from '../../scripts/privateModelC80R2V90LayerSourceProfile.mjs';
       import { V91_SOURCE_SHA256 } from '../../scripts/privateModelC80R2V91LayerSourceProfile.mjs';
       import { V92_SOURCE_SHA256 } from '../../scripts/privateModelC80R2V92LayerSourceProfile.mjs';
+      import { TATE3_SOURCE_SHA256 } from '../../scripts/privateModelC80TateThreeDeltaLayerSourceProfile.mjs';
       import { TATE_SOURCE_SHA256 } from '../../scripts/privateModelC80P02TateLayerSourceProfile.mjs';
       import { P02_SOURCE_SHA256 } from '../../scripts/privateModelC80P02WaterLayerSourceProfile.mjs';
       import { V93_H35H38_SOURCE_SHA256 } from '../../scripts/privateModelC80R2V93H35H38LayerSourceProfile.mjs';
@@ -5769,7 +5770,7 @@ const title = 'Private 3D viewer';
         // D camera fitting excludes P02's distant terrain/reference networks.
         // Reuse the existing SHA/scene/node/mesh/parent-bound Layers inventory.
         // Visibility, picking, source geometry and WHOLE framing stay unchanged.
-        if (mainViewScope?.active && (layersLoadedSha === P02_SOURCE_SHA256 || layersLoadedSha === TATE_SOURCE_SHA256) &&
+        if (mainViewScope?.active && (layersLoadedSha === P02_SOURCE_SHA256 || layersLoadedSha === TATE_SOURCE_SHA256 || layersLoadedSha === TATE3_SOURCE_SHA256) &&
             layersExpectedSha === layersLoadedSha && layersGltf?.parser?.json) {
           // Live resize still passes the default fullModelScene. P02's chain
           // runtime owns the selected floor scene rather than isSourceScene.
@@ -13712,7 +13713,8 @@ const title = 'Private 3D viewer';
             // Generic P02 autoload has no presentation-specific handler.
             // Stamp review identity only for its exact authenticated source.
             if (((candidate.id === 'c80-p02-water-integrated-20261111' && loadedModelSha256(gltf) === P02_SOURCE_SHA256) ||
-                 (candidate.id === 'c80-p02-tate-integrated-20261111' && loadedModelSha256(gltf) === TATE_SOURCE_SHA256)) &&
+                 (candidate.id === 'c80-p02-tate-integrated-20261111' && loadedModelSha256(gltf) === TATE_SOURCE_SHA256) ||
+                 (candidate.id === 'c80-tate-pk1-pa1-apk-20261111' && loadedModelSha256(gltf) === TATE3_SOURCE_SHA256)) &&
                 getRequestedReviewCandidateId() === candidate.id) {
               canvas.dataset.workTestReviewMode = candidate.id + '-review';
             } else delete canvas.dataset.workTestReviewMode;
@@ -14377,6 +14379,7 @@ const title = 'Private 3D viewer';
           layersLoadedSha === V87_SOURCE_SHA256 ||
           layersLoadedSha === V88_SOURCE_SHA256 ||
           layersLoadedSha === TATE_SOURCE_SHA256 ||
+          layersLoadedSha === TATE3_SOURCE_SHA256 ||
           layersLoadedSha === P02_SOURCE_SHA256 ||
           layersLoadedSha === V93_H35H38_SOURCE_SHA256 ||
           layersLoadedSha === V92_SOURCE_SHA256 ||
