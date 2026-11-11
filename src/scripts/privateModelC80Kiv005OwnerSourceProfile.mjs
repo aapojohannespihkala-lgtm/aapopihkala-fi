@@ -33,7 +33,7 @@ export const kiv005OrderedRootFnv = roots => {
   return hash.toString(16).padStart(8, '0');
 };
 const same = (a,b) => Array.isArray(a) && a.length === b.length && b.every((v,i) => a[i] === v);
-const approx = (a,b) => same(a.map(v => Math.round(v * 1e8)), b.map(v => Math.round(v * 1e8)));
+const approx = (a,b) => Array.isArray(a) && same(a.map(v => Math.round(v * 1e8)), b.map(v => Math.round(v * 1e8)));
 const sourceLinkIs = (link, role, sha, scene) =>
   link?.role === role && link?.glb_sha256 === sha && link?.sceneIndex === scene;
 // A source-only receipt, not inherited from older similarly named scenes.
@@ -68,7 +68,8 @@ export function isKiv005OwnerSourceScene(json, loadedSha, index, floor = null) {
       e?.oldKivNode !== KIV005_NODES.oldValve ||
       e?.newKivNode !== KIV005_NODES.valve ||
       !same(e?.ownerApproxPointG1M,[2.897,10.59,5.045]) ||
-      e?.wallDepthAssumptionM < 0.03 || e?.wallDepthAssumptionM > 0.04 ||
+      typeof e?.wallDepthAssumptionM !== 'number' ||
+      e.wallDepthAssumptionM < 0.03 || e.wallDepthAssumptionM > 0.04 ||
       !Array.isArray(e?.sourceLinks) || e.sourceLinks.length !== 2 ||
       !sourceLinkIs(e.sourceLinks[0],'WORK_TEST_PARENT_COMBINED',KIV005_PARENT_SHA256,expected.sourceParentScene) ||
       !sourceLinkIs(e.sourceLinks[1],'SOURCE_EXACT_KIV005_REPLACEMENT',KIV005_DONOR_SHA256,expected.donorScene))
