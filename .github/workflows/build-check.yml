@@ -186,7 +186,7 @@ jobs:
           node --test \
             tests/unit/private-model-c80-p02-water-source-profile.test.mjs \
             tests/unit/private-model-c80-p02-tate-source-profile.test.mjs \
-            tests/unit/private-model-c80-tate-three-delta-source-profile.test.mjs \
+            tests/unit/private-model-c80-tate-three-delta-source-profile.test.mjs tests/unit/private-model-c80-tate-interior-source-profile.test.mjs \
             tests/unit/check-d-scene32-preview-parity.test.mjs \
             tests/unit/check-k14-roof-crossings.test.mjs \
             tests/unit/private-model-k14-roof-view-clip.test.mjs \

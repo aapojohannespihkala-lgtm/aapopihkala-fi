@@ -285,6 +285,10 @@ for (const model of [
     candidateId: 'ylisrinne-v69p12r1-sink-faucet-floor-metadata-20261105',
     sha: 'd39102890470f59d7c2a2e033851a6f3d1481a83fb6180b549acd4cbf22182b3',
     bytes: 32610084, firstFloor: '290', secondFloor: '293', bothFloors: '294', upstairsRoof: true },
+  { version: 'TATE4', sourceEnv: 'YLIS_LAYERS_TATE4_GLB', productionEnv: 'YLIS_LAYERS_TATE4_PRODUCTION',
+    candidateId: 'c80-tate-interior-integrated-20261111',
+    sha: 'ea4050b463a886ff0cb0c7d544495e6c753d9b87e76459f134c1d439e42a215b',
+    bytes: 53872184, firstFloor: '350', secondFloor: '351', bothFloors: '352', upstairsRoof: false },
   { version: 'TATE3', sourceEnv: 'YLIS_LAYERS_TATE3_GLB', productionEnv: 'YLIS_LAYERS_TATE3_PRODUCTION',
     candidateId: 'c80-tate-pk1-pa1-apk-20261111',
     sha: 'bb53c85c96bc645632288c0b89c7231709791da9ee54a67d6ee44623bc0be5b0',
@@ -310,7 +314,7 @@ test(`exact ${model.version} viewer: D upstairs, ghost walls, supported IV, rese
   const production = process.env[model.productionEnv] === '1';
   if (production) expect(sourcePath, 'Protected full-source SHA readback is required').toBeTruthy();
   test.skip(!sourcePath, `Actual private ${model.version} bytes are supplied only locally or on trusted main.`);
-  const isTate = model.version === 'TATE' || model.version === 'TATE3';
+  const isTate = model.version === 'TATE4' || model.version === 'TATE' || model.version === 'TATE3';
   const tateSwitchOnly = isTate && process.env.YLIS_TATE_SWITCH_ONLY === '1';
   if (tateSwitchOnly) expect(production, 'Scoped switching uses the protected production viewer').toBe(true);
   let switchedP02Verified = false;
@@ -329,12 +333,13 @@ test(`exact ${model.version} viewer: D upstairs, ghost walls, supported IV, rese
   // profile in code actually delivered to this browser, not just the test checkout.
   let loadedScripts: Promise<string>[] = [];
   const rigMarker = 'C80R2_V69_P12_OPTIN__V59P12_HG14875000_LEFT_APK_PEG_CYLINDRICAL_ROUND_PHOTO_BOTH';
-  if (model.version === 'V69P12R1') page.on('response', response => {
+  if (model.version === 'V69P12R1' || model.version === 'TATE4') page.on('response', response => {
     if (response.request().resourceType() === 'script' && new URL(response.url()).origin === origin)
       loadedScripts.push(response.text().catch(() => ''));
   });
   const hasServedRigProfile = async () => {
     const scripts = await Promise.all(loadedScripts);
+    if (model.version === 'TATE4') return scripts.some(text => text.includes(sha) && text.includes('EXACT_SOURCE_RECEIPT'));
     return scripts.some(text => text.includes(rigMarker)) &&
       (process.env.YLIS_C008_DEPTH !== '1' ||
         scripts.some(text => text.includes('c80-008-observe')) &&
@@ -384,7 +389,7 @@ test(`exact ${model.version} viewer: D upstairs, ghost walls, supported IV, rese
     loadedScripts = [];
     await page.goto(reviewUrl, { waitUntil: 'domcontentloaded' });
     await expect(canvas).toHaveAttribute('data-work-test-review-autoload', 'true', { timeout: 120_000 });
-    if ((model.version !== 'V69P12R1' || await hasServedRigProfile()) &&
+    if ((model.version !== 'V69P12R1' && model.version !== 'TATE4' || await hasServedRigProfile()) &&
         await canvas.getAttribute('data-layers-runtime') === 'active' &&
         await page.locator('#layers-button').innerText() === 'Sisältö' &&
         await page.locator('[data-technical-layer-availability]').count() === 1 &&
@@ -396,6 +401,7 @@ test(`exact ${model.version} viewer: D upstairs, ghost walls, supported IV, rese
     if (production && attempt < 11) await page.waitForTimeout(10_000);
   }
   expect(sourceVerified).toBe(true);
+  if (model.version === 'TATE4') expect(await hasServedRigProfile(), 'Deployed source/card receipt must match the new actual GLB').toBe(true);
   if (model.version === 'V69P12R1') expect(await hasServedRigProfile(), 'Deployed viewer must include the exact P12 sink/faucet rig profile').toBe(true);
   await expect(canvas).toHaveAttribute('data-layers-source-sha256', sha);
   await expect(canvas).toHaveAttribute('data-layers-runtime', 'active');
@@ -642,7 +648,7 @@ test(`exact ${model.version} viewer: D upstairs, ghost walls, supported IV, rese
   await page.locator('#layers-button').click();
   await expectMobileCamera();
   await page.screenshot({ path: info.outputPath(evidencePrefix + '-2f-restored-mobile.png') });
-  if (model.version === 'V68' || model.version === 'V69' || model.version === 'K17_RAIL_HANDRAIL900' || model.version === 'V69P12R1') {
+  if (model.version === 'V68' || model.version === 'V69' || model.version === 'K17_RAIL_HANDRAIL900' || model.version === 'V69P12R1' || model.version === 'TATE4') {
     await page.setViewportSize(desktopViewport);
     await page.locator('#more-menu > summary').click();
     await page.locator('#fit-button').click();
@@ -650,18 +656,29 @@ test(`exact ${model.version} viewer: D upstairs, ghost walls, supported IV, rese
     const selection = page.locator('#selection-panel');
     const box = (await canvas.boundingBox())!;
     // Real raycast on the displayed model. No injected selection or scene handle.
-    for (const [x,y] of [[.5,.5],[.4,.5],[.6,.5],[.5,.4],[.5,.6],[.35,.4],[.65,.6]]) {
+    const clicks = [[.5,.5],[.4,.5],[.6,.5],[.5,.4],[.5,.6],[.35,.4],[.65,.6]];
+    if (model.version === 'TATE4') for (const y of [.25,.35,.45,.55,.65,.75]) for (const x of [.25,.35,.45,.55,.65]) clicks.push([x,y]);
+    for (const [x,y] of clicks) {
       await canvas.click({position:{x:box.width*x,y:box.height*y}});
-      if (await selection.isVisible()) break;
+      if (await selection.isVisible() && (model.version !== 'TATE4' ||
+          await page.locator('#selection-source-evidence').getAttribute('data-state') === 'matched' &&
+          await page.locator('#selection-source-evidence .source-evidence-sources a').count() > 0)) break;
     }
     await expect(selection).toBeVisible();
     await expect(page.locator('#selection-mesh')).not.toHaveText('-');
     const technicalScene = page.locator('#selection-metadata-list dt').filter({hasText:'Tekninen scene'}).locator('xpath=following-sibling::dd[1]');
-    const sourceSceneName = model.version === 'V69P12R1'
+    const sourceSceneName = model.version === 'V69P12R1' || model.version === 'TATE4'
       ? JSON.parse(source.subarray(20, 20 + source.readUInt32LE(12)).toString('utf8')).scenes[+model.secondFloor].name
       : model.version + '_2F';
     await expect(technicalScene).toContainText(sourceSceneName);
     await expect(canvas).toHaveAttribute('data-layers-source-sha256',sha);
+    if (model.version === 'TATE4') {
+      await expect(page.locator('#selection-source-evidence')).toHaveAttribute('data-state','matched');
+      const card=page.locator('#selection-source-evidence .source-evidence-card');
+      await expect(card).toHaveAttribute('data-source-card-id',/^TATE4:351:/);
+      expect(await card.locator('.source-evidence-sources a').count()).toBeGreaterThan(0);
+      console.log(JSON.stringify({tate4SourceCard:{sha,scene:351,card:await card.getAttribute('data-source-card-id'),selected:await page.locator('#selection-mesh').innerText(),links:await card.locator('.source-evidence-sources a').evaluateAll(nodes=>nodes.map(n=>(n as HTMLAnchorElement).href)),production}}));
+    }
     await page.screenshot({path:info.outputPath(evidencePrefix+'-actual-object-selection-desktop.png')});
     await page.locator('#clear-selection-button').click();
     await expect(selection).toBeHidden();
@@ -880,9 +897,11 @@ test(`exact ${model.version} viewer: D upstairs, ghost walls, supported IV, rese
     await page.setViewportSize(desktopViewport);
     await expect(canvas).toHaveAttribute('data-work-test-review-mode', candidateId + '-review');
     const gltf = JSON.parse(source.subarray(20, 20 + source.readUInt32LE(12)).toString('utf8'));
-    expect(gltf.scenes).toHaveLength(model.version === 'TATE3' ? 350 : isTate ? 347 : 341);
+    expect(gltf.scenes).toHaveLength(model.version === 'TATE4' ? 353 : model.version === 'TATE3' ? 350 : isTate ? 347 : 341);
     expect(gltf.asset.extras.viewerFloorScenes).toEqual({'1F':Number(model.firstFloor),'2F':Number(model.secondFloor),BOTH:Number(model.bothFloors)});
-    const resolveExactTechnicalNode = model.version === 'TATE3'
+    const resolveExactTechnicalNode = model.version === 'TATE4'
+      ? (await import('../../src/scripts/privateModelC80TateInteriorLayerSourceProfile.mjs')).resolveTate4TechnicalNode
+      : model.version === 'TATE3'
       ? (await import('../../src/scripts/privateModelC80TateThreeDeltaLayerSourceProfile.mjs')).resolveTate3TechnicalNode
       : model.version === 'TATE'
       ? (await import('../../src/scripts/privateModelC80P02TateLayerSourceProfile.mjs')).resolveTateTechnicalNode
@@ -920,15 +939,28 @@ test(`exact ${model.version} viewer: D upstairs, ghost walls, supported IV, rese
       if (isTate) {
         for (const node of active) {
           if (node < 11721 || gltf.nodes[node].mesh === undefined) continue;
+          if (model.version === 'TATE4') {
+            const profile=await import('../../src/scripts/privateModelC80TateInteriorLayerSourceProfile.mjs');
+            const expected=(profile.TATE4_TECHNICAL_NODES as Record<number, Record<number,{id:string}>>)[Number(index)]?.[node];
+            if(expected) expect(resolveExactTechnicalNode(gltf,Number(index),node)?.id).toBe(expected.id);
+            continue;
+          }
           const id = node >= 11900 ? (node === 11909 ? 'technical-electrical' : 'technical-drainage') : node < 11730 ? 'technical-drainage' : node < 11739 ? 'technical-ventilation' : 'technical-electrical';
           expect(resolveExactTechnicalNode(gltf, Number(index), node)?.id, 'Remapped donor '+node).toBe(id);
         }
-        if (model.version === 'TATE3') {
+        if (model.version === 'TATE4' || model.version === 'TATE3') {
           expect([...active].filter(n=>n>=11900&&n<=11906)).toHaveLength(floor==='2F'?0:7);
           expect(active.has(11907)).toBe(floor!=='1F');
           expect(active.has(11908)&&active.has(11909)).toBe(true);
           expect(resolveExactTechnicalNode(gltf,Number(index),11909)?.path).toEqual([11908,11909]);
           for (const n of [10516,10517,11429,11430,11431]) expect(active.has(n),'D7/H25 '+n).toBe(false);
+        }
+        if (model.version === 'TATE4') {
+          for(const n of [11592,11593,11594]) expect(active.has(n),'Old D4 inactive '+n).toBe(false);
+          expect(active.has(12076),'Single PK1/MJ64 adapter').toBe(floor!=='2F');
+          for(const n of [12043,12053,12057]) expect(active.has(n),'B47K/Savo '+n).toBe(floor!=='1F');
+          const panel=gltf.nodes[12057];
+          expect(panel.extras.integrationUVOriginCorrection).toBe('VTK_BOTTOM_LEFT_TO_GLTF_TOP_LEFT_V_ONLY');
         }
         for (const node of [10128,11322,11326,11328,11329,10156,10157,10158,10159,11432,11433,11434])
           expect(active.has(node),'Rejected/superseded node '+node).toBe(false);
