@@ -1,5 +1,7 @@
 import { AIR385_SOURCE_SHA256, isAir385SourceScene } from './privateModelAir385ToshibaServiceSourceProfile.mjs';
 import { KIV005_SOURCE_SHA256, isKiv005OwnerSourceScene } from './privateModelC80Kiv005OwnerSourceProfile.mjs';
+import { MJ79_SOURCE_SHA256, isMJ79SourceScene } from './privateModelMJ79ExxactSourceProfile.mjs';
+import { MJ84_SOURCE_SHA256, isMJ84SourceScene } from './privateModelMJ84KsoSourceProfile.mjs';
 import { TATE4_SOURCE_SHA256, TATE4_SOURCE_SCENE_COUNT, TATE4_FLOORS, TATE4_BUILDING_PARTS, TATE4_BUILDING_SCENES } from './privateModelC80TateInteriorLayerSourceProfile.mjs';
 import { TATE3_SOURCE_SHA256, TATE3_SOURCE_SCENE_COUNT, TATE3_FLOORS, TATE3_BUILDING_PARTS, TATE3_BUILDING_SCENES } from './privateModelC80TateThreeDeltaLayerSourceProfile.mjs';
 import { TATE_SOURCE_SHA256, TATE_SOURCE_SCENE_COUNT, TATE_FLOORS, TATE_BUILDING_PARTS, TATE_BUILDING_SCENES } from './privateModelC80P02TateLayerSourceProfile.mjs';
@@ -28,6 +30,7 @@ import { V91_SOURCE_SHA256, V91_SOURCE_SCENE_COUNT, V91_BUILDING_PARTS, V91_BUIL
 import { V92_SOURCE_SHA256, V92_SOURCE_SCENE_COUNT, V92_BUILDING_PARTS, V92_BUILDING_SCENES, V92_FLOORS } from './privateModelC80R2V92LayerSourceProfile.mjs';
 import { V93_MJ49_SOURCE_SHA256, isV93MJ49SavoNSScene } from './privateModelV93MJ49SavoNSKIV3SourceProfile.mjs';
 import { V93_H35H38_SOURCE_SHA256, V93_H35H38_SOURCE_SCENE_COUNT, V93_H35H38_BUILDING_PARTS, V93_H35H38_BUILDING_SCENES, V93_H35H38_FLOORS } from './privateModelC80R2V93H35H38LayerSourceProfile.mjs';
+import { V93_MJ40_SOURCE_SHA256, isV93MJ40BoschOpen90Scene } from './privateModelV93MJ40BoschOpen90SourceProfile.mjs';
 import { V90_H20_SOURCE_SHA256, V90_H20_SCENE_COUNT, V90_H20_BUILDING_PARTS, V90_H20_BUILDING_SCENES, V90_H20_FLOORS } from './privateModelC80R2V90H20LayerSourceProfile.mjs';
 import { V90_IV_P04_SOURCE_SHA256, V90_IV_P04_SCENE_COUNT, V90_IV_P04_BUILDING_PARTS, V90_IV_P04_BUILDING_SCENES, V90_IV_P04_FLOORS } from './privateModelC80R2V90IVP04LayerSourceProfile.mjs';
 import { V69P12R1_SOURCE_SHA256, V69P12R1_SOURCE_SCENE_COUNT, V69P12R1_BUILDING_PARTS, V69P12R1_BUILDING_SCENES, V69P12R1_FLOORS } from './privateModelC80R2V69P12R1LayerSourceProfile.mjs';
@@ -483,6 +486,10 @@ export function resolveBuildingPartLayerBindings(input) {
   }
   if (!Number.isInteger(sceneIndex) || gltf?.scenes?.[sceneIndex] !== scene)
     return unavailable('SCENE_MISMATCH', scene);
+  // New Bosch door root is source-only. Do not inherit old V93 part/node paths.
+  if (String(loadedSourceSha256).toLowerCase() === V93_MJ40_SOURCE_SHA256 &&
+      !isV93MJ40BoschOpen90Scene(gltf?.parser?.json, V93_MJ40_SOURCE_SHA256, sceneIndex, floor))
+    return unavailable('V93_MJ40_SOURCE_SCENE_MISMATCH', scene);
   // This SHA only authorizes the three source-exact MJ49 WORK_TEST opt-ins.
   // Never inherit unrelated V93 part bindings for an altered scene.
   if (String(loadedSourceSha256).toLowerCase() === V93_MJ49_SOURCE_SHA256 &&
@@ -499,6 +506,16 @@ export function resolveBuildingPartLayerBindings(input) {
   if (String(loadedSourceSha256).toLowerCase() === AIR385_SOURCE_SHA256 &&
       !isAir385SourceScene(gltf?.parser?.json, AIR385_SOURCE_SHA256, sceneIndex, floor))
     return unavailable('AIR385_SOURCE_SCENE_MISMATCH', scene);
+  // MJ84 keeps the 2015 T and superseded hallway proxy in history only.
+  // Do not inherit physical building-part identity across this new SHA.
+  if (String(loadedSourceSha256).toLowerCase() === MJ84_SOURCE_SHA256 &&
+      !isMJ84SourceScene(gltf?.parser?.json, MJ84_SOURCE_SHA256, sceneIndex, floor))
+    return unavailable('MJ84_SOURCE_SCENE_MISMATCH', scene);
+  // Distinct MJ79 raw GLB: only exact PHOTO12 COW scenes receive source layers.
+  // Refuse stale parent scenes or resurrected PR03/PR05 schematic proxies.
+  if (String(loadedSourceSha256).toLowerCase() === MJ79_SOURCE_SHA256 &&
+      !isMJ79SourceScene(gltf?.parser?.json, MJ79_SOURCE_SHA256, sceneIndex, floor))
+    return unavailable('MJ79_SOURCE_SCENE_MISMATCH', scene);
   const hierarchy = makeNodeHierarchy(gltf?.parser?.json, sceneIndex);
   const associations = gltf?.parser?.associations;
   if (!hierarchy || !(associations instanceof Map) || typeof scene?.traverse !== 'function')

@@ -1,5 +1,7 @@
 import { AIR385_SOURCE_SHA256, AIR385_COMPONENTS, isAir385SourceScene } from './privateModelAir385ToshibaServiceSourceProfile.mjs';
 import { KIV005_SOURCE_SHA256, KIV005_NODES, isKiv005OwnerSourceScene } from './privateModelC80Kiv005OwnerSourceProfile.mjs';
+import { MJ79_SOURCE_SHA256, MJ79_SOCKETS, isMJ79SourceScene } from './privateModelMJ79ExxactSourceProfile.mjs';
+import { MJ84_SOURCE_SHA256, MJ84_COMPONENTS, isMJ84SourceScene } from './privateModelMJ84KsoSourceProfile.mjs';
 import { TATE4_SOURCE_SHA256, TATE4_SOURCE_SCENE_COUNT, TATE4_BUILDING_SCENES, resolveTate4TechnicalNode } from './privateModelC80TateInteriorLayerSourceProfile.mjs';
 import { TATE3_SOURCE_SHA256, TATE3_SOURCE_SCENE_COUNT, TATE3_BUILDING_SCENES, resolveTate3TechnicalNode } from './privateModelC80TateThreeDeltaLayerSourceProfile.mjs';
 import { TATE_SOURCE_SHA256, TATE_SOURCE_SCENE_COUNT, TATE_BUILDING_SCENES, resolveTateTechnicalNode } from './privateModelC80P02TateLayerSourceProfile.mjs';
@@ -28,6 +30,7 @@ import { V91_SOURCE_SHA256, V91_SOURCE_SCENE_COUNT, V91_BUILDING_SCENES } from '
 import { V92_SOURCE_SHA256, V92_SOURCE_SCENE_COUNT, V92_BUILDING_SCENES } from './privateModelC80R2V92LayerSourceProfile.mjs';
 import { V93_MJ49_SOURCE_SHA256, isV93MJ49SavoNSScene } from './privateModelV93MJ49SavoNSKIV3SourceProfile.mjs';
 import { V93_H35H38_SOURCE_SHA256, V93_H35H38_SOURCE_SCENE_COUNT, V93_H35H38_BUILDING_SCENES } from './privateModelC80R2V93H35H38LayerSourceProfile.mjs';
+import { V93_MJ40_SOURCE_SHA256, isV93MJ40BoschOpen90Scene } from './privateModelV93MJ40BoschOpen90SourceProfile.mjs';
 import { V90_H20_SOURCE_SHA256, V90_H20_SCENE_COUNT, V90_H20_BUILDING_SCENES, V90_H20_FLOORS, V90_H20_OPTIN_SCENES, V90_H20_ROOT } from './privateModelC80R2V90H20LayerSourceProfile.mjs';
 import { V90_IV_P04_SOURCE_SHA256, V90_IV_P04_SCENE_COUNT, V90_IV_P04_BUILDING_SCENES, V90_IV_P04_FLOORS, V90_IV_P04_OPTIN_SCENES, V90_IV_P04_ROOT_IDS } from './privateModelC80R2V90IVP04LayerSourceProfile.mjs';
 import { V69P12R1_SOURCE_SHA256, V69P12R1_SOURCE_SCENE_COUNT, V69P12R1_BUILDING_SCENES } from './privateModelC80R2V69P12R1LayerSourceProfile.mjs';
@@ -299,6 +302,45 @@ const v26Scenes = { '1F': 174, '2F': 162, BOTH: 175 } as const;
 const v26Device = (context: TechnicalSystemsContext, binding: TechnicalSourceNode): {
   id: TechnicalSystemId; scope: Scope;
 } | null => {
+  // This alternate SHA is intentionally source-limited: classify only the
+  // exact Bosch/PA2/PK1/S1S2/neck groups, never copied legacy sourceLinks.
+  if (context.loadedGlbSha256 === V93_MJ40_SOURCE_SHA256) {
+    if (!isV93MJ40BoschOpen90Scene(context.sourceJson, context.loadedGlbSha256, context.sourceSceneIndex)) return null;
+    const sceneRoots = context.sourceJson?.scenes?.[context.sourceSceneIndex]?.nodes;
+    if (!sceneRoots) return null; // Unavailable source JSON fails closed.
+    const groups: Record<number, TechnicalSystemId> = {
+      11632: 'technical-water', 11403: 'technical-water', 11595: 'technical-drainage',
+      11604: 'technical-water', 11609: 'technical-water', 11612: 'technical-drainage',
+    };
+    const seen = new Set<number>();
+    let index: number | null = binding.nodeIndex;
+    while (index !== null && !seen.has(index)) {
+      if (Object.hasOwn(groups, index) && sceneRoots.includes(index))
+        return { id: groups[index], scope: { apartment: 'D', storey: '1F', phase: 'ACTIVE_IN_SELECTED_WORKTEST' } };
+      seen.add(index);
+      const parent = context.sourceNodes.find(node => node.sceneIndex === context.sourceSceneIndex && node.nodeIndex === index);
+      index = parent?.parentNodeIndex ?? null;
+    }
+    return null;
+  }
+  // MJ79: only the two opt-in angled double-outlet roots (and their children)
+  // belong to the electrical layer, never the old schematic proxies or media jack.
+  if (context.loadedGlbSha256 === MJ79_SOURCE_SHA256) {
+    if (!isMJ79SourceScene(context.sourceJson, context.loadedGlbSha256, context.sourceSceneIndex))
+      return null;
+    const allowed=new Set<number>(MJ79_SOCKETS.map(part=>part.root));
+    const visited=new Set<number>();
+    let node: number | null = binding.nodeIndex;
+    while(node!==null&&!visited.has(node)) {
+      if(allowed.has(node))
+        return {id:'technical-electrical',scope:{apartment:'D',storey:'1F',phase:'ACTIVE_IN_SELECTED_WORKTEST'}};
+      visited.add(node);
+      const source=context.sourceNodes.find(candidate =>
+        candidate.sceneIndex===context.sourceSceneIndex && candidate.nodeIndex===node);
+      node=source?.parentNodeIndex ?? null;
+    }
+    return null;
+  }
   // Exact MJ49 focus: only five active source roots, no physical airflow claim.
   if (context.loadedGlbSha256 === V93_MJ49_SOURCE_SHA256) {
     if (!isV93MJ49SavoNSScene(context.sourceJson, context.loadedGlbSha256, context.sourceSceneIndex)) return null;
@@ -313,6 +355,27 @@ const v26Device = (context: TechnicalSystemsContext, binding: TechnicalSourceNod
       visited.add(node);
       const parent = context.sourceNodes.find(candidate => candidate.sceneIndex === 349 && candidate.nodeIndex === node);
       node = parent?.parentNodeIndex ?? null;
+    }
+    return null;
+  }
+  // MJ84 classifies only the four opt-in owner-approx 2F KSO components.
+  // Neither the 2015 T nor the superseded hallway proxy is a 2026 duct.
+  if (context.loadedGlbSha256 === MJ84_SOURCE_SHA256) {
+    if (!isMJ84SourceScene(context.sourceJson, context.loadedGlbSha256, context.sourceSceneIndex))
+      return null;
+    const roots = context.sourceJson?.scenes?.[context.sourceSceneIndex]?.nodes;
+    if (!Array.isArray(roots)) return null;
+    const allowed = new Set<number>(Object.values(MJ84_COMPONENTS).map(part => part.node));
+    const visited = new Set<number>();
+    let node: number | null = binding.nodeIndex;
+    while (node !== null && !visited.has(node)) {
+      if (allowed.has(node) && roots.includes(node))
+        return { id:'technical-ventilation',
+          scope:{apartment:'D',storey:'2F',phase:'ACTIVE_IN_SELECTED_WORKTEST'} };
+      visited.add(node);
+      const source = context.sourceNodes.find(candidate =>
+        candidate.sceneIndex === context.sourceSceneIndex && candidate.nodeIndex === node);
+      node = source?.parentNodeIndex ?? null;
     }
     return null;
   }
