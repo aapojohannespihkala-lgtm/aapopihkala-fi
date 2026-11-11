@@ -202,6 +202,7 @@ jobs:
             tests/unit/private-model-source-scene-rehydrate.test.mjs \
             tests/unit/private-model-c80r2-chain-scenes.test.mjs \
             tests/unit/private-model-v93-mj49-owner-ns-savo-source-profile.test.mjs \
+            tests/unit/private-model-v93-mj40-bosch-open90-source-profile.test.mjs \
             tests/unit/private-model-air385-toshiba-service-source-profile.test.mjs \
             tests/unit/private-model-mj84-kso-source-profile.test.mjs \
             tests/unit/private-model-mj84-hollow-source-profile.test.mjs \
