@@ -404,6 +404,10 @@ test(`exact ${model.version} viewer: D upstairs, ghost walls, supported IV, rese
   await page.locator('#layers-button').click();
   await page.locator('#more-menu > summary').click();
   await page.locator('#fit-button').click();
+  if (model.version === 'P02') {
+    await expect(canvas).toHaveAttribute('data-p02-content-fit', 'source-bound-architecture');
+    expect(Number(await canvas.getAttribute('data-fit-radius'))).toBeLessThan(12);
+  }
   await page.locator('#layers-button').click();
   await expect(page.locator('[data-technical-layer-availability] [data-technical-layer="technical-ventilation"]')).toHaveAttribute('data-available', 'true');
   const walls = page.locator('[data-layer-node="architecture-walls"]');
@@ -792,6 +796,8 @@ test(`exact ${model.version} viewer: D upstairs, ghost walls, supported IV, rese
       await expect(canvas).toHaveAttribute('data-main-view-floor', floor);
       await expect(canvas).toHaveAttribute('data-layers-source-scene-index', index);
       await expect(canvas).toHaveAttribute('data-layers-source-sha256', sha);
+      await expect(canvas).toHaveAttribute('data-p02-content-fit', 'source-bound-architecture');
+      expect(Number(await canvas.getAttribute('data-fit-radius'))).toBeLessThan(12);
       const active = new Set<number>();
       const walk = (node: number) => {
         if (active.has(node)) return;
