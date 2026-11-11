@@ -34,6 +34,8 @@ test('selection cards use the actual scene parent path and exact copied source l
  for(const i of [11904,11907,11909,receipt.adapter,12057]){
   const result=resolver(objectMap.get(i));assert.equal(result.state,'matched');assert.ok(result.cards[0].sources.length>0);assert.match(result.cards[0].status,/WORK_TEST/);
  }
+ const guarded=objectMap.get(11904),savedLinks=guarded.userData.sourceLinks;
+ guarded.userData.sourceLinks=[];assert.equal(resolver(guarded).state,'mismatch');guarded.userData.sourceLinks=savedLinks;
  const selected=objectMap.get(receipt.adapter);selected.parent=objectMap.get(11908);
  assert.equal(resolver(selected).state,'mismatch');
  assert.equal(createSourceCardResolver(gltf,receipt.sourceSHA256.base,null)(objectMap.get(11904)).state,'unavailable');
