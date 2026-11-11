@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { createHash } from 'node:crypto';
 import { readFileSync, writeFileSync } from 'node:fs';
-import { BoxGeometry, Group, Mesh, MeshBasicMaterial, Scene } from 'three';
+import { BoxGeometry, Group, Mesh, MeshBasicMaterial, Scene, PerspectiveCamera, Vector3 } from 'three';
 import { collectViewerLayerSourceNodes, createViewerLayersRuntime } from '../../src/scripts/privateModelLayersRuntime';
 import { buildViewerLayerPanelModel } from '../../src/scripts/privateModelLayersPresetControls';
 import { applyViewerLayerPreset, createViewerInteractionState, setViewerInteractionLayerMode } from '../../src/scripts/privateModelViewerState';
@@ -656,8 +656,37 @@ test(`exact ${model.version} viewer: D upstairs, ghost walls, supported IV, rese
     const selection = page.locator('#selection-panel');
     const box = (await canvas.boundingBox())!;
     // Real raycast on the displayed model. No injected selection or scene handle.
-    const clicks = [[.5,.5],[.4,.5],[.6,.5],[.5,.4],[.5,.6],[.35,.4],[.65,.6]];
-    if (model.version === 'TATE4') for (const y of [.25,.35,.45,.55,.65,.75]) for (const x of [.25,.35,.45,.55,.65]) clicks.push([x,y]);
+    let clicks = [[.5,.5],[.4,.5],[.6,.5],[.5,.4],[.5,.6],[.35,.4],[.65,.6]];
+    if (model.version === 'TATE4') {
+      // Expose the released Savo through the normal visibility controls.
+      await page.locator('#layers-button').click();
+      for (const id of ['architecture-walls','architecture-ceilings','roof'])
+        await page.locator('[data-layer-node="'+id+'"] [data-layer-mode="hidden"]').click();
+      await page.locator('#edge-mode-select').selectOption('none');
+      await page.locator('#layers-button').click();
+      const json = JSON.parse(source.subarray(20,20+source.readUInt32LE(12)).toString('utf8'));
+      const node = json.nodes[12053];
+      expect(json.scenes[351].nodes).toContain(12053);
+      expect(node.name).toBe('SAVO_IH7603W_WHITE_LOWER_SHELL_560MM');
+      expect(node.matrix ?? node.translation ?? node.rotation ?? node.scale).toBeUndefined();
+      const position = json.accessors[json.meshes[node.mesh].primitives[0].attributes.POSITION];
+      const point = new Vector3().fromArray(position.min).add(new Vector3().fromArray(position.max)).multiplyScalar(.5);
+      const live = await readLiveCamera();
+      expect(live.frame).toBe('THREE_WORLD_Y_UP');
+      expect(live.projection).toBe('perspective');
+      // The existing perspective camera has FOV 38. Read its actual public HUD
+      // pose and project the immutable source point on the Node test side.
+      const camera = new PerspectiveCamera(38,box.width/box.height,.01,5000);
+      camera.position.fromArray(live.position);
+      camera.lookAt(new Vector3().fromArray(live.target));
+      camera.updateMatrixWorld(true);
+      point.project(camera);
+      expect(Math.abs(point.x)).toBeLessThan(1);
+      expect(Math.abs(point.y)).toBeLessThan(1);
+      const x=(point.x+1)/2,y=(1-point.y)/2;
+      clicks=[[x,y],[x+4/box.width,y],[x-4/box.width,y],[x,y+4/box.height],[x,y-4/box.height]];
+      console.log(JSON.stringify({tate4SourceClick:{sha,node:12053,pointNdc:point.toArray(),camera:live,production}}));
+    }
     for (const [x,y] of clicks) {
       // A previous real hit opens an overlay that can cover the next raycast.
       // Dismiss it through the normal UI before selecting another object.
@@ -666,6 +695,7 @@ test(`exact ${model.version} viewer: D upstairs, ghost walls, supported IV, rese
         await expect(selection).toBeHidden();
       }
       await canvas.click({position:{x:box.width*x,y:box.height*y},timeout:10_000});
+      if (model.version === 'TATE4') console.log(JSON.stringify({tate4ClickResult:{visible:await selection.isVisible(),state:await page.locator('#selection-source-evidence').getAttribute('data-state'),text:await page.locator('#selection-source-evidence').innerText()}}));
       if (await selection.isVisible() && (model.version !== 'TATE4' ||
           await page.locator('#selection-source-evidence').getAttribute('data-state') === 'matched' &&
           await page.locator('#selection-source-evidence .source-evidence-sources a').count() > 0)) break;
@@ -681,13 +711,18 @@ test(`exact ${model.version} viewer: D upstairs, ghost walls, supported IV, rese
     if (model.version === 'TATE4') {
       await expect(page.locator('#selection-source-evidence')).toHaveAttribute('data-state','matched');
       const card=page.locator('#selection-source-evidence .source-evidence-card');
-      await expect(card).toHaveAttribute('data-source-card-id',/^TATE4:351:/);
+      await expect(card).toHaveAttribute('data-source-card-id',/^TATE4:351:1205[3-7]$/);
       expect(await card.locator('.source-evidence-sources a').count()).toBeGreaterThan(0);
       console.log(JSON.stringify({tate4SourceCard:{sha,scene:351,card:await card.getAttribute('data-source-card-id'),selected:await page.locator('#selection-mesh').innerText(),links:await card.locator('.source-evidence-sources a').evaluateAll(nodes=>nodes.map(n=>(n as HTMLAnchorElement).href)),production}}));
     }
     await page.screenshot({path:info.outputPath(evidencePrefix+'-actual-object-selection-desktop.png')});
     await page.locator('#clear-selection-button').click();
     await expect(selection).toBeHidden();
+    if (model.version === 'TATE4') {
+      await page.locator('#layers-button').click();
+      await page.getByRole('button',{name:'Palauta näkyvyys'}).click();
+      await page.locator('#layers-button').click();
+    }
   }
   if (model.version === 'V69P12R1') {
     // Exercise an actual orbit gesture on the displayed source, with no
