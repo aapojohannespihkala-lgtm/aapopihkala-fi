@@ -5770,6 +5770,9 @@ const title = 'Private 3D viewer';
         // Visibility, picking, source geometry and WHOLE framing stay unchanged.
         if (mainViewScope?.active && layersLoadedSha === P02_SOURCE_SHA256 &&
             layersExpectedSha === P02_SOURCE_SHA256 && layersGltf?.parser?.json) {
+          // Live resize still passes the default fullModelScene. P02's chain
+          // runtime owns the selected floor scene rather than isSourceScene.
+          sceneRoot = mainViewScope.selectedScene ?? sceneRoot;
           const sceneIndex = layersGltf.scenes?.indexOf(sceneRoot);
           if (Number.isInteger(sceneIndex) && sceneIndex >= 0) {
             const building = resolveBuildingPartLayerBindings({
