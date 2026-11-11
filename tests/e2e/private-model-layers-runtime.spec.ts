@@ -285,6 +285,10 @@ for (const model of [
     candidateId: 'ylisrinne-v69p12r1-sink-faucet-floor-metadata-20261105',
     sha: 'd39102890470f59d7c2a2e033851a6f3d1481a83fb6180b549acd4cbf22182b3',
     bytes: 32610084, firstFloor: '290', secondFloor: '293', bothFloors: '294', upstairsRoof: true },
+  { version: 'P02', sourceEnv: 'YLIS_LAYERS_P02_GLB', productionEnv: 'YLIS_LAYERS_P02_PRODUCTION',
+    candidateId: 'c80-p02-water-integrated-20261111',
+    sha: 'db5ce3d7ef4c0bc8910de7f46df80029617b37d38ff4ddccd330cf70a2818a2a',
+    bytes: 52535692, firstFloor: '338', secondFloor: '339', bothFloors: '340', upstairsRoof: true },
   { version: 'K17_RAIL_HANDRAIL900', sourceEnv: 'YLIS_LAYERS_K17_RAIL900_GLB', productionEnv: 'YLIS_LAYERS_K17_RAIL900_PRODUCTION',
     candidateId: 'ylisrinne-k17-rail900-20261104',
     sha: '4b8deb415c75de9eee623d8ad84a8cfa24fa8baf2540c19b59c4ec9423c58d99',
@@ -770,6 +774,105 @@ test(`exact ${model.version} viewer: D upstairs, ghost walls, supported IV, rese
     console.log(JSON.stringify({ c008Depth: true, source: sha, observations: reports.length,
       visibleDoorPixels: Object.fromEntries(visiblePixels), coveredOpaqueControls: Object.fromEntries(coveredOpaqueControls),
       humanReview: 'NOT_RUN', production }));
+  }
+  if (model.version === 'P02') {
+    await page.setViewportSize(desktopViewport);
+    await expect(canvas).toHaveAttribute('data-work-test-review-mode', candidateId + '-review');
+    const gltf = JSON.parse(source.subarray(20, 20 + source.readUInt32LE(12)).toString('utf8'));
+    expect(gltf.scenes).toHaveLength(341);
+    expect(gltf.asset.extras.viewerFloorScenes).toEqual({'1F':338,'2F':339,BOTH:340});
+    const { resolveP02TechnicalNode } = await import('../../src/scripts/privateModelC80P02WaterLayerSourceProfile.mjs');
+    const p02Evidence: any[] = [];
+    await page.locator('#layers-button').click();
+    for (const [value, floor, index] of [
+      ['d-1f', '1F', model.firstFloor], ['d-2f', '2F', model.secondFloor],
+      ['d-apartment', 'BOTH', model.bothFloors],
+    ]) {
+      await preset.selectOption(value);
+      await expect(canvas).toHaveAttribute('data-main-view-floor', floor);
+      await expect(canvas).toHaveAttribute('data-layers-source-scene-index', index);
+      await expect(canvas).toHaveAttribute('data-layers-source-sha256', sha);
+      const active = new Set<number>();
+      const walk = (node: number) => {
+        if (active.has(node)) return;
+        active.add(node);
+        for (const child of gltf.nodes[node].children ?? []) walk(child);
+      };
+      gltf.scenes[Number(index)].nodes.forEach(walk);
+      const additions = [...active].filter(node => node >= 11678 && node <= 11707);
+      expect(additions).toHaveLength(floor === 'BOTH' ? 30 : 15);
+      for (const node of additions) {
+        expect(resolveP02TechnicalNode(gltf, Number(index), node)?.id).toBe('technical-water');
+      }
+      const cold = additions.filter(node => /COLD|ISOLATION|VP1|_PK1_|_WC2_/.test(gltf.nodes[node].name));
+      const hot = additions.filter(node => /HOT/.test(gltf.nodes[node].name));
+      expect(cold.length).toBeGreaterThan(0);
+      expect(hot.length).toBeGreaterThan(0);
+      await walls.locator('[data-layer-mode="hidden"]').click();
+      await page.locator('[data-layer-node="architecture-floors"] [data-layer-mode="hidden"]').click();
+      // Keep authored KV/LV materials rather than the unified highlight color.
+      const highlight = page.locator('#layers-technical-review-on');
+      if (await highlight.isChecked()) await highlight.uncheck();
+      const water = page.locator('[data-layer-node="technical-water"]');
+      await expect(water).toHaveCount(1);
+      await water.locator('[data-layer-mode="visible"]').click();
+      await expect(water.locator('[data-layer-mode="visible"]')).toHaveAttribute('aria-pressed','true');
+      const beforePose = await canvas.getAttribute('data-layers-camera-pose');
+      await page.locator('#layers-button').click();
+      const before = await canvas.screenshot({path:info.outputPath('layers-p02-'+floor.toLowerCase()+'-water-visible.png')});
+      await page.locator('#layers-button').click();
+      await water.locator('[data-layer-mode="hidden"]').click();
+      await expect(water.locator('[data-layer-mode="hidden"]')).toHaveAttribute('aria-pressed','true');
+      await page.locator('#layers-button').click();
+      const after = await canvas.screenshot({path:info.outputPath('layers-p02-'+floor.toLowerCase()+'-water-hidden.png')});
+      const pixels = await page.evaluate(async ({before,after}) => {
+        const decode = async (base64: string) => {
+          const bytes=Uint8Array.from(atob(base64),char=>char.charCodeAt(0));
+          const bitmap=await createImageBitmap(new Blob([bytes],{type:'image/png'}));
+          const c=new OffscreenCanvas(bitmap.width,bitmap.height);
+          const ctx=c.getContext('2d')!;
+          ctx.drawImage(bitmap,0,0);bitmap.close();
+          return {width:c.width,height:c.height,data:ctx.getImageData(0,0,c.width,c.height).data};
+        };
+        const a=await decode(before),b=await decode(after);
+        if(a.width!==b.width||a.height!==b.height) throw Error('P02 viewport drift');
+        let changed=0,coldChanged=0,hotChanged=0;
+        for(let i=0;i<a.data.length;i+=4){
+          if(Math.max(...[0,1,2].map(c=>Math.abs(a.data[i+c]-b.data[i+c])))<=8) continue;
+          changed++;
+          const [r,g,blue]=[a.data[i],a.data[i+1],a.data[i+2]];
+          if(blue>r*1.25&&blue>g*1.1) coldChanged++;
+          if(r>blue*1.25&&r>g*1.1) hotChanged++;
+        }
+        return {changed,coldChanged,hotChanged};
+      },{before:before.toString('base64'),after:after.toString('base64')});
+      p02Evidence.push({floor,scene:Number(index),sourceSha256:sha,waterNodes:additions,
+        coldNodes:cold,hotNodes:hot,pixels,humanReview:'NOT_RUN'});
+      writeFileSync(info.outputPath('p02-water-pixels.json'),JSON.stringify(p02Evidence,null,2));
+      expect(pixels.changed).toBeGreaterThan(10);
+      expect(pixels.coldChanged,'Actual KV pixels must respond to the water control').toBeGreaterThan(0);
+      expect(pixels.hotChanged,'Actual LV pixels must respond to the water control').toBeGreaterThan(0);
+      await page.locator('#layers-button').click();
+      await water.locator('[data-layer-mode="visible"]').click();
+      const beforeCamera=JSON.parse(beforePose!);
+      const afterCamera=JSON.parse((await canvas.getAttribute('data-layers-camera-pose'))!);
+      for(const key of ['position','quaternion','target']) for(let i=0;i<beforeCamera[key].length;i++)
+        expect(afterCamera[key][i]).toBeCloseTo(beforeCamera[key][i],9);
+      await page.getByRole('button',{name:'Palauta näkyvyys'}).click();
+    }
+    await page.locator('#layers-button').click();
+    await page.locator('#model-menu > summary').click();
+    await page.locator('#current-model-button').click();
+    await expect(canvas).toHaveAttribute('data-model-source','current',{timeout:120_000});
+    if(await page.locator('#model-menu').getAttribute('open')===null)
+      await page.locator('#model-menu > summary').click();
+    await page.locator('#work-test-select').selectOption(candidateId);
+    await page.locator('#work-test-button').click();
+    await expect(canvas).toHaveAttribute('data-p137e-loaded-candidate-id',candidateId,{timeout:120_000});
+    await expect(canvas).toHaveAttribute('data-layers-source-sha256',sha);
+    await expect(canvas).toHaveAttribute('data-work-test-review-mode',candidateId+'-review');
+    console.log(JSON.stringify({p02Production:production,sourceSha256:sha,floors:p02Evidence,
+      modelSwitch:['P02','CURRENT','P02'],humanReview:'NOT_RUN'}));
   }
   const webgl = await canvas.evaluate((element: HTMLCanvasElement) => {
     const gl = element.getContext('webgl2');
