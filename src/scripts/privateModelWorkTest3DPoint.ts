@@ -9,6 +9,10 @@ export type WorkTest3DPoint = Readonly<{
   xM: number;
   yM: number;
   sourceHeightYUpM: number;
+  /** The clicked mesh name is a model label, not a verified source-card ID. */
+  surfaceObjectName: string | null;
+  /** Viewer-facing unit normal in YLIS G1 coordinates; not an as-built mounting claim. */
+  surfaceNormalG1: Readonly<{x: number; y: number; z: number}> | null;
   coordinateFrame: 'YLIS-G1-LOCAL';
   interpretation: 'WORK_TEST_MODEL_POINT_ONLY';
   exactXY: false;
@@ -77,8 +81,27 @@ export const pickVisibleWorkTest3DPoint = ({
   });
   const p=visibleHit?.point;
   if(!p || ![p.x,p.y,p.z].every(Number.isFinite)) return null;
+  const objectLabel = visibleHit.object.name.trim().replace(/\s+/g, ' ').slice(0, 100) || null;
+  // Mesh normals are local. Transform with inverse-transpose for nonuniform
+  // scales and mirror cases; orient the face toward the picking camera.
+  const localNormal = visibleHit.face?.normal;
+  let surfaceNormalG1: {x:number; y:number; z:number} | null = null;
+  if (localNormal) {
+    const worldNormal = localNormal.clone().applyMatrix3(
+      new THREE.Matrix3().getNormalMatrix(visibleHit.object.matrixWorld),
+    );
+    if (worldNormal.lengthSq() > 1e-12 &&
+        [worldNormal.x, worldNormal.y, worldNormal.z].every(Number.isFinite)) {
+      worldNormal.normalize();
+      if (worldNormal.dot(raycaster.ray.direction) > 0) worldNormal.negate();
+      surfaceNormalG1 = Object.freeze({
+        x: worldNormal.x, y: -worldNormal.z, z: worldNormal.y,
+      });
+    }
+  }
   return Object.freeze({
     xM:p.x,yM:-p.z,sourceHeightYUpM:p.y,
+    surfaceObjectName:objectLabel, surfaceNormalG1,
     coordinateFrame:'YLIS-G1-LOCAL' as const,
     interpretation:'WORK_TEST_MODEL_POINT_ONLY' as const,
     exactXY:false as const,humanReview:'NOT_RUN' as const,

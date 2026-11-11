@@ -9,6 +9,7 @@ const setup=()=>{
     new THREE.MeshBasicMaterial({color:0xdddddd}),
   );
   mesh.position.set(2,0,-3);
+  mesh.name = 'WORK_TEST_BOX_SURFACE';
   root.add(mesh);
   root.updateMatrixWorld(true);
   const camera=new THREE.PerspectiveCamera(55,1,0.1,100);
@@ -33,6 +34,11 @@ test('a real 3D mesh click yields source-model YLIS XY, never surveyed XY',()=>{
   expect(point!.xM).toBeCloseTo(2,2);
   expect(point!.yM).toBeGreaterThan(1.9);
   expect(point!.yM).toBeLessThan(3.1);
+  expect(point!.surfaceObjectName).toBe('WORK_TEST_BOX_SURFACE');
+  expect(point!.surfaceNormalG1).not.toBeNull();
+  expect(point!.surfaceNormalG1!.x).toBeCloseTo(0, 4);
+  expect(point!.surfaceNormalG1!.y).toBeCloseTo(-1, 4);
+  expect(point!.surfaceNormalG1!.z).toBeCloseTo(0, 4);
   expect(point).toMatchObject({
     coordinateFrame:'YLIS-G1-LOCAL',
     interpretation:'WORK_TEST_MODEL_POINT_ONLY',
@@ -102,4 +108,22 @@ test('a mixed-material hit on hidden faces alone never invents a model coordinat
     (mesh as THREE.Mesh).material=materials;
   });
   expect(point).toBeNull();
+});
+
+test('normal is unit length in G1 under nonuniform scale and oblique mesh rotation',()=>{
+  const p=hit(220,240,({mesh})=>{
+    mesh.rotation.y=0.4;
+    mesh.scale.set(1.3,0.7,2.1);
+    mesh.updateMatrixWorld(true);
+  });
+  expect(p).not.toBeNull();
+  const n=p!.surfaceNormalG1!;
+  expect(Math.hypot(n.x,n.y,n.z)).toBeCloseTo(1,6);
+  expect(n.y).toBeLessThan(0);
+  expect(p!.surfaceObjectName).toBe('WORK_TEST_BOX_SURFACE');
+});
+test('mesh without name returns unknown label without inventing source identity',()=>{
+  const p=hit(220,240,({mesh})=>{mesh.name='';});
+  expect(p).not.toBeNull();
+  expect(p!.surfaceObjectName).toBeNull();
 });
