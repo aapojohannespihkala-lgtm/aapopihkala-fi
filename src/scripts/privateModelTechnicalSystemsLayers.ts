@@ -1,4 +1,5 @@
 import { AIR385_SOURCE_SHA256, AIR385_COMPONENTS, isAir385SourceScene } from './privateModelAir385ToshibaServiceSourceProfile.mjs';
+import { KIV005_SOURCE_SHA256, KIV005_NODES, isKiv005OwnerSourceScene } from './privateModelC80Kiv005OwnerSourceProfile.mjs';
 import { TATE4_SOURCE_SHA256, TATE4_SOURCE_SCENE_COUNT, TATE4_BUILDING_SCENES, resolveTate4TechnicalNode } from './privateModelC80TateInteriorLayerSourceProfile.mjs';
 import { TATE3_SOURCE_SHA256, TATE3_SOURCE_SCENE_COUNT, TATE3_BUILDING_SCENES, resolveTate3TechnicalNode } from './privateModelC80TateThreeDeltaLayerSourceProfile.mjs';
 import { TATE_SOURCE_SHA256, TATE_SOURCE_SCENE_COUNT, TATE_BUILDING_SCENES, resolveTateTechnicalNode } from './privateModelC80P02TateLayerSourceProfile.mjs';
@@ -311,6 +312,28 @@ const v26Device = (context: TechnicalSystemsContext, binding: TechnicalSourceNod
         return { id: 'technical-ventilation', scope: { apartment: 'D', storey: '2F', phase: 'ACTIVE_IN_SELECTED_WORKTEST' } };
       visited.add(node);
       const parent = context.sourceNodes.find(candidate => candidate.sceneIndex === 349 && candidate.nodeIndex === node);
+      node = parent?.parentNodeIndex ?? null;
+    }
+    return null;
+  }
+  // The 2026 owner point moves exactly one existing KIV005 group. Only
+  // descendants of that validated source group get a new ventilation binding.
+  // Other TATE parts need their own SHA+node source receipt, not a guessed copy
+  // of a parent GLB identity.
+  if (context.loadedGlbSha256 === KIV005_SOURCE_SHA256) {
+    if (!isKiv005OwnerSourceScene(context.sourceJson, context.loadedGlbSha256, context.sourceSceneIndex))
+      return null;
+    const sourceRoots = context.sourceJson.scenes[context.sourceSceneIndex].nodes;
+    if (!sourceRoots.includes(KIV005_NODES.group)) return null;
+    const visited = new Set<number>();
+    let node: number | null = binding.nodeIndex;
+    while (node !== null && !visited.has(node)) {
+      if (node === KIV005_NODES.group)
+        return { id:'technical-ventilation',
+          scope:{apartment:'D',storey:'2F',phase:'ACTIVE_IN_SELECTED_WORKTEST'} };
+      visited.add(node);
+      const parent = context.sourceNodes.find(candidate =>
+        candidate.sceneIndex === context.sourceSceneIndex && candidate.nodeIndex === node);
       node = parent?.parentNodeIndex ?? null;
     }
     return null;
