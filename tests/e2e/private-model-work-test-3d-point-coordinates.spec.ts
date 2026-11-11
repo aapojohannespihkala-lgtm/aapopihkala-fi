@@ -67,3 +67,38 @@ test('a source point must come from an actual intersected visible surface',()=>{
   const point=hit(220,240,({mesh})=>{mesh.position.x=40;});
   expect(point).toBeNull();
 });
+
+
+test('mixed-material raycast ignores hidden front face and reports the visible rear point',()=>{
+  // BoxGeometry groups: 4 is the camera-facing +Z side, 5 the rear -Z side.
+  // Both are raycastable with DoubleSide even when their materials do not render.
+  // The old whole-mesh check accepted hidden +Z because -Z was visible.
+  for (const frontStyle of ['invisible','zero-opacity'] as const) {
+    const point=hit(220,240,({mesh})=>{
+      const materials=Array.from({length:6},()=>
+        new THREE.MeshBasicMaterial({color:0xffffff,side:THREE.DoubleSide,visible:false}),
+      );
+      materials[4].visible=frontStyle!=='invisible';
+      if(frontStyle==='zero-opacity') materials[4].opacity=0;
+      materials[5].visible=true;
+      mesh.material=materials;
+    });
+    // Object at Z=-3 with a 2m box: the visible back face is at Z=-4.
+    // YLIS model Y equals -world Z, not the hidden face's Z=-2 -> Y=2.
+    expect(point).not.toBeNull();
+    expect(point!.yM).toBeCloseTo(4,2);
+  }
+});
+
+test('a mixed-material hit on hidden faces alone never invents a model coordinate',()=>{
+  const point=hit(220,240,({mesh})=>{
+    const materials=Array.from({length:6},()=>
+      new THREE.MeshBasicMaterial({visible:false,side:THREE.DoubleSide}),
+    );
+    // Only a side face is visible, but the central pointer intersects the
+    // hidden +Z and -Z faces, not the painted side surface.
+    materials[0].visible=true;
+    mesh.material=materials;
+  });
+  expect(point).toBeNull();
+});
