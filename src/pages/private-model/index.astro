@@ -1942,7 +1942,8 @@ const title = 'Private 3D viewer';
           </div>
           <div id="point-pick-main" class="point-measure-main">Klikkaa näkyvää mallipintaa.</div>
           <div id="point-pick-source" class="point-measure-detail">YLIS-G1-LOCAL, koordinaatit metreinä</div>
-          <button id="point-pick-copy" type="button" disabled>Kopioi XYZ ja mallilähde</button>
+          <div id="point-pick-surface" class="point-measure-detail">Osumapinta: ei valittu</div>
+          <button id="point-pick-copy" type="button" disabled>Kopioi XYZ ja pintatiedot</button>
           <div id="point-pick-feedback" class="point-measure-note" role="status"></div>
           <div class="point-measure-note">Piste ja sen merkki näkyvät kuvakaappauksessa. WORK_TEST-mallihavainto, ei tarkemittaus.</div>
         </aside>
@@ -2771,6 +2772,7 @@ const title = 'Private 3D viewer';
       const pointPickPanel = document.querySelector<HTMLElement>('#point-pick-panel');
       const pointPickMain = document.querySelector<HTMLElement>('#point-pick-main');
       const pointPickSource = document.querySelector<HTMLElement>('#point-pick-source');
+      const pointPickSurface = document.querySelector<HTMLElement>('#point-pick-surface');
       const pointPickCopyButton = document.querySelector<HTMLButtonElement>('#point-pick-copy');
       const pointPickClearButton = document.querySelector<HTMLButtonElement>('#point-pick-clear');
       const pointPickFeedback = document.querySelector<HTMLElement>('#point-pick-feedback');
@@ -3003,6 +3005,7 @@ const title = 'Private 3D viewer';
         !pointPickPanel ||
         !pointPickMain ||
         !pointPickSource ||
+        !pointPickSurface ||
         !pointPickCopyButton ||
         !pointPickClearButton ||
         !pointPickFeedback ||
@@ -5223,6 +5226,7 @@ const title = 'Private 3D viewer';
         pointPickClipboardText = '';
         pointPickMain.textContent = 'Klikkaa näkyvää mallipintaa.';
         pointPickSource.textContent = 'YLIS-G1-LOCAL, koordinaatit metreinä';
+        pointPickSurface.textContent = 'Osumapinta: ei valittu';
         pointPickFeedback.textContent = '';
         pointPickCopyButton.disabled = true;
         canvas.dataset.pointPickState = 'empty';
@@ -5246,12 +5250,22 @@ const title = 'Private 3D viewer';
         pointPickMain.textContent = 
           `X ${pointPickFormat(point.xM)} m · Y ${pointPickFormat(point.yM)} m · Z ${pointPickFormat(point.sourceHeightYUpM)} m`;
         pointPickSource.textContent = `YLIS-G1-LOCAL · ${sourceKind} · ${sha ? 'SHA ' + sha.slice(0, 12) : 'SHA ei tiedossa'} · kerros ${floor}`;
+        const modelName = point.surfaceObjectName ?? 'Nimeämätön mesh';
+        const surfaceNormal = point.surfaceNormalG1;
+        const normalText = surfaceNormal
+          ? `Nx ${pointPickFormat(surfaceNormal.x)} · Ny ${pointPickFormat(surfaceNormal.y)} · Nz ${pointPickFormat(surfaceNormal.z)}`
+          : 'pintanormaali tuntematon';
+        pointPickSurface.textContent = `Osumapinta: ${modelName} · ${normalText}`;
         pointPickClipboardText = [
           'Ylisrinne 3D - Piste mallissa (mallipinnan osuma, ei toteumamittaus)',
           'Koordinaatisto: YLIS-G1-LOCAL (m), Z ylöspäin',
           `X=${point.xM.toFixed(3)} Y=${point.yM.toFixed(3)} Z=${point.sourceHeightYUpM.toFixed(3)}`,
           `Malli: ${sourceKind}; GLB_SHA256: ${sha ?? 'UNKNOWN'}`,
           `Katselun ehdokas: ${candidate}; kerros: ${floor}`,
+          `Osumamesh (nimi mallista): ${modelName}`,
+          `Katselupuolen pintanormaali YLIS-G1-LOCAL: ${surfaceNormal
+            ? `Nx=${surfaceNormal.x.toFixed(3)} Ny=${surfaceNormal.y.toFixed(3)} Nz=${surfaceNormal.z.toFixed(3)}`
+            : 'UNKNOWN'}`,
           'Varmuus: WORK_TEST_MODEL_POINT_ONLY, ei as-built',
         ].join('\n');
         pointPickCopyButton.disabled = false;

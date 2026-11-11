@@ -114,6 +114,8 @@ test('point in model shows XYZ and a persistent screenshot marker without changi
   await expect(canvas).toHaveAttribute('data-point-pick-state', 'picked');
   await expect(page.locator('#point-pick-main')).toHaveText(/^X .+ m · Y .+ m · Z .+ m$/);
   await expect(page.locator('#point-pick-source')).toContainText('YLIS-G1-LOCAL');
+  await expect(page.locator('#point-pick-surface')).toContainText('Osumapinta: D_1F_TEST_GROUP');
+  await expect(page.locator('#point-pick-surface')).toContainText('Nx ');
   await expect(page.locator('#point-pick-copy')).toBeEnabled();
 
   // A click on empty background must not overwrite the last valid placement.
@@ -128,6 +130,8 @@ test('point in model shows XYZ and a persistent screenshot marker without changi
   expect(copied).toContain('YLIS-G1-LOCAL');
   expect(copied).toMatch(/X=.+ Y=.+ Z=.+/);
   expect(copied).toContain('GLB_SHA256:');
+  expect(copied).toContain('Osumamesh (nimi mallista): D_1F_TEST_GROUP');
+  expect(copied).toMatch(/Katselupuolen pintanormaali YLIS-G1-LOCAL: Nx=/);
 
   await page.keyboard.press('Escape');
   await expect(canvas).toHaveAttribute('data-point-pick-state', 'empty');
