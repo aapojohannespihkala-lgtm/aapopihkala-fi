@@ -285,6 +285,10 @@ for (const model of [
     candidateId: 'ylisrinne-v69p12r1-sink-faucet-floor-metadata-20261105',
     sha: 'd39102890470f59d7c2a2e033851a6f3d1481a83fb6180b549acd4cbf22182b3',
     bytes: 32610084, firstFloor: '290', secondFloor: '293', bothFloors: '294', upstairsRoof: true },
+  { version: 'TATE', sourceEnv: 'YLIS_LAYERS_TATE_GLB', productionEnv: 'YLIS_LAYERS_TATE_PRODUCTION',
+    candidateId: 'c80-p02-tate-integrated-20261111',
+    sha: '69b7adf599d63aa954b5dd93d64ae65baca5c41df7ff3d555bf3236560d9d3b4',
+    bytes: 52855944, firstFloor: '344', secondFloor: '345', bothFloors: '346', upstairsRoof: false },
   { version: 'P02', sourceEnv: 'YLIS_LAYERS_P02_GLB', productionEnv: 'YLIS_LAYERS_P02_PRODUCTION',
     candidateId: 'c80-p02-water-integrated-20261111',
     sha: 'db5ce3d7ef4c0bc8910de7f46df80029617b37d38ff4ddccd330cf70a2818a2a',
@@ -404,7 +408,7 @@ test(`exact ${model.version} viewer: D upstairs, ghost walls, supported IV, rese
   await page.locator('#layers-button').click();
   await page.locator('#more-menu > summary').click();
   await page.locator('#fit-button').click();
-  if (model.version === 'P02') {
+  if (model.version === 'P02' || model.version === 'TATE') {
     await expect(canvas).toHaveAttribute('data-p02-content-fit', 'source-bound-architecture');
     expect(Number(await canvas.getAttribute('data-fit-radius'))).toBeLessThan(12);
   }
@@ -779,13 +783,15 @@ test(`exact ${model.version} viewer: D upstairs, ghost walls, supported IV, rese
       visibleDoorPixels: Object.fromEntries(visiblePixels), coveredOpaqueControls: Object.fromEntries(coveredOpaqueControls),
       humanReview: 'NOT_RUN', production }));
   }
-  if (model.version === 'P02') {
+  if (model.version === 'P02' || model.version === 'TATE') {
     await page.setViewportSize(desktopViewport);
     await expect(canvas).toHaveAttribute('data-work-test-review-mode', candidateId + '-review');
     const gltf = JSON.parse(source.subarray(20, 20 + source.readUInt32LE(12)).toString('utf8'));
-    expect(gltf.scenes).toHaveLength(341);
-    expect(gltf.asset.extras.viewerFloorScenes).toEqual({'1F':338,'2F':339,BOTH:340});
-    const { resolveP02TechnicalNode } = await import('../../src/scripts/privateModelC80P02WaterLayerSourceProfile.mjs');
+    expect(gltf.scenes).toHaveLength(model.version === 'TATE' ? 347 : 341);
+    expect(gltf.asset.extras.viewerFloorScenes).toEqual({'1F':Number(model.firstFloor),'2F':Number(model.secondFloor),BOTH:Number(model.bothFloors)});
+    const resolveExactTechnicalNode = model.version === 'TATE'
+      ? (await import('../../src/scripts/privateModelC80P02TateLayerSourceProfile.mjs')).resolveTateTechnicalNode
+      : (await import('../../src/scripts/privateModelC80P02WaterLayerSourceProfile.mjs')).resolveP02TechnicalNode;
     const p02Evidence: any[] = [];
     await page.locator('#layers-button').click();
     for (const [value, floor, index] of [
@@ -808,7 +814,16 @@ test(`exact ${model.version} viewer: D upstairs, ghost walls, supported IV, rese
       const additions = [...active].filter(node => node >= 11678 && node <= 11707);
       expect(additions).toHaveLength(floor === 'BOTH' ? 30 : 15);
       for (const node of additions) {
-        expect(resolveP02TechnicalNode(gltf, Number(index), node)?.id).toBe('technical-water');
+        expect(resolveExactTechnicalNode(gltf, Number(index), node)?.id).toBe('technical-water');
+      }
+      if (model.version === 'TATE') {
+        for (const node of active) {
+          if (node < 11721 || gltf.nodes[node].mesh === undefined) continue;
+          const id = node < 11730 ? 'technical-drainage' : node < 11739 ? 'technical-ventilation' : 'technical-electrical';
+          expect(resolveExactTechnicalNode(gltf, Number(index), node)?.id, 'Remapped donor '+node).toBe(id);
+        }
+        for (const node of [10128,11322,11326,11328,11329,10156,10157,10158,10159,11432,11433,11434])
+          expect(active.has(node),'Rejected/superseded node '+node).toBe(false);
       }
       const cold = additions.filter(node => /COLD|ISOLATION|VP1|_PK1_|_WC2_/.test(gltf.nodes[node].name));
       const hot = additions.filter(node => /HOT/.test(gltf.nodes[node].name));
@@ -864,10 +879,47 @@ test(`exact ${model.version} viewer: D upstairs, ghost walls, supported IV, rese
       const afterCamera=JSON.parse((await canvas.getAttribute('data-layers-camera-pose'))!);
       for(const key of ['position','quaternion','target']) for(let i=0;i<beforeCamera[key].length;i++)
         expect(afterCamera[key][i]).toBeCloseTo(beforeCamera[key][i],9);
+      if (model.version === 'TATE') {
+        const systemPixels: Record<string,number> = {};
+        for (const id of ['technical-drainage','technical-ventilation','technical-electrical']) {
+          const control=page.locator('[data-layer-node="'+id+'"]');
+          await expect(control).toHaveCount(1);
+          await control.locator('[data-layer-mode="visible"]').click();
+          await page.locator('#layers-button').click();
+          const visible=await canvas.screenshot({path:info.outputPath('tate-'+floor.toLowerCase()+'-'+id+'-visible.png')});
+          await page.locator('#layers-button').click();
+          await control.locator('[data-layer-mode="hidden"]').click();
+          await page.locator('#layers-button').click();
+          const hidden=await canvas.screenshot();
+          const changed=await page.evaluate(async ({visible,hidden})=>{
+            const decode=async (base64:string)=>{
+              const bmp=await createImageBitmap(new Blob([Uint8Array.from(atob(base64),c=>c.charCodeAt(0))],{type:'image/png'}));
+              const out=new OffscreenCanvas(bmp.width,bmp.height),ctx=out.getContext('2d')!;
+              ctx.drawImage(bmp,0,0);bmp.close();return ctx.getImageData(0,0,out.width,out.height).data;
+            };
+            const a=await decode(visible),b=await decode(hidden);let changed=0;
+            for(let i=0;i<a.length;i+=4) if(Math.max(...[0,1,2].map(c=>Math.abs(a[i+c]-b[i+c])))>8) changed++;
+            return changed;
+          },{visible:visible.toString('base64'),hidden:hidden.toString('base64')});
+          systemPixels[id]=changed;
+          await page.locator('#layers-button').click();
+          await control.locator('[data-layer-mode="visible"]').click();
+          expect(changed,id+' must affect actual protected WebGL pixels').toBeGreaterThan(0);
+        }
+        Object.assign(p02Evidence.at(-1),{systemPixels});
+        writeFileSync(info.outputPath('tate-system-pixels.json'),JSON.stringify(p02Evidence,null,2));
+      }
       await page.getByRole('button',{name:'Palauta näkyvyys'}).click();
     }
     await page.locator('#layers-button').click();
     await page.locator('#model-menu > summary').click();
+    if (model.version === 'TATE') {
+      await page.locator('#work-test-select').selectOption('c80-p02-water-integrated-20261111');
+      await page.locator('#work-test-button').click();
+      await expect(canvas).toHaveAttribute('data-layers-source-sha256','db5ce3d7ef4c0bc8910de7f46df80029617b37d38ff4ddccd330cf70a2818a2a',{timeout:120_000});
+      await expect(canvas).toHaveAttribute('data-p02-content-fit','source-bound-architecture');
+      if(await page.locator('#model-menu').getAttribute('open')===null) await page.locator('#model-menu > summary').click();
+    }
     await page.locator('#current-model-button').click();
     await expect(canvas).toHaveAttribute('data-model-source','current',{timeout:120_000});
     if(await page.locator('#model-menu').getAttribute('open')===null)
@@ -878,7 +930,7 @@ test(`exact ${model.version} viewer: D upstairs, ghost walls, supported IV, rese
     await expect(canvas).toHaveAttribute('data-layers-source-sha256',sha);
     await expect(canvas).toHaveAttribute('data-work-test-review-mode',candidateId+'-review');
     console.log(JSON.stringify({p02Production:production,sourceSha256:sha,floors:p02Evidence,
-      modelSwitch:['P02','CURRENT','P02'],humanReview:'NOT_RUN'}));
+      modelSwitch:model.version === 'TATE' ? ['TATE','P02','CURRENT','TATE'] : ['P02','CURRENT','P02'],humanReview:'NOT_RUN'}));
   }
   const webgl = await canvas.evaluate((element: HTMLCanvasElement) => {
     const gl = element.getContext('webgl2');
@@ -889,5 +941,6 @@ test(`exact ${model.version} viewer: D upstairs, ghost walls, supported IV, rese
   console.log(JSON.stringify({ source: sha, scene: +model.secondFloor, reviewUrl: page.url(), servedRigProfile: model.version === 'V69P12R1' ? await hasServedRigProfile() : null, bindings: await canvas.getAttribute('data-layers-binding-count'), stages: ['ghost', 'IV-visible', 'reset', '1F', 'BOTH', '2F', 'mobile', ...((model.version === 'V68' || model.version === 'V69' || model.version === 'K17_RAIL_HANDRAIL900' || model.version === 'V69P12R1') ? ['actual-object-click'] : [])], webgl, humanReview: 'NOT_RUN', production }));
 });
 }
+
 
 

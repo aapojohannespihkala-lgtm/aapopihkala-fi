@@ -1,0 +1,2675 @@
+{
+  "sourceSha256": "69b7adf599d63aa954b5dd93d64ae65baca5c41df7ff3d555bf3236560d9d3b4",
+  "sceneCount": 347,
+  "defaultScene": 292,
+  "asset": {
+    "extras": {
+      "current": false,
+      "asBuilt": false,
+      "viewerFloorScenes": {
+        "1F": 344,
+        "2F": 345,
+        "BOTH": 346
+      }
+    }
+  },
+  "scenes": {
+    "344": {
+      "name": "C80_P02_TATE_INTEGRATED_1F_WORK_TEST_HOST_HOLD_20261111",
+      "nodes": [
+        6430,
+        9175,
+        9280,
+        8746,
+        8747,
+        8748,
+        8749,
+        8750,
+        8751,
+        8752,
+        8753,
+        2220,
+        7646,
+        5224,
+        6457,
+        6377,
+        7647,
+        7648,
+        7999,
+        9281,
+        5285,
+        6955,
+        6956,
+        6957,
+        6958,
+        6959,
+        6960,
+        5733,
+        6631,
+        6632,
+        7651,
+        7652,
+        7653,
+        7654,
+        9913,
+        6365,
+        6419,
+        6420,
+        6421,
+        6497,
+        7655,
+        8756,
+        8672,
+        6524,
+        7656,
+        7657,
+        7658,
+        8673,
+        6620,
+        7660,
+        10532,
+        6376,
+        6652,
+        6727,
+        6728,
+        6847,
+        6848,
+        9201,
+        9202,
+        9203,
+        9204,
+        9205,
+        9206,
+        9207,
+        9208,
+        9209,
+        9210,
+        9211,
+        9212,
+        9213,
+        9214,
+        9215,
+        9216,
+        6850,
+        7221,
+        8757,
+        7594,
+        8758,
+        7597,
+        9282,
+        7993,
+        7994,
+        7995,
+        7996,
+        8007,
+        9798,
+        9261,
+        10533,
+        10534,
+        10535,
+        10536,
+        10537,
+        8760,
+        8674,
+        8675,
+        8681,
+        8684,
+        8687,
+        9262,
+        8846,
+        8690,
+        9283,
+        9250,
+        8857,
+        9286,
+        8962,
+        9003,
+        9006,
+        9008,
+        9194,
+        9231,
+        10538,
+        9287,
+        9274,
+        9272,
+        10660,
+        9277,
+        9365,
+        9375,
+        9382,
+        9384,
+        9385,
+        9387,
+        9391,
+        9393,
+        9394,
+        9395,
+        9396,
+        9516,
+        3698,
+        11728,
+        10563,
+        10564,
+        10565,
+        10566,
+        10567,
+        10568,
+        10569,
+        10570,
+        10571,
+        10572,
+        10573,
+        10574,
+        10575,
+        10576,
+        10577,
+        10578,
+        10579,
+        10580,
+        10581,
+        10582,
+        10583,
+        10584,
+        10585,
+        10586,
+        10587,
+        10588,
+        10589,
+        10590,
+        10591,
+        10592,
+        10593,
+        10594,
+        10595,
+        10596,
+        10597,
+        10598,
+        10599,
+        10600,
+        10601,
+        10602,
+        10603,
+        10604,
+        10605,
+        10606,
+        10607,
+        10608,
+        10609,
+        10610,
+        10611,
+        10612,
+        10613,
+        10614,
+        10615,
+        10616,
+        10617,
+        10618,
+        10619,
+        10620,
+        10621,
+        10622,
+        10623,
+        10624,
+        10625,
+        10626,
+        10627,
+        10628,
+        10629,
+        10630,
+        10631,
+        10632,
+        10633,
+        10634,
+        10635,
+        10636,
+        10637,
+        10638,
+        10639,
+        10640,
+        10641,
+        10642,
+        10643,
+        10644,
+        10645,
+        10646,
+        10647,
+        10648,
+        10649,
+        10650,
+        10651,
+        10652,
+        10653,
+        10654,
+        7227,
+        8843,
+        11305,
+        11362,
+        11307,
+        11308,
+        11309,
+        11310,
+        11311,
+        11315,
+        11316,
+        11403,
+        11675,
+        11542,
+        11546,
+        11560,
+        11576,
+        11589,
+        11591,
+        11595,
+        11604,
+        11609,
+        11612,
+        11613,
+        11614,
+        11615,
+        11616,
+        11710,
+        11721,
+        11722,
+        11723,
+        11730,
+        11739,
+        11766,
+        11769,
+        11772,
+        11775,
+        11776,
+        11779,
+        11782,
+        11819,
+        11824,
+        11829
+      ],
+      "fnv": "0acbc250"
+    },
+    "345": {
+      "name": "C80_P02_TATE_INTEGRATED_2F_WORK_TEST_HOST_HOLD_20261111",
+      "nodes": [
+        7356,
+        2658,
+        2661,
+        6431,
+        6432,
+        6433,
+        10553,
+        7361,
+        7366,
+        7367,
+        5323,
+        7368,
+        5327,
+        5629,
+        5880,
+        7369,
+        5835,
+        5836,
+        9263,
+        7370,
+        6435,
+        7371,
+        8003,
+        6472,
+        6473,
+        6474,
+        6475,
+        6476,
+        6517,
+        6518,
+        6519,
+        6831,
+        6832,
+        6564,
+        6565,
+        6994,
+        7372,
+        6653,
+        6729,
+        6730,
+        10794,
+        10795,
+        9573,
+        9574,
+        9575,
+        9576,
+        7904,
+        7905,
+        7906,
+        7907,
+        7908,
+        7909,
+        7932,
+        10797,
+        10833,
+        7979,
+        8024,
+        8025,
+        8026,
+        9264,
+        8199,
+        8895,
+        8913,
+        9195,
+        9196,
+        9197,
+        9198,
+        9199,
+        9200,
+        9257,
+        10554,
+        9332,
+        9911,
+        9912,
+        9761,
+        9338,
+        9763,
+        9764,
+        9762,
+        10837,
+        10951,
+        10976,
+        10533,
+        10538,
+        11729,
+        10555,
+        10556,
+        10557,
+        10558,
+        10559,
+        10560,
+        10561,
+        10562,
+        10656,
+        10657,
+        10659,
+        10763,
+        10770,
+        10771,
+        10772,
+        10773,
+        10774,
+        10775,
+        10776,
+        10777,
+        10778,
+        10779,
+        10780,
+        10781,
+        10782,
+        10783,
+        10784,
+        10785,
+        10786,
+        10787,
+        10788,
+        10789,
+        10790,
+        10791,
+        10792,
+        10793,
+        11298,
+        11304,
+        11319,
+        11339,
+        11340,
+        11341,
+        11342,
+        11343,
+        11344,
+        11345,
+        11346,
+        11347,
+        11348,
+        11349,
+        11350,
+        11351,
+        11352,
+        11353,
+        11354,
+        11355,
+        11356,
+        11357,
+        11358,
+        11359,
+        11360,
+        11361,
+        11535,
+        11536,
+        11624,
+        11625,
+        11642,
+        11645,
+        11648,
+        11655,
+        11657,
+        11662,
+        11677,
+        11673,
+        11713,
+        11727,
+        11721,
+        11722,
+        11723,
+        11830,
+        11833,
+        11836,
+        11839,
+        11842,
+        11845,
+        11858,
+        11891,
+        11829
+      ],
+      "fnv": "d37507f8"
+    },
+    "346": {
+      "name": "C80_P02_TATE_INTEGRATED_BOTH_WORK_TEST_HOST_HOLD_20261111",
+      "nodes": [
+        6430,
+        9175,
+        9280,
+        8746,
+        8747,
+        8748,
+        8749,
+        8750,
+        8751,
+        8752,
+        8753,
+        2220,
+        7646,
+        5224,
+        6457,
+        6377,
+        7647,
+        7648,
+        7999,
+        9281,
+        5285,
+        6955,
+        6956,
+        6957,
+        6958,
+        6959,
+        6960,
+        5733,
+        6631,
+        6632,
+        7651,
+        7652,
+        7653,
+        7654,
+        9913,
+        6365,
+        6419,
+        6420,
+        6421,
+        6497,
+        7655,
+        8756,
+        8672,
+        6524,
+        7656,
+        7657,
+        7658,
+        8673,
+        6620,
+        7660,
+        10532,
+        6376,
+        6652,
+        6727,
+        6728,
+        6847,
+        6848,
+        9201,
+        9202,
+        9203,
+        9204,
+        9205,
+        9206,
+        9207,
+        9208,
+        9209,
+        9210,
+        9211,
+        9212,
+        9213,
+        9214,
+        9215,
+        9216,
+        6850,
+        7221,
+        8757,
+        7594,
+        8758,
+        7597,
+        9282,
+        7993,
+        7994,
+        7995,
+        7996,
+        8007,
+        9798,
+        9261,
+        10533,
+        10534,
+        10535,
+        10536,
+        10537,
+        8760,
+        8674,
+        8675,
+        8681,
+        8684,
+        8687,
+        9262,
+        8846,
+        8690,
+        9283,
+        9250,
+        8857,
+        9286,
+        8962,
+        9003,
+        9006,
+        9008,
+        9194,
+        9231,
+        10538,
+        9287,
+        9274,
+        9272,
+        10660,
+        9277,
+        9365,
+        9375,
+        9382,
+        9384,
+        9385,
+        9387,
+        9391,
+        9393,
+        9394,
+        9395,
+        9396,
+        9516,
+        3698,
+        11728,
+        10563,
+        10564,
+        10565,
+        10566,
+        10567,
+        10568,
+        10569,
+        10570,
+        10571,
+        10572,
+        10573,
+        10574,
+        10575,
+        10576,
+        10577,
+        10578,
+        10579,
+        10580,
+        10581,
+        10582,
+        10583,
+        10584,
+        10585,
+        10586,
+        10587,
+        10588,
+        10589,
+        10590,
+        10591,
+        10592,
+        10593,
+        10594,
+        10595,
+        10596,
+        10597,
+        10598,
+        10599,
+        10600,
+        10601,
+        10602,
+        10603,
+        10604,
+        10605,
+        10606,
+        10607,
+        10608,
+        10609,
+        10610,
+        10611,
+        10612,
+        10613,
+        10614,
+        10615,
+        10616,
+        10617,
+        10618,
+        10619,
+        10620,
+        10621,
+        10622,
+        10623,
+        10624,
+        10625,
+        10626,
+        10627,
+        10628,
+        10629,
+        10630,
+        10631,
+        10632,
+        10633,
+        10634,
+        10635,
+        10636,
+        10637,
+        10638,
+        10639,
+        10640,
+        10641,
+        10642,
+        10643,
+        10644,
+        10645,
+        10646,
+        10647,
+        10648,
+        10649,
+        10650,
+        10651,
+        10652,
+        10653,
+        10654,
+        7227,
+        8843,
+        11305,
+        11362,
+        11307,
+        11308,
+        11309,
+        11310,
+        11311,
+        11315,
+        11316,
+        11403,
+        11675,
+        11542,
+        11546,
+        11560,
+        11576,
+        11589,
+        11591,
+        11595,
+        11604,
+        11609,
+        11612,
+        11613,
+        11614,
+        11615,
+        11616,
+        7356,
+        2658,
+        2661,
+        6431,
+        6432,
+        6433,
+        10553,
+        7361,
+        7366,
+        7367,
+        5323,
+        7368,
+        5327,
+        5629,
+        5880,
+        7369,
+        5835,
+        5836,
+        9263,
+        7370,
+        6435,
+        7371,
+        8003,
+        6472,
+        6473,
+        6474,
+        6475,
+        6476,
+        6517,
+        6518,
+        6519,
+        6831,
+        6832,
+        6564,
+        6565,
+        6994,
+        7372,
+        6653,
+        6729,
+        6730,
+        10794,
+        10795,
+        9573,
+        9574,
+        9575,
+        9576,
+        7904,
+        7905,
+        7906,
+        7907,
+        7908,
+        7909,
+        7932,
+        10797,
+        10833,
+        7979,
+        8024,
+        8025,
+        8026,
+        9264,
+        8199,
+        8895,
+        8913,
+        9195,
+        9196,
+        9197,
+        9198,
+        9199,
+        9200,
+        9257,
+        10554,
+        9332,
+        9911,
+        9912,
+        9761,
+        9338,
+        9763,
+        9764,
+        9762,
+        10837,
+        10951,
+        10976,
+        11714,
+        10555,
+        10556,
+        10557,
+        10558,
+        10559,
+        10560,
+        10561,
+        10562,
+        10656,
+        10657,
+        10659,
+        10763,
+        10770,
+        10771,
+        10772,
+        10773,
+        10774,
+        10775,
+        10776,
+        10777,
+        10778,
+        10779,
+        10780,
+        10781,
+        10782,
+        10783,
+        10784,
+        10785,
+        10786,
+        10787,
+        10788,
+        10789,
+        10790,
+        10791,
+        10792,
+        10793,
+        11298,
+        11304,
+        11319,
+        11339,
+        11340,
+        11341,
+        11342,
+        11343,
+        11344,
+        11345,
+        11346,
+        11347,
+        11348,
+        11349,
+        11350,
+        11351,
+        11352,
+        11353,
+        11354,
+        11355,
+        11356,
+        11357,
+        11358,
+        11359,
+        11360,
+        11361,
+        11535,
+        11536,
+        11624,
+        11625,
+        11642,
+        11645,
+        11648,
+        11655,
+        11657,
+        11662,
+        11677,
+        11673,
+        11717,
+        11720,
+        11721,
+        11722,
+        11723,
+        11730,
+        11739,
+        11766,
+        11769,
+        11772,
+        11775,
+        11776,
+        11779,
+        11782,
+        11819,
+        11824,
+        11829,
+        11830,
+        11833,
+        11836,
+        11839,
+        11842,
+        11845,
+        11858,
+        11891
+      ],
+      "fnv": "a8c21ed9"
+    }
+  },
+  "nodes": {
+    "11710": {
+      "name": "P02_1F_KV_LV_CONNECTIONS_WORK_TEST_ROOT",
+      "children": [
+        11708,
+        11709
+      ],
+      "extras": {
+        "modelStage": "WORK_TEST",
+        "status": "WORK_ASSUMPTION_HOST_HOLD",
+        "hostHold": true,
+        "asBuilt": false,
+        "current": false,
+        "physicalConnectionsVerified": 0,
+        "sourceLinks": [
+          {
+            "link": "https://drive.google.com/file/d/1GjGoz5FMHElZLQjDzOitCant11ewOHtq/view",
+            "role": "HISTORICAL_PLAN_2017",
+            "supports": "A-D common cold water topology and D VM20"
+          },
+          {
+            "link": "https://drive.google.com/file/d/12xVc522i-IAj1vjvs7nRf7M9majjdnD6/view",
+            "role": "HISTORICAL_PLAN_2017",
+            "supports": "NIBE moved to 2F; KV22/LV22 between floors"
+          },
+          {
+            "link": "https://drive.google.com/file/d/1QyO_UJmU_7saPBE2tNKOrc45sXV2LiXE/view",
+            "role": "HISTORICAL_PLAN_2015",
+            "supports": "D1F water fixtures; copper trunks and PEX15 in sleeves"
+          },
+          {
+            "link": "https://drive.google.com/file/d/1Guc8pv0oSw18bTxP0Rk4-aLtu5erPFWH/view",
+            "role": "HISTORICAL_PLAN_2015",
+            "supports": "D2F KV/LV fixture branches and NIBE"
+          },
+          {
+            "link": "https://www.nibe.fi/assets/documents/14134/031802-2.pdf",
+            "role": "MANUFACTURER_2014_ANALOGUE_NOT_UNIT_ID",
+            "supports": "bottom service connections 41 cold, 42 mixed hot; 22 isolation/check, 25 mixing; not proof of 2003 unit identity"
+          }
+        ],
+        "sourceGLBSHA256": "c552d62cfda9a238eb801993ce94e6974ab913d9f0f34931b08d7302d1b4acea",
+        "floor": "1F"
+      }
+    },
+    "11708": {
+      "name": "P02_1F_KV_KYTKENNAT_WORK_TEST",
+      "children": [
+        11678,
+        11679,
+        11680,
+        11686,
+        11687,
+        11690,
+        11692,
+        11693,
+        11694,
+        11702,
+        11707
+      ],
+      "extras": {
+        "modelStage": "WORK_TEST",
+        "status": "WORK_ASSUMPTION_HOST_HOLD",
+        "hostHold": true,
+        "asBuilt": false,
+        "current": false,
+        "physicalConnectionsVerified": 0,
+        "m5System": "VESI",
+        "systemLayer": "KV",
+        "sourceLinks": [
+          {
+            "link": "https://drive.google.com/file/d/1GjGoz5FMHElZLQjDzOitCant11ewOHtq/view",
+            "role": "HISTORICAL_PLAN_2017",
+            "supports": "A-D common cold water topology and D VM20"
+          },
+          {
+            "link": "https://drive.google.com/file/d/12xVc522i-IAj1vjvs7nRf7M9majjdnD6/view",
+            "role": "HISTORICAL_PLAN_2017",
+            "supports": "NIBE moved to 2F; KV22/LV22 between floors"
+          },
+          {
+            "link": "https://drive.google.com/file/d/1QyO_UJmU_7saPBE2tNKOrc45sXV2LiXE/view",
+            "role": "HISTORICAL_PLAN_2015",
+            "supports": "D1F water fixtures; copper trunks and PEX15 in sleeves"
+          },
+          {
+            "link": "https://drive.google.com/file/d/1Guc8pv0oSw18bTxP0Rk4-aLtu5erPFWH/view",
+            "role": "HISTORICAL_PLAN_2015",
+            "supports": "D2F KV/LV fixture branches and NIBE"
+          },
+          {
+            "link": "https://www.nibe.fi/assets/documents/14134/031802-2.pdf",
+            "role": "MANUFACTURER_2014_ANALOGUE_NOT_UNIT_ID",
+            "supports": "bottom service connections 41 cold, 42 mixed hot; 22 isolation/check, 25 mixing; not proof of 2003 unit identity"
+          }
+        ],
+        "floor": "1F"
+      }
+    },
+    "11678": {
+      "name": "P02_COMMON_MAIN_D_TIE_WORK_TEST",
+      "mesh": 4448,
+      "extras": {
+        "modelStage": "WORK_TEST",
+        "status": "WORK_ASSUMPTION_HOST_HOLD",
+        "hostHold": true,
+        "asBuilt": false,
+        "current": false,
+        "physicalConnectionsVerified": 0,
+        "m5System": "VESI",
+        "systemLayer": "KV",
+        "sourceLinks": [
+          {
+            "link": "https://drive.google.com/file/d/1GjGoz5FMHElZLQjDzOitCant11ewOHtq/view",
+            "role": "HISTORICAL_PLAN_2017",
+            "supports": "A-D common cold water topology and D VM20"
+          },
+          {
+            "link": "https://drive.google.com/file/d/12xVc522i-IAj1vjvs7nRf7M9majjdnD6/view",
+            "role": "HISTORICAL_PLAN_2017",
+            "supports": "NIBE moved to 2F; KV22/LV22 between floors"
+          },
+          {
+            "link": "https://drive.google.com/file/d/1QyO_UJmU_7saPBE2tNKOrc45sXV2LiXE/view",
+            "role": "HISTORICAL_PLAN_2015",
+            "supports": "D1F water fixtures; copper trunks and PEX15 in sleeves"
+          },
+          {
+            "link": "https://drive.google.com/file/d/1Guc8pv0oSw18bTxP0Rk4-aLtu5erPFWH/view",
+            "role": "HISTORICAL_PLAN_2015",
+            "supports": "D2F KV/LV fixture branches and NIBE"
+          },
+          {
+            "link": "https://www.nibe.fi/assets/documents/14134/031802-2.pdf",
+            "role": "MANUFACTURER_2014_ANALOGUE_NOT_UNIT_ID",
+            "supports": "bottom service connections 41 cold, 42 mixed hot; 22 isolation/check, 25 mixing; not proof of 2003 unit identity"
+          }
+        ],
+        "routeCenterlineWorldYUp": [
+          [
+            6.156929,
+            2.44,
+            -4.896369
+          ],
+          [
+            6.09981,
+            2.44,
+            -4.896369
+          ]
+        ],
+        "outerDiameterM_WORK_ASSUMPTION": 0.022,
+        "technicalHostAssumption": "Existing upper WC service enclosure behind hatch n1727; removable access, WORK_ASSUMPTION",
+        "functionalStart": "COMMON_MAIN_2017",
+        "functionalEnd": "D_THREEPORT",
+        "routeReason": "Close remaining 57mm model gap at existing three-port. Original 226mm drawing gap is not a physical measurement.",
+        "routeVerified": false,
+        "sourceGLBSHA256": "c552d62cfda9a238eb801993ce94e6974ab913d9f0f34931b08d7302d1b4acea",
+        "scopeKey": "SOL-P02-WATER-INTEGRATION-20261111"
+      }
+    },
+    "11709": {
+      "name": "P02_1F_LV_KYTKENNAT_WORK_TEST",
+      "children": [
+        11683,
+        11688,
+        11689,
+        11691
+      ],
+      "extras": {
+        "modelStage": "WORK_TEST",
+        "status": "WORK_ASSUMPTION_HOST_HOLD",
+        "hostHold": true,
+        "asBuilt": false,
+        "current": false,
+        "physicalConnectionsVerified": 0,
+        "m5System": "VESI",
+        "systemLayer": "LV",
+        "sourceLinks": [
+          {
+            "link": "https://drive.google.com/file/d/1GjGoz5FMHElZLQjDzOitCant11ewOHtq/view",
+            "role": "HISTORICAL_PLAN_2017",
+            "supports": "A-D common cold water topology and D VM20"
+          },
+          {
+            "link": "https://drive.google.com/file/d/12xVc522i-IAj1vjvs7nRf7M9majjdnD6/view",
+            "role": "HISTORICAL_PLAN_2017",
+            "supports": "NIBE moved to 2F; KV22/LV22 between floors"
+          },
+          {
+            "link": "https://drive.google.com/file/d/1QyO_UJmU_7saPBE2tNKOrc45sXV2LiXE/view",
+            "role": "HISTORICAL_PLAN_2015",
+            "supports": "D1F water fixtures; copper trunks and PEX15 in sleeves"
+          },
+          {
+            "link": "https://drive.google.com/file/d/1Guc8pv0oSw18bTxP0Rk4-aLtu5erPFWH/view",
+            "role": "HISTORICAL_PLAN_2015",
+            "supports": "D2F KV/LV fixture branches and NIBE"
+          },
+          {
+            "link": "https://www.nibe.fi/assets/documents/14134/031802-2.pdf",
+            "role": "MANUFACTURER_2014_ANALOGUE_NOT_UNIT_ID",
+            "supports": "bottom service connections 41 cold, 42 mixed hot; 22 isolation/check, 25 mixing; not proof of 2003 unit identity"
+          }
+        ],
+        "floor": "1F"
+      }
+    },
+    "11688": {
+      "name": "P02_S1_HOT_FROM_MANIFOLD_WORK_TEST",
+      "mesh": 4458,
+      "extras": {
+        "modelStage": "WORK_TEST",
+        "status": "WORK_ASSUMPTION_HOST_HOLD",
+        "hostHold": true,
+        "asBuilt": false,
+        "current": false,
+        "physicalConnectionsVerified": 0,
+        "m5System": "VESI",
+        "systemLayer": "LV",
+        "sourceLinks": [
+          {
+            "link": "https://drive.google.com/file/d/1GjGoz5FMHElZLQjDzOitCant11ewOHtq/view",
+            "role": "HISTORICAL_PLAN_2017",
+            "supports": "A-D common cold water topology and D VM20"
+          },
+          {
+            "link": "https://drive.google.com/file/d/12xVc522i-IAj1vjvs7nRf7M9majjdnD6/view",
+            "role": "HISTORICAL_PLAN_2017",
+            "supports": "NIBE moved to 2F; KV22/LV22 between floors"
+          },
+          {
+            "link": "https://drive.google.com/file/d/1QyO_UJmU_7saPBE2tNKOrc45sXV2LiXE/view",
+            "role": "HISTORICAL_PLAN_2015",
+            "supports": "D1F water fixtures; copper trunks and PEX15 in sleeves"
+          },
+          {
+            "link": "https://drive.google.com/file/d/1Guc8pv0oSw18bTxP0Rk4-aLtu5erPFWH/view",
+            "role": "HISTORICAL_PLAN_2015",
+            "supports": "D2F KV/LV fixture branches and NIBE"
+          },
+          {
+            "link": "https://www.nibe.fi/assets/documents/14134/031802-2.pdf",
+            "role": "MANUFACTURER_2014_ANALOGUE_NOT_UNIT_ID",
+            "supports": "bottom service connections 41 cold, 42 mixed hot; 22 isolation/check, 25 mixing; not proof of 2003 unit identity"
+          }
+        ],
+        "routeCenterlineWorldYUp": [
+          [
+            6.05,
+            2.398,
+            -4.22
+          ],
+          [
+            6.05,
+            2.46,
+            -4.22
+          ],
+          [
+            6.34,
+            2.46,
+            -4.22
+          ],
+          [
+            6.34,
+            2.46,
+            -2.475
+          ],
+          [
+            6.34,
+            1.185,
+            -2.475
+          ],
+          [
+            6.24,
+            1.185,
+            -2.475
+          ]
+        ],
+        "outerDiameterM_WORK_ASSUMPTION": 0.015,
+        "technicalHostAssumption": "Existing east wet-core service/party-wall zone x6.25..6.50, WORK_ASSUMPTION, cavity and bores unmeasured",
+        "functionalStart": "LV_BAR",
+        "functionalEnd": "S1_LV",
+        "routeReason": "Existing MJ04 A-neck n11605 assigned hot for this work route; no second mixer.",
+        "routeVerified": false,
+        "sourceGLBSHA256": "c552d62cfda9a238eb801993ce94e6974ab913d9f0f34931b08d7302d1b4acea",
+        "scopeKey": "SOL-P02-WATER-INTEGRATION-20261111"
+      }
+    },
+    "11721": {
+      "name": "P02_P03_WW2015_V75_KITCHEN_TO_1F_COLLECTOR_SINGLE_ACTIVE_WORK_TEST_HOST_HOLD",
+      "mesh": 4478,
+      "extras": {
+        "purpose": "P0-3 functional underfloor west-wall candidate link",
+        "sourceParentSHA256": "e71333eed32611f21edf6f1409d9c9a792e7da349e35c75bf3e0d27fb0dcab4a",
+        "sourcePhoto2026": "https://drive.google.com/file/d/1BmfFwt2R1OzEYzWQPP31CjSpeybxi9uO/view",
+        "sourcePlans2015": [
+          "https://drive.google.com/file/d/1QyO_UJmU_7saPBE2tNKOrc45sXV2LiXE/view",
+          "https://drive.google.com/file/d/1Guc8pv0oSw18bTxP0Rk4-aLtu5erPFWH/view"
+        ],
+        "sourceLinks": [
+          {
+            "role": "HISTORICAL_PLAN_2015_1F",
+            "url": "https://drive.google.com/file/d/1QyO_UJmU_7saPBE2tNKOrc45sXV2LiXE/view",
+            "supports": "V75 YLOS west wall, underfloor route not measured"
+          },
+          {
+            "role": "HISTORICAL_PLAN_2015_2F",
+            "url": "https://drive.google.com/file/d/1Guc8pv0oSw18bTxP0Rk4-aLtu5erPFWH/view",
+            "supports": "K2 V75 ALAS"
+          },
+          {
+            "role": "OWNER_PHOTO_2026",
+            "url": "https://drive.google.com/file/d/1BmfFwt2R1OzEYzWQPP31CjSpeybxi9uO/view",
+            "supports": "K2 sink trap and down-going grey waste pipe visible, hidden routes not observed"
+          },
+          {
+            "role": "PARENT_MODEL_WORK_TEST",
+            "url": "https://drive.google.com/file/d/1ORyX7WXn5xGL7-uruIl9xieQYSunvcqo/view",
+            "parentGLBSHA256": "e71333eed32611f21edf6f1409d9c9a792e7da349e35c75bf3e0d27fb0dcab4a"
+          }
+        ],
+        "sourceExistingNodes": {
+          "2F_KITCHEN_DROP_BOTH": 11338,
+          "D1F_NORTH_BRANCH_BOTH": 10160,
+          "2F_KITCHEN_PHOTO_TRAP_ROOT_BOTH": 11634
+        },
+        "function": "GRAVITY_WASTEWATER",
+        "flowDirection": "K2 sink trap / 2015 V75 down -> imported V75 2.902m -> 1F plan-derived source WW collector, NO V75_TO_V50",
+        "GLB_world_XYZ_start_m": [
+          6.122,
+          -0.092,
+          -1.842
+        ],
+        "GLB_world_XYZ_end_m": [
+          6.023,
+          -0.15,
+          -4.742
+        ],
+        "horizontal_m": 2.9016893355423146,
+        "modelledVerticalDrop_m": 0.057999999999999996,
+        "assumedGrade_percent": 1.998835619291409,
+        "outerDiameter_m_assumed": 0.075,
+        "host": "1F west-wall underfloor conceptual; void/penetrations/firestops NOT_VERIFIED",
+        "meshesNearOldV50P17Node10127_NotConnected": true,
+        "planNode11338_has_historical_stubAssumptionNode10127": "HOLD / unproven V75->V50 downsizing",
+        "newRouteIsSingleWorkCandidate_NotApprovedTopology": true,
+        "meshTouchNotHydraulicProof": true,
+        "T110_separate_from_wastewater": true,
+        "T110_separate_from_mechanical_IV": true,
+        "stage": "WORK_TEST",
+        "hostHold": true,
+        "physicalConnectionsVerified": 0,
+        "humanReview": "NOT_RUN",
+        "current": false,
+        "asBuilt": false,
+        "productionWebGL": false,
+        "sourceDonorDriveId": "1bwigxtmlwoMR6UP4u-Gixc9VnlybuWmR",
+        "sourceDonorGLBSHA256": "52a011383f984d53018d7788efe410b7608cb266da110cb18ddfd99858225a6b",
+        "sourceDonorNode": 11642,
+        "sourceDonorMesh": 4416,
+        "sourceParentGLBSHA256": "db5ce3d7ef4c0bc8910de7f46df80029617b37d38ff4ddccd330cf70a2818a2a",
+        "sourceSceneRemap": {
+          "source": 327,
+          "target": 343
+        },
+        "modelGeometricCoupling": "UPPER_AND_LOWER_PORTS_SLEEVED_SINGLE_ACTIVE_V75_WORK_ASSUMPTION",
+        "physicalJunctions": "UNKNOWN",
+        "originalDonorCenterlineShift_Y_m": 0.01,
+        "sourceOpenPorts": "HISTORICAL_UNVERIFIED_MODEL_ONLY_COUUPLING",
+        "inheritedV50P17Candidate": "COW_EXCLUDED_IN_NEW_SCENES_ONLY",
+        "underfloorHost": "MODEL_BBOX_ONLY; real cavity, floor layers, firestops and penetrations UNKNOWN",
+        "formerUnverifiedSourceOpenPorts": [
+          "UPPER_DROP_HYDRAULIC_LINK_NOT_VERIFIED",
+          "D1F_COLLECTOR_HYDRAULIC_LINK_NOT_VERIFIED"
+        ],
+        "modelPorts": {
+          "UPPER": "GEOMETRY_SLEEVED_PHYSICAL_UNKNOWN",
+          "LOWER": "GEOMETRY_SLEEVED_PHYSICAL_UNKNOWN"
+        }
+      },
+      "translation": [
+        0.0,
+        0.01,
+        0.0
+      ]
+    },
+    "11722": {
+      "name": "P02_P03_V75_UPPER_GEOMETRIC_SOCKET_WORK_TEST_PHYSICAL_UNKNOWN",
+      "mesh": 4479,
+      "extras": {
+        "stage": "WORK_TEST",
+        "hostHold": true,
+        "sourceParentGLBSHA256": "db5ce3d7ef4c0bc8910de7f46df80029617b37d38ff4ddccd330cf70a2818a2a",
+        "sourceDonorGLBSHA256": "52a011383f984d53018d7788efe410b7608cb266da110cb18ddfd99858225a6b",
+        "modelOnlyConnection": "SLEEVE_OVERLAP_NOT_HYDRAULIC_PROOF",
+        "physicalConnectionsVerified": 0,
+        "noReducer": true,
+        "sourceLinks": [
+          {
+            "role": "P0-3_PREVIOUS_WORK_TEST",
+            "link": "https://drive.google.com/file/d/1bwigxtmlwoMR6UP4u-Gixc9VnlybuWmR/view"
+          },
+          {
+            "role": "2015_1F_KVV",
+            "link": "https://drive.google.com/file/d/1QyO_UJmU_7saPBE2tNKOrc45sXV2LiXE/view"
+          },
+          {
+            "role": "2015_2F_KVV",
+            "link": "https://drive.google.com/file/d/1Guc8pv0oSw18bTxP0Rk4-aLtu5erPFWH/view"
+          }
+        ]
+      }
+    },
+    "11728": {
+      "name": "V93_ELECTRICAL4_H38_1F_RK121_OPEN_CABLE_HIDDEN_ROOT_WORK_TEST_PA2_D4_LEGACY_INACTIVE_COFIT_P02_COW_P03_ONE_V75_COW",
+      "children": [
+        10060,
+        10062,
+        10064,
+        10066,
+        10124,
+        10126,
+        10130,
+        10132,
+        10134,
+        10136,
+        10138,
+        10140,
+        10142,
+        10145,
+        10148,
+        10151,
+        11726,
+        10179,
+        10181,
+        10183,
+        10185,
+        10187,
+        10189,
+        10191,
+        10193,
+        10195,
+        10197,
+        10199,
+        10201,
+        10203,
+        10205,
+        10207,
+        10209,
+        10211,
+        10213,
+        10215,
+        10217,
+        10219,
+        10221,
+        10223,
+        10225,
+        10227,
+        10229,
+        10231,
+        10233,
+        10235,
+        10237,
+        10239,
+        10241,
+        10243,
+        10245,
+        10247,
+        10249,
+        10251,
+        10253,
+        10255,
+        10257,
+        10259,
+        10261,
+        10263,
+        10265,
+        10267,
+        10269,
+        10271,
+        10273,
+        10275,
+        10277,
+        10279,
+        10281,
+        10283,
+        10285,
+        10310,
+        10312,
+        10316,
+        10322,
+        10356,
+        10392,
+        10402,
+        10404,
+        10406,
+        10408,
+        10410,
+        10412,
+        10414,
+        10416,
+        10418,
+        10504,
+        10506,
+        10508,
+        11323,
+        11330,
+        11332,
+        11334,
+        11724,
+        11363,
+        11365
+      ],
+      "extras": {
+        "modelStage": "WORK_TEST",
+        "hostHold": true,
+        "current": false,
+        "asBuilt": false,
+        "integrator": "Claude",
+        "stage": "WORK_TEST",
+        "confidence": "OWNER_OBSERVATION_AND_H37_R2_SOURCE_ONLY",
+        "sourceV93H35H38BothGLBSHA256": "e8cb1e9e2897550f1613851ed90fa581048c8a5e67aa25f92e80dd183fd69e2f",
+        "sourceH38V92FloorsDriveId": "1Yf55Z4AnLeE5RI0KmHHTfvkMM6oD441i",
+        "sourceSceneIndex": 298,
+        "hiddenOnlyInNewScene": [
+          10422,
+          10423,
+          10424,
+          10425,
+          10426,
+          10427,
+          10428,
+          10429,
+          10430,
+          10431,
+          10432,
+          10433,
+          10434,
+          10435,
+          10436,
+          10437,
+          10438,
+          10439,
+          10440,
+          10441,
+          10442,
+          10443,
+          10444,
+          10445,
+          10446,
+          10447,
+          10448
+        ],
+        "notAsBuilt": true,
+        "physicalWiringUnchanged": true,
+        "originalRoot": 11477,
+        "omittedHistoricalCableNode": 10421,
+        "sourceGLBSHA256": "e38e75bf20e9faff4328d41541f68bb53d031c6e422fb6b59029c3aac6244d9e",
+        "fixScope": "GPT6H-V93-ELECTRICAL4-RK121-1F-INTEGRATION-20261110",
+        "reason": "H38 scene301 / V93 electrical4 scene311 inherited 2015 RK12.1 OPEN_NO_JOINT cable node10421 active; H38 corrected donor scene303 and combined scene313 already omit it. Hide only in new scene314; do not add or reroute physical wiring.",
+        "verifiedPhysicalConnections": 0,
+        "compositeWorkTest": true,
+        "excludedD4LegacyNode": 10510,
+        "sourceNode": 11575,
+        "p02CloneOfNode": 11596,
+        "p03SourceRoot": 11674,
+        "p03SourceParentGLBSHA256": "db5ce3d7ef4c0bc8910de7f46df80029617b37d38ff4ddccd330cf70a2818a2a",
+        "p03COWExcludedNodes": [
+          10128
+        ],
+        "p03COWReplacedNodes": {
+          "11336": 11724,
+          "10161": 11726
+        },
+        "physicalConnectionsVerified": 0
+      }
+    },
+    "11724": {
+      "name": "P02_P03_KITCHEN_V75_DOWN_ACTIVE_1F_BOTH_COW",
+      "mesh": 4209,
+      "extras": {
+        "m5System": "VESI",
+        "sourceLinks": [
+          {
+            "docId": "DOC:1QyO_UJmU_7saPBE2tNKOrc45sXV2LiXE",
+            "link": "https://drive.google.com/file/d/1QyO_UJmU_7saPBE2tNKOrc45sXV2LiXE/view",
+            "role": "primary",
+            "supports": "2001D: keittiön V75 ALAS saunan koillisnurkassa -> 1F lattialinja"
+          },
+          {
+            "docId": "DOC:1Guc8pv0oSw18bTxP0Rk4-aLtu5erPFWH",
+            "link": "https://drive.google.com/file/d/1Guc8pv0oSw18bTxP0Rk4-aLtu5erPFWH/view",
+            "role": "primary",
+            "supports": "2002D: keittiön V75 ALAS saunan koillisnurkassa -> 1F lattialinja"
+          },
+          {
+            "docId": "IMG:1BmfFwt2R1OzEYzWQPP31CjSpeybxi9uO",
+            "link": "https://drive.google.com/file/d/1BmfFwt2R1OzEYzWQPP31CjSpeybxi9uO/view",
+            "role": "2026-owner-photo",
+            "supports": "IMG_20261109_171621 keittiön allaskaappi: harmaa viemäri menee suoraan lattian läpi allaskaapissa"
+          },
+          {
+            "role": "WORK_TEST_DONOR_P03",
+            "link": "https://drive.google.com/file/d/1bwigxtmlwoMR6UP4u-Gixc9VnlybuWmR/view",
+            "sha256": "52a011383f984d53018d7788efe410b7608cb266da110cb18ddfd99858225a6b",
+            "supports": "one 2.9m modeled gravity V75 route, no physical joint proof"
+          }
+        ],
+        "geometryEvidence": "SOURCE_SUPPORTED_TOPOLOGY_WORK_ASSUMPTION_ROUTE",
+        "physicalConnectionVerified": false,
+        "assumption": "Keittiön V75-pudotus -> P0-3 2.902m V75 -> 1F suunnitelmaperusteinen V75/kokooja; source n10127 V50 liittymää EI OLETETA. Fyysinen liitos UNKNOWN.",
+        "modelStage": "WORK_TEST",
+        "hostHold": true,
+        "current": false,
+        "asBuilt": false,
+        "author": "Claude 9.11.2026 V87",
+        "task": "Claude 9.11.2026 V87 talotekniikan jatkuvuus (TATE-lähdevertailu Claude Docs GvSwEF94)",
+        "v89Edit": "V89: sokkelijogi poistettu, viemäri suoraan lattian läpi",
+        "sourceNodeInP02": 11336,
+        "sourceParentGLBSHA256": "db5ce3d7ef4c0bc8910de7f46df80029617b37d38ff4ddccd330cf70a2818a2a",
+        "p03_COWReason": "replace old V75-to-V50 n10127 assumption in opt-in scene",
+        "p03WastePath": "single_V75_to_1F_collector_only",
+        "physicalConnectionsVerified": 0,
+        "stage": "WORK_TEST",
+        "geometricConnectionStatus": "MODELED_SOCKET_OVERLAP_ONLY",
+        "actualConnectionStatus": "UNKNOWN",
+        "oldV50P17StubHypothesis": "NOT_ACTIVE_IN_NEW_OPTIN_SCENES"
+      }
+    },
+    "11726": {
+      "name": "P02_P03_1F_WASTE_COLLECTOR_ACTIVE_COW",
+      "mesh": 3708,
+      "matrix": [
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        -0.76,
+        0.0,
+        1.0
+      ],
+      "extras": {
+        "m5System": "VESI",
+        "sourceDonor": "C80CHAIN:M5_WW2015_D1F_SRC002003_NORTH_P185C_C80_OPTIN_OPEN_NO_JOINT",
+        "sourceDriveId": "1vFJExfZ7l30BXmwNOsuhtN_T-SNlShxz",
+        "sourceGLBSHA256": "025593dbbef895f207a846d409e5cc2281125c4511b3380148ae0de9cf712b23",
+        "sourceScene": 319,
+        "sourceNode": 10145,
+        "sourceMesh": 3709,
+        "viewerLod": "VERTEX_CLUSTER_ADAPTIVE",
+        "modelStage": "WORK_TEST",
+        "hostHold": true,
+        "verifiedConnections": 0,
+        "v73HostCorrection": {
+          "deltaYGltf": -0.76,
+          "reason": "Viemäri (V32/V50/V75) oli mallinnettu ~0.6 m lattian yläpuolelle huonetilaan. Siirretty kokonaisena pystysuunnassa lattia-/alapohjarakenteeseen (yläpinta noin y-0.03, lattia y0.08). XZ-reitti ja keskinäinen vietto säilytetty. Kaivoliitokset (2 x LK-75 + saunan kaivo) HOLD, ei uusia liitoksia. Lähde: High V72-luovutus 8.11.2026 P0-1 §8, 2001D.",
+          "status": "WORK_ASSUMPTION_HOST_HOLD"
+        },
+        "sourceNodeInP02": 10161,
+        "sourceParentGLBSHA256": "db5ce3d7ef4c0bc8910de7f46df80029617b37d38ff4ddccd330cf70a2818a2a",
+        "p03_COWReason": "replace geometric OPEN label; physical remains unknown",
+        "p03WastePath": "single_V75_to_1F_collector_only",
+        "physicalConnectionsVerified": 0,
+        "stage": "WORK_TEST",
+        "asBuilt": false,
+        "current": false,
+        "geometricConnectionStatus": "MODELED_SOCKET_OVERLAP_ONLY",
+        "actualConnectionStatus": "UNKNOWN",
+        "oldV50P17StubHypothesis": "NOT_ACTIVE_IN_NEW_OPTIN_SCENES",
+        "sourceOpenNoJointStatus": "historical_mesh_label_only; new scene joins geometry by modeled hollow socket, physical_0_verified",
+        "sourceLinks": [
+          {
+            "role": "WORK_TEST_DONOR_P03",
+            "link": "https://drive.google.com/file/d/1bwigxtmlwoMR6UP4u-Gixc9VnlybuWmR/view",
+            "sha256": "52a011383f984d53018d7788efe410b7608cb266da110cb18ddfd99858225a6b",
+            "supports": "one 2.9m modeled gravity V75 route, no physical joint proof"
+          }
+        ]
+      }
+    },
+    "11730": {
+      "name": "P04_D1F_SAUNA_KSO100_TO_K11_IV2_TO_TCOLLECTOR_E220S_ROOT_WORK_TEST_HOST_HOLD",
+      "children": [
+        11731,
+        11732,
+        11733,
+        11734,
+        11735,
+        11736,
+        11737,
+        11738
+      ],
+      "extras": {
+        "status": "WORK_TEST_HOST_HOLD",
+        "confidence": "WORK_ASSUMPTION",
+        "method": "2015 140x40 concealed wall + inter-floor branch to 2026 K11 IV2 anchor and already-connected T/AV1/riser/E220S",
+        "sourceLinks": [
+          {
+            "docId": "1cbo8g7mcs9zAWgUE9w2EOm_t9R1vIl1X",
+            "link": "https://drive.google.com/file/d/1cbo8g7mcs9zAWgUE9w2EOm_t9R1vIl1X/view",
+            "role": "HISTORICAL_PLAN_2015",
+            "supports": "KSO100 140x40 planned sauna-side wall channel"
+          },
+          {
+            "docId": "1qCclVENU7DsmZGkgFR2ZFuuROId3_myIbqQtjEuT24Q",
+            "link": "https://docs.google.com/document/d/1qCclVENU7DsmZGkgFR2ZFuuROId3_myIbqQtjEuT24Q/edit",
+            "role": "WORK_TEST_DECISION_CONTEXT",
+            "supports": "P0-4 owner V91 and source scope"
+          },
+          {
+            "docId": "1-8XmCL5U5noY3Jt9BTVvKt7wSpRw57DR9v721y98nFU",
+            "link": "https://docs.google.com/document/d/1-8XmCL5U5noY3Jt9BTVvKt7wSpRw57DR9v721y98nFU/edit",
+            "role": "PROJECT_TECHNICAL_METHOD",
+            "supports": "3D coordinate frame and QA restrictions"
+          }
+        ],
+        "notAsBuilt": true,
+        "ownerV91BanPreserved": true,
+        "physicalConnectionVerified": false,
+        "historicalDesignedSaunaLs": -9,
+        "currentMeasuredLs": null,
+        "explicitlyNonActiveOldNodes": [
+          10156,
+          10157,
+          10158,
+          10159,
+          11322,
+          11326,
+          11328,
+          11329
+        ],
+        "sourceLinksOriginal": [
+          "https://drive.google.com/file/d/1cbo8g7mcs9zAWgUE9w2EOm_t9R1vIl1X/view",
+          "https://docs.google.com/document/d/1qCclVENU7DsmZGkgFR2ZFuuROId3_myIbqQtjEuT24Q/edit",
+          "https://docs.google.com/document/d/1-8XmCL5U5noY3Jt9BTVvKt7wSpRw57DR9v721y98nFU/edit"
+        ],
+        "donorGLBSHA256": "a4be170b0d7b239718c59c7e90a3776ef39b0e0db94006835c4be853c9b605ff",
+        "donorNodeIndex": 11747,
+        "derivedFromGLBSHA256": "db5ce3d7ef4c0bc8910de7f46df80029617b37d38ff4ddccd330cf70a2818a2a",
+        "physicalConnectionsVerified": 0,
+        "hostHold": true,
+        "integrationSource": {
+          "glbSHA256": "cb0afa3389f07053515604030640de95668817e54fb91c5538ace078d6d17a93",
+          "nodeIndex": 11721,
+          "commonParentSHA256": "db5ce3d7ef4c0bc8910de7f46df80029617b37d38ff4ddccd330cf70a2818a2a"
+        }
+      }
+    },
+    "11731": {
+      "name": "P04_D1F_SAUNA_KSO100_INTAKE_140X40_WALL",
+      "mesh": 4481,
+      "extras": {
+        "sourceLinks": [
+          {
+            "docId": "1cbo8g7mcs9zAWgUE9w2EOm_t9R1vIl1X",
+            "link": "https://drive.google.com/file/d/1cbo8g7mcs9zAWgUE9w2EOm_t9R1vIl1X/view",
+            "role": "HISTORICAL_PLAN_2015",
+            "supports": "KSO100 140x40 planned sauna-side wall channel"
+          },
+          {
+            "docId": "1qCclVENU7DsmZGkgFR2ZFuuROId3_myIbqQtjEuT24Q",
+            "link": "https://docs.google.com/document/d/1qCclVENU7DsmZGkgFR2ZFuuROId3_myIbqQtjEuT24Q/edit",
+            "role": "WORK_TEST_DECISION_CONTEXT",
+            "supports": "P0-4 owner V91 and source scope"
+          },
+          {
+            "docId": "1-8XmCL5U5noY3Jt9BTVvKt7wSpRw57DR9v721y98nFU",
+            "link": "https://docs.google.com/document/d/1-8XmCL5U5noY3Jt9BTVvKt7wSpRw57DR9v721y98nFU/edit",
+            "role": "PROJECT_TECHNICAL_METHOD",
+            "supports": "3D coordinate frame and QA restrictions"
+          }
+        ],
+        "sourceClass": "WORK_ASSUMPTION",
+        "status": "WORK_TEST_HOST_HOLD",
+        "part": "WALL_INTAKE_WORK_ASSUMPTION",
+        "physicalVerified": false,
+        "sourceLinksOriginal": [
+          "https://drive.google.com/file/d/1cbo8g7mcs9zAWgUE9w2EOm_t9R1vIl1X/view",
+          "https://docs.google.com/document/d/1qCclVENU7DsmZGkgFR2ZFuuROId3_myIbqQtjEuT24Q/edit",
+          "https://docs.google.com/document/d/1-8XmCL5U5noY3Jt9BTVvKt7wSpRw57DR9v721y98nFU/edit"
+        ],
+        "donorGLBSHA256": "a4be170b0d7b239718c59c7e90a3776ef39b0e0db94006835c4be853c9b605ff",
+        "donorNodeIndex": 11748,
+        "derivedFromGLBSHA256": "db5ce3d7ef4c0bc8910de7f46df80029617b37d38ff4ddccd330cf70a2818a2a",
+        "physicalConnectionsVerified": 0,
+        "hostHold": true,
+        "integrationSource": {
+          "glbSHA256": "cb0afa3389f07053515604030640de95668817e54fb91c5538ace078d6d17a93",
+          "nodeIndex": 11722,
+          "commonParentSHA256": "db5ce3d7ef4c0bc8910de7f46df80029617b37d38ff4ddccd330cf70a2818a2a"
+        }
+      }
+    },
+    "11736": {
+      "name": "P04_D1F_IV2_D100_SHORT_CONCEALED_DROP_TO_EXISTING_T",
+      "mesh": 4486,
+      "extras": {
+        "sourceLinks": [
+          {
+            "docId": "1cbo8g7mcs9zAWgUE9w2EOm_t9R1vIl1X",
+            "link": "https://drive.google.com/file/d/1cbo8g7mcs9zAWgUE9w2EOm_t9R1vIl1X/view",
+            "role": "HISTORICAL_PLAN_2015",
+            "supports": "KSO100 140x40 planned sauna-side wall channel"
+          },
+          {
+            "docId": "1qCclVENU7DsmZGkgFR2ZFuuROId3_myIbqQtjEuT24Q",
+            "link": "https://docs.google.com/document/d/1qCclVENU7DsmZGkgFR2ZFuuROId3_myIbqQtjEuT24Q/edit",
+            "role": "WORK_TEST_DECISION_CONTEXT",
+            "supports": "P0-4 owner V91 and source scope"
+          },
+          {
+            "docId": "1-8XmCL5U5noY3Jt9BTVvKt7wSpRw57DR9v721y98nFU",
+            "link": "https://docs.google.com/document/d/1-8XmCL5U5noY3Jt9BTVvKt7wSpRw57DR9v721y98nFU/edit",
+            "role": "PROJECT_TECHNICAL_METHOD",
+            "supports": "3D coordinate frame and QA restrictions"
+          }
+        ],
+        "sourceClass": "WORK_ASSUMPTION",
+        "status": "WORK_TEST_HOST_HOLD",
+        "part": "CEILING_NECK_TO_K11_IV2_WORK_ASSUMPTION",
+        "physicalVerified": false,
+        "sourceLinksOriginal": [
+          "https://drive.google.com/file/d/1cbo8g7mcs9zAWgUE9w2EOm_t9R1vIl1X/view",
+          "https://docs.google.com/document/d/1qCclVENU7DsmZGkgFR2ZFuuROId3_myIbqQtjEuT24Q/edit",
+          "https://docs.google.com/document/d/1-8XmCL5U5noY3Jt9BTVvKt7wSpRw57DR9v721y98nFU/edit"
+        ],
+        "donorGLBSHA256": "a4be170b0d7b239718c59c7e90a3776ef39b0e0db94006835c4be853c9b605ff",
+        "donorNodeIndex": 11753,
+        "derivedFromGLBSHA256": "db5ce3d7ef4c0bc8910de7f46df80029617b37d38ff4ddccd330cf70a2818a2a",
+        "physicalConnectionsVerified": 0,
+        "hostHold": true,
+        "integrationSource": {
+          "glbSHA256": "cb0afa3389f07053515604030640de95668817e54fb91c5538ace078d6d17a93",
+          "nodeIndex": 11727,
+          "commonParentSHA256": "db5ce3d7ef4c0bc8910de7f46df80029617b37d38ff4ddccd330cf70a2818a2a"
+        }
+      }
+    },
+    "11829": {
+      "name": "GPT6H_P01_RK3_3PH_2015_LIESI_TO_2026_AEG_HOB_HIDDEN_STRUCTURAL_FEED_ONE_ROUTE_WORK_TEST_HOST_HOLD",
+      "mesh": 4504,
+      "extras": {
+        "modelStage": "WORK_TEST_HOST_HOLD_NONCURRENT",
+        "sourceLinks": [
+          {
+            "docId": "1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP",
+            "link": "https://drive.google.com/file/d/1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP/view",
+            "role": "HISTORICAL_PLAN_2015",
+            "supports": "RK3.1 L1/B16 + RK3.2 L2/B16 + RK3.3 L3/B16 designated LIESI"
+          },
+          {
+            "docId": "1dzzZsa9FCiyqmv8WholhLxba6Kxobspg",
+            "link": "https://drive.google.com/file/d/1dzzZsa9FCiyqmv8WholhLxba6Kxobspg/view",
+            "role": "HISTORICAL_PLAN_2015",
+            "supports": "D1F RK to D2F kitchen 3 designation, no exact concealed route"
+          },
+          {
+            "docId": "1-bWa0CKL_GCDbfBg_nMWDq59u_unE_TG",
+            "link": "https://drive.google.com/file/d/1-bWa0CKL_GCDbfBg_nMWDq59u_unE_TG/view",
+            "role": "SOURCE_GLB_WORK_TEST_2026",
+            "supports": "AEG hob node11121, source RK group node10194/10196/10198 and building context, not realized electrical wiring"
+          }
+        ],
+        "confidence": {
+          "groupAssignment2015": "SOURCE_DIRECT",
+          "2026HobPlacement": "WORK_TEST_2026",
+          "hiddenConduitRoute": "WORK_ASSUMPTION",
+          "actualHobTerminalAndCircuitIdentity": "UNKNOWN"
+        },
+        "rkGroup": [
+          "RK3.1-L1-B16",
+          "RK3.2-L2-B16",
+          "RK3.3-L3-B16"
+        ],
+        "existingBoardNodes": [
+          10198,
+          10196,
+          10194
+        ],
+        "existingAEGHobNode2026": 11121,
+        "hobSurfaceSourceNodes": [
+          11122,
+          11123,
+          11124
+        ],
+        "routeStart": [
+          2.389,
+          1.917,
+          -8.315
+        ],
+        "routeEnd": [
+          4.171,
+          3.598,
+          -3.66
+        ],
+        "applianceConnectionStatus": "OPEN_30MM_BELOW_MODELED_UNDERSIDE_NO_TERMINAL_ASSUMED",
+        "buildingFloorCavityHeightM": 2.6,
+        "penetrationHostHold": true,
+        "crossingServices": "QA_LOCAL_ONLY",
+        "newPhysicalOrSafetyApproval": false,
+        "noVisibleRoomCable": true,
+        "G1Axis": "X east / Y up / Z negative north",
+        "noDoubleMirror": true,
+        "remapSourceGLBNodeId": 11851,
+        "sourceProvenanceSHA256": "aeeb8d0e50e257651d1ffa632a5a50ae3baeec8a4917c9f156598c3c221e8fe2",
+        "nominalHobUndersideY": 3.628,
+        "lastOpenGapToHobUndersideM": 0.03,
+        "technicalArrivalZone": "UNDER_HOB_SERVICE_ENVELOPE_APPROX_NO_MANUFACTURER_TERMINAL_POSITION",
+        "physicalEnergizedFeedVerified": false,
+        "donorOriginalEndingY": 3.545,
+        "donorFinalRingDeltaYM": 0.053,
+        "sourceGeometryChange": "ONLY_END_RING_EXTENDED_53MM_IN_SAME_ENVELOPE",
+        "noNewConductorOrTerminalGeometry": true,
+        "integrationSource": {
+          "glbSHA256": "bdbb9c92277312577073056e4da4babc4c6c81f95dbc3bc13a158daaabdd6cd5",
+          "nodeIndex": 11811,
+          "commonParentSHA256": "db5ce3d7ef4c0bc8910de7f46df80029617b37d38ff4ddccd330cf70a2818a2a"
+        }
+      }
+    },
+    "11782": {
+      "name": "LED24_GRID_ACCEPTED_1F_18_MARKERS_ROOT_WORK_TEST_HOST_HOLD",
+      "children": [
+        11783,
+        11784,
+        11785,
+        11786,
+        11787,
+        11788,
+        11789,
+        11790,
+        11791,
+        11792,
+        11793,
+        11794,
+        11795,
+        11796,
+        11797,
+        11798,
+        11799,
+        11800,
+        11801,
+        11802,
+        11803,
+        11804,
+        11805,
+        11806,
+        11807,
+        11808,
+        11809,
+        11810,
+        11811,
+        11812,
+        11813,
+        11814,
+        11815,
+        11816,
+        11817,
+        11818
+      ],
+      "extras": {
+        "ownerAccepted20261110": true,
+        "count": 18,
+        "originalReviewScene": 322,
+        "unchangedPreviousScene": true,
+        "workTest": true,
+        "current": false,
+        "asBuilt": false,
+        "cofitDonorGLBSha256": "34cf59f8a6bba21bd6c2a087acbfd7bdef22a84c8ff0fa4b7ffc4ce3cc5331d4",
+        "cofitOriginalNodeIndex": 11739,
+        "remapSourceGLBNodeId": 11749,
+        "sourceProvenanceSHA256": "aeeb8d0e50e257651d1ffa632a5a50ae3baeec8a4917c9f156598c3c221e8fe2",
+        "integrationSource": {
+          "glbSHA256": "bdbb9c92277312577073056e4da4babc4c6c81f95dbc3bc13a158daaabdd6cd5",
+          "nodeIndex": 11764,
+          "commonParentSHA256": "db5ce3d7ef4c0bc8910de7f46df80029617b37d38ff4ddccd330cf70a2818a2a"
+        }
+      }
+    },
+    "11783": {
+      "name": "LED24_GRID_ACCEPTED_1F_P01_TRIM_WORK_TEST_HOST_HOLD",
+      "mesh": 4497,
+      "translation": [
+        3.04056,
+        2.421,
+        -0.98262
+      ],
+      "scale": [
+        2.65,
+        1.0,
+        2.65
+      ],
+      "extras": {
+        "sourceType": "OWNER_PHOTO_MARKUP_20261110_PINK_LED",
+        "pointKey": "1F-LED-01",
+        "sourceImage": "SOURCE/owner_red_led_markups_20261110.png",
+        "sourceImagePixel": [
+          245,
+          234
+        ],
+        "buildingXYDerivation": "DIAGRAM_APPROX_FROM_PIXEL_NO_SURVEY",
+        "floor": "1F",
+        "zCeilingAssumptionMeters": 2.421,
+        "sourceLinks": [
+          {
+            "type": "USER_MARKUP_20261110",
+            "uri": "SOURCE/owner_red_led_markups_20261110.png"
+          }
+        ],
+        "confidence": "WORK_ASSUMPTION",
+        "hostHold": true,
+        "asBuilt": false,
+        "currentVerified": false,
+        "productSku": "UNKNOWN",
+        "physicalWiring": "NOT_MODELED_OR_VERIFIED",
+        "reviewHostSurfaceNodeIndex": 6497,
+        "reviewProvisionalLoweredWetCeilingY": null,
+        "ceilingBoundaryUnresolved": false,
+        "sourceLEDNodeIndex": 11590,
+        "reviewMaterialOverride": true,
+        "stage": "WORK_TEST_HOST_HOLD",
+        "notNewPhysicalFixture": true,
+        "displayScaleOnly": 2.65,
+        "ownerGridRegularized20261110": true,
+        "gridAccepted20261110": true,
+        "ownerApproval": "GRID_APPROVED_WET_ROOM_EXCEPTION_ACCEPTED",
+        "sourceHostReviewNode": 11641,
+        "originalOwnerPointFloor": "1F",
+        "originalOwnerPointIndex": 1,
+        "notMeasuredAsBuilt": true,
+        "cofitDonorGLBSha256": "34cf59f8a6bba21bd6c2a087acbfd7bdef22a84c8ff0fa4b7ffc4ce3cc5331d4",
+        "cofitOriginalNodeIndex": 11703,
+        "remapSourceGLBNodeId": 11750,
+        "sourceProvenanceSHA256": "aeeb8d0e50e257651d1ffa632a5a50ae3baeec8a4917c9f156598c3c221e8fe2",
+        "integrationSource": {
+          "glbSHA256": "bdbb9c92277312577073056e4da4babc4c6c81f95dbc3bc13a158daaabdd6cd5",
+          "nodeIndex": 11765,
+          "commonParentSHA256": "db5ce3d7ef4c0bc8910de7f46df80029617b37d38ff4ddccd330cf70a2818a2a"
+        }
+      }
+    },
+    "11824": {
+      "name": "OWNER_1F_SMOKE_DETECTORS_1_ROOT_WORK_TEST_HOST_HOLD",
+      "children": [
+        11825
+      ],
+      "extras": {
+        "count": 1,
+        "floor": "1F",
+        "reusesSourceH30Meshes": true,
+        "oldSourceH30Preserved": true,
+        "cofitDonorGLBSha256": "34cf59f8a6bba21bd6c2a087acbfd7bdef22a84c8ff0fa4b7ffc4ce3cc5331d4",
+        "cofitOriginalNodeIndex": 11802,
+        "remapSourceGLBNodeId": 11791,
+        "sourceProvenanceSHA256": "aeeb8d0e50e257651d1ffa632a5a50ae3baeec8a4917c9f156598c3c221e8fe2",
+        "integrationSource": {
+          "glbSHA256": "bdbb9c92277312577073056e4da4babc4c6c81f95dbc3bc13a158daaabdd6cd5",
+          "nodeIndex": 11806,
+          "commonParentSHA256": "db5ce3d7ef4c0bc8910de7f46df80029617b37d38ff4ddccd330cf70a2818a2a"
+        }
+      }
+    },
+    "11825": {
+      "name": "OWNER_1F-SM-01_SMOKE_DETECTOR_REPOSITIONED_PROXY_FROM_EXISTING_H30",
+      "children": [
+        11826,
+        11827,
+        11828
+      ],
+      "extras": {
+        "sourceImage": "SOURCE/owner_20261110_orange9_ceiling_sockets_blue3_smokes.png",
+        "sourceImagePixel": [
+          352,
+          507
+        ],
+        "sourcePdf": "https://drive.google.com/file/d/1dzzZsa9FCiyqmv8WholhLxba6Kxobspg/view",
+        "sourceType": "OWNER_MARKUP_20261110_BLUE_SMOKE_DETECTOR",
+        "sourceNodeIndex": 11432,
+        "sourceMeshIndex": 4297,
+        "workTest": true,
+        "hostHold": true,
+        "asBuilt": false,
+        "current": false,
+        "physicalCenterXYZ": "NOT_MEASURED",
+        "modelType": "NONPRODUCT_PROXY",
+        "room": "HUONE 2",
+        "floor": "1F",
+        "featureKey": "1F-SM-01",
+        "approxGLBWorldXYZ": [
+          3.34284,
+          2.43,
+          -3.72172
+        ],
+        "sourceExistingCenterXYZ": [
+          1.4,
+          2.43,
+          -4.13
+        ],
+        "reuseExistingH30Geometry": true,
+        "ownerBlueApproxOverride": true,
+        "sourceH30OldSceneUnchanged": true,
+        "cofitDonorGLBSha256": "34cf59f8a6bba21bd6c2a087acbfd7bdef22a84c8ff0fa4b7ffc4ce3cc5331d4",
+        "cofitOriginalNodeIndex": 11792,
+        "remapSourceGLBNodeId": 11792,
+        "sourceProvenanceSHA256": "aeeb8d0e50e257651d1ffa632a5a50ae3baeec8a4917c9f156598c3c221e8fe2",
+        "integrationSource": {
+          "glbSHA256": "bdbb9c92277312577073056e4da4babc4c6c81f95dbc3bc13a158daaabdd6cd5",
+          "nodeIndex": 11807,
+          "commonParentSHA256": "db5ce3d7ef4c0bc8910de7f46df80029617b37d38ff4ddccd330cf70a2818a2a"
+        }
+      }
+    },
+    "11826": {
+      "name": "OWNER_1F-SM-01_SMOKE_DETECTOR_PROXY_MOVED_FROM_H30_11432_WORK_TEST",
+      "mesh": 4502,
+      "translation": [
+        1.94284,
+        0.0,
+        0.40828
+      ],
+      "extras": {
+        "sourceImage": "SOURCE/owner_20261110_orange9_ceiling_sockets_blue3_smokes.png",
+        "sourceImagePixel": [
+          352,
+          507
+        ],
+        "sourcePdf": "https://drive.google.com/file/d/1dzzZsa9FCiyqmv8WholhLxba6Kxobspg/view",
+        "sourceType": "OWNER_MARKUP_20261110_BLUE_SMOKE_DETECTOR",
+        "sourceNodeIndex": 11432,
+        "sourceMeshIndex": 4297,
+        "workTest": true,
+        "hostHold": true,
+        "asBuilt": false,
+        "current": false,
+        "physicalCenterXYZ": "NOT_MEASURED",
+        "modelType": "NONPRODUCT_PROXY",
+        "room": "HUONE 2",
+        "floor": "1F",
+        "offsetFromH30GLBWorld": [
+          1.94284,
+          0.0,
+          0.40828
+        ],
+        "cofitDonorGLBSha256": "34cf59f8a6bba21bd6c2a087acbfd7bdef22a84c8ff0fa4b7ffc4ce3cc5331d4",
+        "cofitOriginalNodeIndex": 11789,
+        "remapSourceGLBNodeId": 11793,
+        "sourceProvenanceSHA256": "aeeb8d0e50e257651d1ffa632a5a50ae3baeec8a4917c9f156598c3c221e8fe2",
+        "integrationSource": {
+          "glbSHA256": "bdbb9c92277312577073056e4da4babc4c6c81f95dbc3bc13a158daaabdd6cd5",
+          "nodeIndex": 11808,
+          "commonParentSHA256": "db5ce3d7ef4c0bc8910de7f46df80029617b37d38ff4ddccd330cf70a2818a2a"
+        }
+      }
+    },
+    "11713": {
+      "name": "P02_2F_KV_LV_CONNECTIONS_WORK_TEST_ROOT",
+      "children": [
+        11711,
+        11712
+      ],
+      "extras": {
+        "modelStage": "WORK_TEST",
+        "status": "WORK_ASSUMPTION_HOST_HOLD",
+        "hostHold": true,
+        "asBuilt": false,
+        "current": false,
+        "physicalConnectionsVerified": 0,
+        "sourceLinks": [
+          {
+            "link": "https://drive.google.com/file/d/1GjGoz5FMHElZLQjDzOitCant11ewOHtq/view",
+            "role": "HISTORICAL_PLAN_2017",
+            "supports": "A-D common cold water topology and D VM20"
+          },
+          {
+            "link": "https://drive.google.com/file/d/12xVc522i-IAj1vjvs7nRf7M9majjdnD6/view",
+            "role": "HISTORICAL_PLAN_2017",
+            "supports": "NIBE moved to 2F; KV22/LV22 between floors"
+          },
+          {
+            "link": "https://drive.google.com/file/d/1QyO_UJmU_7saPBE2tNKOrc45sXV2LiXE/view",
+            "role": "HISTORICAL_PLAN_2015",
+            "supports": "D1F water fixtures; copper trunks and PEX15 in sleeves"
+          },
+          {
+            "link": "https://drive.google.com/file/d/1Guc8pv0oSw18bTxP0Rk4-aLtu5erPFWH/view",
+            "role": "HISTORICAL_PLAN_2015",
+            "supports": "D2F KV/LV fixture branches and NIBE"
+          },
+          {
+            "link": "https://www.nibe.fi/assets/documents/14134/031802-2.pdf",
+            "role": "MANUFACTURER_2014_ANALOGUE_NOT_UNIT_ID",
+            "supports": "bottom service connections 41 cold, 42 mixed hot; 22 isolation/check, 25 mixing; not proof of 2003 unit identity"
+          }
+        ],
+        "sourceGLBSHA256": "c552d62cfda9a238eb801993ce94e6974ab913d9f0f34931b08d7302d1b4acea",
+        "floor": "2F"
+      }
+    },
+    "11711": {
+      "name": "P02_2F_KV_KYTKENNAT_WORK_TEST",
+      "children": [
+        11681,
+        11684,
+        11695,
+        11696,
+        11698,
+        11700,
+        11703,
+        11705
+      ],
+      "extras": {
+        "modelStage": "WORK_TEST",
+        "status": "WORK_ASSUMPTION_HOST_HOLD",
+        "hostHold": true,
+        "asBuilt": false,
+        "current": false,
+        "physicalConnectionsVerified": 0,
+        "m5System": "VESI",
+        "systemLayer": "KV",
+        "sourceLinks": [
+          {
+            "link": "https://drive.google.com/file/d/1GjGoz5FMHElZLQjDzOitCant11ewOHtq/view",
+            "role": "HISTORICAL_PLAN_2017",
+            "supports": "A-D common cold water topology and D VM20"
+          },
+          {
+            "link": "https://drive.google.com/file/d/12xVc522i-IAj1vjvs7nRf7M9majjdnD6/view",
+            "role": "HISTORICAL_PLAN_2017",
+            "supports": "NIBE moved to 2F; KV22/LV22 between floors"
+          },
+          {
+            "link": "https://drive.google.com/file/d/1QyO_UJmU_7saPBE2tNKOrc45sXV2LiXE/view",
+            "role": "HISTORICAL_PLAN_2015",
+            "supports": "D1F water fixtures; copper trunks and PEX15 in sleeves"
+          },
+          {
+            "link": "https://drive.google.com/file/d/1Guc8pv0oSw18bTxP0Rk4-aLtu5erPFWH/view",
+            "role": "HISTORICAL_PLAN_2015",
+            "supports": "D2F KV/LV fixture branches and NIBE"
+          },
+          {
+            "link": "https://www.nibe.fi/assets/documents/14134/031802-2.pdf",
+            "role": "MANUFACTURER_2014_ANALOGUE_NOT_UNIT_ID",
+            "supports": "bottom service connections 41 cold, 42 mixed hot; 22 isolation/check, 25 mixing; not proof of 2003 unit identity"
+          }
+        ],
+        "floor": "2F"
+      }
+    },
+    "11681": {
+      "name": "P02_NIBE_COLD_RISER_2F_WORK_TEST",
+      "mesh": 4451,
+      "extras": {
+        "modelStage": "WORK_TEST",
+        "status": "WORK_ASSUMPTION_HOST_HOLD",
+        "hostHold": true,
+        "asBuilt": false,
+        "current": false,
+        "physicalConnectionsVerified": 0,
+        "m5System": "VESI",
+        "systemLayer": "KV",
+        "sourceLinks": [
+          {
+            "link": "https://drive.google.com/file/d/1GjGoz5FMHElZLQjDzOitCant11ewOHtq/view",
+            "role": "HISTORICAL_PLAN_2017",
+            "supports": "A-D common cold water topology and D VM20"
+          },
+          {
+            "link": "https://drive.google.com/file/d/12xVc522i-IAj1vjvs7nRf7M9majjdnD6/view",
+            "role": "HISTORICAL_PLAN_2017",
+            "supports": "NIBE moved to 2F; KV22/LV22 between floors"
+          },
+          {
+            "link": "https://drive.google.com/file/d/1QyO_UJmU_7saPBE2tNKOrc45sXV2LiXE/view",
+            "role": "HISTORICAL_PLAN_2015",
+            "supports": "D1F water fixtures; copper trunks and PEX15 in sleeves"
+          },
+          {
+            "link": "https://drive.google.com/file/d/1Guc8pv0oSw18bTxP0Rk4-aLtu5erPFWH/view",
+            "role": "HISTORICAL_PLAN_2015",
+            "supports": "D2F KV/LV fixture branches and NIBE"
+          },
+          {
+            "link": "https://www.nibe.fi/assets/documents/14134/031802-2.pdf",
+            "role": "MANUFACTURER_2014_ANALOGUE_NOT_UNIT_ID",
+            "supports": "bottom service connections 41 cold, 42 mixed hot; 22 isolation/check, 25 mixing; not proof of 2003 unit identity"
+          }
+        ],
+        "routeCenterlineWorldYUp": [
+          [
+            6.34,
+            2.76,
+            -4.75
+          ],
+          [
+            6.34,
+            4.973,
+            -4.75
+          ],
+          [
+            6.34,
+            4.973,
+            -5.309
+          ],
+          [
+            5.943,
+            4.973,
+            -5.309
+          ]
+        ],
+        "outerDiameterM_WORK_ASSUMPTION": 0.022,
+        "technicalHostAssumption": "Existing east wet-core service/party-wall zone x6.25..6.50, WORK_ASSUMPTION, cavity and bores unmeasured",
+        "functionalStart": "KV_RISER_FLOOR",
+        "functionalEnd": "NIBE_PHOTO_PIPE_A",
+        "routeReason": "A=KV hypothesis; existing owner-corrected visible copper A unchanged. Hidden entry continues within wall/service zone.",
+        "routeVerified": false,
+        "sourceGLBSHA256": "c552d62cfda9a238eb801993ce94e6974ab913d9f0f34931b08d7302d1b4acea",
+        "scopeKey": "SOL-P02-WATER-INTEGRATION-20261111"
+      }
+    },
+    "11712": {
+      "name": "P02_2F_LV_KYTKENNAT_WORK_TEST",
+      "children": [
+        11682,
+        11685,
+        11697,
+        11699,
+        11701,
+        11704,
+        11706
+      ],
+      "extras": {
+        "modelStage": "WORK_TEST",
+        "status": "WORK_ASSUMPTION_HOST_HOLD",
+        "hostHold": true,
+        "asBuilt": false,
+        "current": false,
+        "physicalConnectionsVerified": 0,
+        "m5System": "VESI",
+        "systemLayer": "LV",
+        "sourceLinks": [
+          {
+            "link": "https://drive.google.com/file/d/1GjGoz5FMHElZLQjDzOitCant11ewOHtq/view",
+            "role": "HISTORICAL_PLAN_2017",
+            "supports": "A-D common cold water topology and D VM20"
+          },
+          {
+            "link": "https://drive.google.com/file/d/12xVc522i-IAj1vjvs7nRf7M9majjdnD6/view",
+            "role": "HISTORICAL_PLAN_2017",
+            "supports": "NIBE moved to 2F; KV22/LV22 between floors"
+          },
+          {
+            "link": "https://drive.google.com/file/d/1QyO_UJmU_7saPBE2tNKOrc45sXV2LiXE/view",
+            "role": "HISTORICAL_PLAN_2015",
+            "supports": "D1F water fixtures; copper trunks and PEX15 in sleeves"
+          },
+          {
+            "link": "https://drive.google.com/file/d/1Guc8pv0oSw18bTxP0Rk4-aLtu5erPFWH/view",
+            "role": "HISTORICAL_PLAN_2015",
+            "supports": "D2F KV/LV fixture branches and NIBE"
+          },
+          {
+            "link": "https://www.nibe.fi/assets/documents/14134/031802-2.pdf",
+            "role": "MANUFACTURER_2014_ANALOGUE_NOT_UNIT_ID",
+            "supports": "bottom service connections 41 cold, 42 mixed hot; 22 isolation/check, 25 mixing; not proof of 2003 unit identity"
+          }
+        ],
+        "floor": "2F"
+      }
+    },
+    "11682": {
+      "name": "P02_NIBE_HOT_RETURN_2F_WORK_TEST",
+      "mesh": 4452,
+      "extras": {
+        "modelStage": "WORK_TEST",
+        "status": "WORK_ASSUMPTION_HOST_HOLD",
+        "hostHold": true,
+        "asBuilt": false,
+        "current": false,
+        "physicalConnectionsVerified": 0,
+        "m5System": "VESI",
+        "systemLayer": "LV",
+        "sourceLinks": [
+          {
+            "link": "https://drive.google.com/file/d/1GjGoz5FMHElZLQjDzOitCant11ewOHtq/view",
+            "role": "HISTORICAL_PLAN_2017",
+            "supports": "A-D common cold water topology and D VM20"
+          },
+          {
+            "link": "https://drive.google.com/file/d/12xVc522i-IAj1vjvs7nRf7M9majjdnD6/view",
+            "role": "HISTORICAL_PLAN_2017",
+            "supports": "NIBE moved to 2F; KV22/LV22 between floors"
+          },
+          {
+            "link": "https://drive.google.com/file/d/1QyO_UJmU_7saPBE2tNKOrc45sXV2LiXE/view",
+            "role": "HISTORICAL_PLAN_2015",
+            "supports": "D1F water fixtures; copper trunks and PEX15 in sleeves"
+          },
+          {
+            "link": "https://drive.google.com/file/d/1Guc8pv0oSw18bTxP0Rk4-aLtu5erPFWH/view",
+            "role": "HISTORICAL_PLAN_2015",
+            "supports": "D2F KV/LV fixture branches and NIBE"
+          },
+          {
+            "link": "https://www.nibe.fi/assets/documents/14134/031802-2.pdf",
+            "role": "MANUFACTURER_2014_ANALOGUE_NOT_UNIT_ID",
+            "supports": "bottom service connections 41 cold, 42 mixed hot; 22 isolation/check, 25 mixing; not proof of 2003 unit identity"
+          }
+        ],
+        "routeCenterlineWorldYUp": [
+          [
+            5.943,
+            4.908,
+            -5.378
+          ],
+          [
+            6.43,
+            4.908,
+            -5.378
+          ],
+          [
+            6.43,
+            2.76,
+            -5.57
+          ]
+        ],
+        "outerDiameterM_WORK_ASSUMPTION": 0.022,
+        "technicalHostAssumption": "Existing east wet-core service/party-wall zone x6.25..6.50, WORK_ASSUMPTION, cavity and bores unmeasured",
+        "functionalStart": "NIBE_PHOTO_PIPE_B",
+        "functionalEnd": "LV_RISER_FLOOR",
+        "routeReason": "B=LV hypothesis; existing corrected U-shaped copper B unchanged. No old V90 H21 route restored.",
+        "routeVerified": false,
+        "sourceGLBSHA256": "c552d62cfda9a238eb801993ce94e6974ab913d9f0f34931b08d7302d1b4acea",
+        "scopeKey": "SOL-P02-WATER-INTEGRATION-20261111"
+      }
+    },
+    "11717": {
+      "name": "P02_1F_KV_LV_CONNECTIONS_WORK_TEST_ROOT",
+      "children": [
+        11715,
+        11716
+      ],
+      "extras": {
+        "modelStage": "WORK_TEST",
+        "status": "WORK_ASSUMPTION_HOST_HOLD",
+        "hostHold": true,
+        "asBuilt": false,
+        "current": false,
+        "physicalConnectionsVerified": 0,
+        "sourceLinks": [
+          {
+            "link": "https://drive.google.com/file/d/1GjGoz5FMHElZLQjDzOitCant11ewOHtq/view",
+            "role": "HISTORICAL_PLAN_2017",
+            "supports": "A-D common cold water topology and D VM20"
+          },
+          {
+            "link": "https://drive.google.com/file/d/12xVc522i-IAj1vjvs7nRf7M9majjdnD6/view",
+            "role": "HISTORICAL_PLAN_2017",
+            "supports": "NIBE moved to 2F; KV22/LV22 between floors"
+          },
+          {
+            "link": "https://drive.google.com/file/d/1QyO_UJmU_7saPBE2tNKOrc45sXV2LiXE/view",
+            "role": "HISTORICAL_PLAN_2015",
+            "supports": "D1F water fixtures; copper trunks and PEX15 in sleeves"
+          },
+          {
+            "link": "https://drive.google.com/file/d/1Guc8pv0oSw18bTxP0Rk4-aLtu5erPFWH/view",
+            "role": "HISTORICAL_PLAN_2015",
+            "supports": "D2F KV/LV fixture branches and NIBE"
+          },
+          {
+            "link": "https://www.nibe.fi/assets/documents/14134/031802-2.pdf",
+            "role": "MANUFACTURER_2014_ANALOGUE_NOT_UNIT_ID",
+            "supports": "bottom service connections 41 cold, 42 mixed hot; 22 isolation/check, 25 mixing; not proof of 2003 unit identity"
+          }
+        ],
+        "sourceGLBSHA256": "c552d62cfda9a238eb801993ce94e6974ab913d9f0f34931b08d7302d1b4acea",
+        "floor": "1F"
+      }
+    },
+    "11715": {
+      "name": "P02_1F_KV_KYTKENNAT_WORK_TEST",
+      "children": [
+        11678,
+        11679,
+        11680,
+        11686,
+        11687,
+        11690,
+        11692,
+        11693,
+        11694,
+        11702,
+        11707
+      ],
+      "extras": {
+        "modelStage": "WORK_TEST",
+        "status": "WORK_ASSUMPTION_HOST_HOLD",
+        "hostHold": true,
+        "asBuilt": false,
+        "current": false,
+        "physicalConnectionsVerified": 0,
+        "m5System": "VESI",
+        "systemLayer": "KV",
+        "sourceLinks": [
+          {
+            "link": "https://drive.google.com/file/d/1GjGoz5FMHElZLQjDzOitCant11ewOHtq/view",
+            "role": "HISTORICAL_PLAN_2017",
+            "supports": "A-D common cold water topology and D VM20"
+          },
+          {
+            "link": "https://drive.google.com/file/d/12xVc522i-IAj1vjvs7nRf7M9majjdnD6/view",
+            "role": "HISTORICAL_PLAN_2017",
+            "supports": "NIBE moved to 2F; KV22/LV22 between floors"
+          },
+          {
+            "link": "https://drive.google.com/file/d/1QyO_UJmU_7saPBE2tNKOrc45sXV2LiXE/view",
+            "role": "HISTORICAL_PLAN_2015",
+            "supports": "D1F water fixtures; copper trunks and PEX15 in sleeves"
+          },
+          {
+            "link": "https://drive.google.com/file/d/1Guc8pv0oSw18bTxP0Rk4-aLtu5erPFWH/view",
+            "role": "HISTORICAL_PLAN_2015",
+            "supports": "D2F KV/LV fixture branches and NIBE"
+          },
+          {
+            "link": "https://www.nibe.fi/assets/documents/14134/031802-2.pdf",
+            "role": "MANUFACTURER_2014_ANALOGUE_NOT_UNIT_ID",
+            "supports": "bottom service connections 41 cold, 42 mixed hot; 22 isolation/check, 25 mixing; not proof of 2003 unit identity"
+          }
+        ],
+        "floor": "1F"
+      }
+    },
+    "11720": {
+      "name": "P02_2F_KV_LV_CONNECTIONS_WORK_TEST_ROOT",
+      "children": [
+        11718,
+        11719
+      ],
+      "extras": {
+        "modelStage": "WORK_TEST",
+        "status": "WORK_ASSUMPTION_HOST_HOLD",
+        "hostHold": true,
+        "asBuilt": false,
+        "current": false,
+        "physicalConnectionsVerified": 0,
+        "sourceLinks": [
+          {
+            "link": "https://drive.google.com/file/d/1GjGoz5FMHElZLQjDzOitCant11ewOHtq/view",
+            "role": "HISTORICAL_PLAN_2017",
+            "supports": "A-D common cold water topology and D VM20"
+          },
+          {
+            "link": "https://drive.google.com/file/d/12xVc522i-IAj1vjvs7nRf7M9majjdnD6/view",
+            "role": "HISTORICAL_PLAN_2017",
+            "supports": "NIBE moved to 2F; KV22/LV22 between floors"
+          },
+          {
+            "link": "https://drive.google.com/file/d/1QyO_UJmU_7saPBE2tNKOrc45sXV2LiXE/view",
+            "role": "HISTORICAL_PLAN_2015",
+            "supports": "D1F water fixtures; copper trunks and PEX15 in sleeves"
+          },
+          {
+            "link": "https://drive.google.com/file/d/1Guc8pv0oSw18bTxP0Rk4-aLtu5erPFWH/view",
+            "role": "HISTORICAL_PLAN_2015",
+            "supports": "D2F KV/LV fixture branches and NIBE"
+          },
+          {
+            "link": "https://www.nibe.fi/assets/documents/14134/031802-2.pdf",
+            "role": "MANUFACTURER_2014_ANALOGUE_NOT_UNIT_ID",
+            "supports": "bottom service connections 41 cold, 42 mixed hot; 22 isolation/check, 25 mixing; not proof of 2003 unit identity"
+          }
+        ],
+        "sourceGLBSHA256": "c552d62cfda9a238eb801993ce94e6974ab913d9f0f34931b08d7302d1b4acea",
+        "floor": "2F"
+      }
+    },
+    "11718": {
+      "name": "P02_2F_KV_KYTKENNAT_WORK_TEST",
+      "children": [
+        11681,
+        11684,
+        11695,
+        11696,
+        11698,
+        11700,
+        11703,
+        11705
+      ],
+      "extras": {
+        "modelStage": "WORK_TEST",
+        "status": "WORK_ASSUMPTION_HOST_HOLD",
+        "hostHold": true,
+        "asBuilt": false,
+        "current": false,
+        "physicalConnectionsVerified": 0,
+        "m5System": "VESI",
+        "systemLayer": "KV",
+        "sourceLinks": [
+          {
+            "link": "https://drive.google.com/file/d/1GjGoz5FMHElZLQjDzOitCant11ewOHtq/view",
+            "role": "HISTORICAL_PLAN_2017",
+            "supports": "A-D common cold water topology and D VM20"
+          },
+          {
+            "link": "https://drive.google.com/file/d/12xVc522i-IAj1vjvs7nRf7M9majjdnD6/view",
+            "role": "HISTORICAL_PLAN_2017",
+            "supports": "NIBE moved to 2F; KV22/LV22 between floors"
+          },
+          {
+            "link": "https://drive.google.com/file/d/1QyO_UJmU_7saPBE2tNKOrc45sXV2LiXE/view",
+            "role": "HISTORICAL_PLAN_2015",
+            "supports": "D1F water fixtures; copper trunks and PEX15 in sleeves"
+          },
+          {
+            "link": "https://drive.google.com/file/d/1Guc8pv0oSw18bTxP0Rk4-aLtu5erPFWH/view",
+            "role": "HISTORICAL_PLAN_2015",
+            "supports": "D2F KV/LV fixture branches and NIBE"
+          },
+          {
+            "link": "https://www.nibe.fi/assets/documents/14134/031802-2.pdf",
+            "role": "MANUFACTURER_2014_ANALOGUE_NOT_UNIT_ID",
+            "supports": "bottom service connections 41 cold, 42 mixed hot; 22 isolation/check, 25 mixing; not proof of 2003 unit identity"
+          }
+        ],
+        "floor": "2F"
+      }
+    },
+    "11716": {
+      "name": "P02_1F_LV_KYTKENNAT_WORK_TEST",
+      "children": [
+        11683,
+        11688,
+        11689,
+        11691
+      ],
+      "extras": {
+        "modelStage": "WORK_TEST",
+        "status": "WORK_ASSUMPTION_HOST_HOLD",
+        "hostHold": true,
+        "asBuilt": false,
+        "current": false,
+        "physicalConnectionsVerified": 0,
+        "m5System": "VESI",
+        "systemLayer": "LV",
+        "sourceLinks": [
+          {
+            "link": "https://drive.google.com/file/d/1GjGoz5FMHElZLQjDzOitCant11ewOHtq/view",
+            "role": "HISTORICAL_PLAN_2017",
+            "supports": "A-D common cold water topology and D VM20"
+          },
+          {
+            "link": "https://drive.google.com/file/d/12xVc522i-IAj1vjvs7nRf7M9majjdnD6/view",
+            "role": "HISTORICAL_PLAN_2017",
+            "supports": "NIBE moved to 2F; KV22/LV22 between floors"
+          },
+          {
+            "link": "https://drive.google.com/file/d/1QyO_UJmU_7saPBE2tNKOrc45sXV2LiXE/view",
+            "role": "HISTORICAL_PLAN_2015",
+            "supports": "D1F water fixtures; copper trunks and PEX15 in sleeves"
+          },
+          {
+            "link": "https://drive.google.com/file/d/1Guc8pv0oSw18bTxP0Rk4-aLtu5erPFWH/view",
+            "role": "HISTORICAL_PLAN_2015",
+            "supports": "D2F KV/LV fixture branches and NIBE"
+          },
+          {
+            "link": "https://www.nibe.fi/assets/documents/14134/031802-2.pdf",
+            "role": "MANUFACTURER_2014_ANALOGUE_NOT_UNIT_ID",
+            "supports": "bottom service connections 41 cold, 42 mixed hot; 22 isolation/check, 25 mixing; not proof of 2003 unit identity"
+          }
+        ],
+        "floor": "1F"
+      }
+    },
+    "11719": {
+      "name": "P02_2F_LV_KYTKENNAT_WORK_TEST",
+      "children": [
+        11682,
+        11685,
+        11697,
+        11699,
+        11701,
+        11704,
+        11706
+      ],
+      "extras": {
+        "modelStage": "WORK_TEST",
+        "status": "WORK_ASSUMPTION_HOST_HOLD",
+        "hostHold": true,
+        "asBuilt": false,
+        "current": false,
+        "physicalConnectionsVerified": 0,
+        "m5System": "VESI",
+        "systemLayer": "LV",
+        "sourceLinks": [
+          {
+            "link": "https://drive.google.com/file/d/1GjGoz5FMHElZLQjDzOitCant11ewOHtq/view",
+            "role": "HISTORICAL_PLAN_2017",
+            "supports": "A-D common cold water topology and D VM20"
+          },
+          {
+            "link": "https://drive.google.com/file/d/12xVc522i-IAj1vjvs7nRf7M9majjdnD6/view",
+            "role": "HISTORICAL_PLAN_2017",
+            "supports": "NIBE moved to 2F; KV22/LV22 between floors"
+          },
+          {
+            "link": "https://drive.google.com/file/d/1QyO_UJmU_7saPBE2tNKOrc45sXV2LiXE/view",
+            "role": "HISTORICAL_PLAN_2015",
+            "supports": "D1F water fixtures; copper trunks and PEX15 in sleeves"
+          },
+          {
+            "link": "https://drive.google.com/file/d/1Guc8pv0oSw18bTxP0Rk4-aLtu5erPFWH/view",
+            "role": "HISTORICAL_PLAN_2015",
+            "supports": "D2F KV/LV fixture branches and NIBE"
+          },
+          {
+            "link": "https://www.nibe.fi/assets/documents/14134/031802-2.pdf",
+            "role": "MANUFACTURER_2014_ANALOGUE_NOT_UNIT_ID",
+            "supports": "bottom service connections 41 cold, 42 mixed hot; 22 isolation/check, 25 mixing; not proof of 2003 unit identity"
+          }
+        ],
+        "floor": "2F"
+      }
+    }
+  },
+  "anchors": [
+    11678,
+    11681,
+    11688,
+    11682,
+    11721,
+    11722,
+    11724,
+    11726,
+    11731,
+    11736,
+    11829,
+    11783,
+    11826
+  ],
+  "excluded": [
+    11322,
+    11326,
+    11328,
+    11329,
+    10156,
+    10157,
+    10158,
+    10159,
+    11432,
+    11433,
+    11434,
+    10128,
+    11336,
+    11337,
+    11338
+  ]
+}
