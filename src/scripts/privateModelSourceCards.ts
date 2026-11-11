@@ -368,6 +368,12 @@ export const createSourceCardResolver = (
       const exact = resolveTate4CardNode(json, sceneIndex, nodeIndex);
       if (!exact || runtimePath.join(',') !== [...exact.path].reverse().join(','))
         return result('mismatch', 'Lähteen solmu tai parent-polku ei täsmää.', [], sceneIndex);
+      let linkedObject: SourceNode | null | undefined = selected;
+      while (linkedObject && associations.get(linkedObject)?.nodes !== exact.linkNode) linkedObject = linkedObject.parent;
+      if (selected?.name !== json.nodes[nodeIndex].name ||
+          !sameValues(selected?.userData?.sourceLinks ?? null, json.nodes[nodeIndex].extras?.sourceLinks ?? null) ||
+          !linkedObject || !sameValues(linkedObject.userData?.sourceLinks, json.nodes[exact.linkNode].extras?.sourceLinks))
+        return result('mismatch', 'Valitun objektin lähdetiedot eivät täsmää.', [], sceneIndex);
       const links = (TATE4_CARD_LINKS as unknown as Record<string, Array<RecordData | string>>)[String(exact.linkNode)] ?? [];
       const sources = links.filter((link): link is RecordData => typeof link === 'object' && link !== null).map((link: RecordData) => ({
         title: text(link.title ?? link.role ?? link.docId) || 'Lähde',

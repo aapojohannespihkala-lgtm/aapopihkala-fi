@@ -931,7 +931,12 @@ test(`exact ${model.version} viewer: D upstairs, ghost walls, supported IV, rese
         for (const child of gltf.nodes[node].children ?? []) walk(child);
       };
       gltf.scenes[Number(index)].nodes.forEach(walk);
-      const additions = [...active].filter(node => node >= 11678 && node <= 11707);
+      const waterReceipt = model.version === 'TATE4'
+        ? JSON.parse(readFileSync('tests/fixtures/c80-tate-interior-source-receipt.json','utf8')) : null;
+      if (waterReceipt) expect(waterReceipt.sourceSha256).toBe(sha);
+      const additions: number[] = waterReceipt ? waterReceipt.waterConnectionNodes[index]
+        : [...active].filter(node => node >= 11678 && node <= 11707);
+      for (const node of additions) expect(active.has(node),'Exact source water connection '+node).toBe(true);
       expect(additions).toHaveLength(floor === 'BOTH' ? 30 : 15);
       for (const node of additions) {
         expect(resolveExactTechnicalNode(gltf, Number(index), node)?.id).toBe('technical-water');
