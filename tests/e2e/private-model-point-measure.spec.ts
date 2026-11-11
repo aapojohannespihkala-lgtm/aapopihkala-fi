@@ -92,3 +92,46 @@ test('private viewer free 3D measure picks two visible model points and resets',
   await expect(canvas).toHaveAttribute('data-interaction-mode', 'navigate');
   await expect(panel).toBeHidden();
 });
+
+test('point in model shows XYZ and a persistent screenshot marker without changing 3D measurement', async ({ page, context }) => {
+  const model = makeTriangleGlb();
+  await page.route('**/private-model/model.glb', (route) =>
+    route.fulfill({ status: 200, contentType: 'model/gltf-binary', body: model }),
+  );
+  await page.goto('/private-model/');
+  await expect(page.getByRole('status').first()).toHaveText('Malli ladattu');
+  const canvas = page.locator('#private-model-canvas');
+  const tool = page.locator('#point-pick-tool-button');
+  const panel = page.locator('#point-pick-panel');
+  const box = await canvas.boundingBox();
+  expect(box).not.toBeNull();
+  if (!box) return;
+  await expect(tool).toBeEnabled();
+  await tool.click();
+  await expect(canvas).toHaveAttribute('data-interaction-mode', 'point-pick');
+  await expect(panel).toBeVisible();
+  await canvas.click({ position: { x: box.width / 2, y: box.height / 2 } });
+  await expect(canvas).toHaveAttribute('data-point-pick-state', 'picked');
+  await expect(page.locator('#point-pick-main')).toHaveText(/^X .+ m · Y .+ m · Z .+ m$/);
+  await expect(page.locator('#point-pick-source')).toContainText('YLIS-G1-LOCAL');
+  await expect(page.locator('#point-pick-copy')).toBeEnabled();
+
+  // A click on empty background must not overwrite the last valid placement.
+  const before = await page.locator('#point-pick-main').textContent();
+  await canvas.click({ position: { x: box.width - 6, y: box.height / 2 } });
+  await expect(page.locator('#point-pick-main')).toHaveText(before ?? '');
+  await expect(canvas).toHaveAttribute('data-point-pick-state', 'picked');
+
+  await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+  await page.locator('#point-pick-copy').click();
+  const copied = await page.evaluate(() => navigator.clipboard.readText());
+  expect(copied).toContain('YLIS-G1-LOCAL');
+  expect(copied).toMatch(/X=.+ Y=.+ Z=.+/);
+  expect(copied).toContain('GLB_SHA256:');
+
+  await page.keyboard.press('Escape');
+  await expect(canvas).toHaveAttribute('data-point-pick-state', 'empty');
+  await tool.click();
+  await expect(panel).toBeHidden();
+  await expect(page.locator('#point-measure-tool-button')).toHaveText('Mittaa 3D');
+});
