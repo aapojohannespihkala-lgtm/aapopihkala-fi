@@ -4,7 +4,7 @@ import {createV69C020UpperGlassPresentation,V69_C020_UPPER_GLASS_SHA} from '../.
 
 class Object3D {
   constructor({name='',isGroup=false,isMesh=false,material=null}={}){
-    Object.assign(this,{name,isGroup,isMesh,material,children:[],parent:null,visible:true,
+    Object.assign(this,{name,isGroup,isMesh,isObject3D:true,material,children:[],parent:null,visible:true,
       position:[0,0,0],quaternion:[0,0,0,1],scale:[1,1,1],userData:{}});
   }
   add(child){if(child.parent)child.parent.remove(child);this.children.push(child);child.parent=this;}
@@ -124,6 +124,27 @@ test('r185 dropped scene associations use exact scene-root ordinal and upper chi
   assert.equal(f.gltf.scenes[291].children.length,5);
   assert.equal(f.gltf.scenes[292].children.length,5);
 });
+test('actual GLTFLoader child-only historical root is Object3D, not Group',()=>{
+  const f=fixture();
+  // Historical source node 6471 contains children but no mesh or camera.
+  // r185 makes a plain THREE.Object3D for that exact node, so an isGroup
+  // requirement must not suppress the eight SHA-bound upper panes.
+  f.parent.isGroup=false;
+  assert.equal(f.parent.isObject3D,true);
+  const r=make(f);
+  assert(r.available,r.reason);
+  assert.equal(r.setApplied(true),true);
+  for(const index of [291,292]) {
+    const group=f.gltf.scenes[index].children.at(-1);
+    assert.equal(group.isGroup,false);
+    assert.equal(group.isObject3D,true);
+    assert.deepEqual(group.children.map((o)=>o.name),f.parent.children.map((o)=>o.name));
+  }
+  r.dispose();
+  assert.equal(f.gltf.scenes[291].children.length,5);
+  assert.equal(f.gltf.scenes[292].children.length,5);
+});
+
 test('wrong existing mapping is authoritative and blocks historical or target fallback',()=>{
   const p=fixture();p.associations.clear();
   p.associations.set(p.parent.children[0],{nodes:9999});

@@ -1,3 +1,4 @@
+import { TATE4_SOURCE_SHA256, TATE4_CARD_LINKS, resolveTate4CardNode } from './privateModelC80TateInteriorLayerSourceProfile.mjs';
 import { buildSourceNodeAssociations, createSourceNodeView } from './privateModelSourceNodeAssociations.mjs';
 import { rehydrateHi20Unified52SourceScenes } from './privateModelHi20Unified52SourceScenes.mjs';
 import { rehydrateIncompleteScene } from './privateModelSourceSceneRehydrate.mjs';
@@ -341,7 +342,7 @@ export const createSourceCardResolver = (
     const result = (state: SelectionSourceEvidence['state'], reason?: string, cards: SelectionSourceCard[] = [], scene?: number): SelectionSourceEvidence => ({
       state, version: `${version}${scene === undefined ? '' : ` / scene ${scene}`}`, reason, cards,
     });
-    if (!bundle || failure) return result('unavailable', failure ?? 'Lähdekorttiaineistoa ei voitu ladata.');
+    if (sha256 !== TATE4_SOURCE_SHA256 && (!bundle || failure)) return result('unavailable', failure ?? 'Lähdekorttiaineistoa ei voitu ladata.');
     if (!sha256 || !json || !associations || !Array.isArray(gltf.scenes)) return result('mismatch', 'Mallin tavutunniste tai alkuperäinen valintakohdistus puuttuu.');
     let current: SourceNode | null | undefined = object;
     let selected: SourceNode | undefined;
@@ -361,6 +362,27 @@ export const createSourceCardResolver = (
       current = current.parent;
     }
     const node = nodeIndex === undefined ? undefined : json.nodes?.[nodeIndex];
+    // The new SHA has an independently audited source/node/mesh/parent receipt.
+    // Reuse the selection card UI, preserving older sidecar contracts unchanged.
+    if (sha256 === TATE4_SOURCE_SHA256 && nodeIndex !== undefined) {
+      const exact = resolveTate4CardNode(json, sceneIndex, nodeIndex);
+      if (!exact || runtimePath.join(',') !== [...exact.path].reverse().join(','))
+        return result('mismatch', 'Lähteen solmu tai parent-polku ei täsmää.', [], sceneIndex);
+      const links = (TATE4_CARD_LINKS as unknown as Record<string, Array<RecordData | string>>)[String(exact.linkNode)] ?? [];
+      const sources = links.filter((link): link is RecordData => typeof link === 'object' && link !== null).map((link: RecordData) => ({
+        title: text(link.title ?? link.role ?? link.docId) || 'Lähde',
+        url: text(link.url ?? link.link), role: text(link.role), supports: [],
+        limits: ['WORK_TEST. Lähde ei vahvista piiloliitosta tai nykyistä mittasijaintia.'],
+      })).filter((link: {url:string}) => /^https:\/\//.test(link.url));
+      return result('matched', undefined, [{
+        id: `TATE4:${sceneIndex}:${nodeIndex}`, title: json.nodes[nodeIndex].name,
+        status: 'WORK_TEST / HOST_HOLD',
+        facts: [{label:'Versiosidonta',value:'Täsmällinen GLB, scene, solmu, mesh ja parent-polku.',kind:'derived',evidence:'EXACT_SOURCE_RECEIPT'},
+          {label:'Fyysiset liitokset ja HOT/COLD-identiteetti',value:'Vahvistamatta',kind:'unverified',evidence:'PHYSICAL_UNKNOWN'}],
+        sources, conflicts: [], notes: ['HUMAN_REVIEW tekemättä. Ei CURRENT/as-built.'],
+      }], sceneIndex);
+    }
+    if (!bundle || failure) return result('unavailable', failure ?? 'Lähdekorttiaineistoa ei voitu ladata.');
     const entry = index.find(item => item.module.model.sha256 === sha256 &&
       item.module.model.sceneIndex === sceneIndex && item.binding.nodeIndex === nodeIndex);
     if (!entry) {

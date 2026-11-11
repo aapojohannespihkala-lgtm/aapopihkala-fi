@@ -28,7 +28,11 @@ function exactSceneRoot(scene,sourceScene,id,json,associations,{group=false}={})
   const object=scene.children[ordinal],node=json.nodes[id];
   if(!sourceNameMatches(object,node?.name) || object?.parent!==scene)return null;
   if(group){
-    if(!object.isGroup || object.children?.length!==node.children?.length)return null;
+    // glTF child-only nodes have no mesh/camera attachment. GLTFLoader r185
+    // instantiates them as plain Object3D, not Group. Preserve exact source
+    // identity, root ordinal, name, parent, and child-count guards.
+    if(!object.isObject3D || object.isMesh || object.isCamera ||
+       object.children?.length!==node.children?.length)return null;
   }else if(!object.isMesh || object.children?.length!==0 || node?.children?.length)return null;
   const mapping=associations.get(object);
   if(mapping && mapping.nodes!==id)return null;
@@ -72,7 +76,8 @@ export function createV69C020UpperGlassPresentation(gltf,loadedSha,expectedSha) 
      !parent.rotation.every((v,i)=>near(v,[-Math.SQRT1_2,0,0,Math.SQRT1_2][i])))
     return unavailable('historical-upper-source-parent');
   const sourceParent=exactSceneRoot(gltf.scenes[HISTORICAL_SCENE],historical,HISTORICAL_ROOT,json,associations,{group:true});
-  if(!sourceParent?.isGroup || sourceParent.parent!==gltf.scenes[HISTORICAL_SCENE] ||
+  if(!sourceParent?.isObject3D || sourceParent.isMesh || sourceParent.isCamera ||
+     sourceParent.parent!==gltf.scenes[HISTORICAL_SCENE] ||
      typeof sourceParent.clone!=='function' ||
      typeof sourceParent.add!=='function')return unavailable('historical-runtime-parent');
 
