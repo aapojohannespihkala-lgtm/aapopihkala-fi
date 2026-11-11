@@ -13674,7 +13674,13 @@ const title = 'Private 3D viewer';
                 ? 'MAANPINTA + INFRA - alin maanpinta +18,30 - vain Z-lähteistetty maanalainen infra - ei as-built'
                 : 'Z-KATSELU - vain lähteistetyt jätevesikorkeudet - datum sitomatta / ei as-built';
           } else {
-            delete canvas.dataset.workTestReviewMode;
+            // Generic P02 autoload has no presentation-specific handler.
+            // Stamp review identity only for its exact authenticated source.
+            if (candidate.id === 'c80-p02-water-integrated-20261111' &&
+                getRequestedReviewCandidateId() === candidate.id &&
+                loadedModelSha256(gltf) === P02_SOURCE_SHA256) {
+              canvas.dataset.workTestReviewMode = candidate.id + '-review';
+            } else delete canvas.dataset.workTestReviewMode;
             delete canvas.dataset.scalgoLabelFontStyle;
             delete canvas.dataset.scalgoMajorLabelHeightM;
             delete canvas.dataset.scalgoHalfLabelHeightM;

@@ -7,7 +7,7 @@ on:
         description: Exact published source, or all established regressions
         type: choice
         default: all
-        options: [all, V68, V69, K17_RAIL900, V69P12R1]
+        options: [all, V68, V69, K17_RAIL900, V69P12R1, P02]
   # GITHUB_TOKEN automerge may not emit a new push-triggered workflow.
   # After the trusted main Build check succeeds, run the exact-source browser
   # gate for that same main commit. Keep WIF/GLB out of all PR workflows.
@@ -59,7 +59,7 @@ permissions:
 concurrency:
   # The established all matrix excludes P12R1. Its automatic replay must not
   # cancel the dedicated P12R1 capture of the same trusted main head.
-  group: d-view-exact-source-webgl${{ inputs.source_version == 'V69P12R1' && '-v69p12r1' || '' }}
+  group: d-view-exact-source-webgl${{ inputs.source_version == 'P02' && '-p02' || inputs.source_version == 'V69P12R1' && '-v69p12r1' || '' }}
   # Read-only viewer QA is bound to one exact main head. A newer head supersedes it.
   cancel-in-progress: true
 
@@ -79,7 +79,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        mode: ${{ fromJSON(github.event_name == 'workflow_dispatch' && inputs.source_version == 'V69P12R1' && '["layers-v69p12r1-production"]' || github.event_name == 'workflow_dispatch' && inputs.source_version == 'K17_RAIL900' && '["layers-k17-rail900-production"]' || github.event_name == 'workflow_dispatch' && inputs.source_version == 'V69' && '["layers-v69-production"]' || github.event_name == 'workflow_dispatch' && inputs.source_version == 'V68' && '["layers-v68-production"]' || '["source","c70-production","c80-production","hi12-production","hi13-source","hi13-production","hi14-source","hi14-production","hi18-source","hi18-production","hi19-source","hi19-production","hi20-unified52-production","layers-v26-production","layers-v29-production","layers-v35-production","v27-terrace-production","layers-v68-production","layers-v69-production"]') }}
+        mode: ${{ fromJSON(github.event_name == 'workflow_dispatch' && inputs.source_version == 'P02' && '["layers-p02-production"]' || github.event_name == 'workflow_dispatch' && inputs.source_version == 'V69P12R1' && '["layers-v69p12r1-production"]' || github.event_name == 'workflow_dispatch' && inputs.source_version == 'K17_RAIL900' && '["layers-k17-rail900-production"]' || github.event_name == 'workflow_dispatch' && inputs.source_version == 'V69' && '["layers-v69-production"]' || github.event_name == 'workflow_dispatch' && inputs.source_version == 'V68' && '["layers-v68-production"]' || '["source","c70-production","c80-production","hi12-production","hi13-source","hi13-production","hi14-source","hi14-production","hi18-source","hi18-production","hi19-source","hi19-production","hi20-unified52-production","layers-v26-production","layers-v29-production","layers-v35-production","v27-terrace-production","layers-v68-production","layers-v69-production"]') }}
     name: Exact WebGL / ${{ matrix.mode }}
     # Match the build job's supported, stable browser dependency environment.
     runs-on: ubuntu-24.04
@@ -96,7 +96,7 @@ jobs:
       - run: npm run build
       - run: npx playwright install --with-deps chromium
       - name: Authenticate read-only Drive source access on trusted main
-        if: matrix.mode != 'layers-v26-production' && matrix.mode != 'layers-v29-production' && matrix.mode != 'layers-v35-production' && matrix.mode != 'layers-v68-production' && matrix.mode != 'layers-v69-production' && matrix.mode != 'layers-k17-rail900-production' && matrix.mode != 'layers-v69p12r1-production' && matrix.mode != 'v27-terrace-production'
+        if: matrix.mode != 'layers-v26-production' && matrix.mode != 'layers-v29-production' && matrix.mode != 'layers-v35-production' && matrix.mode != 'layers-v68-production' && matrix.mode != 'layers-v69-production' && matrix.mode != 'layers-k17-rail900-production' && matrix.mode != 'layers-v69p12r1-production' && matrix.mode != 'layers-p02-production' && matrix.mode != 'v27-terrace-production'
         id: google-auth
         uses: google-github-actions/auth@v3
         with:
@@ -107,7 +107,7 @@ jobs:
           create_credentials_file: false
           export_environment_variables: false
       - name: Fetch immutable sources and verify ZIP CRC and SHA
-        if: matrix.mode != 'layers-v26-production' && matrix.mode != 'layers-v29-production' && matrix.mode != 'layers-v35-production' && matrix.mode != 'layers-v68-production' && matrix.mode != 'layers-v69-production' && matrix.mode != 'layers-k17-rail900-production' && matrix.mode != 'layers-v69p12r1-production' && matrix.mode != 'v27-terrace-production'
+        if: matrix.mode != 'layers-v26-production' && matrix.mode != 'layers-v29-production' && matrix.mode != 'layers-v35-production' && matrix.mode != 'layers-v68-production' && matrix.mode != 'layers-v69-production' && matrix.mode != 'layers-k17-rail900-production' && matrix.mode != 'layers-v69p12r1-production' && matrix.mode != 'layers-p02-production' && matrix.mode != 'v27-terrace-production'
         env:
           GDRIVE_ACCESS_TOKEN: ${{ steps.google-auth.outputs.access_token }}
         shell: bash
@@ -521,6 +521,43 @@ jobs:
       - name: Remove temporary protected V69P12R1 source
         if: always() && matrix.mode == 'layers-v69p12r1-production'
         run: rm -f "$RUNNER_TEMP/layers-v69p12r1-production.glb"
+      - name: Read exact published P02 water source
+        if: matrix.mode == 'layers-p02-production'
+        shell: bash
+        env:
+          CF_ACCESS_READBACK_CLIENT_ID: ${{ secrets.CF_ACCESS_READBACK_CLIENT_ID }}
+          CF_ACCESS_READBACK_CLIENT_SECRET: ${{ secrets.CF_ACCESS_READBACK_CLIENT_SECRET }}
+        run: |
+          set -euo pipefail
+          [[ -n "$CF_ACCESS_READBACK_CLIENT_ID" && -n "$CF_ACCESS_READBACK_CLIENT_SECRET" ]]
+          file="$RUNNER_TEMP/layers-p02-production.glb"
+          curl --fail --silent --show-error --connect-timeout 12 --max-time 90 \
+            -H "CF-Access-Client-Id: $CF_ACCESS_READBACK_CLIENT_ID" \
+            -H "CF-Access-Client-Secret: $CF_ACCESS_READBACK_CLIENT_SECRET" \
+            --output "$file" \
+            "https://aapopihkala.fi/private-model/work-test/verify/c80-p02-water-integrated-20261111.glb"
+          python3 - "$file" <<'PY'
+          import hashlib, json, pathlib, struct, sys
+          data=pathlib.Path(sys.argv[1]).read_bytes()
+          assert len(data)==52535692
+          assert hashlib.sha256(data).hexdigest()=='db5ce3d7ef4c0bc8910de7f46df80029617b37d38ff4ddccd330cf70a2818a2a'
+          source=json.loads(data[20:20+struct.unpack_from('<I',data,12)[0]])
+          assert len(source['scenes'])==341 and source['scene']==292
+          assert source['asset']['extras']['viewerFloorScenes']=={'1F':338,'2F':339,'BOTH':340}
+          print('Exact production P02 water bytes and 1F/2F/BOTH scene map verified.')
+          PY
+          printf 'YLIS_LAYERS_P02_GLB=%s\n' "$file" >> "$GITHUB_ENV"
+      - name: Protected P02 water Layers, KV LV pixels, floors and model switch
+        if: matrix.mode == 'layers-p02-production'
+        env:
+          YLIS_LAYERS_P02_PRODUCTION: '1'
+          CF_ACCESS_VIEWER_PROBE_CLIENT_ID: ${{ secrets.CF_ACCESS_VIEWER_PROBE_CLIENT_ID }}
+          CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET: ${{ secrets.CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET }}
+          D_VIEW_TESTED_COMMIT: ${{ github.event.workflow_run.head_sha || github.sha }}
+        run: npx playwright test tests/e2e/private-model-layers-runtime.spec.ts --workers=1 --trace=off --output=test-results/layers-p02-production --reporter=line --retries=0
+      - name: Remove temporary protected P02 source
+        if: always() && matrix.mode == 'layers-p02-production'
+        run: rm -f "$RUNNER_TEMP/layers-p02-production.glb"
       - name: Read exact published owner-corrected K17 source
         if: matrix.mode == 'layers-k17-rail900-production'
         shell: bash
@@ -587,6 +624,16 @@ jobs:
       - name: Encrypt private model screenshots before artifact storage
         if: always()
         env:
+          P02_REVIEW_PUBLIC_KEY: |
+            -----BEGIN PUBLIC KEY-----
+            MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAkObZ5MgeQ2li5aQAx8oI
+            rC8sS2EVhLsEsUfbZkE53EzGT9IdwvruSebpBvEs6yaPPnfwC4XyCUfQRVH6PVlH
+            GYNWywoJF+2i3s80jkq41gyIhk3anIUQbpifd48QRNhIVkH13wt1NtH9TtjBPins
+            DIGGzHbSOZRKs2TV2Fe7RSVlHFY4Z55h6+ZDzUwEyhj8oQeMkpRcN/bBi3YZTTdh
+            qZZmzcTTSepsiP3IZsr44WCm2TK9b042tveiCMYH4gw9dWFdd4Z6gLLsgTpEHHje
+            usxQLb0sNZr/TPqUUFG4ZDRFRBbfXmrYO0qrp85EreaVRWrQdrV4Z0wt2XHaDnkE
+            0QIDAQAB
+            -----END PUBLIC KEY-----
           V27_REVIEW_PUBLIC_KEY: |
             -----BEGIN PUBLIC KEY-----
             MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAsbw6ANTfEtPZ289rYkqp
@@ -720,6 +767,13 @@ jobs:
             openssl pkeyutl -encrypt -pubin -inkey "$RUNNER_TEMP/c008-work-evidence-public.pem" \
               -pkeyopt rsa_padding_mode:oaep -pkeyopt rsa_oaep_md:sha256 \
               -in "$RUNNER_TEMP/d-view-evidence-password" -out "$RUNNER_TEMP/d-view-evidence/password.c008work.rsa"
+          fi
+          # Task-specific encrypted evidence recipient. Existing recipients remain.
+          if [[ '${{ matrix.mode }}' == 'layers-p02-production' ]]; then
+            printf '%s\n' "$P02_REVIEW_PUBLIC_KEY" > "$RUNNER_TEMP/p02-evidence-public.pem"
+            openssl pkeyutl -encrypt -pubin -inkey "$RUNNER_TEMP/p02-evidence-public.pem" \
+              -pkeyopt rsa_padding_mode:oaep -pkeyopt rsa_oaep_md:sha256 \
+              -in "$RUNNER_TEMP/d-view-evidence-password" -out "$RUNNER_TEMP/d-view-evidence/password.p02.rsa"
           fi
       - uses: actions/upload-artifact@v4
         if: always()
