@@ -5,7 +5,7 @@ import {hasVisibleMaterial, isEffectivelyVisible} from '../../src/scripts/privat
 
 const setup = () => {
   const root = new THREE.Group();
-  const front = new THREE.Mesh(
+  const front = new THREE.Mesh<THREE.BoxGeometry, THREE.MeshBasicMaterial | THREE.MeshBasicMaterial[]>(
     new THREE.BoxGeometry(1, 1, 1),
     new THREE.MeshBasicMaterial({side: THREE.DoubleSide}),
   );
