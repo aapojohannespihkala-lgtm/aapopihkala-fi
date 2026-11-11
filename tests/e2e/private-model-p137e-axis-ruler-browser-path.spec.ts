@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 
 // Real viewer-page event-path regression using a tiny synthetic GLB.
 // This does not authenticate the original Ylisrinne GLB, measured geometry,
-// production deployment or HUMAN_REVIEW. It never persists ruler coordinates.
+// production deployment or HUMAN_REVIEW. It never persists screenshot point coordinates.
 const buildSyntheticD1FCurrentGlb = (): Buffer => {
   // Plan floor spans the project's 0..6.375 X, 0..10.81 local Y
   // envelope (world Z is negative local Y). No source dimensions claimed.
@@ -63,177 +63,63 @@ const buildSyntheticD1FCurrentGlb = (): Buffer => {
   ]);
 };
 
-test('actual viewer D1F ruler: first anchor, live X mm, lock, clear', async ({ page }) => {
+test('D1F browser point marker exposes model-surface XYZ for screenshots', async ({ page }) => {
   const glb = buildSyntheticD1FCurrentGlb();
   await page.setViewportSize({ width: 1536, height: 900 });
   await page.route('**/private-model/model.glb', (route) =>
     route.fulfill({ status: 200, contentType: 'model/gltf-binary', body: glb }));
   await page.route('**/private-model/work-test/catalog.json', (route) =>
-    route.fulfill({
-      status: 200, contentType: 'application/json',
-      body: JSON.stringify({ candidates: [] }),
-    }));
+    route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ candidates: [] }) }));
   await page.goto('/private-model/');
   const canvas = page.locator('#private-model-canvas');
-  await expect(canvas).toHaveAttribute('data-model-source', /current/i);
   await page.locator('#preset-menu > summary').click();
   await page.locator('#d1-plan-button').click();
   await expect(canvas).toHaveAttribute('data-view-preset', 'd-plan');
-  await expect(canvas).toHaveAttribute('data-content-floor', '1F');
-  await expect(canvas).toHaveAttribute('data-d-plan-visible-renderable-count', /[1-9]/);
-
-  await page.locator('#axis-measure-tool-button').click();
-  await expect(canvas).toHaveAttribute('data-interaction-mode', 'measure');
-  await expect(page.locator('#axis-measure-tool-button')).toHaveAttribute('aria-pressed', 'true');
-  await expect(canvas).toHaveAttribute('data-axis-measure-phase', 'EMPTY');
+  const tool = page.locator('#point-pick-tool-button');
+  await expect(tool).toBeEnabled();
+  await tool.click();
+  await expect(canvas).toHaveAttribute('data-interaction-mode', 'point-pick');
 
   const box = await canvas.boundingBox();
   expect(box).not.toBeNull();
-  const p = (u: number, v: number) => ({
-    x: box!.x + box!.width * u,
-    y: box!.y + box!.height * v,
-  });
-  const click = async (u: number, v: number) => {
-    const { x, y } = p(u, v);
-    await page.mouse.click(x, y);
-  };
-  await click(0.47, 0.45);
-  await expect(canvas).toHaveAttribute('data-axis-measure-phase', 'FIRST');
-  await expect(canvas).not.toHaveAttribute('data-axis-measure-mm', /\d/);
+  if (!box) return;
+  await page.mouse.click(box.x + box.width * 0.47, box.y + box.height * 0.45);
+  await expect(canvas).toHaveAttribute('data-point-pick-state', 'picked');
+  await expect(page.locator('#point-pick-main')).toHaveText(/^X .+ m · Y .+ m · Z .+ m$/);
+  await expect(page.locator('#point-pick-main')).toContainText('Z 0,080 m');
+  await expect(page.locator('#point-pick-source')).toContainText('YLIS-G1-LOCAL');
+  await expect(page.locator('#point-pick-copy')).toBeEnabled();
+  const first = await page.locator('#point-pick-main').textContent();
 
-  await click(0.52, 0.45);
-  await expect(canvas).toHaveAttribute('data-axis-measure-phase', 'DYNAMIC');
-  await expect(canvas).toHaveAttribute('data-axis-measure-axis', 'X');
-  const initialMm = Number(await canvas.getAttribute('data-axis-measure-mm'));
-  expect(initialMm).toBeGreaterThan(0);
-  const output = page.locator('#axis-measure-output');
-  await expect(output).toHaveText(`${initialMm} mm`);
-
-  const moved = p(0.58, 0.45);
-  await page.mouse.move(moved.x, moved.y, { steps: 5 });
-  await expect(canvas).toHaveAttribute('data-axis-measure-phase', 'DYNAMIC');
-  const movedMm = Number(await canvas.getAttribute('data-axis-measure-mm'));
-  expect(movedMm).toBeGreaterThan(initialMm);
-
-  await click(0.57, 0.45);
-  await expect(canvas).toHaveAttribute('data-axis-measure-phase', 'LOCKED');
-  const lockedMm = await canvas.getAttribute('data-axis-measure-mm');
-  await expect(output).toHaveText(`${lockedMm} mm`);
-  const hover = p(0.41, 0.6);
-  await page.mouse.move(hover.x, hover.y, { steps: 5 });
-  await expect(canvas).toHaveAttribute('data-axis-measure-mm', lockedMm!);
-
-  await click(0.49, 0.46);
-  await expect(canvas).toHaveAttribute('data-axis-measure-phase', 'EMPTY');
-  await expect(canvas).not.toHaveAttribute('data-axis-measure-mm', /\d/);
-  await expect(page.locator('#axis-measure-label')).toBeHidden();
-  await expect(canvas).toHaveAttribute('data-model-source', /current/i);
+  await page.mouse.click(box.x + box.width * 0.52, box.y + box.height * 0.45);
+  await expect(canvas).toHaveAttribute('data-point-pick-state', 'picked');
+  const second = await page.locator('#point-pick-main').textContent();
+  expect(second).not.toEqual(first);
+  await page.locator('#point-pick-clear').click();
+  await expect(canvas).toHaveAttribute('data-point-pick-state', 'empty');
+  await expect(page.locator('#point-pick-copy')).toBeDisabled();
 });
 
-test('actual viewer ruler stays temporary on leaving D plan and changing tools', async ({ page }) => {
+test('point picker is available outside D plan and clears the marker on tool change', async ({ page }) => {
   const glb = buildSyntheticD1FCurrentGlb();
   await page.setViewportSize({ width: 1536, height: 900 });
   await page.route('**/private-model/model.glb', (route) =>
     route.fulfill({ status: 200, contentType: 'model/gltf-binary', body: glb }));
-  await page.route('**/private-model/work-test/catalog.json', (route) =>
-    route.fulfill({
-      status: 200, contentType: 'application/json',
-      body: JSON.stringify({ candidates: [] }),
-    }));
   await page.goto('/private-model/');
   const canvas = page.locator('#private-model-canvas');
-  const measureButton = page.locator('#axis-measure-tool-button');
-  await expect(measureButton).toBeDisabled();
-  await page.locator('#preset-menu > summary').click();
-  await page.locator('#d1-plan-button').click();
-  await expect(canvas).toHaveAttribute('data-view-preset', 'd-plan');
-  await expect(measureButton).toBeEnabled();
-  await page.locator('#axis-measure-tool-button').click();
-  const box = await canvas.boundingBox();
-  expect(box).not.toBeNull();
-  await page.mouse.click(box!.x + box!.width * 0.47, box!.y + box!.height * 0.45);
-  await expect(canvas).toHaveAttribute('data-axis-measure-phase', 'FIRST');
+  const tool = page.locator('#point-pick-tool-button');
+  await expect(tool).toBeEnabled();
+  await tool.click();
+  await expect(canvas).toHaveAttribute('data-interaction-mode', 'point-pick');
+  await expect(page.locator('#point-pick-panel')).toBeVisible();
   await page.locator('#navigate-tool-button').click();
-  await expect(canvas).toHaveAttribute('data-axis-measure-phase', 'EMPTY');
   await expect(canvas).toHaveAttribute('data-interaction-mode', 'navigate');
-
-  await page.locator('#axis-measure-tool-button').click();
-  await page.mouse.click(box!.x + box!.width * 0.47, box!.y + box!.height * 0.45);
-  await expect(canvas).toHaveAttribute('data-axis-measure-phase', 'FIRST');
-  // Canvas interactions may close the preset <details>; open it as a user would.
-  const wholeBuildingButton = page.locator('#whole-building-preset-button');
-  if (!(await wholeBuildingButton.isVisible())) {
-    await page.locator('#preset-menu > summary').click();
-  }
-  await expect(wholeBuildingButton).toBeVisible();
-  await wholeBuildingButton.click();
-  await expect(canvas).toHaveAttribute('data-standard-view-preset', 'whole-building');
-  await expect(canvas).toHaveAttribute('data-axis-measure-phase', 'EMPTY');
-  await expect(canvas).toHaveAttribute('data-interaction-mode', 'navigate');
-  await expect(measureButton).toBeDisabled();
-  await expect(measureButton).toHaveAttribute('aria-pressed', 'false');
-  await expect(canvas).not.toHaveAttribute('data-axis-measure-mm', /\d/);
+  await expect(canvas).toHaveAttribute('data-point-pick-state', 'empty');
+  await expect(page.locator('#point-pick-panel')).toBeHidden();
+  await expect(page.locator('#point-measure-tool-button')).toHaveText('Mittaa 3D');
 });
 
-
-test('actual D1F browser ruler measures along Y and never invents a diagonal', async ({ page }) => {
-  const glb = buildSyntheticD1FCurrentGlb();
-  await page.setViewportSize({ width: 1536, height: 900 });
-  await page.route('**/private-model/model.glb', (route) =>
-    route.fulfill({ status: 200, contentType: 'model/gltf-binary', body: glb }));
-  await page.route('**/private-model/work-test/catalog.json', (route) =>
-    route.fulfill({
-      status: 200, contentType: 'application/json',
-      body: JSON.stringify({ candidates: [] }),
-    }));
-  await page.goto('/private-model/');
-  const canvas = page.locator('#private-model-canvas');
-  await expect(canvas).toHaveAttribute('data-model-source', 'current');
-  await page.locator('#preset-menu > summary').click();
-  await page.locator('#d1-plan-button').click();
-  await expect(canvas).toHaveAttribute('data-view-preset', 'd-plan');
-  await page.locator('#axis-measure-tool-button').click();
-  await expect(canvas).toHaveAttribute('data-interaction-mode', 'measure');
-
-  const bounds = await canvas.boundingBox();
-  expect(bounds).not.toBeNull();
-  const point = (u: number, v: number) => ({
-    x: bounds!.x + bounds!.width * u,
-    y: bounds!.y + bounds!.height * v,
-  });
-
-  const first = point(0.48, 0.43);
-  const second = point(0.48, 0.52);
-  await page.mouse.click(first.x, first.y);
-  await expect(canvas).toHaveAttribute('data-axis-measure-phase', 'FIRST');
-  await page.mouse.click(second.x, second.y);
-  await expect(canvas).toHaveAttribute('data-axis-measure-phase', 'DYNAMIC');
-  await expect(canvas).toHaveAttribute('data-axis-measure-axis', 'Y');
-  const initialMm = Number(await canvas.getAttribute('data-axis-measure-mm'));
-  expect(initialMm).toBeGreaterThan(0);
-
-  // A small horizontal pointer offset must not become a diagonal length.
-  const pointer = point(0.49, 0.60);
-  await page.mouse.move(pointer.x, pointer.y, { steps: 6 });
-  await expect(canvas).toHaveAttribute('data-axis-measure-axis', 'Y');
-  const movedMm = Number(await canvas.getAttribute('data-axis-measure-mm'));
-  expect(movedMm).toBeGreaterThan(initialMm);
-  await expect(page.locator('#axis-measure-output')).toHaveText(`${movedMm} mm`);
-
-  await page.mouse.click(pointer.x, pointer.y);
-  await expect(canvas).toHaveAttribute('data-axis-measure-phase', 'LOCKED');
-  const lockedMm = await canvas.getAttribute('data-axis-measure-mm');
-  const outside = point(0.62, 0.39);
-  await page.mouse.move(outside.x, outside.y, { steps: 5 });
-  await expect(canvas).toHaveAttribute('data-axis-measure-axis', 'Y');
-  await expect(canvas).toHaveAttribute('data-axis-measure-mm', lockedMm!);
-  await page.mouse.click(outside.x, outside.y);
-  await expect(canvas).toHaveAttribute('data-axis-measure-phase', 'EMPTY');
-  await expect(canvas).not.toHaveAttribute('data-axis-measure-mm', /\d/);
-});
-
-
-test('D1F P137E target-specific crosshairs coexist with ruler and never claim G2 persistence', async ({ page }) => {
+test('D1F P137E target-specific crosshairs coexist with screenshot point tool and never claim G2 persistence', async ({ page }) => {
   const candidateId = 'p137e-d1f-three-wall-mounted-themos';
   const glb = buildSyntheticD1FCurrentGlb();
   await page.setViewportSize({ width: 1536, height: 900 });
@@ -253,7 +139,7 @@ test('D1F P137E target-specific crosshairs coexist with ruler and never claim G2
   await page.goto('/private-model/');
   const canvas = page.locator('#private-model-canvas');
   const place = page.locator('#p137e-place-tool-button');
-  const ruler = page.locator('#axis-measure-tool-button');
+  const pointTool = page.locator('#point-pick-tool-button');
   await expect(canvas).toHaveAttribute('data-model-source', 'current');
   await expect(place).toBeDisabled();
   await expect(page.locator('#work-test-select')).toBeEnabled();
@@ -286,16 +172,15 @@ test('D1F P137E target-specific crosshairs coexist with ruler and never claim G2
   await click(0.54, 0.47);
   await expect(canvas).toHaveAttribute('data-p137e-place-draft-count', '3');
   await expect(page.locator('#p137e-place-list')).toContainText('Aula: X ');
-  await ruler.click();
-  await expect(canvas).toHaveAttribute('data-interaction-mode', 'measure');
+  await pointTool.click();
+  await expect(canvas).toHaveAttribute('data-interaction-mode', 'point-pick');
   await expect(page.locator('#p137e-place-panel')).toBeHidden();
   await expect(canvas).toHaveAttribute('data-p137e-place-draft-count', '3');
   await click(0.48, 0.45);
-  await expect(canvas).toHaveAttribute('data-axis-measure-phase', 'FIRST');
-  await click(0.54, 0.45);
-  await expect(canvas).toHaveAttribute('data-axis-measure-phase', 'DYNAMIC');
+  await expect(canvas).toHaveAttribute('data-point-pick-state', 'picked');
+  await expect(page.locator('#point-pick-main')).toContainText('Z ');
   await place.click();
-  await expect(canvas).toHaveAttribute('data-axis-measure-phase', 'EMPTY');
+  await expect(canvas).toHaveAttribute('data-point-pick-state', 'empty');
   await expect(canvas).toHaveAttribute('data-p137e-place-draft-count', '3');
   await page.locator('#p137e-place-clear').click();
   await expect(canvas).toHaveAttribute('data-p137e-place-draft-count', '0');
