@@ -73,13 +73,14 @@ test('mixed-material raycast ignores hidden front face and reports the visible r
   // BoxGeometry groups: 4 is the camera-facing +Z side, 5 the rear -Z side.
   // Both are raycastable with DoubleSide even when their materials do not render.
   // The old whole-mesh check accepted hidden +Z because -Z was visible.
-  for (const frontStyle of ['invisible','zero-opacity'] as const) {
+  for (const frontStyle of ['invisible','zero-opacity','no-color-write'] as const) {
     const point=hit(220,240,({mesh})=>{
       const materials=Array.from({length:6},()=>
         new THREE.MeshBasicMaterial({color:0xffffff,side:THREE.DoubleSide,visible:false}),
       );
       materials[4].visible=frontStyle!=='invisible';
       if(frontStyle==='zero-opacity') materials[4].opacity=0;
+      if(frontStyle==='no-color-write') materials[4].colorWrite=false;
       materials[5].visible=true;
       (mesh as THREE.Mesh).material=materials;
     });
