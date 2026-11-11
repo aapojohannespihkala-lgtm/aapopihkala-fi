@@ -80,7 +80,7 @@ export const pickVisibleWorkTest3DPoint = ({
       !hasPresentationOnlyAncestor(object,modelRoot);
   });
   const p=visibleHit?.point;
-  if(!p || ![p.x,p.y,p.z].every(Number.isFinite)) return null;
+  if(!visibleHit || !p || ![p.x,p.y,p.z].every(Number.isFinite)) return null;
   const objectLabel = visibleHit.object.name.trim().replace(/\s+/g, ' ').slice(0, 100) || null;
   // Mesh normals are local. Transform with inverse-transpose for nonuniform
   // scales and mirror cases; orient the face toward the picking camera.
