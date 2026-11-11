@@ -26,6 +26,7 @@ import { V91_SOURCE_SHA256, V91_SOURCE_SCENE_COUNT, V91_FLOORS, V91_BUILDING_SCE
 import { V92_SOURCE_SHA256, V92_SOURCE_SCENE_COUNT, V92_FLOORS, V92_BUILDING_SCENES, V92_TECHNICAL_REVIEW_ROOTS } from './privateModelC80R2V92LayerSourceProfile.mjs';
 import { V93_MJ49_SOURCE_SHA256, V93_MJ49_SCENE_COUNT, V93_MJ49_FLOORS, V93_MJ49_SCENES, V93_MJ49_REVIEW_ROOTS, isV93MJ49SavoNSScene } from './privateModelV93MJ49SavoNSKIV3SourceProfile.mjs';
 import { V93_H35H38_SOURCE_SHA256, V93_H35H38_SOURCE_SCENE_COUNT, V93_H35H38_FLOORS, V93_H35H38_BUILDING_SCENES, V93_H35H38_TECHNICAL_REVIEW_ROOTS } from './privateModelC80R2V93H35H38LayerSourceProfile.mjs';
+import { V93_MJ40_SOURCE_SHA256, V93_MJ40_SCENE_COUNT, V93_MJ40_FLOORS, V93_MJ40_SCENES, V93_MJ40_REVIEW_ROOTS, isV93MJ40BoschOpen90Scene } from './privateModelV93MJ40BoschOpen90SourceProfile.mjs';
 import { V90_H20_SOURCE_SHA256, V90_H20_SCENE_COUNT, V90_H20_FLOORS, V90_H20_BUILDING_SCENES, V90_H20_TECHNICAL_REVIEW_ROOTS } from './privateModelC80R2V90H20LayerSourceProfile.mjs';
 import { V90_IV_P04_SOURCE_SHA256, V90_IV_P04_SCENE_COUNT, V90_IV_P04_FLOORS, V90_IV_P04_BUILDING_SCENES, V90_IV_P04_TECHNICAL_REVIEW_ROOTS, V90_IV_P04_OPTIN_SCENES } from './privateModelC80R2V90IVP04LayerSourceProfile.mjs';
 
@@ -56,6 +57,7 @@ const REVIEW_SOURCES = Object.freeze({
   [V92_SOURCE_SHA256]: { count: V92_SOURCE_SCENE_COUNT, floors: V92_FLOORS, scenes: V92_BUILDING_SCENES, roots: V92_TECHNICAL_REVIEW_ROOTS },
   [V93_MJ49_SOURCE_SHA256]: { count: V93_MJ49_SCENE_COUNT, floors: V93_MJ49_FLOORS, scenes: V93_MJ49_SCENES, roots: V93_MJ49_REVIEW_ROOTS },
   [V93_H35H38_SOURCE_SHA256]: { count: V93_H35H38_SOURCE_SCENE_COUNT, floors: V93_H35H38_FLOORS, scenes: V93_H35H38_BUILDING_SCENES, roots: V93_H35H38_TECHNICAL_REVIEW_ROOTS },
+  [V93_MJ40_SOURCE_SHA256]: { count: V93_MJ40_SCENE_COUNT, floors: V93_MJ40_FLOORS, scenes: V93_MJ40_SCENES, roots: V93_MJ40_REVIEW_ROOTS },
   [V90_H20_SOURCE_SHA256]: { count: V90_H20_SCENE_COUNT, floors: V90_H20_FLOORS, scenes: V90_H20_BUILDING_SCENES, roots: V90_H20_TECHNICAL_REVIEW_ROOTS },
   [V90_IV_P04_SOURCE_SHA256]: { count: V90_IV_P04_SCENE_COUNT, floors: V90_IV_P04_FLOORS, scenes: V90_IV_P04_BUILDING_SCENES, roots: V90_IV_P04_TECHNICAL_REVIEW_ROOTS },
   [V84_SOURCE_SHA256]: { count: V84_SOURCE_SCENE_COUNT, floors: V84_FLOORS, scenes: V84_BUILDING_SCENES, roots: V84_TECHNICAL_REVIEW_ROOTS },
@@ -86,6 +88,7 @@ export function resolveTechnicalReviewRoots(gltf, scene, sceneIndex, loadedSha, 
       !Object.entries(source.floors).every(([floor, index]) => extras?.viewerFloorScenes?.[floor] === index) ||
       json.scenes[sceneIndex]?.name !== sceneProfile.name ||
       typeof associations?.get !== 'function' || !Array.isArray(scene?.children)) return null;
+  if (loadedSha === V93_MJ40_SOURCE_SHA256 && !isV93MJ40BoschOpen90Scene(json, loadedSha, sceneIndex)) return null;
   if (loadedSha === V93_MJ49_SOURCE_SHA256 && !isV93MJ49SavoNSScene(json, loadedSha, sceneIndex)) return null;
   const sourceRoots = json.scenes[sceneIndex].nodes;
   const exactIvFocus = loadedSha === V90_IV_P04_SOURCE_SHA256 &&
