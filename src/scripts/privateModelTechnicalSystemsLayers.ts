@@ -1,4 +1,5 @@
 import { AIR385_SOURCE_SHA256, AIR385_COMPONENTS, isAir385SourceScene } from './privateModelAir385ToshibaServiceSourceProfile.mjs';
+import { MJ84_SOURCE_SHA256, MJ84_COMPONENTS, isMJ84SourceScene } from './privateModelMJ84KsoSourceProfile.mjs';
 import { TATE4_SOURCE_SHA256, TATE4_SOURCE_SCENE_COUNT, TATE4_BUILDING_SCENES, resolveTate4TechnicalNode } from './privateModelC80TateInteriorLayerSourceProfile.mjs';
 import { TATE3_SOURCE_SHA256, TATE3_SOURCE_SCENE_COUNT, TATE3_BUILDING_SCENES, resolveTate3TechnicalNode } from './privateModelC80TateThreeDeltaLayerSourceProfile.mjs';
 import { TATE_SOURCE_SHA256, TATE_SOURCE_SCENE_COUNT, TATE_BUILDING_SCENES, resolveTateTechnicalNode } from './privateModelC80P02TateLayerSourceProfile.mjs';
@@ -312,6 +313,27 @@ const v26Device = (context: TechnicalSystemsContext, binding: TechnicalSourceNod
       visited.add(node);
       const parent = context.sourceNodes.find(candidate => candidate.sceneIndex === 349 && candidate.nodeIndex === node);
       node = parent?.parentNodeIndex ?? null;
+    }
+    return null;
+  }
+  // MJ84 classifies only the four opt-in owner-approx 2F KSO components.
+  // Neither the 2015 T nor the superseded hallway proxy is a 2026 duct.
+  if (context.loadedGlbSha256 === MJ84_SOURCE_SHA256) {
+    if (!isMJ84SourceScene(context.sourceJson, context.loadedGlbSha256, context.sourceSceneIndex))
+      return null;
+    const roots = context.sourceJson?.scenes?.[context.sourceSceneIndex]?.nodes;
+    if (!Array.isArray(roots)) return null;
+    const allowed = new Set<number>(Object.values(MJ84_COMPONENTS).map(part => part.node));
+    const visited = new Set<number>();
+    let node: number | null = binding.nodeIndex;
+    while (node !== null && !visited.has(node)) {
+      if (allowed.has(node) && roots.includes(node))
+        return { id:'technical-ventilation',
+          scope:{apartment:'D',storey:'2F',phase:'ACTIVE_IN_SELECTED_WORKTEST'} };
+      visited.add(node);
+      const source = context.sourceNodes.find(candidate =>
+        candidate.sceneIndex === context.sourceSceneIndex && candidate.nodeIndex === node);
+      node = source?.parentNodeIndex ?? null;
     }
     return null;
   }
