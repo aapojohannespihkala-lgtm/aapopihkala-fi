@@ -5776,7 +5776,7 @@ const title = 'Private 3D viewer';
               gltf: sourceNodeModel(layersGltf),
               expectedSourceSha256: P02_SOURCE_SHA256,
               loadedSourceSha256: P02_SOURCE_SHA256,
-              sceneIndex, activeSceneRoot: sceneRoot, area: 'D', floor: mainViewScope.floor,
+              sceneIndex, activeSceneRoot: sceneRoot, area: 'D', floor: mainViewScope.floor as MainViewFloor,
             });
             const box = new THREE.Box3();
             for (const binding of building.bindings) {
