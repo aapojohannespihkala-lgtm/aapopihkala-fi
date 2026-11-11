@@ -81,7 +81,7 @@ test('mixed-material raycast ignores hidden front face and reports the visible r
       materials[4].visible=frontStyle!=='invisible';
       if(frontStyle==='zero-opacity') materials[4].opacity=0;
       materials[5].visible=true;
-      mesh.material=materials;
+      (mesh as THREE.Mesh).material=materials;
     });
     // Object at Z=-3 with a 2m box: the visible back face is at Z=-4.
     // YLIS model Y equals -world Z, not the hidden face's Z=-2 -> Y=2.
@@ -98,7 +98,7 @@ test('a mixed-material hit on hidden faces alone never invents a model coordinat
     // Only a side face is visible, but the central pointer intersects the
     // hidden +Z and -Z faces, not the painted side surface.
     materials[0].visible=true;
-    mesh.material=materials;
+    (mesh as THREE.Mesh).material=materials;
   });
   expect(point).toBeNull();
 });
