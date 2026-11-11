@@ -30,6 +30,19 @@ const hasPresentationOnlyAncestor = (node: THREE.Object3D, root: THREE.Object3D)
   return false;
 };
 
+/** A material array may contain both painted and hidden triangle groups.
+ * A hit on a hidden group must not win over a visible surface behind it.
+ * Keep single-material picking unchanged and reject unknown group indexes.
+ */
+const hasVisibleHitMaterial = (hit: THREE.Intersection): boolean => {
+  const object = hit.object as THREE.Mesh;
+  if (!Array.isArray(object.material)) return hasVisibleMaterial(object);
+  const materialIndex = hit.face?.materialIndex;
+  if (typeof materialIndex !== 'number' || !Number.isInteger(materialIndex) ||
+    materialIndex < 0 || materialIndex >= object.material.length) return false;
+  return hasVisibleMaterial({material: object.material[materialIndex]});
+};
+
 /** Raycast real visible source meshes only. No ground-plane guesses, no
  * interpolated physical positions, and no coordinates when nothing is hit.
  */
@@ -59,7 +72,7 @@ export const pickVisibleWorkTest3DPoint = ({
     const object=hit.object as THREE.Mesh;
     return object.isMesh===true &&
       isEffectivelyVisible(object,modelRoot) &&
-      hasVisibleMaterial(object) &&
+      hasVisibleHitMaterial(hit) &&
       !hasPresentationOnlyAncestor(object,modelRoot);
   });
   const p=visibleHit?.point;
