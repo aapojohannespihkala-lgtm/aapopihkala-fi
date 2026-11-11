@@ -4341,6 +4341,15 @@ const AUTO_YLISRINNE_C80R2_V92_H30_SMOKE_ON_V71_WORK_TEST_HOST_HOLD_20261109_1MV
 
 // Source-exact P0-2 WORK_TEST saved in G2b TYÖ. Publication still uses
 // trusted-main publisher, Access, exact RAW SHA/size and readback gates.
+const C80_TATE_THREE_DELTA_WORK_TEST_CANDIDATE = {
+  id: 'c80-tate-pk1-pa1-apk-20261111',
+  label: 'C80 TATE + PK1-poisto, PA1-liitos ja APK-syöttö 1F/2F - WORK_TEST',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/c80-tate-pk1-pa1-apk-20261111.glb`,
+  objectKey: 'work-test/c80-tate-pk1-pa1-apk-20261111.glb',
+  expectedSize: 52972084,
+  expectedSha256: 'bb53c85c96bc645632288c0b89c7231709791da9ee54a67d6ee44623bc0be5b0',
+} as const satisfies PrivateWorkTestCandidate;
+
 const C80_P02_TATE_INTEGRATED_WORK_TEST_CANDIDATE = {
   id: 'c80-p02-tate-integrated-20261111',
   label: 'C80 P0-2 - vesi, viemäri, IV ja sähkö 1F/2F - WORK_TEST',
@@ -4360,6 +4369,7 @@ const C80_P02_WATER_INTEGRATED_WORK_TEST_CANDIDATE = {
 } as const satisfies PrivateWorkTestCandidate;
 
 const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
+  C80_TATE_THREE_DELTA_WORK_TEST_CANDIDATE,
   C80_P02_TATE_INTEGRATED_WORK_TEST_CANDIDATE,
   C80_P02_WATER_INTEGRATED_WORK_TEST_CANDIDATE,
   V69P12R1_SINK_FAUCET_WORK_TEST_CANDIDATE,
