@@ -8,6 +8,11 @@ on:
         type: choice
         default: all
         options: [all, V68, V69, K17_RAIL900, V69P12R1, P02, TATE]
+      tate_phase:
+        description: TATE proof phase (full preserves every existing gate)
+        type: choice
+        default: full
+        options: [full, model-switch]
   # GITHUB_TOKEN automerge may not emit a new push-triggered workflow.
   # After the trusted main Build check succeeds, run the exact-source browser
   # gate for that same main commit. Keep WIF/GLB out of all PR workflows.
@@ -588,6 +593,7 @@ jobs:
         if: matrix.mode == 'layers-tate-production'
         env:
           YLIS_LAYERS_TATE_PRODUCTION: '1'
+          YLIS_TATE_SWITCH_ONLY: ${{ inputs.tate_phase == 'model-switch' && '1' || '0' }}
           CF_ACCESS_VIEWER_PROBE_CLIENT_ID: ${{ secrets.CF_ACCESS_VIEWER_PROBE_CLIENT_ID }}
           CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET: ${{ secrets.CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET }}
           D_VIEW_TESTED_COMMIT: ${{ github.event.workflow_run.head_sha || github.sha }}
