@@ -323,8 +323,8 @@ const v26Device = (context: TechnicalSystemsContext, binding: TechnicalSourceNod
   if (context.loadedGlbSha256 === KIV005_SOURCE_SHA256) {
     if (!isKiv005OwnerSourceScene(context.sourceJson, context.loadedGlbSha256, context.sourceSceneIndex))
       return null;
-    const sourceRoots = context.sourceJson.scenes[context.sourceSceneIndex].nodes;
-    if (!sourceRoots.includes(KIV005_NODES.group)) return null;
+    const sourceRoots = context.sourceJson?.scenes?.[context.sourceSceneIndex]?.nodes;
+    if (!Array.isArray(sourceRoots) || !sourceRoots.includes(KIV005_NODES.group)) return null;
     const visited = new Set<number>();
     let node: number | null = binding.nodeIndex;
     while (node !== null && !visited.has(node)) {
