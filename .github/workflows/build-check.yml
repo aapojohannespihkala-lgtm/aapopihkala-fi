@@ -222,7 +222,26 @@ jobs:
         if: >-
           steps.changes.outputs.docs_only != 'true' &&
           (github.event_name != 'pull_request' || steps.changes.outputs.browser_tests != '')
-        run: npx playwright install --with-deps chromium
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Hosted Ubuntu can point apt at the Azure mirror. If its DNS is
+          # unavailable, prefer the official Ubuntu mirrors before Playwright
+          # installs the SAME OS dependencies and Chromium.
+          mirror_list=/etc/apt/apt-mirrors.txt
+          if [[ -f "$mirror_list" ]] &&
+             grep -q 'azure.archive.ubuntu.com' "$mirror_list" &&
+             ! getent ahostsv4 azure.archive.ubuntu.com >/dev/null; then
+            if getent ahostsv4 archive.ubuntu.com >/dev/null &&
+               getent ahostsv4 security.ubuntu.com >/dev/null; then
+              echo "::warning::Azure apt mirror DNS unavailable; using official Ubuntu mirrors."
+              printf '%s\n' 'https://archive.ubuntu.com/ubuntu/' \
+                'https://security.ubuntu.com/ubuntu/' | sudo tee "$mirror_list" >/dev/null
+            else
+              echo "::warning::Ubuntu mirror DNS unavailable; dependency install will still be required."
+            fi
+          fi
+          npx playwright install --with-deps chromium
 
       - name: Selected browser guards
         if: >-
