@@ -4377,6 +4377,17 @@ const C80_P02_WATER_INTEGRATED_WORK_TEST_CANDIDATE = {
   expectedSha256: 'db5ce3d7ef4c0bc8910de7f46df80029617b37d38ff4ddccd330cf70a2818a2a',
 } as const satisfies PrivateWorkTestCandidate;
 
+// Auto-registered 2026-11-12 from Drive queue file 1k3IOOjg28ktMShbmW58nbuo16RN7qUcQ
+// by auto-publish-work-test. WORK_TEST, never as-built.
+const AUTO_YLISRINNE_C80_MJ79_D1F_PR0305_EXXACT_VINO_FULL_374_SCENES_WORK_TEST_HOST_HOLD_20261112_1K3IOOJG_CANDIDATE = {
+  id: 'auto-ylisrinne-c80-mj79-d1f-pr0305-exxact-vino-full-374-scenes-work-test-host-hold-20261112-1k3ioojg',
+  label: 'Auto: Ylisrinne C80 MJ79 D1F PR0305 EXXACT VINO FULL 374 SCENES WORK TEST HOST HOLD 20261112 - WORK_TEST',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/auto-ylisrinne-c80-mj79-d1f-pr0305-exxact-vino-full-374-scenes-work-test-host-hold-20261112-1k3ioojg.glb`,
+  objectKey: 'work-test/auto-ylisrinne-c80-mj79-d1f-pr0305-exxact-vino-full-374-scenes-work-test-host-hold-20261112-1k3ioojg.glb',
+  expectedSize: 54542912,
+  expectedSha256: '5da932fb3c3ccdf2f4f38b286734e4388f132690daa37bef35c749cacbece7b7',
+} as const satisfies PrivateWorkTestCandidate;
+
 const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
   C80_TATE_INTERIOR_WORK_TEST_CANDIDATE,
   C80_TATE_THREE_DELTA_WORK_TEST_CANDIDATE,
@@ -4731,6 +4742,7 @@ const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
   AUTO_YLISRINNE_C80R2_V90_HIGH_INTEGRATION_ON_V71_WORK_TEST_HOST_HOLD_20261109_1QJB3SQN_CANDIDATE,
   AUTO_YLISRINNE_C80R2_V91_OWNER_REVIEW_FIX_ON_V71_WORK_TEST_HOST_HOLD_20261109_1J6KOJRH_CANDIDATE,
   AUTO_YLISRINNE_C80R2_V92_H30_SMOKE_ON_V71_WORK_TEST_HOST_HOLD_20261109_1MV7QBYQ_CANDIDATE,
+  AUTO_YLISRINNE_C80_MJ79_D1F_PR0305_EXXACT_VINO_FULL_374_SCENES_WORK_TEST_HOST_HOLD_20261112_1K3IOOJG_CANDIDATE,
 ] as const satisfies readonly PrivateWorkTestCandidate[];
 
 type PrivateWorkTestObjectMetadata = {
