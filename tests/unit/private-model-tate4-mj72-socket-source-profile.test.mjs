@@ -7,7 +7,7 @@ import {
   TATE4_MJ72_SCENE_COUNT,TATE4_MJ72_NODE_COUNT,TATE4_MJ72_MESH_COUNT,
   TATE4_MJ72_DEFAULT_SCENE,TATE4_MJ72_PARENT_FLOORS,
   TATE4_MJ72_FLOORS,TATE4_MJ72_ROOT,TATE4_MJ72_CHILDREN,
-  TATE4_MJ72_PHOTO_URL,TATE4_MJ72_OWNER_DOC,
+  TATE4_MJ72_PHOTO_URL,TATE4_MJ72_OWNER_DOC,TATE4_MJ72_PART_NAMES,
   tate4Mj72RootsFnv32,isTate4Mj72SocketSourceScene,
 } from '../../src/scripts/privateModelTate4Mj72SocketSourceProfile.mjs';
 
@@ -26,6 +26,7 @@ const sourceLinks=[
 function fixture() {
   const nodes=Array.from({length:TATE4_MJ72_NODE_COUNT},()=>({}));
   nodes[TATE4_MJ72_ROOT]={
+    name:'MJ72_OWNER2026_STORAGE_SOCKET_TWO_CLOSED_COVERS_UPPER_DOOR_WALL_COW_ROOT_WORK_TEST_HOST_HOLD',
     children:[...TATE4_MJ72_CHILDREN],
     extras:{
       supersedesRootInOptInScenesOnly:11542,
@@ -39,6 +40,7 @@ function fixture() {
   };
   for(let i=0;i<TATE4_MJ72_CHILDREN.length;i++){
     nodes[TATE4_MJ72_CHILDREN[i]]={
+      name:TATE4_MJ72_PART_NAMES[i],
       mesh:4542+i,
       extras:{provenanceDonorNodeIndex:12057+i,
         sourceMJ72GLBSHA256:TATE4_MJ72_DONOR_SHA256,
@@ -78,20 +80,21 @@ test('three true ordered GLB root snapshots are SHA and scene locked',()=>{
 test('rejects a wrong SHA, floor, root order, parent, links or source-bound state',()=>{
   const base=fixture();
   const cases=[
-    x=>{x.scenes[353].nodes.reverse()},
-    x=>{x.scenes[355].extras.TATE4ParentExactGLBSHA256='0'.repeat(64)},
-    x=>{x.scenes[354].extras.newRoot=TATE4_MJ72_ROOT},
-    x=>{x.nodes[TATE4_MJ72_ROOT].children.pop()},
-    x=>{x.nodes[TATE4_MJ72_ROOT].extras.sourceLinks=[]},
-    x=>{x.nodes[12077].extras.currentGLBSourceLinksBindingVerified=true},
-    x=>{x.nodes[12078].extras.electricalCircuitVerified=true},
-    x=>{x.nodes[TATE4_MJ72_ROOT].extras.physicalElectricalConnectionVerified=true},
-    x=>{x.asset.extras.current=true},
-    x=>{x.nodes[TATE4_MJ72_ROOT].children.push(11542)},
+    [353,x=>{x.scenes[353].nodes.reverse()}],
+    [355,x=>{x.scenes[355].extras.TATE4ParentExactGLBSHA256='0'.repeat(64)}],
+    [354,x=>{x.scenes[354].extras.newRoot=TATE4_MJ72_ROOT}],
+    [353,x=>{x.nodes[TATE4_MJ72_ROOT].children.pop()}],
+    [353,x=>{x.nodes[TATE4_MJ72_ROOT].extras.sourceLinks=[]}],
+    [355,x=>{x.nodes[12077].extras.currentGLBSourceLinksBindingVerified=true}],
+    [353,x=>{x.nodes[12078].extras.electricalCircuitVerified=true}],
+    [353,x=>{x.nodes[TATE4_MJ72_ROOT].extras.physicalElectricalConnectionVerified=true}],
+    [354,x=>{x.asset.extras.current=true}],
+    [353,x=>{x.nodes[TATE4_MJ72_ROOT].children.push(11542)}],
+    [355,x=>{x.nodes[12077].name='mismatched'}],
   ];
-  for(const mutate of cases) {
+  for(const [scene,mutate] of cases) {
     const x=structuredClone(base);mutate(x);
-    assert.equal(isTate4Mj72SocketSourceScene(x,TATE4_MJ72_SOURCE_SHA256,353),false);
+    assert.equal(isTate4Mj72SocketSourceScene(x,TATE4_MJ72_SOURCE_SHA256,scene),false);
   }
   assert.equal(isTate4Mj72SocketSourceScene(base,TATE4_MJ72_SOURCE_SHA256,353,'2F'),false);
   assert.equal(isTate4Mj72SocketSourceScene(base,'0'.repeat(64),355),false);
