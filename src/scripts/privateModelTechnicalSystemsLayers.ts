@@ -2,6 +2,7 @@ import { AIR385_SOURCE_SHA256, AIR385_COMPONENTS, isAir385SourceScene } from './
 import { MJ79_SOURCE_SHA256, MJ79_SOCKETS, isMJ79SourceScene } from './privateModelMJ79ExxactSourceProfile.mjs';
 import { MJ84_SOURCE_SHA256, MJ84_COMPONENTS, isMJ84SourceScene } from './privateModelMJ84KsoSourceProfile.mjs';
 import { MJ84_HOLLOW_SOURCE_SHA256, MJ84_HOLLOW_COMPONENTS, MJ84_HOLLOW_WC_CEILING, isMJ84HollowSourceScene } from './privateModelMJ84HollowSourceProfile.mjs';
+import { TATE4_MJ72_SOURCE_SHA256, TATE4_MJ72_ROOT, TATE4_MJ72_CHILDREN, isTate4Mj72SocketSourceScene } from './privateModelTate4Mj72SocketSourceProfile.mjs';
 import { TATE4_SOURCE_SHA256, TATE4_SOURCE_SCENE_COUNT, TATE4_BUILDING_SCENES, resolveTate4TechnicalNode } from './privateModelC80TateInteriorLayerSourceProfile.mjs';
 import { TATE3_SOURCE_SHA256, TATE3_SOURCE_SCENE_COUNT, TATE3_BUILDING_SCENES, resolveTate3TechnicalNode } from './privateModelC80TateThreeDeltaLayerSourceProfile.mjs';
 import { TATE_SOURCE_SHA256, TATE_SOURCE_SCENE_COUNT, TATE_BUILDING_SCENES, resolveTateTechnicalNode } from './privateModelC80P02TateLayerSourceProfile.mjs';
@@ -320,6 +321,25 @@ const v26Device = (context: TechnicalSystemsContext, binding: TechnicalSourceNod
       seen.add(index);
       const parent = context.sourceNodes.find(node => node.sceneIndex === context.sourceSceneIndex && node.nodeIndex === index);
       index = parent?.parentNodeIndex ?? null;
+    }
+    return null;
+  }
+  // Only the new owner-photo storage socket: category means visual electrical
+  // fixture, NOT a verified circuit or measured physical installation.
+  if (context.loadedGlbSha256 === TATE4_MJ72_SOURCE_SHA256) {
+    if (!isTate4Mj72SocketSourceScene(context.sourceJson, context.loadedGlbSha256, context.sourceSceneIndex))
+      return null;
+    if (context.sourceSceneIndex === 354) return null; // No 1F socket in 2F.
+    const allowed=new Set<number>(TATE4_MJ72_CHILDREN);
+    const seen=new Set<number>();
+    let node: number | null=binding.nodeIndex;
+    while(node!==null && !seen.has(node)) {
+      if (allowed.has(node)) return {id:'technical-electrical',
+        scope:{apartment:'D',storey:'1F',phase:'ACTIVE_IN_SELECTED_WORKTEST'}};
+      seen.add(node);
+      const source=context.sourceNodes.find(candidate =>
+        candidate.sceneIndex===context.sourceSceneIndex && candidate.nodeIndex===node);
+      node=source?.parentNodeIndex ?? null;
     }
     return null;
   }
