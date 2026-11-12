@@ -14,6 +14,16 @@ export const TATE4_MJ72_FLOORS = Object.freeze({'1F':353,'2F':354,BOTH:355});
 export const TATE4_MJ72_ROOT = 12084;
 export const TATE4_MJ72_LEGACY_ROOT = 11542;
 export const TATE4_MJ72_CHILDREN = Object.freeze([12077,12078,12079,12080,12081,12082,12083]);
+export const TATE4_MJ72_PART_NAMES = Object.freeze([
+  'MJ72_OWNER2026_STORAGE_SOCKET_HOUSING_WORK_TEST_HOST_HOLD',
+  'MJ72_OWNER2026_STORAGE_SOCKET_LEFT_CLOSED_FLAP_WORK_TEST_HOST_HOLD',
+  'MJ72_OWNER2026_STORAGE_SOCKET_RIGHT_CLOSED_FLAP_WORK_TEST_HOST_HOLD',
+  'MJ72_OWNER2026_STORAGE_SOCKET_LEFT_TOP_HINGE_WORK_TEST_HOST_HOLD',
+  'MJ72_OWNER2026_STORAGE_SOCKET_RIGHT_TOP_HINGE_WORK_TEST_HOST_HOLD',
+  'MJ72_OWNER2026_STORAGE_SOCKET_LEFT_LOWER_TAB_WORK_TEST_HOST_HOLD',
+  'MJ72_OWNER2026_STORAGE_SOCKET_RIGHT_LOWER_TAB_WORK_TEST_HOST_HOLD',
+]);
+
 export const TATE4_MJ72_SCENES = Object.freeze({
   353: Object.freeze({floor:'1F',name:'TATE4_MJ72_D1F_STORAGE_UPPER_TWO_COVERS_1F_WORK_TEST_HOST_HOLD_20261112',count:282,fnv:'d3c43f59',parentScene:350,donorScene:374,socket:true}),
   354: Object.freeze({floor:'2F',name:'TATE4_MJ72_D1F_STORAGE_UPPER_TWO_COVERS_2F_WORK_TEST_HOST_HOLD_20261112',count:184,fnv:'4e28cbb7',parentScene:351,donorScene:375,socket:false}),
@@ -83,7 +93,7 @@ export function isTate4Mj72SocketSourceScene(json, loadedSha, sceneIndex, floor=
   const used=active(json,scene.nodes),root=json.nodes[TATE4_MJ72_ROOT],parts=json.nodes;
   if(!used || used.has(TATE4_MJ72_LEGACY_ROOT) ||
     used.has(TATE4_MJ72_ROOT)!==expected.socket) return false;
-  if(!root || !Array.isArray(root.children) ||
+  if(!root || root.name!=='MJ72_OWNER2026_STORAGE_SOCKET_TWO_CLOSED_COVERS_UPPER_DOOR_WALL_COW_ROOT_WORK_TEST_HOST_HOLD' || !Array.isArray(root.children) ||
     root.children.join(',')!==TATE4_MJ72_CHILDREN.join(',') ||
     root.extras?.supersedesRootInOptInScenesOnly!==TATE4_MJ72_LEGACY_ROOT ||
     root.extras?.TATE4ParentExactGLBSHA256!==TATE4_MJ72_PARENT_SHA256 ||
@@ -97,7 +107,7 @@ export function isTate4Mj72SocketSourceScene(json, loadedSha, sceneIndex, floor=
     !photoLinks(root.extras?.sourceLinks)) return false;
   for(let i=0;i<TATE4_MJ72_CHILDREN.length;i++) {
     const part=parts[TATE4_MJ72_CHILDREN[i]];
-    if(!part || part.mesh!==4542+i ||
+    if(!part || part.name!==TATE4_MJ72_PART_NAMES[i] || part.mesh!==4542+i ||
       part.extras?.provenanceDonorNodeIndex!==12057+i ||
       part.extras?.sourceMJ72GLBSHA256!==TATE4_MJ72_DONOR_SHA256 ||
       part.extras?.physicalMountingHeightVerified!==false ||
