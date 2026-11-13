@@ -89,6 +89,27 @@ test('successor exact SHA admits only technical roots, never cutaway building wr
  assert.equal(new Set(ids).size,ids.length);
  assert.ok(ids.every(n=>json.scenes[362].nodes.includes(n)));
 });
+test('PK1 service cutaway scene368 retains verified technical roots but never its architectural wrapper',()=>{
+ const json=sourceDoc(),src=json.scenes[362],spec=SUCCESSOR_R1_SCENES[368];
+ assert.ok(src.nodes.includes(2220),'physical parent includes C77 wrapper');
+ const roots=src.nodes.map(id=>id===2220?12097:id);
+ const old=src.extras.successorIntegration;
+ json.scenes[368]={
+  name:spec.name,nodes:roots,
+  extras:{...src.extras,successorIntegration:{
+   ...old,donorReplacementRoots:Object.fromEntries(Object.entries(spec.replacements).map(([k,v])=>[k,[...v]])),
+   cutawayIsNonPhysical:true
+  }}
+ };
+ assert.equal(isM6263Mj72Kiv005Pk1SuccessorSourceScene(json,SUCCESSOR_R1_SHA256,368,'BOTH','CLOSED',true),true);
+ const profile=successor369ReviewProfile(json,SUCCESSOR_R1_SHA256,368);
+ assert.ok(profile);
+ const ids=profile.roots[368].map(x=>x.node);
+ for(const n of [12086,12092,12096,12098,12106])assert.ok(ids.includes(n));
+ for(const n of [12097,2220,11542,8913])assert.equal(ids.includes(n),false);
+ assert.equal(ids.length,new Set(ids).size);
+});
+
 test('SHA, stale scene, CURRENT promotion and unverified replacement reject all',()=>{
  const json=sourceDoc();
  assert.equal(successor369ReviewProfile(json,'8aaadccfaa880e7693337467a00d9efb53d4d5e332d377be10d1e353e87e25c5',362),null);
