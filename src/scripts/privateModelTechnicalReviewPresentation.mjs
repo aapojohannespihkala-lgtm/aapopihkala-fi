@@ -96,8 +96,17 @@ export function successor369ReviewProfile(json, sha, sceneIndex) {
       active.includes(11542) || active.includes(8913) ||
       active.includes(12097)!==spec.cutaway) return null;
   const membership=new Set(active);
-  const kept=inherited.filter(item=>membership.has(item.node));
-  if (kept.some(item=>json.nodes[item.node]?.name!==item.name)) return null;
+  // Preserve only named source-identical technical roots. Historical
+  // profiles can contain unnamed or repeated presentation references;
+  // dropping those roots is safer than promoting broad building geometry.
+  // The entire source JSON has already passed the exact GLB SHA gate.
+  const seenOld=new Set();
+  const kept=inherited.filter(item=>{
+    if(!membership.has(item.node) || !item.name ||
+       json.nodes[item.node]?.name!==item.name || seenOld.has(item.node))return false;
+    seenOld.add(item.node);
+    return true;
+  });
   // Source-exact IDs, not model-name guesses or whole-building visual roots.
   const addedIds=[12086,12087,12088,12089,12090,12091,12092,12096,12098,12106]
     .filter(id=>membership.has(id));
