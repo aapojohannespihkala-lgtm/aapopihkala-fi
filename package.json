@@ -10,6 +10,7 @@
     "dev": "astro dev",
     "build": "astro build",
     "preview": "astro preview",
+    "precheck": "node --test src/scripts/privateModelM5AR1125PerSourceRenderDeltaRegression.test.mjs",
     "check": "astro check",
     "test:e2e": "playwright test"
   },
