@@ -89,6 +89,7 @@ test('actual HI12 cached nodes, primitives, native links and reversible K17/SITE
     }
   }
   if (isHi14) { expect(selections).toBeGreaterThan(1200); expect(links).toBeGreaterThan(3600); }
+  else if (isHi13) expect({ selections, links }).toEqual({ selections: 1237, links: 3707 });
   else expect({ selections, links }).toEqual({ selections: 1224, links: 3681 });
   for (let cycle = 0; cycle < 8; cycle++) for (const [floor, si] of [['BOTH', 0], ['1F', 1], ['2F', 2]] as const) {
     bridge.restore(); expect(bridge.apply(floor).sceneIndex).toBe(si);
