@@ -30,7 +30,12 @@ export function createM6263FloorRuntime({gltf,sha,mount,mounted}) {
     const selected=resolveTate4Mj6263ViewerScene({sourceJson:gltf.parser.json,loadedGlbSha256:sha,floor:nextFloor,glazingState:nextGlazing});
     if (!selected.ok) return null;
     floor=nextFloor;glazing=nextGlazing;sceneIndex=selected.sceneIndex;
-    mount(scenes[sceneIndex]);
+    // The existing scene owner restores an active scope before an external
+    // nondefault mount. This is our own authored-scene transition.
+    const wasActive=active;
+    active=false;
+    try { mount(scenes[sceneIndex]); }
+    finally { active=wasActive; }
     if (mounted()!==scenes[sceneIndex]) throw new Error('M6263_SCENE_MOUNT_MISMATCH');
     let included=0;scenes[sceneIndex].traverse(node=>{if(node.isMesh)included++;});
     return {included,exceptions:[]};
@@ -43,7 +48,7 @@ export function createM6263FloorRuntime({gltf,sha,mount,mounted}) {
     get selectedScene(){return scenes[sceneIndex];},get sceneIndex(){return sceneIndex;},
     get active(){return active;},get floor(){return floor;},get glazing(){return glazing;},
     get stairStatus(){return 'HOST_HOLD';},get t04Status(){return 'SOURCE_SCENE_UNMODIFIED';},
-    apply(next){const report=change(next,glazing);if(report)active=true;return report;},
+    apply(next,nextGlazing=glazing){const report=change(next,nextGlazing);if(report)active=true;return report;},
     setGlazing(next){return change(floor,next);},
     restore(){if(disposed)return;if(mountedHere())mount(scenes[355]);floor='BOTH';glazing='CLOSED';sceneIndex=355;active=false;},
     enforce(){},referenceCandidates(){return [];},dispose(){disposed=true;active=false;},
