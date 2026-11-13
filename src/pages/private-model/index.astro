@@ -1776,6 +1776,7 @@ const title = 'Private 3D viewer';
           <button id="selection-tool-button" type="button" aria-pressed="false">Valitse</button>
           <button id="point-pick-tool-button" type="button" aria-pressed="false" title="Klikkaa mallipintaa, näytä XYZ-koordinaatit ja merkki kuvakaappausta varten.">Piste mallissa</button>
           <button id="point-measure-tool-button" type="button" aria-pressed="false" title="Mittaa kahden näkyvän mallipinnan pisteen etäisyys missä tahansa näkymässä. Mallin arvo, ei tarkemittaus.">Mittaa 3D</button>
+          <button id="axis-measure-tool-button" type="button" aria-pressed="false" disabled title="Mittaa D-asunnon pohjan kahden pisteen etäisyys mallista, ei tarkemittaus">Mittaa pohjaa</button>
           <button id="p137e-place-tool-button" type="button" aria-pressed="false" disabled title="Rastiluonnos: vain D1F P137E WORK_TEST; tallennus G2:een ei vielä kytketty">Sijoita kohde</button>
         </div>
 
@@ -2541,6 +2542,8 @@ const title = 'Private 3D viewer';
       import { MJ84_HOLLOW_SOURCE_SHA256 } from '../../scripts/privateModelMJ84HollowSourceProfile.mjs';
       import { TATE4_MJ72_SOURCE_SHA256 } from '../../scripts/privateModelTate4Mj72SocketSourceProfile.mjs';
       import { TATE4_SOURCE_SHA256 } from '../../scripts/privateModelC80TateInteriorLayerSourceProfile.mjs';
+      import { TATE4_MJ6263_SOURCE_SHA256 } from '../../scripts/privateModelTate4Mj62Mj63SourceProfile.mjs';
+      import { resolveM6263Scenes, createM6263FloorRuntime } from '../../scripts/privateModelM6263FloorRuntime.mjs';
       import { TATE3_SOURCE_SHA256 } from '../../scripts/privateModelC80TateThreeDeltaLayerSourceProfile.mjs';
       import { TATE_SOURCE_SHA256 } from '../../scripts/privateModelC80P02TateLayerSourceProfile.mjs';
       import { P02_SOURCE_SHA256 } from '../../scripts/privateModelC80P02WaterLayerSourceProfile.mjs';
@@ -2890,6 +2893,7 @@ const title = 'Private 3D viewer';
       const coordinatePointer = document.querySelector<HTMLElement>('#coordinate-pointer');
       const coordinateAnchor = document.querySelector<HTMLElement>('#coordinate-anchor');
       const coordinateNote = document.querySelector<HTMLElement>('#coordinate-note');
+      const axisMeasureToolButton = document.querySelector<HTMLButtonElement>('#axis-measure-tool-button');
       const p137ePlaceToolButton = document.querySelector<HTMLButtonElement>('#p137e-place-tool-button');
       const p137ePlacePanel = document.querySelector<HTMLElement>('#p137e-place-panel');
       const p137ePlaceTarget = document.querySelector<HTMLSelectElement>('#p137e-place-target');
@@ -3023,6 +3027,7 @@ const title = 'Private 3D viewer';
         !pointMeasureMain ||
         !pointMeasureDetail ||
         !pointMeasureClearButton ||
+        !axisMeasureToolButton ||
         !axisMeasureLabel ||
         !axisMeasureRow ||
         !axisMeasureOutput ||
@@ -4069,6 +4074,7 @@ const title = 'Private 3D viewer';
           if (canvas.dataset.interactionMode === 'place') setViewerToolMode('navigate');
         }
         p137ePlaceToolButton.disabled = !canStartP137EPlaceDraft();
+        axisMeasureToolButton.disabled = !isAxisMeasureAvailable(activePlanFloor, activeCamera === planCamera);
       };
 
       const deactivateDCoordinateReview = () => {
@@ -4078,6 +4084,7 @@ const title = 'Private 3D viewer';
         clearDCoordinateAnchor();
         clearDAxisMeasurement();
         p137ePlaceToolButton.disabled = true;
+        axisMeasureToolButton.disabled = true;
         clearP137EPlaceDraft();
         if (canvas.dataset.interactionMode === 'measure' ||
             canvas.dataset.interactionMode === 'place') setViewerToolMode('navigate');
@@ -5291,6 +5298,7 @@ const title = 'Private 3D viewer';
         selectionToolButton.setAttribute('aria-pressed', String(mode === 'select'));
         pointPickToolButton.setAttribute('aria-pressed', String(mode === 'point-pick'));
         p137ePlaceToolButton.setAttribute('aria-pressed', String(mode === 'place'));
+        axisMeasureToolButton.setAttribute('aria-pressed', String(mode === 'measure'));
         pointMeasureToolButton.setAttribute('aria-pressed', String(mode === 'point-measure'));
         pointMeasurePanel.hidden = mode !== 'point-measure';
         if (mode !== 'point-measure') clearPointMeasure();
@@ -5864,7 +5872,7 @@ const title = 'Private 3D viewer';
         // D camera fitting excludes P02's distant terrain/reference networks.
         // Reuse the existing SHA/scene/node/mesh/parent-bound Layers inventory.
         // Visibility, picking, source geometry and WHOLE framing stay unchanged.
-        if (mainViewScope?.active && (layersLoadedSha === P02_SOURCE_SHA256 || layersLoadedSha === TATE_SOURCE_SHA256 || layersLoadedSha === TATE4_SOURCE_SHA256 || layersLoadedSha === TATE3_SOURCE_SHA256 || layersLoadedSha === TATE4_MJ72_SOURCE_SHA256) &&
+        if (mainViewScope?.active && (layersLoadedSha === P02_SOURCE_SHA256 || layersLoadedSha === TATE_SOURCE_SHA256 || layersLoadedSha === TATE4_SOURCE_SHA256 || layersLoadedSha === TATE3_SOURCE_SHA256 || layersLoadedSha === TATE4_MJ72_SOURCE_SHA256 || layersLoadedSha === TATE4_MJ6263_SOURCE_SHA256) &&
             layersExpectedSha === layersLoadedSha && layersGltf?.parser?.json) {
           // Live resize still passes the default fullModelScene. P02's chain
           // runtime owns the selected floor scene rather than isSourceScene.
@@ -7752,6 +7760,9 @@ const title = 'Private 3D viewer';
               gltf, mount: setModelScene,
               mounted: () => modelRoot.children[0] ?? null,
             }) as any
+          : sourceKind === 'work-test' && !c70PreviewSession &&
+          loadedModelSha256(gltf) === TATE4_MJ6263_SOURCE_SHA256
+          ? createM6263FloorRuntime({gltf,sha:loadedModelSha256(gltf),mount:setModelScene,mounted:()=>modelRoot.children[0]??null}) as any
           : sourceKind === 'work-test' && !c70PreviewSession &&
           resolveC80R2ChainScenes(gltf)?.scenes.BOTH === gltf.scene
           ? createC80R2ChainFloorRuntime({
@@ -11803,8 +11814,11 @@ const title = 'Private 3D viewer';
           {
             // Newest C80R2 successor: open its own latest BOTH scene, not the
             // historical default scene 0 (1F/2F switch via the floor runtime).
+            const m6263=resolveM6263Scenes(gltf,loadedModelSha256(gltf));
+            if (loadedModelSha256(gltf)===TATE4_MJ6263_SOURCE_SHA256 && !m6263) throw new Error('M6263_SOURCE_SCENE_MISMATCH');
             const c80r2Chain = resolveC80R2ChainScenes(gltf);
-            if (c80r2Chain) gltf.scene = c80r2Chain.scenes.BOTH;
+            if (m6263) gltf.scene = m6263[355];
+            else if (c80r2Chain) gltf.scene = c80r2Chain.scenes.BOTH;
           }
           const isP143aScalgoTerrainReview =
             candidate.id === p143aCandidateId && isP143aScalgoTerrainReviewRequested();
@@ -13808,6 +13822,7 @@ const title = 'Private 3D viewer';
             // Stamp review identity only for its exact authenticated source.
             if (((candidate.id === 'c80-p02-water-integrated-20261111' && loadedModelSha256(gltf) === P02_SOURCE_SHA256) ||
                  (candidate.id === 'c80-p02-tate-integrated-20261111' && loadedModelSha256(gltf) === TATE_SOURCE_SHA256) ||
+                 (candidate.id === 'c80-tate-mj62-mj63-integrated-20261113' && loadedModelSha256(gltf) === TATE4_MJ6263_SOURCE_SHA256) ||
                  (candidate.id === 'c80-tate-interior-integrated-20261111' && loadedModelSha256(gltf) === TATE4_SOURCE_SHA256) ||
                  (candidate.id === 'c80-tate-pk1-pa1-apk-20261111' && loadedModelSha256(gltf) === TATE3_SOURCE_SHA256)) &&
                 getRequestedReviewCandidateId() === candidate.id) {
@@ -14190,6 +14205,33 @@ const title = 'Private 3D viewer';
       const layerPresetHost = document.createElement('div');
       layerPresetHost.id = 'layers-preset-host';
       layersPanel.querySelector('.layers-header')?.after(layerPresetHost);
+      const m6263GlazingRow=document.createElement('label');
+      m6263GlazingRow.hidden=true;
+      m6263GlazingRow.className='layers-control';
+      m6263GlazingRow.textContent='Parvekelasien asento ';
+      const m6263GlazingSelect=document.createElement('select');
+      m6263GlazingSelect.setAttribute('aria-label','Parvekelasien asento');
+      for(const [value,label] of [['CLOSED','Suljettu'],['ONE_OPEN','Yksi lasi auki'],['STACKED','Lasit pinossa']]) {
+        const option=document.createElement('option');option.value=value;option.textContent=label;m6263GlazingSelect.append(option);
+      }
+      m6263GlazingRow.append(m6263GlazingSelect);layerPresetHost.after(m6263GlazingRow);
+      const syncM6263Glazing=()=>{
+        const runtime=mainViewScope as any;
+        const available=layersLoadedSha===TATE4_MJ6263_SOURCE_SHA256 && runtime?.isM6263;
+        m6263GlazingRow.hidden=!available;
+        m6263GlazingRow.style.display=available?'flex':'none';
+        m6263GlazingSelect.disabled=!available || runtime.floor==='1F';
+        m6263GlazingSelect.value=available?runtime.glazing:'CLOSED';
+      };
+      m6263GlazingSelect.addEventListener('change',()=>{
+        const runtime=mainViewScope as any;
+        if(layersLoadedSha!==TATE4_MJ6263_SOURCE_SHA256 || !runtime?.isM6263)return;
+        disposeLayersPresentation();
+        if(!runtime.setGlazing(m6263GlazingSelect.value))return;
+        clearSelection();
+        syncMainViewScope();syncM6263Glazing();refreshLayers();
+      });
+
       const layerBindingNote = document.createElement('p');
       layerBindingNote.className = 'layer-note';
       layerBindingNote.setAttribute('aria-live', 'polite');
@@ -14304,6 +14346,7 @@ const title = 'Private 3D viewer';
           }
           disposeLayersPresentation();
           layersContextInput.disabled = false;
+          syncM6263Glazing();
           layersAvailable = [];
           layersBoundIds = [];
           if (verified && root) {
@@ -14481,6 +14524,7 @@ const title = 'Private 3D viewer';
           layersLoadedSha === MJ79_SOURCE_SHA256 ||
           layersLoadedSha === MJ84_SOURCE_SHA256 ||
           layersLoadedSha === MJ84_HOLLOW_SOURCE_SHA256 ||
+          layersLoadedSha === TATE4_MJ6263_SOURCE_SHA256 ||
           layersLoadedSha === TATE4_MJ72_SOURCE_SHA256 ||
           layersLoadedSha === TATE4_SOURCE_SHA256 || layersLoadedSha === TATE3_SOURCE_SHA256 ||
           layersLoadedSha === P02_SOURCE_SHA256 ||
@@ -14841,6 +14885,9 @@ const title = 'Private 3D viewer';
         } catch {
           pointPickFeedback.textContent = 'Kopiointi estetty. Koordinaatit näkyvät paneelissa.';
         }
+      });
+      axisMeasureToolButton.addEventListener('click', () => {
+        setViewerToolMode(canvas.dataset.interactionMode === 'measure' ? 'navigate' : 'measure');
       });
       p137ePlaceToolButton.addEventListener('click', () => setViewerToolMode('place'));
       pointMeasureToolButton.addEventListener('click', () => {

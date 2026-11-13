@@ -209,6 +209,8 @@ jobs:
             tests/unit/private-model-mj84-kso-source-profile.test.mjs \
             tests/unit/private-model-mj84-hollow-source-profile.test.mjs \
             tests/unit/private-model-tate4-mj72-socket-source-profile.test.mjs \
+            tests/unit/private-model-m6263-viewer-receipt.test.mjs \
+            tests/unit/private-model-tate4-mj6263-scene-selection.test.mjs \
             tests/unit/private-model-tate4-mj62-mj63-source-profile.test.mjs \
             tests/unit/private-model-mj79-exxact-source-profile.test.mjs
 
