@@ -1,7 +1,10 @@
 import { AIR385_SOURCE_SHA256, isAir385SourceScene } from './privateModelAir385ToshibaServiceSourceProfile.mjs';
 import { KIV005_SOURCE_SHA256, isKiv005OwnerSourceScene } from './privateModelC80Kiv005OwnerSourceProfile.mjs';
+import { SG5_ROOF600_SOURCE_SHA256, isSg5Roof600SourceScene } from './privateModelC80Sg5Roof600SourceProfile.mjs';
 import { MJ79_SOURCE_SHA256, isMJ79SourceScene } from './privateModelMJ79ExxactSourceProfile.mjs';
 import { MJ84_SOURCE_SHA256, isMJ84SourceScene } from './privateModelMJ84KsoSourceProfile.mjs';
+import { MJ84_HOLLOW_SOURCE_SHA256, isMJ84HollowSourceScene } from './privateModelMJ84HollowSourceProfile.mjs';
+import { TATE4_MJ72_SOURCE_SHA256, isTate4Mj72SocketSourceScene } from './privateModelTate4Mj72SocketSourceProfile.mjs';
 import { TATE4_SOURCE_SHA256, TATE4_SOURCE_SCENE_COUNT, TATE4_FLOORS, TATE4_BUILDING_PARTS, TATE4_BUILDING_SCENES } from './privateModelC80TateInteriorLayerSourceProfile.mjs';
 import { TATE3_SOURCE_SHA256, TATE3_SOURCE_SCENE_COUNT, TATE3_FLOORS, TATE3_BUILDING_PARTS, TATE3_BUILDING_SCENES } from './privateModelC80TateThreeDeltaLayerSourceProfile.mjs';
 import { TATE_SOURCE_SHA256, TATE_SOURCE_SCENE_COUNT, TATE_FLOORS, TATE_BUILDING_PARTS, TATE_BUILDING_SCENES } from './privateModelC80P02TateLayerSourceProfile.mjs';
@@ -506,11 +509,26 @@ export function resolveBuildingPartLayerBindings(input) {
   if (String(loadedSourceSha256).toLowerCase() === AIR385_SOURCE_SHA256 &&
       !isAir385SourceScene(gltf?.parser?.json, AIR385_SOURCE_SHA256, sceneIndex, floor))
     return unavailable('AIR385_SOURCE_SCENE_MISMATCH', scene);
+  // Distinct source-locked SG5/Savo 600 mm cofit cannot inherit stale roots.
+  if (String(loadedSourceSha256).toLowerCase() === SG5_ROOF600_SOURCE_SHA256 &&
+      !isSg5Roof600SourceScene(gltf?.parser?.json, SG5_ROOF600_SOURCE_SHA256, sceneIndex, floor))
+    return unavailable('SG5_ROOF600_SOURCE_SCENE_MISMATCH', scene);
   // MJ84 keeps the 2015 T and superseded hallway proxy in history only.
   // Do not inherit physical building-part identity across this new SHA.
   if (String(loadedSourceSha256).toLowerCase() === MJ84_SOURCE_SHA256 &&
       !isMJ84SourceScene(gltf?.parser?.json, MJ84_SOURCE_SHA256, sceneIndex, floor))
     return unavailable('MJ84_SOURCE_SCENE_MISMATCH', scene);
+  // Latest MJ84 hollow sleeve uses a distinct source SHA, root and scenes.
+  // Reject inherited building-part identities unless the exact opt-in GLB
+  // proves its parent, owner point, node links and local-only bore metadata.
+  if (String(loadedSourceSha256).toLowerCase() === MJ84_HOLLOW_SOURCE_SHA256 &&
+      !isMJ84HollowSourceScene(gltf?.parser?.json, MJ84_HOLLOW_SOURCE_SHA256, sceneIndex, floor))
+    return unavailable('MJ84_HOLLOW_SOURCE_SCENE_MISMATCH', scene);
+  // Separate SHA, scene roots and door-relative photo socket from TATE4.
+  // Never inherit a parent-SHA source identity without the opt-in proof.
+  if (String(loadedSourceSha256).toLowerCase() === TATE4_MJ72_SOURCE_SHA256 &&
+      !isTate4Mj72SocketSourceScene(gltf?.parser?.json, TATE4_MJ72_SOURCE_SHA256, sceneIndex, floor))
+    return unavailable('TATE4_MJ72_SOURCE_SCENE_MISMATCH', scene);
   // Distinct MJ79 raw GLB: only exact PHOTO12 COW scenes receive source layers.
   // Refuse stale parent scenes or resurrected PR03/PR05 schematic proxies.
   if (String(loadedSourceSha256).toLowerCase() === MJ79_SOURCE_SHA256 &&

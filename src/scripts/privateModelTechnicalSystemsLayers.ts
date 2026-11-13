@@ -1,7 +1,10 @@
 import { AIR385_SOURCE_SHA256, AIR385_COMPONENTS, isAir385SourceScene } from './privateModelAir385ToshibaServiceSourceProfile.mjs';
 import { KIV005_SOURCE_SHA256, KIV005_NODES, isKiv005OwnerSourceScene } from './privateModelC80Kiv005OwnerSourceProfile.mjs';
+import { SG5_ROOF600_SOURCE_SHA256, SG5_ROOF600_ROOT, SG5_ROOF600_WHITE_NODES, isSg5Roof600SourceScene } from './privateModelC80Sg5Roof600SourceProfile.mjs';
 import { MJ79_SOURCE_SHA256, MJ79_SOCKETS, isMJ79SourceScene } from './privateModelMJ79ExxactSourceProfile.mjs';
 import { MJ84_SOURCE_SHA256, MJ84_COMPONENTS, isMJ84SourceScene } from './privateModelMJ84KsoSourceProfile.mjs';
+import { MJ84_HOLLOW_SOURCE_SHA256, MJ84_HOLLOW_COMPONENTS, MJ84_HOLLOW_WC_CEILING, isMJ84HollowSourceScene } from './privateModelMJ84HollowSourceProfile.mjs';
+import { TATE4_MJ72_SOURCE_SHA256, TATE4_MJ72_CHILDREN, isTate4Mj72SocketSourceScene } from './privateModelTate4Mj72SocketSourceProfile.mjs';
 import { TATE4_SOURCE_SHA256, TATE4_SOURCE_SCENE_COUNT, TATE4_BUILDING_SCENES, resolveTate4TechnicalNode } from './privateModelC80TateInteriorLayerSourceProfile.mjs';
 import { TATE3_SOURCE_SHA256, TATE3_SOURCE_SCENE_COUNT, TATE3_BUILDING_SCENES, resolveTate3TechnicalNode } from './privateModelC80TateThreeDeltaLayerSourceProfile.mjs';
 import { TATE_SOURCE_SHA256, TATE_SOURCE_SCENE_COUNT, TATE_BUILDING_SCENES, resolveTateTechnicalNode } from './privateModelC80P02TateLayerSourceProfile.mjs';
@@ -323,6 +326,25 @@ const v26Device = (context: TechnicalSystemsContext, binding: TechnicalSourceNod
     }
     return null;
   }
+  // Only the new owner-photo storage socket: category means visual electrical
+  // fixture, NOT a verified circuit or measured physical installation.
+  if (context.loadedGlbSha256 === TATE4_MJ72_SOURCE_SHA256) {
+    if (!isTate4Mj72SocketSourceScene(context.sourceJson, context.loadedGlbSha256, context.sourceSceneIndex))
+      return null;
+    if (context.sourceSceneIndex === 354) return null; // No 1F socket in 2F.
+    const allowed=new Set<number>(TATE4_MJ72_CHILDREN);
+    const seen=new Set<number>();
+    let node: number | null=binding.nodeIndex;
+    while(node!==null && !seen.has(node)) {
+      if (allowed.has(node)) return {id:'technical-electrical',
+        scope:{apartment:'D',storey:'1F',phase:'ACTIVE_IN_SELECTED_WORKTEST'}};
+      seen.add(node);
+      const source=context.sourceNodes.find(candidate =>
+        candidate.sceneIndex===context.sourceSceneIndex && candidate.nodeIndex===node);
+      node=source?.parentNodeIndex ?? null;
+    }
+    return null;
+  }
   // MJ79: only the two opt-in angled double-outlet roots (and their children)
   // belong to the electrical layer, never the old schematic proxies or media jack.
   if (context.loadedGlbSha256 === MJ79_SOURCE_SHA256) {
@@ -358,6 +380,29 @@ const v26Device = (context: TechnicalSystemsContext, binding: TechnicalSourceNod
     }
     return null;
   }
+  // New MJ84 source: the one owner wall KSO, separate WC ceiling KSO,
+  // exact corrected fork and locally open-ended hollow sleeve. All remain
+  // WORK_TEST/HOST_HOLD. Historical 2015 T and superseded wall proxy fail
+  // the source gate and cannot masquerade as a 2026 physical connection.
+  if (context.loadedGlbSha256 === MJ84_HOLLOW_SOURCE_SHA256) {
+    if (!isMJ84HollowSourceScene(context.sourceJson, context.loadedGlbSha256, context.sourceSceneIndex))
+      return null;
+    const allowed = new Set<number>([
+      ...Object.values(MJ84_HOLLOW_COMPONENTS).map(part => part.node),
+      ...MJ84_HOLLOW_WC_CEILING,
+    ]);
+    const seen = new Set<number>();
+    let node: number | null = binding.nodeIndex;
+    while (node !== null && !seen.has(node)) {
+      if (allowed.has(node)) return { id:'technical-ventilation',
+        scope:{apartment:'D',storey:'2F',phase:'ACTIVE_IN_SELECTED_WORKTEST'} };
+      seen.add(node);
+      const source = context.sourceNodes.find(candidate =>
+        candidate.sceneIndex === context.sourceSceneIndex && candidate.nodeIndex === node);
+      node = source?.parentNodeIndex ?? null;
+    }
+    return null;
+  }
   // MJ84 classifies only the four opt-in owner-approx 2F KSO components.
   // Neither the 2015 T nor the superseded hallway proxy is a 2026 duct.
   if (context.loadedGlbSha256 === MJ84_SOURCE_SHA256) {
@@ -372,6 +417,26 @@ const v26Device = (context: TechnicalSystemsContext, binding: TechnicalSourceNod
       if (allowed.has(node) && roots.includes(node))
         return { id:'technical-ventilation',
           scope:{apartment:'D',storey:'2F',phase:'ACTIVE_IN_SELECTED_WORKTEST'} };
+      visited.add(node);
+      const source = context.sourceNodes.find(candidate =>
+        candidate.sceneIndex === context.sourceSceneIndex && candidate.nodeIndex === node);
+      node = source?.parentNodeIndex ?? null;
+    }
+    return null;
+  }
+  // IH7603W is recirculating hood equipment, not a verified exhaust duct.
+  // Only its exact 2026 600 mm opt-in roots are classifiable, fail-closed.
+  if (context.loadedGlbSha256 === SG5_ROOF600_SOURCE_SHA256) {
+    if (!isSg5Roof600SourceScene(context.sourceJson, context.loadedGlbSha256, context.sourceSceneIndex))
+      return null;
+    const sceneRoots = context.sourceJson?.scenes?.[context.sourceSceneIndex]?.nodes;
+    const allowed = new Set<number>([SG5_ROOF600_ROOT, ...SG5_ROOF600_WHITE_NODES.map(part => part.node)]);
+    const visited = new Set<number>();
+    let node: number | null = binding.nodeIndex;
+    while (node !== null && !visited.has(node)) {
+      if (allowed.has(node) && sceneRoots?.includes(node))
+        return { id: 'technical-ventilation',
+          scope: { apartment: 'D', storey: '2F', phase: 'ACTIVE_IN_SELECTED_WORKTEST' } };
       visited.add(node);
       const source = context.sourceNodes.find(candidate =>
         candidate.sceneIndex === context.sourceSceneIndex && candidate.nodeIndex === node);
