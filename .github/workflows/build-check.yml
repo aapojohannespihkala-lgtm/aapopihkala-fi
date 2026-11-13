@@ -10,6 +10,7 @@ on:
       - feat/v93-owner-led24-grid-sc325327-source-20261110
       - feat/v93-owner-orange9-blue3-ceiling-sc328330-source-20261110
       - feat/v93-owner-switch11-wallhost-sc339340-viewer-20261110
+      - feat/v93-d2f-sw05-doorwall-sc341342-viewer-20261110
   pull_request:
     types:
       - opened
@@ -208,7 +209,8 @@ jobs:
             tests/unit/private-model-v93-d1f-d2f-safe-cofit-sc346-source-profile.test.mjs \
             tests/unit/private-model-v93-led24-owner-grid-source-profile.test.mjs \
             tests/unit/private-model-v93-owner-ceiling-orange9-blue3-source-profile.test.mjs \
-            tests/unit/private-model-v93-owner-switch11-wallhost-source-profile.test.mjs
+            tests/unit/private-model-v93-owner-switch11-wallhost-source-profile.test.mjs \
+             tests/unit/private-model-v93-sw05-doorwall-source-profile.test.mjs
 
       # Four self-contained K16-b/c scene33 builder guards run on every
       # executable PR. The optional original-Drive-source replay remains
