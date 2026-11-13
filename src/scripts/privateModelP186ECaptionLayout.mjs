@@ -29,7 +29,7 @@ function prepareReadableCaption(THREE, sprite) {
   canvas.height = lines.length * 36 + 16;
   context.fillStyle = 'rgba(24,32,43,0.96)';
   context.fillRect(0, 0, canvas.width, canvas.height);
-  context.fillStyle = '#ffd34d'; context.textAlign = 'center'; context.textBaseline = 'middle';
+  context.fillStyle = '#ffe3a0'; context.textAlign = 'center'; context.textBaseline = 'middle';
   context.font = font;
   lines.forEach((t, i) => context.fillText(t, canvas.width / 2, 26 + i * 36));
   const previous = sprite.material.map;
