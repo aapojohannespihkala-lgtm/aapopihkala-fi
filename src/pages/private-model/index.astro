@@ -2451,6 +2451,9 @@ const title = 'Private 3D viewer';
         createM5BR1109ReviewRuntimeState,
         createM5BReviewRuntimeState,
       } from '../../scripts/privateModelM5BReviewRuntime';
+      // @ts-ignore - separately SHA-gated R1109 scene64/65 opt-in source selector.
+      import { selectM5BR1109RoofOptInScene, m5bR1109RoofOptInSha256 }
+        from '../../scripts/privateModelM5BR1109RoofOptIn.mjs';
       import {
         p183P160ClosureContextOpacity,
         p183P160ClosureTargetOpacity,
@@ -2707,6 +2710,9 @@ const title = 'Private 3D viewer';
         m5bPlannedSok2ComparisonReviewId,
         m5bR1109CandidateId,
         m5bR1109ReviewId,
+        m5bR1109RoofOptInCandidateId,
+        m5bR1109CurrentReferenceReviewId,
+        m5bR1109PlannedSok2ReviewId,
         p164bCandidateId,
         p164bReviewId,
         p167fCandidateId,
@@ -11313,6 +11319,12 @@ const title = 'Private 3D viewer';
 
       const m5bReviewDatasetKeys = [
         'm5bReviewVariant',
+        'm5bRoofOptInScene',
+        'm5bRoofOptInSourceSha256',
+        'm5bRoofOptInPhase',
+        'm5bRoofOptInNoPhysicalLink',
+        'm5bRoofOptInHumanReview',
+        'm5bRoofOptInProductionWebGL',
         'm5bReviewQuestion',
         'm5bSceneIndex',
         'm5bTargetG2Ids',
@@ -11918,6 +11930,12 @@ const title = 'Private 3D viewer';
           const isM5BR1109Review =
             candidate.id === m5bR1109CandidateId &&
             isPrivateModelReviewRequested(window.location.search, m5bR1109ReviewId);
+          const isM5BR1109CurrentReferenceReview =
+            candidate.id === m5bR1109RoofOptInCandidateId &&
+            isPrivateModelReviewRequested(window.location.search, m5bR1109CurrentReferenceReviewId);
+          const isM5BR1109PlannedSok2Review =
+            candidate.id === m5bR1109RoofOptInCandidateId &&
+            isPrivateModelReviewRequested(window.location.search, m5bR1109PlannedSok2ReviewId);
           const isP164bCorrectedStairReview =
             candidate.id === p164bCandidateId && isP164bCorrectedStairReviewRequested();
           const isP167fPreciseStairReview =
@@ -11951,6 +11969,11 @@ const title = 'Private 3D viewer';
             | ReturnType<typeof createM5BReviewRuntimeState>
             | ReturnType<typeof createM5BR1109ReviewRuntimeState>
             | null = null;
+          let m5bRoofOptInState: {
+            dataset: Record<string, string>;
+            statusText: string;
+            standardViewPreset: 'whole-building';
+          } | null = null;
           if (isM5AR1125SourceReview) {
             const selected = selectM5AR1125SourceBoundReviewScene(gltf);
             gltf.scene = selected.scene;
@@ -12003,6 +12026,37 @@ const title = 'Private 3D viewer';
               throw new Error('P186F-X4 scene66 identity mismatch');
             }
             gltf.scene = reviewScene;
+          } else if (isM5BR1109CurrentReferenceReview || isM5BR1109PlannedSok2Review) {
+            const requestedScene = isM5BR1109CurrentReferenceReview ? 64 : 65;
+            // Worker authenticates the separate exact 3,104,840-byte GLB before
+            // parsing. Scene metadata is checked independently and fails closed.
+            const selected = selectM5BR1109RoofOptInScene(gltf, requestedScene);
+            gltf.scene = selected.scene;
+            m5bRoofOptInState = {
+              standardViewPreset: 'whole-building',
+              dataset: {
+                workTestReviewMode: isM5BR1109CurrentReferenceReview
+                  ? m5bR1109CurrentReferenceReviewId
+                  : m5bR1109PlannedSok2ReviewId,
+                m5bReviewVariant: isM5BR1109CurrentReferenceReview
+                  ? 'R1109_SCENE64_CURRENT_REFERENCE_ONLY'
+                  : 'R1109_SCENE65_PLANNED_SOK2_NOT_IMPLEMENTED',
+                m5bRoofOptInScene: String(selected.sceneIndex),
+                m5bRoofOptInSourceSha256: m5bR1109RoofOptInSha256,
+                m5bRoofOptInPhase: selected.phase,
+                m5bRoofOptInNoPhysicalLink: 'true',
+                m5bRoofOptInHumanReview: 'NOT_RUN',
+                m5bRoofOptInProductionWebGL: 'NOT_VERIFIED',
+                m5bCurrentGeometryClaim: 'false',
+                m5bAsBuiltClaim: 'false',
+                m5bCanonical: 'false',
+                m5bPublishToCurrent: 'false',
+                m5bHumanReview: 'NOT_RUN',
+              },
+              statusText: isM5BR1109CurrentReferenceReview
+                ? 'M5B R1109 scene64 - 5 lähdevyöhykettä + SOK1/SOK2 nykyviitteet / WORK_TEST / ei fyysisiä liitoksia / HUMAN_REVIEW NOT_RUN'
+                : 'M5B R1109 scene65 - 5 lähdevyöhykettä + SOK2 suunnitelmavertailu / WORK_TEST / EI TILATTU TAI TOTEUTETTU / HUMAN_REVIEW NOT_RUN',
+            };
           } else if (isM5BR1109Review) {
             const reviewScene = gltf.scenes?.[m5bR1109SceneIndex];
             if (!reviewScene) throw new Error(`M5B R1109 review scene ${m5bR1109SceneIndex} missing`);
@@ -12924,6 +12978,10 @@ const title = 'Private 3D viewer';
             Object.assign(canvas.dataset, m5bRuntimeState.dataset);
             applyStandardViewPreset(m5bRuntimeState.standardViewPreset);
             status.textContent = m5bRuntimeState.statusText;
+          } else if (m5bRoofOptInState) {
+            Object.assign(canvas.dataset, m5bRoofOptInState.dataset);
+            applyStandardViewPreset(m5bRoofOptInState.standardViewPreset);
+            status.textContent = m5bRoofOptInState.statusText;
           } else if (m5aDrainageReviewMode) {
             loadFailurePhase = 'm5a-z2-presentation-guard-failed';
             applyM5aDrainageReviewState(m5aDrainageReviewMode, isM5AR1125SourceReview);
