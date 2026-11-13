@@ -7,6 +7,7 @@ import { nameMatches, sameSourceName } from './privateModelSourceNodeAssociation
 export function resolveM6263Scenes(gltf,sha) {
   const json=gltf?.parser?.json;
   if (sha!==TATE4_MJ6263_SOURCE_SHA256 || gltf?.scenes?.length!==360) return null;
+  /** @type {Record<number, import('three').Group>} */
   const scenes={};
   for (const [index,spec] of Object.entries(TATE4_MJ6263_SCENES)) {
     const selected=resolveTate4Mj6263ViewerScene({sourceJson:json,loadedGlbSha256:sha,floor:spec.floor,glazingState:spec.glazing});
