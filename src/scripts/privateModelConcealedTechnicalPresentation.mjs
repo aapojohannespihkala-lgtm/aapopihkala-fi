@@ -1,4 +1,5 @@
 import { isM6263Mj72Kiv005Pk1SuccessorSourceScene, SUCCESSOR_R1_SCENES } from './privateModelM6263Mj72Kiv005Pk1SuccessorSourceProfile.mjs';
+import { isTate4Mj62Mj63SourceScene, TATE4_MJ6263_SCENES } from './privateModelTate4Mj62Mj63SourceProfile.mjs';
 import { sameSourceName } from './privateModelSourceNodeAssociations.mjs';
 
 // Filled from the SHA-verified original GLB, never appearance or name search.
@@ -154,8 +155,9 @@ export function resolveConcealedTechnicalObjects(gltf, scene, sceneIndex, loaded
   const associations = gltf?.parser?.associations;
   if (loadedSha !== expectedSha || gltf?.scenes?.[sceneIndex] !== scene ||
       typeof scene?.traverse !== 'function' || typeof associations?.get !== 'function' ||
-      !isM6263Mj72Kiv005Pk1SuccessorSourceScene(json, loadedSha, sceneIndex)) return null;
-  const profile = SUCCESSOR_R1_SCENES[sceneIndex];
+      (!isM6263Mj72Kiv005Pk1SuccessorSourceScene(json, loadedSha, sceneIndex) &&
+       !isTate4Mj62Mj63SourceScene(json, loadedSha, sceneIndex))) return null;
+  const profile = SUCCESSOR_R1_SCENES[sceneIndex] ?? TATE4_MJ6263_SCENES[sceneIndex];
   const objects = [];
   for (const spec of CONCEALED) {
     if (!spec.floors.includes(profile.floor)) continue;
