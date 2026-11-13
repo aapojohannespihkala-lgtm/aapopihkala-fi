@@ -3,7 +3,12 @@ import assert from 'node:assert/strict';
 import {inflateSync} from 'node:zlib';
 import {SUCCESSOR_R1_SHA256,SUCCESSOR_R1_DONORS,SUCCESSOR_R1_SCENES,isM6263Mj72Kiv005Pk1SuccessorSourceScene} from '../../src/scripts/privateModelM6263Mj72Kiv005Pk1SuccessorSourceProfile.mjs';
 import {TATE4_TECHNICAL_REVIEW_ROOTS} from '../../src/scripts/privateModelC80TateInteriorLayerSourceProfile.mjs';
-import {successor369ReviewProfile,resolveTechnicalReviewRoots,createTechnicalReviewPresentation} from '../../src/scripts/privateModelTechnicalReviewPresentation.mjs';
+import {successor369ReviewProfile,resolveTechnicalReviewRoots,createTechnicalReviewPresentation,technicalReviewSystemOf} from '../../src/scripts/privateModelTechnicalReviewPresentation.mjs';
+const H24_NESTED=[
+  ...Array.from({length:6},(_,i)=>[1669+i,773+i,'SAHKO']),
+  ...Array.from({length:8},(_,i)=>[1704+i,808+i,'IV']),
+  [1730,4015,'IV'],
+];
 
 // Ordered source-scene 355 roots from the existing exact M6263 test. The
 // SHA31dc12c4 successor scene 362 replaces only the two donor roots.
@@ -71,6 +76,11 @@ const sourceDoc=()=>{
  ];
  mj63Names.forEach((name,i)=>{json.nodes[12086+i].name=name;});
  json.nodes[12096].name='MJ63R2_INNER_ROOM_THROUGH_STORAGE_TO_OUTSIDE_SINGLE_SEALED_DUCT_WORK_TEST';
+ // Exact 15 child node/mesh pairs audited from raw SHA31dc (and SHA8aa).
+ json.nodes[11613].children=H24_NESTED.map(([id])=>id);
+ for(const [id,mesh] of H24_NESTED)json.nodes[id]={
+   name:'SHA_LOCKED_H24_NESTED_DEVICE_'+id,mesh
+ };
  return json;
 };
 test('successor exact SHA admits only technical roots, never cutaway building wrapper',()=>{
@@ -127,16 +137,36 @@ test('technical scene membership source gate returns only existing indexed scene
  const map=new Map();
  const scene={children:[],name:json.scenes[362].name};
  for(const id of roots){
-   const o={name:json.nodes[id]?.name??('NODE_'+id),parent:scene};
+   const o={name:json.nodes[id]?.name??('NODE_'+id),parent:scene,children:[]};
    scene.children.push(o);map.set(o,{nodes:id});
+   if(id===11613)for(const [leaf] of H24_NESTED){
+     const child={name:json.nodes[leaf].name,parent:o,isMesh:true};
+     o.children.push(child);map.set(child,{nodes:leaf});
+   }
  }
  const gltf={scenes:Array.from({length:369},(_,i)=>i===362?scene:undefined),parser:{json,associations:map}};
  const kept=resolveTechnicalReviewRoots(gltf,scene,362,SUCCESSOR_R1_SHA256,SUCCESSOR_R1_SHA256);
  assert.ok(kept);
- assert.equal(kept.length,successor369ReviewProfile(json,SUCCESSOR_R1_SHA256,362).roots[362].length);
+ assert.equal(kept.length,successor369ReviewProfile(json,SUCCESSOR_R1_SHA256,362).roots[362].length+H24_NESTED.length);
+ const wc=scene.children.find(o=>map.get(o)?.nodes===11613);
+ assert.ok(!kept.includes(wc),'WC + fixtures wrapper must stay neutral');
+ for(const [id,,system] of H24_NESTED){
+   const leaf=wc.children.find(o=>map.get(o)?.nodes===id);
+   assert.ok(kept.includes(leaf),'expected nested technical leaf '+id);
+   assert.equal(technicalReviewSystemOf(leaf,scene),system);
+ }
+ assert.equal(kept.some(o=>map.get(o).nodes===1728),false,'WC flush and hatch should stay neutral');
  assert.equal(kept.some(o=>map.get(o).nodes===12097),false);
  assert.equal(resolveTechnicalReviewRoots(gltf,scene,362,SUCCESSOR_R1_SHA256,'0'.repeat(64)),null);
  const bad=new Map(map);
  bad.delete(scene.children.find(o=>map.get(o).nodes===12098));
  assert.equal(resolveTechnicalReviewRoots({scenes:gltf.scenes,parser:{json,associations:bad}},scene,362,SUCCESSOR_R1_SHA256,SUCCESSOR_R1_SHA256),null);
+ const missing=new Map(map);
+ missing.delete(wc.children.find(o=>map.get(o)?.nodes===1730));
+ assert.equal(resolveTechnicalReviewRoots({scenes:gltf.scenes,parser:{json,associations:missing}},scene,362,SUCCESSOR_R1_SHA256,SUCCESSOR_R1_SHA256),null,
+   'missing IV child must fail closed');
+ const altered=sourceDoc();
+ altered.nodes[1704].mesh=9999;
+ assert.equal(resolveTechnicalReviewRoots({scenes:gltf.scenes,parser:{json:altered,associations:map}},scene,362,SUCCESSOR_R1_SHA256,SUCCESSOR_R1_SHA256),null,
+   'wrong source mesh must fail closed');
 });
