@@ -6,14 +6,20 @@ import {nameMatches,sameSourceName} from './privateModelSourceNodeAssociations.m
 
 // Only explicit scene combinations authored in the exact source GLB are allowed.
 // In particular, 1F ONE_OPEN/STACKED and 2F PK1_CUTAWAY never fall back.
+// Index-only projection of the nine opt-in source variants. It grants no access.
+export function successorR1IndexFor(floor,glazing='CLOSED',cutaway=false){
+ if(typeof cutaway!=='boolean')return null;
+ const found=Object.entries(SUCCESSOR_R1_SCENES).find(([,e])=>
+   e.floor===floor&&e.glazing===glazing&&e.cutaway===cutaway);
+ return found?Number(found[0]):null;
+}
+
 export function selectSuccessorR1Scene({json,sha,floor,glazing='CLOSED',cutaway=false}={}) {
  if(!['1F','2F','BOTH'].includes(floor) ||
     !['CLOSED','ONE_OPEN','STACKED'].includes(glazing) ||
     typeof cutaway!=='boolean') return {ok:false,reason:'SUCC_R1_INVALID_SELECTION'};
- const pair=Object.entries(SUCCESSOR_R1_SCENES).find(([,e])=>
-   e.floor===floor&&e.glazing===glazing&&e.cutaway===cutaway);
- if(!pair) return {ok:false,reason:'SUCC_R1_UNSUPPORTED_COMBINATION'};
- const index=Number(pair[0]);
+ const index=successorR1IndexFor(floor,glazing,cutaway);
+ if(index===null) return {ok:false,reason:'SUCC_R1_UNSUPPORTED_COMBINATION'};
  if(!isM6263Mj72Kiv005Pk1SuccessorSourceScene(json,sha,index,floor,glazing,cutaway))
    return {ok:false,reason:'SUCC_R1_SOURCE_MISMATCH'};
  return {ok:true,sceneIndex:index,floor,glazing,cutaway,modelStage:'WORK_TEST',
