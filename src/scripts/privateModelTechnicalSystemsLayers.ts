@@ -1,4 +1,5 @@
 import { AIR385_SOURCE_SHA256, AIR385_COMPONENTS, isAir385SourceScene } from './privateModelAir385ToshibaServiceSourceProfile.mjs';
+import { SG5_ROOF600_SOURCE_SHA256, SG5_ROOF600_ROOT, SG5_ROOF600_WHITE_NODES, isSg5Roof600SourceScene } from './privateModelC80Sg5Roof600SourceProfile.mjs';
 import { MJ79_SOURCE_SHA256, MJ79_SOCKETS, isMJ79SourceScene } from './privateModelMJ79ExxactSourceProfile.mjs';
 import { MJ84_SOURCE_SHA256, MJ84_COMPONENTS, isMJ84SourceScene } from './privateModelMJ84KsoSourceProfile.mjs';
 import { MJ84_HOLLOW_SOURCE_SHA256, MJ84_HOLLOW_COMPONENTS, MJ84_HOLLOW_WC_CEILING, isMJ84HollowSourceScene } from './privateModelMJ84HollowSourceProfile.mjs';
@@ -395,6 +396,26 @@ const v26Device = (context: TechnicalSystemsContext, binding: TechnicalSourceNod
       if (allowed.has(node) && roots.includes(node))
         return { id:'technical-ventilation',
           scope:{apartment:'D',storey:'2F',phase:'ACTIVE_IN_SELECTED_WORKTEST'} };
+      visited.add(node);
+      const source = context.sourceNodes.find(candidate =>
+        candidate.sceneIndex === context.sourceSceneIndex && candidate.nodeIndex === node);
+      node = source?.parentNodeIndex ?? null;
+    }
+    return null;
+  }
+  // IH7603W is recirculating hood equipment, not a verified exhaust duct.
+  // Only its exact 2026 600 mm opt-in roots are classifiable, fail-closed.
+  if (context.loadedGlbSha256 === SG5_ROOF600_SOURCE_SHA256) {
+    if (!isSg5Roof600SourceScene(context.sourceJson, context.loadedGlbSha256, context.sourceSceneIndex))
+      return null;
+    const sceneRoots = context.sourceJson?.scenes?.[context.sourceSceneIndex]?.nodes;
+    const allowed = new Set<number>([SG5_ROOF600_ROOT, ...SG5_ROOF600_WHITE_NODES.map(part => part.node)]);
+    const visited = new Set<number>();
+    let node: number | null = binding.nodeIndex;
+    while (node !== null && !visited.has(node)) {
+      if (allowed.has(node) && sceneRoots?.includes(node))
+        return { id: 'technical-ventilation',
+          scope: { apartment: 'D', storey: '2F', phase: 'ACTIVE_IN_SELECTED_WORKTEST' } };
       visited.add(node);
       const source = context.sourceNodes.find(candidate =>
         candidate.sceneIndex === context.sourceSceneIndex && candidate.nodeIndex === node);

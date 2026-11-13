@@ -1,4 +1,5 @@
 import { AIR385_SOURCE_SHA256, isAir385SourceScene } from './privateModelAir385ToshibaServiceSourceProfile.mjs';
+import { SG5_ROOF600_SOURCE_SHA256, isSg5Roof600SourceScene } from './privateModelC80Sg5Roof600SourceProfile.mjs';
 import { MJ79_SOURCE_SHA256, isMJ79SourceScene } from './privateModelMJ79ExxactSourceProfile.mjs';
 import { MJ84_SOURCE_SHA256, isMJ84SourceScene } from './privateModelMJ84KsoSourceProfile.mjs';
 import { MJ84_HOLLOW_SOURCE_SHA256, isMJ84HollowSourceScene } from './privateModelMJ84HollowSourceProfile.mjs';
@@ -500,6 +501,10 @@ export function resolveBuildingPartLayerBindings(input) {
   if (String(loadedSourceSha256).toLowerCase() === AIR385_SOURCE_SHA256 &&
       !isAir385SourceScene(gltf?.parser?.json, AIR385_SOURCE_SHA256, sceneIndex, floor))
     return unavailable('AIR385_SOURCE_SCENE_MISMATCH', scene);
+  // Distinct source-locked SG5/Savo 600 mm cofit cannot inherit stale roots.
+  if (String(loadedSourceSha256).toLowerCase() === SG5_ROOF600_SOURCE_SHA256 &&
+      !isSg5Roof600SourceScene(gltf?.parser?.json, SG5_ROOF600_SOURCE_SHA256, sceneIndex, floor))
+    return unavailable('SG5_ROOF600_SOURCE_SCENE_MISMATCH', scene);
   // MJ84 keeps the 2015 T and superseded hallway proxy in history only.
   // Do not inherit physical building-part identity across this new SHA.
   if (String(loadedSourceSha256).toLowerCase() === MJ84_SOURCE_SHA256 &&
