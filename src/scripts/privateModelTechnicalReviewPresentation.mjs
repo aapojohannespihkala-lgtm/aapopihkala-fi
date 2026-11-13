@@ -96,11 +96,18 @@ export function successor369ReviewProfile(json, sha, sceneIndex) {
       active.includes(11542) || active.includes(8913) ||
       active.includes(12097)!==spec.cutaway) return null;
   const membership=new Set(active);
-  // C77/PK1 root 2220 is a mixed architectural presentation wrapper:
-  // marking its entire subtree as technical would highlight unrelated
-  // cabinet/building geometry. Its diagnostic cutaway clone 12097 is likewise
-  // never a technical root. Individual source-proven technical roots remain.
-  const kept=inherited.filter(item=>membership.has(item.node) && item.node!==2220);
+  // A source-locked technical root may nevertheless include NON-technical
+  // presentation geometry. These original GLB roots are composite visual
+  // wrappers, not technical systems:
+  // 2220: C77 shower glass/basin/shelf (59 children)
+  // 11613: H24 opened WC presentation (132 children, including toilet and
+  //        wall accessories)
+  // 11945: MJ56 sauna reference clearance guides (two guide meshes).
+  // The cutaway replacement 12097 (PK1) is also never a technical root.
+  // Keep the prior exact-source technical classifier unchanged for old SHAs.
+  const presentationOnly = new Set([2220, 11613, 11945]);
+  const kept=inherited.filter(item=>membership.has(item.node) &&
+    !presentationOnly.has(item.node));
   if (kept.some(item=>json.nodes[item.node]?.name!==item.name)) return null;
   // Source-exact IDs, not model-name guesses or whole-building visual roots.
   const addedIds=[12086,12087,12088,12089,12090,12091,12092,12096,12098,12106]
