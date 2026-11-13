@@ -110,7 +110,8 @@ test('kept technical meshes get their system highlight and are restored', () => 
   const tech = node('M5_ROOT');
   const cableMaterial = disposable('cable');
   const cable = node('cable', { isMesh: true, material: cableMaterial, userData: { m5System: 'SAHKO' } });
-  const device = node('device', { isMesh: true, material: disposable('device'), userData: {} });
+  const originalDeviceMaterial = disposable('device');
+  const device = node('device', { isMesh: true, material: originalDeviceMaterial, userData: {} });
   tech.userData = {};
   root.add(tech).add(device);
   tech.add(cable);
@@ -119,9 +120,10 @@ test('kept technical meshes get their system highlight and are restored', () => 
   }), object => technicalReviewSystemOf(object, root));
   review.apply(true);
   assert.equal(cable.material.label, 'orange');
-  assert.equal(device.material.label, 'device', 'unclassified kept device keeps its own material');
+  assert.equal(device.material.label, 'grey', 'unknown mesh inside technical root must be grey');
   review.apply(false);
   assert.equal(cable.material, cableMaterial);
+  assert.equal(device.material, originalDeviceMaterial, 'material restored after toggle off');
 });
 
 test('V72 reuses V71 scene roots under renamed scenes and resolves its exact technical roots', async () => {
