@@ -4341,6 +4341,16 @@ const AUTO_YLISRINNE_C80R2_V92_H30_SMOKE_ON_V71_WORK_TEST_HOST_HOLD_20261109_1MV
 
 // Source-exact P0-2 WORK_TEST saved in G2b TYÖ. Publication still uses
 // trusted-main publisher, Access, exact RAW SHA/size and readback gates.
+// Exact existing TATE4 + MJ62/MJ63R2 delivery, never CURRENT/as-built.
+const C80_TATE_MJ6263_WORK_TEST_CANDIDATE = {
+  id: 'c80-tate-mj62-mj63-integrated-20261113',
+  label: 'C80 TATE + parvekelasien avaus ja korjattu poisto - WORK_TEST',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/c80-tate-mj62-mj63-integrated-20261113.glb`,
+  objectKey: 'work-test/c80-tate-mj62-mj63-integrated-20261113.glb',
+  expectedSize: 53943060,
+  expectedSha256: '8aaadccfaa880e7693337467a00d9efb53d4d5e332d377be10d1e353e87e25c5',
+} as const satisfies PrivateWorkTestCandidate;
+
 const C80_TATE_INTERIOR_WORK_TEST_CANDIDATE = {
   id: 'c80-tate-interior-integrated-20261111',
   label: 'C80 TATE + sisätilojen omistajakorjaukset 1F/2F - WORK_TEST',
@@ -4389,6 +4399,7 @@ const AUTO_YLISRINNE_C80_MJ79_D1F_PR0305_EXXACT_VINO_FULL_374_SCENES_WORK_TEST_H
 } as const satisfies PrivateWorkTestCandidate;
 
 const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
+  C80_TATE_MJ6263_WORK_TEST_CANDIDATE,
   C80_TATE_INTERIOR_WORK_TEST_CANDIDATE,
   C80_TATE_THREE_DELTA_WORK_TEST_CANDIDATE,
   C80_P02_TATE_INTEGRATED_WORK_TEST_CANDIDATE,
@@ -5407,6 +5418,7 @@ export const handlePrivateWorkTestRequest = async (
 
   return privateWorkTestCandidateResponse(request, bucket, candidate, true);
 };
+
 
 
 
