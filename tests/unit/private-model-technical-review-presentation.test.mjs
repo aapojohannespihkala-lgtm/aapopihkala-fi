@@ -1,4 +1,5 @@
 import test from 'node:test';
+import '../../src/scripts/privateModelKORJ7TechnicalReviewCompositeRoots.test.mjs';
 import assert from 'node:assert/strict';
 import {
   createTechnicalReviewPresentation,
