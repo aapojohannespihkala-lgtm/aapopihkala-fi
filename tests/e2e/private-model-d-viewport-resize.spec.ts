@@ -169,14 +169,14 @@ function createActualResizeHandler(mode: 'D' | 'WHOLE' | 'PLAN', applyMobile = f
   // D/WHOLE/PLAN when no ISO/elevation mode is active.
   const factory = new Function(
     'canvas', 'renderer', 'camera', 'controls', 'mainViewScope', 'activeCamera',
-    'activePlanFloor', 'fullModelScene', 'computeVisibleBounds', 'modelCenter',
+    'activePlanFloor', 'fullModelScene', 'computeVisibleBounds', 'computeContentFitBounds', 'modelCenter',
     'THREE', 'fitPlanCamera', 'isoCamera', 'queueMobileSafeFit',
     'window', 'document', 'getComputedStyle', 'selectUnobstructedRect', 'solvePerspectiveSafeFit', 'modelRoot',
     'let fitDistance = 0;\n' + liveFunctions +
     '\nreturn { updateSize, applyMobileSafeCamera, getMobileBase: () => mobileSafeBaseDistance, getFit: () => fitDistance, setFit: value => { fitDistance = value; } };',
   );
   const live = factory(canvas, renderer, camera, controls, mainViewScope, camera,
-    activePlanFloor, fullModelScene, computeVisibleBounds, modelCenter, THREE,
+    activePlanFloor, fullModelScene, computeVisibleBounds, computeVisibleBounds, modelCenter, THREE,
     () => { planRefits++; }, isoCamera, (mode: string) => {
       mobileFitRequests.push(mode); if (applyMobile) live.applyMobileSafeCamera(mode);
     }, viewport, {querySelector:()=>null}, ()=>({display:'none'}),

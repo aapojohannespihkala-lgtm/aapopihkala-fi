@@ -1776,6 +1776,7 @@ const title = 'Private 3D viewer';
           <button id="selection-tool-button" type="button" aria-pressed="false">Valitse</button>
           <button id="point-pick-tool-button" type="button" aria-pressed="false" title="Klikkaa mallipintaa, näytä XYZ-koordinaatit ja merkki kuvakaappausta varten.">Piste mallissa</button>
           <button id="point-measure-tool-button" type="button" aria-pressed="false" title="Mittaa kahden näkyvän mallipinnan pisteen etäisyys missä tahansa näkymässä. Mallin arvo, ei tarkemittaus.">Mittaa 3D</button>
+          <button id="axis-measure-tool-button" type="button" aria-pressed="false" disabled title="Mittaa D-asunnon pohjan kahden pisteen etäisyys mallista, ei tarkemittaus">Mittaa pohjaa</button>
           <button id="p137e-place-tool-button" type="button" aria-pressed="false" disabled title="Rastiluonnos: vain D1F P137E WORK_TEST; tallennus G2:een ei vielä kytketty">Sijoita kohde</button>
         </div>
 
@@ -2889,6 +2890,7 @@ const title = 'Private 3D viewer';
       const coordinatePointer = document.querySelector<HTMLElement>('#coordinate-pointer');
       const coordinateAnchor = document.querySelector<HTMLElement>('#coordinate-anchor');
       const coordinateNote = document.querySelector<HTMLElement>('#coordinate-note');
+      const axisMeasureToolButton = document.querySelector<HTMLButtonElement>('#axis-measure-tool-button');
       const p137ePlaceToolButton = document.querySelector<HTMLButtonElement>('#p137e-place-tool-button');
       const p137ePlacePanel = document.querySelector<HTMLElement>('#p137e-place-panel');
       const p137ePlaceTarget = document.querySelector<HTMLSelectElement>('#p137e-place-target');
@@ -3022,6 +3024,7 @@ const title = 'Private 3D viewer';
         !pointMeasureMain ||
         !pointMeasureDetail ||
         !pointMeasureClearButton ||
+        !axisMeasureToolButton ||
         !axisMeasureLabel ||
         !axisMeasureRow ||
         !axisMeasureOutput ||
@@ -4068,6 +4071,7 @@ const title = 'Private 3D viewer';
           if (canvas.dataset.interactionMode === 'place') setViewerToolMode('navigate');
         }
         p137ePlaceToolButton.disabled = !canStartP137EPlaceDraft();
+        axisMeasureToolButton.disabled = !isAxisMeasureAvailable(activePlanFloor, activeCamera === planCamera);
       };
 
       const deactivateDCoordinateReview = () => {
@@ -4077,6 +4081,7 @@ const title = 'Private 3D viewer';
         clearDCoordinateAnchor();
         clearDAxisMeasurement();
         p137ePlaceToolButton.disabled = true;
+        axisMeasureToolButton.disabled = true;
         clearP137EPlaceDraft();
         if (canvas.dataset.interactionMode === 'measure' ||
             canvas.dataset.interactionMode === 'place') setViewerToolMode('navigate');
@@ -5290,6 +5295,7 @@ const title = 'Private 3D viewer';
         selectionToolButton.setAttribute('aria-pressed', String(mode === 'select'));
         pointPickToolButton.setAttribute('aria-pressed', String(mode === 'point-pick'));
         p137ePlaceToolButton.setAttribute('aria-pressed', String(mode === 'place'));
+        axisMeasureToolButton.setAttribute('aria-pressed', String(mode === 'measure'));
         pointMeasureToolButton.setAttribute('aria-pressed', String(mode === 'point-measure'));
         pointMeasurePanel.hidden = mode !== 'point-measure';
         if (mode !== 'point-measure') clearPointMeasure();
@@ -14839,6 +14845,9 @@ const title = 'Private 3D viewer';
         } catch {
           pointPickFeedback.textContent = 'Kopiointi estetty. Koordinaatit näkyvät paneelissa.';
         }
+      });
+      axisMeasureToolButton.addEventListener('click', () => {
+        setViewerToolMode(canvas.dataset.interactionMode === 'measure' ? 'navigate' : 'measure');
       });
       p137ePlaceToolButton.addEventListener('click', () => setViewerToolMode('place'));
       pointMeasureToolButton.addEventListener('click', () => {
