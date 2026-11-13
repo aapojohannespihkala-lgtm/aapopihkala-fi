@@ -1,3 +1,4 @@
+import { TATE4_MJ6263_SOURCE_SHA256, m6263ReviewProfile } from './privateModelM6263ViewerReceipt.mjs';
 import { TATE4_SOURCE_SHA256, TATE4_SOURCE_SCENE_COUNT, TATE4_FLOORS, TATE4_BUILDING_SCENES, TATE4_TECHNICAL_REVIEW_ROOTS } from './privateModelC80TateInteriorLayerSourceProfile.mjs';
 import { TATE3_SOURCE_SHA256, TATE3_SOURCE_SCENE_COUNT, TATE3_FLOORS, TATE3_BUILDING_SCENES, TATE3_TECHNICAL_REVIEW_ROOTS } from './privateModelC80TateThreeDeltaLayerSourceProfile.mjs';
 import { TATE_SOURCE_SHA256, TATE_SOURCE_SCENE_COUNT, TATE_FLOORS, TATE_BUILDING_SCENES, TATE_TECHNICAL_REVIEW_ROOTS } from './privateModelC80P02TateLayerSourceProfile.mjs';
@@ -78,7 +79,8 @@ import { sameSourceName } from './privateModelSourceNodeAssociations.mjs';
 export function resolveTechnicalReviewRoots(gltf, scene, sceneIndex, loadedSha, expectedSha) {
   const json = gltf?.parser?.json;
   const associations = gltf?.parser?.associations;
-  const source = Object.hasOwn(REVIEW_SOURCES, loadedSha) ? REVIEW_SOURCES[loadedSha] : null;
+  const source = loadedSha === TATE4_MJ6263_SOURCE_SHA256 ? m6263ReviewProfile(json,loadedSha,sceneIndex)
+    : Object.hasOwn(REVIEW_SOURCES, loadedSha) ? REVIEW_SOURCES[loadedSha] : null;
   const profile = source?.roots[sceneIndex];
   const sceneProfile = source?.scenes[sceneIndex];
   const extras = json?.asset?.extras;
@@ -202,4 +204,5 @@ export function technicalReviewSystemOf(object, root) {
   }
   return null;
 }
+
 
