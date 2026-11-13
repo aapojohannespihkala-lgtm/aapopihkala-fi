@@ -215,6 +215,7 @@ jobs:
             tests/unit/private-model-tate4-mj6263-scene-selection.test.mjs \
             tests/unit/private-model-tate4-mj62-mj63-source-profile.test.mjs \
             tests/unit/private-model-m6263-mj72-kiv005-pk1-successor-source-profile.test.mjs \
+            tests/unit/private-model-successor369-viewer-runtime.test.mjs \
             tests/unit/private-model-mj79-exxact-source-profile.test.mjs
 
       # Four self-contained K16-b/c scene33 builder guards run on every
