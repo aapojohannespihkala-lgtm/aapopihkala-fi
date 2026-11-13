@@ -1,4 +1,7 @@
 import { TATE4_MJ6263_SOURCE_SHA256, m6263ReviewProfile } from './privateModelM6263ViewerReceipt.mjs';
+import { TATE4_MJ6263_SCENES } from './privateModelTate4Mj62Mj63SourceProfile.mjs';
+import { SUCCESSOR_R1_SHA256, SUCCESSOR_R1_SCENES,
+  isM6263Mj72Kiv005Pk1SuccessorSourceScene } from './privateModelM6263Mj72Kiv005Pk1SuccessorSourceProfile.mjs';
 import { TATE4_SOURCE_SHA256, TATE4_SOURCE_SCENE_COUNT, TATE4_FLOORS, TATE4_BUILDING_SCENES, TATE4_TECHNICAL_REVIEW_ROOTS } from './privateModelC80TateInteriorLayerSourceProfile.mjs';
 import { TATE3_SOURCE_SHA256, TATE3_SOURCE_SCENE_COUNT, TATE3_FLOORS, TATE3_BUILDING_SCENES, TATE3_TECHNICAL_REVIEW_ROOTS } from './privateModelC80TateThreeDeltaLayerSourceProfile.mjs';
 import { TATE_SOURCE_SHA256, TATE_SOURCE_SCENE_COUNT, TATE_FLOORS, TATE_BUILDING_SCENES, TATE_TECHNICAL_REVIEW_ROOTS } from './privateModelC80P02TateLayerSourceProfile.mjs';
@@ -77,11 +80,47 @@ import { sameSourceName } from './privateModelSourceNodeAssociations.mjs';
  * The GLB, source links, scene membership, visibility and camera are untouched.
  */
 
+// Exact-SHA opt-in technical review for the combined 369-scene successor.
+// Preserve only established technical roots from the matching TATE4 floor,
+// then add the physically distinct MJ63, MJ72 and KIV005 source components.
+// The PK1 cutaway wrapper (12097) is ARCHITECTURE, never a technical root.
+// The canonical source profile must PASS before trusting even the old root IDs.
+export function successor369ReviewProfile(json, sha, sceneIndex) {
+  const spec=SUCCESSOR_R1_SCENES[sceneIndex];
+  if (!spec || !isM6263Mj72Kiv005Pk1SuccessorSourceScene(
+    json,sha,sceneIndex,spec.floor,spec.glazing,spec.cutaway)) return null;
+  const base=TATE4_MJ6263_SCENES[spec.parent];
+  const inherited=TATE4_TECHNICAL_REVIEW_ROOTS[base?.parent];
+  const active=json.scenes[sceneIndex].nodes;
+  if (!Array.isArray(inherited) || !Array.isArray(active) ||
+      active.includes(11542) || active.includes(8913) ||
+      active.includes(12097)!==spec.cutaway) return null;
+  const membership=new Set(active);
+  const kept=inherited.filter(item=>membership.has(item.node));
+  if (kept.some(item=>json.nodes[item.node]?.name!==item.name)) return null;
+  // Source-exact IDs, not model-name guesses or whole-building visual roots.
+  const addedIds=[12086,12087,12088,12089,12090,12091,12092,12096,12098,12106]
+    .filter(id=>membership.has(id));
+  if (addedIds.includes(12098)!==Boolean(spec.replacements.MJ72) ||
+      addedIds.includes(12106)!==Boolean(spec.replacements.KIV005) ||
+      (spec.floor==='2F' && addedIds.some(id=>id>=12086&&id<=12096)) ||
+      (spec.floor!=='2F' && addedIds.filter(id=>id>=12086&&id<=12096).length!==8)) return null;
+  const technical=[...kept,...addedIds.map(node=>({node,name:json.nodes[node].name}))];
+  if (technical.length!==new Set(technical.map(x=>x.node)).size ||
+      technical.some(x=>!x.name||x.node===12097||!membership.has(x.node)))return null;
+  return {
+    count:369, floors:{'1F':350,'2F':351,BOTH:352},
+    scenes:{[sceneIndex]:{name:spec.name}},
+    roots:{[sceneIndex]:technical}
+  };
+}
+
 /** Resolve exact technical roots of the active V71-V92 scene. Fails closed (null). */
 export function resolveTechnicalReviewRoots(gltf, scene, sceneIndex, loadedSha, expectedSha) {
   const json = gltf?.parser?.json;
   const associations = gltf?.parser?.associations;
-  const source = loadedSha === TATE4_MJ6263_SOURCE_SHA256 ? m6263ReviewProfile(json,loadedSha,sceneIndex)
+  const source = loadedSha === SUCCESSOR_R1_SHA256 ? successor369ReviewProfile(json,loadedSha,sceneIndex)
+    : loadedSha === TATE4_MJ6263_SOURCE_SHA256 ? m6263ReviewProfile(json,loadedSha,sceneIndex)
     : Object.hasOwn(REVIEW_SOURCES, loadedSha) ? REVIEW_SOURCES[loadedSha] : null;
   const profile = source?.roots[sceneIndex];
   const sceneProfile = source?.scenes[sceneIndex];
