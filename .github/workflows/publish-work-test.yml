@@ -385,6 +385,19 @@ jobs:
           [[ "$CANDIDATE_ID" == 'ylisrinne-v69p12r1-sink-faucet-floor-metadata-20261105' ]]
           gh api --method POST "/repos/${GITHUB_REPOSITORY}/actions/workflows/d-view-regression.yml/dispatches" -f ref=main -f inputs[source_version]=V69P12R1
 
+      - name: Dispatch exact M6263 production regression after verified publish
+        if: success() && inputs.candidate == 'c80-tate-mj62-mj63-integrated-20261113'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          [[ "$GITHUB_EVENT_NAME" == "workflow_dispatch" ]]
+          [[ "$GITHUB_REF" == "refs/heads/main" ]]
+          [[ "$CANDIDATE_ID" == 'c80-tate-mj62-mj63-integrated-20261113' ]]
+          gh api --method POST "/repos/${GITHUB_REPOSITORY}/actions/workflows/d-view-regression.yml/dispatches" \
+            --raw-field ref=main --raw-field 'inputs[source_version]=M6263'
+
       - name: Remove private temporary files
         if: always()
         shell: bash
@@ -395,6 +408,7 @@ jobs:
             "$RUNNER_TEMP/work-test-production-readback.glb" \
             "$RUNNER_TEMP/publish-response.json" \
             "$RUNNER_TEMP/catalog.json"
+
 
 
 
