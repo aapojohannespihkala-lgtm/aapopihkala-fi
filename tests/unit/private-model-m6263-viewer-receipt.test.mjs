@@ -88,3 +88,21 @@ test('actual raw GLB receipts and floor/glazing lifecycle',{skip:!process.env.YL
   runtime.restore();assert.equal(mounted,scenes[355]);assert.equal(runtime.active,false);
   runtime.dispose();assert.equal(runtime.apply('2F'),null);
 });
+test('real viewer scene owner preserves an active glazing mount without restoring it',()=>{
+  const j=fixture();
+  const scenes=j.scenes.map(s=>({name:s.name,children:(s.nodes??[]).map(i=>({name:j.nodes[i].name})),traverse(fn){for(const n of this.children)fn(n);}}));
+  const modelRoot={children:[scenes[355]],clear(){this.children=[];},add(s){this.children.push(s);},updateMatrixWorld(){}};
+  const file=readFileSync(new URL('../../src/pages/private-model/index.astro',import.meta.url),'utf8');
+  const block=file.match(/const setModelScene = [\s\S]*?\n      };/)?.[0];assert.ok(block);
+  const noop=()=>{};
+  const owner=new Function('env',`const {modelRoot,fullModelScene,beforeLayersSceneChange,applyElectricalLayerState,syncMainViewScope,clearPickedPoint,refreshEdgeRendering,refreshLayers,queueMicrotask}=env;let mainViewScope;${stripTypeScriptTypes(block,{mode:'strip'})};return {mount:setModelScene,setScope:s=>{mainViewScope=s;}};`)({modelRoot,fullModelScene:scenes[355],beforeLayersSceneChange:noop,applyElectricalLayerState:noop,syncMainViewScope:noop,clearPickedPoint:noop,refreshEdgeRendering:noop,refreshLayers:noop,queueMicrotask:noop});
+  const runtime=createM6263FloorRuntime({gltf:{scenes,parser:{json:j}},sha:SHA,mount:owner.mount,mounted:()=>modelRoot.children[0]});
+  owner.setScope(runtime);
+  assert.ok(runtime.apply('2F'));assert.ok(runtime.active);
+  assert.ok(runtime.setGlazing('STACKED'));
+  assert.equal(runtime.sceneIndex,358);assert.equal(runtime.floor,'2F');assert.ok(runtime.active);
+  assert.equal(modelRoot.children[0],scenes[358]);
+  runtime.restore();assert.equal(modelRoot.children[0],scenes[355]);assert.equal(runtime.active,false);
+  assert.ok(runtime.apply('1F','STACKED'));assert.equal(runtime.sceneIndex,353);
+  runtime.restore();assert.ok(runtime.apply('2F','STACKED'));assert.equal(runtime.sceneIndex,358);
+});

@@ -6707,6 +6707,7 @@ const title = 'Private 3D viewer';
       const activateMainModelScope = (floor: MainViewFloor, preserveCamera = false) => {
         if (!mainViewScope?.available) return;
         const requestedOtherFloorMode = otherFloorMode.value;
+        const retainedM6263Glazing = (mainViewScope as any).isM6263 ? (mainViewScope as any).glazing : null;
         clearSelection();
         clearPointMeasure();
         objectVisibilityFilter.restore();
@@ -6740,7 +6741,9 @@ const title = 'Private 3D viewer';
             canvas.dataset.c70Variant = 'baseline';
           }
         }
-        const report = mainViewScope.apply(floor);
+        const report = retainedM6263Glazing !== null
+          ? (mainViewScope as any).apply(floor, retainedM6263Glazing)
+          : mainViewScope.apply(floor);
         if (!report) return;
         if ('isSourceScene' in mainViewScope) {
           resetHorizontalClipping();
