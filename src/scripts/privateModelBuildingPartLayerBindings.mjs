@@ -1,4 +1,5 @@
 import { AIR385_SOURCE_SHA256, isAir385SourceScene } from './privateModelAir385ToshibaServiceSourceProfile.mjs';
+import { KIV005_SOURCE_SHA256, isKiv005OwnerSourceScene } from './privateModelC80Kiv005OwnerSourceProfile.mjs';
 import { SG5_ROOF600_SOURCE_SHA256, isSg5Roof600SourceScene } from './privateModelC80Sg5Roof600SourceProfile.mjs';
 import { MJ79_SOURCE_SHA256, isMJ79SourceScene } from './privateModelMJ79ExxactSourceProfile.mjs';
 import { MJ84_SOURCE_SHA256, isMJ84SourceScene } from './privateModelMJ84KsoSourceProfile.mjs';
@@ -497,6 +498,12 @@ export function resolveBuildingPartLayerBindings(input) {
   if (String(loadedSourceSha256).toLowerCase() === V93_MJ49_SOURCE_SHA256 &&
       !isV93MJ49SavoNSScene(gltf?.parser?.json, V93_MJ49_SOURCE_SHA256, sceneIndex, floor))
     return unavailable('V93_MJ49_SOURCE_SCENE_MISMATCH', scene);
+  // The combined KIV005 owner COW is only valid for its exact GLB, opt-in
+  // scenes and ordered source root hierarchy. Do not inherit source cards from
+  // the visually similar source-parent/older KIV005 scene.
+  if (String(loadedSourceSha256).toLowerCase() === KIV005_SOURCE_SHA256 &&
+      !isKiv005OwnerSourceScene(gltf?.parser?.json, KIV005_SOURCE_SHA256, sceneIndex, floor))
+    return unavailable('KIV005_SOURCE_SCENE_MISMATCH', scene);
   // AIR385 is a different GLB. Refuse inherited physical part identities and
   // malformed scene roots rather than trusting a lookalike parent scene.
   if (String(loadedSourceSha256).toLowerCase() === AIR385_SOURCE_SHA256 &&
