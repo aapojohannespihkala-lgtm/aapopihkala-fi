@@ -4351,6 +4351,18 @@ const C80_TATE_MJ6263_WORK_TEST_CANDIDATE = {
   expectedSha256: '8aaadccfaa880e7693337467a00d9efb53d4d5e332d377be10d1e353e87e25c5',
 } as const satisfies PrivateWorkTestCandidate;
 
+// Original G2b TYÖ source-only successor R1; no implicit publish or CURRENT.
+// Inner SHA and byte size must match before the normal trusted-main upload.
+// GLB scene360..368 is opt-in; GLB default292 remains unchanged.
+const C80_M6263_MJ72_KIV005_PK1_SUCCESSOR_WORK_TEST_CANDIDATE = {
+  id: 'c80-m6263-mj72-kiv005-pk1-successor-20261113',
+  label: 'C80 TATE + MJ62/MJ63R2 + MJ72 + KIV005 + PK1 - WORK_TEST/HOST_HOLD',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/c80-m6263-mj72-kiv005-pk1-successor-20261113.glb`,
+  objectKey: 'work-test/c80-m6263-mj72-kiv005-pk1-successor-20261113.glb',
+  expectedSize: 54018652,
+  expectedSha256: '31dc12c484fcf951c4373387b9653e26206a8ac3bc4978d5d980daeac3a6ade2',
+} as const satisfies PrivateWorkTestCandidate;
+
 const C80_TATE_INTERIOR_WORK_TEST_CANDIDATE = {
   id: 'c80-tate-interior-integrated-20261111',
   label: 'C80 TATE + sisätilojen omistajakorjaukset 1F/2F - WORK_TEST',
@@ -4399,6 +4411,7 @@ const AUTO_YLISRINNE_C80_MJ79_D1F_PR0305_EXXACT_VINO_FULL_374_SCENES_WORK_TEST_H
 } as const satisfies PrivateWorkTestCandidate;
 
 const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
+  C80_M6263_MJ72_KIV005_PK1_SUCCESSOR_WORK_TEST_CANDIDATE,
   C80_TATE_MJ6263_WORK_TEST_CANDIDATE,
   C80_TATE_INTERIOR_WORK_TEST_CANDIDATE,
   C80_TATE_THREE_DELTA_WORK_TEST_CANDIDATE,
