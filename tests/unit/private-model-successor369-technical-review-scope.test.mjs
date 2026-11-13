@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {inflateSync} from 'node:zlib';
 import {SUCCESSOR_R1_SHA256,SUCCESSOR_R1_DONORS,SUCCESSOR_R1_SCENES,isM6263Mj72Kiv005Pk1SuccessorSourceScene} from '../../src/scripts/privateModelM6263Mj72Kiv005Pk1SuccessorSourceProfile.mjs';
 import {TATE4_TECHNICAL_REVIEW_ROOTS} from '../../src/scripts/privateModelC80TateInteriorLayerSourceProfile.mjs';
+import {TATE4_MJ6263_SCENES} from '../../src/scripts/privateModelTate4Mj62Mj63SourceProfile.mjs';
 import {successor369ReviewProfile,resolveTechnicalReviewRoots,createTechnicalReviewPresentation} from '../../src/scripts/privateModelTechnicalReviewPresentation.mjs';
 
 // Ordered source-scene 355 roots from the existing exact M6263 test. The
@@ -64,6 +65,10 @@ test('successor exact SHA admits only technical roots, never cutaway building wr
  const json=sourceDoc();
  const gate=(awaitSourceGate(json));
  assert.equal(gate,true,'canonical source fixture must pass before technical selection');
+ const base=TATE4_MJ6263_SCENES[SUCCESSOR_R1_SCENES[362].parent];
+ const inherited=TATE4_TECHNICAL_REVIEW_ROOTS[base?.parent];
+ const active=json.scenes[362].nodes;
+ console.log('DEBUG_TECHROOT_20261114',JSON.stringify({base, inheritedN:inherited?.length, namesMismatch:inherited?.filter(x=>active.includes(x.node)&&json.nodes[x.node]?.name!==x.name).slice(0,4), ids:[11542,8913,12097,12086,12092,12096,12098,12106].map(x=>[x,active.includes(x)]), rootN:active.length}));
  const profile=successor369ReviewProfile(json,SUCCESSOR_R1_SHA256,362);
  assert.ok(profile);
  assert.equal(profile.count,369);
