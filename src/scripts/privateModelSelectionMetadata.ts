@@ -1,6 +1,7 @@
 export type SelectionMetadataEntry = readonly [string, string];
 
 export type SelectionMetadataNode = {
+  name?: string;
   userData?: Record<string, unknown>;
   parent?: SelectionMetadataNode | null;
 };
@@ -258,6 +259,42 @@ const v90H23Pa2RootPhotoLinks = (
 };
 
 /**
+ * The V93 double covered exterior outlets have exact owner-photo Drive IDs in
+ * their source GLB root extras, but no sourceLinks array. Resolve only the two
+ * source-exact roots, never a generic 2026PhotoDriveId from another object.
+ * Model/viewer SHA and scene gates remain separate. A source photo does not
+ * verify the 3D geometry, device SKU, wiring or installation.
+ */
+const v93DoubleOutletPhotoForNode = (
+  node: SelectionMetadataNode | null | undefined,
+): SelectionSourceLink | null => {
+  const data = node?.userData;
+  if (data?.['2026OwnerReview'] !== 'PHOTO LOCATION APPROVED; 2_OUTLETS_AND_PLASTIC_COVER_CONFIRMED_2026_11_10' ||
+      data?.sourceModel !== 'Ylisrinne V93 socket scene303/304/305' ||
+      data?.numSocketPositions !== 2 ||
+      data?.oneProtectivePlasticCover !== true ||
+      data?.hostHold !== true ||
+      data?.current !== false ||
+      data?.asBuilt !== false ||
+      data?.physicalWiring !== 'NOT_MODELED_OR_VERIFIED') return null;
+  if (node?.name === 'D_1F_EXTERIOR_DOUBLE_OUTLET_COMMON_WEATHER_FLAP_OWNER_APPROVED_ROOT_WORK_TEST_HOST_HOLD' &&
+      data?.['2026PhotoDriveId'] === '1H9Fp8oFQ38ERes_zX0jfKp7uY0sc4V8j') {
+    return {
+      link: 'https://drive.google.com/file/d/1H9Fp8oFQ38ERes_zX0jfKp7uY0sc4V8j/view',
+      label: 'V93 1F terassi - 2026 valokuva (WORK_TEST-lähde)',
+    };
+  }
+  if (node?.name === 'D_2F_EXTERIOR_DOUBLE_OUTLET_COMMON_WEATHER_FLAP_OWNER_APPROVED_ROOT_WORK_TEST_HOST_HOLD' &&
+      data?.['2026PhotoDriveId'] === '14WdPPFc0ZVolz4Z5a3Zf6ANPmPwGKvY1') {
+    return {
+      link: 'https://drive.google.com/file/d/14WdPPFc0ZVolz4Z5a3Zf6ANPmPwGKvY1/view',
+      label: 'V93 2F parveke - 2026 valokuva (WORK_TEST-lähde)',
+    };
+  }
+  return null;
+};
+
+/**
  * GLB node extras.sourceLinks ({docId, link, role, supports}) or legacy
  * {url, evidence} records from the selected node and
  * its ancestors (same 8-level walk as scalar metadata). Only Google Drive/Docs links are
@@ -299,6 +336,10 @@ export const selectionSourceLinks = (
     for (const rootPhoto of v90H23Pa2RootPhotoLinks(current.userData)) {
       if (links.size >= maxSelectionSourceLinks) break;
       if (!links.has(rootPhoto.link)) links.set(rootPhoto.link, rootPhoto);
+    }
+    const outletPhoto = v93DoubleOutletPhotoForNode(current);
+    if (outletPhoto && links.size < maxSelectionSourceLinks && !links.has(outletPhoto.link)) {
+      links.set(outletPhoto.link, outletPhoto);
     }
     current = current.parent;
     depth += 1;
