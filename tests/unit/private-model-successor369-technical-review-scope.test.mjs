@@ -58,6 +58,19 @@ const sourceDoc=()=>{
  for(const x of TATE4_TECHNICAL_REVIEW_ROOTS[352]??[]){
    if(json.nodes[x.node])json.nodes[x.node].name=x.name;
  }
+ // The generic successor fixture focuses on new donors, so the unchanged
+ // MJ63 root names must be supplied from the SHA-verified original GLB.
+ const mj63Names=[
+  'MJ63_D1F_STORAGE_DOOR_UNDERCUT_INLET_SHAFT_1',
+  'MJ63_D1F_STORAGE_DOOR_UNDERCUT_INLET_ARROW_1',
+  'MJ63_D1F_STORAGE_DOOR_UNDERCUT_INLET_SHAFT_2',
+  'MJ63_D1F_STORAGE_DOOR_UNDERCUT_INLET_ARROW_2',
+  'MJ63_D1F_STORAGE_DOOR_UNDERCUT_INLET_SHAFT_3',
+  'MJ63_D1F_STORAGE_DOOR_UNDERCUT_INLET_ARROW_3',
+  'MJ63R2_WARDROBE_EXHAUST_VALVE_IN_ROOM_ADJACENT_TO_OUTDOOR_STORAGE',
+ ];
+ mj63Names.forEach((name,i)=>{json.nodes[12086+i].name=name;});
+ json.nodes[12096].name='MJ63R2_INNER_ROOM_THROUGH_STORAGE_TO_OUTSIDE_SINGLE_SEALED_DUCT_WORK_TEST';
  return json;
 };
 test('successor exact SHA admits only technical roots, never cutaway building wrapper',()=>{
