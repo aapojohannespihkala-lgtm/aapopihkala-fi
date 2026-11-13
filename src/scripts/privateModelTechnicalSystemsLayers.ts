@@ -5,6 +5,7 @@ import { MJ79_SOURCE_SHA256, MJ79_SOCKETS, isMJ79SourceScene } from './privateMo
 import { MJ84_SOURCE_SHA256, MJ84_COMPONENTS, isMJ84SourceScene } from './privateModelMJ84KsoSourceProfile.mjs';
 import { MJ84_HOLLOW_SOURCE_SHA256, MJ84_HOLLOW_COMPONENTS, MJ84_HOLLOW_WC_CEILING, isMJ84HollowSourceScene } from './privateModelMJ84HollowSourceProfile.mjs';
 import { TATE4_MJ72_SOURCE_SHA256, TATE4_MJ72_CHILDREN, isTate4Mj72SocketSourceScene } from './privateModelTate4Mj72SocketSourceProfile.mjs';
+import { TATE4_MJ6263_SOURCE_SHA256, TATE4_MJ6263_SCENES, isTate4Mj62Mj63SourceScene } from './privateModelTate4Mj62Mj63SourceProfile.mjs';
 import { TATE4_SOURCE_SHA256, TATE4_SOURCE_SCENE_COUNT, TATE4_BUILDING_SCENES, resolveTate4TechnicalNode } from './privateModelC80TateInteriorLayerSourceProfile.mjs';
 import { TATE3_SOURCE_SHA256, TATE3_SOURCE_SCENE_COUNT, TATE3_BUILDING_SCENES, resolveTate3TechnicalNode } from './privateModelC80TateThreeDeltaLayerSourceProfile.mjs';
 import { TATE_SOURCE_SHA256, TATE_SOURCE_SCENE_COUNT, TATE_BUILDING_SCENES, resolveTateTechnicalNode } from './privateModelC80P02TateLayerSourceProfile.mjs';
@@ -323,6 +324,27 @@ const v26Device = (context: TechnicalSystemsContext, binding: TechnicalSourceNod
       seen.add(index);
       const parent = context.sourceNodes.find(node => node.sceneIndex === context.sourceSceneIndex && node.nodeIndex === index);
       index = parent?.parentNodeIndex ?? null;
+    }
+    return null;
+  }
+  // Only the eleven newly modeled MJ63R2 ventilation/transfer components.
+  // A source-locked 1F/BOTH opt-in is required; 2F cannot inherit this duct.
+  // Device category does not assert measured airflow or an as-built route.
+  if (context.loadedGlbSha256 === TATE4_MJ6263_SOURCE_SHA256) {
+    const scope = TATE4_MJ6263_SCENES[context.sourceSceneIndex];
+    if (!scope || !isTate4Mj62Mj63SourceScene(
+      context.sourceJson, context.loadedGlbSha256, context.sourceSceneIndex,
+      scope.floor, scope.glazing) || scope.floor === '2F') return null;
+    const visited = new Set<number>();
+    let node: number | null = binding.nodeIndex;
+    while (node !== null && !visited.has(node)) {
+      if (node >= 12086 && node <= 12096)
+        return { id: 'technical-ventilation',
+          scope: { apartment: 'D', storey: '1F', phase: 'ACTIVE_IN_SELECTED_WORKTEST' } };
+      visited.add(node);
+      const parent = context.sourceNodes.find(candidate =>
+        candidate.sceneIndex === context.sourceSceneIndex && candidate.nodeIndex === node);
+      node = parent?.parentNodeIndex ?? null;
     }
     return null;
   }
