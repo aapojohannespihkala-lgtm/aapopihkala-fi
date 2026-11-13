@@ -96,7 +96,11 @@ export function successor369ReviewProfile(json, sha, sceneIndex) {
       active.includes(11542) || active.includes(8913) ||
       active.includes(12097)!==spec.cutaway) return null;
   const membership=new Set(active);
-  const kept=inherited.filter(item=>membership.has(item.node));
+  // C77/PK1 root 2220 is a mixed architectural presentation wrapper:
+  // marking its entire subtree as technical would highlight unrelated
+  // cabinet/building geometry. Its diagnostic cutaway clone 12097 is likewise
+  // never a technical root. Individual source-proven technical roots remain.
+  const kept=inherited.filter(item=>membership.has(item.node) && item.node!==2220);
   if (kept.some(item=>json.nodes[item.node]?.name!==item.name)) return null;
   // Source-exact IDs, not model-name guesses or whole-building visual roots.
   const addedIds=[12086,12087,12088,12089,12090,12091,12092,12096,12098,12106]
