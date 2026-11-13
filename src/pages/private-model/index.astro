@@ -6742,7 +6742,7 @@ const title = 'Private 3D viewer';
           }
         }
         const report = retainedM6263Glazing !== null
-          ? (mainViewScope as any).apply(floor, retainedM6263Glazing)
+          ? (mainViewScope as any).apply(floor, retainedM6263Glazing) as ReturnType<typeof mainViewScope.apply>
           : mainViewScope.apply(floor);
         if (!report) return;
         if ('isSourceScene' in mainViewScope) {
