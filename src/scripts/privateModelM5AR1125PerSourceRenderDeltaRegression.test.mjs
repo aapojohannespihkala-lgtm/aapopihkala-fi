@@ -236,11 +236,13 @@ test('missing source, forged projection, camera drift and duplicate identity fai
   assert.throws(() => run(h), /camera\/viewport mismatch/i);
   const j = fixture(), oldTraverse = j.args.sourceScene.sceneRoot.traverse;
   j.args.sourceScene.sceneRoot.traverse = fn => {
-    oldTraverse(fn);
-    const duplicate = { ...j.args.sourceScene.sceneRoot, userData: {
-      ...j.args.sourceScene.sceneRoot.userData, G2IdCandidate: keys[0],
-    } };
-    fn(duplicate);
+    let firstSource = null;
+    oldTraverse(object => {
+      if (object.userData?.G2IdCandidate === keys[0]) firstSource = object;
+      fn(object);
+    });
+    assert.ok(firstSource, 'source fixture must contain first target');
+    fn({ ...firstSource, userData: { ...firstSource.userData } });
   };
   assert.throws(() => run(j), /duplicate source target/i);
 });
