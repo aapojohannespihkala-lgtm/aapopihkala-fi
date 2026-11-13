@@ -5,6 +5,7 @@ import { MJ79_SOURCE_SHA256, isMJ79SourceScene } from './privateModelMJ79ExxactS
 import { MJ84_SOURCE_SHA256, isMJ84SourceScene } from './privateModelMJ84KsoSourceProfile.mjs';
 import { MJ84_HOLLOW_SOURCE_SHA256, isMJ84HollowSourceScene } from './privateModelMJ84HollowSourceProfile.mjs';
 import { TATE4_MJ72_SOURCE_SHA256, isTate4Mj72SocketSourceScene } from './privateModelTate4Mj72SocketSourceProfile.mjs';
+import { TATE4_MJ6263_SOURCE_SHA256, TATE4_MJ6263_SCENES, isTate4Mj62Mj63SourceScene } from './privateModelTate4Mj62Mj63SourceProfile.mjs';
 import { TATE4_SOURCE_SHA256, TATE4_SOURCE_SCENE_COUNT, TATE4_FLOORS, TATE4_BUILDING_PARTS, TATE4_BUILDING_SCENES } from './privateModelC80TateInteriorLayerSourceProfile.mjs';
 import { TATE3_SOURCE_SHA256, TATE3_SOURCE_SCENE_COUNT, TATE3_FLOORS, TATE3_BUILDING_PARTS, TATE3_BUILDING_SCENES } from './privateModelC80TateThreeDeltaLayerSourceProfile.mjs';
 import { TATE_SOURCE_SHA256, TATE_SOURCE_SCENE_COUNT, TATE_FLOORS, TATE_BUILDING_PARTS, TATE_BUILDING_SCENES } from './privateModelC80P02TateLayerSourceProfile.mjs';
@@ -529,6 +530,15 @@ export function resolveBuildingPartLayerBindings(input) {
   if (String(loadedSourceSha256).toLowerCase() === TATE4_MJ72_SOURCE_SHA256 &&
       !isTate4Mj72SocketSourceScene(gltf?.parser?.json, TATE4_MJ72_SOURCE_SHA256, sceneIndex, floor))
     return unavailable('TATE4_MJ72_SOURCE_SCENE_MISMATCH', scene);
+  // The seven new MJ62/MJ63 scenes may classify only their own source
+  // metadata. The old TATE4 scene/node bindings cannot be inherited by name.
+  if (String(loadedSourceSha256).toLowerCase() === TATE4_MJ6263_SOURCE_SHA256) {
+    const variant = TATE4_MJ6263_SCENES[sceneIndex];
+    if (!variant || !isTate4Mj62Mj63SourceScene(
+      gltf?.parser?.json, TATE4_MJ6263_SOURCE_SHA256, sceneIndex,
+      floor, variant.glazing))
+      return unavailable('M6263_SOURCE_SCENE_MISMATCH', scene);
+  }
   // Distinct MJ79 raw GLB: only exact PHOTO12 COW scenes receive source layers.
   // Refuse stale parent scenes or resurrected PR03/PR05 schematic proxies.
   if (String(loadedSourceSha256).toLowerCase() === MJ79_SOURCE_SHA256 &&
