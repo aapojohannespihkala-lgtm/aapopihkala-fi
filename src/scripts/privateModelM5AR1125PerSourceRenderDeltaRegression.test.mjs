@@ -237,7 +237,7 @@ test('missing source, forged projection, camera drift and duplicate identity fai
   const j = fixture(), oldTraverse = j.args.sourceScene.sceneRoot.traverse;
   j.args.sourceScene.sceneRoot.traverse = fn => {
     let firstSource = null;
-    oldTraverse(object => {
+    oldTraverse.call(j.args.sourceScene.sceneRoot, object => {
       if (object.userData?.G2IdCandidate === keys[0]) firstSource = object;
       fn(object);
     });
