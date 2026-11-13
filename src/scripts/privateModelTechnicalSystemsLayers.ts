@@ -1,4 +1,7 @@
+import { isTate4Mj62Mj63SourceScene } from './privateModelTate4Mj62Mj63SourceProfile.mjs';
+import { TATE4_MJ6263_SOURCE_SHA256, resolveM6263TechnicalNode } from './privateModelM6263ViewerReceipt.mjs';
 import { AIR385_SOURCE_SHA256, AIR385_COMPONENTS, isAir385SourceScene } from './privateModelAir385ToshibaServiceSourceProfile.mjs';
+import { KIV005_SOURCE_SHA256, KIV005_NODES, isKiv005OwnerSourceScene } from './privateModelC80Kiv005OwnerSourceProfile.mjs';
 import { SG5_ROOF600_SOURCE_SHA256, SG5_ROOF600_ROOT, SG5_ROOF600_WHITE_NODES, isSg5Roof600SourceScene } from './privateModelC80Sg5Roof600SourceProfile.mjs';
 import { MJ79_SOURCE_SHA256, MJ79_SOCKETS, isMJ79SourceScene } from './privateModelMJ79ExxactSourceProfile.mjs';
 import { MJ84_SOURCE_SHA256, MJ84_COMPONENTS, isMJ84SourceScene } from './privateModelMJ84KsoSourceProfile.mjs';
@@ -304,6 +307,10 @@ const v26Scenes = { '1F': 174, '2F': 162, BOTH: 175 } as const;
 const v26Device = (context: TechnicalSystemsContext, binding: TechnicalSourceNode): {
   id: TechnicalSystemId; scope: Scope;
 } | null => {
+  if (context.loadedGlbSha256 === TATE4_MJ6263_SOURCE_SHA256) {
+    const exact=resolveM6263TechnicalNode(context.sourceJson,context.loadedGlbSha256,context.sourceSceneIndex,binding.nodeIndex);
+    return exact ? {id:exact.id as TechnicalSystemId,scope:{apartment:'D',storey:exact.storey,phase:'ACTIVE_IN_SELECTED_WORKTEST'}} : null;
+  }
   // This alternate SHA is intentionally source-limited: classify only the
   // exact Bosch/PA2/PK1/S1S2/neck groups, never copied legacy sourceLinks.
   if (context.loadedGlbSha256 === V93_MJ40_SOURCE_SHA256) {
@@ -440,6 +447,28 @@ const v26Device = (context: TechnicalSystemsContext, binding: TechnicalSourceNod
       const source = context.sourceNodes.find(candidate =>
         candidate.sceneIndex === context.sourceSceneIndex && candidate.nodeIndex === node);
       node = source?.parentNodeIndex ?? null;
+    }
+    return null;
+  }
+  // The 2026 owner point moves exactly one existing KIV005 group. Only
+  // descendants of that validated source group get a new ventilation binding.
+  // Other TATE parts need their own SHA+node source receipt, not a guessed copy
+  // of a parent GLB identity.
+  if (context.loadedGlbSha256 === KIV005_SOURCE_SHA256) {
+    if (!isKiv005OwnerSourceScene(context.sourceJson, context.loadedGlbSha256, context.sourceSceneIndex))
+      return null;
+    const sourceRoots = context.sourceJson?.scenes?.[context.sourceSceneIndex]?.nodes;
+    if (!Array.isArray(sourceRoots) || !sourceRoots.includes(KIV005_NODES.group)) return null;
+    const visited = new Set<number>();
+    let node: number | null = binding.nodeIndex;
+    while (node !== null && !visited.has(node)) {
+      if (node === KIV005_NODES.group)
+        return { id:'technical-ventilation',
+          scope:{apartment:'D',storey:'2F',phase:'ACTIVE_IN_SELECTED_WORKTEST'} };
+      visited.add(node);
+      const parent = context.sourceNodes.find(candidate =>
+        candidate.sceneIndex === context.sourceSceneIndex && candidate.nodeIndex === node);
+      node = parent?.parentNodeIndex ?? null;
     }
     return null;
   }
@@ -614,7 +643,9 @@ const v26Device = (context: TechnicalSystemsContext, binding: TechnicalSourceNod
 export const createTechnicalSystemLayerInventory = (context: TechnicalSystemsContext) => {
   const { sceneRoot, sourceSceneIndex, viewerScope } = context;
   const exactSource = normalizedSha(context.loadedGlbSha256) !== null &&
-    context.loadedGlbSha256 === context.expectedGlbSha256;
+    context.loadedGlbSha256 === context.expectedGlbSha256 &&
+    (context.loadedGlbSha256 !== TATE4_MJ6263_SOURCE_SHA256 ||
+      isTate4Mj62Mj63SourceScene(context.sourceJson, context.loadedGlbSha256, sourceSceneIndex));
 
   const indices = new Map<number, TechnicalSourceNode>();
   const sourceObjects = new Map<Object3D, TechnicalSourceNode>();
@@ -753,6 +784,7 @@ export const createTechnicalSystemPresentation = (
   sceneRoot: Object3D,
   inventory: ReturnType<typeof createTechnicalSystemLayerInventory>,
 ) => createViewerScopedLayerPresentation(sceneRoot, inventory.bridgeBindings);
+
 
 
 

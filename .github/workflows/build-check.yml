@@ -204,10 +204,14 @@ jobs:
             tests/unit/private-model-v93-mj49-owner-ns-savo-source-profile.test.mjs \
             tests/unit/private-model-v93-mj40-bosch-open90-source-profile.test.mjs \
             tests/unit/private-model-air385-toshiba-service-source-profile.test.mjs \
+            tests/unit/private-model-c80-kiv005-owner-source-profile.test.mjs \
             tests/unit/private-model-c80-sg5-roof600-source-profile.test.mjs \
             tests/unit/private-model-mj84-kso-source-profile.test.mjs \
             tests/unit/private-model-mj84-hollow-source-profile.test.mjs \
             tests/unit/private-model-tate4-mj72-socket-source-profile.test.mjs \
+            tests/unit/private-model-m6263-viewer-receipt.test.mjs \
+            tests/unit/private-model-tate4-mj6263-scene-selection.test.mjs \
+            tests/unit/private-model-tate4-mj62-mj63-source-profile.test.mjs \
             tests/unit/private-model-mj79-exxact-source-profile.test.mjs
 
       # Four self-contained K16-b/c scene33 builder guards run on every
