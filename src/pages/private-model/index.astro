@@ -2544,6 +2544,8 @@ const title = 'Private 3D viewer';
       import { TATE4_SOURCE_SHA256 } from '../../scripts/privateModelC80TateInteriorLayerSourceProfile.mjs';
       import { TATE4_MJ6263_SOURCE_SHA256 } from '../../scripts/privateModelTate4Mj62Mj63SourceProfile.mjs';
       import { resolveM6263Scenes, createM6263FloorRuntime } from '../../scripts/privateModelM6263FloorRuntime.mjs';
+      import { SUCCESSOR_R1_SHA256 } from '../../scripts/privateModelM6263Mj72Kiv005Pk1SuccessorSourceProfile.mjs';
+      import { resolveSuccessor369Scenes, createSuccessor369FloorRuntime } from '../../scripts/privateModelSuccessor369FloorRuntime.mjs';
       import { TATE3_SOURCE_SHA256 } from '../../scripts/privateModelC80TateThreeDeltaLayerSourceProfile.mjs';
       import { TATE_SOURCE_SHA256 } from '../../scripts/privateModelC80P02TateLayerSourceProfile.mjs';
       import { P02_SOURCE_SHA256 } from '../../scripts/privateModelC80P02WaterLayerSourceProfile.mjs';
@@ -6708,7 +6710,8 @@ const title = 'Private 3D viewer';
       const activateMainModelScope = (floor: MainViewFloor, preserveCamera = false) => {
         if (!mainViewScope?.available) return;
         const requestedOtherFloorMode = otherFloorMode.value;
-        const retainedM6263Glazing = (mainViewScope as any).isM6263 ? (mainViewScope as any).glazing : null;
+        const retainedM6263Glazing = ((mainViewScope as any).isM6263 || (mainViewScope as any).isSuccessor369)
+          ? (mainViewScope as any).glazing : null;
         clearSelection();
         clearPointMeasure();
         objectVisibilityFilter.restore();
@@ -7765,6 +7768,9 @@ const title = 'Private 3D viewer';
               gltf, mount: setModelScene,
               mounted: () => modelRoot.children[0] ?? null,
             }) as any
+          : sourceKind === 'work-test' && !c70PreviewSession &&
+          loadedModelSha256(gltf) === SUCCESSOR_R1_SHA256
+          ? createSuccessor369FloorRuntime({gltf,sha:loadedModelSha256(gltf),mount:setModelScene,mounted:()=>modelRoot.children[0]??null}) as any
           : sourceKind === 'work-test' && !c70PreviewSession &&
           loadedModelSha256(gltf) === TATE4_MJ6263_SOURCE_SHA256
           ? createM6263FloorRuntime({gltf,sha:loadedModelSha256(gltf),mount:setModelScene,mounted:()=>modelRoot.children[0]??null}) as any
@@ -11819,10 +11825,13 @@ const title = 'Private 3D viewer';
           {
             // Newest C80R2 successor: open its own latest BOTH scene, not the
             // historical default scene 0 (1F/2F switch via the floor runtime).
+            const successor369=resolveSuccessor369Scenes(gltf,loadedModelSha256(gltf));
+            if (loadedModelSha256(gltf)===SUCCESSOR_R1_SHA256 && !successor369) throw new Error('SUCC369_SOURCE_SCENE_MISMATCH');
             const m6263=resolveM6263Scenes(gltf,loadedModelSha256(gltf));
             if (loadedModelSha256(gltf)===TATE4_MJ6263_SOURCE_SHA256 && !m6263) throw new Error('M6263_SOURCE_SCENE_MISMATCH');
             const c80r2Chain = resolveC80R2ChainScenes(gltf);
-            if (m6263) gltf.scene = m6263[355];
+            if (successor369) gltf.scene = successor369[362];
+            else if (m6263) gltf.scene = m6263[355];
             else if (c80r2Chain) gltf.scene = c80r2Chain.scenes.BOTH;
           }
           const isP143aScalgoTerrainReview =
@@ -14220,19 +14229,46 @@ const title = 'Private 3D viewer';
         const option=document.createElement('option');option.value=value;option.textContent=label;m6263GlazingSelect.append(option);
       }
       m6263GlazingRow.append(m6263GlazingSelect);layerPresetHost.after(m6263GlazingRow);
+      const successorCutawayRow=document.createElement('label');
+      successorCutawayRow.className='layers-control';successorCutawayRow.hidden=true;
+      successorCutawayRow.textContent='PK1-huoltoleikkaus (ei fyysinen rakenne) ';
+      const successorCutawayInput=document.createElement('input');
+      successorCutawayInput.type='checkbox';
+      successorCutawayInput.setAttribute('aria-label','PK1-huoltoleikkaus');
+      successorCutawayRow.append(successorCutawayInput);
+      m6263GlazingRow.after(successorCutawayRow);
       const syncM6263Glazing=()=>{
         const runtime=mainViewScope as any;
-        const available=layersLoadedSha===TATE4_MJ6263_SOURCE_SHA256 && runtime?.isM6263;
+        const available=(layersLoadedSha===TATE4_MJ6263_SOURCE_SHA256 && runtime?.isM6263) ||
+          (layersLoadedSha===SUCCESSOR_R1_SHA256 && runtime?.isSuccessor369);
         m6263GlazingRow.hidden=!available;
         m6263GlazingRow.style.display=available?'flex':'none';
         m6263GlazingSelect.disabled=!available || runtime.floor==='1F';
         m6263GlazingSelect.value=available?runtime.glazing:'CLOSED';
+        const cutawayAvailable=layersLoadedSha===SUCCESSOR_R1_SHA256 && runtime?.isSuccessor369;
+        successorCutawayRow.hidden=!cutawayAvailable;
+        successorCutawayRow.style.display=cutawayAvailable?'flex':'none';
+        successorCutawayInput.disabled=!cutawayAvailable || runtime.floor==='2F' || runtime.glazing!=='CLOSED';
+        successorCutawayInput.checked=cutawayAvailable?Boolean(runtime.cutaway):false;
       };
       m6263GlazingSelect.addEventListener('change',()=>{
         const runtime=mainViewScope as any;
-        if(layersLoadedSha!==TATE4_MJ6263_SOURCE_SHA256 || !runtime?.isM6263)return;
+        if(!((layersLoadedSha===TATE4_MJ6263_SOURCE_SHA256 && runtime?.isM6263) ||
+          (layersLoadedSha===SUCCESSOR_R1_SHA256 && runtime?.isSuccessor369)))return;
         disposeLayersPresentation();
         if(!runtime.setGlazing(m6263GlazingSelect.value))return;
+        clearSelection();
+        syncMainViewScope();syncM6263Glazing();
+        canvas.dataset.mainViewSourceSceneIndex=String(runtime.sceneIndex);
+        canvas.dataset.c80r2ChainSceneName=String(runtime.selectedScene.name);
+        refreshLayers();
+      });
+
+      successorCutawayInput.addEventListener('change',()=>{
+        const runtime=mainViewScope as any;
+        if(layersLoadedSha!==SUCCESSOR_R1_SHA256 || !runtime?.isSuccessor369)return;
+        disposeLayersPresentation();
+        if(!runtime.setCutaway(successorCutawayInput.checked)){syncM6263Glazing();return;}
         clearSelection();
         syncMainViewScope();syncM6263Glazing();
         canvas.dataset.mainViewSourceSceneIndex=String(runtime.sceneIndex);
