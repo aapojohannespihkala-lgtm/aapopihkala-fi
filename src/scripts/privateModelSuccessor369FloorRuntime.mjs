@@ -32,6 +32,7 @@ export function normalizeSuccessor369Options(floor, glazing, cutaway) {
 export function resolveSuccessor369Scenes(gltf,sha) {
   const json=gltf?.parser?.json;
   if(sha!==SUCCESSOR_R1_SHA256 || gltf?.scenes?.length!==369) return null;
+  /** @type {Record<number, import('three').Group>} */
   const scenes={};
   for (const [key,spec] of Object.entries(SUCCESSOR_R1_SCENES)) {
     const id=Number(key),scene=gltf.scenes[id],sourceScene=json?.scenes?.[id];
