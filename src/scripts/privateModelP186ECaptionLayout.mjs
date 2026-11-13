@@ -31,7 +31,16 @@ function prepareReadableCaption(THREE, sprite) {
   context.fillRect(0, 0, canvas.width, canvas.height);
   context.fillStyle = '#ffe3a0'; context.textAlign = 'center'; context.textBaseline = 'middle';
   context.font = font;
-  lines.forEach((t, i) => context.fillText(t, canvas.width / 2, 26 + i * 36));
+  // Preserve the source-linked 14px layout while increasing fully covered
+  // raster glyph pixels after 2x canvas downsampling in Chromium WebGL.
+  // This is a visual stroke, not a relaxation of pixel-evidence thresholds.
+  context.strokeStyle = '#ffe3a0';
+  context.lineWidth = 3;
+  context.lineJoin = 'round';
+  lines.forEach((t, i) => {
+    context.strokeText(t, canvas.width / 2, 26 + i * 36);
+    context.fillText(t, canvas.width / 2, 26 + i * 36);
+  });
   const previous = sprite.material.map;
   sprite.material.map = new THREE.CanvasTexture(canvas);
   sprite.material.map.colorSpace = THREE.SRGBColorSpace;
