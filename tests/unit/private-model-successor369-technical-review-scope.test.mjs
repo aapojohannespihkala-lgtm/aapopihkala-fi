@@ -85,7 +85,8 @@ test('successor exact SHA admits only technical roots, never cutaway building wr
  for(const n of [12086,12087,12088,12089,12090,12091,12092,12096,12098,12106]){
    assert.ok(ids.includes(n),'real technical root '+n);
  }
- for(const n of [12097,11542,8913,2220])assert.equal(ids.includes(n),false,'no architecture/superseded '+n);
+ for(const n of [2220,11613,11945])assert.ok(json.scenes[362].nodes.includes(n), 'composite non-technical source root '+n+' is active');
+ for(const n of [12097,11542,8913,2220,11613,11945])assert.equal(ids.includes(n),false,'no architecture/superseded '+n);
  assert.equal(new Set(ids).size,ids.length);
  assert.ok(ids.every(n=>json.scenes[362].nodes.includes(n)));
 });
@@ -106,7 +107,7 @@ test('PK1 service cutaway scene368 retains verified technical roots but never it
  assert.ok(profile);
  const ids=profile.roots[368].map(x=>x.node);
  for(const n of [12086,12092,12096,12098,12106])assert.ok(ids.includes(n));
- for(const n of [12097,2220,11542,8913])assert.equal(ids.includes(n),false);
+ for(const n of [12097,2220,11613,11945,11542,8913])assert.equal(ids.includes(n),false);
  assert.equal(ids.length,new Set(ids).size);
 });
 
