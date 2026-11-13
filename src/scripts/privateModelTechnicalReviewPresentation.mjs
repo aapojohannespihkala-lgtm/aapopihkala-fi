@@ -230,11 +230,15 @@ export function createTechnicalReviewPresentation(root, keepRoots, createMateria
         if (object === root || !isRenderable(object) || saved.has(object)) return;
         let shared;
         if (kept(object)) {
-          // Technical geometry is drawn in a clear system color so that it stays
-          // readable through the translucent grey building.
-          const highlight = object.isMesh ? materials.systems?.[systemOf(object) ?? ''] : null;
-          if (!highlight) return;
-          shared = highlight;
+          // A trusted technical root can contain non-technical child meshes.
+          // With a system palette, only explicitly classified meshes get a
+          // technical color. Unknown children and visual guides must go grey.
+          // A palette-free legacy review keeps its original source materials.
+          if (!materials.systems) return;
+          const system = object.isMesh ? systemOf(object) : null;
+          shared = object.isMesh
+            ? (materials.systems[system ?? ''] ?? materials.surface)
+            : materials.line;
         } else {
           shared = object.isMesh ? materials.surface : materials.line;
         }
