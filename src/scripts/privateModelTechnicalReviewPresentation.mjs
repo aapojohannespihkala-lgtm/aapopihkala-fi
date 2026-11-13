@@ -85,6 +85,20 @@ import { sameSourceName } from './privateModelSourceNodeAssociations.mjs';
 // then add the physically distinct MJ63, MJ72 and KIV005 source components.
 // The PK1 cutaway wrapper (12097) is ARCHITECTURE, never a technical root.
 // The canonical source profile must PASS before trusting even the old root IDs.
+/**
+ * Three immutable source roots are visual wrappers, not technical systems.
+ * 2220 C77 shower/glass/shelf, 11613 H24 WC + wall accessories,
+ * 11945 MJ56 reference clearance guides. The source hash gates these exact
+ * node IDs. Never apply this exclusion to other GLBs or their node indices.
+ */
+const COMPOSITE_PRESENTATION_ROOTS = new Set([2220,11613,11945]);
+export function filterCompositePresentationRoots(entries,loadedSha) {
+  if (!Array.isArray(entries)) return null;
+  if (loadedSha !== TATE4_MJ6263_SOURCE_SHA256 &&
+      loadedSha !== SUCCESSOR_R1_SHA256) return entries;
+  return entries.filter(entry=>!COMPOSITE_PRESENTATION_ROOTS.has(entry.node));
+}
+
 export function successor369ReviewProfile(json, sha, sceneIndex) {
   const spec=SUCCESSOR_R1_SCENES[sceneIndex];
   if (!spec || !isM6263Mj72Kiv005Pk1SuccessorSourceScene(
@@ -105,9 +119,8 @@ export function successor369ReviewProfile(json, sha, sceneIndex) {
   // 11945: MJ56 sauna reference clearance guides (two guide meshes).
   // The cutaway replacement 12097 (PK1) is also never a technical root.
   // Keep the prior exact-source technical classifier unchanged for old SHAs.
-  const presentationOnly = new Set([2220, 11613, 11945]);
-  const kept=inherited.filter(item=>membership.has(item.node) &&
-    !presentationOnly.has(item.node));
+  const kept=filterCompositePresentationRoots(inherited.filter(item=>
+    membership.has(item.node)),sha);
   if (kept.some(item=>json.nodes[item.node]?.name!==item.name)) return null;
   // Source-exact IDs, not model-name guesses or whole-building visual roots.
   const addedIds=[12086,12087,12088,12089,12090,12091,12092,12096,12098,12106]
@@ -133,7 +146,9 @@ export function resolveTechnicalReviewRoots(gltf, scene, sceneIndex, loadedSha, 
   const source = loadedSha === SUCCESSOR_R1_SHA256 ? successor369ReviewProfile(json,loadedSha,sceneIndex)
     : loadedSha === TATE4_MJ6263_SOURCE_SHA256 ? m6263ReviewProfile(json,loadedSha,sceneIndex)
     : Object.hasOwn(REVIEW_SOURCES, loadedSha) ? REVIEW_SOURCES[loadedSha] : null;
-  const profile = source?.roots[sceneIndex];
+  // The source-locked legacy M6263 scenes must not re-highlight composite
+  // shower/WC/guide wrappers that the newer successor already greys out.
+  const profile = filterCompositePresentationRoots(source?.roots[sceneIndex],loadedSha);
   const sceneProfile = source?.scenes[sceneIndex];
   const extras = json?.asset?.extras;
   if (!profile || !sceneProfile || expectedSha !== loadedSha ||
