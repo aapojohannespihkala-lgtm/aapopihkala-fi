@@ -217,6 +217,7 @@ jobs:
             tests/unit/private-model-m6263-mj72-kiv005-pk1-successor-source-profile.test.mjs \
             tests/unit/private-model-successor369-viewer-runtime.test.mjs \
             tests/unit/private-model-successor369-technical-review-scope.test.mjs \
+            tests/unit/private-model-concealed-technical-presentation.test.mjs \
             tests/unit/private-model-succ369-publisher-candidate.test.mjs \
             tests/unit/private-model-mj79-exxact-source-profile.test.mjs
 
