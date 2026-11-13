@@ -31,17 +31,20 @@ test('seven and only seven SHA-profile glTF scenes map to floor and glazing', ()
   }
 });
 
-test('1F has no invented ONE_OPEN or STACKED glTF scene', () => {
+test('1F stays at real scene353 when upper-floor glazing switches; never invent 1F scenes', () => {
   assert.equal(selectTate4Mj6263InternalScene('1F'), 353);
-  assert.equal(selectTate4Mj6263InternalScene('1F', 'ONE_OPEN'), null);
-  assert.equal(selectTate4Mj6263InternalScene('1F', 'STACKED'), null);
-  assert.deepEqual(
-    resolveTate4Mj6263ViewerScene({
-      loadedGlbSha256: TATE4_MJ6263_SOURCE_SHA256, floor: '1F',
-      glazingState: 'STACKED',
-    }),
-    { ok: false, reason: 'M6263_UNSUPPORTED_FLOOR_GLAZING' },
-  );
+  assert.equal(selectTate4Mj6263InternalScene('1F', 'ONE_OPEN'), 353);
+  assert.equal(selectTate4Mj6263InternalScene('1F', 'STACKED'), 353);
+  assert.equal(Object.keys(TATE4_MJ6263_SCENES).length, 7);
+  for (const glazingState of ['CLOSED','ONE_OPEN','STACKED']) {
+    assert.deepEqual(resolveTate4Mj6263ViewerScene({
+      loadedGlbSha256: TATE4_MJ6263_SOURCE_SHA256, floor: '1F', glazingState,
+      sourceJson: null,
+    }), { ok: false, reason: 'M6263_SOURCE_SCENE_MISMATCH' });
+  }
+  assert.deepEqual(resolveTate4Mj6263ViewerScene({
+    loadedGlbSha256: '0'.repeat(64), floor: '1F', glazingState: 'STACKED',
+  }), { ok: false, reason: 'M6263_SOURCE_SHA_MISMATCH' });
 });
 
 test('unknown, mixed-case and prototype-key floor/state values fail closed', () => {
