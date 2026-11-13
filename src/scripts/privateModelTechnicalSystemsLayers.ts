@@ -1,3 +1,5 @@
+import { isTate4Mj62Mj63SourceScene } from './privateModelTate4Mj62Mj63SourceProfile.mjs';
+import { TATE4_MJ6263_SOURCE_SHA256, resolveM6263TechnicalNode } from './privateModelM6263ViewerReceipt.mjs';
 import { AIR385_SOURCE_SHA256, AIR385_COMPONENTS, isAir385SourceScene } from './privateModelAir385ToshibaServiceSourceProfile.mjs';
 import { KIV005_SOURCE_SHA256, KIV005_NODES, isKiv005OwnerSourceScene } from './privateModelC80Kiv005OwnerSourceProfile.mjs';
 import { SG5_ROOF600_SOURCE_SHA256, SG5_ROOF600_ROOT, SG5_ROOF600_WHITE_NODES, isSg5Roof600SourceScene } from './privateModelC80Sg5Roof600SourceProfile.mjs';
@@ -5,7 +7,6 @@ import { MJ79_SOURCE_SHA256, MJ79_SOCKETS, isMJ79SourceScene } from './privateMo
 import { MJ84_SOURCE_SHA256, MJ84_COMPONENTS, isMJ84SourceScene } from './privateModelMJ84KsoSourceProfile.mjs';
 import { MJ84_HOLLOW_SOURCE_SHA256, MJ84_HOLLOW_COMPONENTS, MJ84_HOLLOW_WC_CEILING, isMJ84HollowSourceScene } from './privateModelMJ84HollowSourceProfile.mjs';
 import { TATE4_MJ72_SOURCE_SHA256, TATE4_MJ72_CHILDREN, isTate4Mj72SocketSourceScene } from './privateModelTate4Mj72SocketSourceProfile.mjs';
-import { TATE4_MJ6263_SOURCE_SHA256, TATE4_MJ6263_SCENES, isTate4Mj62Mj63SourceScene } from './privateModelTate4Mj62Mj63SourceProfile.mjs';
 import { TATE4_SOURCE_SHA256, TATE4_SOURCE_SCENE_COUNT, TATE4_BUILDING_SCENES, resolveTate4TechnicalNode } from './privateModelC80TateInteriorLayerSourceProfile.mjs';
 import { TATE3_SOURCE_SHA256, TATE3_SOURCE_SCENE_COUNT, TATE3_BUILDING_SCENES, resolveTate3TechnicalNode } from './privateModelC80TateThreeDeltaLayerSourceProfile.mjs';
 import { TATE_SOURCE_SHA256, TATE_SOURCE_SCENE_COUNT, TATE_BUILDING_SCENES, resolveTateTechnicalNode } from './privateModelC80P02TateLayerSourceProfile.mjs';
@@ -306,6 +307,10 @@ const v26Scenes = { '1F': 174, '2F': 162, BOTH: 175 } as const;
 const v26Device = (context: TechnicalSystemsContext, binding: TechnicalSourceNode): {
   id: TechnicalSystemId; scope: Scope;
 } | null => {
+  if (context.loadedGlbSha256 === TATE4_MJ6263_SOURCE_SHA256) {
+    const exact=resolveM6263TechnicalNode(context.sourceJson,context.loadedGlbSha256,context.sourceSceneIndex,binding.nodeIndex);
+    return exact ? {id:exact.id as TechnicalSystemId,scope:{apartment:'D',storey:exact.storey,phase:'ACTIVE_IN_SELECTED_WORKTEST'}} : null;
+  }
   // This alternate SHA is intentionally source-limited: classify only the
   // exact Bosch/PA2/PK1/S1S2/neck groups, never copied legacy sourceLinks.
   if (context.loadedGlbSha256 === V93_MJ40_SOURCE_SHA256) {
@@ -324,27 +329,6 @@ const v26Device = (context: TechnicalSystemsContext, binding: TechnicalSourceNod
       seen.add(index);
       const parent = context.sourceNodes.find(node => node.sceneIndex === context.sourceSceneIndex && node.nodeIndex === index);
       index = parent?.parentNodeIndex ?? null;
-    }
-    return null;
-  }
-  // Only the eleven newly modeled MJ63R2 ventilation/transfer components.
-  // A source-locked 1F/BOTH opt-in is required; 2F cannot inherit this duct.
-  // Device category does not assert measured airflow or an as-built route.
-  if (context.loadedGlbSha256 === TATE4_MJ6263_SOURCE_SHA256) {
-    const scope = TATE4_MJ6263_SCENES[context.sourceSceneIndex];
-    if (!scope || !isTate4Mj62Mj63SourceScene(
-      context.sourceJson, context.loadedGlbSha256, context.sourceSceneIndex,
-      scope.floor, scope.glazing) || scope.floor === '2F') return null;
-    const visited = new Set<number>();
-    let node: number | null = binding.nodeIndex;
-    while (node !== null && !visited.has(node)) {
-      if (node >= 12086 && node <= 12096)
-        return { id: 'technical-ventilation',
-          scope: { apartment: 'D', storey: '1F', phase: 'ACTIVE_IN_SELECTED_WORKTEST' } };
-      visited.add(node);
-      const parent = context.sourceNodes.find(candidate =>
-        candidate.sceneIndex === context.sourceSceneIndex && candidate.nodeIndex === node);
-      node = parent?.parentNodeIndex ?? null;
     }
     return null;
   }
@@ -659,7 +643,9 @@ const v26Device = (context: TechnicalSystemsContext, binding: TechnicalSourceNod
 export const createTechnicalSystemLayerInventory = (context: TechnicalSystemsContext) => {
   const { sceneRoot, sourceSceneIndex, viewerScope } = context;
   const exactSource = normalizedSha(context.loadedGlbSha256) !== null &&
-    context.loadedGlbSha256 === context.expectedGlbSha256;
+    context.loadedGlbSha256 === context.expectedGlbSha256 &&
+    (context.loadedGlbSha256 !== TATE4_MJ6263_SOURCE_SHA256 ||
+      isTate4Mj62Mj63SourceScene(context.sourceJson, context.loadedGlbSha256, sourceSceneIndex));
 
   const indices = new Map<number, TechnicalSourceNode>();
   const sourceObjects = new Map<Object3D, TechnicalSourceNode>();
@@ -798,6 +784,7 @@ export const createTechnicalSystemPresentation = (
   sceneRoot: Object3D,
   inventory: ReturnType<typeof createTechnicalSystemLayerInventory>,
 ) => createViewerScopedLayerPresentation(sceneRoot, inventory.bridgeBindings);
+
 
 
 

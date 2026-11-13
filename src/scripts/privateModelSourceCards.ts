@@ -1,5 +1,6 @@
+import { TATE4_MJ6263_SOURCE_SHA256, resolveM6263CardNode } from './privateModelM6263ViewerReceipt.mjs';
+import { TATE4_MJ6263_SCENES, isTate4Mj62Mj63SourceScene } from './privateModelTate4Mj62Mj63SourceProfile.mjs';
 import { TATE4_SOURCE_SHA256, TATE4_CARD_LINKS, resolveTate4CardNode } from './privateModelC80TateInteriorLayerSourceProfile.mjs';
-import { TATE4_MJ6263_SOURCE_SHA256, TATE4_MJ6263_SCENES, isTate4Mj62Mj63SourceScene } from './privateModelTate4Mj62Mj63SourceProfile.mjs';
 import { buildSourceNodeAssociations, createSourceNodeView } from './privateModelSourceNodeAssociations.mjs';
 import { rehydrateHi20Unified52SourceScenes } from './privateModelHi20Unified52SourceScenes.mjs';
 import { rehydrateIncompleteScene } from './privateModelSourceSceneRehydrate.mjs';
@@ -365,6 +366,25 @@ export const createSourceCardResolver = (
     const node = nodeIndex === undefined ? undefined : json.nodes?.[nodeIndex];
     // The new SHA has an independently audited source/node/mesh/parent receipt.
     // Reuse the selection card UI, preserving older sidecar contracts unchanged.
+    if (sha256 === TATE4_MJ6263_SOURCE_SHA256 && nodeIndex !== undefined) {
+      const exact=resolveM6263CardNode(json,sha256,sceneIndex,nodeIndex);
+      if (!exact || runtimePath.join(',') !== [...exact.path].reverse().join(','))
+        return result('mismatch','M6263-version solmu tai parent-polku ei täsmää.',[],sceneIndex);
+      let linkedObject:SourceNode|null|undefined=selected;
+      while(linkedObject && associations.get(linkedObject)?.nodes!==exact.linkNode) linkedObject=linkedObject.parent;
+      if (selected?.name!==json.nodes[nodeIndex].name ||
+          !sameValues(selected?.userData?.sourceLinks??null,json.nodes[nodeIndex].extras?.sourceLinks??null) ||
+          !linkedObject || !sameValues(linkedObject.userData?.sourceLinks,json.nodes[exact.linkNode].extras?.sourceLinks))
+        return result('mismatch','M6263-version lähdeviitteet eivät täsmää.',[],sceneIndex);
+      const sources=(exact.links as Array<RecordData|string>).filter((link):link is RecordData=>typeof link==='object'&&link!==null)
+        .map(link=>({title:text(link.title??link.role??link.docId)||'Lähde',url:text(link.url??link.link),
+          role:text(link.role),supports:[],limits:['WORK_TEST. Ei vahvistettu toteuma tai fyysinen liitos.']}))
+        .filter(link=>allowedSourceCardUrl(link.url));
+      return result('matched',undefined,[{id:`M6263:${sceneIndex}:${nodeIndex}`,title:json.nodes[nodeIndex].name,
+        status:'WORK_TEST / HOST_HOLD',facts:[{label:'Versiosidonta',value:'Täsmällinen GLB, scene, solmu, mesh ja parent-polku.',kind:'derived',evidence:'EXACT_SOURCE_RECEIPT'},
+          {label:'Fyysiset liitokset ja mittasijainti',value:'Vahvistamatta',kind:'unverified',evidence:'PHYSICAL_UNKNOWN'}],
+        sources,conflicts:[],notes:['HUMAN_REVIEW tekemättä. Ei CURRENT/as-built.']}],sceneIndex);
+    }
     if (sha256 === TATE4_SOURCE_SHA256 && nodeIndex !== undefined) {
       const exact = resolveTate4CardNode(json, sceneIndex, nodeIndex);
       if (!exact || runtimePath.join(',') !== [...exact.path].reverse().join(','))
@@ -387,41 +407,6 @@ export const createSourceCardResolver = (
         facts: [{label:'Versiosidonta',value:'Täsmällinen GLB, scene, solmu, mesh ja parent-polku.',kind:'derived',evidence:'EXACT_SOURCE_RECEIPT'},
           {label:'Fyysiset liitokset ja HOT/COLD-identiteetti',value:'Vahvistamatta',kind:'unverified',evidence:'PHYSICAL_UNKNOWN'}],
         sources, conflicts: [], notes: ['HUMAN_REVIEW tekemättä. Ei CURRENT/as-built.'],
-      }], sceneIndex);
-    }
-    // Exact M6263 node card: preserve the existing UI; no legacy SHA/scene
-    // fallback, coordinate guess, or physical airflow claim.
-    if (sha256 === TATE4_MJ6263_SOURCE_SHA256 && nodeIndex !== undefined) {
-      const scope = TATE4_MJ6263_SCENES[sceneIndex];
-      if (!scope || !isTate4Mj62Mj63SourceScene(json, sha256, sceneIndex, scope.floor, scope.glazing))
-        return result('mismatch', 'M6263 lähdescene ei vastaa tavutunnistetta.', [], sceneIndex);
-      if (nodeIndex < 12077 || nodeIndex > 12096)
-        return result('unbound', 'Tämän alkuperäisen lähdesolmun korttia ei siirretty uuteen SHA-versioon.', [], sceneIndex);
-      const paths = sourcePaths(json, sceneIndex, nodeIndex);
-      if (paths.length !== 1 ||
-          runtimePath.join(',') !== [...paths[0]].reverse().join(',') ||
-          !selected || selected.name !== node?.name ||
-          !sameValues(selected.userData?.sourceLinks ?? null, node?.extras?.sourceLinks ?? null))
-        return result('mismatch', 'M6263 solmun parent-polku tai lähdetiedot eivät täsmää.', [], sceneIndex);
-      const requiredDoc = nodeIndex <= 12085
-        ? 'https://docs.google.com/document/d/1yQrVBIFVXKdB3k1UGreLGr8dOnv-pGwdAO2q4rpSh8Q/edit'
-        : 'https://docs.google.com/document/d/1Ql8rf73ZAdIeA0hQYZzRntMfz3jbqHwpQEjOPNnuh2U/edit';
-      const links = node.extras?.sourceLinks;
-      const allowed = Array.isArray(links) ? links.filter((link: RecordData) =>
-        link && typeof link === 'object' && !Array.isArray(link) &&
-        (link.url === requiredDoc || link.link === requiredDoc)) : [];
-      if (!allowed.length) return result('mismatch', 'M6263 omistajan täsmällinen lähdeviite puuttuu.', [], sceneIndex);
-      const sources = allowed.map((link: RecordData) => ({
-        title: text(link.title ?? link.role) || 'Omistajan lähde',
-        url: requiredDoc, role: text(link.role), supports: [],
-        limits: ['WORK_TEST/HOST_HOLD. Fyysinen ilmavirta, koko reitti ja toteuma varmistamatta.'],
-      }));
-      return result('matched', undefined, [{
-        id: `M6263:${sceneIndex}:${nodeIndex}`, title: node.name,
-        status: 'WORK_TEST / HOST_HOLD',
-        facts: [{ label: 'Lähdeidentiteetti', value: 'SHA256, sisäinen glTF-scene, solmu, mesh ja parent-polku varmennettu.', kind: 'derived', evidence: 'EXACT_SOURCE_GLB' },
-          { label: 'Fyysinen liitos ja ilmavirta', value: 'WORK_ASSUMPTION, ei mitattu.', kind: 'unverified', evidence: 'PHYSICAL_UNKNOWN' }],
-        sources, conflicts: [], notes: ['Parvekelasitus ja korjattu MJ63R2-tulo/poisto ovat WORK_TEST. HUMAN_REVIEW NOT_RUN, ei CURRENT/as-built.'],
       }], sceneIndex);
     }
     if (!bundle || failure) return result('unavailable', failure ?? 'Lähdekorttiaineistoa ei voitu ladata.');
@@ -528,11 +513,13 @@ export const loadModelWithSourceCards = async <T extends GltfSource & object>(
   // Default scene, plus the three C80R2 successor floor scenes when present.
   const json = gltf.parser?.json;
   const chain = resolveC80R2ChainFloorScenes(json);
-  const m6263Exact = digest === TATE4_MJ6263_SOURCE_SHA256 &&
-    Object.entries(TATE4_MJ6263_SCENES).every(([index, info]) =>
-      isTate4Mj62Mj63SourceScene(json, digest, Number(index), info.floor, info.glazing));
-  const rehydrate = new Set<number>([json?.scene ?? 0, ...(chain ? [chain['1F'], chain['2F'], chain.BOTH] : []),
-    ...(m6263Exact ? Object.keys(TATE4_MJ6263_SCENES).map(Number) : [])]);
+  const rehydrate = new Set<number>([json?.scene ?? 0, ...(chain ? [chain['1F'], chain['2F'], chain.BOTH] : [])]);
+  if (digest === TATE4_MJ6263_SOURCE_SHA256) {
+    const indexes=Object.keys(TATE4_MJ6263_SCENES).map(Number);
+    if (!indexes.every(index=>isTate4Mj62Mj63SourceScene(json,digest,index)))
+      throw new Error('M6263_SOURCE_SCENE_MISMATCH');
+    for (const index of indexes) rehydrate.add(index);
+  }
   for (const sceneIndex of rehydrate) {
     try {
       const rebuilt = await rehydrateIncompleteScene(gltf, sceneIndex);
@@ -549,3 +536,4 @@ export const loadModelWithSourceCards = async <T extends GltfSource & object>(
 
 export const sourceCardResolverForModel = (gltf: object) => sessions.get(gltf) ?? createSourceCardResolver(gltf, null, null,
   'Tämän erikoisnäkymän lähdekorttikohdistusta ei ole varmennettu.');
+
