@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {inflateSync} from 'node:zlib';
-import {SUCCESSOR_R1_SHA256,SUCCESSOR_R1_DONORS,SUCCESSOR_R1_SCENES} from '../../src/scripts/privateModelM6263Mj72Kiv005Pk1SuccessorSourceProfile.mjs';
+import {SUCCESSOR_R1_SHA256,SUCCESSOR_R1_DONORS,SUCCESSOR_R1_SCENES,isM6263Mj72Kiv005Pk1SuccessorSourceScene} from '../../src/scripts/privateModelM6263Mj72Kiv005Pk1SuccessorSourceProfile.mjs';
 import {TATE4_TECHNICAL_REVIEW_ROOTS} from '../../src/scripts/privateModelC80TateInteriorLayerSourceProfile.mjs';
 import {successor369ReviewProfile,resolveTechnicalReviewRoots,createTechnicalReviewPresentation} from '../../src/scripts/privateModelTechnicalReviewPresentation.mjs';
 
@@ -51,6 +51,7 @@ function fixture(){
 }
 
 
+const awaitSourceGate=json=>isM6263Mj72Kiv005Pk1SuccessorSourceScene(json,SUCCESSOR_R1_SHA256,362);
 const sourceDoc=()=>{
  const json=fixture();
  // Source-exact inherited TATE4 root labels are preserved in the successor.
@@ -61,6 +62,8 @@ const sourceDoc=()=>{
 };
 test('successor exact SHA admits only technical roots, never cutaway building wrapper',()=>{
  const json=sourceDoc();
+ const gate=(awaitSourceGate(json));
+ assert.equal(gate,true,'canonical source fixture must pass before technical selection');
  const profile=successor369ReviewProfile(json,SUCCESSOR_R1_SHA256,362);
  assert.ok(profile);
  assert.equal(profile.count,369);
