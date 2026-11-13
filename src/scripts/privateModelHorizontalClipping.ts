@@ -12,6 +12,17 @@ type HorizontalClippingControllerArgs = {
   valueOutput: HTMLOutputElement;
 };
 
+// The private-model page owns one horizontal clipping controller. Raycasting
+// does not apply renderer.clippingPlanes, so expose its actual world-space
+// plane to the existing point and 3D-measure picker without editing the page.
+let activeViewerHorizontalClipPlane: THREE.Plane | null = null;
+
+export const isPointVisibleThroughViewerHorizontalClip = (point: THREE.Vector3): boolean => {
+  if (!activeViewerHorizontalClipPlane) return true;
+  const distance = activeViewerHorizontalClipPlane.distanceToPoint(point);
+  return Number.isFinite(distance) && distance >= -1e-7;
+};
+
 export const createHorizontalClippingController = ({
   canvas,
   renderer,
@@ -35,6 +46,7 @@ export const createHorizontalClippingController = ({
       plane.normal.set(0, -1, 0);
       plane.constant = requestedHeight;
       renderer.clippingPlanes = [plane];
+      activeViewerHorizontalClipPlane = plane;
       canvas.dataset.horizontalClip = 'active';
       canvas.dataset.horizontalClipHeightM = requestedHeight.toFixed(3);
       canvas.dataset.horizontalClipSide = 'above';
@@ -42,6 +54,7 @@ export const createHorizontalClippingController = ({
     }
 
     renderer.clippingPlanes = [];
+    activeViewerHorizontalClipPlane = null;
     canvas.dataset.horizontalClip = 'inactive';
     delete canvas.dataset.horizontalClipHeightM;
     delete canvas.dataset.horizontalClipSide;
@@ -49,6 +62,7 @@ export const createHorizontalClippingController = ({
 
   const reset = () => {
     renderer.clippingPlanes = [];
+    activeViewerHorizontalClipPlane = null;
     enabledInput.checked = false;
     enabledInput.disabled = true;
     heightInput.disabled = true;

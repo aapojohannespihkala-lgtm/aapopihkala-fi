@@ -38,6 +38,8 @@ jobs:
   build:
     # Keep browser dependencies off the observed 26.04 font-mirror stall.
     runs-on: ubuntu-24.04
+    env:
+      PLAYWRIGHT_CI_IMAGE: mcr.microsoft.com/playwright:v1.62.1-noble
     permissions:
       contents: read
       pull-requests: read
@@ -182,6 +184,9 @@ jobs:
         if: steps.changes.outputs.docs_only != 'true' && steps.changes.outputs.css_only != 'true'
         run: |
           node --test \
+            tests/unit/private-model-c80-p02-water-source-profile.test.mjs \
+            tests/unit/private-model-c80-p02-tate-source-profile.test.mjs \
+            tests/unit/private-model-c80-tate-three-delta-source-profile.test.mjs tests/unit/private-model-c80-tate-interior-source-profile.test.mjs \
             tests/unit/check-d-scene32-preview-parity.test.mjs \
             tests/unit/check-k14-roof-crossings.test.mjs \
             tests/unit/private-model-k14-roof-view-clip.test.mjs \
@@ -196,7 +201,20 @@ jobs:
             tests/unit/private-model-hi20-unified52-source-scenes.test.mjs \
             tests/unit/private-model-source-scene-rehydrate.test.mjs \
             tests/unit/private-model-c80r2-chain-scenes.test.mjs \
-            tests/unit/private-model-v93-iv125-lowtri-source-profile.test.mjs
+            tests/unit/private-model-v93-iv125-lowtri-source-profile.test.mjs \
+            tests/unit/private-model-v93-double-outlet-photo-source-links.test.mjs \
+            tests/unit/private-model-v93-mj49-owner-ns-savo-source-profile.test.mjs \
+            tests/unit/private-model-v93-mj40-bosch-open90-source-profile.test.mjs \
+            tests/unit/private-model-air385-toshiba-service-source-profile.test.mjs \
+            tests/unit/private-model-c80-kiv005-owner-source-profile.test.mjs \
+            tests/unit/private-model-c80-sg5-roof600-source-profile.test.mjs \
+            tests/unit/private-model-mj84-kso-source-profile.test.mjs \
+            tests/unit/private-model-mj84-hollow-source-profile.test.mjs \
+            tests/unit/private-model-tate4-mj72-socket-source-profile.test.mjs \
+            tests/unit/private-model-m6263-viewer-receipt.test.mjs \
+            tests/unit/private-model-tate4-mj6263-scene-selection.test.mjs \
+            tests/unit/private-model-tate4-mj62-mj63-source-profile.test.mjs \
+            tests/unit/private-model-mj79-exxact-source-profile.test.mjs
 
       # Four self-contained K16-b/c scene33 builder guards run on every
       # executable PR. The optional original-Drive-source replay remains
@@ -217,11 +235,38 @@ jobs:
         if: steps.changes.outputs.docs_only != 'true'
         run: npm run build
 
+      # Version-matched official image contains Chromium and Ubuntu libraries.
+      # A real browser launch is mandatory; no apt mirrors or gate skipping.
       - name: Install Chromium
         if: >-
           steps.changes.outputs.docs_only != 'true' &&
           (github.event_name != 'pull_request' || steps.changes.outputs.browser_tests != '')
-        run: npx playwright install --with-deps chromium
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Keep the runner's setup-node 24.20.0 runtime inside the image.
+          node_root="$(dirname "$(dirname "$(readlink -f "$(command -v node)")")")"
+          test -x "$node_root/bin/node"
+          printf 'PLAYWRIGHT_CI_NODE_ROOT=%s\n' "$node_root" >> "$GITHUB_ENV"
+          docker pull "$PLAYWRIGHT_CI_IMAGE"
+          docker run --rm --init --ipc=host \
+            --user "$(id -u):$(id -g)" -e CI=true -e HOME=/tmp \
+            -e PATH=/opt/node24/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin \
+            -v "$GITHUB_WORKSPACE:/work" -v "$node_root:/opt/node24:ro" \
+            -w /work "$PLAYWRIGHT_CI_IMAGE" \
+            node --input-type=module -e '
+              import { chromium } from "@playwright/test";
+              import { readFileSync } from "node:fs";
+              const version = JSON.parse(readFileSync("node_modules/@playwright/test/package.json", "utf8")).version;
+              if (version !== "1.62.1") throw new Error("Playwright package/image version mismatch");
+              const browser = await chromium.launch();
+              try {
+                const page = await browser.newPage();
+                await page.goto("about:blank");
+              } finally {
+                await browser.close();
+              }
+            '
 
       - name: Selected browser guards
         if: >-
@@ -242,11 +287,24 @@ jobs:
           if [[ " ${specs[*]} " != *" tests/e2e/private-model-t04-clip-sign.spec.ts "* ]]; then
             specs+=(tests/e2e/private-model-t04-clip-sign.spec.ts)
           fi
-          npx playwright test "${specs[@]}"
+          docker run --rm --init --ipc=host \
+            --user "$(id -u):$(id -g)" -e CI=true -e HOME=/tmp \
+            -e PATH=/opt/node24/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin \
+            -v "$GITHUB_WORKSPACE:/work" -v "$PLAYWRIGHT_CI_NODE_ROOT:/opt/node24:ro" \
+            -w /work "$PLAYWRIGHT_CI_IMAGE" \
+            npx playwright test "${specs[@]}"
 
       - name: Browser regression tests
         if: steps.changes.outputs.docs_only != 'true' && github.event_name != 'pull_request' && inputs.replay_pr == ''
-        run: npm run test:e2e
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker run --rm --init --ipc=host \
+            --user "$(id -u):$(id -g)" -e CI=true -e HOME=/tmp \
+            -e PATH=/opt/node24/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin \
+            -v "$GITHUB_WORKSPACE:/work" -v "$PLAYWRIGHT_CI_NODE_ROOT:/opt/node24:ro" \
+            -w /work "$PLAYWRIGHT_CI_IMAGE" \
+            npm run test:e2e
 
       - name: Upload browser test artifacts
         if: failure() && steps.changes.outputs.docs_only != 'true'
@@ -476,3 +534,4 @@ jobs:
           gh api --method POST \
             "/repos/${GITHUB_REPOSITORY}/actions/workflows/d-view-regression.yml/dispatches" \
             --raw-field ref=main
+

@@ -7,7 +7,12 @@ on:
         description: Exact published source, or all established regressions
         type: choice
         default: all
-        options: [all, V68, V69, K17_RAIL900, V69P12R1]
+        options: [all, V68, V69, K17_RAIL900, V69P12R1, P02, TATE, TATE3, TATE4, M6263]
+      tate_phase:
+        description: TATE proof phase (full preserves every existing gate)
+        type: choice
+        default: full
+        options: [full, model-switch]
   # GITHUB_TOKEN automerge may not emit a new push-triggered workflow.
   # After the trusted main Build check succeeds, run the exact-source browser
   # gate for that same main commit. Keep WIF/GLB out of all PR workflows.
@@ -59,7 +64,7 @@ permissions:
 concurrency:
   # The established all matrix excludes P12R1. Its automatic replay must not
   # cancel the dedicated P12R1 capture of the same trusted main head.
-  group: d-view-exact-source-webgl${{ inputs.source_version == 'V69P12R1' && '-v69p12r1' || '' }}
+  group: d-view-exact-source-webgl${{ inputs.source_version == 'M6263' && '-m6263' || inputs.source_version == 'TATE4' && '-tate4' || inputs.source_version == 'TATE3' && '-tate3' || inputs.source_version == 'TATE' && '-tate' || inputs.source_version == 'P02' && '-p02' || inputs.source_version == 'V69P12R1' && '-v69p12r1' || '' }}
   # Read-only viewer QA is bound to one exact main head. A newer head supersedes it.
   cancel-in-progress: true
 
@@ -79,7 +84,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        mode: ${{ fromJSON(github.event_name == 'workflow_dispatch' && inputs.source_version == 'V69P12R1' && '["layers-v69p12r1-production"]' || github.event_name == 'workflow_dispatch' && inputs.source_version == 'K17_RAIL900' && '["layers-k17-rail900-production"]' || github.event_name == 'workflow_dispatch' && inputs.source_version == 'V69' && '["layers-v69-production"]' || github.event_name == 'workflow_dispatch' && inputs.source_version == 'V68' && '["layers-v68-production"]' || '["source","c70-production","c80-production","hi12-production","hi13-source","hi13-production","hi14-source","hi14-production","hi18-source","hi18-production","hi19-source","hi19-production","hi20-unified52-production","layers-v26-production","layers-v29-production","layers-v35-production","v27-terrace-production","layers-v68-production","layers-v69-production"]') }}
+        mode: ${{ fromJSON(github.event_name == 'workflow_dispatch' && inputs.source_version == 'M6263' && '["layers-m6263-production"]' || github.event_name == 'workflow_dispatch' && inputs.source_version == 'TATE4' && '["layers-tate4-production"]' || github.event_name == 'workflow_dispatch' && inputs.source_version == 'TATE3' && '["layers-tate3-production"]' || github.event_name == 'workflow_dispatch' && inputs.source_version == 'TATE' && '["layers-tate-production"]' || github.event_name == 'workflow_dispatch' && inputs.source_version == 'P02' && '["layers-p02-production"]' || github.event_name == 'workflow_dispatch' && inputs.source_version == 'V69P12R1' && '["layers-v69p12r1-production"]' || github.event_name == 'workflow_dispatch' && inputs.source_version == 'K17_RAIL900' && '["layers-k17-rail900-production"]' || github.event_name == 'workflow_dispatch' && inputs.source_version == 'V69' && '["layers-v69-production"]' || github.event_name == 'workflow_dispatch' && inputs.source_version == 'V68' && '["layers-v68-production"]' || '["source","c70-production","c80-production","hi12-production","hi13-source","hi13-production","hi14-source","hi14-production","hi18-source","hi18-production","hi19-source","hi19-production","hi20-unified52-production","layers-v26-production","layers-v29-production","layers-v35-production","v27-terrace-production","layers-v68-production","layers-v69-production"]') }}
     name: Exact WebGL / ${{ matrix.mode }}
     # Match the build job's supported, stable browser dependency environment.
     runs-on: ubuntu-24.04
@@ -96,7 +101,7 @@ jobs:
       - run: npm run build
       - run: npx playwright install --with-deps chromium
       - name: Authenticate read-only Drive source access on trusted main
-        if: matrix.mode != 'layers-v26-production' && matrix.mode != 'layers-v29-production' && matrix.mode != 'layers-v35-production' && matrix.mode != 'layers-v68-production' && matrix.mode != 'layers-v69-production' && matrix.mode != 'layers-k17-rail900-production' && matrix.mode != 'layers-v69p12r1-production' && matrix.mode != 'v27-terrace-production'
+        if: matrix.mode != 'layers-v26-production' && matrix.mode != 'layers-v29-production' && matrix.mode != 'layers-v35-production' && matrix.mode != 'layers-v68-production' && matrix.mode != 'layers-v69-production' && matrix.mode != 'layers-k17-rail900-production' && matrix.mode != 'layers-v69p12r1-production' && matrix.mode != 'layers-p02-production' && matrix.mode != 'layers-tate-production' && matrix.mode != 'layers-tate3-production' && matrix.mode != 'layers-tate4-production' && matrix.mode != 'layers-m6263-production' && matrix.mode != 'v27-terrace-production'
         id: google-auth
         uses: google-github-actions/auth@v3
         with:
@@ -107,7 +112,7 @@ jobs:
           create_credentials_file: false
           export_environment_variables: false
       - name: Fetch immutable sources and verify ZIP CRC and SHA
-        if: matrix.mode != 'layers-v26-production' && matrix.mode != 'layers-v29-production' && matrix.mode != 'layers-v35-production' && matrix.mode != 'layers-v68-production' && matrix.mode != 'layers-v69-production' && matrix.mode != 'layers-k17-rail900-production' && matrix.mode != 'layers-v69p12r1-production' && matrix.mode != 'v27-terrace-production'
+        if: matrix.mode != 'layers-v26-production' && matrix.mode != 'layers-v29-production' && matrix.mode != 'layers-v35-production' && matrix.mode != 'layers-v68-production' && matrix.mode != 'layers-v69-production' && matrix.mode != 'layers-k17-rail900-production' && matrix.mode != 'layers-v69p12r1-production' && matrix.mode != 'layers-p02-production' && matrix.mode != 'layers-tate-production' && matrix.mode != 'layers-tate3-production' && matrix.mode != 'layers-tate4-production' && matrix.mode != 'layers-m6263-production' && matrix.mode != 'v27-terrace-production'
         env:
           GDRIVE_ACCESS_TOKEN: ${{ steps.google-auth.outputs.access_token }}
         shell: bash
@@ -521,6 +526,197 @@ jobs:
       - name: Remove temporary protected V69P12R1 source
         if: always() && matrix.mode == 'layers-v69p12r1-production'
         run: rm -f "$RUNNER_TEMP/layers-v69p12r1-production.glb"
+      - name: Read exact published P02 water source
+        if: matrix.mode == 'layers-p02-production'
+        shell: bash
+        env:
+          CF_ACCESS_READBACK_CLIENT_ID: ${{ secrets.CF_ACCESS_READBACK_CLIENT_ID }}
+          CF_ACCESS_READBACK_CLIENT_SECRET: ${{ secrets.CF_ACCESS_READBACK_CLIENT_SECRET }}
+        run: |
+          set -euo pipefail
+          [[ -n "$CF_ACCESS_READBACK_CLIENT_ID" && -n "$CF_ACCESS_READBACK_CLIENT_SECRET" ]]
+          file="$RUNNER_TEMP/layers-p02-production.glb"
+          curl --fail --silent --show-error --connect-timeout 12 --max-time 90 \
+            -H "CF-Access-Client-Id: $CF_ACCESS_READBACK_CLIENT_ID" \
+            -H "CF-Access-Client-Secret: $CF_ACCESS_READBACK_CLIENT_SECRET" \
+            --output "$file" \
+            "https://aapopihkala.fi/private-model/work-test/verify/c80-p02-water-integrated-20261111.glb"
+          python3 - "$file" <<'PY'
+          import hashlib, json, pathlib, struct, sys
+          data=pathlib.Path(sys.argv[1]).read_bytes()
+          assert len(data)==52535692
+          assert hashlib.sha256(data).hexdigest()=='db5ce3d7ef4c0bc8910de7f46df80029617b37d38ff4ddccd330cf70a2818a2a'
+          source=json.loads(data[20:20+struct.unpack_from('<I',data,12)[0]])
+          assert len(source['scenes'])==341 and source['scene']==292
+          assert source['asset']['extras']['viewerFloorScenes']=={'1F':338,'2F':339,'BOTH':340}
+          print('Exact production P02 water bytes and 1F/2F/BOTH scene map verified.')
+          PY
+          printf 'YLIS_LAYERS_P02_GLB=%s\n' "$file" >> "$GITHUB_ENV"
+      - name: Protected P02 water Layers, KV LV pixels, floors and model switch
+        if: matrix.mode == 'layers-p02-production'
+        env:
+          YLIS_LAYERS_P02_PRODUCTION: '1'
+          CF_ACCESS_VIEWER_PROBE_CLIENT_ID: ${{ secrets.CF_ACCESS_VIEWER_PROBE_CLIENT_ID }}
+          CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET: ${{ secrets.CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET }}
+          D_VIEW_TESTED_COMMIT: ${{ github.event.workflow_run.head_sha || github.sha }}
+        run: npx playwright test tests/e2e/private-model-layers-runtime.spec.ts --workers=1 --trace=off --output=test-results/layers-p02-production --reporter=line --retries=0
+      - name: Remove temporary protected P02 source
+        if: always() && matrix.mode == 'layers-p02-production'
+        run: rm -f "$RUNNER_TEMP/layers-p02-production.glb"
+      - name: Read exact published TATE integrated source
+        if: matrix.mode == 'layers-tate-production'
+        shell: bash
+        env:
+          CF_ACCESS_READBACK_CLIENT_ID: ${{ secrets.CF_ACCESS_READBACK_CLIENT_ID }}
+          CF_ACCESS_READBACK_CLIENT_SECRET: ${{ secrets.CF_ACCESS_READBACK_CLIENT_SECRET }}
+        run: |
+          set -euo pipefail
+          [[ -n "$CF_ACCESS_READBACK_CLIENT_ID" && -n "$CF_ACCESS_READBACK_CLIENT_SECRET" ]]
+          file="$RUNNER_TEMP/layers-tate-production.glb"
+          curl --fail --silent --show-error --connect-timeout 12 --max-time 90 \
+            -H "CF-Access-Client-Id: $CF_ACCESS_READBACK_CLIENT_ID" \
+            -H "CF-Access-Client-Secret: $CF_ACCESS_READBACK_CLIENT_SECRET" \
+            --output "$file" \
+            "https://aapopihkala.fi/private-model/work-test/verify/c80-p02-tate-integrated-20261111.glb"
+          python3 - "$file" <<'PY'
+          import hashlib, json, pathlib, struct, sys
+          data=pathlib.Path(sys.argv[1]).read_bytes()
+          assert len(data)==52855944
+          assert hashlib.sha256(data).hexdigest()=='69b7adf599d63aa954b5dd93d64ae65baca5c41df7ff3d555bf3236560d9d3b4'
+          source=json.loads(data[20:20+struct.unpack_from('<I',data,12)[0]])
+          assert len(source['scenes'])==347 and source['scene']==292
+          assert source['asset']['extras']['viewerFloorScenes']=={'1F':344,'2F':345,'BOTH':346}
+          print('Exact production TATE integrated bytes and 1F/2F/BOTH scene map verified.')
+          PY
+          printf 'YLIS_LAYERS_TATE_GLB=%s\n' "$file" >> "$GITHUB_ENV"
+      - name: Protected TATE integrated Layers, four systems and KV LV pixels, floors and model switch
+        if: matrix.mode == 'layers-tate-production'
+        env:
+          YLIS_LAYERS_TATE_PRODUCTION: '1'
+          YLIS_TATE_SWITCH_ONLY: ${{ inputs.tate_phase == 'model-switch' && '1' || '0' }}
+          CF_ACCESS_VIEWER_PROBE_CLIENT_ID: ${{ secrets.CF_ACCESS_VIEWER_PROBE_CLIENT_ID }}
+          CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET: ${{ secrets.CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET }}
+          D_VIEW_TESTED_COMMIT: ${{ github.event.workflow_run.head_sha || github.sha }}
+        run: npx playwright test tests/e2e/private-model-layers-runtime.spec.ts --workers=1 --trace=off --output=test-results/layers-tate-production --reporter=line --retries=0
+      - name: Remove temporary protected TATE source
+        if: always() && matrix.mode == 'layers-tate-production'
+        run: rm -f "$RUNNER_TEMP/layers-tate-production.glb"
+      - name: Read exact published TATE3 PK1 PA1 APK integrated source
+        if: matrix.mode == 'layers-tate3-production'
+        shell: bash
+        env:
+          CF_ACCESS_READBACK_CLIENT_ID: ${{ secrets.CF_ACCESS_READBACK_CLIENT_ID }}
+          CF_ACCESS_READBACK_CLIENT_SECRET: ${{ secrets.CF_ACCESS_READBACK_CLIENT_SECRET }}
+        run: |
+          set -euo pipefail
+          [[ -n "$CF_ACCESS_READBACK_CLIENT_ID" && -n "$CF_ACCESS_READBACK_CLIENT_SECRET" ]]
+          file="$RUNNER_TEMP/layers-tate3-production.glb"
+          curl --fail --silent --show-error --connect-timeout 12 --max-time 90 \
+            -H "CF-Access-Client-Id: $CF_ACCESS_READBACK_CLIENT_ID" \
+            -H "CF-Access-Client-Secret: $CF_ACCESS_READBACK_CLIENT_SECRET" \
+            --output "$file" \
+            "https://aapopihkala.fi/private-model/work-test/verify/c80-tate-pk1-pa1-apk-20261111.glb"
+          python3 - "$file" <<'PY'
+          import hashlib, json, pathlib, struct, sys
+          data=pathlib.Path(sys.argv[1]).read_bytes()
+          assert len(data)==52972084
+          assert hashlib.sha256(data).hexdigest()=='bb53c85c96bc645632288c0b89c7231709791da9ee54a67d6ee44623bc0be5b0'
+          source=json.loads(data[20:20+struct.unpack_from('<I',data,12)[0]])
+          assert len(source['scenes'])==350 and source['scene']==292
+          assert source['asset']['extras']['viewerFloorScenes']=={'1F':347,'2F':348,'BOTH':349}
+          print('Exact production TATE3 PK1 PA1 APK integrated bytes and 1F/2F/BOTH scene map verified.')
+          PY
+          printf 'YLIS_LAYERS_TATE3_GLB=%s\n' "$file" >> "$GITHUB_ENV"
+      - name: Protected TATE3 PK1 PA1 APK integrated Layers, four systems and KV LV pixels, floors and model switch
+        if: matrix.mode == 'layers-tate3-production'
+        env:
+          YLIS_LAYERS_TATE3_PRODUCTION: '1'
+          YLIS_TATE_SWITCH_ONLY: ${{ inputs.tate_phase == 'model-switch' && '1' || '0' }}
+          CF_ACCESS_VIEWER_PROBE_CLIENT_ID: ${{ secrets.CF_ACCESS_VIEWER_PROBE_CLIENT_ID }}
+          CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET: ${{ secrets.CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET }}
+          D_VIEW_TESTED_COMMIT: ${{ github.event.workflow_run.head_sha || github.sha }}
+        run: npx playwright test tests/e2e/private-model-layers-runtime.spec.ts --workers=1 --trace=off --output=test-results/layers-tate3-production --reporter=line --retries=0
+      - name: Remove temporary protected TATE source
+        if: always() && matrix.mode == 'layers-tate3-production'
+        run: rm -f "$RUNNER_TEMP/layers-tate3-production.glb"
+      - name: Read exact published M6263 combined source
+        if: matrix.mode == 'layers-m6263-production'
+        shell: bash
+        env:
+          CF_ACCESS_READBACK_CLIENT_ID: ${{ secrets.CF_ACCESS_READBACK_CLIENT_ID }}
+          CF_ACCESS_READBACK_CLIENT_SECRET: ${{ secrets.CF_ACCESS_READBACK_CLIENT_SECRET }}
+        run: |
+          set -euo pipefail
+          [[ -n "$CF_ACCESS_READBACK_CLIENT_ID" && -n "$CF_ACCESS_READBACK_CLIENT_SECRET" ]]
+          file="$RUNNER_TEMP/layers-m6263-production.glb"
+          curl --fail --silent --show-error --connect-timeout 12 --max-time 90 \
+            -H "CF-Access-Client-Id: $CF_ACCESS_READBACK_CLIENT_ID" \
+            -H "CF-Access-Client-Secret: $CF_ACCESS_READBACK_CLIENT_SECRET" \
+            --output "$file" \
+            "https://aapopihkala.fi/private-model/work-test/verify/c80-tate-mj62-mj63-integrated-20261113.glb"
+          python3 - "$file" <<'PY'
+          import hashlib,json,pathlib,struct,sys
+          data=pathlib.Path(sys.argv[1]).read_bytes()
+          assert len(data)==53943060
+          assert hashlib.sha256(data).hexdigest()=='8aaadccfaa880e7693337467a00d9efb53d4d5e332d377be10d1e353e87e25c5'
+          assert data[:4]==b'glTF' and struct.unpack_from('<I',data,4)[0]==2
+          assert struct.unpack_from('<I',data,8)[0]==len(data)
+          source=json.loads(data[20:20+struct.unpack_from('<I',data,12)[0]])
+          assert len(source['scenes'])==360 and source['scene']==292
+          assert len(source['nodes'])==12097 and len(source['meshes'])==4549
+          assert [len(source['scenes'][i]['nodes']) for i in range(353,360)]==[289,184,464,184,464,184,464]
+          print('Exact published M6263 bytes and seven opt-in scenes verified.')
+          PY
+          printf 'YLIS_M6263_GLB=%s\n' "$file" >> "$GITHUB_ENV"
+      - name: Protected M6263 scenes, glazing, source card and model switch
+        if: matrix.mode == 'layers-m6263-production'
+        env:
+          YLIS_M6263_PRODUCTION: '1'
+          CF_ACCESS_VIEWER_PROBE_CLIENT_ID: ${{ secrets.CF_ACCESS_VIEWER_PROBE_CLIENT_ID }}
+          CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET: ${{ secrets.CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET }}
+          D_VIEW_TESTED_COMMIT: ${{ github.event.workflow_run.head_sha || github.sha }}
+        run: npx playwright test tests/e2e/private-model-m6263-production.spec.ts --workers=1 --trace=off --output=test-results/layers-m6263-production --reporter=line --retries=0
+      - name: Remove temporary protected M6263 source
+        if: always() && matrix.mode == 'layers-m6263-production'
+        run: rm -f "$RUNNER_TEMP/layers-m6263-production.glb"
+      - name: Read exact published TATE4 interior integrated source
+        if: matrix.mode == 'layers-tate4-production'
+        shell: bash
+        env:
+          CF_ACCESS_READBACK_CLIENT_ID: ${{ secrets.CF_ACCESS_READBACK_CLIENT_ID }}
+          CF_ACCESS_READBACK_CLIENT_SECRET: ${{ secrets.CF_ACCESS_READBACK_CLIENT_SECRET }}
+        run: |
+          set -euo pipefail
+          [[ -n "$CF_ACCESS_READBACK_CLIENT_ID" && -n "$CF_ACCESS_READBACK_CLIENT_SECRET" ]]
+          file="$RUNNER_TEMP/layers-tate4-production.glb"
+          curl --fail --silent --show-error --connect-timeout 12 --max-time 90 \
+            -H "CF-Access-Client-Id: $CF_ACCESS_READBACK_CLIENT_ID" \
+            -H "CF-Access-Client-Secret: $CF_ACCESS_READBACK_CLIENT_SECRET" \
+            --output "$file" \
+            "https://aapopihkala.fi/private-model/work-test/verify/c80-tate-interior-integrated-20261111.glb"
+          python3 - "$file" <<'PY'
+          import hashlib, json, pathlib, struct, sys
+          data=pathlib.Path(sys.argv[1]).read_bytes()
+          assert len(data)==53872184
+          assert hashlib.sha256(data).hexdigest()=='ea4050b463a886ff0cb0c7d544495e6c753d9b87e76459f134c1d439e42a215b'
+          source=json.loads(data[20:20+struct.unpack_from('<I',data,12)[0]])
+          assert len(source['scenes'])==353 and source['scene']==292
+          assert source['asset']['extras']['viewerFloorScenes']=={'1F':350,'2F':351,'BOTH':352}
+          print('Exact production TATE4 interior integrated bytes and 1F/2F/BOTH scene map verified.')
+          PY
+          printf 'YLIS_LAYERS_TATE4_GLB=%s\n' "$file" >> "$GITHUB_ENV"
+      - name: Protected TATE4 interior integrated Layers, four systems and KV LV pixels, floors and model switch
+        if: matrix.mode == 'layers-tate4-production'
+        env:
+          YLIS_LAYERS_TATE4_PRODUCTION: '1'
+          YLIS_TATE_SWITCH_ONLY: ${{ inputs.tate_phase == 'model-switch' && '1' || '0' }}
+          CF_ACCESS_VIEWER_PROBE_CLIENT_ID: ${{ secrets.CF_ACCESS_VIEWER_PROBE_CLIENT_ID }}
+          CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET: ${{ secrets.CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET }}
+          D_VIEW_TESTED_COMMIT: ${{ github.event.workflow_run.head_sha || github.sha }}
+        run: npx playwright test tests/e2e/private-model-layers-runtime.spec.ts --workers=1 --trace=off --output=test-results/layers-tate4-production --reporter=line --retries=0
+      - name: Remove temporary protected TATE source
+        if: always() && matrix.mode == 'layers-tate4-production'
+        run: rm -f "$RUNNER_TEMP/layers-tate4-production.glb"
       - name: Read exact published owner-corrected K17 source
         if: matrix.mode == 'layers-k17-rail900-production'
         shell: bash
@@ -587,6 +783,26 @@ jobs:
       - name: Encrypt private model screenshots before artifact storage
         if: always()
         env:
+          TATE_REVIEW_PUBLIC_KEY: |
+            -----BEGIN PUBLIC KEY-----
+            MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAv/gmiiFEYQLKnbk5Zunz
+            wApZmEEO7Fs7vnknHxoVEh3HdIdrawOBGFMyyucbGQXSccdFonOI/bvlSVw2STtZ
+            bR8LY58LtT25vmFmhim6aThwO7Ov0Whj+BNNIO7TuImQ8shtOWaeIuq1+3YuJJQq
+            sA4YcW/9/UpEdzuaPu9Kqo2MlpHMkx4i9Qj/aSh924AT8fAq93/KRmhcrY4sXWSO
+            Ekt6GsHzQkIcYt9f4jd1lGMJYKQ1CWxsj1JWMmMGU2tHqdVkUBEVmPQ3rHWcNYlc
+            ko/BC3xCofH5qLpSn1IA1pbbTWjMOG782my9gy4s/AA1cF8MrDNd0wujFOy83Uwc
+            jQIDAQAB
+            -----END PUBLIC KEY-----
+          P02_REVIEW_PUBLIC_KEY: |
+            -----BEGIN PUBLIC KEY-----
+            MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAkObZ5MgeQ2li5aQAx8oI
+            rC8sS2EVhLsEsUfbZkE53EzGT9IdwvruSebpBvEs6yaPPnfwC4XyCUfQRVH6PVlH
+            GYNWywoJF+2i3s80jkq41gyIhk3anIUQbpifd48QRNhIVkH13wt1NtH9TtjBPins
+            DIGGzHbSOZRKs2TV2Fe7RSVlHFY4Z55h6+ZDzUwEyhj8oQeMkpRcN/bBi3YZTTdh
+            qZZmzcTTSepsiP3IZsr44WCm2TK9b042tveiCMYH4gw9dWFdd4Z6gLLsgTpEHHje
+            usxQLb0sNZr/TPqUUFG4ZDRFRBbfXmrYO0qrp85EreaVRWrQdrV4Z0wt2XHaDnkE
+            0QIDAQAB
+            -----END PUBLIC KEY-----
           V27_REVIEW_PUBLIC_KEY: |
             -----BEGIN PUBLIC KEY-----
             MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAsbw6ANTfEtPZ289rYkqp
@@ -721,6 +937,19 @@ jobs:
               -pkeyopt rsa_padding_mode:oaep -pkeyopt rsa_oaep_md:sha256 \
               -in "$RUNNER_TEMP/d-view-evidence-password" -out "$RUNNER_TEMP/d-view-evidence/password.c008work.rsa"
           fi
+          # Task-specific encrypted evidence recipient. Existing recipients remain.
+          if [[ '${{ matrix.mode }}' == 'layers-p02-production' ]]; then
+            printf '%s\n' "$P02_REVIEW_PUBLIC_KEY" > "$RUNNER_TEMP/p02-evidence-public.pem"
+            openssl pkeyutl -encrypt -pubin -inkey "$RUNNER_TEMP/p02-evidence-public.pem" \
+              -pkeyopt rsa_padding_mode:oaep -pkeyopt rsa_oaep_md:sha256 \
+              -in "$RUNNER_TEMP/d-view-evidence-password" -out "$RUNNER_TEMP/d-view-evidence/password.p02.rsa"
+          fi
+          if [[ '${{ matrix.mode }}' == 'layers-tate-production' ]]; then
+            printf '%s\n' "$TATE_REVIEW_PUBLIC_KEY" > "$RUNNER_TEMP/tate-evidence-public.pem"
+            openssl pkeyutl -encrypt -pubin -inkey "$RUNNER_TEMP/tate-evidence-public.pem" \
+              -pkeyopt rsa_padding_mode:oaep -pkeyopt rsa_oaep_md:sha256 \
+              -in "$RUNNER_TEMP/d-view-evidence-password" -out "$RUNNER_TEMP/d-view-evidence/password.tate.rsa"
+          fi
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -728,6 +957,8 @@ jobs:
           path: ${{ runner.temp }}/d-view-evidence/
           if-no-files-found: warn
           retention-days: 3
+
+
 
 
 
