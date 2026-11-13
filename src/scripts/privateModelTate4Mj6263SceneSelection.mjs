@@ -17,8 +17,11 @@ export const TATE4_MJ6263_GLAZING_STATES = Object.freeze([
 export function selectTate4Mj6263InternalScene(floor, glazingState = 'CLOSED') {
   if (!TATE4_MJ6263_VIEW_FLOORS.includes(floor) ||
       !TATE4_MJ6263_GLAZING_STATES.includes(glazingState)) return null;
+  // An upper-floor glazing change must not blank the 1F-only view.
+  // 1F always uses the actual CLOSED scene353; no invented 1F scene.
+  const effectiveGlazingState = floor === '1F' ? 'CLOSED' : glazingState;
   const matches = Object.entries(TATE4_MJ6263_SCENES)
-    .filter(([, scene]) => scene.floor === floor && scene.glazing === glazingState);
+    .filter(([, scene]) => scene.floor === floor && scene.glazing === effectiveGlazingState);
   return matches.length === 1 ? Number(matches[0][0]) : null;
 }
 
@@ -35,8 +38,9 @@ export function resolveTate4Mj6263ViewerScene({
     return { ok: false, reason: 'M6263_UNSUPPORTED_FLOOR_GLAZING' };
   if (loadedGlbSha256 !== TATE4_MJ6263_SOURCE_SHA256)
     return { ok: false, reason: 'M6263_SOURCE_SHA_MISMATCH' };
+  const effectiveGlazingState = floor === '1F' ? 'CLOSED' : glazingState;
   if (!isTate4Mj62Mj63SourceScene(
-    sourceJson, loadedGlbSha256, sceneIndex, floor, glazingState,
+    sourceJson, loadedGlbSha256, sceneIndex, floor, effectiveGlazingState,
   ))
     return { ok: false, reason: 'M6263_SOURCE_SCENE_MISMATCH' };
   return {
@@ -44,6 +48,8 @@ export function resolveTate4Mj6263ViewerScene({
     sceneIndex,
     floor,
     glazingState,
+    effectiveGlazingState,
+    glazingVisibleInView: floor !== '1F',
     glbSha256: TATE4_MJ6263_SOURCE_SHA256,
     modelStage: 'WORK_TEST',
     hostStatus: 'HOST_HOLD',
