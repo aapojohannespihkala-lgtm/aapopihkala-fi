@@ -34,13 +34,16 @@ def validate_request(payload, trusted_main_sha):
     require(isinstance(payload, dict) and set(payload) == {
         "probeMode", "requestId", "expectedMainSha",
     }, "REQUEST_KEYS")
-    require(payload["probeMode"] in ("p186e-labels-render", "d-view-v68", "d-view-v69", "d-view-v69p12r1", "d-view-tate4", "d-view-tate4-switch"), "FIXED_PROBE_MODE")
+    require(payload["probeMode"] in ("p186e-labels-render", "d-view-v68", "d-view-v69", "d-view-v69p12r1", "d-view-tate4", "d-view-tate4-switch", "d-view-m6263"), "FIXED_PROBE_MODE")
     request_id = payload["requestId"]
     require(isinstance(request_id, str) and
             re.fullmatch(r"[A-Za-z0-9._:-]{1,128}", request_id), "REQUEST_ID")
     require(isinstance(trusted_main_sha, str) and SHA.fullmatch(trusted_main_sha)
             and trusted_main_sha != "0" * 40
             and payload["expectedMainSha"] == trusted_main_sha, "TRUSTED_MAIN")
+    if payload["probeMode"] == "d-view-m6263":
+        return {"ref": "main", "inputs": {"source_version": "M6263"},
+                "_workflow": "d-view-regression.yml"}
     if payload["probeMode"] == "d-view-tate4-switch":
         return {"ref": "main", "inputs": {"source_version": "TATE4", "tate_phase": "model-switch"},
                 "_workflow": "d-view-regression.yml"}
@@ -97,4 +100,5 @@ def main():
 
 if __name__ == "__main__":
     raise SystemExit(main())
+
 
