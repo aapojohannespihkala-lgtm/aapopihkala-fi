@@ -6770,7 +6770,8 @@ const title = 'Private 3D viewer';
             : is64 ? 'C80R2_UNIFIED64_WORK_TEST' : 'C80R2_HI20_UNIFIED52_WORK_TEST';
           canvas.dataset.contentFloor = floor;
           if (chainLabel) canvas.dataset.c80r2ChainSceneName =
-            String((mainViewScope as any).floorSceneNames?.[floor] ?? '');
+            String((mainViewScope as any).isM6263 ? (mainViewScope as any).selectedScene.name
+              : (mainViewScope as any).floorSceneNames?.[floor] ?? '');
           const floorLabel = floor === '1F' ? 'alakerta' : floor === '2F' ? 'yläkerta' : 'molemmat kerrokset';
           const modelLabel = chainLabel ?? (is64 ? 'C80R2 64scene' : 'HI20 52scene');
           mainViewScopeNote.textContent = modelLabel + ' WORK_TEST: ' +
@@ -14232,7 +14233,10 @@ const title = 'Private 3D viewer';
         disposeLayersPresentation();
         if(!runtime.setGlazing(m6263GlazingSelect.value))return;
         clearSelection();
-        syncMainViewScope();syncM6263Glazing();refreshLayers();
+        syncMainViewScope();syncM6263Glazing();
+        canvas.dataset.mainViewSourceSceneIndex=String(runtime.sceneIndex);
+        canvas.dataset.c80r2ChainSceneName=String(runtime.selectedScene.name);
+        refreshLayers();
       });
 
       const layerBindingNote = document.createElement('p');
