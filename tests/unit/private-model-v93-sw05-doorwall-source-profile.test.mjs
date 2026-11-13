@@ -21,6 +21,12 @@ test('SW05 new source is SHA locked, 343 scenes, default retained and opt-in 339
  assert.deepEqual(OPTIN,{'1F':339,'2F':341,BOTH:342});
  assert.deepEqual(PARTS,{});
  assert.deepEqual(Object.keys(SCENES),['339','341','342']);
+ // Independent exact-source expectations, not just a self-consistency check
+ // between the mutable root list and its mutable FNV table.
+ assert.deepEqual(FNV,{'339':'0476e130','341':'e3408577','342':'954e05ea'});
+ assert.deepEqual(COUNTS[339],{'1F':6,'2F':0,total:6});
+ assert.deepEqual(COUNTS[341],{'1F':0,'2F':5,total:5});
+ assert.deepEqual(COUNTS[342],{'1F':6,'2F':5,total:11});
 });
 test('exact source root identity, new SW05 single active, history excluded',()=>{
  for(const idx of [339,341,342]){
@@ -52,6 +58,28 @@ test('previous source SHA or mismatched GLB must fail closed',()=>{
     });
     assert.equal(r.sourceVerified,false);
     assert.deepEqual(r.excluded.map(x=>x.reason),['SOURCE_SHA_MISMATCH']);
+  }
+ }
+});
+
+test('valid SW05 SHA cannot bypass scene, scope or missing glTF source-map gates',()=>{
+ for(const idx of [339,341,342]){
+  const scene={traverse:()=>{}};
+  const scenes=Array(COUNT).fill(null);
+  scenes[idx]=scene;
+  // Deliberately incomplete synthetic source: a hash label is not a source map.
+  const gltf={scenes,parser:{json:{nodes:[],scenes:Array(COUNT).fill(null)},associations:new Map()}};
+  const common={gltf,expectedSourceSha256:SHA,loadedSourceSha256:SHA,
+   sceneIndex:idx,area:'D',floor:SCENES[idx].floor};
+  for(const [label,params,reason] of [
+   ['wrong scene object',{...common,activeSceneRoot:{}},'SCENE_MISMATCH'],
+   ['missing source node map',{...common,activeSceneRoot:scene},'MISSING_GLTF_SOURCE_MAP'],
+   ['invalid area',{...common,activeSceneRoot:scene,area:'UNVERIFIED'},'UNKNOWN_SCOPE'],
+  ]){
+   const result=resolveBuildingPartLayerBindings(params);
+   assert.equal(result.sourceVerified,false,`${idx}: ${label}`);
+   assert.equal(result.bindings.length,0,`${idx}: ${label}`);
+   assert.deepEqual(result.excluded.map(x=>x.reason),[reason],`${idx}: ${label}`);
   }
  }
 });
