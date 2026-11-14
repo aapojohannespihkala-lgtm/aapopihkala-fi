@@ -2,6 +2,10 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {createHash} from 'node:crypto';
+import {inflateSync} from 'node:zlib';
+// Compressed root-index arrays copied byte-for-byte from the authenticated
+// original 483-scene GLB's immutable parent scenes 469..475. Not a fake hash.
+const authenticParents=JSON.parse(inflateSync(Buffer.from('eNrtmkGOJScQRO8y61qQQCbgq1g+ieW7O+JVb2yNR55ZzajpxRO/IIBKIIqU+s8vs86X335fI+vplVuoeGoO0I3xRMsczxqqEcpYT47Os+2SflY/T+7d/MylkUY9p5fbrea+0qV4dmtDP5f7X5SmkUY9lbGMbZyntiezPZmsaajdOdNd6VlparU0eK3RNNWlGjOfk+pbmAY/NfXTppEGP5exjSNolOgxXLOO5tmnkQavop9xVLHVvxqqixMeKg6lZWzjqHVrQi7ip0kMdX5OhKHSUjj1bLs0jGl4fP1JczJMTVr6dxXUOMLv6h4TUvsxxobUVoMB3VvRsmhZtPGo4iJoK2CH73PCuBIWXHBDethoN9qNdqPdaDfajXaj3Wg32vMuFtpD1Oc0FYaI0aBWXxxwNhiwwwFpORMWXHBDtIk20SbaRJtoE22iTbSJNtEWWkcyciR0y+oT+kkxn5pv2dqizyqeO2496HnFYAUp94Ad+vn2BhbfckHPYU/i440dm7ltxy28eaM3IuBt7vI2/abaxdT6TUVqPSuxILMqtnEVfJ/sP54vczW5gg6sdnD47HQt9V6Kr7CMbeggrHSFBhS6MR5tX7lAqXH27oOtoWooCnoGfNo4INo52bePc4IylrENnemj8FfZAEqnZ8kQDErDYMso8DXsCtN2MbutptvAjodT15qWZl62i9SMlg/D8llYtjxVyEKKSb/nxl4z7EQeqrxcgqa0NX9h+2yH0Y1hTMOBsiV0LYxAO79n2Ah88LsPvlbGsCKsCA20FUZtBcKoaaXWWqXtkrvS4VLIhmH7OrYvOY58VLXLjtPfs/7hExPiEOP1Dy+aXk7vOg3FpBR9wT+3x9Bm3dsrXMfT3Z6kF3cnM1DFUZNj6xbKwOn8HiM+7EkN3dqe23ETR1RFPfQKneHNNPQ6gi1x85ONN1zUOwquOfzUMKn46JPyWh8Wh3H5W2DyksVLFjZYbxtsEHNLzC2ZTmJuHJaWmFu+Bou5JeaWmFtibom5JeaWmFtibom5JeaWmFtibom5JeaWmFsetAct36Y8aA/ag/agPdZWazAgIWwDTpgQM2+YedsQbaANtIE20AbaQBtoA22gDbQdbUfLB6g62o62o+1oO1rWovgYFV/eYhf4nJpo2YjFRiw2Yg20A+1AO9FOtBPtRDvRTrQT7UQ70U60iZYPpY+qiVa+oNO0vKEx+obFY8ejYfENi29YfGDxwechMPeFUbLnko8KH9RgrwRrHKxusCpB9IOIBxHXYceZAnsNX5nuBesnvmDpwzzvpepXvVTZub5ynWK7ih5xFavsr4J2n0dhFWK9q7+4ZhGZzRy+/yrW4FvucMAJE9Y/L23qhzZ24TiMexj3MOIhAnyrVKaHUz9wyWuOT/dJ806g5aJ2v6TNpk/vIvke7f1eYodcEOMdsX3z4hg3nfwl08nreTeR/PFEsq1vp5P9ppM3nbzp5E0nbzp508nPk07eS9VNJG8i+e9E8uOy+CaSb1L5nxfHcdPJXzCdvH52k8SvJYm0X3jDxhs23rDxho12o935TVeYN5286eRNJ286edPJm05+lnTyXqpukviZksTvvCz+r3Qyf/zi6Imte3O8N8d7c7w3x3tzvDfH+39t96Z5b5qf4f/a/vob/M+ADg==','base64')).toString('utf8'));
 import {
  C80_SUCC455_SAVO483_GLB_SHA256 as SHA,
  C80_SUCC455_SAVO483_GLB_BYTES,
@@ -34,9 +38,7 @@ function fixture(){
  json.nodes[12224]={name:'C80_SUCC455_ROOM3_MJ83_SAVO_RIGHT_KEYPAD_ROOT_WORK_TEST_HOST_HOLD',
   children:[12223],extras:{newNodeIndex:12224,sourceLinksBoundForNewSHA:false,current:false,asBuilt:false}};
  for(const s of Object.values(scenes)){
-  const old=Array.from({length:s.rootCount},(_,i)=>i+1);
-  old[0]=12222;
-  old[s.replaceAt]=12057;
+  const old=authenticParents[String(s.parentScene)].slice();
   json.scenes[s.parentScene]={nodes:old};
   const roots=old.slice();
   roots[s.replaceAt]=12224;
