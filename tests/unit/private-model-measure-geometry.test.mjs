@@ -1,3 +1,5 @@
+import * as THREE from 'three';
+import {snapFromVisibleMeshHit} from '../../src/scripts/privateModelMeasureSnapAdapter.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
@@ -157,4 +159,102 @@ test('invalid or one-sided inverse clip W fails closed',()=>{
     isCandidateVisible:()=>true,maxWorldGapM:2,
   });
   assert.equal(result,null);
+});
+
+
+test('validated front-face corner snaps to a real box corner with correct G1 north/up',()=>{
+  const geometry=new THREE.BoxGeometry(2,2,2);
+  const mesh=new THREE.Mesh(geometry,new THREE.MeshStandardMaterial());
+  mesh.updateMatrixWorld(true);
+  const camera=new THREE.PerspectiveCamera(60,1,0.1,20);
+  camera.position.set(0,0,5);
+  camera.lookAt(0,0,0);
+  camera.updateMatrixWorld(true);
+  const rect={left:0,top:0,width:400,height:400};
+  const ndc=new THREE.Vector3(1,1,1).project(camera);
+  const pointerPx={x:200*(ndc.x+1)+2,y:200*(1-ndc.y)+2};
+  const hit={object:mesh,point:new THREE.Vector3(.94,.94,1)};
+  const result=snapFromVisibleMeshHit({
+    frontmostHit:hit,camera,rect,pointerPx,
+    acceptsFrontmostHit:()=>true,
+    isFeatureVisible:({pointWorld})=>pointWorld.z>=.999,
+  });
+  assert.ok(result);
+  assert.equal(result.kind,'corner');
+  assert.ok(Math.abs(result.pointG1.xM-1)<1e-9);
+  assert.ok(Math.abs(result.pointG1.yM+1)<1e-9);
+  assert.ok(Math.abs(result.pointG1.sourceHeightYUpM-1)<1e-9);
+  assert.equal(result.workTestOnly,true);
+});
+
+test('adapter rejects non-frontmost hits, hidden snap candidates and missing guards',()=>{
+  const geometry=new THREE.BoxGeometry(2,2,2);
+  const mesh=new THREE.Mesh(geometry,new THREE.MeshStandardMaterial());
+  const camera=new THREE.PerspectiveCamera(60,1,0.1,20);
+  camera.position.z=5;
+  camera.lookAt(0,0,0);
+  camera.updateMatrixWorld(true);
+  const projected=new THREE.Vector3(1,1,1).project(camera);
+  const args={
+    frontmostHit:{object:mesh,point:new THREE.Vector3(.94,.94,1)},
+    camera,rect:{left:0,top:0,width:400,height:400},
+    pointerPx:{x:200*(projected.x+1),y:200*(1-projected.y)},
+    acceptsFrontmostHit:()=>true,isFeatureVisible:()=>true,
+  };
+  assert.equal(snapFromVisibleMeshHit({...args,acceptsFrontmostHit:()=>false}),null);
+  assert.equal(snapFromVisibleMeshHit({...args,isFeatureVisible:()=>false}),null);
+  assert.equal(snapFromVisibleMeshHit({...args,isFeatureVisible:undefined}),null);
+  assert.equal(snapFromVisibleMeshHit({...args,acceptsFrontmostHit:undefined}),null);
+  assert.equal(snapFromVisibleMeshHit({...args,frontmostHit:null}),null);
+  assert.equal(snapFromVisibleMeshHit({...args,pointerPx:{x:-1,y:0}}),null);
+  assert.equal(snapFromVisibleMeshHit({...args,pointerPx:{x:Infinity,y:0}}),null);
+});
+
+test('adapter applies mesh world transform and G1 mapping before picking',()=>{
+  const mesh=new THREE.Mesh(
+    new THREE.BufferGeometry().setFromPoints([
+      new THREE.Vector3(0,0,0),
+      new THREE.Vector3(1,0,0),
+      new THREE.Vector3(0,1,0),
+    ]),
+    new THREE.MeshBasicMaterial(),
+  );
+  mesh.position.set(1,2,-1);
+  mesh.rotation.z=Math.PI/2;
+  mesh.updateMatrixWorld(true);
+  const corner=mesh.localToWorld(new THREE.Vector3(0,0,0));
+  const camera=new THREE.OrthographicCamera(-2,2,2,-2,.1,20);
+  camera.position.set(1,2,6);
+  camera.lookAt(1,2,-1);
+  camera.updateMatrixWorld(true);
+  const projection=corner.clone().project(camera);
+  const result=snapFromVisibleMeshHit({
+    frontmostHit:{
+      object:mesh,
+      point:mesh.localToWorld(new THREE.Vector3(.025,.02,0)),
+    },
+    camera,rect:{left:10,top:20,width:400,height:400},
+    pointerPx:{x:10+200*(projection.x+1),y:20+200*(1-projection.y)},
+    acceptsFrontmostHit:()=>true,isFeatureVisible:()=>true,
+  });
+  assert.ok(result);
+  assert.equal(result.kind,'corner');
+  assert.ok(Math.abs(result.pointG1.xM-1)<1e-9);
+  assert.ok(Math.abs(result.pointG1.yM-1)<1e-9);
+  assert.ok(Math.abs(result.pointG1.sourceHeightYUpM-2)<1e-9);
+});
+
+test('adapter fails closed before scanning excessively large geometry',()=>{
+  const mesh=new THREE.Mesh(new THREE.PlaneGeometry(1,1,250,250),new THREE.MeshBasicMaterial());
+  const camera=new THREE.PerspectiveCamera(50,1,.1,20);
+  camera.position.z=5;
+  camera.lookAt(0,0,0);
+  camera.updateMatrixWorld(true);
+  const r=snapFromVisibleMeshHit({
+    frontmostHit:{object:mesh,point:new THREE.Vector3(0,0,0)},
+    camera,rect:{left:0,top:0,width:400,height:400},
+    pointerPx:{x:200,y:200},
+    acceptsFrontmostHit:()=>true,isFeatureVisible:()=>true,
+  });
+  assert.equal(r,null);
 });
