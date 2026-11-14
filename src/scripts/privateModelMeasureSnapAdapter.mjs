@@ -44,7 +44,16 @@ export const snapFromVisibleMeshHit=({
   const geometry=mesh?.geometry;
   const positions=geometry?.attributes?.position;
   const index=geometry?.index;
-  if(!mesh?.isMesh || !geometry?.isBufferGeometry || !positions ||
+  // Deformed, instanced and partially drawn geometry cannot use unmodified
+  // BufferGeometry vertices as physical visible corners. Reject, do not guess.
+  const drawCount=index?.count ?? positions?.count;
+  const restrictedDraw=geometry?.drawRange && (
+    geometry.drawRange.start!==0 ||
+    (Number.isFinite(geometry.drawRange.count) && geometry.drawRange.count<drawCount)
+  );
+  if(!mesh?.isMesh || mesh.isInstancedMesh || mesh.isSkinnedMesh ||
+     geometry?.morphAttributes?.position?.length || restrictedDraw ||
+     !geometry?.isBufferGeometry || !positions ||
      !Number.isInteger(positions.count) || positions.count<3 ||
      !finite(frontmostHit.point?.x,frontmostHit.point?.y,frontmostHit.point?.z) ||
      !mesh.matrixWorld?.elements || !camera.projectionMatrix?.elements ||
