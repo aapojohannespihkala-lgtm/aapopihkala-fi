@@ -118,11 +118,22 @@ test('point in model shows XYZ and a persistent screenshot marker without changi
   await expect(page.locator('#point-pick-surface')).toContainText('Nx ');
   await expect(page.locator('#point-pick-copy')).toBeEnabled();
 
-  // A click on empty background must not overwrite the last valid placement.
+  // A miss must invalidate old source XYZ and disable stale clipboard output.
+  // PR1993's fail-closed no-hit contract supersedes the older persistence check.
   const before = await page.locator('#point-pick-main').textContent();
   await canvas.click({ position: { x: box.width - 6, y: box.height / 2 } });
-  await expect(page.locator('#point-pick-main')).toHaveText(before ?? '');
+  await expect(page.locator('#point-pick-main')).toHaveText('Klikkaa näkyvää mallipintaa.');
+  await expect(page.locator('#point-pick-source')).toHaveText('YLIS-G1-LOCAL, koordinaatit metreinä');
+  await expect(page.locator('#point-pick-surface')).toHaveText('Osumapinta: ei valittu');
+  await expect(page.locator('#point-pick-feedback')).toContainText('Edellinen piste tyhjennetty.');
+  await expect(canvas).toHaveAttribute('data-point-pick-state', 'empty');
+  await expect(page.locator('#point-pick-copy')).toBeDisabled();
+
+  // A new genuine surface hit restores source coordinates and clipboard copy.
+  await canvas.click({ position: { x: box.width / 2, y: box.height / 2 } });
   await expect(canvas).toHaveAttribute('data-point-pick-state', 'picked');
+  await expect(page.locator('#point-pick-main')).toHaveText(before ?? '');
+  await expect(page.locator('#point-pick-copy')).toBeEnabled();
 
   await context.grantPermissions(['clipboard-read', 'clipboard-write']);
   await page.locator('#point-pick-copy').click();
