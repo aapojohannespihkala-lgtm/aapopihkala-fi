@@ -281,6 +281,7 @@ test('point-measure axis controls reproject a completed measurement without a ne
   await expect(canvas).toHaveAttribute('data-point-measure-state', 'complete');
   const free = Number(await canvas.getAttribute('data-point-measure-distance'));
   expect(free).toBeGreaterThan(0);
+  await expect(canvas).toHaveAttribute('data-point-measure-snap', 'free');
   await axis.selectOption('x');
   await expect(canvas).toHaveAttribute('data-point-measure-axis', 'x');
   const x = Number(await canvas.getAttribute('data-point-measure-distance'));
