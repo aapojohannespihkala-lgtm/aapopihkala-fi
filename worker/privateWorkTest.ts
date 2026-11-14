@@ -4421,7 +4421,20 @@ const C80_SUCC437_WORK_TEST_CANDIDATE = {
   expectedSha256: 'ed91f792d8f21cc42c4488febd8772276fa3cc42649bd54b560a17823c50e4b8',
 } as const satisfies PrivateWorkTestCandidate;
 
+// Frozen original SUCC455 2015 LED spacing correction. Exact inner GLB
+// SHA/bytes and Drive ZIP ID are gated. Opt-in WORK_TEST, not CURRENT/as-built.
+// Registration alone DOES NOT publish, bind sourceLinks, or pass browser review.
+const C80_SUCC455_LED_WORK_TEST_CANDIDATE = {
+  id: 'c80-succ455-led-spacing-20261114',
+  label: 'C80 455 - vuoden 2015 LED-valaisinvälit - WORK_TEST/HOST_HOLD',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/c80-succ455-led-spacing-20261114.glb`,
+  objectKey: 'work-test/c80-succ455-led-spacing-20261114.glb',
+  expectedSize: 54778060,
+  expectedSha256: 'f990edd8ddd8277abfd419ab72b424ee360aba462739bda19fab44341c159353',
+} as const satisfies PrivateWorkTestCandidate;
+
 const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
+  C80_SUCC455_LED_WORK_TEST_CANDIDATE,
   C80_M6263_MJ72_KIV005_PK1_SUCCESSOR_WORK_TEST_CANDIDATE,
   C80_TATE_MJ6263_WORK_TEST_CANDIDATE,
   C80_SUCC437_WORK_TEST_CANDIDATE,
