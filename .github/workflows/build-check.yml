@@ -184,6 +184,7 @@ jobs:
         if: steps.changes.outputs.docs_only != 'true' && steps.changes.outputs.css_only != 'true'
         run: |
           node --test \
+            tests/unit/private-model-selection-pointer-guard.test.mjs \
             tests/unit/private-model-c80-p02-water-source-profile.test.mjs \
             tests/unit/private-model-c80-p02-tate-source-profile.test.mjs \
             tests/unit/private-model-c80-tate-three-delta-source-profile.test.mjs tests/unit/private-model-c80-tate-interior-source-profile.test.mjs \
