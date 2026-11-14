@@ -320,7 +320,10 @@ export function createTechnicalReviewPresentation(root, keepRoots, createMateria
   return { apply, dispose, get applied() { return applied; }, get changedCount() { return saved.size; } };
 }
 
-const DRAIN_NAME = /(?:^|_)(?:V75_D\d|V110|T110|V50|V32|DRAIN|WW1974|WW74|WW20\d\d|VV20\d\d|LK_?75|KK_?32)(?:_|$)/;
+const DRAIN_NAME = /(?:^|_)(?:V75|V75_D\d|V110|T110|V50|V32|DRAIN|WASTE|SEWER|WW1974|WW74|WW20\d\d|VV20\d\d|LK_?75|KK_?32)(?:_|$)/;
+// Wrappers and water/electric/ventilation parts that merely mention a drain
+// size (e.g. "..._ONE_V75_COW" wrappers, KV/LV clearance sleeves, cisterns).
+const NOT_DRAIN_NAME = /(?:^|_)(?:KV|LV|KVLV|PEX|KV\d+|LV\d+|VM\d+|ELECTRICAL\d*|IV|IV\d+|SAHKO|RK\d+|CISTERN)(?:_|$)/;
 
 /** System key of a kept technical object from its own or an ancestor's source extras. */
 export function technicalReviewSystemOf(object, root) {
@@ -333,7 +336,7 @@ export function technicalReviewSystemOf(object, root) {
     if (extras?.presentationOnly === true || extras?.m5PresentationRole === 'ARCHITECTURE') return null;
     // Wastewater/vent nodes named by the M5 builders get their own drain
     // color, also when a parent wrapper carries a generic water role.
-    if (typeof node.name === 'string' && DRAIN_NAME.test(node.name)) return 'VIEMARI';
+    if (typeof node.name === 'string' && DRAIN_NAME.test(node.name) && !NOT_DRAIN_NAME.test(node.name)) return 'VIEMARI';
     if (extras && Object.hasOwn(extras, 'm5System')) {
       const system = extras.m5System;
       return system === 'SAHKO' || system === 'VESI' || system === 'IV' || system === 'VIEMARI' ? system : null;

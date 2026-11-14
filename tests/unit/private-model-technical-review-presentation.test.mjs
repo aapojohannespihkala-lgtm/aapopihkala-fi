@@ -486,3 +486,16 @@ test('architectural outline edges are dimmed while technical review colors are s
   assert.match(page, /const makeEdgeMaterial = \(depthTest: boolean\) =>[\s\S]{0,200}opacity: technicalReviewColorsActive\(\) \? 0\.2 : 0\.72,/);
   assert.ok(page.indexOf('let technicalReviewColorsActive') < page.indexOf('const refreshEdgeRendering'));
 });
+
+test('drain classifier covers V75/WASTE collectors but not wrappers, water sleeves or cisterns', () => {
+  const root = { name: 'scene', parent: null, userData: {} };
+  const wrap = { name: 'V93_ELECTRICAL4_H38_1F_RK121_OPEN_CABLE_HIDDEN_ROOT_WORK_TEST_PA2_D4_LEGACY_INACTIVE_COFIT_P02_COW_P03_ONE_V75_COW', parent: root, userData: {} };
+  const at = (name, parent = wrap, userData = {}) => ({ name, parent, userData });
+  assert.equal(technicalReviewSystemOf(at('P02_P03_1F_WASTE_COLLECTOR_ACTIVE_COW'), root), 'VIEMARI');
+  assert.equal(technicalReviewSystemOf(at('P02_P03_KITCHEN_V75_DOWN_ACTIVE_1F_BOTH_COW'), root), 'VIEMARI');
+  assert.equal(technicalReviewSystemOf(at('N_P185C_X2_BOARD_N_OPEN_CIRCUIT_9_1'), root), null, 'wrapper with V75 in its name does not color its electrical children');
+  const water = { name: 'V93_D2F_KITCHEN_KVLV_CLEARANCE_V75_R2_ROOT', parent: root, userData: { m5System: 'VESI' } };
+  assert.equal(technicalReviewSystemOf(at('V93_D2F_KITCHEN_KV_V75_CLEARANCE_R2_CONCEALED_WORK_TEST', water), root), 'VESI');
+  const vesi = { name: 'wc', parent: root, userData: { m5System: 'VESI' } };
+  assert.equal(technicalReviewSystemOf(at('V75_W5_D2F_WC1_BASIN_CISTERN', vesi), root), 'VESI');
+});
