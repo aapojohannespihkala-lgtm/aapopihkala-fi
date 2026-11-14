@@ -42,3 +42,8 @@ test('viewer wires the two same-click raycasts and exposes explicit independent 
   assert.match(source,/canvas\.dataset\.reviewCoordinateSelectionEvidence = sameClickEvidence/);
   assert.match(source,/Koordinaattipiste ja valittu kohde ovat eri osumia/);
 });
+
+test('new pointer click clears stale coordinate-source match before all interaction modes', () => {
+  const source=readFileSync(new URL('../../src/pages/private-model/index.astro',import.meta.url),'utf8');
+  assert.match(source, /if \(distance <= pickDragThresholdPx\) \{\s*\/\/ A new click invalidates any previous coordinate\/selection match proof\.\s*delete canvas\.dataset\.reviewCoordinateSelectionEvidence;\s*delete canvas\.dataset\.reviewCoordinateSelectionMatch;\s*if \(canvas\.dataset\.interactionMode === 'point-pick'\)/);
+});

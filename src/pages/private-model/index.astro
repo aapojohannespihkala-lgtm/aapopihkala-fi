@@ -15229,6 +15229,9 @@ const title = 'Private 3D viewer';
         const distance = Math.hypot(event.clientX - pointerDown.x, event.clientY - pointerDown.y);
         pointerDown = null;
         if (distance <= pickDragThresholdPx) {
+          // A new click invalidates any previous coordinate/selection match proof.
+          delete canvas.dataset.reviewCoordinateSelectionEvidence;
+          delete canvas.dataset.reviewCoordinateSelectionMatch;
           if (canvas.dataset.interactionMode === 'point-pick') {
             pickModelPoint(event.clientX, event.clientY);
           } else if (canvas.dataset.interactionMode === 'measure') {
