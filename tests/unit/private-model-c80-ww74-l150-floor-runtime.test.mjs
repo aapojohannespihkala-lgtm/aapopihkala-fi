@@ -82,3 +82,19 @@ test('viewer wiring admits only the authenticated 488 SHA and opens BOTH484', ()
   assert.match(page, /if\(loadedModelSha256\(gltf\)===C80_WW74_L150_GLB_SHA256&&!ww74\)throw new Error\('WW74_L150_SOURCE_SCENE_MISMATCH'\)/);
   assert.match(page, /if\(ww74\) gltf\.scene=ww74\[484\];\s+else if\(savo483\) gltf\.scene=savo483\[477\]/);
 });
+
+test('technical review profile keeps drains, LED and Savo keypad roots for the exact SHA', { skip: !fixture }, async () => {
+  const { c80Ww74L150ReviewProfile } = await import('../../src/scripts/privateModelC80Ww74L150FloorRuntime.mjs');
+  const binary = readFileSync(fixture);
+  const json = JSON.parse(binary.subarray(20, 20 + binary.readUInt32LE(12)).toString('utf8'));
+  for (const scene of [483, 484, 485, 486, 487]) {
+    const profile = c80Ww74L150ReviewProfile(json, C80_WW74_L150_GLB_SHA256, scene);
+    assert.ok(profile);
+    const nodes = profile.roots[scene].map(r => r.node);
+    assert.ok(nodes.includes(12228));
+    assert.ok(nodes.length > 40);
+    assert.equal(profile.count, 488);
+  }
+  assert.equal(c80Ww74L150ReviewProfile(json, 'wrong', 484), null);
+  assert.equal(c80Ww74L150ReviewProfile(json, C80_WW74_L150_GLB_SHA256, 100), null);
+});

@@ -1,5 +1,6 @@
 import { C80_SUCC455_SAVO483_SCENES, c80Succ455Savo483Fnv32 } from './privateModelC80Succ455Room3Mj83SourceProfile.mjs';
 import { nameMatches, sameSourceName } from './privateModelSourceNodeAssociations.mjs';
+import { C80_437_SCENES } from './privateModelC80437SourceProfile.mjs';
 
 /**
  * 488-scene append-only successor of the exact 483-scene SUCC455+ROOM3+MJ83
@@ -138,5 +139,22 @@ export function createC80Ww74L150FloorRuntime({ gltf, sha, mount, mounted }) {
     },
     enforce() {}, referenceCandidates() { return []; },
     dispose() { disposed = true; active = false; },
+  };
+}
+
+// Technical review ("Talotekniikka korostettuna, muut harmaana") for this
+// exact SHA: the 437-receipt technical roots that are inherited unchanged,
+// plus the later LED/Savo-keypad roots and the new drain root 12228.
+const C80_WW74_L150_LATER_TECHNICAL_ROOTS = Object.freeze([12193, 12194, 12224, C80_WW74_L150_ROOT]);
+const C80_437_TECHNICAL_ROOTS = new Set(Object.values(C80_437_SCENES).flatMap(scene => scene.review ?? []));
+export function c80Ww74L150ReviewProfile(json, sha, sceneIndex) {
+  if (!Number.isInteger(sceneIndex) || !isC80Ww74L150SourceScene(json, sha, sceneIndex)) return null;
+  const roots = json.scenes[sceneIndex].nodes
+    .filter(n => C80_437_TECHNICAL_ROOTS.has(n) || C80_WW74_L150_LATER_TECHNICAL_ROOTS.includes(n));
+  if (!roots.length) return null;
+  return {
+    count: 488, floors: { '1F': 350, '2F': 351, BOTH: 352 },
+    scenes: { [sceneIndex]: { name: json.scenes[sceneIndex].name } },
+    roots: { [sceneIndex]: roots.map(node => ({ node, name: json.nodes[node].name })) },
   };
 }
