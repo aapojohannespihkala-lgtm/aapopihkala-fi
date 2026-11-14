@@ -100,3 +100,21 @@ test('authentic 483-scene GLB mounts all seven source roots and restores',
     runtime.dispose();
     assert.equal(runtime.apply('2F'),null);
   });
+
+// Existing required CI invocation includes this source bridge regression.
+// A code-level receipt is not production WebGL or publication proof.
+test('viewer wiring only admits authenticated 483 WORK_TEST and BOTH477',()=>{
+  const page=readFileSync(new URL('../../src/pages/private-model/index.astro',import.meta.url),'utf8');
+  assert.match(page,/import \{ C80_SUCC455_SAVO483_GLB_SHA256 \} from '\.\.\/\.\.\/scripts\/privateModelC80Succ455Room3Mj83SourceProfile\.mjs'/);
+  assert.match(page,/import \{resolveC80Succ455Savo483Scenes,createC80Succ455Savo483FloorRuntime\} from '\.\.\/\.\.\/scripts\/privateModelC80Succ455Room3Mj83FloorRuntime\.mjs'/);
+  assert.match(page,/sourceKind === 'work-test' && !c70PreviewSession &&\s+loadedModelSha256\(gltf\) === C80_SUCC455_SAVO483_GLB_SHA256\s+\? createC80Succ455Savo483FloorRuntime/);
+  assert.match(page,/const savo483=resolveC80Succ455Savo483Scenes\(gltf,loadedModelSha256\(gltf\)\)/);
+  assert.match(page,/if\(loadedModelSha256\(gltf\)===C80_SUCC455_SAVO483_GLB_SHA256&&!savo483\)throw new Error\('SUCC455_SAVO483_SOURCE_SCENE_MISMATCH'\)/);
+  assert.match(page,/if\(savo483\) gltf\.scene=savo483\[477\];\s+else if\(succ455\) gltf\.scene=succ455\[461\]/);
+  assert.match(page,/unsupported483FirstFloor\.disabled = Boolean\(\(mainViewScope as any\)\?\.isC80Succ455Savo483\)/);
+  assert.match(page,/if \(\(mainViewScope as any\)\.isC80Succ455Savo483 && floor === '1F'\) return/);
+  assert.match(page,/layersLoadedSha===C80_SUCC455_SAVO483_GLB_SHA256 && runtime\?\.isC80Succ455Savo483/);
+  assert.match(page,/layersLoadedSha===C80_SUCC455_SAVO483_GLB_SHA256&&runtime\?\.isC80Succ455Savo483/);
+  assert.equal(C80_SUCC455_SAVO483_SOURCE_LINKS_BOUND,false);
+  assert.equal(C80_SUCC455_SAVO483_PUBLISH_ALLOWED,false);
+});
