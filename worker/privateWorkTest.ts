@@ -4445,12 +4445,25 @@ const C80_SUCC455_SAVO483_WORK_TEST_CANDIDATE = {
   expectedSha256: '9f24462311166d3c9e75bea5ff0aed8ada21d20094cd92e1b90f2de8895dd487',
 } as const satisfies PrivateWorkTestCandidate;
 
+// 488-scene successor of the exact 483 model: D 1F drain low point connected
+// to the assumed 1974 L150 common main and the WW74 SITE150 site sewer.
+// Opt-in WORK_TEST, not CURRENT/as-built. Runtime: privateModelC80Ww74L150*.
+const C80_WW74_L150_WORK_TEST_CANDIDATE = {
+  id: 'c80-ww74-l150-d1f-site-sewer-20261115',
+  label: 'C80 488 - viemäri: D 1F -> L150-runko -> tonttiviemäri - WORK_TEST/HOST_HOLD',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/c80-ww74-l150-d1f-site-sewer-20261115.glb`,
+  objectKey: 'work-test/c80-ww74-l150-d1f-site-sewer-20261115.glb',
+  expectedSize: 55090484,
+  expectedSha256: '51c8644ce704f42354c8dd39e663bcf87f70a6b51209dd123344650a5f24df5b',
+} as const satisfies PrivateWorkTestCandidate;
+
 const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
   C80_M6263_MJ72_KIV005_PK1_SUCCESSOR_WORK_TEST_CANDIDATE,
   C80_TATE_MJ6263_WORK_TEST_CANDIDATE,
   C80_SUCC437_WORK_TEST_CANDIDATE,
   C80_SUCC455_LED_WORK_TEST_CANDIDATE,
   C80_SUCC455_SAVO483_WORK_TEST_CANDIDATE,
+  C80_WW74_L150_WORK_TEST_CANDIDATE,
   C80_TATE_INTERIOR_WORK_TEST_CANDIDATE,
   C80_TATE_THREE_DELTA_WORK_TEST_CANDIDATE,
   C80_P02_TATE_INTEGRATED_WORK_TEST_CANDIDATE,
