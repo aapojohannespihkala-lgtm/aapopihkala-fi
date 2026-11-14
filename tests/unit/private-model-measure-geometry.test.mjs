@@ -120,3 +120,41 @@ test('straight collinear subdivision is never mislabeled as a corner',()=>{
   });
   assert.equal(result.kind,'edge');
 });
+
+
+test('reversed coplanar triangle winding does not manufacture a building diagonal',()=>{
+  const edges=extractMeasureFeatureEdges({
+    positions:[0,0,0,2,0,0,2,1,0,0,1,0],
+    // The second triangle has deliberately opposite winding on the same plane.
+    indices:[0,1,2,3,2,0],toG1:identity,
+  });
+  assert.equal(edges.length,4);
+});
+
+test('screen-to-world edge interpolation accounts for perspective clip W',()=>{
+  // With endpoint inverse-Ws 1 and 0.5, the world midpoint projects
+  // past the centre of this screen segment. Screen t=0.5 -> world t=1/3.
+  const result=chooseMeasureFeatureSnap({
+    pointerPx:{x:50,y:0},hitPointG1:g(2/3,0,2/3),
+    segments:[{a:g(0,0,0),b:g(2,0,2)}],
+    projectToScreen:p=>({
+      x:p.xM===0?0:100,y:0,visible:true,invW:p.xM===0?1:0.5,
+    }),
+    isCandidateVisible:()=>true,maxWorldGapM:1,
+  });
+  assert.equal(result.kind,'edge');
+  assert.ok(Math.abs(result.pointG1.xM-2/3)<1e-12);
+  assert.ok(Math.abs(result.pointG1.sourceHeightYUpM-2/3)<1e-12);
+});
+
+test('invalid or one-sided inverse clip W fails closed',()=>{
+  const result=chooseMeasureFeatureSnap({
+    pointerPx:{x:50,y:0},hitPointG1:g(1,0,0),
+    segments:[{a:g(0,0),b:g(2,0)}],
+    projectToScreen:p=>({
+      x:p.xM*50,y:0,visible:true,...(p.xM===0?{invW:1}:{})
+    }),
+    isCandidateVisible:()=>true,maxWorldGapM:2,
+  });
+  assert.equal(result,null);
+});
