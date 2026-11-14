@@ -97,11 +97,26 @@ test('M6263 exact production: seven scenes, real source card, mobile and model r
     await expect(canvas).toHaveAttribute('data-main-view-floor', state.floor);
     await expect(canvas).toHaveAttribute('data-layers-source-scene-index', String(state.scene));
     await expect(canvas).toHaveAttribute('data-layers-source-sha256', SHA);
+    // The source SHA alone also matches the old, uncorrected viewer bundle.
+    // Require this actual deployed presentation on every floor/glazing scene.
+    await expect(canvas).toHaveAttribute('data-concealed-technical-count', state.floor === '2F' ? '3' : '7');
+    await expect(canvas).toHaveAttribute('data-technical-review', 'off');
     await setLayersOpen(false);
     await page.screenshot({ path: info.outputPath('m6263-scene-' + state.scene + '.png') });
-    receipts.push({ scene: state.scene, floor: state.floor, glazing: state.glazing, sourceVerified: true });
+    receipts.push({ scene: state.scene, floor: state.floor, glazing: state.glazing, sourceVerified: true,
+      concealedTechnicalCount: state.floor === '2F' ? 3 : 7, normalViewVerified: true });
     save();
   }
+  // Inspection must remain reversible without replacing the source or its scope.
+  await setLayersOpen(true);
+  const technicalReview = page.locator('#layers-technical-review-on');
+  await technicalReview.check();
+  await expect(canvas).toHaveAttribute('data-technical-review', 'on');
+  await technicalReview.uncheck();
+  await expect(canvas).toHaveAttribute('data-technical-review', 'off');
+  await expect(canvas).toHaveAttribute('data-concealed-technical-count', '7');
+  receipts.push({ concealedTechnicalNormalAndInspection: true });
+  save();
   // A real raycast on the corrected duct must resolve its new source card.
   await setLayersOpen(true);
   await preset.selectOption('d-1f');
