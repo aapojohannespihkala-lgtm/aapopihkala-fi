@@ -47,3 +47,4 @@ test('authenticated original GLB all nine scenes and negative mutations',{skip:!
  assert.equal(isC80410SourceScene(gltf,C80_410_GLB_SHA256,403),false);
  gltf.nodes[12138].mesh=old;
 });
+import './private-model-c80-437-viewer.test.mjs';
