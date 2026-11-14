@@ -4433,11 +4433,24 @@ const C80_SUCC455_LED_WORK_TEST_CANDIDATE = {
   expectedSha256: 'f990edd8ddd8277abfd419ab72b424ee360aba462739bda19fab44341c159353',
 } as const satisfies PrivateWorkTestCandidate;
 
+// Frozen original 483-scene SUCC455 + ROOM3 + MJ83 Savo owner-panel cofit.
+// Exact inner GLB SHA/bytes and Drive ZIP ID are gated. Opt-in WORK_TEST,
+// not CURRENT/as-built. Viewer scene runtime: privateModelC80Succ455Room3Mj83*.
+const C80_SUCC455_SAVO483_WORK_TEST_CANDIDATE = {
+  id: 'c80-succ455-savo483-20261114',
+  label: 'C80 483 yhteismalli - SUCC455 + Huone3 ovi + Savo MJ83 - WORK_TEST/HOST_HOLD',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/c80-succ455-savo483-20261114.glb`,
+  objectKey: 'work-test/c80-succ455-savo483-20261114.glb',
+  expectedSize: 54973904,
+  expectedSha256: '9f24462311166d3c9e75bea5ff0aed8ada21d20094cd92e1b90f2de8895dd487',
+} as const satisfies PrivateWorkTestCandidate;
+
 const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
   C80_M6263_MJ72_KIV005_PK1_SUCCESSOR_WORK_TEST_CANDIDATE,
   C80_TATE_MJ6263_WORK_TEST_CANDIDATE,
   C80_SUCC437_WORK_TEST_CANDIDATE,
   C80_SUCC455_LED_WORK_TEST_CANDIDATE,
+  C80_SUCC455_SAVO483_WORK_TEST_CANDIDATE,
   C80_TATE_INTERIOR_WORK_TEST_CANDIDATE,
   C80_TATE_THREE_DELTA_WORK_TEST_CANDIDATE,
   C80_P02_TATE_INTEGRATED_WORK_TEST_CANDIDATE,
