@@ -71,7 +71,7 @@ const hasVisibleHitMaterial = (hit: THREE.Intersection): boolean => {
  * interpolated physical positions, and no coordinates when nothing is hit.
  */
 export const pickVisibleWorkTest3DPoint = ({
-  clientX, clientY, rect, camera, modelRoot, raycaster,
+  clientX, clientY, rect, camera, modelRoot, raycaster, onVisibleHit,
 }:{
   clientX:number;
   clientY:number;
@@ -79,6 +79,8 @@ export const pickVisibleWorkTest3DPoint = ({
   camera:THREE.Camera;
   modelRoot:THREE.Object3D;
   raycaster:THREE.Raycaster;
+  /** Optional validated frontmost visible source mesh hit for snap consumers. */
+  onVisibleHit?: (hit:THREE.Intersection)=>void;
 }): WorkTest3DPoint | null => {
   if(![clientX,clientY,rect?.left,rect?.top,rect?.width,rect?.height]
     .every((v)=>Number.isFinite(v)) ||
@@ -102,6 +104,7 @@ export const pickVisibleWorkTest3DPoint = ({
   });
   const p=visibleHit?.point;
   if(!visibleHit || !p || ![p.x,p.y,p.z].every(Number.isFinite)) return null;
+  onVisibleHit?.(visibleHit);
   const objectLabel = visibleHit.object.name.trim().replace(/\s+/g, ' ').slice(0, 100) || null;
   // Mesh normals are local. Transform with inverse-transpose for nonuniform
   // scales and mirror cases; orient the face toward the picking camera.
