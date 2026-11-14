@@ -1,4 +1,6 @@
 import {C80_437_GLB_SHA256,c80437ReviewProfile} from './privateModelC80437SourceProfile.mjs';
+import { C80_500_GLB_SHA256 } from './privateModelC80500WW1974ABCSourceProfile.mjs';
+import { c80500ABCReviewProfile } from './privateModelC80500WW1974ABCFloorRuntime.mjs';
 import { C80_495_GLB_SHA256, c80495SavoSewerReviewProfile } from './privateModelC80495SavoSewerFloorRuntime.mjs';
 import { C80_WW74_L150_GLB_SHA256, c80Ww74L150ReviewProfile } from './privateModelC80Ww74L150FloorRuntime.mjs';
 import { TATE4_MJ6263_SOURCE_SHA256, m6263ReviewProfile } from './privateModelM6263ViewerReceipt.mjs';
@@ -195,6 +197,7 @@ export function resolveTechnicalReviewRoots(gltf, scene, sceneIndex, loadedSha, 
   const json = gltf?.parser?.json;
   const associations = gltf?.parser?.associations;
   const source = loadedSha === C80_437_GLB_SHA256 ? c80437ReviewProfile(json,loadedSha,sceneIndex)
+    : loadedSha === C80_500_GLB_SHA256 ? c80500ABCReviewProfile(json,loadedSha,sceneIndex)
     : loadedSha === C80_495_GLB_SHA256 ? c80495SavoSewerReviewProfile(json,loadedSha,sceneIndex)
     : loadedSha === C80_WW74_L150_GLB_SHA256 ? c80Ww74L150ReviewProfile(json,loadedSha,sceneIndex)
     : loadedSha === SUCCESSOR_R1_SHA256 ? successor369ReviewProfile(json,loadedSha,sceneIndex)
