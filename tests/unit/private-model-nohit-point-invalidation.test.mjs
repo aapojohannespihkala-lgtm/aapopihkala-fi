@@ -64,7 +64,7 @@ test('valid hit source evidence and scene/tool reset gates stay in place',()=>{
   assert.match(viewer,/pointPickClipboardText = \[/);
   assert.match(viewer,/pointPickCopyButton\.disabled = false;/);
   assert.match(viewer,/canvas\.dataset\.pointPickState = 'picked';/);
-  assert.match(viewer,/const setModelScene = \(root: any\) => \{[\s\S]*?clearPickedPoint\(\);\s*modelRoot\.clear\(\);/);
+  assert.match(viewer,/const setModelScene = \(root: any\) => \{[\s\S]*?clearPickedPoint\(\);\s*clearPointMeasureOnSceneChange\?\.\(\);\s*modelRoot\.clear\(\);/);
   assert.match(viewer,/if \(mode !== 'point-pick'\) clearPickedPoint\(\);/);
   assert.match(viewer,/if \(!pointPickClipboardText\) return;/);
 });
