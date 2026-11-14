@@ -470,3 +470,12 @@ test('viewer suppresses outline edges on drains and on system-colored meshes in 
   assert.match(page, /system === 'VIEMARI' \|\| \(system !== null && technicalReviewColorsActive\(\)\)/);
   assert.match(page, /technicalReviewColorsActive = \(\) => technicalReviewOn && technicalReview\?\.applied === true;/);
 });
+
+test('technical review grey shell stays see-through over stacked walls', async () => {
+  const { readFile } = await import('node:fs/promises');
+  const page = await readFile(new URL('../../src/pages/private-model/index.astro', import.meta.url), 'utf8');
+  const surface = page.match(/surface: new THREE\.MeshStandardMaterial\(\{[\s\S]*?\}\),/)?.[0] ?? '';
+  const opacity = Number(surface.match(/opacity: ([0-9.]+)/)?.[1]);
+  assert.ok(opacity > 0 && 1 - (1 - opacity) ** 4 <= 0.3, `four stacked wall faces stay <= 30 % opaque (opacity ${opacity})`);
+  assert.match(surface, /side: THREE\.FrontSide/);
+});
