@@ -4,6 +4,8 @@ import {
   isC80Succ455Savo483SourceScene,
 } from './privateModelC80Succ455Room3Mj83SourceProfile.mjs';
 import { nameMatches, sameSourceName } from './privateModelSourceNodeAssociations.mjs';
+import {C80_SUCC455_SAVO483_1F_DEFAULT_SCENE,
+  resolveC80Succ455Savo483FirstFloorScene} from './privateModelC80Succ455Savo483FirstFloorGate.mjs';
 
 // Source-exact, opt-in 2F/BOTH scene switcher for the 483-scene WORK_TEST model.
 // 1F is intentionally NOT accepted: 1F scene 467/468 is inherited from an
@@ -19,12 +21,13 @@ export const C80_SUCC455_SAVO483_VIEWER_ROLES = Object.freeze({
   482: Object.freeze({floor:'BOTH',glazing:'CLOSED',cutaway:true}),
 });
 
-const floors = ['2F','BOTH'];
+const floors = ['1F','2F','BOTH'];
 const glazingModes = ['CLOSED','ONE_OPEN','STACKED'];
 export function normalizeC80Succ455Savo483Options(floor,glazing,cutaway){
   if(!floors.includes(floor)||!glazingModes.includes(glazing)||
      typeof cutaway!=='boolean')return null;
-  if(cutaway&&(floor!=='BOTH'||glazing!=='CLOSED'))return null;
+  if((floor==='1F'&&(glazing!=='CLOSED'||cutaway))||
+     (cutaway&&(floor!=='BOTH'||glazing!=='CLOSED')))return null;
   return {floor,glazing,cutaway};
 }
 
@@ -33,6 +36,7 @@ export function resolveC80Succ455Savo483SceneIndex(
 ){
   if(sha!==C80_SUCC455_SAVO483_GLB_SHA256||
      !normalizeC80Succ455Savo483Options(floor,glazing,cutaway))return null;
+  if(floor==='1F')return C80_SUCC455_SAVO483_1F_DEFAULT_SCENE;
   const ids=Object.entries(C80_SUCC455_SAVO483_VIEWER_ROLES)
     .filter(([,role])=>role.floor===floor&&role.glazing===glazing&&role.cutaway===cutaway);
   return ids.length===1?Number(ids[0][0]):null;
@@ -55,6 +59,8 @@ export function resolveC80Succ455Savo483Scenes(gltf,authenticatedSha){
       return null;
     result[id]=rendered;
   }
+  const inherited1F=resolveC80Succ455Savo483FirstFloorScene(gltf,authenticatedSha);
+  if(inherited1F)result[C80_SUCC455_SAVO483_1F_DEFAULT_SCENE]=inherited1F;
   return result;
 }
 
@@ -70,7 +76,7 @@ export function createC80Succ455Savo483FloorRuntime({gltf,sha,mount,mounted}){
     if(disposed||!mountedHere()||
        !normalizeC80Succ455Savo483Options(nextFloor,nextGlazing,nextCutaway))return null;
     const nextIndex=resolveC80Succ455Savo483SceneIndex(sha,nextFloor,nextGlazing,nextCutaway);
-    if(nextIndex===null)return null;
+    if(nextIndex===null||!scenes[nextIndex])return null;
     const previousActive=active;
     active=false;
     try{mount(scenes[nextIndex]);}
@@ -86,7 +92,9 @@ export function createC80Succ455Savo483FloorRuntime({gltf,sha,mount,mounted}){
     chainLabel:'C80 SUCC455 + ROOM3 + MJ83 (483 WORK_TEST)',
     floorSceneSource:'SUCC455_SAVO483_EXACT_SOURCE',
     sourceModel:'D_C80',sourceSha256:sha,
-    floorSceneNames:{'2F':scenes[476].name,BOTH:scenes[477].name},
+    floorSceneNames:{...(scenes[467]?{'1F':scenes[467].name}:{}),
+      '2F':scenes[476].name,BOTH:scenes[477].name},
+    supportsFirstFloor:Boolean(scenes[467]),
     defaultScene:scenes[477],
     get selectedScene(){return scenes[sceneIndex];},
     get sceneIndex(){return sceneIndex;},

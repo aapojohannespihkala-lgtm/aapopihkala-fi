@@ -39,7 +39,8 @@ test('seven immutable 483-source scene choices with no 1F or automatic publish',
       {floor,glazing,cutaway});
   }
   assert.equal(resolveC80Succ455Savo483SceneIndex('bad-sha','BOTH'),null);
-  assert.equal(resolveC80Succ455Savo483SceneIndex(C80_SUCC455_SAVO483_GLB_SHA256,'1F'),null);
+  assert.equal(resolveC80Succ455Savo483SceneIndex(C80_SUCC455_SAVO483_GLB_SHA256,'1F'),467);
+  assert.equal(resolveC80Succ455Savo483SceneIndex(C80_SUCC455_SAVO483_GLB_SHA256,'1F','ONE_OPEN'),null);
   assert.equal(resolveC80Succ455Savo483SceneIndex(C80_SUCC455_SAVO483_GLB_SHA256,'BOTH','ONE_OPEN',true),null);
   assert.equal(resolveC80Succ455Savo483SceneIndex(C80_SUCC455_SAVO483_GLB_SHA256,'2F','CLOSED',true),null);
   assert.equal(resolveC80Succ455Savo483SceneIndex(C80_SUCC455_SAVO483_GLB_SHA256,'BOTH','UNKNOWN'),null);
@@ -85,7 +86,10 @@ test('authentic 483-scene GLB mounts all seven source roots and restores',
       mount(next){current=next;},mounted(){return current;}
     });
     assert.equal(runtime.defaultScene,resolved[477]);
-    assert.equal(runtime.apply('1F'),null);
+    assert.equal(runtime.apply('1F')!==null,true);
+    assert.equal(runtime.sceneIndex,467);
+    assert.equal(runtime.supportsFirstFloor,true);
+    runtime.restore();
     for(const [index,floor,glazing,cutaway] of options){
       runtime.restore();
       assert.ok(runtime.apply(floor,glazing));
