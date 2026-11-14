@@ -55,19 +55,30 @@ export const workTestCandidateMatchesFilter = (candidate: WorkTestCandidate, fil
  * Newest first. Catalog order is registration order, so automatic Drive-queue
  * versions are grouped by the date in their label (newest date first) and,
  * inside one date, the later-registered version comes first. Manually
- * registered review versions follow, also newest registration first.
+ * registered review versions with a date in their label or id get their own
+ * dated group in the same newest-first order (before the automatic group of
+ * the same date), so the newest model is always on top. Undated manual
+ * versions follow last, also newest registration first.
  */
 export const groupWorkTestCandidatesForPicker = (
   candidates: readonly WorkTestCandidate[],
 ): WorkTestPickerGroup[] => {
   const autoByDate = new Map<string, WorkTestCandidate[]>();
+  const manualByDate = new Map<string, WorkTestCandidate[]>();
   const undatedAuto: WorkTestCandidate[] = [];
   const manual: WorkTestCandidate[] = [];
 
   for (let index = candidates.length - 1; index >= 0; index -= 1) {
     const candidate = candidates[index];
     if (!isAutoCandidate(candidate)) {
-      manual.push(candidate);
+      const date = workTestCandidateLabelDate(candidate.label) ?? workTestCandidateLabelDate(candidate.id);
+      if (!date) {
+        manual.push(candidate);
+        continue;
+      }
+      const bucket = manualByDate.get(date);
+      if (bucket) bucket.push(candidate);
+      else manualByDate.set(date, [candidate]);
       continue;
     }
     const date = workTestCandidateLabelDate(candidate.label);
@@ -80,13 +91,20 @@ export const groupWorkTestCandidatesForPicker = (
     else autoByDate.set(date, [candidate]);
   }
 
-  const groups: WorkTestPickerGroup[] = [...autoByDate.keys()]
-    .sort((a, b) => (a < b ? 1 : a > b ? -1 : 0))
-    .map((date) => ({
-      key: `auto-${date}`,
-      label: `Automaattijulkaisut ${formatFinnishDate(date)}`,
-      candidates: autoByDate.get(date) ?? [],
-    }));
+  const dates = [...new Set([...manualByDate.keys(), ...autoByDate.keys()])]
+    .sort((a, b) => (a < b ? 1 : a > b ? -1 : 0));
+  const groups: WorkTestPickerGroup[] = dates.flatMap((date) => {
+    const dated: WorkTestPickerGroup[] = [];
+    const reviewed = manualByDate.get(date);
+    if (reviewed) {
+      dated.push({ key: `manual-${date}`, label: `Tarkistusversiot ${formatFinnishDate(date)}`, candidates: reviewed });
+    }
+    const automatic = autoByDate.get(date);
+    if (automatic) {
+      dated.push({ key: `auto-${date}`, label: `Automaattijulkaisut ${formatFinnishDate(date)}`, candidates: automatic });
+    }
+    return dated;
+  });
 
   if (undatedAuto.length > 0) {
     groups.push({ key: 'auto-undated', label: 'Automaattijulkaisut, ei päiväystä', candidates: undatedAuto });
