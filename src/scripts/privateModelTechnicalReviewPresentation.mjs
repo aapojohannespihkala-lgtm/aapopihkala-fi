@@ -318,6 +318,8 @@ export function createTechnicalReviewPresentation(root, keepRoots, createMateria
   return { apply, dispose, get applied() { return applied; }, get changedCount() { return saved.size; } };
 }
 
+const DRAIN_NAME = /(?:^|_)(?:V75_D\d|V110|T110|V50|V32|DRAIN|WW1974|WW74|WW20\d\d|VV20\d\d|LK_?75|KK_?32)(?:_|$)/;
+
 /** System key of a kept technical object from its own or an ancestor's source extras. */
 export function technicalReviewSystemOf(object, root) {
   for (let node = object; node && node !== root; node = node.parent) {
@@ -327,9 +329,12 @@ export function technicalReviewSystemOf(object, root) {
     // An explicit non-technical child or wrapper must stop system inheritance.
     // Do not let a visual fixture inherit its parent's technical palette.
     if (extras?.presentationOnly === true || extras?.m5PresentationRole === 'ARCHITECTURE') return null;
+    // Wastewater/vent nodes named by the M5 builders get their own drain
+    // color, also when a parent wrapper carries a generic water role.
+    if (typeof node.name === 'string' && DRAIN_NAME.test(node.name)) return 'VIEMARI';
     if (extras && Object.hasOwn(extras, 'm5System')) {
       const system = extras.m5System;
-      return system === 'SAHKO' || system === 'VESI' || system === 'IV' ? system : null;
+      return system === 'SAHKO' || system === 'VESI' || system === 'IV' || system === 'VIEMARI' ? system : null;
     }
     if (typeof node.name === 'string' && node.name.startsWith('KV17_P02_AXIS_ROOT')) return 'VESI';
   }
