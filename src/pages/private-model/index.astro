@@ -5290,7 +5290,23 @@ const title = 'Private 3D viewer';
         let point: PointMeasurePoint = picked;
         let snapKind: 'corner' | 'edge' | null = null;
         if (pointMeasureSnapToggle.checked && frontmostHit) {
-          const candidate = snapFromVisibleMeshHit({
+          // The JS helper has a narrow inferred declaration from its default
+          // options object. Type the integration contract explicitly without
+          // widening or mutating the independently reviewed core helper.
+          const checkedSnap = snapFromVisibleMeshHit as unknown as (args: {
+            frontmostHit: THREE.Intersection;
+            camera: THREE.Camera;
+            rect: DOMRect;
+            pointerPx: {x: number; y: number};
+            acceptsFrontmostHit: (hit: THREE.Intersection) => boolean;
+            isFeatureVisible: (args: {
+              pointWorld: THREE.Vector3; sourceMesh: THREE.Mesh;
+            }) => boolean;
+          }) => Readonly<{
+            pointG1: PointMeasurePoint;
+            kind: 'corner' | 'edge';
+          }> | null;
+          const candidate = checkedSnap({
             frontmostHit,
             camera: activeCamera,
             rect,
