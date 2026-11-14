@@ -4410,9 +4410,21 @@ const AUTO_YLISRINNE_C80_MJ79_D1F_PR0305_EXXACT_VINO_FULL_374_SCENES_WORK_TEST_H
   expectedSha256: '5da932fb3c3ccdf2f4f38b286734e4388f132690daa37bef35c749cacbece7b7',
 } as const satisfies PrivateWorkTestCandidate;
 
+// Frozen original SUCC437, optional scenes428..436, unchanged default292.
+// Existing trusted-main, Access, ZIP/inner SHA and readback gates apply.
+const C80_SUCC437_WORK_TEST_CANDIDATE = {
+  id: 'c80-succ437-cofit-20261114',
+  label: 'C80 437 yhteismalli - PA2, WC, hanat, IV, seinät - WORK_TEST/HOST_HOLD',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/c80-succ437-cofit-20261114.glb`,
+  objectKey: 'work-test/c80-succ437-cofit-20261114.glb',
+  expectedSize: 54585652,
+  expectedSha256: 'ed91f792d8f21cc42c4488febd8772276fa3cc42649bd54b560a17823c50e4b8',
+} as const satisfies PrivateWorkTestCandidate;
+
 const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
   C80_M6263_MJ72_KIV005_PK1_SUCCESSOR_WORK_TEST_CANDIDATE,
   C80_TATE_MJ6263_WORK_TEST_CANDIDATE,
+  C80_SUCC437_WORK_TEST_CANDIDATE,
   C80_TATE_INTERIOR_WORK_TEST_CANDIDATE,
   C80_TATE_THREE_DELTA_WORK_TEST_CANDIDATE,
   C80_P02_TATE_INTEGRATED_WORK_TEST_CANDIDATE,

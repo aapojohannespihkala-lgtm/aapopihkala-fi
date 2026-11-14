@@ -5,12 +5,23 @@ import { Matrix4, PerspectiveCamera, Vector3 } from 'three';
 
 // This spec never mocks a private model or injects a scene/selection handle.
 // Only the existing trusted-main job supplies the readback and Access identities.
-const SHA = '8aaadccfaa880e7693337467a00d9efb53d4d5e332d377be10d1e353e87e25c5';
-const ID = 'c80-tate-mj62-mj63-integrated-20261113';
+const SUCC437=process.env.YLIS_C80437_PRODUCTION==='1';
+const SHA = SUCC437?'ed91f792d8f21cc42c4488febd8772276fa3cc42649bd54b560a17823c50e4b8':'8aaadccfaa880e7693337467a00d9efb53d4d5e332d377be10d1e353e87e25c5';
+const ID = SUCC437?'c80-succ437-cofit-20261114':'c80-tate-mj62-mj63-integrated-20261113';
 const ORIGIN = 'https://aapopihkala.fi';
 const MODEL_PATH = '/private-model/work-test/' + ID + '.glb';
 const P02_SHA = 'db5ce3d7ef4c0bc8910de7f46df80029617b37d38ff4ddccd330cf70a2818a2a';
-const STATES = [
+const STATES = SUCC437 ? [
+  {floor:"1F",preset:"d-1f",scene:428,glazing:null},
+  {floor:"2F",preset:"d-2f",scene:429,glazing:"Suljettu"},
+  {floor:"2F",preset:"d-2f",scene:431,glazing:"Yksi lasi auki"},
+  {floor:"2F",preset:"d-2f",scene:433,glazing:"Lasit pinossa"},
+  {floor:"BOTH",preset:"d-apartment",scene:430,glazing:"Suljettu"},
+  {floor:"BOTH",preset:"d-apartment",scene:432,glazing:"Yksi lasi auki"},
+  {floor:"BOTH",preset:"d-apartment",scene:434,glazing:"Lasit pinossa"},
+  {floor:"1F",preset:"d-1f",scene:435,glazing:null},
+  {floor:"BOTH",preset:"d-apartment",scene:436,glazing:"Suljettu"},
+] as const : [
   { floor: '1F', preset: 'd-1f', scene: 353, glazing: null },
   { floor: '2F', preset: 'd-2f', scene: 354, glazing: 'Suljettu' },
   { floor: '2F', preset: 'd-2f', scene: 356, glazing: 'Yksi lasi auki' },
@@ -20,22 +31,22 @@ const STATES = [
   { floor: 'BOTH', preset: 'd-apartment', scene: 359, glazing: 'Lasit pinossa' },
 ] as const;
 
-test('M6263 exact production: seven scenes, real source card, mobile and model restoration', async ({ page }, info) => {
+test('Combined exact production: authored scenes, real source card, mobile and model restoration', async ({ page }, info) => {
   const production = process.env.YLIS_M6263_PRODUCTION === '1';
   test.skip(!production, 'Private production proof runs only on authenticated trusted main.');
   test.setTimeout(24 * 60_000);
   const sourcePath = process.env.YLIS_M6263_GLB;
   expect(sourcePath, 'Exact protected readback must be supplied').toBeTruthy();
   const source = readFileSync(sourcePath!);
-  expect(source.length).toBe(53943060);
+  expect(source.length).toBe(SUCC437?54585652:53943060);
   expect(createHash('sha256').update(source).digest('hex')).toBe(SHA);
   expect(source.subarray(0, 4).toString()).toBe('glTF');
   expect(source.readUInt32LE(4)).toBe(2);
   expect(source.readUInt32LE(8)).toBe(source.length);
   const json = JSON.parse(source.subarray(20, 20 + source.readUInt32LE(12)).toString('utf8'));
   expect(json.scene).toBe(292);
-  expect(json.scenes).toHaveLength(360);
-  expect(json.nodes).toHaveLength(12097);
+  expect(json.scenes).toHaveLength(SUCC437?437:360);
+  expect(json.nodes).toHaveLength(SUCC437?12164:12097);
   const credentials = {
     id: process.env.CF_ACCESS_VIEWER_PROBE_CLIENT_ID,
     secret: process.env.CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET,
@@ -94,17 +105,18 @@ test('M6263 exact production: seven scenes, real source card, mobile and model r
     await setLayersOpen(true);
     await preset.selectOption(state.preset);
     if (state.glazing) await glazing.selectOption({ label: state.glazing });
+    if(SUCC437 && state.scene>=435)await page.getByRole('checkbox',{name:'PK1-huoltoleikkaus',exact:true}).check();
     await expect(canvas).toHaveAttribute('data-main-view-floor', state.floor);
     await expect(canvas).toHaveAttribute('data-layers-source-scene-index', String(state.scene));
     await expect(canvas).toHaveAttribute('data-layers-source-sha256', SHA);
     // The source SHA alone also matches the old, uncorrected viewer bundle.
     // Require this actual deployed presentation on every floor/glazing scene.
-    await expect(canvas).toHaveAttribute('data-concealed-technical-count', state.floor === '2F' ? '3' : '7');
+    await expect(canvas).toHaveAttribute('data-concealed-technical-count', SUCC437?(state.floor==='2F'?'0':'5'):(state.floor === '2F' ? '3' : '7'));
     await expect(canvas).toHaveAttribute('data-technical-review', 'off');
     await setLayersOpen(false);
     await page.screenshot({ path: info.outputPath('m6263-scene-' + state.scene + '.png') });
     receipts.push({ scene: state.scene, floor: state.floor, glazing: state.glazing, sourceVerified: true,
-      concealedTechnicalCount: state.floor === '2F' ? 3 : 7, normalViewVerified: true });
+      concealedTechnicalCount: SUCC437?(state.floor==='2F'?0:5):(state.floor === '2F' ? 3 : 7), normalViewVerified: true });
     save();
   }
   // Inspection must remain reversible without replacing the source or its scope.
@@ -114,7 +126,7 @@ test('M6263 exact production: seven scenes, real source card, mobile and model r
   await expect(canvas).toHaveAttribute('data-technical-review', 'on');
   await technicalReview.uncheck();
   await expect(canvas).toHaveAttribute('data-technical-review', 'off');
-  await expect(canvas).toHaveAttribute('data-concealed-technical-count', '7');
+  await expect(canvas).toHaveAttribute('data-concealed-technical-count', SUCC437?'5':'7');
   receipts.push({ concealedTechnicalNormalAndInspection: true });
   save();
   // A real raycast on the corrected duct must resolve its new source card.
@@ -128,7 +140,7 @@ test('M6263 exact production: seven scenes, real source card, mobile and model r
   await page.locator('#fit-button').click();
   await page.locator('#selection-tool-button').click();
   const node = json.nodes[12096];
-  expect(json.scenes[353].nodes).toContain(12096);
+  expect(json.scenes[SUCC437?428:353].nodes).toContain(12096);
   expect(node.name).toBe('MJ63R2_INNER_ROOM_THROUGH_STORAGE_TO_OUTSIDE_SINGLE_SEALED_DUCT_WORK_TEST');
   const accessor = json.accessors[json.meshes[node.mesh].primitives[0].attributes.POSITION];
   const point = new Vector3().fromArray(accessor.min).add(new Vector3().fromArray(accessor.max)).multiplyScalar(.5);
@@ -161,7 +173,7 @@ test('M6263 exact production: seven scenes, real source card, mobile and model r
   await expect(evidence).toHaveAttribute('data-state', 'matched');
   await expect(evidence.locator('a[href*="1v8tyPG99W-jglBnHO7VHnxEUj7Sz8S2i"]').first()).toBeVisible();
   await page.screenshot({ path: info.outputPath('m6263-real-duct-source-card.png') });
-  receipts.push({ sourceCard: 'MJ63R2-restored-donor', scene: 353, realRaycast: true });
+  receipts.push({ sourceCard: 'MJ63R2-restored-donor', scene: SUCC437?428:353, realRaycast: true });
   await page.locator('#clear-selection-button').click();
   await setLayersOpen(true);
   await preset.selectOption('d-2f');
@@ -169,7 +181,7 @@ test('M6263 exact production: seven scenes, real source card, mobile and model r
   await setLayersOpen(false);
   for (const viewport of [{ width: 390, height: 844 }, initialViewport]) {
     await page.setViewportSize(viewport);
-    await expect(canvas).toHaveAttribute('data-layers-source-scene-index', '358');
+    await expect(canvas).toHaveAttribute('data-layers-source-scene-index', SUCC437?'433':'358');
     const bounds = (await canvas.boundingBox())!;
     expect(bounds.width).toBeGreaterThan(0);
     expect(bounds.width).toBeLessThanOrEqual(viewport.width);
@@ -195,7 +207,7 @@ test('M6263 exact production: seven scenes, real source card, mobile and model r
   await setLayersOpen(true);
   await preset.selectOption('d-2f');
   await glazing.selectOption({ label: 'Suljettu' });
-  await expect(canvas).toHaveAttribute('data-layers-source-scene-index', '354');
+  await expect(canvas).toHaveAttribute('data-layers-source-scene-index', SUCC437?'429':'354');
   await setLayersOpen(false);
   const webgl = await canvas.evaluate((element: HTMLCanvasElement) => {
     const gl = element.getContext('webgl2');
@@ -203,7 +215,7 @@ test('M6263 exact production: seven scenes, real source card, mobile and model r
   });
   expect(webgl).toEqual({ available: true, lost: false, error: 0 });
   expect(errors).toEqual([]);
-  receipts.push({ modelSwitch: ['M6263', 'P02', 'CURRENT', 'M6263'], webgl });
+  receipts.push({ modelSwitch: [ID, 'P02', 'CURRENT', ID], webgl });
   save();
   console.log(JSON.stringify({ production: true, sourceSHA256: SHA, scenes: STATES.map(s => s.scene),
     sourceReadbacks, p02Verified, webgl, pageErrors: errors, humanReview: 'NOT_RUN' }));
