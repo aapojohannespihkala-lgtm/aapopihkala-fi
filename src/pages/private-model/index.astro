@@ -5879,7 +5879,7 @@ const title = 'Private 3D viewer';
         // D camera fitting excludes P02's distant terrain/reference networks.
         // Reuse the existing SHA/scene/node/mesh/parent-bound Layers inventory.
         // Visibility, picking, source geometry and WHOLE framing stay unchanged.
-        if (mainViewScope?.active && (layersLoadedSha === P02_SOURCE_SHA256 || layersLoadedSha === TATE_SOURCE_SHA256 || layersLoadedSha === TATE4_SOURCE_SHA256 || layersLoadedSha === TATE3_SOURCE_SHA256 || layersLoadedSha === TATE4_MJ72_SOURCE_SHA256 || layersLoadedSha === TATE4_MJ6263_SOURCE_SHA256) &&
+        if (mainViewScope?.active && (layersLoadedSha === P02_SOURCE_SHA256 || layersLoadedSha === TATE_SOURCE_SHA256 || layersLoadedSha === TATE4_SOURCE_SHA256 || layersLoadedSha === TATE3_SOURCE_SHA256 || layersLoadedSha === TATE4_MJ72_SOURCE_SHA256 || layersLoadedSha === TATE4_MJ6263_SOURCE_SHA256 || layersLoadedSha === C80_437_GLB_SHA256) &&
             layersExpectedSha === layersLoadedSha && layersGltf?.parser?.json) {
           // Live resize still passes the default fullModelScene. P02's chain
           // runtime owns the selected floor scene rather than isSourceScene.
@@ -13846,6 +13846,7 @@ const title = 'Private 3D viewer';
             // Stamp review identity only for its exact authenticated source.
             if (((candidate.id === 'c80-p02-water-integrated-20261111' && loadedModelSha256(gltf) === P02_SOURCE_SHA256) ||
                  (candidate.id === 'c80-p02-tate-integrated-20261111' && loadedModelSha256(gltf) === TATE_SOURCE_SHA256) ||
+                 (candidate.id === 'c80-succ437-cofit-20261114' && loadedModelSha256(gltf) === C80_437_GLB_SHA256) ||
                  (candidate.id === 'c80-tate-mj62-mj63-integrated-20261113' && loadedModelSha256(gltf) === TATE4_MJ6263_SOURCE_SHA256) ||
                  (candidate.id === 'c80-tate-interior-integrated-20261111' && loadedModelSha256(gltf) === TATE4_SOURCE_SHA256) ||
                  (candidate.id === 'c80-tate-pk1-pa1-apk-20261111' && loadedModelSha256(gltf) === TATE3_SOURCE_SHA256)) &&
@@ -14602,6 +14603,7 @@ const title = 'Private 3D viewer';
           layersLoadedSha === MJ84_SOURCE_SHA256 ||
           layersLoadedSha === MJ84_HOLLOW_SOURCE_SHA256 ||
           layersLoadedSha === TATE4_MJ6263_SOURCE_SHA256 ||
+          layersLoadedSha === C80_437_GLB_SHA256 ||
           layersLoadedSha === TATE4_MJ72_SOURCE_SHA256 ||
           layersLoadedSha === TATE4_SOURCE_SHA256 || layersLoadedSha === TATE3_SOURCE_SHA256 ||
           layersLoadedSha === P02_SOURCE_SHA256 ||
