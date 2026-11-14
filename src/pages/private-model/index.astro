@@ -2299,6 +2299,7 @@ const title = 'Private 3D viewer';
         resetArchitecturalLayerRuntimeState,
       } from '../../scripts/privateModelArchitecturalLayersRuntime';
       import { pickSelectableObjectAtClientPoint } from '../../scripts/privateModelSelectionPicking';
+      import { shouldInvalidateModelSelection } from '../../scripts/privateModelSceneSelectionInvalidation.mjs';
       import { pickVisibleWorkTest3DPoint } from '../../scripts/privateModelWorkTest3DPoint';
       import {
         createPointMeasureOverlay,
@@ -3526,6 +3527,11 @@ const title = 'Private 3D viewer';
           applyElectricalLayerState();
           syncMainViewScope();
         }
+        if (shouldInvalidateModelSelection({
+          mountedRoot: modelRoot.children[0] ?? null,
+          nextRoot: root ?? null,
+          selectedObject,
+        })) clearSelection();
         clearPickedPoint();
         modelRoot.clear();
         if (root) modelRoot.add(root);
@@ -5262,7 +5268,9 @@ const title = 'Private 3D viewer';
           camera: activeCamera, modelRoot, raycaster,
         });
         if (!point) {
-          pointPickFeedback.textContent = 'Ei osumaa näkyvään mallipintaan. Edellinen piste säilyy.';
+          // A missed click is not a new host: invalidate old XYZ, mesh, floor and SHA.
+          clearPickedPoint();
+          pointPickFeedback.textContent = 'Ei osumaa näkyvään mallipintaan. Edellinen piste tyhjennetty. Kopiointi estetty.';
           return;
         }
         pointPickOverlay.show(point, null);
