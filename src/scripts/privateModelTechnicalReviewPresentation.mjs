@@ -317,8 +317,14 @@ export function technicalReviewSystemOf(object, root) {
   for (let node = object; node && node !== root; node = node.parent) {
     const exactNested=h24NestedSystems.get(node);
     if (exactNested) return exactNested;
-    const system = node.userData?.m5System;
-    if (system === 'SAHKO' || system === 'VESI' || system === 'IV') return system;
+    const extras = node.userData;
+    // An explicit non-technical child or wrapper must stop system inheritance.
+    // Do not let a visual fixture inherit its parent's technical palette.
+    if (extras?.presentationOnly === true || extras?.m5PresentationRole === 'ARCHITECTURE') return null;
+    if (extras && Object.hasOwn(extras, 'm5System')) {
+      const system = extras.m5System;
+      return system === 'SAHKO' || system === 'VESI' || system === 'IV' ? system : null;
+    }
     if (typeof node.name === 'string' && node.name.startsWith('KV17_P02_AXIS_ROOT')) return 'VESI';
   }
   return null;
