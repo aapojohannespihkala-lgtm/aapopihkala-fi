@@ -11862,7 +11862,7 @@ const title = 'Private 3D viewer';
           {
             // Newest C80R2 successor: open its own latest BOTH scene, not the
             // historical default scene 0 (1F/2F switch via the floor runtime).
-            const savo483=resolveC80Succ455Savo483Scenes(gltf,loadedModelSha256(gltf));
+            const savo483=resolveC80Succ455Savo483Scenes(gltf,loadedModelSha256(gltf)) as Record<number, any> | null;
             if(loadedModelSha256(gltf)===C80_SUCC455_SAVO483_GLB_SHA256&&!savo483)throw new Error('SUCC455_SAVO483_SOURCE_SCENE_MISMATCH');
             const succ455=resolveC80Succ455Scenes(gltf,loadedModelSha256(gltf));
             if(loadedModelSha256(gltf)===C80_SUCC455_GLB_SHA256&&!succ455)throw new Error('SUCC455_SOURCE_SCENE_MISMATCH');
