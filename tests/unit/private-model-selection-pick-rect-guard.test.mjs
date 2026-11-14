@@ -33,6 +33,8 @@ test('non-finite coordinates and malformed rectangles fail closed before pointer
     {rect:{...base,left:NaN}},{rect:{...base,top:Infinity}},
     {rect:{...base,width:NaN}},{rect:{...base,height:Infinity}},
     {rect:{...base,width:0}},{rect:{...base,height:-1}},
+    {rect:{...base,left:Number.MAX_VALUE,width:Number.MAX_VALUE},clientX:Number.MAX_VALUE},
+    {rect:{...base,top:Number.MAX_VALUE,height:Number.MAX_VALUE},clientY:Number.MAX_VALUE},
   ];
   for(const item of cases){
     const f=fixture(item);
