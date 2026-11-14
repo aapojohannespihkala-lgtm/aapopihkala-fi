@@ -126,6 +126,37 @@ test('kept technical meshes get their system highlight and are restored', () => 
   assert.equal(device.material, originalDeviceMaterial, 'material restored after toggle off');
 });
 
+test('explicit visual descendants block inherited technical palette and restore originals', () => {
+  const root = node('scene');
+  const mixed = node('mixed fixture root', { userData: { m5System: 'VESI' } });
+  const visualWrapper = node('WC cabinet wrapper', { userData: { presentationOnly: true } });
+  const panelSource = disposable('cabinet-original');
+  const coverSource = disposable('cover-original');
+  const pipeSource = disposable('pipe-original');
+  const panel = node('cabinet face', { isMesh: true, material: panelSource, userData: {} });
+  const cover = node('service cover', { isMesh: true, material: coverSource, userData: { m5System: null } });
+  const pipe = node('verified water line', { isMesh: true, material: pipeSource, userData: { m5System: 'VESI' } });
+  root.add(mixed);
+  mixed.add(visualWrapper).add(cover).add(pipe);
+  visualWrapper.add(panel);
+  const review = createTechnicalReviewPresentation(root, [mixed], () => ({
+    surface: disposable('grey'), line: disposable('greyLine'),
+    systems: { VESI: disposable('blue') },
+  }), object => technicalReviewSystemOf(object, root));
+  assert.equal(technicalReviewSystemOf(panel, root), null, 'visual wrapper stops inherited water role');
+  assert.equal(technicalReviewSystemOf(cover, root), null, 'explicitly neutral leaf stops inherited water role');
+  assert.equal(technicalReviewSystemOf(pipe, root), 'VESI', 'exact child role retains system color');
+  assert.equal(review.apply(true), true);
+  assert.equal(panel.material.label, 'grey');
+  assert.equal(cover.material.label, 'grey');
+  assert.equal(pipe.material.label, 'blue');
+  assert.equal(review.apply(false), false);
+  assert.equal(panel.material, panelSource);
+  assert.equal(cover.material, coverSource);
+  assert.equal(pipe.material, pipeSource);
+  review.dispose();
+});
+
 test('V72 reuses V71 scene roots under renamed scenes and resolves its exact technical roots', async () => {
   const v72 = await import('../../src/scripts/privateModelC80R2V72LayerSourceProfile.mjs');
   assert.equal(v72.V72_SOURCE_SCENE_COUNT, V71_SOURCE_SCENE_COUNT);
