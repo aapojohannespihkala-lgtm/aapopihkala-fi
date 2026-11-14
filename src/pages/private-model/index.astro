@@ -3525,6 +3525,8 @@ const title = 'Private 3D viewer';
       let dCoordinateAnchorMarker: any = null;
       let dAxisMeasureState = emptyAxisMeasureState();
       let dAxisMeasureMarker: any = null;
+      // The two-point tool is declared later; model mounts may run before it exists.
+      let clearPointMeasureOnSceneChange: (() => void) | null = null;
 
       const setModelScene = (root: any) => {
         beforeLayersSceneChange();
@@ -3539,6 +3541,7 @@ const title = 'Private 3D viewer';
           selectedObject,
         })) clearSelection();
         clearPickedPoint();
+        clearPointMeasureOnSceneChange?.();
         modelRoot.clear();
         if (root) modelRoot.add(root);
         modelRoot.updateMatrixWorld(true);
@@ -5223,6 +5226,7 @@ const title = 'Private 3D viewer';
         canvas.dataset.pointMeasureState = 'empty';
         delete canvas.dataset.pointMeasureDistance;
       };
+      clearPointMeasureOnSceneChange = clearPointMeasure;
 
       const clickPointMeasure = (clientX: number, clientY: number) => {
         const point = pickVisibleWorkTest3DPoint({

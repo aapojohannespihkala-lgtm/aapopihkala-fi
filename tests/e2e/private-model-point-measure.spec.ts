@@ -118,11 +118,22 @@ test('point in model shows XYZ and a persistent screenshot marker without changi
   await expect(page.locator('#point-pick-surface')).toContainText('Nx ');
   await expect(page.locator('#point-pick-copy')).toBeEnabled();
 
-  // A click on empty background must not overwrite the last valid placement.
+  // A miss must invalidate old source XYZ and disable stale clipboard output.
+  // PR1993's fail-closed no-hit contract supersedes the older persistence check.
   const before = await page.locator('#point-pick-main').textContent();
   await canvas.click({ position: { x: box.width - 6, y: box.height / 2 } });
-  await expect(page.locator('#point-pick-main')).toHaveText(before ?? '');
+  await expect(page.locator('#point-pick-main')).toHaveText('Klikkaa näkyvää mallipintaa.');
+  await expect(page.locator('#point-pick-source')).toHaveText('YLIS-G1-LOCAL, koordinaatit metreinä');
+  await expect(page.locator('#point-pick-surface')).toHaveText('Osumapinta: ei valittu');
+  await expect(page.locator('#point-pick-feedback')).toContainText('Edellinen piste tyhjennetty.');
+  await expect(canvas).toHaveAttribute('data-point-pick-state', 'empty');
+  await expect(page.locator('#point-pick-copy')).toBeDisabled();
+
+  // A new genuine surface hit restores source coordinates and clipboard copy.
+  await canvas.click({ position: { x: box.width / 2, y: box.height / 2 } });
   await expect(canvas).toHaveAttribute('data-point-pick-state', 'picked');
+  await expect(page.locator('#point-pick-main')).toHaveText(before ?? '');
+  await expect(page.locator('#point-pick-copy')).toBeEnabled();
 
   await context.grantPermissions(['clipboard-read', 'clipboard-write']);
   await page.locator('#point-pick-copy').click();
@@ -203,4 +214,45 @@ test('point in model screenshot pixel proof: real WebGL pin and readable XYZ', a
   expect(pixels.after).toBeGreaterThan(pixels.before);
   await test.info().attach('point-pick-synthetic-webgl-screenshot.png',
     { body: after, contentType: 'image/png' });
+});
+
+test('scene remount clears 3D distance after viewport resize keeps it', async ({ page }) => {
+  const model = makeTriangleGlb();
+  await page.route('**/private-model/model.glb', route =>
+    route.fulfill({ status: 200, contentType: 'model/gltf-binary', body: model }),
+  );
+  await page.goto('/private-model/');
+  await expect(page.getByRole('status')).toHaveText('Malli ladattu');
+
+  const canvas = page.locator('#private-model-canvas');
+  const tool = page.locator('#point-measure-tool-button');
+  await tool.click();
+  const box = await canvas.boundingBox();
+  expect(box).not.toBeNull();
+  if (!box) return;
+
+  await canvas.click({ position: { x: box.width / 2, y: box.height / 2 } });
+  await expect(canvas).toHaveAttribute('data-point-measure-state', 'first');
+  await canvas.click({ position: { x: box.width / 2, y: box.height / 2 + 8 } });
+  await expect(canvas).toHaveAttribute('data-point-measure-state', 'complete');
+  const savedDistance = await canvas.getAttribute('data-point-measure-distance');
+  expect(savedDistance).not.toBeNull();
+  await expect(page.locator('#point-measure-main')).toHaveText(/^\d+,\d{3} m$/);
+
+  // A camera/viewport-only update must not invalidate a surface measurement.
+  await page.setViewportSize({ width: 1186, height: 822 });
+  await expect(canvas).toHaveAttribute('data-point-measure-state', 'complete');
+  await expect(canvas).toHaveAttribute('data-point-measure-distance', savedDistance ?? '');
+
+  // The real preset event remounts the same source root in setModelScene.
+  // This must clear stale A/B and overlay even when the interaction tool stays active.
+  await page.locator('#elev-pos-y-button').evaluate(element =>
+    (element as HTMLButtonElement).click());
+  await expect(canvas).toHaveAttribute('data-view-preset', 'elevation');
+  await expect(canvas).toHaveAttribute('data-interaction-mode', 'point-measure');
+  await expect(canvas).toHaveAttribute('data-point-measure-state', 'empty');
+  await expect(canvas).not.toHaveAttribute('data-point-measure-distance', /.+/);
+  await expect(page.locator('#point-measure-main'))
+    .toHaveText('Klikkaa ensimmäinen piste mallin pinnalta.');
+  await expect(page.locator('#point-measure-detail')).toBeEmpty();
 });
