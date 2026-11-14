@@ -234,6 +234,7 @@ jobs:
             tests/unit/private-model-c80-succ455-room3-photodoor-source-profile.test.mjs \
             tests/unit/private-model-c80-succ455-room3-mj83-source-profile.test.mjs \
             tests/unit/private-model-c80-succ455-room3-mj83-floor-runtime.test.mjs \
+            tests/unit/private-model-c80-ww74-l150-floor-runtime.test.mjs \
             tests/unit/private-model-c80-succ455-savo483-firstfloor-gate.test.mjs \
             tests/unit/private-model-c80-storey-host-evidence.test.mjs \
             tests/unit/private-model-c80-410-source-profile.test.mjs

@@ -2563,6 +2563,7 @@ const title = 'Private 3D viewer';
       import {resolveC80Succ455Scenes,createC80Succ455FloorRuntime} from '../../scripts/privateModelC80Succ455FloorRuntime.mjs';
       import { C80_SUCC455_SAVO483_GLB_SHA256 } from '../../scripts/privateModelC80Succ455Room3Mj83SourceProfile.mjs';
       import {resolveC80Succ455Savo483Scenes,createC80Succ455Savo483FloorRuntime} from '../../scripts/privateModelC80Succ455Room3Mj83FloorRuntime.mjs';
+      import {C80_WW74_L150_GLB_SHA256,resolveC80Ww74L150Scenes,createC80Ww74L150FloorRuntime} from '../../scripts/privateModelC80Ww74L150FloorRuntime.mjs';
       import { SUCCESSOR_R1_SHA256 } from '../../scripts/privateModelM6263Mj72Kiv005Pk1SuccessorSourceProfile.mjs';
       import { resolveSuccessor369Scenes, createSuccessor369FloorRuntime } from '../../scripts/privateModelSuccessor369FloorRuntime.mjs';
       import { TATE3_SOURCE_SHA256 } from '../../scripts/privateModelC80TateThreeDeltaLayerSourceProfile.mjs';
@@ -6846,7 +6847,7 @@ const title = 'Private 3D viewer';
         // Reject unsupported first floor BEFORE restoring or remounting.
         if ((mainViewScope as any).isC80Succ455Savo483 && floor === '1F') return;
         const requestedOtherFloorMode = otherFloorMode.value;
-        const retainedM6263Glazing = ((mainViewScope as any).isC80Succ455 || (mainViewScope as any).isC80Succ455Savo483 || (mainViewScope as any).isC80437 || (mainViewScope as any).isM6263 || (mainViewScope as any).isSuccessor369)
+        const retainedM6263Glazing = ((mainViewScope as any).isC80Succ455 || (mainViewScope as any).isC80Succ455Savo483 || (mainViewScope as any).isC80Ww74L150 || (mainViewScope as any).isC80437 || (mainViewScope as any).isM6263 || (mainViewScope as any).isSuccessor369)
           ? (mainViewScope as any).glazing : null;
         clearSelection();
         clearPointMeasure();
@@ -6910,7 +6911,7 @@ const title = 'Private 3D viewer';
             : is64 ? 'C80R2_UNIFIED64_WORK_TEST' : 'C80R2_HI20_UNIFIED52_WORK_TEST';
           canvas.dataset.contentFloor = floor;
           if (chainLabel) canvas.dataset.c80r2ChainSceneName =
-            String(((mainViewScope as any).isM6263 || (mainViewScope as any).isC80437 || (mainViewScope as any).isC80Succ455 || (mainViewScope as any).isC80Succ455Savo483) ? (mainViewScope as any).selectedScene.name
+            String(((mainViewScope as any).isM6263 || (mainViewScope as any).isC80437 || (mainViewScope as any).isC80Succ455 || (mainViewScope as any).isC80Succ455Savo483 || (mainViewScope as any).isC80Ww74L150) ? (mainViewScope as any).selectedScene.name
               : (mainViewScope as any).floorSceneNames?.[floor] ?? '');
           const floorLabel = floor === '1F' ? 'alakerta' : floor === '2F' ? 'yläkerta' : 'molemmat kerrokset';
           const modelLabel = chainLabel ?? (is64 ? 'C80R2 64scene' : 'HI20 52scene');
@@ -7907,6 +7908,9 @@ const title = 'Private 3D viewer';
           : sourceKind === 'work-test' && !c70PreviewSession &&
           loadedModelSha256(gltf) === C80_SUCC455_GLB_SHA256
           ? createC80Succ455FloorRuntime({gltf,sha:loadedModelSha256(gltf),mount:setModelScene,mounted:()=>modelRoot.children[0]??null}) as any
+          : sourceKind === 'work-test' && !c70PreviewSession &&
+          loadedModelSha256(gltf) === C80_WW74_L150_GLB_SHA256
+          ? createC80Ww74L150FloorRuntime({gltf,sha:loadedModelSha256(gltf),mount:setModelScene,mounted:()=>modelRoot.children[0]??null}) as any
           : sourceKind === 'work-test' && !c70PreviewSession &&
           loadedModelSha256(gltf) === C80_SUCC455_SAVO483_GLB_SHA256
           ? createC80Succ455Savo483FloorRuntime({gltf,sha:loadedModelSha256(gltf),mount:setModelScene,mounted:()=>modelRoot.children[0]??null}) as any
@@ -11976,6 +11980,8 @@ const title = 'Private 3D viewer';
           {
             // Newest C80R2 successor: open its own latest BOTH scene, not the
             // historical default scene 0 (1F/2F switch via the floor runtime).
+            const ww74=resolveC80Ww74L150Scenes(gltf,loadedModelSha256(gltf)) as Record<number, any> | null;
+            if(loadedModelSha256(gltf)===C80_WW74_L150_GLB_SHA256&&!ww74)throw new Error('WW74_L150_SOURCE_SCENE_MISMATCH');
             const savo483=resolveC80Succ455Savo483Scenes(gltf,loadedModelSha256(gltf)) as Record<number, any> | null;
             if(loadedModelSha256(gltf)===C80_SUCC455_SAVO483_GLB_SHA256&&!savo483)throw new Error('SUCC455_SAVO483_SOURCE_SCENE_MISMATCH');
             const succ455=resolveC80Succ455Scenes(gltf,loadedModelSha256(gltf));
@@ -11987,7 +11993,8 @@ const title = 'Private 3D viewer';
             const m6263=resolveM6263Scenes(gltf,loadedModelSha256(gltf));
             if (loadedModelSha256(gltf)===TATE4_MJ6263_SOURCE_SHA256 && !m6263) throw new Error('M6263_SOURCE_SCENE_MISMATCH');
             const c80r2Chain = resolveC80R2ChainScenes(gltf);
-            if(savo483) gltf.scene=savo483[477];
+            if(ww74) gltf.scene=ww74[484];
+            else if(savo483) gltf.scene=savo483[477];
             else if(succ455) gltf.scene=succ455[461];
             else if(succ437) gltf.scene=succ437[430];
             else if (successor369) gltf.scene = successor369[362];
@@ -14402,14 +14409,14 @@ const title = 'Private 3D viewer';
       const syncM6263Glazing=()=>{
         const runtime=mainViewScope as any;
         const available=(layersLoadedSha===TATE4_MJ6263_SOURCE_SHA256 && runtime?.isM6263) ||
-          (layersLoadedSha===C80_SUCC455_GLB_SHA256 && runtime?.isC80Succ455) || (layersLoadedSha===C80_SUCC455_SAVO483_GLB_SHA256 && runtime?.isC80Succ455Savo483) ||
+          (layersLoadedSha===C80_SUCC455_GLB_SHA256 && runtime?.isC80Succ455) || (layersLoadedSha===C80_SUCC455_SAVO483_GLB_SHA256 && runtime?.isC80Succ455Savo483) || (layersLoadedSha===C80_WW74_L150_GLB_SHA256 && runtime?.isC80Ww74L150) ||
           (layersLoadedSha===C80_437_GLB_SHA256 && runtime?.isC80437) ||
           (layersLoadedSha===SUCCESSOR_R1_SHA256 && runtime?.isSuccessor369);
         m6263GlazingRow.hidden=!available;
         m6263GlazingRow.style.display=available?'flex':'none';
         m6263GlazingSelect.disabled=!available || runtime.floor==='1F';
         m6263GlazingSelect.value=available?runtime.glazing:'CLOSED';
-        const cutawayAvailable=(layersLoadedSha===C80_SUCC455_GLB_SHA256 && runtime?.isC80Succ455) || (layersLoadedSha===C80_SUCC455_SAVO483_GLB_SHA256 && runtime?.isC80Succ455Savo483) || (layersLoadedSha===C80_437_GLB_SHA256 && runtime?.isC80437) || (layersLoadedSha===SUCCESSOR_R1_SHA256 && runtime?.isSuccessor369);
+        const cutawayAvailable=(layersLoadedSha===C80_SUCC455_GLB_SHA256 && runtime?.isC80Succ455) || (layersLoadedSha===C80_SUCC455_SAVO483_GLB_SHA256 && runtime?.isC80Succ455Savo483) || (layersLoadedSha===C80_WW74_L150_GLB_SHA256 && runtime?.isC80Ww74L150) || (layersLoadedSha===C80_437_GLB_SHA256 && runtime?.isC80437) || (layersLoadedSha===SUCCESSOR_R1_SHA256 && runtime?.isSuccessor369);
         successorCutawayRow.hidden=!cutawayAvailable;
         successorCutawayRow.style.display=cutawayAvailable?'flex':'none';
         successorCutawayInput.disabled=!cutawayAvailable || runtime.floor==='2F' || runtime.glazing!=='CLOSED';
@@ -14418,7 +14425,7 @@ const title = 'Private 3D viewer';
       m6263GlazingSelect.addEventListener('change',()=>{
         const runtime=mainViewScope as any;
         if(!((layersLoadedSha===TATE4_MJ6263_SOURCE_SHA256 && runtime?.isM6263) ||
-          (layersLoadedSha===C80_SUCC455_GLB_SHA256 && runtime?.isC80Succ455) || (layersLoadedSha===C80_SUCC455_SAVO483_GLB_SHA256 && runtime?.isC80Succ455Savo483) ||
+          (layersLoadedSha===C80_SUCC455_GLB_SHA256 && runtime?.isC80Succ455) || (layersLoadedSha===C80_SUCC455_SAVO483_GLB_SHA256 && runtime?.isC80Succ455Savo483) || (layersLoadedSha===C80_WW74_L150_GLB_SHA256 && runtime?.isC80Ww74L150) ||
           (layersLoadedSha===C80_437_GLB_SHA256 && runtime?.isC80437) ||
           (layersLoadedSha===SUCCESSOR_R1_SHA256 && runtime?.isSuccessor369)))return;
         disposeLayersPresentation();
@@ -14432,7 +14439,7 @@ const title = 'Private 3D viewer';
 
       successorCutawayInput.addEventListener('change',()=>{
         const runtime=mainViewScope as any;
-        if(!((layersLoadedSha===C80_SUCC455_GLB_SHA256&&runtime?.isC80Succ455)||(layersLoadedSha===C80_SUCC455_SAVO483_GLB_SHA256&&runtime?.isC80Succ455Savo483)||(layersLoadedSha===C80_437_GLB_SHA256&&runtime?.isC80437)||(layersLoadedSha===SUCCESSOR_R1_SHA256&&runtime?.isSuccessor369)))return;
+        if(!((layersLoadedSha===C80_SUCC455_GLB_SHA256&&runtime?.isC80Succ455)||(layersLoadedSha===C80_SUCC455_SAVO483_GLB_SHA256&&runtime?.isC80Succ455Savo483)||(layersLoadedSha===C80_WW74_L150_GLB_SHA256&&runtime?.isC80Ww74L150)||(layersLoadedSha===C80_437_GLB_SHA256&&runtime?.isC80437)||(layersLoadedSha===SUCCESSOR_R1_SHA256&&runtime?.isSuccessor369)))return;
         disposeLayersPresentation();
         if(!runtime.setCutaway(successorCutawayInput.checked)){syncM6263Glazing();return;}
         clearSelection();
@@ -14757,6 +14764,7 @@ const title = 'Private 3D viewer';
           layersLoadedSha === MJ84_HOLLOW_SOURCE_SHA256 ||
           layersLoadedSha === TATE4_MJ6263_SOURCE_SHA256 ||
           layersLoadedSha === C80_SUCC455_SAVO483_GLB_SHA256 ||
+          layersLoadedSha === C80_WW74_L150_GLB_SHA256 ||
           layersLoadedSha === C80_437_GLB_SHA256 ||
           layersLoadedSha === TATE4_MJ72_SOURCE_SHA256 ||
           layersLoadedSha === TATE4_SOURCE_SHA256 || layersLoadedSha === TATE3_SOURCE_SHA256 ||
