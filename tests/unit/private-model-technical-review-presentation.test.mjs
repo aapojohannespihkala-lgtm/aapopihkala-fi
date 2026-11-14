@@ -499,3 +499,35 @@ test('drain classifier covers V75/WASTE collectors but not wrappers, water sleev
   const vesi = { name: 'wc', parent: root, userData: { m5System: 'VESI' } };
   assert.equal(technicalReviewSystemOf(at('V75_W5_D2F_WC1_BASIN_CISTERN', vesi), root), 'VESI');
 });
+
+test('kept meshes without a source system take their Sisältö technical layer color', async () => {
+  const { technicalReviewLayerSystemOf, TECHNICAL_REVIEW_LAYER_SYSTEMS } = await import('../../src/scripts/privateModelTechnicalReviewPresentation.mjs');
+  assert.deepEqual({ ...TECHNICAL_REVIEW_LAYER_SYSTEMS }, {
+    'technical-electrical': 'SAHKO', 'technical-water': 'VESI', 'technical-drainage': 'VIEMARI', 'technical-ventilation': 'IV',
+  });
+  const root = { name: 'scene', parent: null, userData: {} };
+  const switchRoot = { name: 'D1F-SW-01_2026_GREEN_SWITCH_OWNER_WORKTEST_ROOT', parent: root, userData: {} };
+  const rocker = { name: 'D1F-SW-01_ROCKER_SCHEMATIC_FROM_GREEN_MARK', parent: switchRoot, userData: {} };
+  const duct = { name: 'P04_D1F_ABOVE_SUSPENDED_CEILING_D100_BRANCH_EASTWEST', parent: root, userData: {} };
+  const heater = { name: 'radiator', parent: root, userData: {} };
+  const proxy = { name: 'OWNER_1F-SM-01_SMOKE_DETECTOR_PROXY', parent: switchRoot, userData: { presentationOnly: true } };
+  const map = new Map([[switchRoot, 'technical-electrical'], [duct, 'technical-ventilation'], [heater, 'technical-heating']]);
+  assert.equal(technicalReviewLayerSystemOf(rocker, root, map), 'SAHKO');
+  assert.equal(technicalReviewLayerSystemOf(duct, root, map), 'IV');
+  assert.equal(technicalReviewLayerSystemOf(heater, root, map), null, 'heating has no review color yet');
+  assert.equal(technicalReviewLayerSystemOf(proxy, root, map), null, 'presentation-only stays grey');
+  assert.equal(technicalReviewLayerSystemOf({ name: 'x', parent: root, userData: {} }, root, map), null);
+});
+
+test('technical review reports kept meshes per system for production checks', () => {
+  const root = { name: 'scene', parent: null, userData: {}, traverse(fn) { fn(this); for (const c of kids) fn(c); } };
+  const mk = (name, system) => ({ name, parent: root, isMesh: true, material: { name }, userData: system ? { m5System: system } : {} });
+  const kids = [mk('a', 'SAHKO'), mk('b', 'VESI'), mk('c', null)];
+  const disposable = () => ({ dispose() {} });
+  const review = createTechnicalReviewPresentation(root, kids, () => ({
+    surface: disposable(), line: disposable(), systems: { SAHKO: disposable(), VESI: disposable() },
+  }), object => technicalReviewSystemOf(object, root));
+  review.apply(true);
+  assert.deepEqual(review.systemCounts, { SAHKO: 1, VESI: 1, GREY: 1 });
+  review.dispose();
+});
