@@ -1,3 +1,4 @@
+import {C80_437_GLB_SHA256,C80_437_SCENES,isC80437SourceScene,resolveC80437TechnicalNode} from './privateModelC80437SourceProfile.mjs';
 import { isM6263Mj72Kiv005Pk1SuccessorSourceScene, SUCCESSOR_R1_SCENES } from './privateModelM6263Mj72Kiv005Pk1SuccessorSourceProfile.mjs';
 import { isTate4Mj62Mj63SourceScene, TATE4_MJ6263_SCENES } from './privateModelTate4Mj62Mj63SourceProfile.mjs';
 import { sameSourceName } from './privateModelSourceNodeAssociations.mjs';
@@ -155,11 +156,19 @@ export function resolveConcealedTechnicalObjects(gltf, scene, sceneIndex, loaded
   const associations = gltf?.parser?.associations;
   if (loadedSha !== expectedSha || gltf?.scenes?.[sceneIndex] !== scene ||
       typeof scene?.traverse !== 'function' || typeof associations?.get !== 'function' ||
-      (!isM6263Mj72Kiv005Pk1SuccessorSourceScene(json, loadedSha, sceneIndex) &&
+      (!isC80437SourceScene(json,loadedSha,sceneIndex) &&
+       !isM6263Mj72Kiv005Pk1SuccessorSourceScene(json, loadedSha, sceneIndex) &&
        !isTate4Mj62Mj63SourceScene(json, loadedSha, sceneIndex))) return null;
-  const profile = SUCCESSOR_R1_SCENES[sceneIndex] ?? TATE4_MJ6263_SCENES[sceneIndex];
+  const profile = C80_437_SCENES[sceneIndex] ?? SUCCESSOR_R1_SCENES[sceneIndex] ?? TATE4_MJ6263_SCENES[sceneIndex];
   const objects = [];
-  for (const spec of CONCEALED) {
+  const specs=loadedSha===C80_437_GLB_SHA256 ? CONCEALED.filter(e=>![11829,11909,11911].includes(e.node)) : CONCEALED;
+  if(loadedSha===C80_437_GLB_SHA256 && profile.floor!=='2F'){
+    const node=profile.floor==='1F'?12138:12139;
+    const exact=resolveC80437TechnicalNode(json,loadedSha,sceneIndex,node);
+    if(!exact || exact.paths.length!==1)return null;
+    specs.push({node,mesh:exact.mesh,name:exact.name,path:exact.paths[0],semantic:[node,['hiddenRoutingVerified'],false],floors:[profile.floor]});
+  }
+  for (const spec of specs) {
     if (!spec.floors.includes(profile.floor)) continue;
     const definition = json.nodes[spec.node];
     const [semanticNode, keys, expected] = spec.semantic;

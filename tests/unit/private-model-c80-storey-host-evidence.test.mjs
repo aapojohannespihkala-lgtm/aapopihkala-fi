@@ -48,9 +48,9 @@ test('wrong SHA, room, node path, mesh, unknown scene and screenshot-only eviden
   assert.equal(run({evidence:{...common.evidence,ownerConfirmed:false}}).reason,'INDEPENDENT_HOST_EVIDENCE_MISSING');
   assert.equal(run({evidence:{...common.evidence,glbSha256:'0'.repeat(64)}}).reason,'INDEPENDENT_HOST_EVIDENCE_MISSING');
 });
-test('authentic SUCC428 bytes: 1F storage proxy in original scene401 is never a 2F host',()=>{
+test('authentic SUCC428 bytes: 1F storage proxy in original scene401 is never a 2F host',
+  {skip: !process.env.YLISRINNE_SUCC428_GLB},()=>{
   const file=process.env.YLISRINNE_SUCC428_GLB;
-  if(!file) return;
   const bytes=readFileSync(file);
   const hash=createHash('sha256').update(bytes).digest('hex');
   assert.equal(hash,sha);
