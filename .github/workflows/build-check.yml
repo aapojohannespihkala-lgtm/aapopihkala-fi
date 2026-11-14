@@ -229,6 +229,7 @@ jobs:
             tests/unit/private-model-c80-succ455-led-spacing-source-profile.test.mjs \
             tests/unit/private-model-c80-succ455-viewer-runtime.test.mjs \
             tests/unit/private-model-nohit-point-invalidation.test.mjs \
+            tests/unit/private-model-sameclick-review-evidence.test.mjs \
             tests/unit/private-model-point-measure-scene-reset.test.mjs \
             tests/unit/private-model-measure-geometry.test.mjs \
             tests/unit/private-model-c80-succ455-room3-photodoor-source-profile.test.mjs \
