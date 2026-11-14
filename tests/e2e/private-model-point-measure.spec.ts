@@ -256,3 +256,51 @@ test('scene remount clears 3D distance after viewport resize keeps it', async ({
     .toHaveText('Klikkaa ensimmäinen piste mallin pinnalta.');
   await expect(page.locator('#point-measure-detail')).toBeEmpty();
 });
+
+test('point-measure axis controls reproject a completed measurement without a new click', async ({ page }) => {
+  const model = makeTriangleGlb();
+  await page.route('**/private-model/model.glb', route =>
+    route.fulfill({ status: 200, contentType: 'model/gltf-binary', body: model }),
+  );
+  await page.goto('/private-model/');
+  await expect(page.getByRole('status')).toHaveText('Malli ladattu');
+  const canvas = page.locator('#private-model-canvas');
+  await page.locator('#point-measure-tool-button').click();
+  const axis = page.locator('#point-measure-axis');
+  const snap = page.locator('#point-measure-snap');
+  const status = page.locator('#point-measure-snap-info');
+  await expect(axis).toHaveValue('free');
+  await expect(snap).toBeChecked();
+  await snap.uncheck();
+  await expect(status).toContainText('Kohdistus pois käytöstä');
+  const box = await canvas.boundingBox();
+  expect(box).not.toBeNull();
+  if (!box) return;
+  await canvas.click({ position: { x: box.width / 2, y: box.height / 2 } });
+  await canvas.click({ position: { x: box.width / 2, y: box.height / 2 + 8 } });
+  await expect(canvas).toHaveAttribute('data-point-measure-state', 'complete');
+  const free = Number(await canvas.getAttribute('data-point-measure-distance'));
+  expect(free).toBeGreaterThan(0);
+  await axis.selectOption('x');
+  await expect(canvas).toHaveAttribute('data-point-measure-axis', 'x');
+  const x = Number(await canvas.getAttribute('data-point-measure-distance'));
+  expect(x).toBeGreaterThanOrEqual(0);
+  expect(x).toBeLessThanOrEqual(free + 0.001);
+  await expect(page.locator('#point-measure-detail')).toContainText('X, itä-länsi');
+  await axis.selectOption('z');
+  await expect(canvas).toHaveAttribute('data-point-measure-axis', 'z');
+  const z = Number(await canvas.getAttribute('data-point-measure-distance'));
+  expect(z).toBeGreaterThanOrEqual(0);
+  expect(z).toBeLessThanOrEqual(free + 0.001);
+  await axis.selectOption('xy');
+  await expect(page.locator('#point-measure-detail')).toContainText('XY, vaakataso');
+  await axis.selectOption('free');
+  await expect(canvas).toHaveAttribute('data-point-measure-axis', 'free');
+  await expect(canvas).toHaveAttribute('data-point-measure-distance', free.toFixed(3));
+  await snap.check();
+  await expect(status).toContainText('Kohdistus käytössä');
+  await page.locator('#point-measure-clear').click();
+  await expect(canvas).toHaveAttribute('data-point-measure-state', 'empty');
+  await expect(page.locator('#point-measure-main'))
+    .toHaveText('Klikkaa ensimmäinen piste mallin pinnalta.');
+});
