@@ -4655,6 +4655,16 @@ const title = 'Private 3D viewer';
         return geometry;
       };
 
+      // Faceted pipe tubes get dense outline edges that hide their own color.
+      // Drains never get the architectural outline; with technical review on,
+      // every system-colored technical mesh is shown by its color alone.
+      // Rebound once the technical review state below exists (no TDZ at init).
+      let technicalReviewColorsActive = () => false;
+      const suppressTechnicalPipeEdges = (object: any, root: any) => {
+        const system = technicalReviewSystemOf(object, root);
+        return system === 'VIEMARI' || (system !== null && technicalReviewColorsActive());
+      };
+
       const refreshEdgeRendering = (root: any) => {
         restoreLegacyEdgeVisibility();
         mainViewScope?.enforce();
@@ -4686,7 +4696,7 @@ const title = 'Private 3D viewer';
                 routePresentationLayers,
                 isRoofLayerMember,
                 isArchBaseMaterial,
-              })
+              }) && !suppressTechnicalPipeEdges(object, root)
             ) {
               meshes.push(object);
             }
@@ -14467,6 +14477,7 @@ const title = 'Private 3D viewer';
       let technicalReviewOn = false;
       let concealedTechnical: ReturnType<typeof createConcealedTechnicalPresentation> | null = null;
       let technicalReview: ReturnType<typeof createTechnicalReviewPresentation> | null = null;
+      technicalReviewColorsActive = () => technicalReviewOn && technicalReview?.applied === true;
       const createTechnicalReviewMaterials = () => ({
         surface: new THREE.MeshStandardMaterial({
           color: 0x9aa1a9, roughness: 1, metalness: 0, transparent: true, opacity: 0.14, depthWrite: false,
