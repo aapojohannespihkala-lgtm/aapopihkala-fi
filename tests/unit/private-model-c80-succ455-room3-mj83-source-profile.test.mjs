@@ -44,7 +44,7 @@ function fixture(){
   roots[s.replaceAt]=12224;
   json.scenes[s.scene]={name:s.name,nodes:roots,extras:{
    stage:'WORK_TEST_HOST_HOLD',floor:s.floor,sourceSceneIndex:s.sourceSceneIndex,
-   sourceScene:s.sourceSceneIndex,newDoorLeaf:12195,newCOWRootNode:12222,
+   sourceScene:s.parentScene-9,newDoorLeaf:12195,newCOWRootNode:12222,
    oldDoorLeafHiddenInThisSceneOnly:8028,notVisibleStairTransferGrilles:true,
    current:false,asBuilt:false,sourceLinksBound:false,sourceLinksBindingVerified:false,
    sourceLinks:'NOT_BOUND',productionWebGLVerified:false,humanReviewApproved:false,
