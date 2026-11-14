@@ -5260,7 +5260,9 @@ const title = 'Private 3D viewer';
           camera: activeCamera, modelRoot, raycaster,
         });
         if (!point) {
-          pointPickFeedback.textContent = 'Ei osumaa näkyvään mallipintaan. Edellinen piste säilyy.';
+          // A missed click is not a new host: invalidate old XYZ, mesh, floor and SHA.
+          clearPickedPoint();
+          pointPickFeedback.textContent = 'Ei osumaa näkyvään mallipintaan. Edellinen piste tyhjennetty. Kopiointi estetty.';
           return;
         }
         pointPickOverlay.show(point, null);
