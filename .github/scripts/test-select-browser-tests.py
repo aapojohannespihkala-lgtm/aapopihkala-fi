@@ -70,8 +70,15 @@ class SelectionTests(unittest.TestCase):
             'tests/e2e/private-model-main-view-scope.spec.ts',
             'tests/e2e/private-model-other-floor-batch.spec.ts',
             'tests/e2e/private-model-other-floor-reference.spec.ts',
+            'tests/e2e/private-model-p137e-scene67-browser-interaction.spec.ts',
+            'tests/e2e/private-model-p186e-visibility.spec.ts',
             'tests/e2e/private-model-p4-real-r4e.spec.ts',
             'tests/e2e/private-model-work-test-load-diagnostics.spec.ts',
+        ])
+
+    def test_p186e_caption_layout_selects_existing_chromium_pixel_guard(self):
+        self.assertEqual(selected('src/scripts/privateModelP186ECaptionLayout.mjs'), [
+            'tests/e2e/private-model-p186e-visibility.spec.ts',
         ])
 
     def test_layers_wp3_source_and_css_changes_select_existing_dom_regression(self):
