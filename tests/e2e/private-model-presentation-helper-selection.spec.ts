@@ -64,7 +64,7 @@ test('real WebGL object click keeps presentation helper nonphysical and its sour
   });
   await expect(page.locator('#selection-scene')).toHaveText('Review-apugeometria');
   await expect(page.locator('#selection-physical-claim')).toHaveText('Ei');
-  await expect(page.locator('#selection-metadata-list')).toContainText('presentationOnly');
+  await expect(page.locator('#selection-metadata-list')).toContainText('Presentation Only');
   await expect(page.locator('#selection-metadata-list')).toContainText('true');
   await expect(page.locator('#selection-source-links')).toBeHidden();
   await page.locator('#clear-selection-button').click();
