@@ -2299,6 +2299,7 @@ const title = 'Private 3D viewer';
         resetArchitecturalLayerRuntimeState,
       } from '../../scripts/privateModelArchitecturalLayersRuntime';
       import { pickSelectableObjectAtClientPoint } from '../../scripts/privateModelSelectionPicking';
+      import { shouldInvalidateModelSelection } from '../../scripts/privateModelSceneSelectionInvalidation.mjs';
       import { pickVisibleWorkTest3DPoint } from '../../scripts/privateModelWorkTest3DPoint';
       import {
         createPointMeasureOverlay,
@@ -2544,6 +2545,10 @@ const title = 'Private 3D viewer';
       import { TATE4_SOURCE_SHA256 } from '../../scripts/privateModelC80TateInteriorLayerSourceProfile.mjs';
       import { TATE4_MJ6263_SOURCE_SHA256 } from '../../scripts/privateModelTate4Mj62Mj63SourceProfile.mjs';
       import { resolveM6263Scenes, createM6263FloorRuntime } from '../../scripts/privateModelM6263FloorRuntime.mjs';
+      import { C80_437_GLB_SHA256 } from '../../scripts/privateModelC80437SourceProfile.mjs';
+      import {resolveC80437Scenes,createC80437FloorRuntime} from '../../scripts/privateModelC80437FloorRuntime.mjs';
+      import { C80_SUCC455_GLB_SHA256 } from '../../scripts/privateModelC80Succ455LedSpacingSourceProfile.mjs';
+      import {resolveC80Succ455Scenes,createC80Succ455FloorRuntime} from '../../scripts/privateModelC80Succ455FloorRuntime.mjs';
       import { SUCCESSOR_R1_SHA256 } from '../../scripts/privateModelM6263Mj72Kiv005Pk1SuccessorSourceProfile.mjs';
       import { resolveSuccessor369Scenes, createSuccessor369FloorRuntime } from '../../scripts/privateModelSuccessor369FloorRuntime.mjs';
       import { TATE3_SOURCE_SHA256 } from '../../scripts/privateModelC80TateThreeDeltaLayerSourceProfile.mjs';
@@ -3522,6 +3527,11 @@ const title = 'Private 3D viewer';
           applyElectricalLayerState();
           syncMainViewScope();
         }
+        if (shouldInvalidateModelSelection({
+          mountedRoot: modelRoot.children[0] ?? null,
+          nextRoot: root ?? null,
+          selectedObject,
+        })) clearSelection();
         clearPickedPoint();
         modelRoot.clear();
         if (root) modelRoot.add(root);
@@ -5258,7 +5268,9 @@ const title = 'Private 3D viewer';
           camera: activeCamera, modelRoot, raycaster,
         });
         if (!point) {
-          pointPickFeedback.textContent = 'Ei osumaa näkyvään mallipintaan. Edellinen piste säilyy.';
+          // A missed click is not a new host: invalidate old XYZ, mesh, floor and SHA.
+          clearPickedPoint();
+          pointPickFeedback.textContent = 'Ei osumaa näkyvään mallipintaan. Edellinen piste tyhjennetty. Kopiointi estetty.';
           return;
         }
         pointPickOverlay.show(point, null);
@@ -5877,7 +5889,7 @@ const title = 'Private 3D viewer';
         // D camera fitting excludes P02's distant terrain/reference networks.
         // Reuse the existing SHA/scene/node/mesh/parent-bound Layers inventory.
         // Visibility, picking, source geometry and WHOLE framing stay unchanged.
-        if (mainViewScope?.active && (layersLoadedSha === P02_SOURCE_SHA256 || layersLoadedSha === TATE_SOURCE_SHA256 || layersLoadedSha === TATE4_SOURCE_SHA256 || layersLoadedSha === TATE3_SOURCE_SHA256 || layersLoadedSha === TATE4_MJ72_SOURCE_SHA256 || layersLoadedSha === TATE4_MJ6263_SOURCE_SHA256) &&
+        if (mainViewScope?.active && (layersLoadedSha === P02_SOURCE_SHA256 || layersLoadedSha === TATE_SOURCE_SHA256 || layersLoadedSha === TATE4_SOURCE_SHA256 || layersLoadedSha === TATE3_SOURCE_SHA256 || layersLoadedSha === TATE4_MJ72_SOURCE_SHA256 || layersLoadedSha === TATE4_MJ6263_SOURCE_SHA256 || layersLoadedSha === C80_437_GLB_SHA256) &&
             layersExpectedSha === layersLoadedSha && layersGltf?.parser?.json) {
           // Live resize still passes the default fullModelScene. P02's chain
           // runtime owns the selected floor scene rather than isSourceScene.
@@ -6712,7 +6724,7 @@ const title = 'Private 3D viewer';
       const activateMainModelScope = (floor: MainViewFloor, preserveCamera = false) => {
         if (!mainViewScope?.available) return;
         const requestedOtherFloorMode = otherFloorMode.value;
-        const retainedM6263Glazing = ((mainViewScope as any).isM6263 || (mainViewScope as any).isSuccessor369)
+        const retainedM6263Glazing = ((mainViewScope as any).isC80Succ455 || (mainViewScope as any).isC80437 || (mainViewScope as any).isM6263 || (mainViewScope as any).isSuccessor369)
           ? (mainViewScope as any).glazing : null;
         clearSelection();
         clearPointMeasure();
@@ -6776,7 +6788,7 @@ const title = 'Private 3D viewer';
             : is64 ? 'C80R2_UNIFIED64_WORK_TEST' : 'C80R2_HI20_UNIFIED52_WORK_TEST';
           canvas.dataset.contentFloor = floor;
           if (chainLabel) canvas.dataset.c80r2ChainSceneName =
-            String((mainViewScope as any).isM6263 ? (mainViewScope as any).selectedScene.name
+            String(((mainViewScope as any).isM6263 || (mainViewScope as any).isC80437 || (mainViewScope as any).isC80Succ455) ? (mainViewScope as any).selectedScene.name
               : (mainViewScope as any).floorSceneNames?.[floor] ?? '');
           const floorLabel = floor === '1F' ? 'alakerta' : floor === '2F' ? 'yläkerta' : 'molemmat kerrokset';
           const modelLabel = chainLabel ?? (is64 ? 'C80R2 64scene' : 'HI20 52scene');
@@ -7770,6 +7782,12 @@ const title = 'Private 3D viewer';
               gltf, mount: setModelScene,
               mounted: () => modelRoot.children[0] ?? null,
             }) as any
+          : sourceKind === 'work-test' && !c70PreviewSession &&
+          loadedModelSha256(gltf) === C80_SUCC455_GLB_SHA256
+          ? createC80Succ455FloorRuntime({gltf,sha:loadedModelSha256(gltf),mount:setModelScene,mounted:()=>modelRoot.children[0]??null}) as any
+          : sourceKind === 'work-test' && !c70PreviewSession &&
+          loadedModelSha256(gltf) === C80_437_GLB_SHA256
+          ? createC80437FloorRuntime({gltf,sha:loadedModelSha256(gltf),mount:setModelScene,mounted:()=>modelRoot.children[0]??null}) as any
           : sourceKind === 'work-test' && !c70PreviewSession &&
           loadedModelSha256(gltf) === SUCCESSOR_R1_SHA256
           ? createSuccessor369FloorRuntime({gltf,sha:loadedModelSha256(gltf),mount:setModelScene,mounted:()=>modelRoot.children[0]??null}) as any
@@ -11827,12 +11845,18 @@ const title = 'Private 3D viewer';
           {
             // Newest C80R2 successor: open its own latest BOTH scene, not the
             // historical default scene 0 (1F/2F switch via the floor runtime).
+            const succ455=resolveC80Succ455Scenes(gltf,loadedModelSha256(gltf));
+            if(loadedModelSha256(gltf)===C80_SUCC455_GLB_SHA256&&!succ455)throw new Error('SUCC455_SOURCE_SCENE_MISMATCH');
+            const succ437=resolveC80437Scenes(gltf,loadedModelSha256(gltf));
+            if(loadedModelSha256(gltf)===C80_437_GLB_SHA256&&!succ437)throw new Error('SUCC437_SOURCE_SCENE_MISMATCH');
             const successor369=resolveSuccessor369Scenes(gltf,loadedModelSha256(gltf));
             if (loadedModelSha256(gltf)===SUCCESSOR_R1_SHA256 && !successor369) throw new Error('SUCC369_SOURCE_SCENE_MISMATCH');
             const m6263=resolveM6263Scenes(gltf,loadedModelSha256(gltf));
             if (loadedModelSha256(gltf)===TATE4_MJ6263_SOURCE_SHA256 && !m6263) throw new Error('M6263_SOURCE_SCENE_MISMATCH');
             const c80r2Chain = resolveC80R2ChainScenes(gltf);
-            if (successor369) gltf.scene = successor369[362];
+            if(succ455) gltf.scene=succ455[461];
+            else if(succ437) gltf.scene=succ437[430];
+            else if (successor369) gltf.scene = successor369[362];
             else if (m6263) gltf.scene = m6263[355];
             else if (c80r2Chain) gltf.scene = c80r2Chain.scenes.BOTH;
           }
@@ -13838,6 +13862,8 @@ const title = 'Private 3D viewer';
             // Stamp review identity only for its exact authenticated source.
             if (((candidate.id === 'c80-p02-water-integrated-20261111' && loadedModelSha256(gltf) === P02_SOURCE_SHA256) ||
                  (candidate.id === 'c80-p02-tate-integrated-20261111' && loadedModelSha256(gltf) === TATE_SOURCE_SHA256) ||
+                 (candidate.id === 'c80-succ455-led-spacing-20261114' && loadedModelSha256(gltf) === C80_SUCC455_GLB_SHA256) ||
+                 (candidate.id === 'c80-succ437-cofit-20261114' && loadedModelSha256(gltf) === C80_437_GLB_SHA256) ||
                  (candidate.id === 'c80-tate-mj62-mj63-integrated-20261113' && loadedModelSha256(gltf) === TATE4_MJ6263_SOURCE_SHA256) ||
                  (candidate.id === 'c80-tate-interior-integrated-20261111' && loadedModelSha256(gltf) === TATE4_SOURCE_SHA256) ||
                  (candidate.id === 'c80-tate-pk1-pa1-apk-20261111' && loadedModelSha256(gltf) === TATE3_SOURCE_SHA256)) &&
@@ -14242,12 +14268,14 @@ const title = 'Private 3D viewer';
       const syncM6263Glazing=()=>{
         const runtime=mainViewScope as any;
         const available=(layersLoadedSha===TATE4_MJ6263_SOURCE_SHA256 && runtime?.isM6263) ||
+          (layersLoadedSha===C80_SUCC455_GLB_SHA256 && runtime?.isC80Succ455) ||
+          (layersLoadedSha===C80_437_GLB_SHA256 && runtime?.isC80437) ||
           (layersLoadedSha===SUCCESSOR_R1_SHA256 && runtime?.isSuccessor369);
         m6263GlazingRow.hidden=!available;
         m6263GlazingRow.style.display=available?'flex':'none';
         m6263GlazingSelect.disabled=!available || runtime.floor==='1F';
         m6263GlazingSelect.value=available?runtime.glazing:'CLOSED';
-        const cutawayAvailable=layersLoadedSha===SUCCESSOR_R1_SHA256 && runtime?.isSuccessor369;
+        const cutawayAvailable=(layersLoadedSha===C80_SUCC455_GLB_SHA256 && runtime?.isC80Succ455) || (layersLoadedSha===C80_437_GLB_SHA256 && runtime?.isC80437) || (layersLoadedSha===SUCCESSOR_R1_SHA256 && runtime?.isSuccessor369);
         successorCutawayRow.hidden=!cutawayAvailable;
         successorCutawayRow.style.display=cutawayAvailable?'flex':'none';
         successorCutawayInput.disabled=!cutawayAvailable || runtime.floor==='2F' || runtime.glazing!=='CLOSED';
@@ -14256,6 +14284,8 @@ const title = 'Private 3D viewer';
       m6263GlazingSelect.addEventListener('change',()=>{
         const runtime=mainViewScope as any;
         if(!((layersLoadedSha===TATE4_MJ6263_SOURCE_SHA256 && runtime?.isM6263) ||
+          (layersLoadedSha===C80_SUCC455_GLB_SHA256 && runtime?.isC80Succ455) ||
+          (layersLoadedSha===C80_437_GLB_SHA256 && runtime?.isC80437) ||
           (layersLoadedSha===SUCCESSOR_R1_SHA256 && runtime?.isSuccessor369)))return;
         disposeLayersPresentation();
         if(!runtime.setGlazing(m6263GlazingSelect.value))return;
@@ -14268,7 +14298,7 @@ const title = 'Private 3D viewer';
 
       successorCutawayInput.addEventListener('change',()=>{
         const runtime=mainViewScope as any;
-        if(layersLoadedSha!==SUCCESSOR_R1_SHA256 || !runtime?.isSuccessor369)return;
+        if(!((layersLoadedSha===C80_SUCC455_GLB_SHA256&&runtime?.isC80Succ455)||(layersLoadedSha===C80_437_GLB_SHA256&&runtime?.isC80437)||(layersLoadedSha===SUCCESSOR_R1_SHA256&&runtime?.isSuccessor369)))return;
         disposeLayersPresentation();
         if(!runtime.setCutaway(successorCutawayInput.checked)){syncM6263Glazing();return;}
         clearSelection();
@@ -14592,6 +14622,7 @@ const title = 'Private 3D viewer';
           layersLoadedSha === MJ84_SOURCE_SHA256 ||
           layersLoadedSha === MJ84_HOLLOW_SOURCE_SHA256 ||
           layersLoadedSha === TATE4_MJ6263_SOURCE_SHA256 ||
+          layersLoadedSha === C80_437_GLB_SHA256 ||
           layersLoadedSha === TATE4_MJ72_SOURCE_SHA256 ||
           layersLoadedSha === TATE4_SOURCE_SHA256 || layersLoadedSha === TATE3_SOURCE_SHA256 ||
           layersLoadedSha === P02_SOURCE_SHA256 ||

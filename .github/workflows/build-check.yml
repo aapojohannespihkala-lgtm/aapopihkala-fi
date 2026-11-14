@@ -192,8 +192,11 @@ jobs:
             tests/unit/private-model-k14-roof-view-clip.test.mjs \
             tests/unit/shared-boundary-local-clip.test.mjs \
             tests/unit/private-model-stair-host-gate.test.mjs \
+            tests/unit/private-model-selection-pick-rect-guard.test.mjs \
+            tests/unit/private-model-work-test-presentation-only-case.test.mjs \
             tests/unit/private-model-t04-primitive-source-binding.test.mjs \
             tests/unit/private-model-source-node-associations.test.mjs \
+            tests/unit/private-model-scene-selection-invalidation.test.mjs \
             tests/unit/private-model-building-part-layer-bindings.test.mjs \
             tests/unit/private-model-technical-review-presentation.test.mjs \
             tests/unit/private-model-hl4-furniture-runtime-bindings.test.mjs \
@@ -221,6 +224,11 @@ jobs:
             tests/unit/private-model-successor369-technical-review-scope.test.mjs \
             tests/unit/private-model-succ369-publisher-candidate.test.mjs \
             tests/unit/private-model-mj79-exxact-source-profile.test.mjs \
+            tests/unit/private-model-c80-succ455-led-spacing-source-profile.test.mjs \
+            tests/unit/private-model-c80-succ455-viewer-runtime.test.mjs \
+            tests/unit/private-model-nohit-point-invalidation.test.mjs \
+            tests/unit/private-model-c80-succ455-room3-photodoor-source-profile.test.mjs \
+            tests/unit/private-model-c80-succ455-room3-mj83-source-profile.test.mjs \
             tests/unit/private-model-c80-410-source-profile.test.mjs
 
       # Four self-contained K16-b/c scene33 builder guards run on every
