@@ -88,6 +88,20 @@ import { sameSourceName } from './privateModelSourceNodeAssociations.mjs';
 // then add the physically distinct MJ63, MJ72 and KIV005 source components.
 // The PK1 cutaway wrapper (12097) is ARCHITECTURE, never a technical root.
 // The canonical source profile must PASS before trusting even the old root IDs.
+/**
+ * Three immutable source roots are visual wrappers, not technical systems.
+ * 2220 C77 shower/glass/shelf, 11613 H24 WC + wall accessories,
+ * 11945 MJ56 reference clearance guides. The source hash gates these exact
+ * node IDs. Never apply this exclusion to other GLBs or their node indices.
+ */
+const COMPOSITE_PRESENTATION_ROOTS = new Set([2220,11613,11945]);
+export function filterCompositePresentationRoots(entries,loadedSha) {
+  if (!Array.isArray(entries)) return null;
+  if (loadedSha !== TATE4_MJ6263_SOURCE_SHA256 &&
+      loadedSha !== SUCCESSOR_R1_SHA256) return entries;
+  return entries.filter(entry=>!COMPOSITE_PRESENTATION_ROOTS.has(entry.node));
+}
+
 export function successor369ReviewProfile(json, sha, sceneIndex) {
   const spec=SUCCESSOR_R1_SCENES[sceneIndex];
   if (!spec || !isM6263Mj72Kiv005Pk1SuccessorSourceScene(
@@ -108,9 +122,8 @@ export function successor369ReviewProfile(json, sha, sceneIndex) {
   // 11945: MJ56 sauna reference clearance guides (two guide meshes).
   // The cutaway replacement 12097 (PK1) is also never a technical root.
   // Keep the prior exact-source technical classifier unchanged for old SHAs.
-  const presentationOnly = new Set([2220, 11613, 11945]);
-  const kept=inherited.filter(item=>membership.has(item.node) &&
-    !presentationOnly.has(item.node));
+  const kept=filterCompositePresentationRoots(inherited.filter(item=>
+    membership.has(item.node)),sha);
   if (kept.some(item=>json.nodes[item.node]?.name!==item.name)) return null;
   // Source-exact IDs, not model-name guesses or whole-building visual roots.
   const addedIds=[12086,12087,12088,12089,12090,12091,12092,12096,12098,12106]
@@ -129,6 +142,52 @@ export function successor369ReviewProfile(json, sha, sceneIndex) {
   };
 }
 
+// SHA31dc and SHA8aa real GLB readback: 11613 is a 132-child VISUAL
+// wrapper, but it contains these immutable 9 ventilation and 6 electrical
+// fixture leaves. Preserve these devices without preserving the WC shell,
+// basin, hatch, tile, sauna bench, shower glass or auxiliary guide material.
+// These are WORK_TEST display classifications, never as-built evidence.
+const H24_NESTED_TECHNICAL_LEAVES = Object.freeze([
+  ...Array.from({length:6},(_,i)=>({node:1669+i,mesh:773+i,system:'SAHKO'})),
+  ...Array.from({length:8},(_,i)=>({node:1704+i,mesh:808+i,system:'IV'})),
+  {node:1730,mesh:4015,system:'IV'},
+]);
+const H24_SOURCE_NAME='V93_H24_WC_OPEN_HATCH_CLONE_OF_n8011_NO_n1729';
+const h24NestedSystems=new WeakMap();
+
+/** Only called after the whole-GLB SHA, source scene and top-level roots pass. */
+export function appendSourceExactH24Children(json,scene,sceneIndex,loadedSha,associations,roots) {
+  if (!Array.isArray(roots)) return null;
+  if (loadedSha !== SUCCESSOR_R1_SHA256 &&
+      loadedSha !== TATE4_MJ6263_SOURCE_SHA256) return roots;
+  const active=json?.scenes?.[sceneIndex]?.nodes;
+  if (!Array.isArray(active) || !active.includes(11613)) return roots;
+  const sourceParent=json.nodes?.[11613];
+  if (sourceParent?.name!==H24_SOURCE_NAME ||
+      !Array.isArray(sourceParent.children) ||
+      !Array.isArray(scene?.children) ||
+      typeof associations?.get!=='function') return null;
+  const parents=scene.children.filter(o=>associations.get(o)?.nodes===11613);
+  if (parents.length!==1 || parents[0].parent!==scene ||
+      !sameSourceName(parents[0].name,H24_SOURCE_NAME)) return null;
+  const parent=parents[0];
+  const found=[];
+  for (const spec of H24_NESTED_TECHNICAL_LEAVES) {
+    const src=json.nodes?.[spec.node];
+    if (!sourceParent.children.includes(spec.node) ||
+        src?.mesh!==spec.mesh || !src?.name ||
+        !Array.isArray(parent.children)) return null;
+    const matches=parent.children.filter(o=>associations.get(o)?.nodes===spec.node);
+    if (matches.length!==1 || matches[0].parent!==parent ||
+        !sameSourceName(matches[0].name,src.name)) return null;
+    found.push({object:matches[0],system:spec.system});
+  }
+  // Stage all checks before assigning any roles, preventing partial changes
+  // if one expected exact source node is absent or belongs elsewhere.
+  for (const item of found) h24NestedSystems.set(item.object,item.system);
+  return roots.concat(found.map(item=>item.object));
+}
+
 /** Resolve exact technical roots of the active V71-V92 scene. Fails closed (null). */
 export function resolveTechnicalReviewRoots(gltf, scene, sceneIndex, loadedSha, expectedSha) {
   const json = gltf?.parser?.json;
@@ -137,7 +196,9 @@ export function resolveTechnicalReviewRoots(gltf, scene, sceneIndex, loadedSha, 
     : loadedSha === SUCCESSOR_R1_SHA256 ? successor369ReviewProfile(json,loadedSha,sceneIndex)
     : loadedSha === TATE4_MJ6263_SOURCE_SHA256 ? m6263ReviewProfile(json,loadedSha,sceneIndex)
     : Object.hasOwn(REVIEW_SOURCES, loadedSha) ? REVIEW_SOURCES[loadedSha] : null;
-  const profile = source?.roots[sceneIndex];
+  // The source-locked legacy M6263 scenes must not re-highlight composite
+  // shower/WC/guide wrappers that the newer successor already greys out.
+  const profile = filterCompositePresentationRoots(source?.roots[sceneIndex],loadedSha);
   const sceneProfile = source?.scenes[sceneIndex];
   const extras = json?.asset?.extras;
   if (!profile || !sceneProfile || expectedSha !== loadedSha ||
@@ -168,7 +229,7 @@ export function resolveTechnicalReviewRoots(gltf, scene, sceneIndex, loadedSha, 
     if (matches.length !== 1 || matches[0].parent !== scene || !sameSourceName(matches[0].name, expectedName)) return null;
     roots.push(matches[0]);
   }
-  return roots;
+  return appendSourceExactH24Children(json,scene,sceneIndex,loadedSha,associations,roots);
 }
 
 const isRenderable = object => object?.isMesh === true || object?.isLine === true ||
@@ -219,11 +280,15 @@ export function createTechnicalReviewPresentation(root, keepRoots, createMateria
         if (object === root || !isRenderable(object) || saved.has(object)) return;
         let shared;
         if (kept(object)) {
-          // Technical geometry is drawn in a clear system color so that it stays
-          // readable through the translucent grey building.
-          const highlight = object.isMesh ? materials.systems?.[systemOf(object) ?? ''] : null;
-          if (!highlight) return;
-          shared = highlight;
+          // A trusted technical root can contain non-technical child meshes.
+          // With a system palette, only explicitly classified meshes get a
+          // technical color. Unknown children and visual guides must go grey.
+          // A palette-free legacy review keeps its original source materials.
+          if (!materials.systems) return;
+          const system = object.isMesh ? systemOf(object) : null;
+          shared = object.isMesh
+            ? (materials.systems[system ?? ''] ?? materials.surface)
+            : materials.line;
         } else {
           shared = object.isMesh ? materials.surface : materials.line;
         }
@@ -254,8 +319,16 @@ export function createTechnicalReviewPresentation(root, keepRoots, createMateria
 /** System key of a kept technical object from its own or an ancestor's source extras. */
 export function technicalReviewSystemOf(object, root) {
   for (let node = object; node && node !== root; node = node.parent) {
-    const system = node.userData?.m5System;
-    if (system === 'SAHKO' || system === 'VESI' || system === 'IV') return system;
+    const exactNested=h24NestedSystems.get(node);
+    if (exactNested) return exactNested;
+    const extras = node.userData;
+    // An explicit non-technical child or wrapper must stop system inheritance.
+    // Do not let a visual fixture inherit its parent's technical palette.
+    if (extras?.presentationOnly === true || extras?.m5PresentationRole === 'ARCHITECTURE') return null;
+    if (extras && Object.hasOwn(extras, 'm5System')) {
+      const system = extras.m5System;
+      return system === 'SAHKO' || system === 'VESI' || system === 'IV' ? system : null;
+    }
     if (typeof node.name === 'string' && node.name.startsWith('KV17_P02_AXIS_ROOT')) return 'VESI';
   }
   return null;
