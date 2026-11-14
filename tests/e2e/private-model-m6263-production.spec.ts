@@ -86,7 +86,7 @@ test('Combined exact production: authored scenes, real source card, mobile and m
   const initialViewport = page.viewportSize()!;
   const receipts: unknown[] = [];
   const save = () => writeFileSync(info.outputPath('m6263-production-proof.json'), JSON.stringify({
-    sourceSHA256: SHA, testedCommit: process.env.D_VIEW_TESTED_COMMIT,
+    sourceSHA256: SHA, pageURL: page.url(), testedCommit: process.env.D_VIEW_TESTED_COMMIT,
     production: true, sourceReadbacks, p02Verified, receipts,
     pageErrors: errors, humanReview: 'NOT_RUN',
   }, null, 2));
@@ -217,6 +217,6 @@ test('Combined exact production: authored scenes, real source card, mobile and m
   expect(errors).toEqual([]);
   receipts.push({ modelSwitch: [ID, 'P02', 'CURRENT', ID], webgl });
   save();
-  console.log(JSON.stringify({ production: true, sourceSHA256: SHA, scenes: STATES.map(s => s.scene),
+  console.log(JSON.stringify({ production: true, sourceSHA256: SHA, pageURL: page.url(), scenes: STATES.map(s => s.scene),
     sourceReadbacks, p02Verified, webgl, pageErrors: errors, humanReview: 'NOT_RUN' }));
 });

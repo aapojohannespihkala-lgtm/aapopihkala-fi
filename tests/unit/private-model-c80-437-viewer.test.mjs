@@ -6,6 +6,14 @@ import {C80_437_GLB_SHA256 as SHA,C80_437_SCENES,isC80437SourceScene,resolveC804
 import {createC80437FloorRuntime,resolveC80437SceneIndex} from '../../src/scripts/privateModelC80437FloorRuntime.mjs';
 const raw=JSON.parse(readFileSync(new URL('../fixtures/c80437-viewer-source.json',import.meta.url)));
 const fixture=()=>{const f=structuredClone(raw),j={asset:f.asset,scene:292,scenes:Array.from({length:437},()=>({nodes:[]})),nodes:Array.from({length:12164},()=>({})),meshes:Array.from({length:4576},()=>({}))};for(const [i,s] of Object.entries(f.scenes))j.scenes[i]=s;for(const [i,n] of Object.entries(f.nodes))j.nodes[i]=n;return j;};
+test('live viewer activates Layers for the exact 437 digest and refuses unknown bytes',()=>{
+ const viewer=readFileSync(new URL('../../src/pages/private-model/index.astro',import.meta.url),'utf8');
+ const expression=viewer.match(/const verifiedChainSourceSha =([\s\S]*?);/)?.[1];assert.ok(expression);
+ const keys=[...new Set(expression.match(/\b(?:[A-Z][A-Z0-9_]+|v26LayersSourceSha)\b/g))];
+ const parent='8aaadccfaa880e7693337467a00d9efb53d4d5e332d377be10d1e353e87e25c5';
+ const gate=new Function(...keys,'layersLoadedSha',`return (${expression});`).bind(null,...keys.map((key,i)=>key==='C80_437_GLB_SHA256'?SHA:key==='TATE4_MJ6263_SOURCE_SHA256'?parent:`existing-source-${i}`));
+ assert.equal(gate(SHA),SHA);assert.equal(gate(parent),parent);assert.equal(gate('0'.repeat(64)),null);
+});
 test('437 publication registry names the original ZIP and exact worker identity',()=>{
  const registry=JSON.parse(readFileSync(new URL('../../.github/work-test-candidates.json',import.meta.url)));
  assert.deepEqual(registry.candidates['c80-succ437-cofit-20261114'],{driveFileId:'12i53BpDbWLmv48bmWycCdCAeynUtB1Df'});
