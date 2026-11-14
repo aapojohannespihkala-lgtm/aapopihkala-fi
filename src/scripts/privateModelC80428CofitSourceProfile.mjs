@@ -27,7 +27,7 @@ export const C80_428_SCENES=Object.freeze(Object.fromEntries(rows.map((r,i)=>{
   name:'C80_SUCC419_PA2_RED_WALLFLOOR_'+r[0]+'_FROM_'+parent+'_WORK_TEST_HOST_HOLD',
   parentName:'C80_410_V84FLOOR_COW_FROM_'+(401+i)+'_WORK_TEST_HOST_HOLD'
  })];
-}));
+})));
 export function c80428RootFnv32(ids){
  if(!Array.isArray(ids))return null;
  let h=2166136261;
