@@ -193,6 +193,7 @@ jobs:
             tests/unit/shared-boundary-local-clip.test.mjs \
             tests/unit/private-model-stair-host-gate.test.mjs \
             tests/unit/private-model-selection-pick-rect-guard.test.mjs \
+            tests/unit/private-model-work-test-presentation-only-case.test.mjs \
             tests/unit/private-model-t04-primitive-source-binding.test.mjs \
             tests/unit/private-model-source-node-associations.test.mjs \
             tests/unit/private-model-scene-selection-invalidation.test.mjs \
