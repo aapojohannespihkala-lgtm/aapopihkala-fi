@@ -46,6 +46,26 @@ test('WORK_TEST picker groups automatic versions newest date first and manual ve
   expect(groups.flatMap((group) => group.candidates).length).toBe(catalog.length);
 });
 
+test('WORK_TEST picker puts dated review versions in newest-first date order, newest model on top', () => {
+  const withReviews = [
+    ...catalog,
+    candidate('c80-succ455-savo483-20261114', 'C80 483 - Savo: D 1F - WORK_TEST/HOST_HOLD'),
+    candidate('auto-later-eeee5555', 'Auto: Ylisrinne C80 MJ79 WORK TEST 20261112 - WORK_TEST'),
+    candidate('c80-ww74-l150-d1f-site-sewer-20261115', 'C80 488 - viemäri: D 1F -> L150-runko - WORK_TEST/HOST_HOLD'),
+  ];
+  const groups = groupWorkTestCandidatesForPicker(withReviews);
+  expect(groups.map((group) => group.label)).toEqual([
+    'Tarkistusversiot 15.11.2026',
+    'Tarkistusversiot 14.11.2026',
+    'Automaattijulkaisut 12.11.2026',
+    'Automaattijulkaisut 20.10.2026',
+    'Automaattijulkaisut 19.10.2026',
+    'Aiemmat tarkistusversiot',
+  ]);
+  expect(groups[0].candidates[0].id).toBe('c80-ww74-l150-d1f-site-sewer-20261115');
+  expect(groups.flatMap((group) => group.candidates).length).toBe(withReviews.length);
+});
+
 test('WORK_TEST picker helpers parse dates, shorten auto labels and filter by all terms', () => {
   expect(workTestCandidateLabelDate('x 20261019 y 20261020 (scene69)')).toBe('2026-10-20');
   expect(workTestCandidateLabelDate('SOURCE156 scene300 no date')).toBeNull();
