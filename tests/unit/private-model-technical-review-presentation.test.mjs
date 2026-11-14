@@ -476,6 +476,6 @@ test('technical review grey shell stays see-through over stacked walls', async (
   const page = await readFile(new URL('../../src/pages/private-model/index.astro', import.meta.url), 'utf8');
   const surface = page.match(/surface: new THREE\.MeshStandardMaterial\(\{[\s\S]*?\}\),/)?.[0] ?? '';
   const opacity = Number(surface.match(/opacity: ([0-9.]+)/)?.[1]);
-  assert.ok(opacity > 0 && 1 - (1 - opacity) ** 4 <= 0.3, `four stacked wall faces stay <= 30 % opaque (opacity ${opacity})`);
+  assert.ok(opacity > 0 && 1 - (1 - opacity) ** 4 <= 0.2 && 1 - (1 - opacity) ** 11 <= 0.45, `stacked wall faces stay see-through (opacity ${opacity})`);
   assert.match(surface, /side: THREE\.FrontSide/);
 });
