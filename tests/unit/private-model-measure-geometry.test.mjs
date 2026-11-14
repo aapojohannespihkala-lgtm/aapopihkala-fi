@@ -258,3 +258,34 @@ test('adapter fails closed before scanning excessively large geometry',()=>{
   });
   assert.equal(r,null);
 });
+
+
+test('adapter rejects mesh animation or partial-draw geometry rather than false geometry snaps',()=>{
+  const mesh=new THREE.Mesh(new THREE.BoxGeometry(2,2,2),new THREE.MeshBasicMaterial());
+  const camera=new THREE.PerspectiveCamera(60,1,.1,20);
+  camera.position.z=5;
+  camera.lookAt(0,0,0);
+  camera.updateMatrixWorld(true);
+  const ndc=new THREE.Vector3(1,1,1).project(camera);
+  const args={
+    frontmostHit:{object:mesh,point:new THREE.Vector3(.98,.98,1)},
+    camera,rect:{left:0,top:0,width:400,height:400},
+    pointerPx:{x:200*(ndc.x+1),y:200*(1-ndc.y)},
+    acceptsFrontmostHit:()=>true,isFeatureVisible:()=>true,
+  };
+  const baseline=snapFromVisibleMeshHit(args);
+  assert.ok(baseline);
+  mesh.isInstancedMesh=true;
+  assert.equal(snapFromVisibleMeshHit(args),null);
+  mesh.isInstancedMesh=false;
+  mesh.isSkinnedMesh=true;
+  assert.equal(snapFromVisibleMeshHit(args),null);
+  mesh.isSkinnedMesh=false;
+  mesh.geometry.morphAttributes.position=[new THREE.Float32BufferAttribute([0,0,0],3)];
+  assert.equal(snapFromVisibleMeshHit(args),null);
+  mesh.geometry.morphAttributes.position=[];
+  mesh.geometry.setDrawRange(0,3);
+  assert.equal(snapFromVisibleMeshHit(args),null);
+  mesh.geometry.setDrawRange(0,Infinity);
+  assert.ok(snapFromVisibleMeshHit(args));
+});
