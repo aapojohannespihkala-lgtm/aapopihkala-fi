@@ -8,6 +8,7 @@ import {
   resolveM6263BuildingNode,resolveM6263CardNode,m6263ReviewProfile,
 } from '../../src/scripts/privateModelM6263ViewerReceipt.mjs';
 import {createM6263FloorRuntime} from '../../src/scripts/privateModelM6263FloorRuntime.mjs';
+import {shouldInvalidateModelSelection} from '../../src/scripts/privateModelSceneSelectionInvalidation.mjs';
 const receipt=JSON.parse(readFileSync(new URL('../fixtures/m6263-viewer-source.json',import.meta.url),'utf8'));
 function fixture(){
   const f=structuredClone(receipt),json={asset:f.asset,scene:f.scene,
@@ -95,10 +96,14 @@ test('real viewer scene owner preserves an active glazing mount without restorin
   const file=readFileSync(new URL('../../src/pages/private-model/index.astro',import.meta.url),'utf8');
   const block=file.match(/const setModelScene = [\s\S]*?\n      };/)?.[0];assert.ok(block);
   const noop=()=>{};
-  const owner=new Function('env',`const {modelRoot,fullModelScene,beforeLayersSceneChange,applyElectricalLayerState,syncMainViewScope,clearPickedPoint,refreshEdgeRendering,refreshLayers,queueMicrotask}=env;let mainViewScope;${stripTypeScriptTypes(block,{mode:'strip'})};return {mount:setModelScene,setScope:s=>{mainViewScope=s;}};`)({modelRoot,fullModelScene:scenes[355],beforeLayersSceneChange:noop,applyElectricalLayerState:noop,syncMainViewScope:noop,clearPickedPoint:noop,refreshEdgeRendering:noop,refreshLayers:noop,queueMicrotask:noop});
+  let invalidations=0;
+  const owner=new Function('env',`const {modelRoot,fullModelScene,beforeLayersSceneChange,applyElectricalLayerState,syncMainViewScope,clearPickedPoint,refreshEdgeRendering,refreshLayers,queueMicrotask,shouldInvalidateModelSelection,selectedObject,clearSelection}=env;let mainViewScope;${stripTypeScriptTypes(block,{mode:'strip'})};return {mount:setModelScene,setScope:s=>{mainViewScope=s;}};`)({modelRoot,fullModelScene:scenes[355],beforeLayersSceneChange:noop,applyElectricalLayerState:noop,syncMainViewScope:noop,clearPickedPoint:noop,refreshEdgeRendering:noop,refreshLayers:noop,queueMicrotask:noop,shouldInvalidateModelSelection,selectedObject:{nodeIndex:12144},clearSelection:()=>{invalidations++;}});
   const runtime=createM6263FloorRuntime({gltf:{scenes,parser:{json:j}},sha:SHA,mount:owner.mount,mounted:()=>modelRoot.children[0]});
   owner.setScope(runtime);
-  assert.ok(runtime.apply('2F'));assert.ok(runtime.active);
+  owner.mount(modelRoot.children[0]);
+  assert.equal(invalidations,0,'same-root camera mount must preserve selection');
+  assert.ok(runtime.apply('2F'));
+  assert.ok(invalidations>0,'2F scene swap must invalidate stale source selection');assert.ok(runtime.active);
   assert.ok(runtime.setGlazing('STACKED'));
   assert.equal(runtime.sceneIndex,358);assert.equal(runtime.floor,'2F');assert.ok(runtime.active);
   assert.equal(modelRoot.children[0],scenes[358]);

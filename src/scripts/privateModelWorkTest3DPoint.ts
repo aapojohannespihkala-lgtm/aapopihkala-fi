@@ -28,7 +28,7 @@ type Rect = {left:number;top:number;width:number;height:number};
 const hasPresentationOnlyAncestor = (node: THREE.Object3D, root: THREE.Object3D) => {
   let current: THREE.Object3D | null = node;
   while(current && current!==root.parent){
-    if(current.userData?.PresentationOnly === true) return true;
+    if (current.userData?.PresentationOnly === true || current.userData?.presentationOnly === true) return true;
     if(current===root) break;
     current=current.parent;
   }

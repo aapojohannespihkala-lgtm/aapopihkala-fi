@@ -53,7 +53,18 @@ export const pickSelectableObjectAtClientPoint = ({
   if (canvas.dataset?.interactionMode !== 'select') return null;
 
   const rect = canvas.getBoundingClientRect();
-  if (rect.width <= 0 || rect.height <= 0) return null;
+  const right = rect.left + rect.width;
+  const bottom = rect.top + rect.height;
+  // Match the visible 3D-point picker: invalid or outside-canvas input must
+  // not mutate the pointer or activate a stale/mock raycast selection.
+  // Computed edges must also remain finite if finite inputs overflow.
+  if (
+    ![clientX, clientY, rect.left, rect.top, rect.width, rect.height, right, bottom]
+      .every(Number.isFinite) ||
+    rect.width <= 0 || rect.height <= 0 ||
+    clientX < rect.left || clientX > right ||
+    clientY < rect.top || clientY > bottom
+  ) return null;
 
   pointer.x = ((clientX - rect.left) / rect.width) * 2 - 1;
   pointer.y = -((clientY - rect.top) / rect.height) * 2 + 1;
