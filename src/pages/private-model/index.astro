@@ -2556,6 +2556,7 @@ const title = 'Private 3D viewer';
       import { V90_H20_SOURCE_SHA256 } from '../../scripts/privateModelC80R2V90H20LayerSourceProfile.mjs';
       import { V90_IV_P04_SOURCE_SHA256 } from '../../scripts/privateModelC80R2V90IVP04LayerSourceProfile.mjs';
       import { resolveTechnicalReviewRoots, createTechnicalReviewPresentation, technicalReviewSystemOf } from '../../scripts/privateModelTechnicalReviewPresentation.mjs';
+      import { resolveConcealedTechnicalObjects, createConcealedTechnicalPresentation } from '../../scripts/privateModelConcealedTechnicalPresentation.mjs';
       import { K17_RAIL900_SOURCE_SHA256 } from '../../scripts/privateModelK17Rail900LayerSourceProfile.mjs';
       import { createV69C035WhiteLobbyPresentation } from '../../scripts/privateModelV69C035WhiteLobbyPresentation.mjs';
       import { createV69C020UpperGlassPresentation } from '../../scripts/privateModelV69C020UpperGlassPresentation.mjs';
@@ -14293,6 +14294,7 @@ const title = 'Private 3D viewer';
       const technicalReviewRow = document.querySelector<HTMLElement>('#layers-technical-review')!;
       const technicalReviewInput = document.querySelector<HTMLInputElement>('#layers-technical-review-on')!;
       let technicalReviewOn = false;
+      let concealedTechnical: ReturnType<typeof createConcealedTechnicalPresentation> | null = null;
       let technicalReview: ReturnType<typeof createTechnicalReviewPresentation> | null = null;
       const createTechnicalReviewMaterials = () => ({
         surface: new THREE.MeshStandardMaterial({
@@ -14306,8 +14308,15 @@ const title = 'Private 3D viewer';
           })])),
       });
       technicalReviewInput.addEventListener('change', () => {
+        // An active isolate/hide filter owns visibility until it is restored.
+        if (canvas.dataset.objectVisibilityFilter === 'active') {
+          technicalReviewInput.checked = technicalReviewOn;
+          return;
+        }
         technicalReviewOn = technicalReviewInput.checked;
         technicalReview?.apply(technicalReviewOn);
+        concealedTechnical?.apply(technicalReviewOn);
+        if (selectedObject && !isEffectivelyVisible(selectedObject, modelRoot)) clearSelection();
         canvas.dataset.technicalReview = technicalReviewOn && technicalReview?.applied ? 'on' : 'off';
         refreshEdgeRendering(modelRoot.children[0] ?? null);
       });
@@ -14321,6 +14330,9 @@ const title = 'Private 3D viewer';
       });
 
       const disposeLayersPresentation = () => {
+        concealedTechnical?.dispose();
+        concealedTechnical = null;
+        delete canvas.dataset.concealedTechnicalCount;
         // Restore the review materials first: they were applied after Layers.
         technicalReview?.dispose();
         technicalReview = null;
@@ -14385,11 +14397,13 @@ const title = 'Private 3D viewer';
           const verified = !!layersExpectedSha && layersExpectedSha === layersLoadedSha && sceneIndex >= 0;
           const filterActive = canvas.dataset.objectVisibilityFilter === 'active';
           if (filterActive) {
+            technicalReviewInput.disabled = true;
             layersContextInput.disabled = true;
             layersPanelControls.update(layersState, layersAvailable, { boundNodeIds: layersBoundIds, disabled: true });
             return;
           }
           disposeLayersPresentation();
+          technicalReviewInput.disabled = false;
           layersContextInput.disabled = false;
           syncM6263Glazing();
           layersAvailable = [];
@@ -14476,6 +14490,14 @@ const title = 'Private 3D viewer';
               technicalReview.apply(technicalReviewOn);
               canvas.dataset.technicalReview = technicalReviewOn && technicalReview.applied ? 'on' : 'off';
               technicalReviewRow.hidden = false;
+            }
+            // Concealed WORK_TEST routes belong in inspection, not finished rooms.
+            // Resolve from the verified original node/mesh/parent receipt only.
+            const concealed = resolveConcealedTechnicalObjects(source, root, sceneIndex, layersLoadedSha, layersExpectedSha);
+            if (concealed) {
+              concealedTechnical = createConcealedTechnicalPresentation(concealed);
+              concealedTechnical.apply(technicalReviewOn);
+              canvas.dataset.concealedTechnicalCount = String(concealedTechnical.count);
             }
             canvas.dataset.layersBindingCount = String(bindings.length);
             canvas.dataset.layersSourceSceneIndex = String(sceneIndex);
