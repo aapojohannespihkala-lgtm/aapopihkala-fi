@@ -1,3 +1,4 @@
+import {C80_437_GLB_SHA256,isC80437SourceScene,resolveC80437TechnicalNode} from './privateModelC80437SourceProfile.mjs';
 import { isTate4Mj62Mj63SourceScene } from './privateModelTate4Mj62Mj63SourceProfile.mjs';
 import { TATE4_MJ6263_SOURCE_SHA256, resolveM6263TechnicalNode } from './privateModelM6263ViewerReceipt.mjs';
 import { AIR385_SOURCE_SHA256, AIR385_COMPONENTS, isAir385SourceScene } from './privateModelAir385ToshibaServiceSourceProfile.mjs';
@@ -35,6 +36,7 @@ import { V91_SOURCE_SHA256, V91_SOURCE_SCENE_COUNT, V91_BUILDING_SCENES } from '
 import { V92_SOURCE_SHA256, V92_SOURCE_SCENE_COUNT, V92_BUILDING_SCENES } from './privateModelC80R2V92LayerSourceProfile.mjs';
 import { V93_MJ49_SOURCE_SHA256, isV93MJ49SavoNSScene } from './privateModelV93MJ49SavoNSKIV3SourceProfile.mjs';
 import { V93_H35H38_SOURCE_SHA256, V93_H35H38_SOURCE_SCENE_COUNT, V93_H35H38_BUILDING_SCENES } from './privateModelC80R2V93H35H38LayerSourceProfile.mjs';
+import { OUTLETS2_SOURCE_SHA256, OUTLETS2_SOURCE_SCENE_COUNT, OUTLETS2_BUILDING_SCENES, OUTLETS2_OPTIN_SCENES, OUTLETS2_SOURCE_ROOTS } from './privateModelC80R2V93DoubleOutletLayerSourceProfile.mjs';
 import { IV125_LOWTRI_SOURCE_SHA256, IV125_LOWTRI_SOURCE_SCENE_COUNT, IV125_LOWTRI_BUILDING_SCENES } from './privateModelC80R2V93IV125LowtriLayerSourceProfile.mjs';
 import { V93_MJ40_SOURCE_SHA256, isV93MJ40BoschOpen90Scene } from './privateModelV93MJ40BoschOpen90SourceProfile.mjs';
 import { V90_H20_SOURCE_SHA256, V90_H20_SCENE_COUNT, V90_H20_BUILDING_SCENES, V90_H20_FLOORS, V90_H20_OPTIN_SCENES, V90_H20_ROOT } from './privateModelC80R2V90H20LayerSourceProfile.mjs';
@@ -502,7 +504,7 @@ const v26Device = (context: TechnicalSystemsContext, binding: TechnicalSourceNod
   }
   const h20Optin = context.loadedGlbSha256 === V90_H20_SOURCE_SHA256;
   const ivFocus = context.loadedGlbSha256 === V90_IV_P04_SOURCE_SHA256;
-  const integratedScenes = context.loadedGlbSha256 === TATE4_SOURCE_SHA256 ? TATE4_BUILDING_SCENES : context.loadedGlbSha256 === TATE3_SOURCE_SHA256 ? TATE3_BUILDING_SCENES : context.loadedGlbSha256 === TATE_SOURCE_SHA256 ? TATE_BUILDING_SCENES : context.loadedGlbSha256 === P02_SOURCE_SHA256 ? P02_BUILDING_SCENES : ivFocus ? V90_IV_P04_BUILDING_SCENES : h20Optin ? V90_H20_BUILDING_SCENES : context.loadedGlbSha256 === IV125_LOWTRI_SOURCE_SHA256 ? IV125_LOWTRI_BUILDING_SCENES : context.loadedGlbSha256 === V93_H35H38_SOURCE_SHA256 ? V93_H35H38_BUILDING_SCENES : context.loadedGlbSha256 === V92_SOURCE_SHA256 ? V92_BUILDING_SCENES : context.loadedGlbSha256 === V91_SOURCE_SHA256 ? V91_BUILDING_SCENES : context.loadedGlbSha256 === V90_SOURCE_SHA256 ? V90_BUILDING_SCENES : context.loadedGlbSha256 === V89_SOURCE_SHA256 ? V89_BUILDING_SCENES : context.loadedGlbSha256 === V88_SOURCE_SHA256 ? V88_BUILDING_SCENES : context.loadedGlbSha256 === V87_SOURCE_SHA256 ? V87_BUILDING_SCENES : context.loadedGlbSha256 === V86_SOURCE_SHA256 ? V86_BUILDING_SCENES : context.loadedGlbSha256 === V85_SOURCE_SHA256 ? V85_BUILDING_SCENES : context.loadedGlbSha256 === V84_SOURCE_SHA256 ? V84_BUILDING_SCENES : context.loadedGlbSha256 === V83_SOURCE_SHA256 ? V83_BUILDING_SCENES : context.loadedGlbSha256 === V82_SOURCE_SHA256 ? V82_BUILDING_SCENES
+  const integratedScenes = context.loadedGlbSha256 === OUTLETS2_SOURCE_SHA256 ? OUTLETS2_BUILDING_SCENES : context.loadedGlbSha256 === TATE4_SOURCE_SHA256 ? TATE4_BUILDING_SCENES : context.loadedGlbSha256 === TATE3_SOURCE_SHA256 ? TATE3_BUILDING_SCENES : context.loadedGlbSha256 === TATE_SOURCE_SHA256 ? TATE_BUILDING_SCENES : context.loadedGlbSha256 === P02_SOURCE_SHA256 ? P02_BUILDING_SCENES : ivFocus ? V90_IV_P04_BUILDING_SCENES : h20Optin ? V90_H20_BUILDING_SCENES : context.loadedGlbSha256 === IV125_LOWTRI_SOURCE_SHA256 ? IV125_LOWTRI_BUILDING_SCENES : context.loadedGlbSha256 === V93_H35H38_SOURCE_SHA256 ? V93_H35H38_BUILDING_SCENES : context.loadedGlbSha256 === V92_SOURCE_SHA256 ? V92_BUILDING_SCENES : context.loadedGlbSha256 === V91_SOURCE_SHA256 ? V91_BUILDING_SCENES : context.loadedGlbSha256 === V90_SOURCE_SHA256 ? V90_BUILDING_SCENES : context.loadedGlbSha256 === V89_SOURCE_SHA256 ? V89_BUILDING_SCENES : context.loadedGlbSha256 === V88_SOURCE_SHA256 ? V88_BUILDING_SCENES : context.loadedGlbSha256 === V87_SOURCE_SHA256 ? V87_BUILDING_SCENES : context.loadedGlbSha256 === V86_SOURCE_SHA256 ? V86_BUILDING_SCENES : context.loadedGlbSha256 === V85_SOURCE_SHA256 ? V85_BUILDING_SCENES : context.loadedGlbSha256 === V84_SOURCE_SHA256 ? V84_BUILDING_SCENES : context.loadedGlbSha256 === V83_SOURCE_SHA256 ? V83_BUILDING_SCENES : context.loadedGlbSha256 === V82_SOURCE_SHA256 ? V82_BUILDING_SCENES
     : context.loadedGlbSha256 === V81_SOURCE_SHA256 ? V81_BUILDING_SCENES
     : context.loadedGlbSha256 === V80_SOURCE_SHA256 ? V80_BUILDING_SCENES
     : context.loadedGlbSha256 === V79_SOURCE_SHA256 ? V79_BUILDING_SCENES
@@ -518,7 +520,7 @@ const v26Device = (context: TechnicalSystemsContext, binding: TechnicalSourceNod
     : context.loadedGlbSha256 === K17_RAIL900_SOURCE_SHA256 ? K17_RAIL900_BUILDING_SCENES
     : context.loadedGlbSha256 === V69_SOURCE_SHA256 ? V69_BUILDING_SCENES
     : context.loadedGlbSha256 === V68_SOURCE_SHA256 ? V68_BUILDING_SCENES : null;
-  const integratedCount = context.loadedGlbSha256 === TATE4_SOURCE_SHA256 ? TATE4_SOURCE_SCENE_COUNT : context.loadedGlbSha256 === TATE3_SOURCE_SHA256 ? TATE3_SOURCE_SCENE_COUNT : context.loadedGlbSha256 === TATE_SOURCE_SHA256 ? TATE_SOURCE_SCENE_COUNT : context.loadedGlbSha256 === P02_SOURCE_SHA256 ? P02_SOURCE_SCENE_COUNT : ivFocus ? V90_IV_P04_SCENE_COUNT : h20Optin ? V90_H20_SCENE_COUNT : context.loadedGlbSha256 === IV125_LOWTRI_SOURCE_SHA256 ? IV125_LOWTRI_SOURCE_SCENE_COUNT : context.loadedGlbSha256 === V93_H35H38_SOURCE_SHA256 ? V93_H35H38_SOURCE_SCENE_COUNT : context.loadedGlbSha256 === V92_SOURCE_SHA256 ? V92_SOURCE_SCENE_COUNT : context.loadedGlbSha256 === V91_SOURCE_SHA256 ? V91_SOURCE_SCENE_COUNT : context.loadedGlbSha256 === V90_SOURCE_SHA256 ? V90_SOURCE_SCENE_COUNT : context.loadedGlbSha256 === V89_SOURCE_SHA256 ? V89_SOURCE_SCENE_COUNT : context.loadedGlbSha256 === V88_SOURCE_SHA256 ? V88_SOURCE_SCENE_COUNT : context.loadedGlbSha256 === V87_SOURCE_SHA256 ? V87_SOURCE_SCENE_COUNT : context.loadedGlbSha256 === V86_SOURCE_SHA256 ? V86_SOURCE_SCENE_COUNT : context.loadedGlbSha256 === V85_SOURCE_SHA256 ? V85_SOURCE_SCENE_COUNT : context.loadedGlbSha256 === V84_SOURCE_SHA256 ? V84_SOURCE_SCENE_COUNT : context.loadedGlbSha256 === V83_SOURCE_SHA256 ? V83_SOURCE_SCENE_COUNT : context.loadedGlbSha256 === V82_SOURCE_SHA256 ? V82_SOURCE_SCENE_COUNT
+  const integratedCount = context.loadedGlbSha256 === OUTLETS2_SOURCE_SHA256 ? OUTLETS2_SOURCE_SCENE_COUNT : context.loadedGlbSha256 === TATE4_SOURCE_SHA256 ? TATE4_SOURCE_SCENE_COUNT : context.loadedGlbSha256 === TATE3_SOURCE_SHA256 ? TATE3_SOURCE_SCENE_COUNT : context.loadedGlbSha256 === TATE_SOURCE_SHA256 ? TATE_SOURCE_SCENE_COUNT : context.loadedGlbSha256 === P02_SOURCE_SHA256 ? P02_SOURCE_SCENE_COUNT : ivFocus ? V90_IV_P04_SCENE_COUNT : h20Optin ? V90_H20_SCENE_COUNT : context.loadedGlbSha256 === IV125_LOWTRI_SOURCE_SHA256 ? IV125_LOWTRI_SOURCE_SCENE_COUNT : context.loadedGlbSha256 === V93_H35H38_SOURCE_SHA256 ? V93_H35H38_SOURCE_SCENE_COUNT : context.loadedGlbSha256 === V92_SOURCE_SHA256 ? V92_SOURCE_SCENE_COUNT : context.loadedGlbSha256 === V91_SOURCE_SHA256 ? V91_SOURCE_SCENE_COUNT : context.loadedGlbSha256 === V90_SOURCE_SHA256 ? V90_SOURCE_SCENE_COUNT : context.loadedGlbSha256 === V89_SOURCE_SHA256 ? V89_SOURCE_SCENE_COUNT : context.loadedGlbSha256 === V88_SOURCE_SHA256 ? V88_SOURCE_SCENE_COUNT : context.loadedGlbSha256 === V87_SOURCE_SHA256 ? V87_SOURCE_SCENE_COUNT : context.loadedGlbSha256 === V86_SOURCE_SHA256 ? V86_SOURCE_SCENE_COUNT : context.loadedGlbSha256 === V85_SOURCE_SHA256 ? V85_SOURCE_SCENE_COUNT : context.loadedGlbSha256 === V84_SOURCE_SHA256 ? V84_SOURCE_SCENE_COUNT : context.loadedGlbSha256 === V83_SOURCE_SHA256 ? V83_SOURCE_SCENE_COUNT : context.loadedGlbSha256 === V82_SOURCE_SHA256 ? V82_SOURCE_SCENE_COUNT
     : context.loadedGlbSha256 === V81_SOURCE_SHA256 ? V81_SOURCE_SCENE_COUNT
     : context.loadedGlbSha256 === V80_SOURCE_SHA256 ? V80_SOURCE_SCENE_COUNT
     : context.loadedGlbSha256 === V79_SOURCE_SHA256 ? V79_SOURCE_SCENE_COUNT
@@ -595,6 +597,23 @@ const v26Device = (context: TechnicalSystemsContext, binding: TechnicalSourceNod
     const exact = resolveP02TechnicalNode(context.sourceJson, context.sourceSceneIndex, binding.nodeIndex);
     return exact ? { id: exact.id as TechnicalSystemId, scope: { apartment: 'D', storey: exact.storey, phase: 'ACTIVE_IN_SELECTED_WORKTEST' } } : null;
   }
+  // Exact WORK_TEST exterior sockets; no inferred circuit connection or as-built authority.
+  if (context.loadedGlbSha256 === OUTLETS2_SOURCE_SHA256) {
+    const opt = context.sourceSceneIndex;
+    for (const [floor, root] of Object.entries(OUTLETS2_SOURCE_ROOTS)) {
+      if (opt !== OUTLETS2_OPTIN_SCENES[floor as '1F' | '2F'] && opt !== OUTLETS2_OPTIN_SCENES.BOTH) continue;
+      const node = context.sourceJson.nodes?.[root.node];
+      if (node?.name !== root.name ||
+          node?.extras?.numSocketPositions !== 2 ||
+          node?.extras?.oneProtectivePlasticCover !== true ||
+          node?.extras?.hostHold !== true ||
+          context.sourceJson.scenes?.[opt]?.nodes?.filter((n: number) => n === root.node).length !== 1) continue;
+      if (binding.nodeIndex === root.node ||
+          node.children?.includes(binding.nodeIndex)) {
+        return { id: 'technical-electrical', scope: { apartment: 'D', storey: floor as '1F' | '2F', phase: 'ACTIVE_IN_SELECTED_WORKTEST' } };
+      }
+    }
+  }
   const name = context.sourceJson.nodes?.[binding.nodeIndex]?.name ?? '';
   let id: TechnicalSystemId | null = null;
   let floor: '1F' | '2F' | null = null;
@@ -645,6 +664,7 @@ export const createTechnicalSystemLayerInventory = (context: TechnicalSystemsCon
   const { sceneRoot, sourceSceneIndex, viewerScope } = context;
   const exactSource = normalizedSha(context.loadedGlbSha256) !== null &&
     context.loadedGlbSha256 === context.expectedGlbSha256 &&
+    (context.loadedGlbSha256!==C80_437_GLB_SHA256 || isC80437SourceScene(context.sourceJson,context.loadedGlbSha256,sourceSceneIndex)) &&
     (context.loadedGlbSha256 !== TATE4_MJ6263_SOURCE_SHA256 ||
       isTate4Mj62Mj63SourceScene(context.sourceJson, context.loadedGlbSha256, sourceSceneIndex));
 
@@ -716,7 +736,10 @@ export const createTechnicalSystemLayerInventory = (context: TechnicalSystemsCon
       if (child !== object && sourceObjects.has(child) && isRenderable(child)) hasSourceRenderableChild = true;
     });
     if (hasSourceRenderableChild) continue;
-    const device = v26Device(context, binding);
+    const exact437=context.loadedGlbSha256===C80_437_GLB_SHA256?resolveC80437TechnicalNode(context.sourceJson,context.loadedGlbSha256,context.sourceSceneIndex,binding.nodeIndex):null;
+    const device = context.loadedGlbSha256===C80_437_GLB_SHA256
+      ? (exact437?{id:exact437.id as TechnicalSystemId,scope:{apartment:'D',storey:exact437.storey,phase:'ACTIVE_IN_SELECTED_WORKTEST'}}:null)
+      : v26Device(context, binding);
     const id = device?.id ?? explicitSystem(chain, dataFor);
     if (!id) continue;
     increment(matches, id);
