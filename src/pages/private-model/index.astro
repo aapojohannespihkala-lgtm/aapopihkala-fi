@@ -4537,11 +4537,14 @@ const title = 'Private 3D viewer';
         legacyEdgeVisibilityBaseline.clear();
       };
 
+      // Technical review: dense facade boards (150 mm siding) merge their
+      // outlines into a solid-looking face at overview distance, so the
+      // architectural outline is dimmed while technical colors are shown.
       const makeEdgeMaterial = (depthTest: boolean) =>
         new THREE.LineBasicMaterial({
           color: 0x6d716e,
           transparent: true,
-          opacity: 0.72,
+          opacity: technicalReviewColorsActive() ? 0.2 : 0.72,
           depthTest,
           depthWrite: false,
         });

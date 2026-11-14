@@ -479,3 +479,10 @@ test('technical review grey shell stays see-through over stacked walls', async (
   assert.ok(opacity > 0 && 1 - (1 - opacity) ** 4 <= 0.2 && 1 - (1 - opacity) ** 11 <= 0.45, `stacked wall faces stay see-through (opacity ${opacity})`);
   assert.match(surface, /side: THREE\.FrontSide/);
 });
+
+test('architectural outline edges are dimmed while technical review colors are shown', async () => {
+  const { readFile } = await import('node:fs/promises');
+  const page = await readFile(new URL('../../src/pages/private-model/index.astro', import.meta.url), 'utf8');
+  assert.match(page, /const makeEdgeMaterial = \(depthTest: boolean\) =>[\s\S]{0,200}opacity: technicalReviewColorsActive\(\) \? 0\.2 : 0\.72,/);
+  assert.ok(page.indexOf('let technicalReviewColorsActive') < page.indexOf('const refreshEdgeRendering'));
+});
