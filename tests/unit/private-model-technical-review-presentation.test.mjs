@@ -451,3 +451,14 @@ test('V92 profile keeps V91 parts and adds the three H30 smoke detector roots', 
     for (const [node, paths] of Object.entries(scene.paths)) for (const path of paths) assert.ok(scene.rootNodes.includes(path[0]) && path.at(-1) === Number(node));
   }
 });
+
+test('drain-named technical nodes get their own VIEMARI color, also under a water wrapper', () => {
+  const root = { name: 'scene', parent: null, userData: {} };
+  const wrapper = { name: 'M5_INTEGRATION_CLAUDE_WW_ROOT', parent: root, userData: { m5System: 'VESI' } };
+  const drain = { name: 'WW1974_L150_COMMON_MAIN_UNDER_BUILDING_DRAIN_WORK_TEST_HOST_HOLD', parent: wrapper, userData: {} };
+  const water = { name: 'KV22_WATER_PIPE', parent: wrapper, userData: {} };
+  assert.equal(technicalReviewSystemOf(drain, root), 'VIEMARI');
+  assert.equal(technicalReviewSystemOf(water, root), 'VESI');
+  const fixture = { name: 'V110_DRAIN_COVER', parent: wrapper, userData: { presentationOnly: true } };
+  assert.equal(technicalReviewSystemOf(fixture, root), null);
+});
