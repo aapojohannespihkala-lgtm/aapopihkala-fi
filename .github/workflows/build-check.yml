@@ -221,6 +221,8 @@ jobs:
             tests/unit/private-model-successor369-technical-review-scope.test.mjs \
             tests/unit/private-model-succ369-publisher-candidate.test.mjs \
             tests/unit/private-model-mj79-exxact-source-profile.test.mjs \
+            tests/unit/private-model-c80-succ455-led-spacing-source-profile.test.mjs \
+            tests/unit/private-model-c80-succ455-viewer-runtime.test.mjs \
             tests/unit/private-model-c80-410-source-profile.test.mjs
 
       # Four self-contained K16-b/c scene33 builder guards run on every
