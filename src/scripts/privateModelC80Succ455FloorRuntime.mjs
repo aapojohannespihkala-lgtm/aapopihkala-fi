@@ -36,6 +36,7 @@ export function resolveC80Succ455Scenes(gltf,sha){
   if(sha!==C80_SUCC455_GLB_SHA256||gltf?.scenes?.length!==469||
      !gltf?.parser?.json||Object.keys(C80_SUCC455_SCENES).length!==9)return null;
   const json=gltf.parser.json;
+  /** @type {Record<number, import('three').Group>} */
   const scenes={};
   for(const [key,r] of Object.entries(roles)){
     const id=Number(key),s=gltf.scenes[id],source=json.scenes?.[id],roots=source?.nodes;
