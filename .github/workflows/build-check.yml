@@ -208,6 +208,7 @@ jobs:
             tests/unit/private-model-v93-iv125-lowtri-source-profile.test.mjs \
             tests/unit/private-model-v93-double-outlet-photo-source-links.test.mjs \
             tests/unit/private-model-v93-double-outlets-source-profile.test.mjs \
+            tests/unit/private-model-v93-outlets2-floor-scene-runtime.test.mjs \
             tests/unit/private-model-v93-mj49-owner-ns-savo-source-profile.test.mjs \
             tests/unit/private-model-v93-mj40-bosch-open90-source-profile.test.mjs \
             tests/unit/private-model-air385-toshiba-service-source-profile.test.mjs \
