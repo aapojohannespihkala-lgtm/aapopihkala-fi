@@ -2556,6 +2556,7 @@ const title = 'Private 3D viewer';
       import { P02_SOURCE_SHA256 } from '../../scripts/privateModelC80P02WaterLayerSourceProfile.mjs';
       import { V93_H35H38_SOURCE_SHA256 } from '../../scripts/privateModelC80R2V93H35H38LayerSourceProfile.mjs';
       import { OUTLETS2_SOURCE_SHA256 } from '../../scripts/privateModelC80R2V93DoubleOutletLayerSourceProfile.mjs';
+      import { createV93Outlets2FloorRuntime } from '../../scripts/privateModelV93Outlets2FloorSceneRuntime.mjs';
       import { IV125_LOWTRI_SOURCE_SHA256 } from '../../scripts/privateModelC80R2V93IV125LowtriLayerSourceProfile.mjs';
       import { V93_MJ40_SOURCE_SHA256 } from '../../scripts/privateModelV93MJ40BoschOpen90SourceProfile.mjs';
       import { V90_H20_SOURCE_SHA256 } from '../../scripts/privateModelC80R2V90H20LayerSourceProfile.mjs';
@@ -7788,6 +7789,12 @@ const title = 'Private 3D viewer';
           : sourceKind === 'work-test' && !c70PreviewSession &&
           loadedModelSha256(gltf) === C80_437_GLB_SHA256
           ? createC80437FloorRuntime({gltf,sha:loadedModelSha256(gltf),mount:setModelScene,mounted:()=>modelRoot.children[0]??null}) as any
+          : sourceKind === 'work-test' && !c70PreviewSession &&
+          loadedModelSha256(gltf) === OUTLETS2_SOURCE_SHA256
+          ? createV93Outlets2FloorRuntime({
+              gltf, sha:loadedModelSha256(gltf), mount:setModelScene,
+              mounted:()=>modelRoot.children[0]??null,
+            }) as any
           : sourceKind === 'work-test' && !c70PreviewSession &&
           loadedModelSha256(gltf) === SUCCESSOR_R1_SHA256
           ? createSuccessor369FloorRuntime({gltf,sha:loadedModelSha256(gltf),mount:setModelScene,mounted:()=>modelRoot.children[0]??null}) as any

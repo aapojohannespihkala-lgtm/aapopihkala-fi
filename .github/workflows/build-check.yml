@@ -196,6 +196,7 @@ jobs:
             tests/unit/private-model-work-test-presentation-only-case.test.mjs \
             tests/unit/private-model-t04-primitive-source-binding.test.mjs \
             tests/unit/private-model-source-node-associations.test.mjs \
+            tests/unit/private-model-c80-cross-sha-part-identity.test.mjs \
             tests/unit/private-model-scene-selection-invalidation.test.mjs \
             tests/unit/private-model-building-part-layer-bindings.test.mjs \
             tests/unit/private-model-technical-review-presentation.test.mjs \
@@ -207,6 +208,7 @@ jobs:
             tests/unit/private-model-v93-iv125-lowtri-source-profile.test.mjs \
             tests/unit/private-model-v93-double-outlet-photo-source-links.test.mjs \
             tests/unit/private-model-v93-double-outlets-source-profile.test.mjs \
+            tests/unit/private-model-v93-outlets2-floor-scene-runtime.test.mjs \
             tests/unit/private-model-v93-mj49-owner-ns-savo-source-profile.test.mjs \
             tests/unit/private-model-v93-mj40-bosch-open90-source-profile.test.mjs \
             tests/unit/private-model-air385-toshiba-service-source-profile.test.mjs \
@@ -229,6 +231,7 @@ jobs:
             tests/unit/private-model-nohit-point-invalidation.test.mjs \
             tests/unit/private-model-c80-succ455-room3-photodoor-source-profile.test.mjs \
             tests/unit/private-model-c80-succ455-room3-mj83-source-profile.test.mjs \
+            tests/unit/private-model-c80-succ455-room3-mj83-floor-runtime.test.mjs \
             tests/unit/private-model-c80-410-source-profile.test.mjs
 
       # Four self-contained K16-b/c scene33 builder guards run on every
