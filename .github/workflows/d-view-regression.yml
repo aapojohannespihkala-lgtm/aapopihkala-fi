@@ -7,7 +7,7 @@ on:
         description: Exact published source, or all established regressions
         type: choice
         default: all
-        options: [all, V68, V69, K17_RAIL900, V69P12R1, P02, TATE, TATE3, TATE4, M6263]
+        options: [all, V68, V69, K17_RAIL900, V69P12R1, P02, TATE, TATE3, TATE4, M6263, SUCC437]
       tate_phase:
         description: TATE proof phase (full preserves every existing gate)
         type: choice
@@ -64,7 +64,7 @@ permissions:
 concurrency:
   # The established all matrix excludes P12R1. Its automatic replay must not
   # cancel the dedicated P12R1 capture of the same trusted main head.
-  group: d-view-exact-source-webgl${{ inputs.source_version == 'M6263' && '-m6263' || inputs.source_version == 'TATE4' && '-tate4' || inputs.source_version == 'TATE3' && '-tate3' || inputs.source_version == 'TATE' && '-tate' || inputs.source_version == 'P02' && '-p02' || inputs.source_version == 'V69P12R1' && '-v69p12r1' || '' }}
+  group: d-view-exact-source-webgl${{ inputs.source_version == 'SUCC437' && '-succ437' || inputs.source_version == 'M6263' && '-m6263' || inputs.source_version == 'TATE4' && '-tate4' || inputs.source_version == 'TATE3' && '-tate3' || inputs.source_version == 'TATE' && '-tate' || inputs.source_version == 'P02' && '-p02' || inputs.source_version == 'V69P12R1' && '-v69p12r1' || '' }}
   # Read-only viewer QA is bound to one exact main head. A newer head supersedes it.
   cancel-in-progress: true
 
@@ -84,7 +84,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        mode: ${{ fromJSON(github.event_name == 'workflow_dispatch' && inputs.source_version == 'M6263' && '["layers-m6263-production"]' || github.event_name == 'workflow_dispatch' && inputs.source_version == 'TATE4' && '["layers-tate4-production"]' || github.event_name == 'workflow_dispatch' && inputs.source_version == 'TATE3' && '["layers-tate3-production"]' || github.event_name == 'workflow_dispatch' && inputs.source_version == 'TATE' && '["layers-tate-production"]' || github.event_name == 'workflow_dispatch' && inputs.source_version == 'P02' && '["layers-p02-production"]' || github.event_name == 'workflow_dispatch' && inputs.source_version == 'V69P12R1' && '["layers-v69p12r1-production"]' || github.event_name == 'workflow_dispatch' && inputs.source_version == 'K17_RAIL900' && '["layers-k17-rail900-production"]' || github.event_name == 'workflow_dispatch' && inputs.source_version == 'V69' && '["layers-v69-production"]' || github.event_name == 'workflow_dispatch' && inputs.source_version == 'V68' && '["layers-v68-production"]' || '["source","c70-production","c80-production","hi12-production","hi13-source","hi13-production","hi14-source","hi14-production","hi18-source","hi18-production","hi19-source","hi19-production","hi20-unified52-production","layers-v26-production","layers-v29-production","layers-v35-production","v27-terrace-production","layers-v68-production","layers-v69-production"]') }}
+        mode: ${{ fromJSON(github.event_name == 'workflow_dispatch' && (inputs.source_version == 'M6263' || inputs.source_version == 'SUCC437') && '["layers-m6263-production"]' || github.event_name == 'workflow_dispatch' && inputs.source_version == 'TATE4' && '["layers-tate4-production"]' || github.event_name == 'workflow_dispatch' && inputs.source_version == 'TATE3' && '["layers-tate3-production"]' || github.event_name == 'workflow_dispatch' && inputs.source_version == 'TATE' && '["layers-tate-production"]' || github.event_name == 'workflow_dispatch' && inputs.source_version == 'P02' && '["layers-p02-production"]' || github.event_name == 'workflow_dispatch' && inputs.source_version == 'V69P12R1' && '["layers-v69p12r1-production"]' || github.event_name == 'workflow_dispatch' && inputs.source_version == 'K17_RAIL900' && '["layers-k17-rail900-production"]' || github.event_name == 'workflow_dispatch' && inputs.source_version == 'V69' && '["layers-v69-production"]' || github.event_name == 'workflow_dispatch' && inputs.source_version == 'V68' && '["layers-v68-production"]' || '["source","c70-production","c80-production","hi12-production","hi13-source","hi13-production","hi14-source","hi14-production","hi18-source","hi18-production","hi19-source","hi19-production","hi20-unified52-production","layers-v26-production","layers-v29-production","layers-v35-production","v27-terrace-production","layers-v68-production","layers-v69-production"]') }}
     name: Exact WebGL / ${{ matrix.mode }}
     # Match the build job's supported, stable browser dependency environment.
     runs-on: ubuntu-24.04
@@ -639,39 +639,44 @@ jobs:
       - name: Remove temporary protected TATE source
         if: always() && matrix.mode == 'layers-tate3-production'
         run: rm -f "$RUNNER_TEMP/layers-tate3-production.glb"
-      - name: Read exact published M6263 combined source
+      - name: Read exact published combined source
         if: matrix.mode == 'layers-m6263-production'
         shell: bash
         env:
+          YLIS_C80437_PRODUCTION: ${{ inputs.source_version == 'SUCC437' && '1' || '0' }}
           CF_ACCESS_READBACK_CLIENT_ID: ${{ secrets.CF_ACCESS_READBACK_CLIENT_ID }}
           CF_ACCESS_READBACK_CLIENT_SECRET: ${{ secrets.CF_ACCESS_READBACK_CLIENT_SECRET }}
         run: |
           set -euo pipefail
           [[ -n "$CF_ACCESS_READBACK_CLIENT_ID" && -n "$CF_ACCESS_READBACK_CLIENT_SECRET" ]]
           file="$RUNNER_TEMP/layers-m6263-production.glb"
+          candidate='c80-tate-mj62-mj63-integrated-20261113'
+          [[ "$YLIS_C80437_PRODUCTION" != '1' ]] || candidate='c80-succ437-cofit-20261114'
           curl --fail --silent --show-error --connect-timeout 12 --max-time 90 \
             -H "CF-Access-Client-Id: $CF_ACCESS_READBACK_CLIENT_ID" \
             -H "CF-Access-Client-Secret: $CF_ACCESS_READBACK_CLIENT_SECRET" \
             --output "$file" \
-            "https://aapopihkala.fi/private-model/work-test/verify/c80-tate-mj62-mj63-integrated-20261113.glb"
+            "https://aapopihkala.fi/private-model/work-test/verify/$candidate.glb"
           python3 - "$file" <<'PY'
-          import hashlib,json,pathlib,struct,sys
+          import hashlib,json,pathlib,struct,sys,os
+          succ437=os.environ.get('YLIS_C80437_PRODUCTION')=='1'
           data=pathlib.Path(sys.argv[1]).read_bytes()
-          assert len(data)==53943060
-          assert hashlib.sha256(data).hexdigest()=='8aaadccfaa880e7693337467a00d9efb53d4d5e332d377be10d1e353e87e25c5'
+          assert len(data)==(54585652 if succ437 else 53943060)
+          assert hashlib.sha256(data).hexdigest()==('ed91f792d8f21cc42c4488febd8772276fa3cc42649bd54b560a17823c50e4b8' if succ437 else '8aaadccfaa880e7693337467a00d9efb53d4d5e332d377be10d1e353e87e25c5')
           assert data[:4]==b'glTF' and struct.unpack_from('<I',data,4)[0]==2
           assert struct.unpack_from('<I',data,8)[0]==len(data)
           source=json.loads(data[20:20+struct.unpack_from('<I',data,12)[0]])
-          assert len(source['scenes'])==360 and source['scene']==292
-          assert len(source['nodes'])==12097 and len(source['meshes'])==4549
-          assert [len(source['scenes'][i]['nodes']) for i in range(353,360)]==[289,184,464,184,464,184,464]
-          print('Exact published M6263 bytes and seven opt-in scenes verified.')
+          assert len(source['scenes'])==(437 if succ437 else 360) and source['scene']==292
+          assert len(source['nodes'])==(12164 if succ437 else 12097) and len(source['meshes'])==(4576 if succ437 else 4549)
+          assert [len(source['scenes'][i]['nodes']) for i in (range(428,437) if succ437 else range(353,360))]==([288,181,463,181,463,181,463,288,463] if succ437 else [289,184,464,184,464,184,464])
+          print('Exact published M6263 bytes and authored opt-in scenes verified.')
           PY
           printf 'YLIS_M6263_GLB=%s\n' "$file" >> "$GITHUB_ENV"
       - name: Protected M6263 scenes, glazing, source card and model switch
         if: matrix.mode == 'layers-m6263-production'
         env:
           YLIS_M6263_PRODUCTION: '1'
+          YLIS_C80437_PRODUCTION: ${{ inputs.source_version == 'SUCC437' && '1' || '0' }}
           CF_ACCESS_VIEWER_PROBE_CLIENT_ID: ${{ secrets.CF_ACCESS_VIEWER_PROBE_CLIENT_ID }}
           CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET: ${{ secrets.CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET }}
           D_VIEW_TESTED_COMMIT: ${{ github.event.workflow_run.head_sha || github.sha }}

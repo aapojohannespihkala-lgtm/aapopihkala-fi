@@ -1,3 +1,4 @@
+import {C80_437_GLB_SHA256,c80437ReviewProfile} from './privateModelC80437SourceProfile.mjs';
 import { TATE4_MJ6263_SOURCE_SHA256, m6263ReviewProfile } from './privateModelM6263ViewerReceipt.mjs';
 import { TATE4_MJ6263_SCENES } from './privateModelTate4Mj62Mj63SourceProfile.mjs';
 import { SUCCESSOR_R1_SHA256, SUCCESSOR_R1_SCENES,
@@ -132,7 +133,8 @@ export function successor369ReviewProfile(json, sha, sceneIndex) {
 export function resolveTechnicalReviewRoots(gltf, scene, sceneIndex, loadedSha, expectedSha) {
   const json = gltf?.parser?.json;
   const associations = gltf?.parser?.associations;
-  const source = loadedSha === SUCCESSOR_R1_SHA256 ? successor369ReviewProfile(json,loadedSha,sceneIndex)
+  const source = loadedSha === C80_437_GLB_SHA256 ? c80437ReviewProfile(json,loadedSha,sceneIndex)
+    : loadedSha === SUCCESSOR_R1_SHA256 ? successor369ReviewProfile(json,loadedSha,sceneIndex)
     : loadedSha === TATE4_MJ6263_SOURCE_SHA256 ? m6263ReviewProfile(json,loadedSha,sceneIndex)
     : Object.hasOwn(REVIEW_SOURCES, loadedSha) ? REVIEW_SOURCES[loadedSha] : null;
   const profile = source?.roots[sceneIndex];
