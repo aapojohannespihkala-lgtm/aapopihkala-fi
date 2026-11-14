@@ -78,7 +78,7 @@ export const extractMeasureFeatureEdges = ({
   const result=[];
   for(const item of edges.values()){
     const normals=item.normals;
-    if(normals.length===1 || (normals.length===2 && dot(normals[0],normals[1])<threshold)){
+    if(normals.length===1 || (normals.length===2 && Math.abs(dot(normals[0],normals[1]))<threshold)){
       result.push({a:item.a,b:item.b});
       if(result.length>maxSegments) return [];
     }
@@ -146,8 +146,17 @@ export const chooseMeasureFeatureSnap = ({
     if(den<1e-10) continue;
     const t=Math.max(0,Math.min(1,((pointerPx.x-a.x)*dx+(pointerPx.y-a.y)*dy)/den));
     const nearest={x:a.x+t*dx,y:a.y+t*dy};
+    // Perspective screen interpolation is not linear in world-space. A caller
+    // projecting a perspective camera provides inverse clip W on both endpoints.
+    // Orthographic projections (W=1) or legacy pure projectors use affine t.
+    const hasDepth=('invW' in a)||('invW' in b);
+    if(hasDepth && (!Number.isFinite(a.invW)||!Number.isFinite(b.invW)||
+      a.invW<=0||b.invW<=0)) continue;
+    const denom=hasDepth ? (1-t)*a.invW+t*b.invW : 1;
+    if(!Number.isFinite(denom)||denom<=0) continue;
+    const worldT=hasDepth ? t*b.invW/denom : t;
     const av=coords(s.a),bv=coords(s.b);
-    const p=point(av.map((v,i)=>v+t*(bv[i]-v)));
+    const p=point(av.map((v,i)=>v+worldT*(bv[i]-v)));
     consider('edge',p,nearest,Math.hypot(pointerPx.x-nearest.x,pointerPx.y-nearest.y));
   }
   return bestCorner || bestEdge;
