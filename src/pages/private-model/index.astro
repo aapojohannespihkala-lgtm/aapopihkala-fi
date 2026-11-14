@@ -14479,10 +14479,14 @@ const title = 'Private 3D viewer';
       let technicalReview: ReturnType<typeof createTechnicalReviewPresentation> | null = null;
       technicalReviewColorsActive = () => technicalReviewOn && technicalReview?.applied === true;
       const createTechnicalReviewMaterials = () => ({
+        // Thick walls stack front faces (D/C party wall + facade guides ~4
+        // layers per sight line in C80 488); 0.07 keeps that stack ~25 % grey
+        // so pipes behind a wall stay readable. Back faces never add a layer.
         surface: new THREE.MeshStandardMaterial({
-          color: 0x9aa1a9, roughness: 1, metalness: 0, transparent: true, opacity: 0.14, depthWrite: false,
+          color: 0x9aa1a9, roughness: 1, metalness: 0, transparent: true, opacity: 0.07, depthWrite: false,
+          side: THREE.FrontSide,
         }),
-        line: new THREE.LineBasicMaterial({ color: 0x9aa1a9, transparent: true, opacity: 0.18, depthWrite: false }),
+        line: new THREE.LineBasicMaterial({ color: 0x9aa1a9, transparent: true, opacity: 0.14, depthWrite: false }),
         // Opaque-looking but in the transparent pass so they draw after the grey shell.
         systems: Object.fromEntries(([['SAHKO', 0xff7a1a], ['VESI', 0x1e88e5], ['IV', 0x2fa84f], ['VIEMARI', 0x8e44ad]] as const)
           .map(([key, color]) => [key, new THREE.MeshStandardMaterial({
