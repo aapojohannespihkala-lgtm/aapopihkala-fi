@@ -462,3 +462,11 @@ test('drain-named technical nodes get their own VIEMARI color, also under a wate
   const fixture = { name: 'V110_DRAIN_COVER', parent: wrapper, userData: { presentationOnly: true } };
   assert.equal(technicalReviewSystemOf(fixture, root), null);
 });
+
+test('viewer suppresses outline edges on drains and on system-colored meshes in technical review', async () => {
+  const { readFile } = await import('node:fs/promises');
+  const page = await readFile(new URL('../../src/pages/private-model/index.astro', import.meta.url), 'utf8');
+  assert.match(page, /isEdgeMeshCandidate\([\s\S]{0,400}?\}\) && !suppressTechnicalPipeEdges\(object, root\)/);
+  assert.match(page, /system === 'VIEMARI' \|\| \(system !== null && technicalReviewColorsActive\(\)\)/);
+  assert.match(page, /technicalReviewColorsActive = \(\) => technicalReviewOn && technicalReview\?\.applied === true;/);
+});
