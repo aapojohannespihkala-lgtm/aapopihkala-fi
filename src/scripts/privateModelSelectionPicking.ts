@@ -53,7 +53,14 @@ export const pickSelectableObjectAtClientPoint = ({
   if (canvas.dataset?.interactionMode !== 'select') return null;
 
   const rect = canvas.getBoundingClientRect();
-  if (rect.width <= 0 || rect.height <= 0) return null;
+  const right = rect.left + rect.width;
+  const bottom = rect.top + rect.height;
+  // Reject invalid or out-of-canvas input before mutating the pointer or raycasting.
+  if (![clientX, clientY, rect.left, rect.top, rect.width, rect.height, right, bottom]
+      .every(Number.isFinite) ||
+      rect.width <= 0 || rect.height <= 0 ||
+      clientX < rect.left || clientX > right ||
+      clientY < rect.top || clientY > bottom) return null;
 
   pointer.x = ((clientX - rect.left) / rect.width) * 2 - 1;
   pointer.y = -((clientY - rect.top) / rect.height) * 2 + 1;
