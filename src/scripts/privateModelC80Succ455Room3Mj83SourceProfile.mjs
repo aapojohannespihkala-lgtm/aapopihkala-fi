@@ -20,13 +20,13 @@ export const C80_SUCC455_SAVO483_HUMAN_REVIEW = 'NOT_RUN';
 // glTF internal scene index, not the ZIP filename's __scene suffix.
 // Immutable 476-scene parent, seven opt-in copies with exactly one changed root.
 const rows = [
- [476,469,'2F',185,180,'976dabb5',460],
- [477,470,'BOTH',467,448,'51061107',461],
- [478,471,'2F',185,179,'a3bf10c3',462],
- [479,472,'BOTH',467,447,'3fde1b73',463],
- [480,473,'2F',185,172,'4ee51845',464],
- [481,474,'BOTH',467,440,'9a055605',465],
- [482,475,'BOTH',467,448,'c0818292',466],
+ [476,469,'2F',185,180,'976dabb5',411],
+ [477,470,'BOTH',467,448,'51061107',412],
+ [478,471,'2F',185,179,'a3bf10c3',413],
+ [479,472,'BOTH',467,447,'3fde1b73',414],
+ [480,473,'2F',185,172,'4ee51845',415],
+ [481,474,'BOTH',467,440,'9a055605',416],
+ [482,475,'BOTH',467,448,'c0818292',418],
 ];
 export const C80_SUCC455_SAVO483_SCENES = Object.freeze(Object.fromEntries(rows.map(
  ([scene,parentScene,floor,rootCount,replaceAt,rootFnv,sourceSceneIndex]) => [
@@ -74,7 +74,7 @@ export function isC80Succ455Savo483SourceScene(json,authenticatedSha,sceneIndex,
     !roots.every((n,i)=>i===spec.replaceAt||n===before[i])||
     c80Succ455Savo483Fnv32(roots)!==spec.rootFnv||
     e?.stage!=='WORK_TEST_HOST_HOLD'||e.floor!==spec.floor||
-    e.sourceSceneIndex!==spec.sourceSceneIndex||e.sourceScene!==spec.sourceSceneIndex||
+    e.sourceSceneIndex!==spec.sourceSceneIndex||e.sourceScene!==spec.parentScene-9||
     e.newDoorLeaf!==12195||e.newCOWRootNode!==12222||
     e.oldDoorLeafHiddenInThisSceneOnly!==8028||
     e.notVisibleStairTransferGrilles!==true||e.current!==false||
