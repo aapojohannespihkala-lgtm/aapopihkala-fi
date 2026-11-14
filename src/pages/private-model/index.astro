@@ -2311,6 +2311,7 @@ const title = 'Private 3D viewer';
       import { pickSelectableObjectAtClientPoint } from '../../scripts/privateModelSelectionPicking';
       import { shouldInvalidateModelSelection } from '../../scripts/privateModelSceneSelectionInvalidation.mjs';
       import { pickVisibleWorkTest3DPoint } from '../../scripts/privateModelWorkTest3DPoint';
+      import { classifySameClickReviewEvidence } from '../../scripts/privateModelSameClickReviewEvidence.mjs';
       import { measureAlongG1Axis } from '../../scripts/privateModelMeasureGeometry.mjs';
       import { snapFromVisibleMeshHit } from '../../scripts/privateModelMeasureSnapAdapter.mjs';
       import {
@@ -5240,6 +5241,8 @@ const title = 'Private 3D viewer';
         d1fService?.clearSelection();
         selectionHighlightController.clear();
         selectedObject = null;
+        delete canvas.dataset.reviewCoordinateSelectionEvidence;
+        delete canvas.dataset.reviewCoordinateSelectionMatch;
         selectionPanelController.clear();
         queueMicrotask(() => refreshLayers());
       };
@@ -5561,16 +5564,18 @@ const title = 'Private 3D viewer';
       const showWorkTestClicked3DCoordinate = (clientX: number, clientY: number) => {
         if (activePlanFloor || canvas.dataset.modelSource !== 'work-test' ||
             activeModelSourceKind !== 'work-test' || !fullModelScene ||
-            modelRoot.children[0] !== fullModelScene) return;
+            modelRoot.children[0] !== fullModelScene) return null;
+        let coordinateHitObject: any = null;
         const point = pickVisibleWorkTest3DPoint({
           clientX, clientY, rect: canvas.getBoundingClientRect(),
           camera: activeCamera, modelRoot, raycaster,
+          onVisibleHit: (hit) => { coordinateHitObject = hit.object; },
         });
         if (!point) {
           deactivateReviewCoordinatePanel({canvas, coordinatePanel, coordinatePointer});
           clearReviewAnchorState(canvas, coordinateAnchor);
           delete canvas.dataset.workTestClickedPoint;
-          return;
+          return null;
         }
         coordinatePanel.hidden = false;
         coordinateFloor.textContent = '3D WORK_TEST';
@@ -5581,6 +5586,7 @@ const title = 'Private 3D viewer';
         canvas.dataset.workTestClickedPoint = 'true';
         setReviewPointerState(canvas, coordinatePointer, point);
         setReviewAnchorState(canvas, coordinateAnchor, point);
+        return coordinateHitObject;
       };
 
       const selectAtClientPoint = (clientX: number, clientY: number) => {
@@ -5598,10 +5604,11 @@ const title = 'Private 3D viewer';
 
         if (!object) {
           clearSelection();
-          return;
+          return null;
         }
 
         selectObject(object);
+        return selectedObject;
       };
 
       const syncViewState = (preset: 'orbit' | 'top' | 'bottom' | 'isometric' | 'd-plan' | 'elevation') => {
@@ -15222,6 +15229,9 @@ const title = 'Private 3D viewer';
         const distance = Math.hypot(event.clientX - pointerDown.x, event.clientY - pointerDown.y);
         pointerDown = null;
         if (distance <= pickDragThresholdPx) {
+          // A new click invalidates any previous coordinate/selection match proof.
+          delete canvas.dataset.reviewCoordinateSelectionEvidence;
+          delete canvas.dataset.reviewCoordinateSelectionMatch;
           if (canvas.dataset.interactionMode === 'point-pick') {
             pickModelPoint(event.clientX, event.clientY);
           } else if (canvas.dataset.interactionMode === 'measure') {
@@ -15231,9 +15241,28 @@ const title = 'Private 3D viewer';
           } else if (canvas.dataset.interactionMode === 'place') {
             placeP137EDraftAt(event.clientX, event.clientY);
           } else {
-            if (activePlanFloor) setDCoordinateAnchor(event.clientX, event.clientY);
-            else showWorkTestClicked3DCoordinate(event.clientX, event.clientY);
-            selectAtClientPoint(event.clientX, event.clientY);
+            if (activePlanFloor) {
+              setDCoordinateAnchor(event.clientX, event.clientY);
+              selectAtClientPoint(event.clientX, event.clientY);
+            } else {
+              // Two independent raycasts must never imply one physical host.
+              const coordinateHitObject = showWorkTestClicked3DCoordinate(event.clientX, event.clientY);
+              const selectedClickObject = selectAtClientPoint(event.clientX, event.clientY);
+              if (canvas.dataset.workTestClickedPoint === 'true') {
+                const sameClickEvidence = classifySameClickReviewEvidence({
+                  coordinateHitObject,
+                  selectedObject: selectedClickObject,
+                  modelRoot,
+                });
+                canvas.dataset.reviewCoordinateSelectionEvidence = sameClickEvidence;
+                canvas.dataset.reviewCoordinateSelectionMatch = String(sameClickEvidence === 'MATCHED_SURFACE');
+                if (sameClickEvidence !== 'MATCHED_SURFACE' && coordinateNote) {
+                  coordinateNote.textContent =
+                    'Koordinaattipiste ja valittu kohde ovat eri osumia tai kohdetta ei valittu. ' +
+                    'Piste on erillinen WORK_TEST-havainto, ei valitun kohteen sijainnin tai hostin vahvistus.';
+                }
+              }
+            }
           }
         }
       });
