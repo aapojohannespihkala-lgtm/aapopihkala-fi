@@ -124,12 +124,13 @@ test('524 rendered root order/name verification rejects wrong cross-SHA nodes an
  rendered.children.push({name:'VIEWER_HELPER_ONLY'});
  assert.equal(renderedRootsMatch(json,rendered,0),true,'extra viewer helper after source roots');
  const ordered=rendered.children.slice();
+ const originalSecond=ordered[1];
  rendered.children=[ordered[1],ordered[0],ordered[2],ordered[3]];
  assert.equal(renderedRootsMatch(json,rendered,0),false,'source root order changed');
  rendered.children=ordered;
  rendered.children[1]={name:'ROOM3_DONOR_LEAF'};
  assert.equal(renderedRootsMatch(json,rendered,0),false,'wrong SHA donor rendered as real root');
- rendered.children[1]=ordered[1];
+ rendered.children[1]=originalSecond;
  assert.equal(renderedRootsMatch(json,rendered,0),true,'valid root restored');
  rendered.children=[ordered[0],ordered[1]];
  assert.equal(renderedRootsMatch(json,rendered,0),false,'missing source root');
