@@ -20,6 +20,9 @@ import {
 import {
   C80_524_RAIN_GLB_SHA256, C80_524_RAIN_SCENES, isC80524RainSourceScene,
 } from './privateModelC80524RainZonesSourceProfile.mjs';
+import {
+  C80_530_V27_GLB_SHA256, C80_530_V27_SCENES, isC80530V27SourceScene,
+} from './privateModelC80530V27SourceProfile.mjs';
 
 // Work-test identity only. The outer loader MUST authenticate the entire GLB
 // bytes before supplying sha. This never approves a new physical/as-built part.
@@ -43,15 +46,25 @@ const V524 = Object.freeze({
   522:{floor:'BOTH',glazing:'STACKED',cutaway:false},
   523:{floor:'BOTH',glazing:'CLOSED',cutaway:true},
 });
+const V530 = Object.freeze({
+  524:{floor:'1F',glazing:'CLOSED',cutaway:false},
+  525:{floor:'2F',glazing:'CLOSED',cutaway:false},
+  526:{floor:'BOTH',glazing:'CLOSED',cutaway:false},
+  527:{floor:'BOTH',glazing:'ONE_OPEN',cutaway:false},
+  528:{floor:'BOTH',glazing:'STACKED',cutaway:false},
+  529:{floor:'BOTH',glazing:'CLOSED',cutaway:true},
+});
 export const isC80LayerSuccessorSha = sha => [
   C80_SUCC455_SAVO483_GLB_SHA256, C80_WW74_L150_GLB_SHA256,
   C80_495_GLB_SHA256, C80_500_GLB_SHA256, C80_524_RAIN_GLB_SHA256,
+  C80_530_V27_GLB_SHA256,
 ].includes(sha);
 const specFor = (sha,index) => {
   if (sha===C80_SUCC455_SAVO483_GLB_SHA256) return V483[index];
   if (sha===C80_WW74_L150_GLB_SHA256) return C80_WW74_L150_VIEWER_ROLES[index];
   if (sha===C80_495_GLB_SHA256) return C80_495_VIEWER_ROLES[index];
   if (sha===C80_500_GLB_SHA256) return C80_500_VIEWER_ROLES[index];
+  if (sha===C80_530_V27_GLB_SHA256) return V530[index];
   if (sha===C80_524_RAIN_GLB_SHA256) return V524[index];
   return null;
 };
@@ -63,6 +76,8 @@ const acceptedScene = (json,sha,index) => {
   if (sha===C80_WW74_L150_GLB_SHA256) return isC80Ww74L150SourceScene(json,sha,index);
   if (sha===C80_495_GLB_SHA256) return isC80495SavoSewerSourceScene(json,sha,index);
   if (sha===C80_500_GLB_SHA256) return isC80500ABCSourceScene(json,sha,index);
+  if (sha===C80_530_V27_GLB_SHA256) return !!C80_530_V27_SCENES[index] &&
+    isC80530V27SourceScene(json,sha,index,C80_530_V27_SCENES[index].floor);
   if (sha===C80_524_RAIN_GLB_SHA256) return !!C80_524_RAIN_SCENES[index] &&
     isC80524RainSourceScene(json,sha,index,C80_524_RAIN_SCENES[index].floor);
   return false;
@@ -132,7 +147,8 @@ const modelNumber = sha => sha===C80_SUCC455_SAVO483_GLB_SHA256 ? 483
   : sha===C80_WW74_L150_GLB_SHA256 ? 488
   : sha===C80_495_GLB_SHA256 ? 495
   : sha===C80_500_GLB_SHA256 ? 500
-  : sha===C80_524_RAIN_GLB_SHA256 ? 524 : -1;
+  : sha===C80_524_RAIN_GLB_SHA256 ? 524
+  : sha===C80_530_V27_GLB_SHA256 ? 530 : -1;
 function withinRoot(json,root,node) {
   const seen=new Set(),queue=[root];
   while (queue.length) {
