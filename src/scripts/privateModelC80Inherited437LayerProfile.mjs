@@ -21,7 +21,14 @@ import {
 // generic parent-source inheritance rule. Node IDs alone are insufficient.
 const sources = new Map([
   [C80_SUCC455_SAVO483_GLB_SHA256, {
-    roles: C80_SUCC455_SAVO483_SCENES,
+    roles: Object.freeze(Object.fromEntries(Object.entries(C80_SUCC455_SAVO483_SCENES).map(([index, spec]) => {
+      const i=Number(index);
+      return [index, Object.freeze({
+        floor:spec.floor,
+        glazing:i===476||i===477||i===482?'CLOSED':i===478||i===479?'ONE_OPEN':'STACKED',
+        cutaway:i===482,
+      })];
+    }))),
     guard: (json, sha, index, floor) => isC80Succ455Savo483SourceScene(json, sha, index, floor),
   }],
   [C80_WW74_L150_GLB_SHA256, {
