@@ -7783,8 +7783,10 @@ const title = 'Private 3D viewer';
           if (!fullModelScene) throw new Error('C80 source WHOLE scene missing');
         }
         resolveSelectionSources = sourceCardResolverForModel(gltf);
+        // GLTFLoader prunes parser node associations in multi-scene GLBs.
+        // Use the already source-verified reconstructed 530 scene node view.
         const sourceBoundElectricalGroup = createC80530ElectricalGroupEvidenceResolver(
-          gltf, sourceKind === 'work-test' ? loadedModelSha256(gltf) : null,
+          sourceNodeModel(gltf), sourceKind === 'work-test' ? loadedModelSha256(gltf) : null,
         );
         resolveElectricalGroupEvidence = (object, activeScene) =>
           sourceBoundElectricalGroup(object, activeScene).map(
