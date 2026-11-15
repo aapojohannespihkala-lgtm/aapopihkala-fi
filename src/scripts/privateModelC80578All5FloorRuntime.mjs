@@ -93,7 +93,7 @@ export function createC80578All5FloorRuntime({gltf,sha,mount,mounted}){
   get sourceLinksStatus(){return 'NOT_BOUND';},
   get productionWebGLStatus(){return 'NOT_RUN';},
   get publicationStatus(){return 'NOT_AUTHORIZED';},
-  apply(f,g=floor==='BOTH'?glazing:'CLOSED'){
+  apply(f,g=f==='BOTH'?glazing:'CLOSED'){
    const result=swap(f,g,f==='BOTH'?cutaway:false);
    if(result)active=true;
    return result;
