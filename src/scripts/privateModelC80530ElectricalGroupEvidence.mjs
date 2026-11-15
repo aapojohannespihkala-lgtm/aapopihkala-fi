@@ -68,6 +68,19 @@ function reachableSourceNodes(json, sceneIndex) {
   return seen;
 }
 
+/** The source-associated render object must also be mounted under this exact
+ * GLTFLoader scene, not merely carry an old/borrowed parser node association.
+ * This check is intentionally scene-instance based, not name based.
+ */
+export function c80530MountedSourceChain(selectedObject,mountedScene) {
+  if (!mountedScene) return null;
+  const chain=[];
+  let candidate=selectedObject,depth=0;
+  for (; candidate && candidate !== mountedScene && depth < 128;
+       candidate=candidate.parent,depth++) chain.push(candidate);
+  return candidate === mountedScene ? chain : null;
+}
+
 /** Exact-SHA source-only selection metadata. No new sourceLinks or wiring.
  * The actual mounted glTF scene and GLTFLoader node associations are required;
  * name-only matches, a different SHA or a viewer helper cannot assert a group.
@@ -89,11 +102,8 @@ export function createC80530ElectricalGroupEvidenceResolver(gltf, loadedSha) {
     // The selected Object3D must really belong to the mounted source scene.
     // A source-associated object detached into a helper/other-scene tree
     // is NOT sufficient to prove a circuit in the currently visible view.
-    const chain=[];
-    let candidate=selectedObject,depth=0;
-    for (; candidate && candidate !== mountedScene && depth < 128;
-         candidate=candidate.parent,depth++) chain.push(candidate);
-    if (candidate !== mountedScene) return [];
+    const chain=c80530MountedSourceChain(selectedObject,mountedScene);
+    if (!chain) return [];
     // Source IDs are parser associations, NOT userData/name patterns.
     for (const member of chain) {
       const index=associations.get(member)?.nodes;
