@@ -1,4 +1,5 @@
 import {C80_437_SCENES} from './privateModelC80437SourceProfile.mjs';
+import {nameMatches} from './privateModelSourceNodeAssociations.mjs';
 import {
  C80_530_V27_GLB_SHA256 as SHA,
  C80_530_V27_SCENES as SPECS,
@@ -22,13 +23,39 @@ function liveRole(json,sha,i){
  const spec=SPECS[i];
  return !!spec&&exactScene(json,sha,i,spec.floor);
 }
+/** The source SHA authenticates JSON; these checks bind actual rendered
+ * Object3D hierarchy (including nested glTF node order) to that JSON.
+ * GLTFLoader prefixes primitive-only children and suffixes repeated names.
+ * Scene-only viewer helpers appended after source roots are ignored.
+ */
+function treeMatches(json,obj,nodeId,associations,depth=0){
+ if(depth>256||!Number.isInteger(nodeId)||nodeId<0||
+    nodeId>=json.nodes.length)return false;
+ const def=json.nodes[nodeId];
+ if(!def||!obj||!nameMatches(obj,def))return false;
+ const known=associations?.get?.(obj)?.nodes;
+ if(Number.isInteger(known)&&known!==nodeId)return false;
+ const ids=def.children??[];
+ const children=obj.children??[];
+ if(!Array.isArray(ids)||!Array.isArray(children)||children.length<ids.length)return false;
+ const offset=children.length-ids.length;
+ return ids.every((id,j)=>treeMatches(json,children[offset+j],id,associations,depth+1));
+}
+export function c80530RenderedRootPathMatches(json,rendered,sceneIndex,associations=null){
+ const roots=json?.scenes?.[sceneIndex]?.nodes;
+ if(!Array.isArray(roots)||!Array.isArray(json?.nodes)||
+    !Array.isArray(rendered?.children)||rendered.children.length<roots.length)return false;
+ return roots.every((nodeId,i)=>treeMatches(json,rendered.children[i],nodeId,associations));
+}
 export function resolveC80530V27Scenes(gltf,sha){
  const json=gltf?.parser?.json;
  if(sha!==SHA||!json||!Array.isArray(gltf?.scenes)||gltf.scenes.length!==530)return null;
  const out=Object.create(null);
  for(const spec of Object.values(SPECS)){
   const i=spec.scene,scene=gltf.scenes[i];
-  if(!scene||scene.name!==json.scenes?.[i]?.name||!liveRole(json,sha,i))return null;
+  if(!scene||scene.name!==json.scenes?.[i]?.name||
+     !c80530RenderedRootPathMatches(json,scene,i,gltf.parser?.associations)||
+     !liveRole(json,sha,i))return null;
   out[i]=scene;
  }
  return new Set(Object.values(out)).size===6?out:null;
@@ -41,8 +68,18 @@ export function createC80530V27FloorRuntime({gltf,sha,mount,mounted}){
  const json=gltf.parser.json;
  let floor='BOTH',glazing='CLOSED',cutaway=false,sceneIndex=526;
  let active=false,disposed=false;
+ // Identity pin after the initial source-tree verification. Same-name fake
+ // Object3D replacements can never be mounted later.
+ const pinnedRoots=Object.fromEntries(Object.keys(scenes).map(k=>{
+  const i=Number(k),count=json.scenes[i].nodes.length;
+  return [i,scenes[i].children.slice(0,count)];
+ }));
+ const pinned=(i)=>Array.isArray(scenes[i]?.children)&&
+   pinnedRoots[i]?.every((obj,j)=>scenes[i].children[j]===obj);
  const isLive=(i)=>gltf.scenes?.[i]===scenes[i]&&
-   scenes[i]?.name===json.scenes?.[i]?.name&&liveRole(json,sha,i);
+   scenes[i]?.name===json.scenes?.[i]?.name&&pinned(i)&&
+   c80530RenderedRootPathMatches(json,scenes[i],i,gltf.parser?.associations)&&
+   liveRole(json,sha,i);
  const mountedHere=()=>mounted()===scenes[sceneIndex];
  const swap=(f,g,c)=>{
   const next=resolveC80530V27SceneIndex(f,g,c);
