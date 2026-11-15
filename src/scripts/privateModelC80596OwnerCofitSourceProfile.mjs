@@ -25,7 +25,7 @@ export function c80596RootFnv32(ids) {
 function goodNode(g,id,mesh,old,donor) {
  const n=g.nodes?.[id],e=n?.extras,p=g.meshes?.[mesh]?.primitives?.[0];
  return n?.mesh===mesh&&e?.sourceC80542Node===donor&&
-   e?.originalNodeIndex===old&&e?.sourceLinksBound===false&&e?.asBuilt===false&&
+   (id===12334?e?.sourceNodeIndex:e?.originalNodeIndex)===old&&e?.sourceLinksBound===false&&e?.asBuilt===false&&
    e?.current===false&&e?.donorC80542GLBSHA256===C80596_K16K18_DONOR_GLB_SHA256&&
    e?.baseC80590GLBSHA256===C80596_PARENT_GLB_SHA256&&
    e?.C80596Stage==='WORK_TEST_HOST_HOLD'&&p?.material===333&&
