@@ -261,6 +261,11 @@ test('530 actual GLTFLoader source subtree blocks same-name mesh and geometry sw
  position.array[0]=originalX;
  assert.equal(treeUnchanged(scene,proof),true,'exact vertex bytes restored');
  const originalPositionBinding=position;
+ const originalGroups=geometry.groups.map(group=>({...group}));
+ geometry.addGroup(0,3,0);
+ assert.equal(treeUnchanged(scene,proof),false,'actual GLTFLoader geometry group added');
+ geometry.groups=originalGroups;
+ assert.equal(treeUnchanged(scene,proof),true,'actual source groups restored');
  geometry.setAttribute('position',position.clone());
  assert.equal(treeUnchanged(scene,proof),false,'source attribute clone binding is rejected');
  geometry.setAttribute('position',originalPositionBinding);
@@ -408,4 +413,45 @@ test('530 pinned geometry rejects in-place index, normal and UV byte edits',asyn
  geometry.setDrawRange(0,previousDraw);
  assert.equal(treeUnchanged(scene,proof),true);
  mesh.material.dispose();geometry.dispose();
+});
+
+test('530 pinned geometry groups reject in-place material and triangle partition edits',async()=>{
+ const {Group,Mesh,BufferGeometry,Float32BufferAttribute,MeshBasicMaterial}=await import('three');
+ const geometry=new BufferGeometry();
+ geometry.setAttribute('position',new Float32BufferAttribute([
+  0,0,0,1,0,0,0,1,0
+ ],3));
+ geometry.setIndex([0,1,2,2,1,0]);
+ geometry.addGroup(0,3,0);
+ geometry.addGroup(3,3,1);
+ const materials=[new MeshBasicMaterial(),new MeshBasicMaterial()];
+ const mesh=new Mesh(geometry,materials),scene=new Group();
+ scene.add(mesh);
+ const proof=snapshotTree(scene,1);
+ assert.ok(proof);
+ assert.equal(treeUnchanged(scene,proof),true);
+ for(const [groupIndex,field] of [[0,'start'],[0,'count'],[0,'materialIndex'],[1,'start'],[1,'count'],[1,'materialIndex']]){
+  const group=geometry.groups[groupIndex],original=group[field];
+  group[field]=original+1;
+  assert.equal(treeUnchanged(scene,proof),false,`group ${groupIndex} ${field} mutated`);
+  group[field]=original;
+  assert.equal(treeUnchanged(scene,proof),true,`group ${groupIndex} ${field} restored`);
+ }
+ geometry.addGroup(0,3,1);
+ assert.equal(treeUnchanged(scene,proof),false,'appended group blocked');
+ geometry.groups.pop();
+ assert.equal(treeUnchanged(scene,proof),true,'group array length restored');
+ const removed=geometry.groups.shift();
+ assert.equal(treeUnchanged(scene,proof),false,'removed group blocked');
+ geometry.groups.unshift(removed);
+ assert.equal(treeUnchanged(scene,proof),true,'removed group restored');
+ const originalGroups=geometry.groups;
+ geometry.groups=[...originalGroups.map(group=>({...group}))];
+ assert.equal(treeUnchanged(scene,proof),true,'equal semantic groups accepted');
+ geometry.clearGroups();
+ assert.equal(treeUnchanged(scene,proof),false,'cleared groups blocked');
+ geometry.groups=originalGroups;
+ assert.equal(treeUnchanged(scene,proof),true,'exact groups restored');
+ for(const material of materials)material.dispose();
+ geometry.dispose();
 });
