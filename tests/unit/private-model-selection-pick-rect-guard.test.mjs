@@ -2,12 +2,15 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {stripTypeScriptTypes} from 'node:module';
+import {firstVisibleTechnicalReviewHit} from '../../src/scripts/privateModelTechnicalReviewHitPriority.mjs';
 
 // Exercise the actual TypeScript picker, without private GLB/production WebGL.
 const source=readFileSync(new URL('../../src/scripts/privateModelSelectionPicking.ts',import.meta.url),'utf8');
-const runnable=stripTypeScriptTypes(source,{mode:'strip'})
+const runnable=stripTypeScriptTypes(source
+  .replace(/^import \\{firstVisibleTechnicalReviewHit\\} from .*;\\n/,''),{mode:'strip'})
   .replace('export const pickSelectableObjectAtClientPoint','const pickSelectableObjectAtClientPoint');
-const pick=new Function(runnable+'\nreturn pickSelectableObjectAtClientPoint;')();
+const pick=new Function('firstVisibleTechnicalReviewHit',runnable+
+  '\nreturn pickSelectableObjectAtClientPoint;')(firstVisibleTechnicalReviewHit);
 
 function fixture({clientX=125,clientY=250,rect={left:100,top:200,width:100,height:100},mode='select',hits=true}={}) {
   const calls={set:0,intersections:0};
