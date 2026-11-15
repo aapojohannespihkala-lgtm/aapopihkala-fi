@@ -39,13 +39,13 @@ test('K13 distinguishes WHITE ENCLOSURE from IV ROUTE without deleting either',(
  const pair=sourcePair();
  expect(isK13SourceRolePair(pair)).toBe(true);
  pair.nodes[1730].extras.m5System='IV';
- expect(isK13SourceRolePair(pair)).toBe(false,'source shell must not inherit route system');
+ expect(isK13SourceRolePair(pair)).toBe(false);
  delete pair.nodes[1730].extras.m5System;
  pair.nodes[10060].extras.verifiedConnections=1;
- expect(isK13SourceRolePair(pair)).toBe(false,'physical verification must not be invented');
+ expect(isK13SourceRolePair(pair)).toBe(false);
  pair.nodes[10060].extras.verifiedConnections=0;
  pair.nodes[11728].children=[];
- expect(isK13SourceRolePair(pair)).toBe(false,'wrong parent fails closed');
+ expect(isK13SourceRolePair(pair)).toBe(false);
 });
 test('K13 exact receipt rejects wrong source SHA and incomplete glTF',()=>{
  const p=sourcePair();
