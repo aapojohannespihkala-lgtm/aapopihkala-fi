@@ -71,6 +71,8 @@ test('authentic 602 optional GLB: six scenes, K04 delta, 437 inheritance, mutati
  assert.ok(C80_602_K04_REPLACED.every(n=>!json.scenes[598].nodes.includes(n)));
  assert.equal(resolveC80SuccessorTechnicalNode(json,SHA,598,12243)?.id,'technical-water');
  const roots=c80602ReviewProfile(json,SHA,598).roots[598].map(x=>x.node);
+ assert.deepEqual(c80602ReviewProfile(json,SHA,598).floors,json.asset.extras.viewerFloorScenes,
+  'review profile floors must equal the asset viewerFloorScenes gate');
  assert.ok(roots.includes(12243)&&roots.includes(12239));
  const changed=structuredClone(json);
  changed.scenes[598].nodes[changed.scenes[598].nodes.indexOf(12340)]=11830;
