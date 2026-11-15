@@ -138,6 +138,10 @@ function c80530GeometrySnapshot(geometry,bufferCopies){
  const morph=Object.entries(geometry.morphAttributes??{}).map(([name,entries])=>[
   name,entries.map(attr=>c80530AttributeSnapshot(attr,bufferCopies))]);
  return {attrs,morph,index:c80530AttributeSnapshot(geometry.index,bufferCopies),
+  // BufferGeometry groups control the rendered triangles and material slots.
+  // Deep-copy each tuple: keeping the groups array would allow in-place edits.
+  groups:Array.isArray(geometry.groups)?geometry.groups.map(group=>[
+   group?.start,group?.count,group?.materialIndex]):null,
   morphTargetsRelative:geometry.morphTargetsRelative,
   drawStart:geometry.drawRange?.start,drawCount:geometry.drawRange?.count};
 }
@@ -145,7 +149,14 @@ function c80530GeometryUnchanged(geometry,proof,verified){
  if(!proof)return geometry==null;
  if(!geometry||geometry.morphTargetsRelative!==proof.morphTargetsRelative||
     geometry.drawRange?.start!==proof.drawStart||
-    geometry.drawRange?.count!==proof.drawCount)return false;
+    geometry.drawRange?.count!==proof.drawCount||
+    !Array.isArray(proof.groups)||!Array.isArray(geometry.groups)||
+    geometry.groups.length!==proof.groups.length||
+    !proof.groups.every(([start,count,materialIndex],i)=>{
+     const group=geometry.groups[i];
+     return group&&Object.is(group.start,start)&&
+      Object.is(group.count,count)&&Object.is(group.materialIndex,materialIndex);
+    }))return false;
  const attrs=geometry.attributes??{},morph=geometry.morphAttributes??{};
  if(Object.keys(attrs).length!==proof.attrs.length||
     Object.keys(morph).length!==proof.morph.length||
