@@ -277,6 +277,34 @@ test('GLTFLoader shared child under two scene parents needs source-exact rehydra
  const status=[0,1].map(i=>renderedRootsMatch(base,parsed.scenes[i],i));
  assert.equal(status.some(pass=>!pass),true,
   'globally reused glTF child with two source parents cannot be assumed to retain both exact render paths');
+
+ // PR2045 repaired the SHA-gated loader path. Verify that its genuine
+ // rehydration helper restores BOTH competing original scene parents without
+ // sharing the mutable post-parse Object3D. This tests actual integration,
+ // not only the source-JSON counterexample above.
+ const {rehydrateIncompleteScene}=await import('../../src/scripts/privateModelSourceSceneRehydrate.mjs');
+ await parsed.parser.getDependencies('node');
+ const restoredOld=await rehydrateIncompleteScene(parsed,0,{force:true});
+ const restoredNew=await rehydrateIncompleteScene(parsed,1,{force:true});
+ assert.ok(restoredOld instanceof Map && restoredNew instanceof Map,
+  'both exact source scenes can be rebuilt from cached GLTFLoader nodes');
+ for(const i of [0,1]){
+  assert.equal(renderedRootsMatch(base,parsed.scenes[i],i),true,
+   'source-root path verified after two-parent rehydration scene '+i);
+ }
+ const oldChild=parsed.scenes[0].children[0].children[0];
+ const newChild=parsed.scenes[1].children[0].children[0];
+ assert.notEqual(oldChild,newChild,'GLTFLoader clones must not share runtime Object3D identity');
+ assert.equal(restoredOld.get(oldChild),1);
+ assert.equal(restoredNew.get(newChild),1);
+ newChild.name='INJECTED_WRONG_SOURCE_CHILD';
+ assert.equal(renderedRootsMatch(base,parsed.scenes[1],1),false,
+  'a post-rehydration same-parent impostor name still fails closed');
+ assert.equal(renderedRootsMatch(base,parsed.scenes[0],0),true,
+  'a wrong child in one source scene cannot poison the other rebuilt scene');
+ newChild.name='REUSED_SOIL_CHILD';
+ assert.equal(renderedRootsMatch(base,parsed.scenes[1],1),true);
+
  // Distinct source node IDs are a positive control, not a viewer gate bypass.
  const unique=structuredClone(base);
  unique.nodes[2].children=[3];
