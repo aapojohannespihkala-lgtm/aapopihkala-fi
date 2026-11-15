@@ -164,7 +164,9 @@ test('C80 530 source-only loader rehydrates six verified scene ids, without chan
  assert.ok(cards.includes('if (digest === C80_530_V27_GLB_SHA256)'));
  assert.ok(cards.includes('isC80530V27SourceScene(json, digest, index, C80_530_V27_SCENES[index].floor)'));
  assert.ok(cards.includes('for (const index of indexes) rehydrate.add(index)'));
- assert.ok(cards.includes('rehydrateIncompleteScene(gltf, sceneIndex, { force: is530Scene })'));
+ assert.ok(cards.includes('rehydrateIncompleteScene(gltf, sceneIndex, { force: isVerifiedOptInScene })'));
+ assert.ok(cards.includes('digest === C80_530_V27_GLB_SHA256 && C80_530_V27_SCENES[sceneIndex] !== undefined'));
+ assert.ok(cards.includes('digest === C80_524_RAIN_GLB_SHA256 && C80_524_RAIN_SCENES[sceneIndex] !== undefined'));
  assert.ok(cards.includes('const rehydrate = new Set<number>([json?.scene ?? 0'));
 });
 
