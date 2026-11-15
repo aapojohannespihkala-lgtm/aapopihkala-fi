@@ -4,6 +4,7 @@ import {
  isC80524RainSourceScene as exactScene,
 } from './privateModelC80524RainZonesSourceProfile.mjs';
 import {C80_437_SCENES} from './privateModelC80437SourceProfile.mjs';
+import {nameMatches} from './privateModelSourceNodeAssociations.mjs';
 
 // A/B/C/D are the source's BOTH profiles inherited from glTF 514-517.
 // Their 512 ancestors correspond to CLOSED/ONE_OPEN/STACKED/CUTAWAY.
@@ -30,6 +31,19 @@ function exactRole(json,sha,sceneIndex){
    extras?.floorProfile===ROLE_PROFILE[sceneIndex]&&
    extras?.glTFSceneIndex===sceneIndex;
 }
+/** Verify the rendered root order against the authenticated glTF node index path.
+ * GLTFLoader may append numeric suffixes to names when a node repeats.
+ * Viewer helpers added after source roots are ignored, not interpreted as source.
+ */
+export function c80524RenderedRootPathMatches(json, rendered, sceneIndex) {
+ const roots=json?.scenes?.[sceneIndex]?.nodes;
+ if(!Array.isArray(roots)||!Array.isArray(json?.nodes)||
+    !Array.isArray(rendered?.children)||rendered.children.length<roots.length)return false;
+ return roots.every((nodeId,i)=>Number.isInteger(nodeId)&&nodeId>=0&&
+   nodeId<json.nodes.length&&!!json.nodes[nodeId]&&
+   nameMatches(rendered.children[i],json.nodes[nodeId]));
+}
+
 /** Read-only authentic source, no loader/catalog registration or publication. */
 export function resolveC80524RainScenes(gltf,sha){
  const json=gltf?.parser?.json;
@@ -38,6 +52,7 @@ export function resolveC80524RainScenes(gltf,sha){
  for(const sceneIndex of Object.keys(SPECS).map(Number)){
   const scene=gltf.scenes[sceneIndex];
   if(!scene||scene.name!==json.scenes?.[sceneIndex]?.name||
+     !c80524RenderedRootPathMatches(json,scene,sceneIndex)||
      !exactRole(json,sha,sceneIndex))return null;
   scenes[sceneIndex]=scene;
  }
@@ -52,7 +67,8 @@ export function createC80524RainFloorRuntime({gltf,sha,mount,mounted}){
  let floor='BOTH',glazing='CLOSED',cutaway=false,sceneIndex=520;
  let active=false,disposed=false;
  const isLive=(i)=>gltf.scenes?.[i]===scenes[i]&&
-   scenes[i]?.name===json.scenes?.[i]?.name&&exactRole(json,sha,i);
+   scenes[i]?.name===json.scenes?.[i]?.name&&
+   c80524RenderedRootPathMatches(json,scenes[i],i)&&exactRole(json,sha,i);
  const mountedHere=()=>mounted()===scenes[sceneIndex];
  const switchTo=(f,g,c)=>{
   const next=resolveC80524RainSceneIndex(f,g,c);
