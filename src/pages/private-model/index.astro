@@ -7834,8 +7834,9 @@ const title = 'Private 3D viewer';
           sourceNodeGltf, sourceKind === 'work-test' ? loadedModelSha256(gltf) : null,
         );
         resolveVieser4HistoricalEvidence = (object, activeScene) =>
-          vieser4SourceSelection(object, activeScene).map(
-            ([label, value]) => [label, value] as const,
+          vieser4SourceSelection(object, activeScene).flatMap(
+            ([label, value]) => typeof label === 'string' && typeof value === 'string'
+              ? [[label, value] as const] : [],
           );
         // C050's 16 SOURCE_ONLY KPH07 measurement guides and BOTH's original
         // 3-part W955 north-door gauge are not physical building geometry.
