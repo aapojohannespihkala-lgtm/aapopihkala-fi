@@ -67,6 +67,31 @@ export function resolveC80530V27Scenes(gltf,sha){
  * Viewer helpers may be appended at scene level, and review can recolor
  * materials. Source descendants, child ordering and geometries remain fixed.
  */
+// GLTF source descendants must retain their local placement even if
+// their Object3D and geometry references stay unchanged. Scene-level camera
+// orientation/presentation is intentionally excluded from this snapshot.
+const c80530LocalTransform=obj=>{
+ const p=obj?.position,q=obj?.quaternion,s=obj?.scale;
+ const values=[
+  p?.x??0,p?.y??0,p?.z??0,
+  q?.x??0,q?.y??0,q?.z??0,q?.w??1,
+  s?.x??1,s?.y??1,s?.z??1,
+ ];
+ if(!values.every(Number.isFinite))return null;
+ const manual=obj?.matrixAutoUpdate===false;
+ const matrix=manual?Array.from(obj?.matrix?.elements??[]):null;
+ if(manual&&(matrix.length!==16||!matrix.every(Number.isFinite)))return null;
+ return {values,matrix,autoUpdate:obj?.matrixAutoUpdate};
+};
+const c80530SameLocalTransform=(obj,baseline)=>{
+ const now=c80530LocalTransform(obj);
+ return !!baseline&&!!now&&Object.is(now.autoUpdate,baseline.autoUpdate)&&
+  baseline.values.every((v,i)=>Object.is(v,now.values[i]))&&
+  ((baseline.matrix===null&&now.matrix===null)||
+   (Array.isArray(baseline.matrix)&&Array.isArray(now.matrix)&&
+    baseline.matrix.length===now.matrix.length&&
+    baseline.matrix.every((v,i)=>Object.is(v,now.matrix[i]))));
+};
 export function c80530SnapshotRenderedSourceTree(scene,rootCount){
  if(!Number.isInteger(rootCount)||rootCount<0||
     !Array.isArray(scene?.children)||scene.children.length<rootCount)return null;
@@ -74,7 +99,9 @@ export function c80530SnapshotRenderedSourceTree(scene,rootCount){
  const visit=obj=>{
   if(!obj||typeof obj!=='object'||records.has(obj)||
      !Array.isArray(obj.children))return false;
-  records.set(obj,{children:[...obj.children],geometry:obj.geometry});
+  const transform=c80530LocalTransform(obj);
+  if(!transform)return false;
+  records.set(obj,{children:[...obj.children],geometry:obj.geometry,transform});
   return obj.children.every(visit);
  };
  return roots.every(visit)?{roots,records}:null;
@@ -86,6 +113,7 @@ export function c80530RenderedSourceTreeUnchanged(scene,proof){
  for(const [obj,record] of proof.records){
   const children=obj?.children;
   if(!Array.isArray(children)||obj.geometry!==record.geometry||
+     !c80530SameLocalTransform(obj,record.transform)||
      children.length!==record.children.length||
      !record.children.every((child,i)=>children[i]===child))return false;
  }
