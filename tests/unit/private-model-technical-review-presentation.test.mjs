@@ -535,5 +535,5 @@ test('technical review reports kept meshes per system for production checks', ()
 test('technical review system colors stay readable on unlit faces (emissive share)', async () => {
   const { readFile } = await import('node:fs/promises');
   const page = await readFile(new URL('../../src/pages/private-model/index.astro', import.meta.url), 'utf8');
-  assert.match(page, /\['VIEMARI', 0x8e44ad\]\] as const\)[\s\S]{0,400}emissive: color, emissiveIntensity: 0\.45,/);
+  assert.match(page, /\['VIEMARI', 0x8e44ad\]\] as const\)[\s\S]{0,400}emissive: color, emissiveIntensity: 0\.45,[\s\S]{0,260}side: THREE\.DoubleSide,/);
 });
