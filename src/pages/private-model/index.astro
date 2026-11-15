@@ -3580,7 +3580,8 @@ const title = 'Private 3D viewer';
         if (root) modelRoot.add(root);
         // Owner 15.11.2026: 2F plank floor z-fought the 1F wall tops at the
         // same height; bias only those floor materials toward the camera.
-        applyD2FFloorDepthBias(root);
+        // typeof: unit tests evaluate this function body without module imports.
+        if (typeof applyD2FFloorDepthBias === 'function') applyD2FFloorDepthBias(root);
         modelRoot.updateMatrixWorld(true);
         refreshEdgeRendering(root);
         queueMicrotask(() => refreshLayers());

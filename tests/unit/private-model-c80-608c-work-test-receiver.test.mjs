@@ -29,7 +29,7 @@ test('C80 608C viewer, inheritance, review and Worker wiring',()=>{
  assert.ok(index.includes("if(loadedModelSha256(gltf)===C80_608C_GLB_SHA256&&!c80608c)throw new Error('C80_608C_SOURCE_SCENE_MISMATCH')"));
  assert.ok(index.includes('if(c80608c) gltf.scene=c80608c[604];'));
  assert.ok(index.includes('(layersLoadedSha===C80_608C_GLB_SHA256 && runtime?.isC80608C)'));
- assert.ok(index.includes('applyD2FFloorDepthBias(root);'));
+ assert.ok(index.includes("if (typeof applyD2FFloorDepthBias === 'function') applyD2FFloorDepthBias(root);"));
  assert.ok(tech.includes('loadedSha === C80_608C_GLB_SHA256 ? c80608CReviewProfile(json,loadedSha,sceneIndex)'));
  assert.equal(catalog.candidates[ID].driveFileId,ZIP);
  assert.ok(worker.includes("id: '"+ID+"'") && worker.includes('expectedSize: '+BYTES) && worker.includes("expectedSha256: '"+SHA+"'"));
