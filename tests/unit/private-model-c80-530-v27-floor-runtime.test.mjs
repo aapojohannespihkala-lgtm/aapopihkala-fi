@@ -11,6 +11,8 @@ import {
  resolveC80530V27SceneIndex as index,resolveC80530V27Scenes as resolve,
  createC80530V27FloorRuntime as create,c80530V27ReviewProfile as review,
  c80530RenderedRootPathMatches as renderedRootsMatch,
+ c80530SnapshotRenderedSourceTree as snapshotTree,
+ c80530RenderedSourceTreeUnchanged as treeUnchanged,
 } from '../../src/scripts/privateModelC80530V27FloorRuntime.mjs';
 
 const modes=[
@@ -161,4 +163,84 @@ test('530 authentic same-name wrong rendered Object3D root blocks scene swap and
  assert.equal(current,scenes[525]);
  scenes[526].children[rootPos]=previous;
  assert.equal(runtime.restore(),true,'source root restored');
+});
+
+
+test('530 actual GLTFLoader source subtree blocks same-name mesh and geometry swaps',async()=>{
+ const {GLTFLoader}=await import('three/addons/loaders/GLTFLoader.js');
+ const {BufferGeometry,MeshBasicMaterial,Group}=await import('three');
+ // Small real GLB parse on every CI run. It tests the runtime guard, not
+ // the protected 55 MB original 530 source or production WebGL.
+ const positions=new Float32Array([0,0,0,1,0,0,0,1,0]);
+ const binary=Buffer.from(positions.buffer);
+ const json={
+  asset:{version:'2.0'},scene:0,
+  scenes:[{name:'NESTED_SOURCE_SCENE',nodes:[0,1]}],
+  nodes:[
+   {name:'SOURCE_A',children:[2]},
+   {name:'SOURCE_B'},
+   {name:'INNER_MESH',mesh:0},
+  ],
+  meshes:[{primitives:[{attributes:{POSITION:0}}]}],
+  accessors:[{bufferView:0,componentType:5126,count:3,type:'VEC3',
+   min:[0,0,0],max:[1,1,0]}],
+  bufferViews:[{buffer:0,byteOffset:0,byteLength:binary.length}],
+  buffers:[{byteLength:binary.length}],
+ };
+ const j=Buffer.from(JSON.stringify(json),'utf8');
+ const jp=(j.length+3)&~3,byteLength=12+8+jp+8+binary.length;
+ const glb=Buffer.alloc(byteLength,0x20);
+ glb.writeUInt32LE(0x46546c67,0);
+ glb.writeUInt32LE(2,4);
+ glb.writeUInt32LE(byteLength,8);
+ glb.writeUInt32LE(jp,12);
+ glb.writeUInt32LE(0x4e4f534a,16);
+ j.copy(glb,20);
+ const binAt=20+jp;
+ glb.writeUInt32LE(binary.length,binAt);
+ glb.writeUInt32LE(0x004e4942,binAt+4);
+ binary.copy(glb,binAt+8);
+ const bytes=glb.buffer.slice(glb.byteOffset,glb.byteOffset+glb.byteLength);
+ const loaded=await new Promise((resolve,reject)=>new GLTFLoader().parse(bytes,'',resolve,reject));
+ const scene=loaded.scene;
+ assert.equal(scene.children.length,2);
+ assert.equal(renderedRootsMatch(json,scene,0),true);
+ const proof=snapshotTree(scene,2);
+ assert.ok(proof,'capture original parsed Object3D graph');
+ assert.equal(treeUnchanged(scene,proof),true);
+ const first=scene.children[0],mesh=first.children[0];
+ assert.equal(mesh.isMesh,true);
+ const originalMaterial=mesh.material;
+ mesh.material=new MeshBasicMaterial({color:0x154f7d});
+ assert.equal(treeUnchanged(scene,proof),true,'technical palette material override is allowed');
+ const geometry=mesh.geometry;
+ mesh.geometry=new BufferGeometry();
+ assert.equal(renderedRootsMatch(json,scene,0),true,'prior name/tree-only check missed geometry');
+ assert.equal(treeUnchanged(scene,proof),false,'geometry rebind blocked');
+ mesh.geometry.dispose();
+ mesh.geometry=geometry;
+ assert.equal(treeUnchanged(scene,proof),true,'geometry restore');
+ const impostor=mesh.clone(false);
+ first.remove(mesh);
+ first.add(impostor);
+ assert.equal(renderedRootsMatch(json,scene,0),true,'same-name impostor would pass old guard');
+ assert.equal(treeUnchanged(scene,proof),false,'new object has no source reference');
+ first.remove(impostor);
+ first.add(mesh);
+ assert.equal(treeUnchanged(scene,proof),true,'restored nested source identity');
+ scene.add(new Group());
+ assert.equal(treeUnchanged(scene,proof),true,'viewer helper after source roots is allowed');
+ first.add(new Group());
+ assert.equal(treeUnchanged(scene,proof),false,'source child list is immutable');
+ first.remove(first.children.at(-1));
+ assert.equal(treeUnchanged(scene,proof),true);
+ scene.children.reverse();
+ assert.equal(treeUnchanged(scene,proof),false,'source root order changed');
+ scene.children.reverse();
+ assert.equal(treeUnchanged(scene,proof),true);
+ assert.equal(snapshotTree(null,2),null);
+ assert.equal(snapshotTree(scene,9),null);
+ assert.equal(treeUnchanged(scene,null),false);
+ mesh.material.dispose();
+ mesh.material=originalMaterial;
 });
