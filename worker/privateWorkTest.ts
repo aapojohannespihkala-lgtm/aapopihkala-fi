@@ -4490,6 +4490,17 @@ const C80_530_V27_NO_TRENCH_WORK_TEST_CANDIDATE = {
   expectedSha256: '1a99cc32c80e1b87bbefcf9e6f373af42aee7e72ede574eabafe375298fd9f9e',
 } as const satisfies PrivateWorkTestCandidate;
 
+// C80 608C: Claude owner fixes 15.11.2026 on C80 602 (switches per drawing,
+// 2F WC LED, KSO125 duct, Toshiba outdoor unit, T-collector removed).
+const C80_608C_OWNER_FIXES_WORK_TEST_CANDIDATE = {
+  id: 'c80-608c-owner-fixes-20261115',
+  label: 'C80 608C - katkaisijat piirustuksen mukaan, WC-LED, poistokanava, ILP-ulkoyksikkö - 15.11.2026 WORK_TEST/HOST_HOLD',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/c80-608c-owner-fixes-20261115.glb`,
+  objectKey: 'work-test/c80-608c-owner-fixes-20261115.glb',
+  expectedSize: 56931072,
+  expectedSha256: 'eadb96e656174e556c2692953808ce535cf75cee649a137f6627032d3bba4006',
+} as const satisfies PrivateWorkTestCandidate;
+
 // C80 602: C80 596 ALL5 + K12 + K09/Themo + K16/K18 with owner K04 2F wall
 // switch hosts SW01..SW04. WORK_TEST/HOST_HOLD, no CURRENT/as-built promotion.
 const C80_602_ALL5_K04_WORK_TEST_CANDIDATE = {
@@ -4522,6 +4533,7 @@ const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
   C80_WW74_L150_WORK_TEST_CANDIDATE,
   C80_495_SAVO_SEWER_WORK_TEST_CANDIDATE,
   C80_500_WW1974_ABC_WORK_TEST_CANDIDATE,
+  C80_608C_OWNER_FIXES_WORK_TEST_CANDIDATE,
   C80_602_ALL5_K04_WORK_TEST_CANDIDATE,
   C80_530_V27_NO_TRENCH_WORK_TEST_CANDIDATE,
   C80_524_RAIN_ZONES_WORK_TEST_CANDIDATE,

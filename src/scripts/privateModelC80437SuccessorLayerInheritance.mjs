@@ -26,6 +26,10 @@ import {
 import {
   C80_602_GLB_SHA256, C80_602_SCENES, isC80602SourceScene,
 } from './privateModelC80602SourceProfile.mjs';
+import {
+  C80_608C_GLB_SHA256, C80_608C_SCENES, C80_608C_COW_ALIASES, C80_608C_DUCT_ROOT,
+  isC80608CSourceScene,
+} from './privateModelC80608CSourceProfile.mjs';
 
 // Work-test identity only. The outer loader MUST authenticate the entire GLB
 // bytes before supplying sha. This never approves a new physical/as-built part.
@@ -65,10 +69,26 @@ const V602 = Object.freeze({
   600:{floor:'BOTH',glazing:'STACKED',cutaway:false},
   601:{floor:'BOTH',glazing:'CLOSED',cutaway:true},
 });
+const V608C = Object.freeze({
+  602:{floor:'1F',glazing:'CLOSED',cutaway:false},
+  603:{floor:'2F',glazing:'CLOSED',cutaway:false},
+  604:{floor:'BOTH',glazing:'CLOSED',cutaway:false},
+  605:{floor:'BOTH',glazing:'ONE_OPEN',cutaway:false},
+  606:{floor:'BOTH',glazing:'STACKED',cutaway:false},
+  607:{floor:'BOTH',glazing:'CLOSED',cutaway:true},
+});
+// SHA-locked copy-on-write aliases: a COW node keeps the receipt identity of
+// its original node only when its own JSON fingerprint matches exactly.
+const COW_ALIASES = Object.freeze({ [C80_608C_GLB_SHA256]: C80_608C_COW_ALIASES });
+const aliasOf = (sha,node) => COW_ALIASES[sha]?.[node] ?? null;
+const toOrig = (sha,node) => aliasOf(sha,node)?.orig ?? node;
+const forwardAliases = new Map(Object.entries(COW_ALIASES).map(([sha,table])=>
+  [sha,new Map(Object.entries(table).map(([n,a])=>[a.orig,Number(n)]))]));
+const toCow = (sha,node) => forwardAliases.get(sha)?.get(node) ?? node;
 export const isC80LayerSuccessorSha = sha => [
   C80_SUCC455_SAVO483_GLB_SHA256, C80_WW74_L150_GLB_SHA256,
   C80_495_GLB_SHA256, C80_500_GLB_SHA256, C80_524_RAIN_GLB_SHA256,
-  C80_530_V27_GLB_SHA256, C80_602_GLB_SHA256,
+  C80_530_V27_GLB_SHA256, C80_602_GLB_SHA256, C80_608C_GLB_SHA256,
 ].includes(sha);
 const specFor = (sha,index) => {
   if (sha===C80_SUCC455_SAVO483_GLB_SHA256) return V483[index];
@@ -77,6 +97,7 @@ const specFor = (sha,index) => {
   if (sha===C80_500_GLB_SHA256) return C80_500_VIEWER_ROLES[index];
   if (sha===C80_530_V27_GLB_SHA256) return V530[index];
   if (sha===C80_602_GLB_SHA256) return V602[index];
+  if (sha===C80_608C_GLB_SHA256) return V608C[index];
   if (sha===C80_524_RAIN_GLB_SHA256) return V524[index];
   return null;
 };
@@ -90,6 +111,8 @@ const acceptedScene = (json,sha,index) => {
   if (sha===C80_500_GLB_SHA256) return isC80500ABCSourceScene(json,sha,index);
   if (sha===C80_530_V27_GLB_SHA256) return !!C80_530_V27_SCENES[index] &&
     isC80530V27SourceScene(json,sha,index,C80_530_V27_SCENES[index].floor);
+  if (sha===C80_608C_GLB_SHA256) return !!C80_608C_SCENES[index] &&
+    isC80608CSourceScene(json,sha,index,C80_608C_SCENES[index].floor);
   if (sha===C80_602_GLB_SHA256) return !!C80_602_SCENES[index] &&
     isC80602SourceScene(json,sha,index,C80_602_SCENES[index].floor);
   if (sha===C80_524_RAIN_GLB_SHA256) return !!C80_524_RAIN_SCENES[index] &&
@@ -139,17 +162,17 @@ function uncachedReceiptScene(json,sha,sceneIndex){
     source.cutaway===role.cutaway);
   return matches.length===1 ? matches[0][1] : null;
 }
-function exactInheritedPath(json,sceneIndex,path) {
+function exactInheritedPath(json,sceneIndex,path,sha=null) {
   if (!Array.isArray(path)||!path.length||path.length>128 ||
       new Set(path).size!==path.length) return false;
   const roots=json.scenes?.[sceneIndex]?.nodes;
   if (!Array.isArray(roots)||roots.filter(n=>n===path[0]).length!==1) return false;
   for (let i=0;i<path.length;i++){
-    const n=path[i],expected=receipt.nodes[n],actual=json.nodes?.[n];
+    const n=path[i],alias=aliasOf(sha,n),expected=receipt.nodes[alias?.orig??n],actual=json.nodes?.[n];
     if (!Number.isInteger(n)||!expected||!actual||
         // Receipt stores a group node's mesh as null; glTF omits the key.
         actual.name!==expected.name || (actual.mesh??null)!==(expected.mesh??null) ||
-        nodeFingerprint(actual)!==expected.fnv) return false;
+        nodeFingerprint(actual)!==(alias?alias.fnv:expected.fnv)) return false;
     if (i>0 && json.nodes[path[i-1]]?.children?.filter(n0=>n0===n).length!==1)
       return false;
   }
@@ -158,21 +181,23 @@ function exactInheritedPath(json,sceneIndex,path) {
 export function resolveC80437SuccessorBuildingNode(json,sha,sceneIndex,node,path){
   const receiptScene=resolveC80437SuccessorReceiptScene(json,sha,sceneIndex);
   if (!receiptScene || !Number.isInteger(node)) return null;
-  const entry=receiptScene.building?.[node];
+  const src=toOrig(sha,node);
+  const entry=receiptScene.building?.[src];
   if (!entry || !Array.isArray(path)||path.at(-1)!==node ||
-      !entry.paths?.some(p=>equalPath(p,path)) ||
-      !exactInheritedPath(json,sceneIndex,path)) return null;
-  return {...entry,...receipt.nodes[node]};
+      !entry.paths?.some(p=>equalPath(p,path.map(n=>toOrig(sha,n)))) ||
+      !exactInheritedPath(json,sceneIndex,path,sha)) return null;
+  return {...entry,...receipt.nodes[src]};
 }
 // Preserve 437's authored per-device storey, even in a BOTH scene.
 // Never derive a technical identity from a mesh name alone.
 export function resolveC80437SuccessorTechnicalNode(json,sha,sceneIndex,node){
   const receiptScene=resolveC80437SuccessorReceiptScene(json,sha,sceneIndex);
   if (!receiptScene || !Number.isInteger(node)) return null;
-  const entry=receiptScene.technical?.[node];
-  if (!entry || !entry.paths?.some(p=>
-    p.at(-1)===node && exactInheritedPath(json,sceneIndex,p))) return null;
-  return {...entry,...receipt.nodes[node]};
+  const src=toOrig(sha,node);
+  const entry=receiptScene.technical?.[src];
+  if (!entry || !entry.paths?.some(p=>p.at(-1)===src &&
+    exactInheritedPath(json,sceneIndex,p.map(n=>toCow(sha,n)),sha))) return null;
+  return {...entry,...receipt.nodes[src]};
 }
 const overrides = Object.freeze([
   { root:12193, id:'technical-electrical',storey:'1F',min:483 },
@@ -185,6 +210,7 @@ const overrides = Object.freeze([
   { root:12242, id:'technical-drainage',storey:'2F',min:524 },
   ...[12243,12245,12247].map(root=>({ root, id:'technical-water',storey:'1F',apartment:'SHARED_OTHER',min:524 })),
   ...[12244,12246,12248].map(root=>({ root, id:'technical-water',storey:'2F',apartment:'SHARED_OTHER',min:524 })),
+  { root:C80_608C_DUCT_ROOT, id:'technical-ventilation',storey:'2F',min:608 },
 ]);
 const modelNumber = sha => sha===C80_SUCC455_SAVO483_GLB_SHA256 ? 483
   : sha===C80_WW74_L150_GLB_SHA256 ? 488
@@ -192,7 +218,8 @@ const modelNumber = sha => sha===C80_SUCC455_SAVO483_GLB_SHA256 ? 483
   : sha===C80_500_GLB_SHA256 ? 500
   : sha===C80_524_RAIN_GLB_SHA256 ? 524
   : sha===C80_530_V27_GLB_SHA256 ? 530
-  : sha===C80_602_GLB_SHA256 ? 602 : -1;
+  : sha===C80_602_GLB_SHA256 ? 602
+  : sha===C80_608C_GLB_SHA256 ? 608 : -1;
 function withinRoot(json,root,node) {
   const seen=new Set(),queue=[root];
   while (queue.length) {

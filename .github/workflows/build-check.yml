@@ -242,6 +242,8 @@ jobs:
             tests/unit/private-model-c80-530-v27-floor-runtime.test.mjs \
             tests/unit/private-model-c80-530-v27-viewer-receiver-wiring.test.mjs \
             tests/unit/private-model-c80-602-work-test-receiver.test.mjs \
+            tests/unit/private-model-c80-608c-work-test-receiver.test.mjs \
+            tests/unit/private-model-floor-depth-bias.test.mjs \
             tests/unit/private-model-c80-succ455-room3-photodoor-source-profile.test.mjs \
             tests/unit/private-model-c80-succ455-room3-mj83-source-profile.test.mjs \
             tests/unit/private-model-c80-succ455-room3-mj83-floor-runtime.test.mjs \
