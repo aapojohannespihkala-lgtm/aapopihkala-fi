@@ -47,7 +47,9 @@ test('roots: preserve 1F and replace three legacy switches only in 2F/BOTH',()=>
 function makeEvidence(){
  const nodes=Array.from({length:12267},()=>({}));
  nodes[12257]={name:'K04_SW04_D2F_JAMB_WORK_TEST_HOST_ROOT',
-   children:[12255,12256],extras:{current:false,asBuilt:false}};
+   children:[12255,12256],extras:{current:false,asBuilt:false,
+    physicalWallHost:'HOLD_UNVERIFIED',physicalPositionVerified:false,
+    productSkuVerified:false,sourceLinksBoundToNewGlbSha:false}};
  const places=[[5.41,3.85,-4.997],[5.9,3.85,-7.217],[5.097,3.85,-6.98]];
  for(let j=0;j<3;j++){
   const id=12258+j*3,old=[11830,11833,11836][j],n='D2F-SW-0'+(j+1);
@@ -55,14 +57,15 @@ function makeEvidence(){
    children:[id,id+1],
    extras:{stableID:n,sourceNodeId:old,stage:'WORK_TEST_HOST_HOLD_NOT_ASBUILT',
     physicalWallHost:'HOLD_UNVERIFIED',sourceLinksBoundToNewGLBSHA:false,
+    physicalPositionVerified:false,productSkuVerified:false,
     current:false,asBuilt:false}};
   for(const [offset,part,mesh] of [[0,'PLATE',4495],[1,'ROCKER',4496]]){
    nodes[id+offset]={name:'K04_WALLHOST_'+n+'_'+part+'_SOURCE_MESH_COW_WORK_TEST',
     mesh,translation:[...places[j]],
     extras:{sourceNodeId:old+offset+1,sourceParentGLBSHA256:PARENT,
      sourceParentDriveId:'1aTCGnm0f9QfZ3FMznYKcLYgUCStWEK-4',
-     physicalPositionVerified:false,sourceLinksBoundToNewGLBSHA:false,
-     current:false,asBuilt:false}};
+     physicalPositionVerified:false,productSkuVerified:false,
+     sourceLinksBoundToNewGLBSHA:false,current:false,asBuilt:false}};
   }
  }
  return {nodes,meshes:Array.from({length:4621},()=>({}))};
@@ -77,6 +80,22 @@ test('switch clone/source evidence rejects changed host and rewritten approvals'
  g.nodes[12260].extras.asBuilt=true;
  assert.equal(evidence(g),false);
  g.nodes[12260].extras.asBuilt=false;
+ delete g.nodes[12258].extras.physicalPositionVerified;
+ assert.equal(evidence(g),false,'missing plate physical verification must not be accepted');
+ g.nodes[12258].extras.physicalPositionVerified=false;
+ g.nodes[12259].extras.physicalPositionVerified=true;
+ assert.equal(evidence(g),false,'false physical approval on rocker must not be accepted');
+ g.nodes[12259].extras.physicalPositionVerified=false;
+ delete g.nodes[12260].extras.productSkuVerified;
+ assert.equal(evidence(g),false,'missing switch SKU verification status must not be accepted');
+ g.nodes[12260].extras.productSkuVerified=false;
+ g.nodes[12257].extras.physicalWallHost='VERIFIED';
+ assert.equal(evidence(g),false,'inherited SW04 host must stay unverified');
+ g.nodes[12257].extras.physicalWallHost='HOLD_UNVERIFIED';
+ delete g.nodes[12257].extras.sourceLinksBoundToNewGlbSha;
+ assert.equal(evidence(g),false,'inherited SW04 sourceLinks must stay unbound');
+ g.nodes[12257].extras.sourceLinksBoundToNewGlbSha=false;
+ assert.equal(evidence(g),true,'restored original WORK_TEST metadata must pass');
  g.nodes[12266].extras.sourceLinksBoundToNewGLBSHA=true;
  assert.equal(evidence(g),false);
  g.nodes[12266].extras.sourceLinksBoundToNewGLBSHA=false;
