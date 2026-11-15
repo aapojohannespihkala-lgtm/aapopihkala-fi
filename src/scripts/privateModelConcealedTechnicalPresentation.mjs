@@ -2,6 +2,26 @@ import {C80_437_GLB_SHA256,C80_437_SCENES,isC80437SourceScene,resolveC80437Techn
 import { isM6263Mj72Kiv005Pk1SuccessorSourceScene, SUCCESSOR_R1_SCENES } from './privateModelM6263Mj72Kiv005Pk1SuccessorSourceProfile.mjs';
 import { isTate4Mj62Mj63SourceScene, TATE4_MJ6263_SCENES } from './privateModelTate4Mj62Mj63SourceProfile.mjs';
 import { sameSourceName } from './privateModelSourceNodeAssociations.mjs';
+import { C80_614_GLB_SHA256, C80_614_SCENES, isC80614SourceScene } from './privateModelC80614SourceProfile.mjs';
+
+// C80 614 (owner 15.11.2026: "IV-putket eivät näy WC-tilan sisätiloissa vaan
+// ovat sisäkaton sisällä"): the 1F P04 sauna exhaust route and the restored
+// D1F T-collector run above the KPH suspended ceiling / inside the casing.
+// Interior ceilings are a Sisältö layer that is off by default, so these are
+// shown only in technical review. The KSO100 wall intake (11731) stays visible.
+const C80_614_CONCEALED = Object.freeze([
+  ...[
+    [11732, 4482, 'P04_D1F_SAUNA_140X40_VERTICAL_IN_PARTITION', 'INTERNAL_SAUNA_WALL_HIST_PLAN_ROUTING_ASSUMPTION'],
+    [11733, 4483, 'P04_D1F_SAUNA_140X40_TO_D100_HIDDEN_TRANSITION', 'HIDDEN_ADAPTER_WORK_ASSUMPTION'],
+    [11734, 4484, 'P04_D1F_ABOVE_SUSPENDED_CEILING_D100_BRANCH_EASTWEST', 'ABOVE_CEILING_ABOVE_SUSPENDED_CEILING_WORK_ASSUMPTION'],
+    [11735, 4485, 'P04_D1F_ABOVE_SUSPENDED_CEILING_D100_BRANCH_SOUTHNORTH', 'ABOVE_CEILING_ABOVE_SUSPENDED_CEILING_WORK_ASSUMPTION'],
+    [11736, 4486, 'P04_D1F_IV2_D100_SHORT_CONCEALED_DROP_TO_EXISTING_T', 'CEILING_NECK_TO_K11_IV2_WORK_ASSUMPTION'],
+    [11737, 4487, 'P04_D1F_ABOVE_SUSPENDED_CEILING_D100_ELBOW_XY', 'HIDDEN_ELBOW_WORK_ASSUMPTION'],
+    [11738, 4488, 'P04_D1F_ABOVE_SUSPENDED_CEILING_D100_ELBOW_YZ', 'HIDDEN_ELBOW_WORK_ASSUMPTION'],
+  ].map(([node, mesh, name, part]) => ({ node, mesh, name, path: [11730, node], semantic: [node, ['part'], part], floors: ['1F', 'BOTH'] })),
+  { node: 10060, mesh: 3788, name: 'C80_KV17_IV15_OPTIN__D1F_IV2015_3PORT_TCOLLECTOR_XMIRROR_WORK_TEST',
+    path: [11728, 10060], semantic: [10060, ['m5System'], 'IV'], floors: ['1F', 'BOTH'] },
+]);
 
 // Filled from the SHA-verified original GLB, never appearance or name search.
 // These are display roles only. Hidden routes remain unverified WORK_TEST.
@@ -158,10 +178,14 @@ export function resolveConcealedTechnicalObjects(gltf, scene, sceneIndex, loaded
       typeof scene?.traverse !== 'function' || typeof associations?.get !== 'function' ||
       (!isC80437SourceScene(json,loadedSha,sceneIndex) &&
        !isM6263Mj72Kiv005Pk1SuccessorSourceScene(json, loadedSha, sceneIndex) &&
-       !isTate4Mj62Mj63SourceScene(json, loadedSha, sceneIndex))) return null;
-  const profile = C80_437_SCENES[sceneIndex] ?? SUCCESSOR_R1_SCENES[sceneIndex] ?? TATE4_MJ6263_SCENES[sceneIndex];
+       !isTate4Mj62Mj63SourceScene(json, loadedSha, sceneIndex) &&
+       !(loadedSha === C80_614_GLB_SHA256 && isC80614SourceScene(json, loadedSha, sceneIndex)))) return null;
+  const is614 = loadedSha === C80_614_GLB_SHA256;
+  const profile = is614 ? C80_614_SCENES[sceneIndex]
+    : C80_437_SCENES[sceneIndex] ?? SUCCESSOR_R1_SCENES[sceneIndex] ?? TATE4_MJ6263_SCENES[sceneIndex];
   const objects = [];
-  const specs=loadedSha===C80_437_GLB_SHA256 ? CONCEALED.filter(e=>![11829,11909,11911].includes(e.node)) : CONCEALED;
+  const specs=is614 ? [...C80_614_CONCEALED]
+    : loadedSha===C80_437_GLB_SHA256 ? CONCEALED.filter(e=>![11829,11909,11911].includes(e.node)) : CONCEALED;
   if(loadedSha===C80_437_GLB_SHA256 && profile.floor!=='2F'){
     const node=profile.floor==='1F'?12138:12139;
     const exact=resolveC80437TechnicalNode(json,loadedSha,sceneIndex,node);

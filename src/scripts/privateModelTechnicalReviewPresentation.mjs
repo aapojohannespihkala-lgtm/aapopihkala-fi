@@ -8,6 +8,8 @@ import { C80_602_GLB_SHA256 } from './privateModelC80602SourceProfile.mjs';
 import { c80602ReviewProfile } from './privateModelC80602FloorRuntime.mjs';
 import { C80_608C_GLB_SHA256 } from './privateModelC80608CSourceProfile.mjs';
 import { c80608CReviewProfile } from './privateModelC80608CFloorRuntime.mjs';
+import { C80_614_GLB_SHA256 } from './privateModelC80614SourceProfile.mjs';
+import { c80614ReviewProfile } from './privateModelC80614FloorRuntime.mjs';
 import { c80524RainReviewProfile } from './privateModelC80524RainZonesFloorRuntime.mjs';
 import { c80500ABCReviewProfile } from './privateModelC80500WW1974ABCFloorRuntime.mjs';
 import { C80_495_GLB_SHA256, c80495SavoSewerReviewProfile } from './privateModelC80495SavoSewerFloorRuntime.mjs';
@@ -112,7 +114,7 @@ const COMPOSITE_PRESENTATION_ROOTS = new Set([2220,11613,11945]);
 // (SHA-gated profiles). Owner review 15.11.2026: the H24 KPH floor tiles and
 // the MJ54 Bosch washer (11996, an appliance, not an installation) were shown
 // as electrical orange. Grey them; H24 device leaves are re-added below.
-const C80_CHAIN_COMPOSITE_SHAS = new Set([C80_524_RAIN_GLB_SHA256, C80_530_V27_GLB_SHA256, C80_602_GLB_SHA256, C80_608C_GLB_SHA256]);
+const C80_CHAIN_COMPOSITE_SHAS = new Set([C80_524_RAIN_GLB_SHA256, C80_530_V27_GLB_SHA256, C80_602_GLB_SHA256, C80_608C_GLB_SHA256, C80_614_GLB_SHA256]);
 const C80_CHAIN_COMPOSITE_ROOTS = new Set([...COMPOSITE_PRESENTATION_ROOTS, 11996]);
 // C80 524/530 Sisältö technical-layer bindings also list a few fixtures
 // (owner review 15.11.2026 K15): the H24 WC/KPH floor-tile clones and the
@@ -240,6 +242,7 @@ export function resolveTechnicalReviewRoots(gltf, scene, sceneIndex, loadedSha, 
     : loadedSha === C80_530_V27_GLB_SHA256 ? c80530V27ReviewProfile(json,loadedSha,sceneIndex)
     : loadedSha === C80_602_GLB_SHA256 ? c80602ReviewProfile(json,loadedSha,sceneIndex)
     : loadedSha === C80_608C_GLB_SHA256 ? c80608CReviewProfile(json,loadedSha,sceneIndex)
+    : loadedSha === C80_614_GLB_SHA256 ? c80614ReviewProfile(json,loadedSha,sceneIndex)
     : loadedSha === C80_524_RAIN_GLB_SHA256 ? c80524RainReviewProfile(json,loadedSha,sceneIndex)
     : loadedSha === C80_500_GLB_SHA256 ? c80500ABCReviewProfile(json,loadedSha,sceneIndex)
     : loadedSha === C80_495_GLB_SHA256 ? c80495SavoSewerReviewProfile(json,loadedSha,sceneIndex)

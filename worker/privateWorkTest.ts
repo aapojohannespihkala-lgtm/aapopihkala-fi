@@ -4490,6 +4490,17 @@ const C80_530_V27_NO_TRENCH_WORK_TEST_CANDIDATE = {
   expectedSha256: '1a99cc32c80e1b87bbefcf9e6f373af42aee7e72ede574eabafe375298fd9f9e',
 } as const satisfies PrivateWorkTestCandidate;
 
+// C80 614: Claude owner fixes #2 15.11.2026 on C80 608C (T-collector restored,
+// ghost hatching removed, switches/outlet moved, 2F WC exhaust rebuilt).
+const C80_614_OWNER_FIXES2_WORK_TEST_CANDIDATE = {
+  id: 'c80-614-owner-fixes2-20261115',
+  label: 'C80 614 - T-kokooja palautettu, katkaisijat, keittiön pistorasia, WC-poisto, porraspala - 15.11.2026 WORK_TEST/HOST_HOLD',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/c80-614-owner-fixes2-20261115.glb`,
+  objectKey: 'work-test/c80-614-owner-fixes2-20261115.glb',
+  expectedSize: 57071348,
+  expectedSha256: 'bced7811375df1c83bf58db4a90d83a72604972756e0f9d22a0f2d972c0389bc',
+} as const satisfies PrivateWorkTestCandidate;
+
 // C80 608C: Claude owner fixes 15.11.2026 on C80 602 (switches per drawing,
 // 2F WC LED, KSO125 duct, Toshiba outdoor unit, T-collector removed).
 const C80_608C_OWNER_FIXES_WORK_TEST_CANDIDATE = {
@@ -4533,6 +4544,7 @@ const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
   C80_WW74_L150_WORK_TEST_CANDIDATE,
   C80_495_SAVO_SEWER_WORK_TEST_CANDIDATE,
   C80_500_WW1974_ABC_WORK_TEST_CANDIDATE,
+  C80_614_OWNER_FIXES2_WORK_TEST_CANDIDATE,
   C80_608C_OWNER_FIXES_WORK_TEST_CANDIDATE,
   C80_602_ALL5_K04_WORK_TEST_CANDIDATE,
   C80_530_V27_NO_TRENCH_WORK_TEST_CANDIDATE,
