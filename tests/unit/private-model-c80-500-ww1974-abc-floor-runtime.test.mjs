@@ -83,3 +83,86 @@ test('authentic 55MB GLB: eight role transitions, strict technical roots and no 
  assert.equal(c80500ABCReviewProfile(json,'wrong',496),null);
  assert.equal(c80500ABCReviewProfile(json,C80_500_GLB_SHA256,-1),null);
 });
+
+
+// Required CI: the real 55 MB GLB fixture is optional, so keep this compact
+// positive -> tampered -> rejected -> restored fixture always enabled.
+function syntheticC80500Source() {
+ const j={
+  scene:292,scenes:Array.from({length:500},()=>({name:'UNUSED',nodes:[]})),
+  nodes:Array.from({length:12238},()=>({})),
+  meshes:Array.from({length:4611},()=>({})),
+  materials:Array.from({length:739},()=>({})),
+ };
+ j.nodes[12228]={name:'M5_INTEGRATION_CLAUDE_WW_D1F_TO_SITE_SEWER_L150_WORK_TEST_HOST_HOLD',
+  children:[12225,12226,12227]};
+ j.nodes[12230]={name:'SAVO_MJ83_OWNERPHOTO_CORRECTED_KEYPAD_ROOT_WORK_TEST_HOST_HOLD',
+  children:[12229]};
+ j.nodes[12237]={name:'M5_WW1974_APT_ABC_L100_THREE_BRANCHES_TO_L150_WORK_TEST_HOST_HOLD',
+  children:[12231,12232,12233,12234,12235,12236],
+  extras:{current:false,asBuilt:false,sourceLinksBound:false,originalMainRoot:12228}};
+ const apt=['A','A','B','B','C','C'];
+ for(let k=0;k<6;k++)j.nodes[12231+k]={
+  name:'WW1974_'+apt[k]+'_L100_DRAIN_WORK_TEST_HOST_HOLD',
+  mesh:4605+k,extras:{current:false,asBuilt:false,sourceLinksBound:false}};
+ for(const [i,roots] of [[483,[12228]],[489,[12228,12230]],[491,[12228,12230]],
+   [493,[12228,12230]],[494,[12228,12230]]]){
+  j.scenes[i]={name:'PARENT_SCENE_'+i,nodes:roots};
+ }
+ for(const i of [488,490,492]){
+  j.scenes[i]={name:'C80_495_WW74_L150_SAVO_OWNERPHOTO_UV_COFIT_2F_'+i,
+   nodes:[12230],extras:{stage:'WORK_TEST_HOST_HOLD',
+    cofitSavoPhotoUV:true,sourceLinksBoundForNewSHA:false}};
+ }
+ for(const [i,prior] of [[495,483],[496,489],[497,491],[498,493],[499,494]]){
+  j.scenes[i]={name:'C80_WW1974_ABC_L100_TO_L150_FROM_SCENE_'+prior+'_WORK_TEST_HOST_HOLD',
+   nodes:[...j.scenes[prior].nodes,12237],
+   extras:{stage:'WORK_TEST_HOST_HOLD',asBuilt:false,
+    ww1974AbcBranches:{WORK_TEST:true,current:false,asBuilt:false,
+     mainRoot:12228,newRoot:12237,parentSourceScene:prior}}};
+ }
+ const rendered=j.scenes.map(s=>({name:s.name,
+  children:s.nodes.map(n=>({name:j.nodes[n]?.name||''})),
+  traverse(fn){for(const child of this.children)fn(child);}}));
+ return {json:j,gltf:{parser:{json:j},scenes:rendered}};
+}
+
+test('500 floor runtime refuses stale source mesh, scene metadata and rendered roots during restore',()=>{
+ const {json,gltf}=syntheticC80500Source();
+ let mounted=gltf.scenes[496], mounts=0;
+ const runtime=createC80500ABCFloorRuntime({
+  gltf,sha:C80_500_GLB_SHA256,mount(next){mounted=next;mounts++;},
+  mounted(){return mounted;},
+ });
+ assert.equal(runtime.apply('2F')?.exceptions.length,0);
+ assert.equal(runtime.sceneIndex,488);
+ const baselineMounts=mounts;
+ json.nodes[12231].mesh=17;
+ assert.equal(runtime.apply('BOTH'),null,'tampered source mesh cannot mount');
+ runtime.restore();
+ assert.equal(mounts,baselineMounts,'restore cannot mount stale 496');
+ assert.equal(runtime.sceneIndex,488,'failed restore does not claim BOTH');
+ json.nodes[12231].mesh=4605;
+ runtime.restore();
+ assert.equal(runtime.sceneIndex,496,'source restoration permits restore');
+ assert.equal(mounted,gltf.scenes[496]);
+
+ assert.ok(runtime.apply('2F'));
+ const before=mounts;
+ json.scenes[496].extras.ww1974AbcBranches.newRoot=0;
+ runtime.restore();
+ assert.equal(mounts,before,'wrong root receipt blocks restore');
+ json.scenes[496].extras.ww1974AbcBranches.newRoot=12237;
+ runtime.restore();
+ assert.equal(runtime.sceneIndex,496);
+
+ assert.ok(runtime.apply('2F'));
+ gltf.scenes[490].children[0].name='ROOM3_DONOR_WRONG_RENDER_ROOT';
+ assert.equal(runtime.setGlazing('ONE_OPEN'),null,'rendered node mismatch blocks scene swap');
+ assert.equal(runtime.sceneIndex,488);
+ gltf.scenes[490].children[0].name=json.nodes[12230].name;
+ assert.ok(runtime.setGlazing('ONE_OPEN'));
+ assert.equal(runtime.sceneIndex,490);
+ runtime.dispose();
+ assert.equal(runtime.apply('BOTH'),null);
+});

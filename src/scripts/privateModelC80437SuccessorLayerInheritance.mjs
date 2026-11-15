@@ -17,6 +17,9 @@ import {
   C80_500_GLB_SHA256, C80_500_VIEWER_ROLES,
   isC80500ABCSourceScene,
 } from './privateModelC80500WW1974ABCSourceProfile.mjs';
+import {
+  C80_524_RAIN_GLB_SHA256, C80_524_RAIN_SCENES, isC80524RainSourceScene,
+} from './privateModelC80524RainZonesSourceProfile.mjs';
 
 // Work-test identity only. The outer loader MUST authenticate the entire GLB
 // bytes before supplying sha. This never approves a new physical/as-built part.
@@ -30,15 +33,26 @@ const V483 = Object.freeze({
   481:{floor:'BOTH',glazing:'STACKED',cutaway:false},
   482:{floor:'BOTH',glazing:'CLOSED',cutaway:true},
 });
+// glTF scenes 518..523 of C80 524 (floor runtime roles: 1F, 2F, BOTH
+// CLOSED/ONE_OPEN/STACKED and the CLOSED cutaway).
+const V524 = Object.freeze({
+  518:{floor:'1F',glazing:'CLOSED',cutaway:false},
+  519:{floor:'2F',glazing:'CLOSED',cutaway:false},
+  520:{floor:'BOTH',glazing:'CLOSED',cutaway:false},
+  521:{floor:'BOTH',glazing:'ONE_OPEN',cutaway:false},
+  522:{floor:'BOTH',glazing:'STACKED',cutaway:false},
+  523:{floor:'BOTH',glazing:'CLOSED',cutaway:true},
+});
 export const isC80LayerSuccessorSha = sha => [
   C80_SUCC455_SAVO483_GLB_SHA256, C80_WW74_L150_GLB_SHA256,
-  C80_495_GLB_SHA256, C80_500_GLB_SHA256,
+  C80_495_GLB_SHA256, C80_500_GLB_SHA256, C80_524_RAIN_GLB_SHA256,
 ].includes(sha);
 const specFor = (sha,index) => {
   if (sha===C80_SUCC455_SAVO483_GLB_SHA256) return V483[index];
   if (sha===C80_WW74_L150_GLB_SHA256) return C80_WW74_L150_VIEWER_ROLES[index];
   if (sha===C80_495_GLB_SHA256) return C80_495_VIEWER_ROLES[index];
   if (sha===C80_500_GLB_SHA256) return C80_500_VIEWER_ROLES[index];
+  if (sha===C80_524_RAIN_GLB_SHA256) return V524[index];
   return null;
 };
 const acceptedScene = (json,sha,index) => {
@@ -49,6 +63,8 @@ const acceptedScene = (json,sha,index) => {
   if (sha===C80_WW74_L150_GLB_SHA256) return isC80Ww74L150SourceScene(json,sha,index);
   if (sha===C80_495_GLB_SHA256) return isC80495SavoSewerSourceScene(json,sha,index);
   if (sha===C80_500_GLB_SHA256) return isC80500ABCSourceScene(json,sha,index);
+  if (sha===C80_524_RAIN_GLB_SHA256) return !!C80_524_RAIN_SCENES[index] &&
+    isC80524RainSourceScene(json,sha,index,C80_524_RAIN_SCENES[index].floor);
   return false;
 };
 const equalPath = (left,right) => Array.isArray(left)&&Array.isArray(right)&&
@@ -107,11 +123,16 @@ const overrides = Object.freeze([
   { root:12228, id:'technical-drainage',storey:'1F',apartment:'SHARED_OTHER',min:488 },
   { root:12230, id:'technical-electrical',storey:'2F',min:495 },
   { root:12237, id:'technical-drainage',storey:'1F',apartment:'SHARED_OTHER',min:500 },
+  { root:12239, id:'technical-drainage',storey:'2F',min:524 },
+  { root:12242, id:'technical-drainage',storey:'2F',min:524 },
+  ...[12243,12245,12247].map(root=>({ root, id:'technical-water',storey:'1F',apartment:'SHARED_OTHER',min:524 })),
+  ...[12244,12246,12248].map(root=>({ root, id:'technical-water',storey:'2F',apartment:'SHARED_OTHER',min:524 })),
 ]);
 const modelNumber = sha => sha===C80_SUCC455_SAVO483_GLB_SHA256 ? 483
   : sha===C80_WW74_L150_GLB_SHA256 ? 488
   : sha===C80_495_GLB_SHA256 ? 495
-  : sha===C80_500_GLB_SHA256 ? 500 : -1;
+  : sha===C80_500_GLB_SHA256 ? 500
+  : sha===C80_524_RAIN_GLB_SHA256 ? 524 : -1;
 function withinRoot(json,root,node) {
   const seen=new Set(),queue=[root];
   while (queue.length) {

@@ -235,6 +235,9 @@ jobs:
             tests/unit/private-model-point-measure-scene-reset.test.mjs \
             tests/unit/private-model-measure-geometry.test.mjs \
             tests/unit/private-model-c80-t110-roof512-source-profile.test.mjs \
+            tests/unit/private-model-c80-t110-roof512-floor-runtime.test.mjs \
+            tests/unit/private-model-c80-524-rain-zones-source.test.mjs \
+            tests/unit/private-model-c80-524-rain-zones-floor-runtime.test.mjs \
             tests/unit/private-model-c80-succ455-room3-photodoor-source-profile.test.mjs \
             tests/unit/private-model-c80-succ455-room3-mj83-source-profile.test.mjs \
             tests/unit/private-model-c80-succ455-room3-mj83-floor-runtime.test.mjs \
@@ -243,8 +246,12 @@ jobs:
             tests/unit/private-model-c80-500-ww1974-abc-source-profile.test.mjs \
             tests/unit/private-model-c80-500-ww1974-abc-floor-runtime.test.mjs \
             tests/unit/private-model-c80-500-viewer-receiver-wiring.test.mjs \
+            tests/unit/private-model-c80-524-viewer-receiver-wiring.test.mjs \
+            tests/unit/private-model-c80-518-kvv-risers-source-profile.test.mjs \
             tests/unit/private-model-c80-succ455-savo483-firstfloor-gate.test.mjs \
             tests/unit/private-model-c80-storey-host-evidence.test.mjs \
+            tests/unit/private-model-c80-505-h24-source-profile.test.mjs \
+            tests/unit/private-model-c80-505-h24-floor-runtime.test.mjs \
             tests/unit/private-model-c80-410-source-profile.test.mjs
 
       # Four self-contained K16-b/c scene33 builder guards run on every
