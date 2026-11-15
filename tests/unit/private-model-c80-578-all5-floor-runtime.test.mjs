@@ -10,6 +10,7 @@ import {
  resolveC80578SceneIndex as index,
  resolveC80578Scenes as resolve,
  createC80578All5FloorRuntime as create,
+ c80578AtomicMount as atomicMount,
 } from '../../src/scripts/privateModelC80578All5FloorRuntime.mjs';
 
 const roles=[
@@ -44,6 +45,58 @@ test('invalid source, SHA, partial GLTFLoader, or mount contract fail closed',()
   /C80_578_MOUNT_CONTRACT/);
  assert.throws(()=>create({gltf:null,sha:SHA,mount:()=>{},mounted:()=>null}),
   /C80_578_SOURCE_SCENE_MISMATCH/);
+});
+test('atomic mount: commit only on verified target; rollback on callback throw',()=>{
+ const before={name:'previous'},next={name:'next'};
+ let current=before,calls=0;
+ const ok=atomicMount({previous:before,target:next,
+  mount(scene){current=scene;calls++;},mounted(){return current;}});
+ assert.equal(ok.ok,true);
+ assert.equal(current,next);
+ current=before;
+ const failure=atomicMount({previous:before,target:next,
+  mount(scene){current=scene;calls++;
+   if(scene===next)throw new Error('PARTIAL_MOUNT');},
+  mounted(){return current;}});
+ assert.equal(failure.ok,false);
+ assert.equal(failure.restored,true);
+ assert.match(failure.error.message,/PARTIAL_MOUNT/);
+ assert.equal(current,before);
+ assert.equal(calls,3);
+});
+test('atomic mount: wrong mounted scene or mounted() throw always rolls back',()=>{
+ const before={name:'before'},next={name:'next'},foreign={name:'foreign'};
+ let current=before;
+ const wrong=atomicMount({previous:before,target:next,
+  mount(scene){current=scene===next?foreign:scene;},mounted(){return current;}});
+ assert.equal(wrong.ok,false);
+ assert.equal(wrong.restored,true);
+ assert.match(wrong.error.message,/C80_578_SCENE_MOUNT_MISMATCH/);
+ assert.equal(current,before);
+ const throws=atomicMount({previous:before,target:next,
+  mount(scene){current=scene;},
+  mounted(){if(current===next)throw new Error('READ_MOUNT_FAILED');return current;}});
+ assert.equal(throws.ok,false);
+ assert.equal(throws.restored,true);
+ assert.match(throws.error.message,/READ_MOUNT_FAILED/);
+ assert.equal(current,before);
+});
+test('atomic mount: rollback failure is explicitly unverified, never a success',()=>{
+ const before={name:'before'},next={name:'next'};
+ let current=before;
+ const failure=atomicMount({previous:before,target:next,
+  mount(scene){current=scene;throw new Error(scene===next?'TARGET_FAILED':'ROLLBACK_FAILED');},
+  mounted(){return current;}});
+ assert.equal(failure.ok,false);
+ assert.equal(failure.restored,false);
+ assert.match(failure.error.message,/TARGET_FAILED/);
+ assert.match(failure.rollbackError.message,/ROLLBACK_FAILED/);
+ const mismatch=atomicMount({previous:before,target:next,
+  mount(scene){current={untrusted:scene};},
+  mounted(){return current;}});
+ assert.equal(mismatch.ok,false);
+ assert.equal(mismatch.restored,false);
+ assert.match(mismatch.rollbackError.message,/C80_578_SCENE_ROLLBACK_MISMATCH/);
 });
 /* This fixture intentionally uses original GLB JSON, not synthesized metadata.
  * Three.GLTFLoader itself remains a separate production WebGL gate.
@@ -133,4 +186,42 @@ test('original GLB: malicious metadata and live rendered tree mutations reject s
  scenes[574].children[0].name='IMPOSTOR_ROOT';
  assert.equal(r.apply('2F'),null);
  assert.equal(r.restore(),false);
+});
+test('original GLB: rollback preserves sceneIndex and unrecoverable mount quarantines',
+ {skip:!file},()=>{
+ const bin=readFileSync(file);
+ assert.equal(createHash('sha256').update(bin).digest('hex'),SHA);
+ const json=JSON.parse(bin.subarray(20,20+bin.readUInt32LE(12)).toString('utf8'));
+ const gltf=mockLoader(json),scenes=resolve(gltf,SHA);
+ assert.ok(scenes);
+ let current=scenes[574],mode='throw-target';
+ const runtime=create({gltf,sha:SHA,mount(scene){
+  current=scene;
+  if(mode==='throw-target'&&scene===scenes[575])
+   throw new Error('PARTIAL_VIEWER_MOUNT');
+  if(mode==='throw-restore'&&scene===scenes[574])
+   throw new Error('RESTORE_VIEWER_MOUNT');
+  if(mode==='throw-all')throw new Error('UNRECOVERABLE_MOUNT');
+ },mounted(){return current;}});
+ assert.throws(()=>runtime.setGlazing('ONE_OPEN'),/PARTIAL_VIEWER_MOUNT/);
+ assert.equal(current,scenes[574]);
+ assert.equal(runtime.sceneIndex,574);
+ assert.equal(runtime.quarantined,false);
+ assert.equal(runtime.available,true);
+ mode='normal';
+ assert.ok(runtime.setGlazing('ONE_OPEN'));
+ assert.equal(runtime.sceneIndex,575);
+ mode='throw-restore';
+ assert.throws(()=>runtime.restore(),/RESTORE_VIEWER_MOUNT/);
+ assert.equal(current,scenes[575]);
+ assert.equal(runtime.sceneIndex,575);
+ mode='throw-all';
+ assert.throws(()=>runtime.restore(),/C80_578_SCENE_ROLLBACK_FAILED/);
+ assert.equal(runtime.quarantined,true);
+ assert.equal(runtime.available,false);
+ assert.equal(runtime.selectedScene,null);
+ assert.equal(runtime.sceneIndex,null);
+ assert.equal(runtime.active,false);
+ assert.equal(runtime.apply('1F'),null);
+ assert.equal(runtime.restore(),false);
 });
