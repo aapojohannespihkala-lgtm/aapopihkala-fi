@@ -240,6 +240,7 @@ jobs:
             tests/unit/private-model-c80-524-rain-zones-floor-runtime.test.mjs \
             tests/unit/private-model-c80-530-v27-source-profile.test.mjs \
             tests/unit/private-model-c80-536-k11-sauna-source-profile.test.mjs \
+            tests/unit/private-model-c80-536-k11-sauna-floor-runtime.test.mjs \
             tests/unit/private-model-c80-530-v27-floor-runtime.test.mjs \
             tests/unit/private-model-c80-530-v27-viewer-receiver-wiring.test.mjs \
             tests/unit/private-model-c80-succ455-room3-photodoor-source-profile.test.mjs \
