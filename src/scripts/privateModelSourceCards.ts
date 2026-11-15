@@ -5,6 +5,7 @@ import { TATE4_SOURCE_SHA256, TATE4_CARD_LINKS, resolveTate4CardNode } from './p
 import { buildSourceNodeAssociations, createSourceNodeView } from './privateModelSourceNodeAssociations.mjs';
 import { rehydrateHi20Unified52SourceScenes } from './privateModelHi20Unified52SourceScenes.mjs';
 import { rehydrateIncompleteScene } from './privateModelSourceSceneRehydrate.mjs';
+import { C80_530_V27_GLB_SHA256, C80_530_V27_SCENES, isC80530V27SourceScene } from './privateModelC80530V27SourceProfile.mjs';
 import { resolveC80R2ChainFloorScenes } from './privateModelC80R2ChainScenes.mjs';
 
 type RecordData = Record<string, any>;
@@ -526,9 +527,20 @@ export const loadModelWithSourceCards = async <T extends GltfSource & object>(
     if(!indexes.every(index=>isC80437SourceScene(json,digest,index)))throw new Error('SUCC437_SOURCE_SCENE_MISMATCH');
     for(const index of indexes)rehydrate.add(index);
   }
+  // The six C80 530 source scenes are not the asset's old 350-352 floor
+  // references. GLTFLoader's cached shared nodes may be moved by earlier
+  // getDependencies('node') calls, so restore these SHA-verified opt-in scenes
+  // from their authentic source graph before the viewer validates Object3D roots.
+  if (digest === C80_530_V27_GLB_SHA256) {
+    const indexes = Object.keys(C80_530_V27_SCENES).map(Number);
+    if (!indexes.every(index => isC80530V27SourceScene(json, digest, index, C80_530_V27_SCENES[index].floor)))
+      throw new Error('C80_530_SOURCE_SCENE_MISMATCH');
+    for (const index of indexes) rehydrate.add(index);
+  }
   for (const sceneIndex of rehydrate) {
     try {
-      const rebuilt = await rehydrateIncompleteScene(gltf, sceneIndex);
+      const is530Scene = digest === C80_530_V27_GLB_SHA256 && C80_530_V27_SCENES[sceneIndex] !== undefined;
+      const rebuilt = await rehydrateIncompleteScene(gltf, sceneIndex, { force: is530Scene });
       const cardMap = identity !== gltf ? identity.parser?.associations : undefined;
       if (rebuilt && cardMap) for (const [object, id] of rebuilt)
         cardMap.set(object, { ...cardMap.get(object), nodes: id });
