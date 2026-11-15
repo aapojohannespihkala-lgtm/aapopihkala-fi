@@ -14521,6 +14521,10 @@ const title = 'Private 3D viewer';
           .map(([key, color]) => [key, new THREE.MeshStandardMaterial({
             color, roughness: 0.6, metalness: 0, transparent: true, opacity: 1, depthWrite: true,
             emissive: color, emissiveIntensity: 0.45,
+            // Source technical parts are often doubleSided with inward-facing
+            // windings (e.g. NIBE R200 casing): front-face-only culled them
+            // into a see-through dark hole.
+            side: THREE.DoubleSide,
           })])),
       });
       technicalReviewInput.addEventListener('change', () => {
