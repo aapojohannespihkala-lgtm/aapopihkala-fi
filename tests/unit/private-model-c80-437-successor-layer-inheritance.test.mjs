@@ -239,3 +239,21 @@ test('KP011 genuine accepted 500 source flips to rejected when ROOM3 IDs enter A
   assert.equal(resolveC80SuccessorTechnicalNode(wrongMesh, C80_500_GLB_SHA256, 495, 12231),
     null, 'wrong mesh/name must be rejected under an otherwise correct root');
 });
+
+ 
+// C80 530 is a separate 6-scene V27 successor, not an alias of legacy 437/500.
+// Exact 530 SHA comes from the merged privateModelC80530V27SourceProfile.mjs.
+// Keep the 500 fixture positive so the negative identity gate cannot pass vacuously.
+test('KP011 C80 530 SHA cannot inherit legacy 437/500 technical roles', () => {
+  const c80530Sha = '1a99cc32c80e1b87bbefcf9e6f373af42aee7e72ede574eabafe375298fd9f9e';
+  const source500 = abc500();
+  assert.notEqual(c80530Sha, C80_500_GLB_SHA256);
+  assert.equal(isC80LayerSuccessorSha(C80_500_GLB_SHA256), true);
+  assert.equal(resolveC80437SuccessorReceiptScene(source500, C80_500_GLB_SHA256, 495)?.floor, '1F');
+  assert.equal(resolveC80SuccessorTechnicalNode(source500, C80_500_GLB_SHA256, 495, 12237)?.id, 'technical-drainage');
+  assert.equal(isC80LayerSuccessorSha(c80530Sha), false);
+  assert.equal(resolveC80437SuccessorReceiptScene(source500, c80530Sha, 495), null);
+  assert.equal(resolveC80437SuccessorBuildingNode(source500, c80530Sha, 495, 12237, [12237]), null);
+  assert.equal(resolveC80437SuccessorTechnicalNode(source500, c80530Sha, 495, 12237), null);
+  assert.equal(resolveC80SuccessorTechnicalNode(source500, c80530Sha, 495, 12237), null);
+});
