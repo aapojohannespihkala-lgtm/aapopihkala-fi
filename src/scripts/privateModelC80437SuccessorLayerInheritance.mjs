@@ -85,7 +85,36 @@ const acceptedScene = (json,sha,index) => {
 const equalPath = (left,right) => Array.isArray(left)&&Array.isArray(right)&&
   left.length===right.length&&left.every((n,i)=>n===right[i]);
 
+// Viewer performance (owner 15.11.2026: stutter on view switches). A layer
+// pass resolves ~2000 meshes against one immutable parser JSON, and each call
+// used to re-authenticate the whole scene. withC80SuccessorMemo() scopes a
+// cache to one synchronous pass only; outside it every call is uncached, so
+// callers that mutate JSON between calls keep exact fail-closed semantics.
+let activeMemo = null;
+/** @template T @param {() => T} run @returns {T} */
+export function withC80SuccessorMemo(run) {
+  if (activeMemo) return run();
+  activeMemo = { scenes: new WeakMap(), fingerprints: new WeakMap() };
+  try { return run(); } finally { activeMemo = null; }
+}
+const nodeFingerprint = node => {
+  if (!activeMemo || !node || typeof node !== 'object') return c80437Fingerprint(node);
+  let value = activeMemo.fingerprints.get(node);
+  if (value === undefined) {
+    value = c80437Fingerprint(node);
+    activeMemo.fingerprints.set(node, value);
+  }
+  return value;
+};
 export function resolveC80437SuccessorReceiptScene(json,sha,sceneIndex){
+  if (!activeMemo || !json || typeof json !== 'object') return uncachedReceiptScene(json,sha,sceneIndex);
+  let byKey = activeMemo.scenes.get(json);
+  if (!byKey) { byKey = new Map(); activeMemo.scenes.set(json, byKey); }
+  const key = `${sha}:${sceneIndex}`;
+  if (!byKey.has(key)) byKey.set(key, uncachedReceiptScene(json,sha,sceneIndex));
+  return byKey.get(key);
+}
+function uncachedReceiptScene(json,sha,sceneIndex){
   if (!Number.isInteger(sceneIndex) || !json?.scenes?.[sceneIndex] ||
       json?.asset?.extras?.current!==false || json.asset.extras.asBuilt!==false ||
       json.asset.extras.HUMAN_REVIEW!=='NOT_RUN') return null;
@@ -106,7 +135,7 @@ function exactInheritedPath(json,sceneIndex,path) {
     if (!Number.isInteger(n)||!expected||!actual||
         // Receipt stores a group node's mesh as null; glTF omits the key.
         actual.name!==expected.name || (actual.mesh??null)!==(expected.mesh??null) ||
-        c80437Fingerprint(actual)!==expected.fnv) return false;
+        nodeFingerprint(actual)!==expected.fnv) return false;
     if (i>0 && json.nodes[path[i-1]]?.children?.filter(n0=>n0===n).length!==1)
       return false;
   }
