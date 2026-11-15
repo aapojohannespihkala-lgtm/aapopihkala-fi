@@ -1,3 +1,4 @@
+import {nameMatches,sameSourceName} from './privateModelSourceNodeAssociations.mjs';
 // Source-only C80 505/H24 receiver. WORK_TEST_HOST_HOLD, not a publication gate.
 export const C80_505_GLB_SHA256 = '78fbc1c65d3a879a3097d16cc9646c098499c839828563ea23afab0ecf5214ab';
 export const C80_505_GLB_BYTES = 55258836;
@@ -61,9 +62,9 @@ export function resolveC80505H24Scenes(gltf,sha){
   const out={};
   for(const key of Object.keys(C80_505_VIEWER_ROLES)){
     const i=Number(key), s=json.scenes[i], r=gltf.scenes[i];
-    if(!isC80505H24SourceScene(json,sha,i) || !r || r.name!==s.name ||
+    if(!isC80505H24SourceScene(json,sha,i) || !r || !sameSourceName(r.name,s.name) ||
        !Array.isArray(r.children) || r.children.length<s.nodes.length ||
-       !s.nodes.every((n,k)=>r.children[k]?.name===json.nodes[n]?.name))return null;
+       !s.nodes.every((n,k)=>nameMatches(r.children[k],json.nodes[n])))return null;
     out[i]=r;
   }
   return out;
