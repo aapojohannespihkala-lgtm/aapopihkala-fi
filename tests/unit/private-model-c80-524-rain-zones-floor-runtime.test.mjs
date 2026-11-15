@@ -8,7 +8,8 @@ import {C80_524_RAIN_GLB_SHA256 as SHA,C80_524_RAIN_GLB_BYTES as BYTES,
 import {C80_524_RAIN_VIEWER_ROLES as ROLES,
  resolveC80524RainSceneIndex as index,
  resolveC80524RainScenes as resolve,
- createC80524RainFloorRuntime as create}
+ createC80524RainFloorRuntime as create,
+ c80524RenderedRootPathMatches as renderedRootsMatch}
  from '../../src/scripts/privateModelC80524RainZonesFloorRuntime.mjs';
 
 const modes=[
@@ -39,6 +40,7 @@ function sourceFixture(){
  assert.equal(createHash('sha256').update(buf).digest('hex'),SHA);
  const json=JSON.parse(buf.subarray(20,20+buf.readUInt32LE(12)).toString('utf8'));
  const scenes=json.scenes.map(s=>({name:s.name,
+  children:s.nodes.map(n=>({name:json.nodes[n]?.name??''})),
   traverse(fn){for(const n of s.nodes)fn({isMesh:Number.isInteger(json.nodes[n]?.mesh)});}}));
  return {json,scenes,gltf:{parser:{json},scenes}};
 }
@@ -110,4 +112,47 @@ test('authenticated 524 source metadata rechecked before every mount and restore
  assert.ok(runtime.apply('1F'));
  current=scenes[520];
  assert.equal(runtime.apply('2F'),null,'external scene swap invalidates mounted-scene contract');
+});
+
+
+test('524 rendered root order/name verification rejects wrong cross-SHA nodes and permits appended viewer helpers',()=>{
+ const json={scenes:[{nodes:[2,3,4]}],nodes:[{}, {},
+  {name:'SOURCE_A.root'},{name:'SOURCE B.root'},{name:'SOURCE_C.root'}]};
+ const rendered={children:[
+  {name:'SOURCE_Aroot'}, {name:'SOURCE_Broot'}, {name:'SOURCE_Croot_2'}]};
+ assert.equal(renderedRootsMatch(json,rendered,0),true,'GLTFLoader name sanitization and _N suffix');
+ rendered.children.push({name:'VIEWER_HELPER_ONLY'});
+ assert.equal(renderedRootsMatch(json,rendered,0),true,'extra viewer helper after source roots');
+ const ordered=rendered.children.slice();
+ rendered.children=[ordered[1],ordered[0],ordered[2],ordered[3]];
+ assert.equal(renderedRootsMatch(json,rendered,0),false,'source root order changed');
+ rendered.children=ordered;
+ rendered.children[1]={name:'ROOM3_DONOR_LEAF'};
+ assert.equal(renderedRootsMatch(json,rendered,0),false,'wrong SHA donor rendered as real root');
+ rendered.children[1]=ordered[1];
+ assert.equal(renderedRootsMatch(json,rendered,0),true,'valid root restored');
+ rendered.children=[ordered[0],ordered[1]];
+ assert.equal(renderedRootsMatch(json,rendered,0),false,'missing source root');
+ json.scenes[0].nodes=[2,3,1234];
+ assert.equal(renderedRootsMatch(json,{children:ordered},0),false,'out of bounds node ID');
+ assert.equal(renderedRootsMatch(json,{},0),false);
+ assert.equal(renderedRootsMatch({}, {children:ordered},0),false);
+});
+test('authentic 524 scene renderer mismatch rejects init and scene restore', {skip:!fixture},()=>{
+ const {json,gltf,scenes}=sourceFixture();
+ assert.ok(resolve(gltf,SHA));
+ const rootIndex=json.scenes[520].nodes.findIndex(n=>typeof json.nodes[n]?.name==='string'&&json.nodes[n].name.length>0);
+ assert.ok(rootIndex>=0,'one named root in scene520');
+ let current=scenes[520];
+ const runtime=create({gltf,sha:SHA,mount(next){current=next;},mounted(){return current;}});
+ assert.ok(runtime.apply('2F'));
+ const previous=scenes[520].children[rootIndex];
+ scenes[520].children[rootIndex]={name:'ROOM3_DONOR_INVALID_RENDERED_ROOT'};
+ assert.equal(resolve(gltf,SHA),null);
+ assert.equal(runtime.restore(),false,'stale scene root blocks restore');
+ assert.equal(current,scenes[519]);
+ assert.equal(runtime.sceneIndex,519);
+ scenes[520].children[rootIndex]=previous;
+ assert.equal(runtime.restore(),true);
+ assert.equal(current,scenes[520]);
 });
