@@ -4479,6 +4479,17 @@ const C80_500_WW1974_ABC_WORK_TEST_CANDIDATE = {
   expectedSha256: 'f3ed1f4520d3f1d8dfab6451ff3adbbba0ca600a3b8b29753adf04c601ccba2d',
 } as const satisfies PrivateWorkTestCandidate;
 
+// C80 530 V27 no-trench: exact clipped soil context over authenticated C80 524.
+// Terrain is WORK_TEST presentation only, not physical grade/as-built approval.
+const C80_530_V27_NO_TRENCH_WORK_TEST_CANDIDATE = {
+  id: 'c80-530-v27-no-trench-terrain-20261115',
+  label: 'C80 530 - V27 terassin maaleikkaus + C80 524 lähdeketju - 15.11.2026 WORK_TEST/HOST_HOLD',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/c80-530-v27-no-trench-terrain-20261115.glb`,
+  objectKey: 'work-test/c80-530-v27-no-trench-terrain-20261115.glb',
+  expectedSize: 55645812,
+  expectedSha256: '1a99cc32c80e1b87bbefcf9e6f373af42aee7e72ede574eabafe375298fd9f9e',
+} as const satisfies PrivateWorkTestCandidate;
+
 // C80 524 opt-in: D-gable storm downspout presence zones over 518 A-C water
 // risers, 512 T110 roof vent and 505 H24. No physical as-built or CURRENT
 // promotion. Work-test SHA source only.
@@ -4500,6 +4511,7 @@ const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
   C80_WW74_L150_WORK_TEST_CANDIDATE,
   C80_495_SAVO_SEWER_WORK_TEST_CANDIDATE,
   C80_500_WW1974_ABC_WORK_TEST_CANDIDATE,
+  C80_530_V27_NO_TRENCH_WORK_TEST_CANDIDATE,
   C80_524_RAIN_ZONES_WORK_TEST_CANDIDATE,
   C80_TATE_INTERIOR_WORK_TEST_CANDIDATE,
   C80_TATE_THREE_DELTA_WORK_TEST_CANDIDATE,
