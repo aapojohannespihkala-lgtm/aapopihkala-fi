@@ -141,6 +141,22 @@ test('524 rendered root order/name verification rejects wrong cross-SHA nodes an
  assert.equal(renderedRootsMatch(json,{},0),false);
  assert.equal(renderedRootsMatch({}, {children:ordered},0),false);
 });
+test('C80 524 initial rendered roots reject contradictory loader node associations',()=>{
+ const json={scenes:[{nodes:[2,3]}],nodes:[{},{},{name:'SOURCE_A'},{name:'SOURCE_B'}]};
+ const a={name:'SOURCE_A'},b={name:'SOURCE_B'};
+ const rendered={children:[a,b]};
+ assert.equal(renderedRootsMatch(json,rendered,0),true);
+ const bindings=new Map([[a,{nodes:3}]]);
+ assert.equal(renderedRootsMatch(json,rendered,0,bindings),false,
+  'known wrong node association fails even when name and order look valid');
+ bindings.set(a,{nodes:2});
+ assert.equal(renderedRootsMatch(json,rendered,0,bindings),true);
+ bindings.set(b,{nodes:2});
+ assert.equal(renderedRootsMatch(json,rendered,0,bindings),false);
+ bindings.set(b,{materials:5});
+ assert.equal(renderedRootsMatch(json,rendered,0,bindings),true,
+  'pruned node associations do not cause an invented identity assertion');
+});
 test('captured rendered roots reject same-name donor object, geometry and nested-child swaps',()=>{
  const geometry={source:'original-524'},child={name:'SOURCED_CHILD',geometry};
  const root={name:'SOURCE_ROOT',geometry,children:[child]};
@@ -233,6 +249,12 @@ test('real GLTFLoader GLB graph preserves source roots and rejects a same-name r
  assert.equal(scene.name,'TEST_SCENE');
  assert.equal(scene.children.length,2);
  assert.equal(renderedRootsMatch(json,scene,0),true);
+ // Real GLTFLoader Object3Ds: a contradictory parser node binding must fail
+ // before the post-parse reference snapshot is ever accepted.
+ const wrongBindings=new Map([[scene.children[0],{nodes:1}]]);
+ assert.equal(renderedRootsMatch(json,scene,0,wrongBindings),false);
+ wrongBindings.set(scene.children[0],{nodes:0});
+ assert.equal(renderedRootsMatch(json,scene,0,wrongBindings),true);
  const proof=snapshotRoots(scene,2);
  assert.ok(proof);
  const first=scene.children[0];
