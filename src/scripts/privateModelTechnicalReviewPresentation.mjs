@@ -255,6 +255,7 @@ export function createTechnicalReviewPresentation(root, keepRoots, createMateria
   let materials = null;
   let applied = false;
   let disposed = false;
+  let systemCounts = {};
 
   const kept = object => {
     for (let node = object; node && node !== root; node = node.parent) if (keep.has(node)) return true;
@@ -282,6 +283,7 @@ export function createTechnicalReviewPresentation(root, keepRoots, createMateria
     if (!on) { restore(); return false; }
     if (applied) return true;
     try {
+      systemCounts = {};
       materials ??= createMaterials();
       root.traverse(object => {
         if (object === root || !isRenderable(object) || saved.has(object)) return;
@@ -296,6 +298,10 @@ export function createTechnicalReviewPresentation(root, keepRoots, createMateria
           shared = object.isMesh
             ? (materials.systems[system ?? ''] ?? materials.surface)
             : materials.line;
+          if (object.isMesh) {
+            const key = system && materials.systems[system] ? system : 'GREY';
+            systemCounts[key] = (systemCounts[key] ?? 0) + 1;
+          }
         } else {
           shared = object.isMesh ? materials.surface : materials.line;
         }
@@ -320,13 +326,39 @@ export function createTechnicalReviewPresentation(root, keepRoots, createMateria
     disposed = true;
   };
 
-  return { apply, dispose, get applied() { return applied; }, get changedCount() { return saved.size; } };
+  return { apply, dispose, get applied() { return applied; }, get changedCount() { return saved.size; },
+    /** Kept meshes per highlight system in the last apply (GREY = no system). */
+    get systemCounts() { return { ...systemCounts }; } };
 }
 
 const DRAIN_NAME = /(?:^|_)(?:V75|V75_D\d|V110|T110|V50|V32|DRAIN|WASTE|SEWER|WW1974|WW74|WW20\d\d|VV20\d\d|LK_?75|KK_?32)(?:_|$)/;
 // Wrappers and water/electric/ventilation parts that merely mention a drain
 // size (e.g. "..._ONE_V75_COW" wrappers, KV/LV clearance sleeves, cisterns).
 const NOT_DRAIN_NAME = /(?:^|_)(?:KV|LV|KVLV|PEX|KV\d+|LV\d+|VM\d+|ELECTRICAL\d*|IV|IV\d+|SAHKO|RK\d+|CISTERN)(?:_|$)/;
+
+/** Sisältö (layer) ids that carry a technical review color. */
+export const TECHNICAL_REVIEW_LAYER_SYSTEMS = Object.freeze({
+  'technical-electrical': 'SAHKO',
+  'technical-water': 'VESI',
+  'technical-drainage': 'VIEMARI',
+  'technical-ventilation': 'IV',
+});
+
+/**
+ * Fallback system for a kept mesh that has no source system of its own: the
+ * nearest ancestor (or itself) that the exact-source Sisältö bindings place
+ * in a technical layer. Presentation-only / architecture nodes still stop.
+ * @param {Map<any, string>} layerIdByRoot bound root -> Sisältö layer id
+ */
+export function technicalReviewLayerSystemOf(object, root, layerIdByRoot) {
+  for (let node = object; node && node !== root; node = node.parent) {
+    const extras = node.userData;
+    if (extras?.presentationOnly === true || extras?.m5PresentationRole === 'ARCHITECTURE') return null;
+    const id = layerIdByRoot.get(node);
+    if (id !== undefined) return TECHNICAL_REVIEW_LAYER_SYSTEMS[id] ?? null;
+  }
+  return null;
+}
 
 /** System key of a kept technical object from its own or an ancestor's source extras. */
 export function technicalReviewSystemOf(object, root) {
