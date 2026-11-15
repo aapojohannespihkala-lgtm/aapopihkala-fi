@@ -609,3 +609,17 @@ test('C80 524/530: H24 floor wrapper and Bosch washer are grey, other roots kept
   // Unrelated hashes remain unchanged.
   assert.equal(filterCompositePresentationRoots(entries, 'f'.repeat(64)), entries);
 });
+
+test('C80 524/530: Sisältö-bound KPH floor clones and Bosch washer are not technically coloured', async () => {
+  const { filterNonTechnicalBoundObjects } = await import('../../src/scripts/privateModelTechnicalReviewPresentation.mjs');
+  const { C80_530_V27_GLB_SHA256 } = await import('../../src/scripts/privateModelC80530V27SourceProfile.mjs');
+  const items = [
+    'K11_XMIRROR_R989_FLOOR_INTEGRATION_DERIVED_CLONE_2898_PRESENTATION_CLONE_2440_KPH_FLOOR_WEST_ANCHOR_',
+    'MJ54_BOSCH_WNG254ABSN_CORRECT_PUMP_FRONT_RIGHT',
+    'K11_XMIRROR_KPH09_PHOTO_ROTARY_BEZEL',
+    'PH_WASHER_OPEN_2015_CANDIDATE_P185C_HOST',
+  ].map((name) => ({ object: { name } }));
+  assert.deepEqual(filterNonTechnicalBoundObjects(items, C80_530_V27_GLB_SHA256).map((i) => i.object.name),
+    ['K11_XMIRROR_KPH09_PHOTO_ROTARY_BEZEL', 'PH_WASHER_OPEN_2015_CANDIDATE_P185C_HOST']);
+  assert.equal(filterNonTechnicalBoundObjects(items, 'f'.repeat(64)), items);
+});
