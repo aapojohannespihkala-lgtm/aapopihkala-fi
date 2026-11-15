@@ -10,6 +10,7 @@ import {
 } from '../../src/scripts/privateModelC80437SuccessorLayerInheritance.mjs';
 import { C80_WW74_L150_GLB_SHA256 } from '../../src/scripts/privateModelC80Ww74L150FloorRuntime.mjs';
 import { C80_500_GLB_SHA256 } from '../../src/scripts/privateModelC80500WW1974ABCSourceProfile.mjs';
+import { C80_530_V27_GLB_SHA256, C80_530_V27_SCENES } from '../../src/scripts/privateModelC80530V27SourceProfile.mjs';
 
 const make = (sceneCount,nodeCount,meshCount) => ({
   scene:292, scenes:Array.from({length:sceneCount},()=>({nodes:[]})),
@@ -245,7 +246,8 @@ test('KP011 genuine accepted 500 source flips to rejected when ROOM3 IDs enter A
 // It legitimately inherits source roles, but its SHA must never authenticate
 // a C80 500 scene or cloned 500 node/parent structure.
 test('KP011 C80 530 successor recognition rejects spoofed legacy 500 scene and roles', () => {
-  const c80530Sha = '1a99cc32c80e1b87bbefcf9e6f373af42aee7e72ede574eabafe375298fd9f9e';
+  const c80530Sha = C80_530_V27_GLB_SHA256;
+  assert.equal(c80530Sha, '1a99cc32c80e1b87bbefcf9e6f373af42aee7e72ede574eabafe375298fd9f9e');
   const source500 = abc500();
   assert.notEqual(c80530Sha, C80_500_GLB_SHA256);
   assert.equal(isC80LayerSuccessorSha(C80_500_GLB_SHA256), true);
@@ -267,4 +269,19 @@ test('KP011 C80 530 successor recognition rejects spoofed legacy 500 scene and r
   };
   assert.equal(resolveC80437SuccessorReceiptScene(spoofed530, c80530Sha, 524), null);
   assert.equal(resolveC80SuccessorTechnicalNode(spoofed530, c80530Sha, 524, 12237), null);
+
+  // Guard all six genuine 530 scene roles: no 500 scene can masquerade as
+  // 530 by reusing a 500 root or simply moving it to a 530 scene index.
+  assert.deepEqual(Object.keys(C80_530_V27_SCENES).map(Number), [524,525,526,527,528,529]);
+  for (const sceneIndex of Object.keys(C80_530_V27_SCENES).map(Number)) {
+    const injected = abc500();
+    injected.scenes[sceneIndex] = {
+      ...injected.scenes[495],
+      nodes: [...injected.scenes[495].nodes],
+    };
+    assert.equal(resolveC80437SuccessorReceiptScene(injected, c80530Sha, sceneIndex), null,
+      'legacy 500 scene must not inherit as 530 scene ' + sceneIndex);
+    assert.equal(resolveC80SuccessorTechnicalNode(injected, c80530Sha, sceneIndex, 12237), null,
+      'legacy drain root must not receive 530 technical role ' + sceneIndex);
+  }
 });
