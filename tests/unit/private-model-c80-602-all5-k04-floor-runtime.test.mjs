@@ -95,7 +95,7 @@ function syntheticLoader(json){
  const scenes=json.scenes.map(s=>({name:s.name,children:[]}));
  for(const i of Object.keys(SPECS).map(Number)){
   scenes[i]={name:json.scenes[i].name,
-   children:json.scenes[i].nodes.map(build),
+   children:json.scenes[i].nodes.map(id=>build(id)),
    traverse(fn){const go=x=>{fn(x);x.children.forEach(go);};
      this.children.forEach(go);}};
  }
