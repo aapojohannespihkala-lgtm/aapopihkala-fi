@@ -19,7 +19,7 @@ export const rehydrateIncompleteDefaultScene = (gltf) =>
   rehydrateIncompleteScene(gltf, gltf?.parser?.json?.scene ?? 0);
 
 /** Same for one explicit scene index (e.g. the C80R2 floor scenes). */
-export async function rehydrateIncompleteScene(gltf, sceneIndex) {
+export async function rehydrateIncompleteScene(gltf, sceneIndex, {force = false} = {}) {
   const parser = gltf?.parser, json = parser?.json;
   if (typeof parser?.getDependency !== 'function' || !Array.isArray(json?.nodes) ||
       !Array.isArray(json?.scenes) || json.skins?.length || json.animations?.length ||
@@ -47,7 +47,9 @@ export async function rehydrateIncompleteScene(gltf, sceneIndex) {
   const expected = sceneDef.nodes.reduce((sum, id) => sum + primitives(id, 0), 0);
   let loaded = 0;
   scene.traverse((o) => { if (isPrimitive(o)) loaded++; });
-  if (!Number.isFinite(expected) || loaded >= expected) return null;
+  // A source-SHA-gated caller can request a full object-tree rebuild even
+  // when moved shared glTF nodes leave the primitive count unchanged.
+  if (!Number.isFinite(expected) || (loaded >= expected && !force)) return null;
 
   const ids = [...memo.keys()];
   const cached = new Map(await Promise.all(ids.map(async (id) =>
