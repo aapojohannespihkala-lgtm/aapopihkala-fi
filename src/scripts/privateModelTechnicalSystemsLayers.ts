@@ -1,4 +1,8 @@
 import {C80_437_GLB_SHA256,isC80437SourceScene,resolveC80437TechnicalNode} from './privateModelC80437SourceProfile.mjs';
+import {
+  isC80LayerSuccessorSha, resolveC80437SuccessorReceiptScene,
+  resolveC80SuccessorTechnicalNode,
+} from './privateModelC80437SuccessorLayerInheritance.mjs';
 import { isTate4Mj62Mj63SourceScene } from './privateModelTate4Mj62Mj63SourceProfile.mjs';
 import { TATE4_MJ6263_SOURCE_SHA256, resolveM6263TechnicalNode } from './privateModelM6263ViewerReceipt.mjs';
 import { AIR385_SOURCE_SHA256, AIR385_COMPONENTS, isAir385SourceScene } from './privateModelAir385ToshibaServiceSourceProfile.mjs';
@@ -665,6 +669,8 @@ export const createTechnicalSystemLayerInventory = (context: TechnicalSystemsCon
   const exactSource = normalizedSha(context.loadedGlbSha256) !== null &&
     context.loadedGlbSha256 === context.expectedGlbSha256 &&
     (context.loadedGlbSha256!==C80_437_GLB_SHA256 || isC80437SourceScene(context.sourceJson,context.loadedGlbSha256,sourceSceneIndex)) &&
+    (!isC80LayerSuccessorSha(context.loadedGlbSha256) ||
+      !!resolveC80437SuccessorReceiptScene(context.sourceJson,context.loadedGlbSha256,sourceSceneIndex)) &&
     (context.loadedGlbSha256 !== TATE4_MJ6263_SOURCE_SHA256 ||
       isTate4Mj62Mj63SourceScene(context.sourceJson, context.loadedGlbSha256, sourceSceneIndex));
 
@@ -737,9 +743,13 @@ export const createTechnicalSystemLayerInventory = (context: TechnicalSystemsCon
     });
     if (hasSourceRenderableChild) continue;
     const exact437=context.loadedGlbSha256===C80_437_GLB_SHA256?resolveC80437TechnicalNode(context.sourceJson,context.loadedGlbSha256,context.sourceSceneIndex,binding.nodeIndex):null;
-    const device = context.loadedGlbSha256===C80_437_GLB_SHA256
-      ? (exact437?{id:exact437.id as TechnicalSystemId,scope:{apartment:'D',storey:exact437.storey,phase:'ACTIVE_IN_SELECTED_WORKTEST'}}:null)
-      : v26Device(context, binding);
+    const exactSuccessor=isC80LayerSuccessorSha(context.loadedGlbSha256)
+      ? resolveC80SuccessorTechnicalNode(context.sourceJson,context.loadedGlbSha256,context.sourceSceneIndex,binding.nodeIndex) : null;
+    const exactDevice=exact437??exactSuccessor;
+    const device = exactDevice
+      ? {id:exactDevice.id as TechnicalSystemId,scope:{apartment:'apartment' in exactDevice ? exactDevice.apartment : 'D',
+          storey:exactDevice.storey,phase:'ACTIVE_IN_SELECTED_WORKTEST'}}
+      : isC80LayerSuccessorSha(context.loadedGlbSha256) ? null : v26Device(context,binding);
     const id = device?.id ?? explicitSystem(chain, dataFor);
     if (!id) continue;
     increment(matches, id);
