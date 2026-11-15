@@ -244,3 +244,86 @@ test('530 actual GLTFLoader source subtree blocks same-name mesh and geometry sw
  mesh.material.dispose();
  mesh.material=originalMaterial;
 });
+
+
+// KP011 authentic 530 source: old root9008 and new root12254 both reference
+// seven identical glTF child indices across otherwise independent scenes.
+// GLTFLoader caches those nodes globally. A rehydration pass must reconstruct
+// exact source children, never accept a missing/wrong child by relaxing SHA.
+test('GLTFLoader shared child under two scene parents needs source-exact rehydration',async()=>{
+ const {GLTFLoader}=await import('three/addons/loaders/GLTFLoader.js');
+ const makeGlb=(json)=>{
+  const text=Buffer.from(JSON.stringify(json),'utf8');
+  const pad=(text.length+3)&~3;
+  const buf=Buffer.alloc(20+pad,0x20);
+  buf.writeUInt32LE(0x46546c67,0);
+  buf.writeUInt32LE(2,4);
+  buf.writeUInt32LE(buf.length,8);
+  buf.writeUInt32LE(pad,12);
+  buf.writeUInt32LE(0x4e4f534a,16);
+  text.copy(buf,20);
+  return buf.buffer.slice(buf.byteOffset,buf.byteOffset+buf.byteLength);
+ };
+ const base={
+  asset:{version:'2.0'},scene:0,
+  scenes:[{name:'OLD_TERRAIN_SCENE',nodes:[0]},{name:'NEW_TERRAIN_SCENE',nodes:[2]}],
+  nodes:[
+   {name:'OLD_TERRAIN_ROOT',children:[1]},
+   {name:'REUSED_SOIL_CHILD'},
+   {name:'NEW_TERRAIN_ROOT',children:[1]},
+  ],
+ };
+ const parsed=await new GLTFLoader().parseAsync(makeGlb(base),'');
+ const status=[0,1].map(i=>renderedRootsMatch(base,parsed.scenes[i],i));
+ assert.equal(status.some(pass=>!pass),true,
+  'globally reused glTF child with two source parents cannot be assumed to retain both exact render paths');
+
+ // PR2045 repaired the SHA-gated loader path. Verify that its genuine
+ // rehydration helper restores BOTH competing original scene parents without
+ // sharing the mutable post-parse Object3D. This tests actual integration,
+ // not only the source-JSON counterexample above.
+ const {rehydrateIncompleteScene}=await import('../../src/scripts/privateModelSourceSceneRehydrate.mjs');
+ await parsed.parser.getDependencies('node');
+ const restoredOld=await rehydrateIncompleteScene(parsed,0,{force:true});
+ const restoredNew=await rehydrateIncompleteScene(parsed,1,{force:true});
+ assert.ok(restoredOld instanceof Map && restoredNew instanceof Map,
+  'both exact source scenes can be rebuilt from cached GLTFLoader nodes');
+ for(const i of [0,1]){
+  assert.equal(renderedRootsMatch(base,parsed.scenes[i],i),true,
+   'source-root path verified after two-parent rehydration scene '+i);
+ }
+ const oldChild=parsed.scenes[0].children[0].children[0];
+ const newChild=parsed.scenes[1].children[0].children[0];
+ assert.notEqual(oldChild,newChild,'GLTFLoader clones must not share runtime Object3D identity');
+ assert.equal(restoredOld.get(oldChild),1);
+ assert.equal(restoredNew.get(newChild),1);
+ newChild.name='INJECTED_WRONG_SOURCE_CHILD';
+ assert.equal(renderedRootsMatch(base,parsed.scenes[1],1),false,
+  'a post-rehydration same-parent impostor name still fails closed');
+ assert.equal(renderedRootsMatch(base,parsed.scenes[0],0),true,
+  'a wrong child in one source scene cannot poison the other rebuilt scene');
+ newChild.name='REUSED_SOIL_CHILD';
+ assert.equal(renderedRootsMatch(base,parsed.scenes[1],1),true);
+
+ // Distinct source node IDs are a positive control, not a viewer gate bypass.
+ const unique=structuredClone(base);
+ unique.nodes[2].children=[3];
+ unique.nodes.push({name:'INDEPENDENT_SOIL_CHILD'});
+ const good=await new GLTFLoader().parseAsync(makeGlb(unique),'');
+ assert.equal(renderedRootsMatch(unique,good.scenes[0],0),true);
+ assert.equal(renderedRootsMatch(unique,good.scenes[1],1),true);
+});
+
+test('authentic C80 530 identifies the seven old/new soil-parent alias IDs',
+ {skip:!fixture},()=>{
+ const {json}=load();
+ const old=json.nodes[9008].children??[];
+ const next=json.nodes[12254].children??[];
+ for(const id of [9007,5145,5148,5154,5167,5180,7318]){
+  assert.ok(old.includes(id),'old terrain parent retains source child '+id);
+  assert.ok(next.includes(id),'new terrain parent reuses exact child '+id);
+ }
+ assert.equal(json.scenes[526].nodes.includes(12254),true);
+ assert.equal(json.scenes[520].nodes.includes(9008),true);
+ assert.equal(json.scenes[525].nodes.includes(12254),false);
+});
