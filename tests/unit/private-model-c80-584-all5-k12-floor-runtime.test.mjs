@@ -2,6 +2,12 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {createHash} from 'node:crypto';
+import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
+import {
+ c80530RenderedRootPathMatches,
+ c80530SnapshotRenderedSourceTree,
+ c80530RenderedSourceTreeUnchanged,
+} from '../../src/scripts/privateModelC80530V27FloorRuntime.mjs';
 import {
  C80_584_GLB_SHA256 as SHA,C80_584_GLB_BYTES as BYTES,
  C80_584_SCENES as SPECS,
@@ -163,4 +169,82 @@ test('optional authentic GLB: metadata mutations and partial mounts cannot silen
  const broken=original();
  broken.scenes[580].extras.CURRENT='APPROVED';
  assert.equal(resolve(sourceLoader(broken),SHA),null);
+});
+
+/**
+ * Synthetic but genuine glTF 2.0 binary decoded by the repository's pinned
+ * three@0.185.1 GLTFLoader. A two-primitive parent plus a source child
+ * exercises GLTFLoader-generated primitive children and parser associations.
+ * This is NOT the private 56.6 MB C80 584 original fixture or production WebGL.
+ */
+function c80584SyntheticGlb(){
+ const positions=[0,0,0, 1,0,0, 0,1,0];
+ const bin=Buffer.alloc(44);
+ positions.forEach((v,i)=>bin.writeFloatLE(v,i*4));
+ [0,1,2].forEach((v,i)=>bin.writeUInt16LE(v,36+i*2));
+ const primitive={attributes:{POSITION:0},indices:1};
+ const json={
+  asset:{version:'2.0',generator:'C80-584 synthetic real-loader regression'},
+  scene:0,
+  scenes:[{name:'C80584_TEST_1F',nodes:[0,2]}],
+  nodes:[
+   {name:'MEP_MULTIPRIMITIVE_ROOT',mesh:0,children:[1],translation:[2,0,0]},
+   {name:'K12_NESTED_TILE',mesh:1,translation:[0,1,0]},
+   {name:'K12_SIBLING_FLOOR',mesh:1},
+  ],
+  meshes:[{primitives:[primitive,primitive]},{primitives:[primitive]}],
+  buffers:[{byteLength:44}],
+  bufferViews:[
+   {buffer:0,byteOffset:0,byteLength:36,target:34962},
+   {buffer:0,byteOffset:36,byteLength:6,target:34963},
+  ],
+  accessors:[
+   {bufferView:0,componentType:5126,count:3,type:'VEC3',min:[0,0,0],max:[1,1,0]},
+   {bufferView:1,componentType:5123,count:3,type:'SCALAR'},
+  ],
+ };
+ const utf=Buffer.from(JSON.stringify(json),'utf8');
+ const jsonLen=(utf.length+3)&~3;
+ const binLen=(bin.length+3)&~3;
+ const glb=Buffer.alloc(12+8+jsonLen+8+binLen);
+ glb.write('glTF',0,'ascii');
+ glb.writeUInt32LE(2,4);
+ glb.writeUInt32LE(glb.length,8);
+ glb.writeUInt32LE(jsonLen,12);
+ glb.write('JSON',16,'ascii');
+ glb.fill(0x20,20,20+jsonLen);
+ utf.copy(glb,20);
+ const binOff=20+jsonLen;
+ glb.writeUInt32LE(binLen,binOff);
+ glb.write('BIN\\0',binOff+4,'ascii');
+ bin.copy(glb,binOff+8);
+ return glb.buffer.slice(glb.byteOffset,glb.byteOffset+glb.byteLength);
+}
+test('C80 584 real GLTFLoader source-graph: primitive prefix, nested roots, associations, immutable transforms',
+ async()=>{
+ const gltf=await new GLTFLoader().parseAsync(c80584SyntheticGlb(),'');
+ const json=gltf.parser.json,rendered=gltf.scenes[0];
+ assert.equal(gltf.scenes.length,1);
+ assert.equal(rendered.name,'C80584_TEST_1F');
+ assert.deepEqual(json.scenes[0].nodes,[0,2]);
+ const root=rendered.children[0];
+ // Multi-primitive GLTFLoader objects include internal geometry children
+ // alongside the author-supplied nested node.
+ assert.ok(root.children.length>json.nodes[0].children.length);
+ assert.equal(c80530RenderedRootPathMatches(json,rendered,0,gltf.parser.associations),true);
+ const proof=c80530SnapshotRenderedSourceTree(rendered,2);
+ assert.ok(proof);
+ assert.equal(c80530RenderedSourceTreeUnchanged(rendered,proof),true);
+ root.position.x+=0.125;
+ assert.equal(c80530RenderedSourceTreeUnchanged(rendered,proof),false);
+ root.position.x-=0.125;
+ assert.equal(c80530RenderedSourceTreeUnchanged(rendered,proof),true);
+ // Source root order and parser's node associations are binding, not names.
+ rendered.children.reverse();
+ assert.equal(c80530RenderedRootPathMatches(json,rendered,0,gltf.parser.associations),false);
+ assert.equal(c80530RenderedSourceTreeUnchanged(rendered,proof),false);
+ rendered.children.reverse();
+ const foreign=new Map(gltf.parser.associations);
+ foreign.set(root,{nodes:2});
+ assert.equal(c80530RenderedRootPathMatches(json,rendered,0,foreign),false);
 });
