@@ -123,6 +123,42 @@ test('a correct primitive count cannot mask wrong source roots: SHA-gated force 
  assert.equal(gltf.scenes[1].children.includes(helper),false);
 });
 
+test('C80 524 SHA-gated source-only loader restores only six exact R1110 scenes',async()=>{
+ const cards=readFileSync(new URL('../../src/scripts/privateModelSourceCards.ts',import.meta.url),'utf8');
+ const {C80_524_RAIN_SCENES, C80_524_RAIN_GLB_SHA256, isC80524RainSourceScene}=
+   await import('../../src/scripts/privateModelC80524RainZonesSourceProfile.mjs');
+ const ids=Object.keys(C80_524_RAIN_SCENES).map(Number);
+ assert.deepEqual(ids,[518,519,520,521,522,523]);
+ assert.equal(isC80524RainSourceScene({},C80_524_RAIN_GLB_SHA256,520),false);
+ assert.equal(isC80524RainSourceScene({},'0'.repeat(64),520),false);
+ assert.ok(cards.includes('if (digest === C80_524_RAIN_GLB_SHA256)'));
+ assert.ok(cards.includes('isC80524RainSourceScene(json, digest, index, C80_524_RAIN_SCENES[index].floor)'));
+ assert.ok(cards.includes("throw new Error('C80_524_SOURCE_SCENE_MISMATCH')"));
+ assert.ok(cards.includes('for (const index of indexes) rehydrate.add(index)'));
+ assert.ok(cards.includes('digest === C80_524_RAIN_GLB_SHA256 && C80_524_RAIN_SCENES[sceneIndex] !== undefined'));
+ assert.ok(cards.includes('digest === C80_530_V27_GLB_SHA256 && C80_530_V27_SCENES[sceneIndex] !== undefined'));
+ assert.ok(cards.includes('rehydrateIncompleteScene(gltf, sceneIndex, { force: isVerifiedOptInScene })'));
+ assert.ok(cards.includes('const rehydrate = new Set<number>([json?.scene ?? 0'));
+ // Source state must not become a publication, CURRENT, or physical-route claim.
+ assert.equal(C80_524_RAIN_SCENES[520].floor,'BOTH');
+ assert.equal(C80_524_RAIN_SCENES[518].floor,'1F');
+});
+
+test('authentic private C80 524 JSON passes all six source gates, if explicitly supplied',
+ {skip:!process.env.C80_524_RAIN_GLB_PATH},async()=>{
+ const bytes=readFileSync(process.env.C80_524_RAIN_GLB_PATH);
+ const {createHash}=await import('node:crypto');
+ const {C80_524_RAIN_SCENES, C80_524_RAIN_GLB_SHA256, C80_524_RAIN_GLB_BYTES,
+  isC80524RainSourceScene}=await import('../../src/scripts/privateModelC80524RainZonesSourceProfile.mjs');
+ assert.equal(bytes.length,C80_524_RAIN_GLB_BYTES);
+ assert.equal(createHash('sha256').update(bytes).digest('hex'),C80_524_RAIN_GLB_SHA256);
+ const json=JSON.parse(bytes.subarray(20,20+bytes.readUInt32LE(12)).toString());
+ for(const [index,spec] of Object.entries(C80_524_RAIN_SCENES)){
+  assert.equal(isC80524RainSourceScene(json,C80_524_RAIN_GLB_SHA256,Number(index),spec.floor),true,'scene '+index);
+  assert.equal(isC80524RainSourceScene(json,'0'.repeat(64),Number(index),spec.floor),false,'wrong SHA');
+ }
+});
+
 test('C80 530 source-only loader rehydrates six verified scene ids, without changing default and older models',()=>{
  const cards=readFileSync(new URL('../../src/scripts/privateModelSourceCards.ts',import.meta.url),'utf8');
  assert.ok(cards.includes('if (digest === C80_530_V27_GLB_SHA256)'));
