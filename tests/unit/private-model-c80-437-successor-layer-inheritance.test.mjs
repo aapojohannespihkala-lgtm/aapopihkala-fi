@@ -123,3 +123,33 @@ test('500 modified A-C source mesh fails source-exact group proof',()=>{
   j.nodes[12233].mesh=123;
   assert.equal(resolveC80SuccessorTechnicalNode(j,C80_500_GLB_SHA256,495,12233),null);
 });
+
+// Review fix 15.11: the 437 receipt stores a group node's mesh as null while
+// glTF omits the key. Without normalising, every inherited path through a
+// group failed (real 488 scene484: technical 40/675 -> 636/675).
+test('inherited paths through group nodes (receipt mesh null, glTF key absent) are accepted', async () => {
+  const { readFile } = await import('node:fs/promises');
+  const receipt = JSON.parse(await readFile(new URL('../../src/scripts/privateModelC80437Receipt.json', import.meta.url), 'utf8'));
+  const groups = Object.entries(receipt.nodes).filter(([, n]) => n.mesh === null);
+  assert.ok(groups.length > 100, 'receipt has group nodes with mesh null');
+  const src = await readFile(new URL('../../src/scripts/privateModelC80437SuccessorLayerInheritance.mjs', import.meta.url), 'utf8');
+  assert.match(src, /\(actual\.mesh\?\?null\)!==\(expected\.mesh\?\?null\)/);
+});
+
+test('real C80 488 GLB inherits nearly all 437 building and technical paths', { skip: !process.env.C80_WW74_L150_GLB_PATH }, async () => {
+  const { readFile } = await import('node:fs/promises');
+  const bytes = await readFile(process.env.C80_WW74_L150_GLB_PATH);
+  const json = JSON.parse(bytes.subarray(20, 20 + bytes.readUInt32LE(12)).toString('utf8'));
+  const scene = resolveC80437SuccessorReceiptScene(json, C80_WW74_L150_GLB_SHA256, 484);
+  assert.ok(scene);
+  const tech = Object.keys(scene.technical).filter(n => resolveC80437SuccessorTechnicalNode(json, C80_WW74_L150_GLB_SHA256, 484, +n)).length;
+  assert.ok(tech / Object.keys(scene.technical).length > 0.9, `technical inherited ${tech}`);
+});
+
+test('viewer enables Sisältö layers for every inherited C80 successor (483/488/495/500)', async () => {
+  const { readFile } = await import('node:fs/promises');
+  const page = await readFile(new URL('../../src/pages/private-model/index.astro', import.meta.url), 'utf8');
+  const allow = page.match(/const verifiedChainSourceSha =([\s\S]*?)\? layersLoadedSha : null;/)?.[1] ?? '';
+  for (const name of ['C80_SUCC455_SAVO483_GLB_SHA256', 'C80_WW74_L150_GLB_SHA256', 'C80_495_GLB_SHA256', 'C80_500_GLB_SHA256'])
+    assert.match(allow, new RegExp(`layersLoadedSha === ${name} \\|\\|`));
+});

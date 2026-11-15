@@ -73,7 +73,8 @@ function exactInheritedPath(json,sceneIndex,path) {
   for (let i=0;i<path.length;i++){
     const n=path[i],expected=receipt.nodes[n],actual=json.nodes?.[n];
     if (!Number.isInteger(n)||!expected||!actual||
-        actual.name!==expected.name || actual.mesh!==expected.mesh ||
+        // Receipt stores a group node's mesh as null; glTF omits the key.
+        actual.name!==expected.name || (actual.mesh??null)!==(expected.mesh??null) ||
         c80437Fingerprint(actual)!==expected.fnv) return false;
     if (i>0 && json.nodes[path[i-1]]?.children?.filter(n0=>n0===n).length!==1)
       return false;
