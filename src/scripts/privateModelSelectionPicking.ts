@@ -1,3 +1,4 @@
+import {firstVisibleTechnicalReviewHit} from './privateModelTechnicalReviewHitPriority.mjs';
 type SelectionPickingRect = {
   left: number;
   top: number;
@@ -123,10 +124,9 @@ export const pickSelectableObjectAtClientPoint = ({
     return material.clipIntersection ? outside < planes.length : outside === 0;
   };
 
-  const hit = raycaster
-    .intersectObjects(modelRoot.children, true)
-    .find(
-      (candidate) =>
+  const hit = firstVisibleTechnicalReviewHit(
+    raycaster.intersectObjects(modelRoot.children, true),
+    (candidate: SelectionPickingIntersection) =>
         (candidate.object?.isMesh ||
           candidate.object?.isLine ||
           candidate.object?.isLineSegments) &&
