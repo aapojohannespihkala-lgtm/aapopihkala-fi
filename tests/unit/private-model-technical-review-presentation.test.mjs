@@ -627,3 +627,39 @@ test('C80 524/530: Sisältö-bound KPH floor clones and Bosch washer are not tec
   const child = { object: { name: 'C80-037_BOSCH_1_MAIN_CABINET', parent: washerRoot } };
   assert.deepEqual(filterNonTechnicalBoundObjects([child], C80_530_V27_GLB_SHA256), []);
 });
+
+// Perf 15.11.2026: single-pass DoubleSide highlights. A normal-less mesh would
+// render black in one DOUBLE_SIDED pass, so it gets a flat-shaded twin of the
+// same shared highlight; meshes with normals keep the shared material.
+test('single-pass highlight uses a flat twin only for normal-less meshes', () => {
+  const root = node('scene');
+  const tech = node('tech root', { userData: { m5System: 'SAHKO' } });
+  const singlePass = (label) => {
+    const material = { ...disposable(label), forceSinglePass: true, flatShading: false, userData: { role: label } };
+    material.clone = () => ({ ...singlePass(label + '-twin'), userData: { ...material.userData } });
+    return material;
+  };
+  const withNormals = node('cable', { isMesh: true, material: disposable('cable-src'),
+    geometry: { attributes: { position: {}, normal: {} } }, userData: { m5System: 'SAHKO' } });
+  const noNormalsA = node('heater', { isMesh: true, material: disposable('heater-src'),
+    geometry: { attributes: { position: {}, color: {} } }, userData: { m5System: 'SAHKO' } });
+  const noNormalsB = node('box', { isMesh: true, material: disposable('box-src'),
+    geometry: { attributes: { position: {} } }, userData: { m5System: 'SAHKO' } });
+  root.add(tech); tech.add(withNormals).add(noNormalsA).add(noNormalsB);
+  const orange = singlePass('orange');
+  const review = createTechnicalReviewPresentation(root, [tech], () => ({
+    surface: disposable('grey'), line: disposable('greyLine'), systems: { SAHKO: orange },
+  }), object => technicalReviewSystemOf(object, root));
+  review.apply(true);
+  assert.equal(withNormals.material, orange);
+  assert.equal(noNormalsA.material.label, 'orange-twin');
+  assert.equal(noNormalsA.material.flatShading, true);
+  assert.equal(noNormalsA.material, noNormalsB.material, 'one shared twin per highlight material');
+  assert.equal(noNormalsA.material.userData.role, 'orange', 'pick role metadata kept on the twin');
+  const twin = noNormalsA.material;
+  review.apply(false);
+  assert.equal(noNormalsA.material.label, 'heater-src');
+  review.dispose();
+  assert.equal(twin.disposed, true);
+  assert.equal(orange.disposed, true);
+});

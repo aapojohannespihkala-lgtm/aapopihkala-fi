@@ -14554,6 +14554,12 @@ const title = 'Private 3D viewer';
             // windings (e.g. NIBE R200 casing): front-face-only culled them
             // into a see-through dark hole.
             side: THREE.DoubleSide,
+            // Opacity 1 + depthWrite: three's automatic back/front double pass
+            // for transparent DoubleSide only re-flagged the material twice per
+            // mesh every frame (~630 meshes: 34 -> 15 ms CPU/frame in C80 530,
+            // 39 of 1.63 M pixels changed). Normal-less meshes get a flat-shaded
+            // twin in the presentation so they keep their color.
+            forceSinglePass: true,
           })])),
       });
       technicalReviewInput.addEventListener('change', () => {
