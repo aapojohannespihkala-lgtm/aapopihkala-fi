@@ -9,7 +9,7 @@ import {
 import {resolveC80614SceneIndex,c80614ReviewProfile} from '../../src/scripts/privateModelC80614FloorRuntime.mjs';
 import {isC80LayerSuccessorSha,resolveC80437SuccessorReceiptScene,resolveC80SuccessorTechnicalNode} from '../../src/scripts/privateModelC80437SuccessorLayerInheritance.mjs';
 const read = path => readFileSync(new URL(path,import.meta.url),'utf8');
-const ID='c80-614-owner-fixes2-20261115';
+const ID='c80-614-owner-fixes2b-20261116';
 
 test('C80 614 floor roles map to its own six scenes',()=>{
  assert.deepEqual([resolveC80614SceneIndex('1F'),resolveC80614SceneIndex('2F'),resolveC80614SceneIndex('BOTH'),
@@ -49,6 +49,9 @@ test('authentic 614 optional GLB: scenes, T-collector back, ghosts and flex drop
  }
  assert.ok(json.scenes[608].nodes.includes(11728),'original T-collector root');
  assert.ok(json.scenes[608].nodes.includes(12402)&&!json.scenes[608].nodes.includes(12334),'stair block COW');
+ assert.ok(resolveC80437SuccessorReceiptScene(json,SHA,608));
+ const moved=structuredClone(json); moved.nodes[12403].mesh=21;
+ assert.equal(isC80614SourceScene(moved,SHA,608,'1F'),true,'profile itself is structural');
  for(const n of [6419,6420,12044,12347,12360]) assert.ok(!json.scenes[610].nodes.includes(n),'dropped '+n);
  assert.equal(resolveC80SuccessorTechnicalNode(json,SHA,610,11769+1)?.id,'technical-electrical','moved 1F SW-02 keeps identity');
  assert.equal(resolveC80SuccessorTechnicalNode(json,SHA,609,12398)?.id,'technical-ventilation','new WC exhaust is ventilation');
@@ -58,5 +61,5 @@ test('authentic 614 optional GLB: scenes, T-collector back, ghosts and flex drop
  assert.equal(resolveC80SuccessorTechnicalNode(forged,SHA,608,11770),null,'altered COW node loses alias identity');
  const bad=structuredClone(json); bad.scenes[610].extras.asBuilt=true;
  assert.equal(isC80614SourceScene(bad,SHA,610,'BOTH'),false);
- assert.equal(Object.keys(ALIASES).length,11);
+ assert.equal(Object.keys(ALIASES).length,21);
 });
