@@ -124,7 +124,7 @@ test('C80 530 exact historical circuit evidence never asserts a 2026 feed',()=>{
  assert.equal(electricalGroup(json,11560),null,'cross-SHA same-index donor rejected');
  nodes[11560]={...swapped,name:'D_1F_EXTERIOR_DOUBLE_OUTLET_COMMON_WEATHER_FLAP_OWNER_APPROVED_ROOT_WORK_TEST_HOST_HOLD_EXTRA'};
  assert.equal(electricalGroup(json,11560),null,'same prefix but altered exact node name rejected');
- nodes[11560]={name:'D_1F_EXTERIOR_DOUBLE_OUTLET_COMMON_WEATHER_FLAP',
+ nodes[11560]={name:'D_1F_EXTERIOR_DOUBLE_OUTLET_COMMON_WEATHER_FLAP_OWNER_APPROVED_ROOT_WORK_TEST_HOST_HOLD',
    extras:{group2015:'RK11.2 2015 PLAN_ONLY',current:false,asBuilt:false}};
  assert.equal(electricalGroup(json,11560),null,'different historical group rejected');
  nodes[11560].extras.group2015='RK11.1 2015 PLAN_ONLY';
