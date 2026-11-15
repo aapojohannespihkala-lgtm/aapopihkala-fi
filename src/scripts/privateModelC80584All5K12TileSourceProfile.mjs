@@ -55,7 +55,7 @@ export function isC80584K12Evidence(json){
  if(root?.name!=='K12_WETROOM_SAUNA_TILE100_SOURCE_EXACT_COW_FROM11613_WORK_TEST_HOST_HOLD__C80_584_ALL5_COFIT'||
   !sameTransform(root,old)||!eq(root.children,
    old?.children?.filter(i=>![1724,1725,6613].includes(i))
-    .map(i=>i===1714?12320:i===1715?12321))||
+    .map(i=>i===1714?12320:i===1715?12321:i))||
   !root.children.includes(1712)||!root.children.includes(1713)||
   root.extras?.sourceNodeIndex!==11613||root.extras?.sourceLinksBound!==false||
   root.extras?.physicalRoofOrDrainOrSlopeChange!==false||
