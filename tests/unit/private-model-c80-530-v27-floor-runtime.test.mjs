@@ -10,6 +10,7 @@ import {
  C80_530_V27_VIEWER_ROLES as ROLES,
  resolveC80530V27SceneIndex as index,resolveC80530V27Scenes as resolve,
  createC80530V27FloorRuntime as create,c80530V27ReviewProfile as review,
+ c80530RenderedRootPathMatches as renderedRootsMatch,
 } from '../../src/scripts/privateModelC80530V27FloorRuntime.mjs';
 
 const modes=[
@@ -42,7 +43,11 @@ function load(){
  assert.equal(bytes.length,BYTES);
  assert.equal(createHash('sha256').update(bytes).digest('hex'),SHA);
  const json=JSON.parse(bytes.subarray(20,20+bytes.readUInt32LE(12)).toString('utf8'));
- const scenes=json.scenes.map(s=>({name:s.name,
+ const active=new Set([524,525,526,527,528,529]);
+ const build=id=>({name:json.nodes[id]?.name??'',
+  children:(json.nodes[id]?.children??[]).map(build)});
+ const scenes=json.scenes.map((s,i)=>({name:s.name,
+  children:active.has(i)?s.nodes.map(build):[],
   traverse(fn){for(const n of s.nodes)fn({isMesh:Number.isInteger(json.nodes[n]?.mesh)});}}));
  return {json,scenes,gltf:{parser:{json},scenes}};
 }
@@ -114,4 +119,46 @@ test('mutated live source prevents transition and restore despite creation-time 
  assert.ok(runtime.apply('1F'));
  current=scenes[526];
  assert.equal(runtime.apply('2F'),null,'external scene mount must be noticed');
+});
+
+test('530 rendered root order, nested tree, loader aliases and association mismatch fail closed',()=>{
+ const json={scenes:[{nodes:[0,3]}],nodes:[
+  {name:'SOURCE A.root',children:[1,2]},
+  {name:'CHILD ONE'}, {name:'CHILD TWO'}, {name:'OTHER ROOT'},
+ ]};
+ const root={name:'SOURCE_Aroot',children:[{name:'CHILD_ONE'},{name:'CHILD_TWO_1'}]};
+ const other={name:'OTHER_ROOT',children:[]};
+ const scene={children:[root,other]};
+ assert.equal(renderedRootsMatch(json,scene,0),true);
+ scene.children.push({name:'VIEWER_HELPER'});
+ assert.equal(renderedRootsMatch(json,scene,0),true,'helper after roots is not a source');
+ scene.children=[other,root];
+ assert.equal(renderedRootsMatch(json,scene,0),false,'root order changed');
+ scene.children=[root,other];
+ const saved=root.children[0];
+ root.children[0]={name:'DONOR_WRONG'};
+ assert.equal(renderedRootsMatch(json,scene,0),false,'same root name but different glTF subtree');
+ root.children[0]=saved;
+ assert.equal(renderedRootsMatch(json,scene,0),true);
+ const associations=new Map([[root,{nodes:3}]]);
+ assert.equal(renderedRootsMatch(json,scene,0,associations),false,'loader node provenance disagrees');
+ scene.children=[root];
+ assert.equal(renderedRootsMatch(json,scene,0),false,'missing root');
+ assert.equal(renderedRootsMatch({},scene,0),false);
+});
+test('530 authentic same-name wrong rendered Object3D root blocks scene swap and restore',
+ {skip:!fixture},()=>{
+ const {json,gltf,scenes}=load();
+ const rootPos=json.scenes[526].nodes.findIndex(n=>(json.nodes[n]?.children??[]).length>0);
+ assert.ok(rootPos>=0);
+ let current=scenes[526];
+ const runtime=create({gltf,sha:SHA,mount(next){current=next;},mounted(){return current;}});
+ assert.ok(runtime.apply('2F'));
+ const previous=scenes[526].children[rootPos];
+ scenes[526].children[rootPos]={name:previous.name,children:[]};
+ assert.equal(resolve(gltf,SHA),null,'same-named root with incorrect hierarchy');
+ assert.equal(runtime.restore(),false,'pinned Object3D identity differs');
+ assert.equal(current,scenes[525]);
+ scenes[526].children[rootPos]=previous;
+ assert.equal(runtime.restore(),true,'source root restored');
 });
