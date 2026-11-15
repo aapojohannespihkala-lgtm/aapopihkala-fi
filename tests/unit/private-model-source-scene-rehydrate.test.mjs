@@ -138,6 +138,8 @@ test('C80 524 SHA-gated source-only loader restores only six exact R1110 scenes'
  assert.ok(cards.includes('digest === C80_524_RAIN_GLB_SHA256 && C80_524_RAIN_SCENES[sceneIndex] !== undefined'));
  assert.ok(cards.includes('digest === C80_530_V27_GLB_SHA256 && C80_530_V27_SCENES[sceneIndex] !== undefined'));
  assert.ok(cards.includes('rehydrateIncompleteScene(gltf, sceneIndex, { force: isVerifiedOptInScene })'));
+ assert.ok(cards.includes('if (strict524 && !rebuilt) throw new Error(\'C80_524_SOURCE_SCENE_REHYDRATE_FAILED\')'));
+ assert.ok(cards.includes('if (strict524) throw new Error(\'C80_524_SOURCE_SCENE_REHYDRATE_FAILED\''));
  assert.ok(cards.includes('const rehydrate = new Set<number>([json?.scene ?? 0'));
  // Source state must not become a publication, CURRENT, or physical-route claim.
  assert.equal(C80_524_RAIN_SCENES[520].floor,'BOTH');
