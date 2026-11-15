@@ -2282,6 +2282,7 @@ const title = 'Private 3D viewer';
         selectionMetadataEntries as collectSelectionMetadataEntries,
         selectionSourceLinks as collectSelectionSourceLinks,
       } from '../../scripts/privateModelSelectionMetadata';
+      import { createC80530ElectricalGroupEvidenceResolver } from '../../scripts/privateModelC80530ElectricalGroupEvidence.mjs';
       import {
         createSelectionPanelController,
         formatSelectionDimensionsFi,
@@ -3453,6 +3454,7 @@ const title = 'Private 3D viewer';
       let resolveSelectionSources: (object: any) => SelectionSourceEvidence = () => ({
         state: 'unavailable', version: 'Mallia ei ole ladattu', cards: [],
       });
+      let resolveElectricalGroupEvidence: (object: any, activeScene: any) => Array<readonly [string, string]> = () => [];
       let dInteriorScene: any = null;
       let p186dReviewRoomContextGroup: THREE.Group | null = null;
       let activeResearchPreset: ViewerResearchPreset = 'whole-building';
@@ -5508,6 +5510,7 @@ const title = 'Private 3D viewer';
           })(),
           metadataEntries: [
             ...technicalMetadata,
+            ...resolveElectricalGroupEvidence(object, modelRoot.children[0] ?? null),
             ...collectSelectionMetadataEntries(object, modelRoot),
           ],
           sourceLinks: collectSelectionSourceLinks(object, modelRoot),
@@ -7780,6 +7783,15 @@ const title = 'Private 3D viewer';
           if (!fullModelScene) throw new Error('C80 source WHOLE scene missing');
         }
         resolveSelectionSources = sourceCardResolverForModel(gltf);
+        // GLTFLoader prunes parser node associations in multi-scene GLBs.
+        // Use the already source-verified reconstructed 530 scene node view.
+        const sourceBoundElectricalGroup = createC80530ElectricalGroupEvidenceResolver(
+          sourceNodeModel(gltf), sourceKind === 'work-test' ? loadedModelSha256(gltf) : null,
+        );
+        resolveElectricalGroupEvidence = (object, activeScene) =>
+          sourceBoundElectricalGroup(object, activeScene).map(
+            ([label, value]) => [label, value] as const,
+          );
         dInteriorScene = dInteriorOverride ??
           findSourceNamedScene(gltf, 'D CURRENT INTERIOR - BABYLON Y-UP');
         const modelLoadLayerState = createViewerLayerStateForModelLoad({
