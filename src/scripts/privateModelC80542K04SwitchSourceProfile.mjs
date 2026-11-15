@@ -69,7 +69,11 @@ export function isK04SwitchEvidence(json) {
   const sw04=nodes[12257];
   if(sw04?.name!=='K04_SW04_D2F_JAMB_WORK_TEST_HOST_ROOT' ||
      !equal(sw04.children,[12255,12256]) ||
-     sw04.extras?.current!==false || sw04.extras?.asBuilt!==false)return false;
+     sw04.extras?.current!==false || sw04.extras?.asBuilt!==false ||
+     sw04.extras?.physicalWallHost!=='HOLD_UNVERIFIED' ||
+     sw04.extras?.physicalPositionVerified!==false ||
+     sw04.extras?.productSkuVerified!==false ||
+     sw04.extras?.sourceLinksBoundToNewGlbSha!==false)return false;
   const positions=[[5.41,3.85,-4.997],[5.9,3.85,-7.217],[5.097,3.85,-6.98]];
   for(let j=0;j<3;j++){
     const plateId=12258+j*3,rockerId=plateId+1,rootId=plateId+2;
@@ -82,6 +86,8 @@ export function isK04SwitchEvidence(json) {
        root.extras?.stage!=='WORK_TEST_HOST_HOLD_NOT_ASBUILT' ||
        root.extras?.physicalWallHost!=='HOLD_UNVERIFIED' ||
        root.extras?.sourceLinksBoundToNewGLBSHA!==false ||
+       root.extras?.physicalPositionVerified!==false ||
+       root.extras?.productSkuVerified!==false ||
        root.extras?.current!==false || root.extras?.asBuilt!==false)return false;
     for(const [part,node,mesh,src] of [
       ['PLATE',plate,4495,oldRoot+1],['ROCKER',rocker,4496,oldRoot+2]
@@ -91,7 +97,8 @@ export function isK04SwitchEvidence(json) {
          node.extras?.sourceNodeId!==src ||
          node.extras?.sourceParentGLBSHA256!==K04_PARENT_SHA256 ||
          node.extras?.sourceParentDriveId!==K04_PARENT_ZIP_ID ||
-         node.extras?.physicalPositionVerified===true ||
+         node.extras?.physicalPositionVerified!==false ||
+         node.extras?.productSkuVerified!==false ||
          node.extras?.sourceLinksBoundToNewGLBSHA!==false ||
          node.extras?.current!==false ||node.extras?.asBuilt!==false)return false;
     }
