@@ -30,6 +30,10 @@ import {
   C80_608C_GLB_SHA256, C80_608C_SCENES, C80_608C_COW_ALIASES, C80_608C_DUCT_ROOT,
   isC80608CSourceScene,
 } from './privateModelC80608CSourceProfile.mjs';
+import {
+  C80_614_GLB_SHA256, C80_614_SCENES, C80_614_COW_ALIASES, C80_614_DUCT_ROOT,
+  isC80614SourceScene,
+} from './privateModelC80614SourceProfile.mjs';
 
 // Work-test identity only. The outer loader MUST authenticate the entire GLB
 // bytes before supplying sha. This never approves a new physical/as-built part.
@@ -77,9 +81,20 @@ const V608C = Object.freeze({
   606:{floor:'BOTH',glazing:'STACKED',cutaway:false},
   607:{floor:'BOTH',glazing:'CLOSED',cutaway:true},
 });
+const V614 = Object.freeze({
+  608:{floor:'1F',glazing:'CLOSED',cutaway:false},
+  609:{floor:'2F',glazing:'CLOSED',cutaway:false},
+  610:{floor:'BOTH',glazing:'CLOSED',cutaway:false},
+  611:{floor:'BOTH',glazing:'ONE_OPEN',cutaway:false},
+  612:{floor:'BOTH',glazing:'STACKED',cutaway:false},
+  613:{floor:'BOTH',glazing:'CLOSED',cutaway:true},
+});
 // SHA-locked copy-on-write aliases: a COW node keeps the receipt identity of
 // its original node only when its own JSON fingerprint matches exactly.
-const COW_ALIASES = Object.freeze({ [C80_608C_GLB_SHA256]: C80_608C_COW_ALIASES });
+const COW_ALIASES = Object.freeze({
+  [C80_608C_GLB_SHA256]: C80_608C_COW_ALIASES,
+  [C80_614_GLB_SHA256]: C80_614_COW_ALIASES,
+});
 const aliasOf = (sha,node) => COW_ALIASES[sha]?.[node] ?? null;
 const toOrig = (sha,node) => aliasOf(sha,node)?.orig ?? node;
 const forwardAliases = new Map(Object.entries(COW_ALIASES).map(([sha,table])=>
@@ -89,6 +104,7 @@ export const isC80LayerSuccessorSha = sha => [
   C80_SUCC455_SAVO483_GLB_SHA256, C80_WW74_L150_GLB_SHA256,
   C80_495_GLB_SHA256, C80_500_GLB_SHA256, C80_524_RAIN_GLB_SHA256,
   C80_530_V27_GLB_SHA256, C80_602_GLB_SHA256, C80_608C_GLB_SHA256,
+  C80_614_GLB_SHA256,
 ].includes(sha);
 const specFor = (sha,index) => {
   if (sha===C80_SUCC455_SAVO483_GLB_SHA256) return V483[index];
@@ -98,6 +114,7 @@ const specFor = (sha,index) => {
   if (sha===C80_530_V27_GLB_SHA256) return V530[index];
   if (sha===C80_602_GLB_SHA256) return V602[index];
   if (sha===C80_608C_GLB_SHA256) return V608C[index];
+  if (sha===C80_614_GLB_SHA256) return V614[index];
   if (sha===C80_524_RAIN_GLB_SHA256) return V524[index];
   return null;
 };
@@ -111,6 +128,8 @@ const acceptedScene = (json,sha,index) => {
   if (sha===C80_500_GLB_SHA256) return isC80500ABCSourceScene(json,sha,index);
   if (sha===C80_530_V27_GLB_SHA256) return !!C80_530_V27_SCENES[index] &&
     isC80530V27SourceScene(json,sha,index,C80_530_V27_SCENES[index].floor);
+  if (sha===C80_614_GLB_SHA256) return !!C80_614_SCENES[index] &&
+    isC80614SourceScene(json,sha,index,C80_614_SCENES[index].floor);
   if (sha===C80_608C_GLB_SHA256) return !!C80_608C_SCENES[index] &&
     isC80608CSourceScene(json,sha,index,C80_608C_SCENES[index].floor);
   if (sha===C80_602_GLB_SHA256) return !!C80_602_SCENES[index] &&
@@ -211,6 +230,7 @@ const overrides = Object.freeze([
   ...[12243,12245,12247].map(root=>({ root, id:'technical-water',storey:'1F',apartment:'SHARED_OTHER',min:524 })),
   ...[12244,12246,12248].map(root=>({ root, id:'technical-water',storey:'2F',apartment:'SHARED_OTHER',min:524 })),
   { root:C80_608C_DUCT_ROOT, id:'technical-ventilation',storey:'2F',min:608 },
+  { root:C80_614_DUCT_ROOT, id:'technical-ventilation',storey:'2F',min:614 },
 ]);
 const modelNumber = sha => sha===C80_SUCC455_SAVO483_GLB_SHA256 ? 483
   : sha===C80_WW74_L150_GLB_SHA256 ? 488
@@ -219,7 +239,8 @@ const modelNumber = sha => sha===C80_SUCC455_SAVO483_GLB_SHA256 ? 483
   : sha===C80_524_RAIN_GLB_SHA256 ? 524
   : sha===C80_530_V27_GLB_SHA256 ? 530
   : sha===C80_602_GLB_SHA256 ? 602
-  : sha===C80_608C_GLB_SHA256 ? 608 : -1;
+  : sha===C80_608C_GLB_SHA256 ? 608
+  : sha===C80_614_GLB_SHA256 ? 614 : -1;
 function withinRoot(json,root,node) {
   const seen=new Set(),queue=[root];
   while (queue.length) {
