@@ -44,7 +44,8 @@ function make(variant){
  }
  const x={stage:'WORK_TEST_HOST_HOLD',sourceNodeIndex:11309,sourceMeshIndex:4199,
   preservedPatchTriangles:10,preservedSlabEdgeTriangles:10,excludedUnderstairWallTriangles:8,
-  current:false,asBuilt:false,sourceLinksBound:false,physicalHostVerified:false,
+  // Authentic C80 596 K18 node omits physicalHostVerified. No approval inferred.
+  current:false,asBuilt:false,sourceLinksBound:false,
   productionWebGLVerified:false,HUMAN_REVIEW:'NOT_RUN'};
  if(variant==='first')x.C80542K16K18DonorGLBSHA256=dSha;
  else x.donorC80542GLBSHA256=dSha;
@@ -94,6 +95,10 @@ test('both SHA variants authenticate six internal glTF scenes and reject cross-s
  for(const v of ['first','second']){
   const g=make(v),sha=C80596_VARIANTS[v].glbSHA256;
   assert.equal(c80596VariantForAuthenticatedSha(sha),v);
+  // Explicit false also means HOLD, but true must never authorize K18.
+  const falseHost=make(v);
+  falseHost.nodes[12334].extras.physicalHostVerified=false;
+  assert.equal(isC80596TwinSourceScene(falseHost,sha,592),true);
   for(let i=590;i<596;i++)
    assert.equal(isC80596TwinSourceScene(g,sha,i,C80596_SCENES[i].floor),true,v+' '+i);
   const other=v==='first'?'second':'first';
@@ -121,6 +126,7 @@ test('mutations to geometry, roots, metadata, sourceLinks or approval always fai
   g=>{g.scenes[592].extras.C80596K16K18Cofit.K18RemovedWallTriangles=0;},
   g=>{g.nodes[12332].mesh=4634;},
   g=>{g.nodes[12334].extras.excludedUnderstairWallTriangles=0;},
+  g=>{g.nodes[12334].extras.physicalHostVerified=true;},
   g=>{g.meshes[4634].extras.removedTriangles=0;},
   g=>{g.accessors[10433].count=84;},
   g=>{g.bufferViews[10439].byteOffset=0;},
