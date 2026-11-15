@@ -212,3 +212,84 @@ test('real Three.js GLTFLoader cached shared nodes are repaired before a source-
  assert.equal(map.get(scene.children[0])?.nodes,1);
  assert.equal(map.get(scene.children[0].children[0])?.nodes,2);
 });
+
+
+test('real GLTFLoader rebuilds six C80 524-style source scenes with shared node and root IDs',async()=>{
+ const {GLTFLoader}=await import('three/addons/loaders/GLTFLoader.js');
+ const {rehydrateIncompleteScene}=await import('../../src/scripts/privateModelSourceSceneRehydrate.mjs');
+ // Actual original 524 source JSON has 524 scenes, 3793 multi-parent node
+ // IDs and 1240 reused root IDs. This tiny GLB reproduces the multi-parent
+ // structure in all six opt-in roles without uploading private source bytes.
+ const data=Buffer.from(new Float32Array([0,0,0,1,0,0,0,1,0]).buffer);
+ const nodes=[
+  {name:'HOUSE_1F',children:[4,5]},
+  {name:'ROOM_1F',mesh:0},
+  {name:'HOUSE_2F',children:[4,6]},
+  {name:'ROOM_2F',mesh:0},
+  {name:'SHARED_SOURCE_PIPE',mesh:0},
+  {name:'LOWER_VALVE',mesh:0},
+  {name:'UPPER_VALVE',mesh:0},
+  {name:'BOTH_ONLY',mesh:0},
+  {name:'SITE_ROOT',children:[4]},
+ ];
+ const roots=[[0,1],[2,3],...Array.from({length:4},()=>[0,2,7,8])];
+ const json={
+  asset:{version:'2.0'},scene:0,
+  scenes:roots.map((nodes,i)=>({name:'C80_524_STYLE_'+(518+i),nodes})),
+  nodes,meshes:[{primitives:[{attributes:{POSITION:0}}]}],
+  accessors:[{bufferView:0,componentType:5126,count:3,type:'VEC3',min:[0,0,0],max:[1,1,0]}],
+  bufferViews:[{buffer:0,byteOffset:0,byteLength:data.length}],
+  buffers:[{byteLength:data.length}],
+ };
+ const payload=Buffer.from(JSON.stringify(json));
+ const pad=(payload.length+3)&~3, glb=Buffer.alloc(12+8+pad+8+data.length,0x20);
+ glb.writeUInt32LE(0x46546c67,0);glb.writeUInt32LE(2,4);
+ glb.writeUInt32LE(glb.length,8);
+ glb.writeUInt32LE(pad,12);glb.writeUInt32LE(0x4e4f534a,16);
+ payload.copy(glb,20);glb.writeUInt32LE(data.length,20+pad);
+ glb.writeUInt32LE(0x004e4942,24+pad);data.copy(glb,28+pad);
+ const gltf=await new GLTFLoader().parseAsync(
+  glb.buffer.slice(glb.byteOffset,glb.byteOffset+glb.byteLength),'');
+ assert.equal(gltf.scenes.length,6);
+ await gltf.parser.getDependencies('node');
+ const maps=[];
+ for(let i=0;i<6;i++){
+  const map=await rehydrateIncompleteScene(gltf,i,{force:true});
+  assert.ok(map instanceof Map,'scene '+i+' reconstructs through real loader');
+  const scene=gltf.scenes[i],rootIds=roots[i];
+  assert.equal(scene.children.length,rootIds.length,'scene '+i+' root count');
+  assert.deepEqual(scene.children.map(o=>map.get(o)),rootIds,
+   'scene '+i+' source root IDs and ordering preserved');
+  const expectedPrimitives=i<2?3:6;
+  let primitives=0;
+  scene.traverse(o=>{if(o.isMesh||o.isLine||o.isPoints)primitives++;});
+  assert.equal(primitives,expectedPrimitives,'scene '+i+' exact source primitive count');
+  // Even though GLTFLoader caches node 4 and old scene roots, cloning
+  // must restore all source children under each independent scene parent.
+  for(const id of [0,2,8]){
+   const at=rootIds.indexOf(id);
+   if(at<0)continue;
+   const sourceChildren=nodes[id].children;
+   assert.deepEqual(scene.children[at].children.map(o=>map.get(o)),sourceChildren,
+    'scene '+i+' exact source children of node '+id);
+  }
+  const pipeCopies=[...map].filter(([_,id])=>id===4).map(([o])=>o);
+  assert.equal(pipeCopies.length,i<2?1:3,
+   'scene '+i+' creates one independent shared child per source occurrence');
+  assert.ok(pipeCopies.every(o=>o.isMesh));
+  assert.equal(new Set(pipeCopies).size,pipeCopies.length);
+  maps.push(map);
+ }
+ const first=gltf.scenes[2].children[0];
+ assert.notEqual(first,gltf.scenes[3].children[0],
+  'two BOTH views must not share a movable source root Object3D');
+ const pipe=first.children[0];
+ assert.equal(maps[2].get(pipe),4);
+ assert.notEqual(pipe,gltf.scenes[3].children[0].children[0],
+  'same glTF node identity cannot relocate between restored scene parents');
+ for(let i=0;i<6;i++)
+  assert.deepEqual(gltf.scenes[i].children.map(o=>maps[i].get(o)),roots[i],
+   'later scene rebuilds do not remove earlier source roots '+i);
+ assert.equal(await rehydrateIncompleteScene(gltf,6,{force:true}),null,
+  'unknown source scene index fails closed');
+});
