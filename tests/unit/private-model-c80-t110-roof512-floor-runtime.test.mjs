@@ -95,5 +95,13 @@ test('source guard rechecks live metadata after construction',
  assert.equal(runtime.apply('2F'),null);
  json.scenes[505].extras.productionWebGLVerified=old;
  assert.ok(runtime.apply('2F'));
+ // A stale or mutated destination is never remounted by restore().
+ const oldDefault=json.scenes[508].extras.productionWebGLVerified;
+ json.scenes[508].extras.productionWebGLVerified=true;
+ assert.equal(runtime.restore(),false);
+ assert.equal(current,scenes[505]);
+ json.scenes[508].extras.productionWebGLVerified=oldDefault;
+ assert.equal(runtime.restore(),true);
+ assert.equal(current,scenes[508]);
  runtime.dispose();
 });
