@@ -22,7 +22,6 @@ const DEVICE_ROOTS = Object.freeze({
   10853: 'R6_OVEN_TRANSFORMED',
   11642: 'NIBE_R200_OWNER_TRUE_LEFT_BACK_CORNER',
 });
-const UNKNOWN = Object.freeze([['Sähköryhmä', 'NOT_VERIFIED']]);
 const CURRENT_UNKNOWN = ['Nykyinen sähkösyöttö', 'NOT_VERIFIED'];
 
 /** The returned label is a 2015 plan link, never a CURRENT circuit claim.
