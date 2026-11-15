@@ -14737,7 +14737,7 @@ const title = 'Private 3D viewer';
               // exact-source Sisältö technical layer they are bound to.
               const layerIdByRoot = new Map<THREE.Object3D, string>(bindings.map(binding => [binding.root, binding.id]));
               technicalReview = createTechnicalReviewPresentation(root,
-                [...reviewRoots, ...filterNonTechnicalBoundObjects(technical.boundObjects, layersLoadedSha).map(item => item.object)], createTechnicalReviewMaterials,
+                [...reviewRoots, ...filterNonTechnicalBoundObjects(technical.boundObjects, layersLoadedSha).map((item: { object: THREE.Object3D }) => item.object)], createTechnicalReviewMaterials,
                 (object: THREE.Object3D) => technicalReviewSystemOf(object, root) ?? technicalReviewLayerSystemOf(object, root, layerIdByRoot));
               technicalReviewInput.checked = technicalReviewOn;
               technicalReview.apply(technicalReviewOn);
