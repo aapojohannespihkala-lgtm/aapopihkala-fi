@@ -7,7 +7,7 @@ import {firstVisibleTechnicalReviewHit} from '../../src/scripts/privateModelTech
 // Exercise the actual TypeScript picker, without private GLB/production WebGL.
 const source=readFileSync(new URL('../../src/scripts/privateModelSelectionPicking.ts',import.meta.url),'utf8');
 const runnable=stripTypeScriptTypes(source
-  .replace(/^import \\{firstVisibleTechnicalReviewHit\\} from .*;\\n/,''),{mode:'strip'})
+  .replace(/^import \{firstVisibleTechnicalReviewHit\} from .*;\n/,''),{mode:'strip'})
   .replace('export const pickSelectableObjectAtClientPoint','const pickSelectableObjectAtClientPoint');
 const pick=new Function('firstVisibleTechnicalReviewHit',runnable+
   '\nreturn pickSelectableObjectAtClientPoint;')(firstVisibleTechnicalReviewHit);
