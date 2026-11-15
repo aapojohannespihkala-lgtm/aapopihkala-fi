@@ -119,9 +119,13 @@ export function isC80590K09ThemoSourceScene(json,sha,sceneIndex,floor){
     e?.HOST_HOLD!==true||e?.sourceLinksBound!==false||
     e?.sourceLinksBoundNewSHA!==false||e?.productionWebGLVerified!==false||
     e?.HUMAN_REVIEW!=='NOT_RUN'||e?.current!==false||
-    e?.asBuilt!==false||e?.K09ControlsRoot!==12329||
-    e?.Themo3CopyRoot!==12331||!near(e?.bathThemoXMetres,5.05)||
-    e?.switchAndThemoSameVerticalX!==true||
+    e?.asBuilt!==false||
+    (s.hasK09?
+      (e?.K09ControlsRoot!==12329||e?.Themo3CopyRoot!==12331||
+       !near(e?.bathThemoXMetres,5.05)||
+       e?.switchAndThemoSameVerticalX!==true):
+      (e?.K09ControlsRoot!=null||e?.Themo3CopyRoot!=null||
+       e?.bathThemoXMetres!=null||e?.switchAndThemoSameVerticalX!==false))||
     !near(e?.ownerEstimateK09FrameTopY,1.02)||
     !near(e?.ownerEstimateK09CenterFromDoorJambM,0.2)||
     e?.K09OwnerDonorC80542SHA256!==C80_590_K09_DONOR_GLB_SHA256)return false;
