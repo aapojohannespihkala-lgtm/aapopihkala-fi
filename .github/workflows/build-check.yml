@@ -238,6 +238,7 @@ jobs:
             tests/unit/private-model-c80-t110-roof512-floor-runtime.test.mjs \
             tests/unit/private-model-c80-524-rain-zones-source.test.mjs \
             tests/unit/private-model-c80-524-rain-zones-floor-runtime.test.mjs \
+            tests/unit/private-model-c80-584-all5-k12-tile-source-profile.test.mjs \
             tests/unit/private-model-c80-530-v27-source-profile.test.mjs \
             tests/unit/private-model-c80-530-v27-floor-runtime.test.mjs \
             tests/unit/private-model-c80-530-v27-viewer-receiver-wiring.test.mjs \
