@@ -65,9 +65,33 @@ export function resolveC80524RainScenes(gltf,sha){
  }
  return new Set(Object.values(scenes)).size===6?scenes:null;
 }
-// Bind the original post-parse Three.js Object3D root references and source
-// descendant graph. The loader's normalized name alone is not object identity.
-// Material changes are allowed for technical review, geometry/child swaps are not.
+// Bind the original post-parse Three.js Object3D graph and local transforms.
+// Only source descendants are pinned, NOT the mounted scene group's transform.
+// Technical-review materials and scene-level helpers remain editable.
+// Matrix4 can be lazily updated by Three.js when matrixAutoUpdate=true, so
+// capture its exact elements only for explicitly manual source matrices.
+const localTransform = obj => {
+ const p=obj?.position,q=obj?.quaternion,s=obj?.scale;
+ const values=[
+  p?.x??0,p?.y??0,p?.z??0,
+  q?.x??0,q?.y??0,q?.z??0,q?.w??1,
+  s?.x??1,s?.y??1,s?.z??1,
+ ];
+ if(!values.every(Number.isFinite))return null;
+ const manual=obj?.matrixAutoUpdate===false;
+ const matrix=manual?Array.from(obj?.matrix?.elements??[]):null;
+ if(manual&&(matrix.length!==16||!matrix.every(Number.isFinite)))return null;
+ return {values,matrix,manual,autoUpdate:obj?.matrixAutoUpdate};
+};
+const sameLocalTransform = (obj,baseline) => {
+ const now=localTransform(obj);
+ return !!baseline&&!!now&&now.autoUpdate===baseline.autoUpdate&&
+  baseline.values.every((v,i)=>Object.is(v,now.values[i]))&&
+  ((baseline.matrix===null&&now.matrix===null)||
+   (Array.isArray(baseline.matrix)&&Array.isArray(now.matrix)&&
+    baseline.matrix.length===now.matrix.length&&
+    baseline.matrix.every((v,i)=>Object.is(v,now.matrix[i]))));
+};
 export function c80524SnapshotRenderedSourceRoots(scene,count){
  if(!Number.isInteger(count)||count<0||!Array.isArray(scene?.children)||
     scene.children.length<count)return null;
@@ -75,7 +99,9 @@ export function c80524SnapshotRenderedSourceRoots(scene,count){
  const capture=(obj)=>{
   if(!obj||typeof obj!=='object'||refs.has(obj))return;
   const children=Array.isArray(obj.children)?obj.children:[];
-  refs.set(obj,{children:[...children],geometry:obj.geometry});
+  const transform=localTransform(obj);
+  if(!transform)throw new Error('C80_524_RENDERED_SOURCE_INVALID_LOCAL_TRANSFORM');
+  refs.set(obj,{children:[...children],geometry:obj.geometry,transform});
   for(const child of children)capture(child);
  };
  for(const root of roots)capture(root);
@@ -88,6 +114,7 @@ export function c80524RenderedSourceRootsUnchanged(scene,proof){
  for(const [obj,baseline] of proof.refs){
   const children=Array.isArray(obj?.children)?obj.children:[];
   if(obj?.geometry!==baseline.geometry||
+     !sameLocalTransform(obj,baseline.transform)||
      children.length!==baseline.children.length||
      !baseline.children.every((child,i)=>children[i]===child))return false;
  }
