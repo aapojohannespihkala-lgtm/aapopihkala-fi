@@ -1,3 +1,4 @@
+import {markTechnicalReviewPickMaterials} from './privateModelTechnicalReviewHitPriority.mjs';
 import {C80_437_GLB_SHA256,c80437ReviewProfile} from './privateModelC80437SourceProfile.mjs';
 import { C80_500_GLB_SHA256 } from './privateModelC80500WW1974ABCSourceProfile.mjs';
 import { c80500ABCReviewProfile } from './privateModelC80500WW1974ABCFloorRuntime.mjs';
@@ -284,7 +285,7 @@ export function createTechnicalReviewPresentation(root, keepRoots, createMateria
     if (applied) return true;
     try {
       systemCounts = {};
-      materials ??= createMaterials();
+      materials ??= markTechnicalReviewPickMaterials(createMaterials());
       root.traverse(object => {
         if (object === root || !isRenderable(object) || saved.has(object)) return;
         let shared;
