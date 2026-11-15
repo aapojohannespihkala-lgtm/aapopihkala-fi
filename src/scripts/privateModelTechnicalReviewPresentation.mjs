@@ -370,12 +370,13 @@ export function technicalReviewLayerSystemOf(object, root, layerIdByRoot) {
 /** System key of a kept technical object from its own or an ancestor's source extras. */
 export function technicalReviewSystemOf(object, root) {
   for (let node = object; node && node !== root; node = node.parent) {
+    const extras = node.userData;
+    // Explicit source presentation-only/architecture metadata wins even if
+    // this same H24 child has a source-exact nested technical binding.
+    // A visual fixture must never inherit the technical palette.
+    if (extras?.presentationOnly === true || extras?.m5PresentationRole === 'ARCHITECTURE') return null;
     const exactNested=h24NestedSystems.get(node);
     if (exactNested) return exactNested;
-    const extras = node.userData;
-    // An explicit non-technical child or wrapper must stop system inheritance.
-    // Do not let a visual fixture inherit its parent's technical palette.
-    if (extras?.presentationOnly === true || extras?.m5PresentationRole === 'ARCHITECTURE') return null;
     // Wastewater/vent nodes named by the M5 builders get their own drain
     // color, also when a parent wrapper carries a generic water role.
     if (typeof node.name === 'string' && DRAIN_NAME.test(node.name) && !NOT_DRAIN_NAME.test(node.name)) return 'VIEMARI';

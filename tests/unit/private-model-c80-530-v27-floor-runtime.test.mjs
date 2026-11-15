@@ -213,6 +213,45 @@ test('530 actual GLTFLoader source subtree blocks same-name mesh and geometry sw
  const originalMaterial=mesh.material;
  mesh.material=new MeshBasicMaterial({color:0x154f7d});
  assert.equal(treeUnchanged(scene,proof),true,'technical palette material override is allowed');
+ // The rendered source is not a geometric editing surface. Identity/name
+ // checks alone previously missed these in-place placement mutations.
+ const originalPosition=mesh.position.x;
+ mesh.position.x+=0.25;
+ assert.equal(renderedRootsMatch(json,scene,0),true,'name/source tree cannot see drift');
+ assert.equal(treeUnchanged(scene,proof),false,'mesh local position drift rejected');
+ mesh.position.x=originalPosition;
+ assert.equal(treeUnchanged(scene,proof),true,'original position restored');
+ const originalQuat=first.quaternion.w;
+ first.quaternion.w=0.95;
+ assert.equal(treeUnchanged(scene,proof),false,'source root quaternion drift rejected');
+ first.quaternion.w=originalQuat;
+ assert.equal(treeUnchanged(scene,proof),true);
+ const originalScale=mesh.scale.y;
+ mesh.scale.y=1.1;
+ assert.equal(treeUnchanged(scene,proof),false,'mesh scale drift rejected');
+ mesh.scale.y=originalScale;
+ assert.equal(treeUnchanged(scene,proof),true);
+ scene.position.x+=10;
+ assert.equal(treeUnchanged(scene,proof),true,
+  'scene-level viewer presentation transform is outside the source graph');
+ const manualScene=new Group(),manual=new Group();
+ manual.name='SOURCE_MANUAL';
+ manual.matrixAutoUpdate=false;
+ manual.matrix.makeTranslation(1,2,3);
+ manualScene.add(manual);
+ const manualProof=snapshotTree(manualScene,1);
+ assert.ok(manualProof,'manual local matrix baseline can be captured');
+ assert.equal(treeUnchanged(manualScene,manualProof),true);
+ manual.matrix.elements[12]+=0.5;
+ assert.equal(treeUnchanged(manualScene,manualProof),false,
+  'manual source matrix is immutable');
+ manual.matrix.elements[12]-=0.5;
+ assert.equal(treeUnchanged(manualScene,manualProof),true);
+ manual.matrixAutoUpdate=true;
+ assert.equal(treeUnchanged(manualScene,manualProof),false,
+  'automatic/manual matrix mode switching is a source transform mutation');
+ manual.matrixAutoUpdate=false;
+ assert.equal(treeUnchanged(manualScene,manualProof),true);
  const geometry=mesh.geometry;
  mesh.geometry=new BufferGeometry();
  assert.equal(renderedRootsMatch(json,scene,0),true,'prior name/tree-only check missed geometry');

@@ -7,7 +7,9 @@ import {
   createTechnicalReviewPresentation,
   technicalReviewSystemOf,
   resolveTechnicalReviewRoots,
+  appendSourceExactH24Children,
 } from '../../src/scripts/privateModelTechnicalReviewPresentation.mjs';
+import { SUCCESSOR_R1_SHA256 } from '../../src/scripts/privateModelM6263Mj72Kiv005Pk1SuccessorSourceProfile.mjs';
 import {
   V71_SOURCE_SHA256, V71_SOURCE_SCENE_COUNT, V71_FLOORS, V71_BUILDING_SCENES, V71_TECHNICAL_REVIEW_ROOTS,
 } from '../../src/scripts/privateModelC80R2V71LayerSourceProfile.mjs';
@@ -538,4 +540,60 @@ test('technical review system colors stay readable on unlit faces (emissive shar
   const { readFile } = await import('node:fs/promises');
   const page = await readFile(new URL('../../src/pages/private-model/index.astro', import.meta.url), 'utf8');
   assert.match(page, /\['VIEMARI', 0x8e44ad\]\] as const\)[\s\S]{0,400}emissive: color, emissiveIntensity: 0\.45,[\s\S]{0,260}side: THREE\.DoubleSide,/);
+});
+
+
+test('source-exact nested H24 leaves respect explicit presentation-only and architecture flags', () => {
+  // Bind the same 15 named nested leaves as the exact-SHA successor scene.
+  // This exercises the WeakMap precedence, not only a generic m5System role.
+  const sourceName='V93_H24_WC_OPEN_HATCH_CLONE_OF_n8011_NO_n1729';
+  const specs=[
+    ...Array.from({length:6},(_,i)=>({id:1669+i,mesh:773+i,system:'SAHKO'})),
+    ...Array.from({length:8},(_,i)=>({id:1704+i,mesh:808+i,system:'IV'})),
+    {id:1730,mesh:4015,system:'IV'},
+  ];
+  const sourceNodes=Array.from({length:11614},()=>({}));
+  sourceNodes[11613]={name:sourceName,children:specs.map(s=>s.id)};
+  const scene=node('SCENE');
+  const composite=node(sourceName);
+  scene.add(composite);
+  const associations=new Map([[composite,{nodes:11613}]]);
+  const objects=new Map();
+  for (const spec of specs) {
+    const name='H24_SOURCE_CHILD_'+spec.id;
+    sourceNodes[spec.id]={name,mesh:spec.mesh};
+    const object=node(name,{isMesh:true,material:{label:'original-'+spec.id},userData:{}});
+    composite.add(object);
+    associations.set(object,{nodes:spec.id});
+    objects.set(spec.id,object);
+  }
+  const json={nodes:sourceNodes,scenes:[{nodes:[11613]}]};
+  const leaves=appendSourceExactH24Children(
+    json,scene,0,SUCCESSOR_R1_SHA256,associations,[]);
+  assert.equal(leaves?.length,15,'all source-exact H24 systems match first');
+  const electrical=objects.get(1669),architecture=objects.get(1704);
+  const normalElectrical=objects.get(1670),normalIv=objects.get(1705);
+  assert.equal(technicalReviewSystemOf(electrical,scene),'SAHKO');
+  assert.equal(technicalReviewSystemOf(architecture,scene),'IV');
+  electrical.userData.presentationOnly=true;
+  architecture.userData.m5PresentationRole='ARCHITECTURE';
+  assert.equal(technicalReviewSystemOf(electrical,scene),null,
+    'explicit presentation flag must override cached exact H24 technical role');
+  assert.equal(technicalReviewSystemOf(architecture,scene),null,
+    'architectural child must not acquire ventilation highlight');
+  assert.equal(technicalReviewSystemOf(normalElectrical,scene),'SAHKO');
+  assert.equal(technicalReviewSystemOf(normalIv,scene),'IV');
+  const original=electrical.material;
+  const review=createTechnicalReviewPresentation(scene,leaves,()=>({
+    surface:disposable('grey'),line:disposable('grey-line'),
+    systems:{SAHKO:disposable('orange'),IV:disposable('blue')},
+  }),o=>technicalReviewSystemOf(o,scene));
+  assert.equal(review.apply(true),true);
+  assert.equal(electrical.material.label,'grey');
+  assert.equal(architecture.material.label,'grey');
+  assert.equal(normalElectrical.material.label,'orange');
+  assert.equal(normalIv.material.label,'blue');
+  assert.equal(review.apply(false),false);
+  assert.equal(electrical.material,original,'original GLB material restored');
+  review.dispose();
 });

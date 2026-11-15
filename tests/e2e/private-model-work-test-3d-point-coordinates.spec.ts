@@ -59,17 +59,71 @@ test('invisible and opacity-zero source meshes cannot create a position',()=>{
     (mesh.material as THREE.MeshBasicMaterial).opacity=0;
   })).toBeNull();
 });
-test('presentation-only geometry cannot masquerade as a source point',()=>{
-  expect(hit(220,240,({mesh})=>{mesh.userData.PresentationOnly=true;}))
+test('viewer-derived review geometry cannot masquerade as a source point',()=>{
+  expect(hit(220,240,({mesh})=>{mesh.userData.viewerDerived=true;}))
     .toBeNull();
   expect(hit(220,240,({root,mesh})=>{
     root.remove(mesh);
     const overlay=new THREE.Group();
+    overlay.userData.viewerDerived=true;
     overlay.userData.PresentationOnly=true;
     overlay.add(mesh);
     root.add(overlay);
   })).toBeNull();
 });
+test('GLB source extras PresentationOnly/presentationOnly stay pickable (C80 whole-building roots)',()=>{
+  for (const key of ['PresentationOnly','presentationOnly']) {
+    const point=hit(220,240,({root,mesh})=>{
+      root.remove(mesh);
+      const sourceRoot=new THREE.Group();
+      sourceRoot.name='P177B_WHOLE_BUILDING_ROOT_SOURCE_EXTRAS';
+      sourceRoot.userData[key]=true;
+      mesh.userData[key]=true;
+      sourceRoot.add(mesh);
+      root.add(sourceRoot);
+    });
+    expect(point).not.toBeNull();
+    expect(point!.surfaceObjectName).toBe('WORK_TEST_BOX_SURFACE');
+  }
+});
+test('C80 source building stays pickable behind viewer-derived front overlay',()=>{
+  const sceneHit=(viewerDerived:boolean,retainSource=true)=>hit(220,240,({root,mesh})=>{
+    root.remove(mesh);
+    const sourceRoot=new THREE.Group();
+    sourceRoot.name='C80_WHOLE_BUILDING_SOURCE_ROOT';
+    sourceRoot.userData.PresentationOnly=true;
+    sourceRoot.userData.presentationOnly=true;
+    if(retainSource){
+      mesh.userData.presentationOnly=true;
+      sourceRoot.add(mesh);
+    }
+    root.add(sourceRoot);
+    const review=new THREE.Group();
+    review.userData.viewerDerived=viewerDerived;
+    review.userData.PresentationOnly=true;
+    const overlay=new THREE.Mesh(
+      new THREE.BoxGeometry(6,6,0.1),
+      new THREE.MeshBasicMaterial({color:0xcccccc}),
+    );
+    overlay.position.set(2,0,0);
+    overlay.name='VIEWER_DERIVED_FRONT_SURFACE';
+    review.add(overlay);
+    root.add(review);
+  });
+  const unfiltered=sceneHit(false);
+  expect(unfiltered).not.toBeNull();
+  // The front overlay must actually intercept the test ray.
+  expect(unfiltered!.surfaceObjectName).toBe('VIEWER_DERIVED_FRONT_SURFACE');
+  const source=sceneHit(true);
+  expect(source).not.toBeNull();
+  // Viewer-only hit is skipped, the GLB source remains pickable.
+  expect(source!.surfaceObjectName).toBe('WORK_TEST_BOX_SURFACE');
+  expect(source!.yM).toBeCloseTo(2,2);
+  expect(source).toMatchObject({current:false,asBuilt:false,exactXY:false});
+  // No valid model source remains: viewer-only visual geometry never yields XYZ.
+  expect(sceneHit(true,false)).toBeNull();
+});
+
 test('a source point must come from an actual intersected visible surface',()=>{
   const point=hit(220,240,({mesh})=>{mesh.position.x=40;});
   expect(point).toBeNull();
