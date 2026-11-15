@@ -68,7 +68,9 @@ export function createC80T110Roof512FloorRuntime({gltf,sha,mount,mounted}){
   setGlazing(next){return swap(floor,next,cutaway);},
   setCutaway(value){return typeof value==='boolean'?swap(floor,glazing,value):null;},
   restore(){
-   if(disposed||!mountedHere())return false;
+   // Revalidate the destination after construction, like every other scene switch.
+   if(disposed||!mountedHere()||
+      !exactScene(gltf.parser.json,sha,508,'BOTH'))return false;
    mount(scenes[508]);
    if(mounted()!==scenes[508])throw new Error('C80_T110_512_SCENE_MOUNT_MISMATCH');
    floor='BOTH';glazing='CLOSED';cutaway=false;sceneIndex=508;active=false;
