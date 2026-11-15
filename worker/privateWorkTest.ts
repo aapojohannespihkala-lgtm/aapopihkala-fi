@@ -4493,12 +4493,12 @@ const C80_530_V27_NO_TRENCH_WORK_TEST_CANDIDATE = {
 // C80 614: Claude owner fixes #2 15.11.2026 on C80 608C (T-collector restored,
 // ghost hatching removed, switches/outlet moved, 2F WC exhaust rebuilt).
 const C80_614_OWNER_FIXES2_WORK_TEST_CANDIDATE = {
-  id: 'c80-614-owner-fixes2b-20261116',
-  label: 'C80 614b - porraskuilun seinälinja, T-kokooja palautettu, katkaisijat, keittiön pistorasia, WC-poisto, porraskuilu - 16.11.2026 WORK_TEST/HOST_HOLD',
-  path: `${PRIVATE_WORK_TEST_PREFIX}/c80-614-owner-fixes2b-20261116.glb`,
-  objectKey: 'work-test/c80-614-owner-fixes2b-20261116.glb',
-  expectedSize: 57216336,
-  expectedSha256: '93a133ec8177dc84240779e217eb58a57ae4d413395de4f1134873c6b148fca9',
+  id: 'c80-614r3-owner-fixes-20261116',
+  label: 'C80 614 R3 - 1F katto, porraskuilu, kenkähyllyn seinä, T-kokooja palautettu, katkaisijat, keittiön pistorasia, WC-poisto, porraskuilu - 16.11.2026 WORK_TEST/HOST_HOLD',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/c80-614r3-owner-fixes-20261116.glb`,
+  objectKey: 'work-test/c80-614r3-owner-fixes-20261116.glb',
+  expectedSize: 57298204,
+  expectedSha256: '76010295a42ccebb798f66814e9d75e7c1ddd658d7e5a0136b42fce20f83385d',
 } as const satisfies PrivateWorkTestCandidate;
 
 // C80 608C: Claude owner fixes 15.11.2026 on C80 602 (switches per drawing,

@@ -7,16 +7,18 @@
  * runs (KSO125 wall valve + ceiling valve above the door) with the duplicate
  * hall valve and B47K flex fourway dropped; the V86 hanging stair hole-fill
  * block removed (slab-edge band kept), and the hall door wall moved to X2.444
- * in front of the locked stair opening (X0.229-2.424) with the niche front fitted. Append-only COW; scenes 0..607
+ * in front of the locked stair opening (X0.229-2.424) with the niche front fitted.
+ * 614 R3: shoe-rack gap closed by a white wall at X1.642, 2F newel post cut at
+ * Z2.43, and an opaque 1F ceiling at Z2.43 (visible from below) replaces ghost 6497. Append-only COW; scenes 0..607
  * and the 608C BIN prefix are unchanged. WORK_TEST/HOST_HOLD.
  * Caller supplies SHA256 of the complete original GLB, never an inferred name.
  */
 import { C80_608C_GLB_SHA256 } from './privateModelC80608CSourceProfile.mjs';
 
-export const C80_614_GLB_SHA256='93a133ec8177dc84240779e217eb58a57ae4d413395de4f1134873c6b148fca9';
-export const C80_614_GLB_BYTES=57216336;
-export const C80_614_ZIP_SHA256='139f9a1344d2719919bce7290f92607794f1b461f17238970c4622cc92245992';
-export const C80_614_ZIP_DRIVE_ID='1MOS8Cc22LLo94GZQsYp1HovrkS7sHbO_';
+export const C80_614_GLB_SHA256='76010295a42ccebb798f66814e9d75e7c1ddd658d7e5a0136b42fce20f83385d';
+export const C80_614_GLB_BYTES=57298204;
+export const C80_614_ZIP_SHA256='8385445dce580ed57b35a7049ddfd49cf0e49a98adf52ac130c1dcadb6fe07a8';
+export const C80_614_ZIP_DRIVE_ID='1e18bGrAe5jG3ZKKSHatxwMhlCpDwU9J4';
 export const C80_614_PARENT_GLB_SHA256=C80_608C_GLB_SHA256;
 export const C80_614_DUCT_ROOT=12400;
 export const C80_614_ILP_ROOT=12361;
@@ -32,9 +34,12 @@ export const C80_614_ROOT_REPLACEMENTS=Object.freeze({
  12334:12402,           // stair: V86 hanging hole-fill block removed (owner 15.11 #2)
  // Stair east wall line (owner photos 16.11): door wall to X2.444, niche front fitted.
  7221:12403, 9274:12404, 10534:12405, 10535:12406, 10536:12407, 9250:12411, 9231:12412,
+ 10538:12414,           // 614 R3: 2F newel post cut at the 1F ceiling line Z2.43
 });
 // 608C roots that are not carried into the 614 scenes.
-export const C80_614_DROPPED_ROOTS=Object.freeze([6419,6420,12044]);
+export const C80_614_DROPPED_ROOTS=Object.freeze([6419,6420,12044,6497]);
+// 614 R3 1F/BOTH additions: stair gap back wall X1.642 and the opaque 1F ceiling Z2.43.
+export const C80_614_ADDED_1F_ROOTS=Object.freeze([12413,12415]);
 // COW nodes that keep the C80 437 receipt identity of their original node.
 // The whole-GLB SHA authenticates bytes; the FNV pins each new node JSON.
 export const C80_614_COW_ALIASES=Object.freeze({
@@ -51,7 +56,7 @@ export const C80_614_COW_ALIASES=Object.freeze({
  12401:Object.freeze({orig:11729,fnv:'fd75eaba'}),
  // Geometry COWs: the new node also carries a new mesh (alias.mesh).
  12403:Object.freeze({orig:7221,fnv:'cdaced55',mesh:4666}),
- 12404:Object.freeze({orig:9274,fnv:'5c279970',mesh:4667}),
+ 12404:Object.freeze({orig:9274,fnv:'9d41fcb7',mesh:4667}),
  12405:Object.freeze({orig:10534,fnv:'822a694d',mesh:4668}),
  12406:Object.freeze({orig:10535,fnv:'d6bbd451',mesh:4669}),
  12407:Object.freeze({orig:10536,fnv:'0c859814',mesh:4670}),
@@ -60,15 +65,16 @@ export const C80_614_COW_ALIASES=Object.freeze({
  12410:Object.freeze({orig:9233,fnv:'b11efca7'}),
  12411:Object.freeze({orig:9250,fnv:'c25be18f'}),
  12412:Object.freeze({orig:9231,fnv:'9e35072b'}),
+ 12414:Object.freeze({orig:10538,fnv:'b37d7d8e',mesh:4672}),
 });
 // [glTF scene, parent scene, floorProfile, FNV root hash, parent hash].
 const rows=[
- [608,602,'1F','53609bc6','6767bb3e'],
- [609,603,'2F','86883039','8ca9b0d5'],
- [610,604,'BOTH_A','46cd1d7a','8001baa9'],
- [611,605,'BOTH_B','f371369c','f17c16e3'],
- [612,606,'BOTH_C','a5f737a0','1e2e3cc3'],
- [613,607,'BOTH_D','597a72e1','14ca1974'],
+ [608,602,'1F','eb1743c1','6767bb3e'],
+ [609,603,'2F','0c23da65','8ca9b0d5'],
+ [610,604,'BOTH_A','b1302955','8001baa9'],
+ [611,605,'BOTH_B','8c10a597','f17c16e3'],
+ [612,606,'BOTH_C','b2c3e683','1e2e3cc3'],
+ [613,607,'BOTH_D','cbc9dedc','14ca1974'],
 ];
 export const C80_614_SCENES=Object.freeze(Object.fromEntries(rows.map(
  ([scene,parent,profile,rootHash,parentRootHash])=>
@@ -91,8 +97,8 @@ export function isC80614SourceScene(json,sha,sceneIndex,floor){
     json?.scene!==292||json?.asset?.extras?.ModelStage!=='WORK_TEST'||
     json.asset.extras.current!==false||json.asset.extras.asBuilt!==false||
     json.asset.extras.HUMAN_REVIEW!=='NOT_RUN'||
-    json.scenes?.length!==614||json.nodes?.length!==12413||json.meshes?.length!==4671||
-    json.materials?.length!==758||json.accessors?.length!==10522||json.bufferViews?.length!==10528)return false;
+    json.scenes?.length!==614||json.nodes?.length!==12416||json.meshes?.length!==4674||
+    json.materials?.length!==758||json.accessors?.length!==10548||json.bufferViews?.length!==10554)return false;
  const scene=json.scenes[sceneIndex],parent=json.scenes[spec.parent];
  const roots=scene?.nodes,prior=parent?.nodes,e=scene?.extras;
  if(scene?.name!==`C80_614_OWNER_FIXES2_TCOLLECTOR_GHOST_SWITCHES_OUTLET_WC_EXHAUST_FROM_${spec.parent}_${spec.floor}_WORK_TEST_HOST_HOLD`||
@@ -102,7 +108,8 @@ export function isC80614SourceScene(json,sha,sceneIndex,floor){
     e?.C80614ParentSceneIndex!==spec.parent||e?.C80614ParentGLBSHA256!==C80_614_PARENT_GLB_SHA256||
     e?.physicalVerified!==false||e?.sourceLinksBound!==false||e?.productionWebGLVerified!==false||
     e?.HUMAN_REVIEW!=='NOT_RUN'||e?.current!==false||e?.CURRENT!==false||e?.asBuilt!==false||e?.HOST_HOLD!==true)return false;
- const expected=prior.filter(n=>!C80_614_DROPPED_ROOTS.includes(n)).map(n=>C80_614_ROOT_REPLACEMENTS[n]??n);
+ const expected=prior.filter(n=>!C80_614_DROPPED_ROOTS.includes(n)).map(n=>C80_614_ROOT_REPLACEMENTS[n]??n)
+  .concat(spec.floor==='2F'?[]:C80_614_ADDED_1F_ROOTS);
  if(!eq(roots,expected))return false;
  // COW nodes keep their original names; the T-collector is back under 11728.
  for(const [from,to] of Object.entries(C80_614_ROOT_REPLACEMENTS)){
