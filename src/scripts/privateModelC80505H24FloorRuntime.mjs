@@ -1,3 +1,4 @@
+import {C80_437_SCENES} from './privateModelC80437SourceProfile.mjs';
 import {
   C80_505_GLB_SHA256,
   C80_505_VIEWER_ROLES,
@@ -78,7 +79,8 @@ export function createC80505H24FloorRuntime({ gltf, sha, mount, mounted }) {
 
 // Technical review deliberately excludes H24 presentation frame 12238.
 // The frame's assumed 4 mm offset does not verify WC maintenance clearance.
-const MEP_REVIEW_ROOTS = new Set([12228, 12230, 12237]);
+const HISTORICAL_MEP_ROOTS = new Set(Object.values(C80_437_SCENES).flatMap(scene => scene.review ?? []));
+const MEP_REVIEW_ROOTS = new Set([...HISTORICAL_MEP_ROOTS, 12193, 12194, 12224, 12228, 12230, 12237]);
 export function c80505H24ReviewProfile(json, sha, sceneIndex) {
   if (!Number.isInteger(sceneIndex) ||
       !isC80505H24SourceScene(json, sha, sceneIndex)) return null;
