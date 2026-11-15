@@ -55,3 +55,47 @@ test('authenticated original C80 505: scene/root/metadata and negative mutations
  assert.equal(isC80505H24SourceScene(badShift,C80_505_GLB_SHA256,501),false);
  assert.equal(json.nodes[C80_505_H24_NEW_ROOT].extras.sourceParentGlbSha256,C80_505_PARENT_SHA256);
 });
+
+test('synthetic loader names: sanitized/repeated scene and node names are accepted, false identities rejected',()=>{
+ const nodes=Array.from({length:12239},(_,i)=>({name:'N'+i}));
+ nodes[C80_505_H24_OLD_ROOT]={name:'H24 Old',mesh:4417};
+ nodes[C80_505_H24_NEW_ROOT]={
+  name:'C80_505_H24_WC_FRAME_4MM_Z_CLEARANCE_TEST_FROM_n12116_WORK_TEST_HOST_HOLD',
+  mesh:4417,translation:[0,0,0.004],
+  extras:{sourceRootNode:C80_505_H24_OLD_ROOT,sourceParentGlbSha256:C80_505_PARENT_SHA256,
+   cofitShiftWorldGlbYUpZ_m:[0,0,0.004],current:false,asBuilt:false,hostHold:true,
+   sourceLinksBoundForNewSHA:false,productionWebGLVerified:false},
+ };
+ nodes[12228]={name:'Sewer: Main'};
+ nodes[12230]={name:'Savo Root'};
+ nodes[12237]={name:'ABC Root'};
+ const scenes=Array.from({length:505},(_,i)=>({name:'History_'+i,nodes:[]}));
+ for(const [indexText,parent] of Object.entries(C80_505_NEW_PARENT_SCENES)){
+  const index=Number(indexText);
+  const old=[C80_505_H24_OLD_ROOT,12228,12230,12237];
+  scenes[parent]={name:'Parent_'+parent,nodes:old};
+  scenes[index]={
+   name:'C80_505_H24_FRAME_CLEARANCE_FROM_SCENE_'+parent+'_WORK_TEST_HOST_HOLD',
+   nodes:[C80_505_H24_NEW_ROOT,12228,12230,12237],
+   extras:{stage:'WORK_TEST_HOST_HOLD',asBuilt:false,sourceLinksBindingVerified:false,
+    h24FrameCofit:{sourceScene:parent,oldNode:C80_505_H24_OLD_ROOT,
+     newNode:C80_505_H24_NEW_ROOT,shiftWorldGLB_Z_m:0.004,
+     sourceGLBSHA256:C80_505_PARENT_SHA256,sourceLinksBound:false,
+     current:false,asBuilt:false,stage:'WORK_TEST_HOST_HOLD'}},
+  };
+ }
+ for(const i of [488,490,492])scenes[i]={
+  name:'C80_495_WW74_L150_SAVO_OWNERPHOTO_UV_COFIT_'+i,
+  nodes:[12230],extras:{stage:'WORK_TEST_HOST_HOLD',sourceLinksBoundForNewSHA:false},
+ };
+ const json={scene:292,scenes,nodes,meshes:Array(4611).fill(null),materials:Array(739).fill(null)};
+ const loaderName=name=>String(name).replaceAll(' ','_').replaceAll(':','')+'_1';
+ const gltf={parser:{json},scenes:scenes.map(s=>({
+  name:loaderName(s.name),children:s.nodes.map(n=>({name:loaderName(nodes[n].name)})),
+ }))};
+ const accepted=resolveC80505H24Scenes(gltf,C80_505_GLB_SHA256);
+ assert.equal(Object.keys(accepted??{}).length,8);
+ assert.equal(accepted[501],gltf.scenes[501]);
+ gltf.scenes[501].children[0].name='DIFFERENT_UNTRUSTED_NODE';
+ assert.equal(resolveC80505H24Scenes(gltf,C80_505_GLB_SHA256),null);
+});
