@@ -60,6 +60,38 @@ export function resolveC80530V27Scenes(gltf,sha){
  }
  return new Set(Object.values(out)).size===6?out:null;
 }
+/**
+ * Pin the original GLTFLoader Object3D source graph after SHA/scene validation.
+ * The parser's node associations may be missing on a later injected clone,
+ * while a matching name and child shape alone are not provenance.
+ * Viewer helpers may be appended at scene level, and review can recolor
+ * materials. Source descendants, child ordering and geometries remain fixed.
+ */
+export function c80530SnapshotRenderedSourceTree(scene,rootCount){
+ if(!Number.isInteger(rootCount)||rootCount<0||
+    !Array.isArray(scene?.children)||scene.children.length<rootCount)return null;
+ const roots=scene.children.slice(0,rootCount),records=new Map();
+ const visit=obj=>{
+  if(!obj||typeof obj!=='object'||records.has(obj)||
+     !Array.isArray(obj.children))return false;
+  records.set(obj,{children:[...obj.children],geometry:obj.geometry});
+  return obj.children.every(visit);
+ };
+ return roots.every(visit)?{roots,records}:null;
+}
+export function c80530RenderedSourceTreeUnchanged(scene,proof){
+ if(!proof||!Array.isArray(proof.roots)||!(proof.records instanceof Map)||
+    !Array.isArray(scene?.children)||scene.children.length<proof.roots.length||
+    !proof.roots.every((obj,i)=>scene.children[i]===obj))return false;
+ for(const [obj,record] of proof.records){
+  const children=obj?.children;
+  if(!Array.isArray(children)||obj.geometry!==record.geometry||
+     children.length!==record.children.length||
+     !record.children.every((child,i)=>children[i]===child))return false;
+ }
+ return true;
+}
+
 export function createC80530V27FloorRuntime({gltf,sha,mount,mounted}){
  if(typeof mount!=='function'||typeof mounted!=='function')
   throw new Error('C80_530_MOUNT_CONTRACT');
@@ -68,14 +100,16 @@ export function createC80530V27FloorRuntime({gltf,sha,mount,mounted}){
  const json=gltf.parser.json;
  let floor='BOTH',glazing='CLOSED',cutaway=false,sceneIndex=526;
  let active=false,disposed=false;
- // Identity pin after the initial source-tree verification. Same-name fake
- // Object3D replacements can never be mounted later.
- const pinnedRoots=Object.fromEntries(Object.keys(scenes).map(k=>{
+ // Capture every source child and mesh geometry, not only the scene roots.
+ // This rejects a same-name nested impostor even if loader associations
+ // don't record the forged object and the JSON itself stays unchanged.
+ const graphProof=Object.fromEntries(Object.keys(scenes).map(k=>{
   const i=Number(k),count=json.scenes[i].nodes.length;
-  return [i,scenes[i].children.slice(0,count)];
+  return [i,c80530SnapshotRenderedSourceTree(scenes[i],count)];
  }));
- const pinned=(i)=>Array.isArray(scenes[i]?.children)&&
-   pinnedRoots[i]?.every((obj,j)=>scenes[i].children[j]===obj);
+ if(Object.values(graphProof).some(proof=>!proof))
+  throw new Error('C80_530_RENDERED_SOURCE_GRAPH_MISMATCH');
+ const pinned=i=>c80530RenderedSourceTreeUnchanged(scenes[i],graphProof[i]);
  const isLive=(i)=>gltf.scenes?.[i]===scenes[i]&&
    scenes[i]?.name===json.scenes?.[i]?.name&&pinned(i)&&
    c80530RenderedRootPathMatches(json,scenes[i],i,gltf.parser?.associations)&&
