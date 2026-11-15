@@ -95,7 +95,7 @@ export const pickVisibleWorkTest3DPoint = ({
     -((clientY-rect.top)/rect.height)*2+1,
   );
   raycaster.setFromCamera(ndc,camera);
-  const visibleHit=firstVisibleTechnicalReviewHit(raycaster.intersectObjects(modelRoot.children,true), (hit)=>{
+  const visibleHit=firstVisibleTechnicalReviewHit(raycaster.intersectObjects(modelRoot.children,true), (hit: THREE.Intersection)=>{
     const object=hit.object as THREE.Mesh;
     return object.isMesh===true &&
       isEffectivelyVisible(object,modelRoot) &&
