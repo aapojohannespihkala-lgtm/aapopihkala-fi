@@ -176,6 +176,22 @@ test('captured rendered roots reject same-name donor object, geometry and nested
  assert.equal(rootsUnchanged(scene,proof),false,'same-name nested descendant replacement rejected');
  root.children=[child];
  assert.equal(rootsUnchanged(scene,proof),true,'return to original references accepted');
+ // Source Object3D identity alone is not source rendering identity:
+ // an unchanged source mesh can still move or scale within its parent.
+ root.position={x:0,y:0,z:0};
+ assert.equal(rootsUnchanged(scene,proof),true,'default TRS is unchanged');
+ root.position.x=0.25;
+ assert.equal(rootsUnchanged(scene,proof),false,'same Object3D moved in-place');
+ root.position.x=0;
+ assert.equal(rootsUnchanged(scene,proof),true,'restored local TRS');
+ const manual={name:'MANUAL_SOURCE',children:[],matrixAutoUpdate:false,
+  matrix:{elements:[1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1]}};
+ const manualScene={children:[manual]},manualProof=snapshotRoots(manualScene,1);
+ assert.ok(manualProof);
+ manual.matrix.elements[12]=0.5;
+ assert.equal(rootsUnchanged(manualScene,manualProof),false,'explicit glTF matrix altered');
+ manual.matrix.elements[12]=0;
+ assert.equal(rootsUnchanged(manualScene,manualProof),true,'manual matrix restored');
  assert.equal(snapshotRoots({},1),null);
  assert.equal(snapshotRoots(scene,3),null);
  assert.equal(rootsUnchanged(scene,null),false);
@@ -264,6 +280,25 @@ test('real GLTFLoader GLB graph preserves source roots and rejects a same-name r
  const previousMaterial=mesh.material;
  mesh.material=new MeshBasicMaterial({color:0x224466});
  assert.equal(rootsUnchanged(scene,proof),true,'review may change material');
+ const oldX=mesh.position.x;
+ mesh.position.x+=0.125;
+ assert.equal(rootsUnchanged(scene,proof),false,'source mesh cannot translate after parse');
+ mesh.position.x=oldX;
+ assert.equal(rootsUnchanged(scene,proof),true,'source translation restored');
+ const oldScale=mesh.scale.z;
+ mesh.scale.z=oldScale*1.25;
+ assert.equal(rootsUnchanged(scene,proof),false,'source mesh cannot stretch after parse');
+ mesh.scale.z=oldScale;
+ assert.equal(rootsUnchanged(scene,proof),true,'source scale restored');
+ const oldQ=mesh.quaternion.clone();
+ mesh.quaternion.set(0,0,0.2,0.9797958971);
+ assert.equal(rootsUnchanged(scene,proof),false,'source mesh rotation changed');
+ mesh.quaternion.copy(oldQ);
+ assert.equal(rootsUnchanged(scene,proof),true,'source quaternion restored');
+ const oldSceneX=scene.position.x;
+ scene.position.x+=1;
+ assert.equal(rootsUnchanged(scene,proof),true,'mount-group translation is not a source mutation');
+ scene.position.x=oldSceneX;
  const originalGeometry=mesh.geometry;
  mesh.geometry=new BufferGeometry();
  assert.equal(rootsUnchanged(scene,proof),false,'geometry rebinding blocked');
