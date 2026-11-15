@@ -1,4 +1,5 @@
 import { C80_437_SCENES } from './privateModelC80437SourceProfile.mjs';
+import { nameMatches, sameSourceName } from './privateModelSourceNodeAssociations.mjs';
 import {
   C80_500_GLB_SHA256, C80_500_VIEWER_ROLES, C80_500_ABC_ROOT,
   resolveC80500ABCScenes, resolveC80500ABCSceneIndex, isC80500ABCSourceScene,
@@ -14,6 +15,17 @@ export function createC80500ABCFloorRuntime({ gltf, sha, mount, mounted }) {
   let floor = 'BOTH', glazing = 'CLOSED', cutaway = false, sceneIndex = 496;
   let active = false, disposed = false;
   const mountedHere = () => Object.values(scenes).includes(mounted());
+  // A loaded GLB can be mutated after construction. Reconfirm the exact
+  // source scene AND the rendered root before any later re-mount.
+  const sourceStillValid = index => {
+    const json = gltf?.parser?.json;
+    const source = json?.scenes?.[index], rendered = gltf?.scenes?.[index];
+    return rendered === scenes[index] &&
+      isC80500ABCSourceScene(json, sha, index) &&
+      sameSourceName(rendered?.name, source?.name) &&
+      Array.isArray(rendered?.children) && rendered.children.length >= source.nodes.length &&
+      source.nodes.every((node, i) => nameMatches(rendered.children[i], json.nodes[node]));
+  };
   const switchTo = (nextFloor, nextGlazing, nextCutaway) => {
     if (disposed || !mountedHere() || !['1F', '2F', 'BOTH'].includes(nextFloor) ||
         !['CLOSED', 'ONE_OPEN', 'STACKED'].includes(nextGlazing) ||
@@ -21,7 +33,7 @@ export function createC80500ABCFloorRuntime({ gltf, sha, mount, mounted }) {
         (nextFloor === '1F' && (nextGlazing !== 'CLOSED' || nextCutaway)) ||
         (nextCutaway && (nextFloor !== 'BOTH' || nextGlazing !== 'CLOSED'))) return null;
     const nextIndex = resolveC80500ABCSceneIndex(nextFloor, nextGlazing, nextCutaway);
-    if (nextIndex === null || !scenes[nextIndex]) return null;
+    if (nextIndex === null || !scenes[nextIndex] || !sourceStillValid(nextIndex)) return null;
     const wasActive = active;
     active = false;
     try { mount(scenes[nextIndex]); } finally { active = wasActive; }
@@ -60,7 +72,11 @@ export function createC80500ABCFloorRuntime({ gltf, sha, mount, mounted }) {
     },
     restore() {
       if (disposed) return;
-      if (mountedHere()) mount(scenes[496]);
+      if (mountedHere()) {
+        if (!sourceStillValid(496)) return;
+        mount(scenes[496]);
+        if (mounted() !== scenes[496]) throw new Error('C80_500_SCENE_MOUNT_MISMATCH');
+      }
       floor = 'BOTH'; glazing = 'CLOSED'; cutaway = false; sceneIndex = 496; active = false;
     },
     enforce() {},
