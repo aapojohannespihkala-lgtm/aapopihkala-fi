@@ -57,7 +57,7 @@ test('original source GLB: exact SHA and six real root/DFS checks',()=>{
  expect(bin.toString('utf8',0,4)).toBe('glTF');
  const size=bin.readUInt32LE(12);
  const json=JSON.parse(bin.subarray(20,20+size).toString('utf8'));
- for(const spec of Object.values(SCENES)){
+ for(const spec of Object.values(SCENES) as Array<{index:number;floor:string}>){
   expect(valid(json,PRIMARY.glbSha256,spec.index,spec.floor)).toBe(true);
   expect(valid(json,SIBLING,spec.index,spec.floor)).toBe(false);
   expect(valid(json,PRIMARY.glbSha256,spec.index,'WRONG')).toBe(false);
