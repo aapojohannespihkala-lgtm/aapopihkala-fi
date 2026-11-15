@@ -198,3 +198,44 @@ test('KP011 cross-SHA node-ID collision is rejected while version-scoped new roo
   assert.equal(resolveC80SuccessorTechnicalNode(
     json, C80_500_GLB_SHA256, 495, 12237)?.id, 'technical-drainage');
 });
+
+
+// Metamorphic proof: the same valid C80 500 source scene MUST be accepted
+// before a donor-ID substitution and rejected AFTER it, without changing SHA
+// or reusing a scene label. A negative-only fixture could pass vacuously.
+test('KP011 genuine accepted 500 source flips to rejected when ROOM3 IDs enter ABC root', () => {
+  const accepted = abc500();
+  assert.equal(resolveC80437SuccessorReceiptScene(accepted, C80_500_GLB_SHA256, 495)?.floor, '1F');
+  assert.equal(resolveC80SuccessorTechnicalNode(accepted, C80_500_GLB_SHA256, 495, 12237)?.id,
+    'technical-drainage');
+
+  for (const collision of [12144, 12145, 12158]) {
+    const changed = abc500();
+    const originalChildren = [...changed.nodes[12237].children];
+    // The invalid donor index was a ROOM3 door part in the other SHA,
+    // but means a wall/floor/PA2 hot-water part in the C80 437 receipt.
+    changed.nodes[12237].children = [collision, ...originalChildren.slice(1)];
+    changed.nodes[collision] = { name: 'ROOM3_DONOR_DOOR_ELEMENT_' + collision, mesh: 4570 };
+    assert.equal(resolveC80437SuccessorReceiptScene(changed, C80_500_GLB_SHA256, 495),
+      null, 'parent/child source identity must not accept donor ID ' + collision);
+    assert.equal(resolveC80SuccessorTechnicalNode(changed, C80_500_GLB_SHA256, 495, collision),
+      null, 'donor node cannot inherit drainage role');
+    assert.equal(resolveC80SuccessorTechnicalNode(changed, C80_500_GLB_SHA256, 495, 12237),
+      null, 'the entire modified source root is no longer authenticated');
+
+    changed.nodes[12237].children = originalChildren;
+    assert.equal(resolveC80SuccessorTechnicalNode(changed, C80_500_GLB_SHA256, 495, 12237)?.id,
+      'technical-drainage', 'restoring exact parent children restores source identity');
+  }
+
+  // Even when the numeric child ID is unchanged, replacing a source mesh
+  // with a donor door representation cannot inherit the correct route.
+  const wrongMesh = abc500();
+  wrongMesh.nodes[12231] = {
+    name: 'ROOM3_DOOR_LEAF_WRONG_SHA',
+    mesh: 4570,
+    extras: { current: false, asBuilt: false, sourceLinksBound: false },
+  };
+  assert.equal(resolveC80SuccessorTechnicalNode(wrongMesh, C80_500_GLB_SHA256, 495, 12231),
+    null, 'wrong mesh/name must be rejected under an otherwise correct root');
+});
