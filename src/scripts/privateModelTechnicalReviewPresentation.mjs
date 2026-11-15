@@ -291,6 +291,21 @@ export function createTechnicalReviewPresentation(root, keepRoots, createMateria
   const keep = new Set(keepRoots.filter(Boolean));
   const saved = new Map();
   let materials = null;
+  // Single-pass DoubleSide highlight on a mesh without vertex normals renders
+  // black (three only auto-flat-shades one-sided passes). Such meshes get an
+  // explicitly flat-shaded twin of the same shared highlight material.
+  let flatTwins = new Map();
+  const forGeometry = (material, object) => {
+    if (!material || material.forceSinglePass !== true || material.flatShading === true ||
+        object.geometry?.attributes?.normal || typeof material.clone !== 'function') return material;
+    let twin = flatTwins.get(material);
+    if (!twin) {
+      twin = material.clone();
+      twin.flatShading = true;
+      flatTwins.set(material, twin);
+    }
+    return twin;
+  };
   let applied = false;
   let disposed = false;
   let systemCounts = {};
@@ -314,6 +329,8 @@ export function createTechnicalReviewPresentation(root, keepRoots, createMateria
     owned?.surface?.dispose?.();
     owned?.line?.dispose?.();
     for (const material of Object.values(owned?.systems ?? {})) material?.dispose?.();
+    for (const twin of flatTwins.values()) twin?.dispose?.();
+    flatTwins = new Map();
   };
 
   const apply = on => {
@@ -334,7 +351,7 @@ export function createTechnicalReviewPresentation(root, keepRoots, createMateria
           if (!materials.systems) return;
           const system = object.isMesh ? systemOf(object) : null;
           shared = object.isMesh
-            ? (materials.systems[system ?? ''] ?? materials.surface)
+            ? forGeometry(materials.systems[system ?? ''] ?? materials.surface, object)
             : materials.line;
           if (object.isMesh) {
             const key = system && materials.systems[system] ? system : 'GREY';
