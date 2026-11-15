@@ -2283,6 +2283,7 @@ const title = 'Private 3D viewer';
         selectionSourceLinks as collectSelectionSourceLinks,
       } from '../../scripts/privateModelSelectionMetadata';
       import { createC80530ElectricalGroupEvidenceResolver } from '../../scripts/privateModelC80530ElectricalGroupEvidence.mjs';
+      import { createC80537Vieser4SelectionEvidenceResolver } from '../../scripts/privateModelC80537Vieser4SelectionEvidence.mjs';
       import {
         createSelectionPanelController,
         formatSelectionDimensionsFi,
@@ -3455,6 +3456,7 @@ const title = 'Private 3D viewer';
         state: 'unavailable', version: 'Mallia ei ole ladattu', cards: [],
       });
       let resolveElectricalGroupEvidence: (object: any, activeScene: any) => Array<readonly [string, string]> = () => [];
+      let resolveVieser4HistoricalEvidence: (object: any, activeScene: any) => Array<readonly [string, string]> = () => [];
       let dInteriorScene: any = null;
       let p186dReviewRoomContextGroup: THREE.Group | null = null;
       let activeResearchPreset: ViewerResearchPreset = 'whole-building';
@@ -5511,6 +5513,7 @@ const title = 'Private 3D viewer';
           metadataEntries: [
             ...technicalMetadata,
             ...resolveElectricalGroupEvidence(object, modelRoot.children[0] ?? null),
+            ...resolveVieser4HistoricalEvidence(object, modelRoot.children[0] ?? null),
             ...collectSelectionMetadataEntries(object, modelRoot),
           ],
           sourceLinks: collectSelectionSourceLinks(object, modelRoot),
@@ -7761,6 +7764,8 @@ const title = 'Private 3D viewer';
         resetHorizontalClipping();
         clearSelection();
         sourceSceneNames = new WeakMap<any, string>();
+        // Never carry selection evidence across model loads.
+        resolveVieser4HistoricalEvidence = () => [];
         const sourceScenes = gltf?.parser?.json?.scenes;
         if (Array.isArray(sourceScenes)) {
           gltf.scenes?.forEach((candidate: any, index: number) => {
@@ -7823,6 +7828,15 @@ const title = 'Private 3D viewer';
         // GLTFLoader drops those indices for multi-scene GLBs (HI20 52scene),
         // so give them the structurally rebuilt, read-only node view.
         const sourceNodeGltf = sourceKind === 'work-test' ? sourceNodeModel(gltf) : gltf;
+        // C80 537: four Vieser locations observed, trap interiors schematic.
+        // Metadata only, never creates sourceLinks or a CURRENT claim.
+        const vieser4SourceSelection = createC80537Vieser4SelectionEvidenceResolver(
+          sourceNodeGltf, sourceKind === 'work-test' ? loadedModelSha256(gltf) : null,
+        );
+        resolveVieser4HistoricalEvidence = (object, activeScene) =>
+          vieser4SourceSelection(object, activeScene).map(
+            ([label, value]) => [label, value] as const,
+          );
         // C050's 16 SOURCE_ONLY KPH07 measurement guides and BOTH's original
         // 3-part W955 north-door gauge are not physical building geometry.
         hi20C050GuidesPresentation = createHi20C050GuidesPresentation(
