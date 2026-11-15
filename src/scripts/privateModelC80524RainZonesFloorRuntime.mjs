@@ -35,13 +35,20 @@ function exactRole(json,sha,sceneIndex){
  * GLTFLoader may append numeric suffixes to names when a node repeats.
  * Viewer helpers added after source roots are ignored, not interpreted as source.
  */
-export function c80524RenderedRootPathMatches(json, rendered, sceneIndex) {
+export function c80524RenderedRootPathMatches(json, rendered, sceneIndex, associations=null) {
  const roots=json?.scenes?.[sceneIndex]?.nodes;
  if(!Array.isArray(roots)||!Array.isArray(json?.nodes)||
     !Array.isArray(rendered?.children)||rendered.children.length<roots.length)return false;
- return roots.every((nodeId,i)=>Number.isInteger(nodeId)&&nodeId>=0&&
-   nodeId<json.nodes.length&&!!json.nodes[nodeId]&&
-   nameMatches(rendered.children[i],json.nodes[nodeId]));
+ return roots.every((nodeId,i)=>{
+  const object=rendered.children[i];
+  const binding=associations?.get?.(object);
+  // Loader associations can be pruned in multi-scene GLBs. A missing node
+  // association is not proof of identity, but a contradictory one must never
+  // pass just because the root name matches.
+  if(binding&&Object.prototype.hasOwnProperty.call(binding,'nodes')&&binding.nodes!==nodeId)return false;
+  return Number.isInteger(nodeId)&&nodeId>=0&&nodeId<json.nodes.length&&
+    !!json.nodes[nodeId]&&nameMatches(object,json.nodes[nodeId]);
+ });
 }
 
 /** Read-only authentic source, no loader/catalog registration or publication. */
@@ -52,7 +59,7 @@ export function resolveC80524RainScenes(gltf,sha){
  for(const sceneIndex of Object.keys(SPECS).map(Number)){
   const scene=gltf.scenes[sceneIndex];
   if(!scene||scene.name!==json.scenes?.[sceneIndex]?.name||
-     !c80524RenderedRootPathMatches(json,scene,sceneIndex)||
+     !c80524RenderedRootPathMatches(json,scene,sceneIndex,gltf.parser?.associations)||
      !exactRole(json,sha,sceneIndex))return null;
   scenes[sceneIndex]=scene;
  }
@@ -101,7 +108,7 @@ export function createC80524RainFloorRuntime({gltf,sha,mount,mounted}){
  const isLive=(i)=>gltf.scenes?.[i]===scenes[i]&&
    scenes[i]?.name===json.scenes?.[i]?.name&&
    c80524RenderedSourceRootsUnchanged(scenes[i],graphProof[i])&&
-   c80524RenderedRootPathMatches(json,scenes[i],i)&&exactRole(json,sha,i);
+   c80524RenderedRootPathMatches(json,scenes[i],i,gltf.parser?.associations)&&exactRole(json,sha,i);
  const mountedHere=()=>mounted()===scenes[sceneIndex];
  const switchTo=(f,g,c)=>{
   const next=resolveC80524RainSceneIndex(f,g,c);
