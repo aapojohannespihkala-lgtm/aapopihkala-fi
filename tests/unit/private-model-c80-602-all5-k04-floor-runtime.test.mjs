@@ -42,7 +42,7 @@ test('C80 602 rejects wrong SHA, incomplete glTF and missing mount functions',()
 });
 test('C80 602 atomic mount verifies target and rolls back thrown mount',()=>{
  const previous={},target={};let current=previous;
- const good=c80602AtomicMount;
+ const good=atomicMount;
  const ok=good({previous,target,mount(x){current=x;},mounted(){return current;}});
  assert.equal(ok.ok,true);
  current=previous;
@@ -55,12 +55,12 @@ test('C80 602 atomic mount verifies target and rolls back thrown mount',()=>{
 });
 test('C80 602 wrong target and thrown mounted read return safe rollback',()=>{
  const previous={},target={},foreign={};let current=previous;
- const bad=c80602AtomicMount({previous,target,
+ const bad=atomicMount({previous,target,
   mount(x){current=x===target?foreign:x;},mounted(){return current;}});
  assert.equal(bad.ok,false);assert.equal(bad.restored,true);
  assert.match(bad.error.message,/C80_602_SCENE_MOUNT_MISMATCH/);
  assert.equal(current,previous);
- const read=c80602AtomicMount({previous,target,
+ const read=atomicMount({previous,target,
   mount(x){current=x;},
   mounted(){if(current===target)throw new Error('READ_ERROR');return current;}});
  assert.equal(read.ok,false);assert.equal(read.restored,true);
@@ -68,12 +68,12 @@ test('C80 602 wrong target and thrown mounted read return safe rollback',()=>{
 });
 test('C80 602 atomic unverified rollback cannot be misreported as safe',()=>{
  const previous={},target={};let current=previous;
- const fail=c80602AtomicMount({previous,target,
+ const fail=atomicMount({previous,target,
   mount(x){current=x;throw new Error(x===target?'TARGET_FAIL':'ROLLBACK_FAIL');},
   mounted(){return current;}});
  assert.equal(fail.ok,false);assert.equal(fail.restored,false);
  assert.match(fail.rollbackError.message,/ROLLBACK_FAIL/);
- const bad=c80602AtomicMount({previous,target,
+ const bad=atomicMount({previous,target,
   mount(x){current={forged:x};},mounted(){return current;}});
  assert.equal(bad.ok,false);assert.equal(bad.restored,false);
  assert.match(bad.rollbackError.message,/C80_602_SCENE_ROLLBACK_MISMATCH/);
