@@ -86,6 +86,44 @@ test('GLB source extras PresentationOnly/presentationOnly stay pickable (C80 who
     expect(point!.surfaceObjectName).toBe('WORK_TEST_BOX_SURFACE');
   }
 });
+test('C80 source building stays pickable behind viewer-derived front overlay',()=>{
+  const sceneHit=(viewerDerived:boolean,retainSource=true)=>hit(220,240,({root,mesh})=>{
+    root.remove(mesh);
+    const sourceRoot=new THREE.Group();
+    sourceRoot.name='C80_WHOLE_BUILDING_SOURCE_ROOT';
+    sourceRoot.userData.PresentationOnly=true;
+    sourceRoot.userData.presentationOnly=true;
+    if(retainSource){
+      mesh.userData.presentationOnly=true;
+      sourceRoot.add(mesh);
+    }
+    root.add(sourceRoot);
+    const review=new THREE.Group();
+    review.userData.viewerDerived=viewerDerived;
+    review.userData.PresentationOnly=true;
+    const overlay=new THREE.Mesh(
+      new THREE.BoxGeometry(6,6,0.1),
+      new THREE.MeshBasicMaterial({color:0xcccccc}),
+    );
+    overlay.position.set(2,0,0);
+    overlay.name='VIEWER_DERIVED_FRONT_SURFACE';
+    review.add(overlay);
+    root.add(review);
+  });
+  const unfiltered=sceneHit(false);
+  expect(unfiltered).not.toBeNull();
+  expect(unfiltered!.surfaceObjectName).toBe('VIEWER_DERIVED_FRONT_SURFACE',
+    'front overlay must actually intercept the test ray');
+  const source=sceneHit(true);
+  expect(source).not.toBeNull();
+  expect(source!.surfaceObjectName).toBe('WORK_TEST_BOX_SURFACE',
+    'viewer-only hit is skipped, GLB source PresentationOnly is still pickable');
+  expect(source!.yM).toBeCloseTo(2,2);
+  expect(source).toMatchObject({current:false,asBuilt:false,exactXY:false});
+  expect(sceneHit(true,false)).toBeNull(),
+    'never invent a source coordinate when only viewer overlay remains';
+});
+
 test('a source point must come from an actual intersected visible surface',()=>{
   const point=hit(220,240,({mesh})=>{mesh.position.x=40;});
   expect(point).toBeNull();
