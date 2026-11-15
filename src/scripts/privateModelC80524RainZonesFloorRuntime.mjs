@@ -64,10 +64,39 @@ export function createC80524RainFloorRuntime({gltf,sha,mount,mounted}){
  const scenes=resolveC80524RainScenes(gltf,sha);
  if(!scenes)throw new Error('C80_524_SOURCE_SCENE_MISMATCH');
  const json=gltf.parser.json;
+ // Snapshot pristine GLTFLoader root instances and their source graph. Names alone
+ // cannot detect a later donor root swapped in under the same sanitized name.
+ // Presentation material changes are allowed, geometry/child identity changes not.
+ const graphProof=Object.create(null);
+ const capture=(obj,refs)=>{
+  if(!obj||typeof obj!=='object'||refs.has(obj))return;
+  const children=Array.isArray(obj.children)?obj.children:[];
+  refs.set(obj,{children:[...children],geometry:obj.geometry});
+  for(const child of children)capture(child,refs);
+ };
+ for(const id of Object.keys(SPECS)){
+  const roots=scenes[id].children.slice(0,json.scenes[id].nodes.length);
+  const refs=new Map();
+  for(const root of roots)capture(root,refs);
+  graphProof[id]={roots,refs};
+ }
+ const renderedGraphUnchanged=(id)=>{
+  const proof=graphProof[id],current=scenes[id]?.children;
+  if(!proof||!Array.isArray(current)||current.length<proof.roots.length||
+     !proof.roots.every((root,i)=>current[i]===root))return false;
+  for(const [obj,baseline] of proof.refs){
+   const children=Array.isArray(obj?.children)?obj.children:[];
+   if(obj?.geometry!==baseline.geometry||
+      children.length!==baseline.children.length||
+      !baseline.children.every((child,i)=>children[i]===child))return false;
+  }
+  return true;
+ };
  let floor='BOTH',glazing='CLOSED',cutaway=false,sceneIndex=520;
  let active=false,disposed=false;
  const isLive=(i)=>gltf.scenes?.[i]===scenes[i]&&
    scenes[i]?.name===json.scenes?.[i]?.name&&
+   renderedGraphUnchanged(i)&&
    c80524RenderedRootPathMatches(json,scenes[i],i)&&exactRole(json,sha,i);
  const mountedHere=()=>mounted()===scenes[sceneIndex];
  const switchTo=(f,g,c)=>{
