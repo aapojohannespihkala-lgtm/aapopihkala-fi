@@ -110,6 +110,22 @@ const COMPOSITE_PRESENTATION_ROOTS = new Set([2220,11613,11945]);
 // as electrical orange. Grey them; H24 device leaves are re-added below.
 const C80_CHAIN_COMPOSITE_SHAS = new Set([C80_524_RAIN_GLB_SHA256, C80_530_V27_GLB_SHA256]);
 const C80_CHAIN_COMPOSITE_ROOTS = new Set([...COMPOSITE_PRESENTATION_ROOTS, 11996]);
+// C80 524/530 Sisältö technical-layer bindings also list a few fixtures
+// (owner review 15.11.2026 K15): the H24 WC/KPH floor-tile clones and the
+// MJ54 Bosch washer appliance. They keep their layer membership for Sisältö,
+// but are not shown with the electrical palette. SHA-gated exact name prefixes.
+const C80_CHAIN_NONTECHNICAL_BOUND_PREFIXES = Object.freeze([
+  'K11_XMIRROR_R989_FLOOR_INTEGRATION_DERIVED_CLONE_',
+  'MJ54_BOSCH_WNG254ABSN_',
+]);
+export function filterNonTechnicalBoundObjects(items,loadedSha) {
+  if (!Array.isArray(items) || !C80_CHAIN_COMPOSITE_SHAS.has(loadedSha)) return items;
+  return items.filter(item=>{
+    const name=item?.object?.name;
+    return !(typeof name==='string' &&
+      C80_CHAIN_NONTECHNICAL_BOUND_PREFIXES.some(prefix=>name.startsWith(prefix)));
+  });
+}
 export function filterCompositePresentationRoots(entries,loadedSha) {
   if (!Array.isArray(entries)) return null;
   if (C80_CHAIN_COMPOSITE_SHAS.has(loadedSha))
