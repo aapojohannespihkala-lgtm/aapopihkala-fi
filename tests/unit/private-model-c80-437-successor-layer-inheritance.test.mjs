@@ -241,19 +241,30 @@ test('KP011 genuine accepted 500 source flips to rejected when ROOM3 IDs enter A
 });
 
  
-// C80 530 is a separate 6-scene V27 successor, not an alias of legacy 437/500.
-// Exact 530 SHA comes from the merged privateModelC80530V27SourceProfile.mjs.
-// Keep the 500 fixture positive so the negative identity gate cannot pass vacuously.
-test('KP011 C80 530 SHA cannot inherit legacy 437/500 technical roles', () => {
+// C80 530 is a separately authenticated 6-scene V27 successor of C80 437.
+// It legitimately inherits source roles, but its SHA must never authenticate
+// a C80 500 scene or cloned 500 node/parent structure.
+test('KP011 C80 530 successor recognition rejects spoofed legacy 500 scene and roles', () => {
   const c80530Sha = '1a99cc32c80e1b87bbefcf9e6f373af42aee7e72ede574eabafe375298fd9f9e';
   const source500 = abc500();
   assert.notEqual(c80530Sha, C80_500_GLB_SHA256);
   assert.equal(isC80LayerSuccessorSha(C80_500_GLB_SHA256), true);
   assert.equal(resolveC80437SuccessorReceiptScene(source500, C80_500_GLB_SHA256, 495)?.floor, '1F');
   assert.equal(resolveC80SuccessorTechnicalNode(source500, C80_500_GLB_SHA256, 495, 12237)?.id, 'technical-drainage');
-  assert.equal(isC80LayerSuccessorSha(c80530Sha), false);
+  // Current main deliberately recognizes the correctly SHA-locked 530 successor.
+  assert.equal(isC80LayerSuccessorSha(c80530Sha), true);
   assert.equal(resolveC80437SuccessorReceiptScene(source500, c80530Sha, 495), null);
   assert.equal(resolveC80437SuccessorBuildingNode(source500, c80530Sha, 495, 12237, [12237]), null);
   assert.equal(resolveC80437SuccessorTechnicalNode(source500, c80530Sha, 495, 12237), null);
   assert.equal(resolveC80SuccessorTechnicalNode(source500, c80530Sha, 495, 12237), null);
+
+  // A wrong-SHA scene cannot become source-authenticated simply by being
+  // copied to the correct 530 glTF scene index; root/provenance also matter.
+  const spoofed530 = abc500();
+  spoofed530.scenes[524] = {
+    ...spoofed530.scenes[495],
+    nodes: [...spoofed530.scenes[495].nodes],
+  };
+  assert.equal(resolveC80437SuccessorReceiptScene(spoofed530, c80530Sha, 524), null);
+  assert.equal(resolveC80SuccessorTechnicalNode(spoofed530, c80530Sha, 524, 12237), null);
 });
