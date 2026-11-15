@@ -3,6 +3,7 @@ import {
   createC80530ElectricalGroupEvidenceResolver as groupResolver,
   c80530MountedSourceChain as mountedChain,
 } from '../../src/scripts/privateModelC80530ElectricalGroupEvidence.mjs';
+import { buildSourceNodeAssociations, createSourceNodeView } from '../../src/scripts/privateModelSourceNodeAssociations.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
@@ -156,4 +157,28 @@ test('C80 530 source selection requires real mounted-scene ancestry',()=>{
  const cyclic={name:'orphan cycle'};
  cyclic.parent=cyclic;
  assert.equal(mountedChain(cyclic,activeScene),null);
+});
+
+
+test('multi-scene selection uses rebuilt verified node identity, never the pruned loader map',()=>{
+  const sourceNode={name:'SOURCE_SOCKET',children:[],parent:null};
+  const scene={isGroup:true,children:[sourceNode],name:'SOURCE_SCENE'};
+  sourceNode.parent=scene;
+  const gltf={parser:{json:{nodes:[{name:'SOURCE_SOCKET'}],scenes:[{nodes:[0]}]},
+    associations:new Map()},scenes:[scene]};
+  assert.equal(gltf.parser.associations.get(sourceNode),undefined,
+    'GLTFLoader can prune nodes associations in multi-scene files');
+  const verified=buildSourceNodeAssociations(gltf);
+  const sourceNodeGltf=createSourceNodeView(gltf,verified);
+  assert.equal(sourceNodeGltf.parser.associations.get(sourceNode)?.nodes,0,
+    'reconstructed source identity on the original rendered Object3D');
+  assert.equal(gltf.parser.associations.get(sourceNode),undefined,
+    'source view must not mutate the original parser');
+  assert.equal(sourceNodeGltf.scenes[0],scene,'same actual mounted scene');
+  scene.children[0]={name:'OTHER_SOURCE_NODE',children:[],parent:scene};
+  assert.equal(buildSourceNodeAssociations(gltf).size,0,
+    'wrong source name cannot gain a reconstructed node association');
+  const viewer=readFileSync(new URL('../../src/pages/private-model/index.astro',import.meta.url),'utf8');
+  assert.match(viewer,/createC80530ElectricalGroupEvidenceResolver\(\s*sourceNodeModel\(gltf\)/,
+    '530 selection must use sourceNodeModel, not GLTFLoader parser.associations');
 });
