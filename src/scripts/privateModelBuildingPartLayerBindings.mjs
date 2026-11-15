@@ -1,5 +1,5 @@
 import {C80_437_GLB_SHA256,isC80437SourceScene,resolveC80437BuildingNode} from './privateModelC80437SourceProfile.mjs';
-import {resolveC80437SuccessorBuildingNode} from './privateModelC80437SuccessorLayerInheritance.mjs';
+import {isC80LayerSuccessorSha,resolveC80437SuccessorReceiptScene,resolveC80437SuccessorBuildingNode} from './privateModelC80437SuccessorLayerInheritance.mjs';
 import { TATE4_MJ6263_SOURCE_SHA256, isTate4Mj62Mj63SourceScene } from './privateModelTate4Mj62Mj63SourceProfile.mjs';
 import { resolveM6263BuildingNode } from './privateModelM6263ViewerReceipt.mjs';
 import { AIR385_SOURCE_SHA256, isAir385SourceScene } from './privateModelAir385ToshibaServiceSourceProfile.mjs';
@@ -569,6 +569,9 @@ export function resolveBuildingPartLayerBindings(input) {
     return unavailable('M6263_SOURCE_SCENE_MISMATCH',scene);
   if(loadedSourceSha256===C80_437_GLB_SHA256&&!isC80437SourceScene(gltf?.parser?.json,loadedSourceSha256,sceneIndex,floor))
     return unavailable('SUCC437_SOURCE_SCENE_MISMATCH',scene);
+  if (isC80LayerSuccessorSha(loadedSourceSha256) &&
+      !resolveC80437SuccessorReceiptScene(gltf?.parser?.json,loadedSourceSha256,sceneIndex))
+    return unavailable('C80_SUCCESSOR_SOURCE_SCENE_MISMATCH',scene);
   const hierarchy = makeNodeHierarchy(gltf?.parser?.json, sceneIndex);
   const associations = gltf?.parser?.associations;
   if (!hierarchy || !(associations instanceof Map) || typeof scene?.traverse !== 'function')
@@ -661,7 +664,7 @@ export function resolveBuildingPartLayerBindings(input) {
       (verifiedLillangen ? { id: verifiedLillangen.id } : null);
     const explicit = exactFamily(meta.G2Id) ?? exactFamily(meta.ParentG2Id) ?? exactFamily(meta.identity);
     const scope = meta.ylisViewScope;
-    const id = profile?.id ?? explicit?.layerId;
+    const id = isC80LayerSuccessorSha(sha) ? profile?.id : profile?.id ?? explicit?.layerId;
     if (!id || (!profile && (referenceOnly(meta) || !isValidScope(scope)))) {
       excluded.push({ reason: explicit?.family === 'ROOF' ? 'LEGACY_ROOF_CONTROLLER' :
         'UNCLASSIFIED_OR_REFERENCE', sourceNodeIndex });
