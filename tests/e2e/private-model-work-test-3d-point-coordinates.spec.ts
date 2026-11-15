@@ -120,8 +120,8 @@ test('C80 source building stays pickable behind viewer-derived front overlay',()
     'viewer-only hit is skipped, GLB source PresentationOnly is still pickable');
   expect(source!.yM).toBeCloseTo(2,2);
   expect(source).toMatchObject({current:false,asBuilt:false,exactXY:false});
-  expect(sceneHit(true,false)).toBeNull(),
-    'never invent a source coordinate when only viewer overlay remains';
+  // No valid model source remains: viewer-only visual geometry never yields XYZ.
+  expect(sceneHit(true,false)).toBeNull();
 });
 
 test('a source point must come from an actual intersected visible surface',()=>{
