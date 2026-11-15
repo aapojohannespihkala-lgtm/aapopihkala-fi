@@ -83,7 +83,8 @@ function correctMesh(g,variant){
     e?.preservedPatchTriangles===10&&e?.preservedSlabEdgeTriangles===10&&
     e?.excludedUnderstairWallTriangles===8&&
     e?.current===false&&e?.asBuilt===false&&e?.sourceLinksBound===false&&
-    e?.physicalHostVerified===false&&
+    // Both authentic C80 596 K18 nodes omit this field. Missing is HOLD, never approval.
+    (e?.physicalHostVerified===false || e?.physicalHostVerified===undefined)&&
     e?.productionWebGLVerified===false&&e?.HUMAN_REVIEW==='NOT_RUN'&&
     m18?.primitives?.length===1&&p?.attributes?.POSITION===9129&&
     p?.indices===10433&&p?.material===333&&
