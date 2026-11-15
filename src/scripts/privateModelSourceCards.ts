@@ -548,15 +548,22 @@ export const loadModelWithSourceCards = async <T extends GltfSource & object>(
     for (const index of indexes) rehydrate.add(index);
   }
   for (const sceneIndex of rehydrate) {
+    // 524's new root verifier depends on the complete post-parse tree.
+    // Never silently accept a name-matched but incompletely rebuilt source.
+    const strict524 = digest === C80_524_RAIN_GLB_SHA256 && C80_524_RAIN_SCENES[sceneIndex] !== undefined;
     try {
       const isVerifiedOptInScene =
-        (digest === C80_524_RAIN_GLB_SHA256 && C80_524_RAIN_SCENES[sceneIndex] !== undefined) ||
+        strict524 ||
         (digest === C80_530_V27_GLB_SHA256 && C80_530_V27_SCENES[sceneIndex] !== undefined);
       const rebuilt = await rehydrateIncompleteScene(gltf, sceneIndex, { force: isVerifiedOptInScene });
+      if (strict524 && !rebuilt) throw new Error('C80_524_SOURCE_SCENE_REHYDRATE_FAILED');
       const cardMap = identity !== gltf ? identity.parser?.associations : undefined;
       if (rebuilt && cardMap) for (const [object, id] of rebuilt)
         cardMap.set(object, { ...cardMap.get(object), nodes: id });
-    } catch { /* Keep the loader graph for this scene. */ }
+    } catch (error) {
+      if (strict524) throw new Error('C80_524_SOURCE_SCENE_REHYDRATE_FAILED', { cause: error });
+      /* Keep the loader graph for legacy and 530 scenes. */
+    }
   }
   sessions.set(gltf, createSourceCardResolver(identity, digest, cards.bundle, cards.failure));
   if (digest) loadedDigests.set(gltf, digest);
