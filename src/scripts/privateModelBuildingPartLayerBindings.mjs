@@ -1,5 +1,5 @@
 import {C80_437_GLB_SHA256,isC80437SourceScene,resolveC80437BuildingNode} from './privateModelC80437SourceProfile.mjs';
-import {isC80LayerSuccessorSha,resolveC80437SuccessorReceiptScene,resolveC80437SuccessorBuildingNode} from './privateModelC80437SuccessorLayerInheritance.mjs';
+import {isC80LayerSuccessorSha,resolveC80437SuccessorReceiptScene,resolveC80437SuccessorBuildingNode,withC80SuccessorMemo} from './privateModelC80437SuccessorLayerInheritance.mjs';
 import { TATE4_MJ6263_SOURCE_SHA256, isTate4Mj62Mj63SourceScene } from './privateModelTate4Mj62Mj63SourceProfile.mjs';
 import { resolveM6263BuildingNode } from './privateModelM6263ViewerReceipt.mjs';
 import { AIR385_SOURCE_SHA256, isAir385SourceScene } from './privateModelAir385ToshibaServiceSourceProfile.mjs';
@@ -501,7 +501,11 @@ const sourceAncestorsVisible = (mesh, scene) => {
  * evidence:Array<{id:string,sourceNodeIndex:number,objectKey:string,storeyScope:string,apartmentScope:string}>,
  * excluded:Array<{reason:string,sourceNodeIndex?:number}>}}
  */
+// One synchronous pass shares the C80 successor scene authentication.
 export function resolveBuildingPartLayerBindings(input) {
+  return withC80SuccessorMemo(() => resolveBuildingPartLayerBindingsOnce(input));
+}
+function resolveBuildingPartLayerBindingsOnce(input) {
   const { gltf, expectedSourceSha256, loadedSourceSha256, sceneIndex,
     activeSceneRoot: scene, area, floor } = input ?? {};
   if (!SHA256.test(expectedSourceSha256 ?? '') ||

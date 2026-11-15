@@ -1,7 +1,7 @@
 import {C80_437_GLB_SHA256,isC80437SourceScene,resolveC80437TechnicalNode} from './privateModelC80437SourceProfile.mjs';
 import {
   isC80LayerSuccessorSha, resolveC80437SuccessorReceiptScene,
-  resolveC80SuccessorTechnicalNode,
+  resolveC80SuccessorTechnicalNode, withC80SuccessorMemo,
 } from './privateModelC80437SuccessorLayerInheritance.mjs';
 import { isTate4Mj62Mj63SourceScene } from './privateModelTate4Mj62Mj63SourceProfile.mjs';
 import { TATE4_MJ6263_SOURCE_SHA256, resolveM6263TechnicalNode } from './privateModelM6263ViewerReceipt.mjs';
@@ -664,7 +664,11 @@ const v26Device = (context: TechnicalSystemsContext, binding: TechnicalSourceNod
  * source index, parent identity or explicit floor/apartment metadata fails closed.
  * An off-scope object is never returned as a presentable binding.
  */
-export const createTechnicalSystemLayerInventory = (context: TechnicalSystemsContext) => {
+// One synchronous inventory pass shares the C80 successor scene authentication.
+export const createTechnicalSystemLayerInventory = (context: TechnicalSystemsContext):
+  ReturnType<typeof createTechnicalSystemLayerInventoryOnce> =>
+  withC80SuccessorMemo(() => createTechnicalSystemLayerInventoryOnce(context));
+const createTechnicalSystemLayerInventoryOnce = (context: TechnicalSystemsContext) => {
   const { sceneRoot, sourceSceneIndex, viewerScope } = context;
   const exactSource = normalizedSha(context.loadedGlbSha256) !== null &&
     context.loadedGlbSha256 === context.expectedGlbSha256 &&
