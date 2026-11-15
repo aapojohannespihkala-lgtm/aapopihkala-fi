@@ -20,26 +20,30 @@ const isPresentationOnly = exports.predicate;
 
 const node = (parent = null, userData = {}) => ({parent, userData});
 
-test('glTF lowercase presentationOnly on source mesh is not pickable', () => {
+// Owner 15.11.2026: "Piste mallissa" must work on C80/M5 source models.
+// Their GLB extras set presentationOnly/PresentationOnly on whole building
+// roots, so these flags must NOT exclude source surfaces. Only geometry the
+// viewer itself generates (userData.viewerDerived) is excluded.
+test('glTF lowercase presentationOnly on source mesh stays pickable', () => {
   const root = node();
-  const sourceMesh = node(root, {presentationOnly: true});
-  assert.equal(isPresentationOnly(sourceMesh, root), true);
+  assert.equal(isPresentationOnly(node(root, {presentationOnly: true}), root), false);
 });
 
-test('glTF lowercase presentationOnly on ancestor excludes child surface', () => {
+test('glTF PresentationOnly whole-building root does not exclude child surfaces', () => {
   const root = node();
-  const displayOnlyHost = node(root, {presentationOnly: true});
-  const childMesh = node(displayOnlyHost);
-  assert.equal(isPresentationOnly(childMesh, root), true);
+  const buildingRoot = node(root, {PresentationOnly: true, presentationOnly: true});
+  assert.equal(isPresentationOnly(node(buildingRoot), root), false);
 });
 
-test('legacy capitalized PresentationOnly remains excluded', () => {
+test('viewer-derived review geometry is excluded, also through an ancestor', () => {
   const root = node();
-  assert.equal(isPresentationOnly(node(root, {PresentationOnly: true}), root), true);
+  assert.equal(isPresentationOnly(node(root, {viewerDerived: true, PresentationOnly: true}), root), true);
+  const overlay = node(root, {viewerDerived: true});
+  assert.equal(isPresentationOnly(node(overlay), root), true);
 });
 
 test('ordinary real visible source surface and false flags remain pickable', () => {
   const root = node();
-  const normalParent = node(root, {presentationOnly: false, PresentationOnly: false});
+  const normalParent = node(root, {presentationOnly: false, PresentationOnly: false, viewerDerived: false});
   assert.equal(isPresentationOnly(node(normalParent), root), false);
 });
