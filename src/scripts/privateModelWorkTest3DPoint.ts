@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import {firstVisibleTechnicalReviewHit} from './privateModelTechnicalReviewHitPriority.mjs';
 import {hasVisibleMaterial, isEffectivelyVisible} from './privateModelObjectVisibility';
 import {isPointVisibleThroughViewerHorizontalClip} from './privateModelHorizontalClipping';
 
@@ -94,7 +95,7 @@ export const pickVisibleWorkTest3DPoint = ({
     -((clientY-rect.top)/rect.height)*2+1,
   );
   raycaster.setFromCamera(ndc,camera);
-  const visibleHit=raycaster.intersectObjects(modelRoot.children,true).find((hit)=>{
+  const visibleHit=firstVisibleTechnicalReviewHit(raycaster.intersectObjects(modelRoot.children,true), (hit: THREE.Intersection)=>{
     const object=hit.object as THREE.Mesh;
     return object.isMesh===true &&
       isEffectivelyVisible(object,modelRoot) &&

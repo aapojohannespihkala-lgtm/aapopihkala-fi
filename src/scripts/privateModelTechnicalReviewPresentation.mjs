@@ -1,5 +1,10 @@
+import {markTechnicalReviewPickMaterials} from './privateModelTechnicalReviewHitPriority.mjs';
 import {C80_437_GLB_SHA256,c80437ReviewProfile} from './privateModelC80437SourceProfile.mjs';
 import { C80_500_GLB_SHA256 } from './privateModelC80500WW1974ABCSourceProfile.mjs';
+import { C80_524_RAIN_GLB_SHA256 } from './privateModelC80524RainZonesSourceProfile.mjs';
+import { C80_530_V27_GLB_SHA256 } from './privateModelC80530V27SourceProfile.mjs';
+import { c80530V27ReviewProfile } from './privateModelC80530V27FloorRuntime.mjs';
+import { c80524RainReviewProfile } from './privateModelC80524RainZonesFloorRuntime.mjs';
 import { c80500ABCReviewProfile } from './privateModelC80500WW1974ABCFloorRuntime.mjs';
 import { C80_495_GLB_SHA256, c80495SavoSewerReviewProfile } from './privateModelC80495SavoSewerFloorRuntime.mjs';
 import { C80_WW74_L150_GLB_SHA256, c80Ww74L150ReviewProfile } from './privateModelC80Ww74L150FloorRuntime.mjs';
@@ -197,6 +202,8 @@ export function resolveTechnicalReviewRoots(gltf, scene, sceneIndex, loadedSha, 
   const json = gltf?.parser?.json;
   const associations = gltf?.parser?.associations;
   const source = loadedSha === C80_437_GLB_SHA256 ? c80437ReviewProfile(json,loadedSha,sceneIndex)
+    : loadedSha === C80_530_V27_GLB_SHA256 ? c80530V27ReviewProfile(json,loadedSha,sceneIndex)
+    : loadedSha === C80_524_RAIN_GLB_SHA256 ? c80524RainReviewProfile(json,loadedSha,sceneIndex)
     : loadedSha === C80_500_GLB_SHA256 ? c80500ABCReviewProfile(json,loadedSha,sceneIndex)
     : loadedSha === C80_495_GLB_SHA256 ? c80495SavoSewerReviewProfile(json,loadedSha,sceneIndex)
     : loadedSha === C80_WW74_L150_GLB_SHA256 ? c80Ww74L150ReviewProfile(json,loadedSha,sceneIndex)
@@ -284,7 +291,7 @@ export function createTechnicalReviewPresentation(root, keepRoots, createMateria
     if (applied) return true;
     try {
       systemCounts = {};
-      materials ??= createMaterials();
+      materials ??= markTechnicalReviewPickMaterials(createMaterials());
       root.traverse(object => {
         if (object === root || !isRenderable(object) || saved.has(object)) return;
         let shared;
