@@ -51,6 +51,12 @@ export const workTestCandidateMatchesFilter = (candidate: WorkTestCandidate, fil
   return terms.every((term) => haystack.includes(term));
 };
 
+/** Model number from a "C80 530 - …" style label, or null. */
+export const c80ModelNumber = (label: string): number | null => {
+  const match = /^C80 (\d{3,4})\b/.exec(label.trim());
+  return match ? Number(match[1]) : null;
+};
+
 /**
  * Newest first. Catalog order is registration order, so automatic Drive-queue
  * versions are grouped by the date in their label (newest date first) and,
@@ -95,7 +101,10 @@ export const groupWorkTestCandidatesForPicker = (
     .sort((a, b) => (a < b ? 1 : a > b ? -1 : 0));
   const groups: WorkTestPickerGroup[] = dates.flatMap((date) => {
     const dated: WorkTestPickerGroup[] = [];
-    const reviewed = manualByDate.get(date);
+    // Same-day review versions: the higher C80 model number is the newer
+    // chain successor (e.g. C80 530 over 524), whatever the catalog order.
+    const reviewed = manualByDate.get(date)?.slice().sort((a, b) =>
+      (c80ModelNumber(b.label) ?? -1) - (c80ModelNumber(a.label) ?? -1));
     if (reviewed) {
       dated.push({ key: `manual-${date}`, label: `Tarkistusversiot ${formatFinnishDate(date)}`, candidates: reviewed });
     }
