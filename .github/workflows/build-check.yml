@@ -255,6 +255,7 @@ jobs:
             tests/unit/private-model-c80-storey-host-evidence.test.mjs \
             tests/unit/private-model-c80-505-h24-source-profile.test.mjs \
             tests/unit/private-model-c80-505-h24-floor-runtime.test.mjs \
+            tests/unit/private-model-visible-idle-governor.test.mjs \
             tests/unit/private-model-c80-410-source-profile.test.mjs
 
       # Four self-contained K16-b/c scene33 builder guards run on every
