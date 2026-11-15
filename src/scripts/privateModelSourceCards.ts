@@ -5,6 +5,7 @@ import { TATE4_SOURCE_SHA256, TATE4_CARD_LINKS, resolveTate4CardNode } from './p
 import { buildSourceNodeAssociations, createSourceNodeView } from './privateModelSourceNodeAssociations.mjs';
 import { rehydrateHi20Unified52SourceScenes } from './privateModelHi20Unified52SourceScenes.mjs';
 import { rehydrateIncompleteScene } from './privateModelSourceSceneRehydrate.mjs';
+import { C80_524_RAIN_GLB_SHA256, C80_524_RAIN_SCENES, isC80524RainSourceScene } from './privateModelC80524RainZonesSourceProfile.mjs';
 import { C80_530_V27_GLB_SHA256, C80_530_V27_SCENES, isC80530V27SourceScene } from './privateModelC80530V27SourceProfile.mjs';
 import { resolveC80R2ChainFloorScenes } from './privateModelC80R2ChainScenes.mjs';
 
@@ -527,6 +528,15 @@ export const loadModelWithSourceCards = async <T extends GltfSource & object>(
     if(!indexes.every(index=>isC80437SourceScene(json,digest,index)))throw new Error('SUCC437_SOURCE_SCENE_MISMATCH');
     for(const index of indexes)rehydrate.add(index);
   }
+  // C80 524's six R1110 opt-in scenes have shared glTF node parents too.
+  // Rebuild only after authentic GLB SHA + every scene's exact source receipt;
+  // the old default and other model versions keep their existing policy.
+  if (digest === C80_524_RAIN_GLB_SHA256) {
+    const indexes = Object.keys(C80_524_RAIN_SCENES).map(Number);
+    if (!indexes.every(index => isC80524RainSourceScene(json, digest, index, C80_524_RAIN_SCENES[index].floor)))
+      throw new Error('C80_524_SOURCE_SCENE_MISMATCH');
+    for (const index of indexes) rehydrate.add(index);
+  }
   // The six C80 530 source scenes are not the asset's old 350-352 floor
   // references. GLTFLoader's cached shared nodes may be moved by earlier
   // getDependencies('node') calls, so restore these SHA-verified opt-in scenes
@@ -539,8 +549,10 @@ export const loadModelWithSourceCards = async <T extends GltfSource & object>(
   }
   for (const sceneIndex of rehydrate) {
     try {
-      const is530Scene = digest === C80_530_V27_GLB_SHA256 && C80_530_V27_SCENES[sceneIndex] !== undefined;
-      const rebuilt = await rehydrateIncompleteScene(gltf, sceneIndex, { force: is530Scene });
+      const isVerifiedOptInScene =
+        (digest === C80_524_RAIN_GLB_SHA256 && C80_524_RAIN_SCENES[sceneIndex] !== undefined) ||
+        (digest === C80_530_V27_GLB_SHA256 && C80_530_V27_SCENES[sceneIndex] !== undefined);
+      const rebuilt = await rehydrateIncompleteScene(gltf, sceneIndex, { force: isVerifiedOptInScene });
       const cardMap = identity !== gltf ? identity.parser?.associations : undefined;
       if (rebuilt && cardMap) for (const [object, id] of rebuilt)
         cardMap.set(object, { ...cardMap.get(object), nodes: id });
