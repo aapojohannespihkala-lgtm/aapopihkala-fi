@@ -123,12 +123,52 @@ test('a correct primitive count cannot mask wrong source roots: SHA-gated force 
  assert.equal(gltf.scenes[1].children.includes(helper),false);
 });
 
+test('C80 524 SHA-gated source-only loader restores only six exact R1110 scenes',async()=>{
+ const cards=readFileSync(new URL('../../src/scripts/privateModelSourceCards.ts',import.meta.url),'utf8');
+ const {C80_524_RAIN_SCENES, C80_524_RAIN_GLB_SHA256, isC80524RainSourceScene}=
+   await import('../../src/scripts/privateModelC80524RainZonesSourceProfile.mjs');
+ const ids=Object.keys(C80_524_RAIN_SCENES).map(Number);
+ assert.deepEqual(ids,[518,519,520,521,522,523]);
+ assert.equal(isC80524RainSourceScene({},C80_524_RAIN_GLB_SHA256,520),false);
+ assert.equal(isC80524RainSourceScene({},'0'.repeat(64),520),false);
+ assert.ok(cards.includes('if (digest === C80_524_RAIN_GLB_SHA256)'));
+ assert.ok(cards.includes('isC80524RainSourceScene(json, digest, index, C80_524_RAIN_SCENES[index].floor)'));
+ assert.ok(cards.includes("throw new Error('C80_524_SOURCE_SCENE_MISMATCH')"));
+ assert.ok(cards.includes('for (const index of indexes) rehydrate.add(index)'));
+ assert.ok(cards.includes('digest === C80_524_RAIN_GLB_SHA256 && C80_524_RAIN_SCENES[sceneIndex] !== undefined'));
+ assert.ok(cards.includes('digest === C80_530_V27_GLB_SHA256 && C80_530_V27_SCENES[sceneIndex] !== undefined'));
+ assert.ok(cards.includes('rehydrateIncompleteScene(gltf, sceneIndex, { force: isVerifiedOptInScene })'));
+ assert.ok(cards.includes('if (strict524 && !rebuilt) throw new Error(\'C80_524_SOURCE_SCENE_REHYDRATE_FAILED\')'));
+ assert.ok(cards.includes('if (strict524) throw new Error(\'C80_524_SOURCE_SCENE_REHYDRATE_FAILED\''));
+ assert.ok(cards.includes('const rehydrate = new Set<number>([json?.scene ?? 0'));
+ // Source state must not become a publication, CURRENT, or physical-route claim.
+ assert.equal(C80_524_RAIN_SCENES[520].floor,'BOTH');
+ assert.equal(C80_524_RAIN_SCENES[518].floor,'1F');
+});
+
+test('authentic private C80 524 JSON passes all six source gates, if explicitly supplied',
+ {skip:!process.env.C80_524_RAIN_GLB_PATH},async()=>{
+ const bytes=readFileSync(process.env.C80_524_RAIN_GLB_PATH);
+ const {createHash}=await import('node:crypto');
+ const {C80_524_RAIN_SCENES, C80_524_RAIN_GLB_SHA256, C80_524_RAIN_GLB_BYTES,
+  isC80524RainSourceScene}=await import('../../src/scripts/privateModelC80524RainZonesSourceProfile.mjs');
+ assert.equal(bytes.length,C80_524_RAIN_GLB_BYTES);
+ assert.equal(createHash('sha256').update(bytes).digest('hex'),C80_524_RAIN_GLB_SHA256);
+ const json=JSON.parse(bytes.subarray(20,20+bytes.readUInt32LE(12)).toString());
+ for(const [index,spec] of Object.entries(C80_524_RAIN_SCENES)){
+  assert.equal(isC80524RainSourceScene(json,C80_524_RAIN_GLB_SHA256,Number(index),spec.floor),true,'scene '+index);
+  assert.equal(isC80524RainSourceScene(json,'0'.repeat(64),Number(index),spec.floor),false,'wrong SHA');
+ }
+});
+
 test('C80 530 source-only loader rehydrates six verified scene ids, without changing default and older models',()=>{
  const cards=readFileSync(new URL('../../src/scripts/privateModelSourceCards.ts',import.meta.url),'utf8');
  assert.ok(cards.includes('if (digest === C80_530_V27_GLB_SHA256)'));
  assert.ok(cards.includes('isC80530V27SourceScene(json, digest, index, C80_530_V27_SCENES[index].floor)'));
  assert.ok(cards.includes('for (const index of indexes) rehydrate.add(index)'));
- assert.ok(cards.includes('rehydrateIncompleteScene(gltf, sceneIndex, { force: is530Scene })'));
+ assert.ok(cards.includes('rehydrateIncompleteScene(gltf, sceneIndex, { force: isVerifiedOptInScene })'));
+ assert.ok(cards.includes('digest === C80_530_V27_GLB_SHA256 && C80_530_V27_SCENES[sceneIndex] !== undefined'));
+ assert.ok(cards.includes('digest === C80_524_RAIN_GLB_SHA256 && C80_524_RAIN_SCENES[sceneIndex] !== undefined'));
  assert.ok(cards.includes('const rehydrate = new Set<number>([json?.scene ?? 0'));
 });
 
@@ -171,4 +211,85 @@ test('real Three.js GLTFLoader cached shared nodes are repaired before a source-
  const map=buildSourceNodeAssociations(loaded);
  assert.equal(map.get(scene.children[0])?.nodes,1);
  assert.equal(map.get(scene.children[0].children[0])?.nodes,2);
+});
+
+
+test('real GLTFLoader rebuilds six C80 524-style source scenes with shared node and root IDs',async()=>{
+ const {GLTFLoader}=await import('three/addons/loaders/GLTFLoader.js');
+ const {rehydrateIncompleteScene}=await import('../../src/scripts/privateModelSourceSceneRehydrate.mjs');
+ // Actual original 524 source JSON has 524 scenes, 3793 multi-parent node
+ // IDs and 1240 reused root IDs. This tiny GLB reproduces the multi-parent
+ // structure in all six opt-in roles without uploading private source bytes.
+ const data=Buffer.from(new Float32Array([0,0,0,1,0,0,0,1,0]).buffer);
+ const nodes=[
+  {name:'HOUSE_1F',children:[4,5]},
+  {name:'ROOM_1F',mesh:0},
+  {name:'HOUSE_2F',children:[4,6]},
+  {name:'ROOM_2F',mesh:0},
+  {name:'SHARED_SOURCE_PIPE',mesh:0},
+  {name:'LOWER_VALVE',mesh:0},
+  {name:'UPPER_VALVE',mesh:0},
+  {name:'BOTH_ONLY',mesh:0},
+  {name:'SITE_ROOT',children:[4]},
+ ];
+ const roots=[[0,1],[2,3],...Array.from({length:4},()=>[0,2,7,8])];
+ const json={
+  asset:{version:'2.0'},scene:0,
+  scenes:roots.map((nodes,i)=>({name:'C80_524_STYLE_'+(518+i),nodes})),
+  nodes,meshes:[{primitives:[{attributes:{POSITION:0}}]}],
+  accessors:[{bufferView:0,componentType:5126,count:3,type:'VEC3',min:[0,0,0],max:[1,1,0]}],
+  bufferViews:[{buffer:0,byteOffset:0,byteLength:data.length}],
+  buffers:[{byteLength:data.length}],
+ };
+ const payload=Buffer.from(JSON.stringify(json));
+ const pad=(payload.length+3)&~3, glb=Buffer.alloc(12+8+pad+8+data.length,0x20);
+ glb.writeUInt32LE(0x46546c67,0);glb.writeUInt32LE(2,4);
+ glb.writeUInt32LE(glb.length,8);
+ glb.writeUInt32LE(pad,12);glb.writeUInt32LE(0x4e4f534a,16);
+ payload.copy(glb,20);glb.writeUInt32LE(data.length,20+pad);
+ glb.writeUInt32LE(0x004e4942,24+pad);data.copy(glb,28+pad);
+ const gltf=await new GLTFLoader().parseAsync(
+  glb.buffer.slice(glb.byteOffset,glb.byteOffset+glb.byteLength),'');
+ assert.equal(gltf.scenes.length,6);
+ await gltf.parser.getDependencies('node');
+ const maps=[];
+ for(let i=0;i<6;i++){
+  const map=await rehydrateIncompleteScene(gltf,i,{force:true});
+  assert.ok(map instanceof Map,'scene '+i+' reconstructs through real loader');
+  const scene=gltf.scenes[i],rootIds=roots[i];
+  assert.equal(scene.children.length,rootIds.length,'scene '+i+' root count');
+  assert.deepEqual(scene.children.map(o=>map.get(o)),rootIds,
+   'scene '+i+' source root IDs and ordering preserved');
+  const expectedPrimitives=i<2?3:6;
+  let primitives=0;
+  scene.traverse(o=>{if(o.isMesh||o.isLine||o.isPoints)primitives++;});
+  assert.equal(primitives,expectedPrimitives,'scene '+i+' exact source primitive count');
+  // Even though GLTFLoader caches node 4 and old scene roots, cloning
+  // must restore all source children under each independent scene parent.
+  for(const id of [0,2,8]){
+   const at=rootIds.indexOf(id);
+   if(at<0)continue;
+   const sourceChildren=nodes[id].children;
+   assert.deepEqual(scene.children[at].children.map(o=>map.get(o)),sourceChildren,
+    'scene '+i+' exact source children of node '+id);
+  }
+  const pipeCopies=[...map].filter(([_,id])=>id===4).map(([o])=>o);
+  assert.equal(pipeCopies.length,i<2?1:3,
+   'scene '+i+' creates one independent shared child per source occurrence');
+  assert.ok(pipeCopies.every(o=>o.isMesh));
+  assert.equal(new Set(pipeCopies).size,pipeCopies.length);
+  maps.push(map);
+ }
+ const first=gltf.scenes[2].children[0];
+ assert.notEqual(first,gltf.scenes[3].children[0],
+  'two BOTH views must not share a movable source root Object3D');
+ const pipe=first.children[0];
+ assert.equal(maps[2].get(pipe),4);
+ assert.notEqual(pipe,gltf.scenes[3].children[0].children[0],
+  'same glTF node identity cannot relocate between restored scene parents');
+ for(let i=0;i<6;i++)
+  assert.deepEqual(gltf.scenes[i].children.map(o=>maps[i].get(o)),roots[i],
+   'later scene rebuilds do not remove earlier source roots '+i);
+ assert.equal(await rehydrateIncompleteScene(gltf,6,{force:true}),null,
+  'unknown source scene index fails closed');
 });
