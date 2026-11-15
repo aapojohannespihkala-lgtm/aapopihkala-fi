@@ -1,3 +1,4 @@
+import {C80_437_SCENES} from '../../src/scripts/privateModelC80437SourceProfile.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
@@ -73,7 +74,11 @@ test('authentic 505: floor, glazing, cutaway, dispose and H24 non-MEP highlight'
    if (floor !== '2F') {
      assert.ok(review.roots[sceneIndex].some(r => r.node === 12237));
      assert.ok(review.roots[sceneIndex].some(r => r.node === 12228));
-   } else assert.deepEqual(review.roots[sceneIndex].map(r => r.node), [12230]);
+   } else assert.ok(review.roots[sceneIndex].some(r => r.node === 12230));
+   const historic=new Set(Object.values(C80_437_SCENES).flatMap(s => s.review ?? []));
+   const expectedTechnical=roots.filter(n => n !== C80_505_H24_NEW_ROOT &&
+     (historic.has(n) || [12193,12194,12224,12228,12230,12237].includes(n)));
+   assert.deepEqual(review.roots[sceneIndex].map(r => r.node),expectedTechnical);
  }
  runtime.restore();
  assert.equal(runtime.setGlazing('INVALID'), null);
@@ -106,4 +111,11 @@ test('505 source mount fail-closed even if scene identity changes after construc
  current=scenes[501];
  assert.equal(runtime.apply('BOTH')===null,false); // mounting the current identity is valid
  runtime.dispose();
+});
+
+test('505 H24 source-only reviewer preserves historical MEP roots without promoting H24',()=>{
+ const source=readFileSync(new URL('../../src/scripts/privateModelC80505H24FloorRuntime.mjs',import.meta.url),'utf8');
+ assert.ok(source.includes('C80_437_SCENES'));
+ assert.ok(source.includes('...HISTORICAL_MEP_ROOTS, 12193, 12194, 12224, 12228, 12230, 12237'));
+ assert.ok(source.includes('node !== C80_505_H24_NEW_ROOT'));
 });
