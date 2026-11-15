@@ -9,7 +9,9 @@ import {C80_524_RAIN_VIEWER_ROLES as ROLES,
  resolveC80524RainSceneIndex as index,
  resolveC80524RainScenes as resolve,
  createC80524RainFloorRuntime as create,
- c80524RenderedRootPathMatches as renderedRootsMatch}
+ c80524RenderedRootPathMatches as renderedRootsMatch,
+ c80524SnapshotRenderedSourceRoots as snapshotRoots,
+ c80524RenderedSourceRootsUnchanged as rootsUnchanged}
  from '../../src/scripts/privateModelC80524RainZonesFloorRuntime.mjs';
 
 const modes=[
@@ -139,6 +141,29 @@ test('524 rendered root order/name verification rejects wrong cross-SHA nodes an
  assert.equal(renderedRootsMatch(json,{},0),false);
  assert.equal(renderedRootsMatch({}, {children:ordered},0),false);
 });
+test('captured rendered roots reject same-name donor object, geometry and nested-child swaps',()=>{
+ const geometry={source:'original-524'},child={name:'SOURCED_CHILD',geometry};
+ const root={name:'SOURCE_ROOT',geometry,children:[child]};
+ const scene={children:[root]},proof=snapshotRoots(scene,1);
+ assert.ok(proof);
+ assert.equal(rootsUnchanged(scene,proof),true);
+ scene.children.push({name:'VIEWER_HELPER_AFTER_SOURCE_ROOTS'});
+ assert.equal(rootsUnchanged(scene,proof),true,'appended viewer helpers allowed');
+ scene.children[0]={...root,geometry:{source:'donor-530'}};
+ assert.equal(rootsUnchanged(scene,proof),false,'same-name donor clone rejected');
+ scene.children[0]=root;
+ assert.equal(rootsUnchanged(scene,proof),true);
+ root.geometry={source:'replaced-mesh'};
+ assert.equal(rootsUnchanged(scene,proof),false,'in-place geometry rebinding rejected');
+ root.geometry=geometry;
+ root.children=[{name:'SOURCED_CHILD',geometry}];
+ assert.equal(rootsUnchanged(scene,proof),false,'same-name nested descendant replacement rejected');
+ root.children=[child];
+ assert.equal(rootsUnchanged(scene,proof),true,'return to original references accepted');
+ assert.equal(snapshotRoots({},1),null);
+ assert.equal(snapshotRoots(scene,3),null);
+ assert.equal(rootsUnchanged(scene,null),false);
+});
 test('authentic 524 scene renderer mismatch rejects init and scene restore', {skip:!fixture},()=>{
  const {json,gltf,scenes}=sourceFixture();
  assert.ok(resolve(gltf,SHA));
@@ -148,6 +173,13 @@ test('authentic 524 scene renderer mismatch rejects init and scene restore', {sk
  const runtime=create({gltf,sha:SHA,mount(next){current=next;},mounted(){return current;}});
  assert.ok(runtime.apply('2F'));
  const previous=scenes[520].children[rootIndex];
+ // The old name-only root gate accepted this same-name donor object. Captured
+ // references reject it even though every source JSON field and SHA is unchanged.
+ scenes[520].children[rootIndex]={...previous};
+ assert.equal(renderedRootsMatch(json,scenes[520],520),true,'name-only still matches');
+ assert.equal(runtime.restore(),false,'same-name object identity gate rejects donor clone');
+ assert.equal(current,scenes[519]);
+ scenes[520].children[rootIndex]=previous;
  scenes[520].children[rootIndex]={name:'ROOM3_DONOR_INVALID_RENDERED_ROOT'};
  assert.equal(resolve(gltf,SHA),null);
  assert.equal(runtime.restore(),false,'stale scene root blocks restore');
