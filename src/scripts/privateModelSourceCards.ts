@@ -6,6 +6,7 @@ import { buildSourceNodeAssociations, createSourceNodeView } from './privateMode
 import { rehydrateHi20Unified52SourceScenes } from './privateModelHi20Unified52SourceScenes.mjs';
 import { rehydrateIncompleteScene } from './privateModelSourceSceneRehydrate.mjs';
 import { C80_530_V27_GLB_SHA256, C80_530_V27_SCENES, isC80530V27SourceScene } from './privateModelC80530V27SourceProfile.mjs';
+import { C80_602_GLB_SHA256, C80_602_SCENES, isC80602SourceScene } from './privateModelC80602SourceProfile.mjs';
 import { resolveC80R2ChainFloorScenes } from './privateModelC80R2ChainScenes.mjs';
 
 type RecordData = Record<string, any>;
@@ -537,9 +538,18 @@ export const loadModelWithSourceCards = async <T extends GltfSource & object>(
       throw new Error('C80_530_SOURCE_SCENE_MISMATCH');
     for (const index of indexes) rehydrate.add(index);
   }
+  // C80 602 keeps the 530 terrain root and shares nodes across its six
+  // opt-in scenes in the same way; restore them from the authentic graph.
+  if (digest === C80_602_GLB_SHA256) {
+    const indexes = Object.keys(C80_602_SCENES).map(Number);
+    if (!indexes.every(index => isC80602SourceScene(json, digest, index, C80_602_SCENES[index].floor)))
+      throw new Error('C80_602_SOURCE_SCENE_MISMATCH');
+    for (const index of indexes) rehydrate.add(index);
+  }
   for (const sceneIndex of rehydrate) {
     try {
-      const is530Scene = digest === C80_530_V27_GLB_SHA256 && C80_530_V27_SCENES[sceneIndex] !== undefined;
+      const is530Scene = (digest === C80_530_V27_GLB_SHA256 && C80_530_V27_SCENES[sceneIndex] !== undefined) ||
+        (digest === C80_602_GLB_SHA256 && C80_602_SCENES[sceneIndex] !== undefined);
       const rebuilt = await rehydrateIncompleteScene(gltf, sceneIndex, { force: is530Scene });
       const cardMap = identity !== gltf ? identity.parser?.associations : undefined;
       if (rebuilt && cardMap) for (const [object, id] of rebuilt)

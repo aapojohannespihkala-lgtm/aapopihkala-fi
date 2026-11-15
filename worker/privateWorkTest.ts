@@ -4490,6 +4490,17 @@ const C80_530_V27_NO_TRENCH_WORK_TEST_CANDIDATE = {
   expectedSha256: '1a99cc32c80e1b87bbefcf9e6f373af42aee7e72ede574eabafe375298fd9f9e',
 } as const satisfies PrivateWorkTestCandidate;
 
+// C80 602: C80 596 ALL5 + K12 + K09/Themo + K16/K18 with owner K04 2F wall
+// switch hosts SW01..SW04. WORK_TEST/HOST_HOLD, no CURRENT/as-built promotion.
+const C80_602_ALL5_K04_WORK_TEST_CANDIDATE = {
+  id: 'c80-602-all5-k12-k09-k16-k18-k04-20261115',
+  label: 'C80 602 - omistajakatselmus K01-K04, K07-K09/Themo, K12, K16, K18 - 15.11.2026 WORK_TEST/HOST_HOLD',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/c80-602-all5-k12-k09-k16-k18-k04-20261115.glb`,
+  objectKey: 'work-test/c80-602-all5-k12-k09-k16-k18-k04-20261115.glb',
+  expectedSize: 56765356,
+  expectedSha256: '68022663faeca35955cf2822a34fc531dc6a446bdd4a13bad0169e16ec80bcfc',
+} as const satisfies PrivateWorkTestCandidate;
+
 // C80 524 opt-in: D-gable storm downspout presence zones over 518 A-C water
 // risers, 512 T110 roof vent and 505 H24. No physical as-built or CURRENT
 // promotion. Work-test SHA source only.
@@ -4511,6 +4522,7 @@ const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
   C80_WW74_L150_WORK_TEST_CANDIDATE,
   C80_495_SAVO_SEWER_WORK_TEST_CANDIDATE,
   C80_500_WW1974_ABC_WORK_TEST_CANDIDATE,
+  C80_602_ALL5_K04_WORK_TEST_CANDIDATE,
   C80_530_V27_NO_TRENCH_WORK_TEST_CANDIDATE,
   C80_524_RAIN_ZONES_WORK_TEST_CANDIDATE,
   C80_TATE_INTERIOR_WORK_TEST_CANDIDATE,
