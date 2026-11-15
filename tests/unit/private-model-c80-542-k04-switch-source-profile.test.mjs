@@ -1,3 +1,9 @@
+import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
+import {
+ c80530RenderedRootPathMatches,
+ c80530SnapshotRenderedSourceTree,
+ c80530RenderedSourceTreeUnchanged,
+} from '../../src/scripts/privateModelC80530V27FloorRuntime.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
@@ -128,4 +134,99 @@ test('authentic source GLB: six scene roots, old/new DFS, and fail-closed tamper
  const approved=structuredClone(json);
  approved.scenes[538].extras.sourceLinksBoundToNewGLBSHA=true;
  assert.equal(valid(approved,SHA,538,'BOTH'),false);
+});
+
+/**
+ * K04 synthetic three GLTFLoader contract. Real Three.js decodes the tiny GLB,
+ * including generated multi-primitive renderer children and source-node
+ * associations. This is NOT the original 55.77 MB C80 542 model, and does
+ * not authorize physical wall position, CURRENT, production WebGL or release.
+ */
+function k04SyntheticThreeGlb() {
+ const position=[0,0,0, 1,0,0, 0,1,0], bin=Buffer.alloc(44);
+ position.forEach((v,i)=>bin.writeFloatLE(v,i*4));
+ [0,1,2].forEach((v,i)=>bin.writeUInt16LE(v,36+i*2));
+ const p={attributes:{POSITION:0},indices:1};
+ const held={physicalPositionVerified:false,productSkuVerified:false,
+  sourceLinksBoundToNewGLBSHA:false,current:false,asBuilt:false};
+ const json={
+  asset:{version:'2.0',generator:'K04 synthetic three GLTFLoader contract'},
+  scene:1,
+  scenes:[
+   {name:'K04_SYNTH_1F_UNCHANGED',nodes:[3]},
+   {name:'K04_SYNTH_2F_SW01_04',nodes:[0,3]},
+  ],
+  nodes:[
+   {name:'K04_SW01_ROOT_WORK_TEST_HOST_HOLD',mesh:0,children:[1,2],
+    translation:[5.41,3.85,-5.005],
+    extras:{...held,physicalWallHost:'HOLD_UNVERIFIED'}},
+   {name:'K04_SW01_PLATE_WORK_TEST',mesh:1,translation:[0.002,0,0],
+    extras:held},
+   {name:'K04_SW01_ROCKER_WORK_TEST',mesh:1,translation:[0,0.004,0],
+    extras:held},
+   {name:'K04_1F_UNCHANGED_CONTENT',mesh:1},
+  ],
+  meshes:[{primitives:[p,p]},{primitives:[p]}],
+  buffers:[{byteLength:44}],
+  bufferViews:[
+   {buffer:0,byteOffset:0,byteLength:36,target:34962},
+   {buffer:0,byteOffset:36,byteLength:6,target:34963},
+  ],
+  accessors:[
+   {bufferView:0,componentType:5126,count:3,type:'VEC3',
+    min:[0,0,0],max:[1,1,0]},
+   {bufferView:1,componentType:5123,count:3,type:'SCALAR'},
+  ],
+ };
+ const encoded=Buffer.from(JSON.stringify(json),'utf8');
+ const paddedJson=(encoded.length+3)&~3, paddedBin=(bin.length+3)&~3;
+ const glb=Buffer.alloc(12+8+paddedJson+8+paddedBin);
+ glb.write('glTF',0,'ascii');
+ glb.writeUInt32LE(2,4);
+ glb.writeUInt32LE(glb.length,8);
+ glb.writeUInt32LE(paddedJson,12);
+ glb.write('JSON',16,'ascii');
+ glb.fill(0x20,20,20+paddedJson);
+ encoded.copy(glb,20);
+ const i=20+paddedJson;
+ glb.writeUInt32LE(paddedBin,i);
+ glb.writeUInt32LE(0x004e4942,i+4);
+ bin.copy(glb,i+8);
+ return glb.buffer.slice(glb.byteOffset,glb.byteOffset+glb.byteLength);
+}
+test('K04 synthetic three GLTFLoader decodes SW root, ordered plate/rocker, held provenance and immutable geometry',async()=>{
+ const gltf=await new GLTFLoader().parseAsync(k04SyntheticThreeGlb(),'');
+ const json=gltf.parser.json,associations=gltf.parser.associations;
+ assert.equal(gltf.scenes.length,2);
+ assert.equal(gltf.scenes[0].name,'K04_SYNTH_1F_UNCHANGED');
+ assert.deepEqual(json.scenes[0].nodes,[3]);
+ assert.deepEqual(json.scenes[1].nodes,[0,3]);
+ for(const i of [0,1])
+  assert.equal(c80530RenderedRootPathMatches(json,gltf.scenes[i],i,associations),true);
+ const scene=gltf.scenes[1],root=scene.children[0];
+ // Generated children from two primitives precede the source plate/rocker.
+ assert.ok(root.children.length>json.nodes[0].children.length);
+ const [plate,rocker]=root.children.slice(-2);
+ assert.match(plate.name,/K04_SW01_PLATE/);
+ assert.match(rocker.name,/K04_SW01_ROCKER/);
+ assert.equal(plate.userData.physicalPositionVerified,false);
+ assert.equal(rocker.userData.sourceLinksBoundToNewGLBSHA,false);
+ assert.equal(root.userData.physicalWallHost,'HOLD_UNVERIFIED');
+ assert.equal(root.userData.asBuilt,false);
+ const proof=c80530SnapshotRenderedSourceTree(scene,2);
+ assert.ok(proof);
+ assert.equal(c80530RenderedSourceTreeUnchanged(scene,proof),true);
+ plate.position.z+=0.001;
+ assert.equal(c80530RenderedSourceTreeUnchanged(scene,proof),false);
+ plate.position.z-=0.001;
+ assert.equal(c80530RenderedSourceTreeUnchanged(scene,proof),true);
+ const fake=new Map(associations);
+ fake.set(plate,{nodes:2}); // source PLATE forged to ROCKER
+ assert.equal(c80530RenderedRootPathMatches(json,scene,1,fake),false);
+ scene.children.reverse();
+ assert.equal(c80530RenderedRootPathMatches(json,scene,1,associations),false);
+ assert.equal(c80530RenderedSourceTreeUnchanged(scene,proof),false);
+ scene.children.reverse();
+ assert.equal(c80530RenderedRootPathMatches(json,scene,1,associations),true);
+ assert.equal(c80530RenderedSourceTreeUnchanged(scene,proof),true);
 });
