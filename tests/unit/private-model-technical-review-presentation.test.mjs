@@ -597,3 +597,33 @@ test('source-exact nested H24 leaves respect explicit presentation-only and arch
   assert.equal(electrical.material,original,'original GLB material restored');
   review.dispose();
 });
+
+test('C80 524/530: H24 floor wrapper and Bosch washer are grey, other roots kept (owner 15.11.2026)', async () => {
+  const { filterCompositePresentationRoots } = await import('../../src/scripts/privateModelTechnicalReviewPresentation.mjs');
+  const { C80_530_V27_GLB_SHA256 } = await import('../../src/scripts/privateModelC80530V27SourceProfile.mjs');
+  const { C80_524_RAIN_GLB_SHA256 } = await import('../../src/scripts/privateModelC80524RainZonesSourceProfile.mjs');
+  const entries = [2220, 11613, 11945, 11996, 11728, 12048, 12239].map((node) => ({ node, name: `n${node}` }));
+  for (const sha of [C80_530_V27_GLB_SHA256, C80_524_RAIN_GLB_SHA256]) {
+    assert.deepEqual(filterCompositePresentationRoots(entries, sha).map((e) => e.node), [11728, 12048, 12239]);
+  }
+  // Unrelated hashes remain unchanged.
+  assert.equal(filterCompositePresentationRoots(entries, 'f'.repeat(64)), entries);
+});
+
+test('C80 524/530: Sisältö-bound KPH floor clones and Bosch washer are not technically coloured', async () => {
+  const { filterNonTechnicalBoundObjects } = await import('../../src/scripts/privateModelTechnicalReviewPresentation.mjs');
+  const { C80_530_V27_GLB_SHA256 } = await import('../../src/scripts/privateModelC80530V27SourceProfile.mjs');
+  const items = [
+    'K11_XMIRROR_R989_FLOOR_INTEGRATION_DERIVED_CLONE_2898_PRESENTATION_CLONE_2440_KPH_FLOOR_WEST_ANCHOR_',
+    'MJ54_BOSCH_WNG254ABSN_CORRECT_PUMP_FRONT_RIGHT',
+    'K11_XMIRROR_KPH09_PHOTO_ROTARY_BEZEL',
+    'PH_WASHER_OPEN_2015_CANDIDATE_P185C_HOST',
+  ].map((name) => ({ object: { name } }));
+  assert.deepEqual(filterNonTechnicalBoundObjects(items, C80_530_V27_GLB_SHA256).map((i) => i.object.name),
+    ['K11_XMIRROR_KPH09_PHOTO_ROTARY_BEZEL', 'PH_WASHER_OPEN_2015_CANDIDATE_P185C_HOST']);
+  assert.equal(filterNonTechnicalBoundObjects(items, 'f'.repeat(64)), items);
+  // Bound washer child meshes are excluded through their exact source root.
+  const washerRoot = { name: 'MJ54_BOSCH_WNG254ABSN_CORRECT_PUMP_FRONT_RIGHT', parent: null };
+  const child = { object: { name: 'C80-037_BOSCH_1_MAIN_CABINET', parent: washerRoot } };
+  assert.deepEqual(filterNonTechnicalBoundObjects([child], C80_530_V27_GLB_SHA256), []);
+});

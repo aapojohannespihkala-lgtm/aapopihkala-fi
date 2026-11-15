@@ -104,8 +104,38 @@ import { sameSourceName } from './privateModelSourceNodeAssociations.mjs';
  * node IDs. Never apply this exclusion to other GLBs or their node indices.
  */
 const COMPOSITE_PRESENTATION_ROOTS = new Set([2220,11613,11945]);
+// C80 524/530 append-only successors keep the same immutable node indices
+// (SHA-gated profiles). Owner review 15.11.2026: the H24 KPH floor tiles and
+// the MJ54 Bosch washer (11996, an appliance, not an installation) were shown
+// as electrical orange. Grey them; H24 device leaves are re-added below.
+const C80_CHAIN_COMPOSITE_SHAS = new Set([C80_524_RAIN_GLB_SHA256, C80_530_V27_GLB_SHA256]);
+const C80_CHAIN_COMPOSITE_ROOTS = new Set([...COMPOSITE_PRESENTATION_ROOTS, 11996]);
+// C80 524/530 Sisältö technical-layer bindings also list a few fixtures
+// (owner review 15.11.2026 K15): the H24 WC/KPH floor-tile clones and the
+// MJ54 Bosch washer appliance. They keep their layer membership for Sisältö,
+// but are not shown with the electrical palette. SHA-gated exact name prefixes.
+const C80_CHAIN_NONTECHNICAL_BOUND_PREFIXES = Object.freeze([
+  'K11_XMIRROR_R989_FLOOR_INTEGRATION_DERIVED_CLONE_',
+  'MJ54_BOSCH_WNG254ABSN_',
+]);
+export function filterNonTechnicalBoundObjects(items,loadedSha) {
+  if (!Array.isArray(items) || !C80_CHAIN_COMPOSITE_SHAS.has(loadedSha)) return items;
+  // The washer is bound per child mesh (C80-037_BOSCH_1_*), so test the
+  // bound object and its ancestors against the exact source root prefixes.
+  const excluded=object=>{
+    for (let node=object; node; node=node.parent) {
+      const name=node.name;
+      if (typeof name==='string' &&
+        C80_CHAIN_NONTECHNICAL_BOUND_PREFIXES.some(prefix=>name.startsWith(prefix))) return true;
+    }
+    return false;
+  };
+  return items.filter(item=>!excluded(item?.object));
+}
 export function filterCompositePresentationRoots(entries,loadedSha) {
   if (!Array.isArray(entries)) return null;
+  if (C80_CHAIN_COMPOSITE_SHAS.has(loadedSha))
+    return entries.filter(entry=>!C80_CHAIN_COMPOSITE_ROOTS.has(entry.node));
   if (loadedSha !== TATE4_MJ6263_SOURCE_SHA256 &&
       loadedSha !== SUCCESSOR_R1_SHA256) return entries;
   return entries.filter(entry=>!COMPOSITE_PRESENTATION_ROOTS.has(entry.node));
@@ -168,7 +198,8 @@ const h24NestedSystems=new WeakMap();
 export function appendSourceExactH24Children(json,scene,sceneIndex,loadedSha,associations,roots) {
   if (!Array.isArray(roots)) return null;
   if (loadedSha !== SUCCESSOR_R1_SHA256 &&
-      loadedSha !== TATE4_MJ6263_SOURCE_SHA256) return roots;
+      loadedSha !== TATE4_MJ6263_SOURCE_SHA256 &&
+      !C80_CHAIN_COMPOSITE_SHAS.has(loadedSha)) return roots;
   const active=json?.scenes?.[sceneIndex]?.nodes;
   if (!Array.isArray(active) || !active.includes(11613)) return roots;
   const sourceParent=json.nodes?.[11613];

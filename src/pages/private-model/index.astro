@@ -2282,6 +2282,7 @@ const title = 'Private 3D viewer';
         selectionMetadataEntries as collectSelectionMetadataEntries,
         selectionSourceLinks as collectSelectionSourceLinks,
       } from '../../scripts/privateModelSelectionMetadata';
+      import { createC80530ElectricalGroupEvidenceResolver } from '../../scripts/privateModelC80530ElectricalGroupEvidence.mjs';
       import { createC80536WW74SelectionEvidenceResolver } from '../../scripts/privateModelC80536WW74SelectionEvidence.mjs';
       import {
         createSelectionPanelController,
@@ -2585,7 +2586,7 @@ const title = 'Private 3D viewer';
       import { V93_MJ40_SOURCE_SHA256 } from '../../scripts/privateModelV93MJ40BoschOpen90SourceProfile.mjs';
       import { V90_H20_SOURCE_SHA256 } from '../../scripts/privateModelC80R2V90H20LayerSourceProfile.mjs';
       import { V90_IV_P04_SOURCE_SHA256 } from '../../scripts/privateModelC80R2V90IVP04LayerSourceProfile.mjs';
-      import { resolveTechnicalReviewRoots, createTechnicalReviewPresentation, technicalReviewSystemOf, technicalReviewLayerSystemOf } from '../../scripts/privateModelTechnicalReviewPresentation.mjs';
+      import { resolveTechnicalReviewRoots, createTechnicalReviewPresentation, technicalReviewSystemOf, technicalReviewLayerSystemOf, filterNonTechnicalBoundObjects } from '../../scripts/privateModelTechnicalReviewPresentation.mjs';
       import { resolveConcealedTechnicalObjects, createConcealedTechnicalPresentation } from '../../scripts/privateModelConcealedTechnicalPresentation.mjs';
       import { K17_RAIL900_SOURCE_SHA256 } from '../../scripts/privateModelK17Rail900LayerSourceProfile.mjs';
       import { createV69C035WhiteLobbyPresentation } from '../../scripts/privateModelV69C035WhiteLobbyPresentation.mjs';
@@ -3454,6 +3455,7 @@ const title = 'Private 3D viewer';
       let resolveSelectionSources: (object: any) => SelectionSourceEvidence = () => ({
         state: 'unavailable', version: 'Mallia ei ole ladattu', cards: [],
       });
+      let resolveElectricalGroupEvidence: (object: any, activeScene: any) => Array<readonly [string, string]> = () => [];
       let resolveWW74HistoricalEvidence: (object: any, activeScene: any) => Array<readonly [string, string]> = () => [];
       let dInteriorScene: any = null;
       let p186dReviewRoomContextGroup: THREE.Group | null = null;
@@ -5510,6 +5512,7 @@ const title = 'Private 3D viewer';
           })(),
           metadataEntries: [
             ...technicalMetadata,
+            ...resolveElectricalGroupEvidence(object, modelRoot.children[0] ?? null),
             ...resolveWW74HistoricalEvidence(object, modelRoot.children[0] ?? null),
             ...collectSelectionMetadataEntries(object, modelRoot),
           ],
@@ -7783,6 +7786,15 @@ const title = 'Private 3D viewer';
           if (!fullModelScene) throw new Error('C80 source WHOLE scene missing');
         }
         resolveSelectionSources = sourceCardResolverForModel(gltf);
+        // GLTFLoader prunes parser node associations in multi-scene GLBs.
+        // Use the already source-verified reconstructed 530 scene node view.
+        const sourceBoundElectricalGroup = createC80530ElectricalGroupEvidenceResolver(
+          sourceNodeModel(gltf), sourceKind === 'work-test' ? loadedModelSha256(gltf) : null,
+        );
+        resolveElectricalGroupEvidence = (object, activeScene) =>
+          sourceBoundElectricalGroup(object, activeScene).map(
+            ([label, value]) => [label, value] as const,
+          );
         dInteriorScene = dInteriorOverride ??
           findSourceNamedScene(gltf, 'D CURRENT INTERIOR - BABYLON Y-UP');
         const modelLoadLayerState = createViewerLayerStateForModelLoad({
@@ -7814,8 +7826,7 @@ const title = 'Private 3D viewer';
         // GLTFLoader drops those indices for multi-scene GLBs (HI20 52scene),
         // so give them the structurally rebuilt, read-only node view.
         const sourceNodeGltf = sourceKind === 'work-test' ? sourceNodeModel(gltf) : gltf;
-        // Historical 1974 WW74 grade metadata: source-only and SHA-locked,
-        // never grants sourceLinks, physical approval or publication.
+        // SHA-locked 1974 sewer-grade WORK_TEST metadata only, not sourceLinks.
         const ww74SelectionEvidence = createC80536WW74SelectionEvidenceResolver(
           sourceNodeGltf, sourceKind === 'work-test' ? loadedModelSha256(gltf) : null,
         );
@@ -9219,6 +9230,7 @@ const title = 'Private 3D viewer';
           Canonical: false,
           ModelStage: 'WORK_TEST_VIEW',
           presentationOnly: true,
+          viewerDerived: true,
           source: '1974-204-A-P-1.tif / G1 T02',
           minimumSourceGroundElevationM: 18.3,
           currentGroundClaim: false,
@@ -14736,7 +14748,7 @@ const title = 'Private 3D viewer';
               // exact-source Sisältö technical layer they are bound to.
               const layerIdByRoot = new Map<THREE.Object3D, string>(bindings.map(binding => [binding.root, binding.id]));
               technicalReview = createTechnicalReviewPresentation(root,
-                [...reviewRoots, ...technical.boundObjects.map(item => item.object)], createTechnicalReviewMaterials,
+                [...reviewRoots, ...filterNonTechnicalBoundObjects(technical.boundObjects, layersLoadedSha).map((item: { object: THREE.Object3D }) => item.object)], createTechnicalReviewMaterials,
                 (object: THREE.Object3D) => technicalReviewSystemOf(object, root) ?? technicalReviewLayerSystemOf(object, root, layerIdByRoot));
               technicalReviewInput.checked = technicalReviewOn;
               technicalReview.apply(technicalReviewOn);
