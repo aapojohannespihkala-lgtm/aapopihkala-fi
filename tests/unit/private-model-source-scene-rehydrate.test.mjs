@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
 import { rehydrateIncompleteDefaultScene } from '../../src/scripts/privateModelSourceSceneRehydrate.mjs';
 import { buildSourceNodeAssociations } from '../../src/scripts/privateModelSourceNodeAssociations.mjs';
 
@@ -101,4 +102,73 @@ test('rehydrates an explicit non-default scene index', async () => {
   assert.deepEqual(meshes(gltf.scenes[0]), ['SHARED']);
   assert.equal(map.get(gltf.scenes[0].children[0]), 0);
   assert.equal(await rehydrateIncompleteScene(gltf, 'x'), null);
+});
+
+test('a correct primitive count cannot mask wrong source roots: SHA-gated force reconstructs them',async()=>{
+ const {rehydrateIncompleteScene}=await import('../../src/scripts/privateModelSourceSceneRehydrate.mjs');
+ const {gltf,cache}=model();
+ // Shared node4 was stolen but an unrelated helper balances the primitive
+ // count. A mesh-count-only gate would silently accept the wrong scene tree.
+ const helper=mesh('FAKE_NOT_SOURCE');
+ gltf.scenes[1].add(helper);
+ assert.deepEqual(meshes(gltf.scenes[1]),['FAKE_NOT_SOURCE','LEAF','MULTI_0','MULTI_1']);
+ assert.equal(await rehydrateIncompleteScene(gltf,1),null,'legacy count-gate unchanged');
+ assert.deepEqual(meshes(gltf.scenes[1]),['FAKE_NOT_SOURCE','LEAF','MULTI_0','MULTI_1']);
+ const restored=await rehydrateIncompleteScene(gltf,1,{force:true});
+ assert.ok(restored);
+ assert.deepEqual(meshes(gltf.scenes[1]),['LEAF','MULTI_0','MULTI_1','SHARED']);
+ assert.equal(restored.get(gltf.scenes[1].children[0]),1);
+ assert.equal(restored.get(gltf.scenes[1].children[0].children[0]),4);
+ assert.equal(cache[4].parent,cache[5],'source-loader cache stays intact');
+ assert.equal(gltf.scenes[1].children.includes(helper),false);
+});
+
+test('C80 530 source-only loader rehydrates six verified scene ids, without changing default and older models',()=>{
+ const cards=readFileSync(new URL('../../src/scripts/privateModelSourceCards.ts',import.meta.url),'utf8');
+ assert.ok(cards.includes('if (digest === C80_530_V27_GLB_SHA256)'));
+ assert.ok(cards.includes('isC80530V27SourceScene(json, digest, index, C80_530_V27_SCENES[index].floor)'));
+ assert.ok(cards.includes('for (const index of indexes) rehydrate.add(index)'));
+ assert.ok(cards.includes('rehydrateIncompleteScene(gltf, sceneIndex, { force: is530Scene })'));
+ assert.ok(cards.includes('const rehydrate = new Set<number>([json?.scene ?? 0'));
+});
+
+test('real Three.js GLTFLoader cached shared nodes are repaired before a source-root guard',async()=>{
+ const {GLTFLoader}=await import('three/addons/loaders/GLTFLoader.js');
+ const positions=new Float32Array([0,0,0, 1,0,0, 0,1,0]);
+ const data=Buffer.from(positions.buffer);
+ const json={
+  asset:{version:'2.0'},scene:0,
+  scenes:[{name:'BASE',nodes:[0]},{name:'LATEST',nodes:[1]}],
+  nodes:[
+   {name:'BASE_PARENT',children:[2]},
+   {name:'LATEST_PARENT',children:[2]},
+   {name:'SHARED_MESH',mesh:0},
+  ],
+  meshes:[{primitives:[{attributes:{POSITION:0}}]}],
+  accessors:[{bufferView:0,componentType:5126,count:3,type:'VEC3',min:[0,0,0],max:[1,1,0]}],
+  bufferViews:[{buffer:0,byteOffset:0,byteLength:data.length}],
+  buffers:[{byteLength:data.length}],
+ };
+ const payload=Buffer.from(JSON.stringify(json));
+ const padded=(payload.length+3)&~3;
+ const glb=Buffer.alloc(12+8+padded+8+data.length,0x20);
+ glb.writeUInt32LE(0x46546c67,0);glb.writeUInt32LE(2,4);glb.writeUInt32LE(glb.length,8);
+ glb.writeUInt32LE(padded,12);glb.writeUInt32LE(0x4e4f534a,16);
+ payload.copy(glb,20);
+ glb.writeUInt32LE(data.length,20+padded);
+ glb.writeUInt32LE(0x004e4942,24+padded);
+ data.copy(glb,28+padded);
+ const loaded=await new GLTFLoader().parseAsync(
+   glb.buffer.slice(glb.byteOffset,glb.byteOffset+glb.byteLength),'');
+ await loaded.parser.getDependencies('node');
+ const corrected=await (await import('../../src/scripts/privateModelSourceSceneRehydrate.mjs'))
+   .rehydrateIncompleteScene(loaded,1,{force:true});
+ assert.ok(corrected,'real loader scene was reconstructed from cache+source');
+ const scene=loaded.scenes[1];
+ assert.deepEqual(scene.children.map(o=>o.name),['LATEST_PARENT']);
+ assert.deepEqual(scene.children[0].children.map(o=>o.name),['SHARED_MESH']);
+ assert.equal(scene.children[0].children[0].isMesh,true);
+ const map=buildSourceNodeAssociations(loaded);
+ assert.equal(map.get(scene.children[0])?.nodes,1);
+ assert.equal(map.get(scene.children[0].children[0])?.nodes,2);
 });
