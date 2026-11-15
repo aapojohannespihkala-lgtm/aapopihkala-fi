@@ -15,7 +15,7 @@ export const C80_WPD_K16K18_PUBLISH_ALLOWED=false;
 const floors=['1F','2F','BOTH','BOTH','BOTH','BOTH'];
 const counts=[294,190,477,477,477,477];
 const parentFnv=['d3214bba','b6394bd0','8c0e83bc','13d729cc','bf8b9dd2','11164159'];
-const joinedFnv=['63ff303e','b6394bd0','4f8b7108','a4ff7790','4d2f3e6e','c01dbbd3'];
+const joinedFnv=['63ff303e','b6394bd0','4f8b7108','a4ff7790','4d2f3e6e','0c8bff25'];
 export const C80_WPD_K16K18_SCENES=Object.freeze(Object.fromEntries(
   floors.map((floor,n)=>[536+n,Object.freeze({
     parentScene:530+n, floor, rootCount:counts[n], rootFnv:joinedFnv[n]
