@@ -120,11 +120,17 @@ const C80_CHAIN_NONTECHNICAL_BOUND_PREFIXES = Object.freeze([
 ]);
 export function filterNonTechnicalBoundObjects(items,loadedSha) {
   if (!Array.isArray(items) || !C80_CHAIN_COMPOSITE_SHAS.has(loadedSha)) return items;
-  return items.filter(item=>{
-    const name=item?.object?.name;
-    return !(typeof name==='string' &&
-      C80_CHAIN_NONTECHNICAL_BOUND_PREFIXES.some(prefix=>name.startsWith(prefix)));
-  });
+  // The washer is bound per child mesh (C80-037_BOSCH_1_*), so test the
+  // bound object and its ancestors against the exact source root prefixes.
+  const excluded=object=>{
+    for (let node=object; node; node=node.parent) {
+      const name=node.name;
+      if (typeof name==='string' &&
+        C80_CHAIN_NONTECHNICAL_BOUND_PREFIXES.some(prefix=>name.startsWith(prefix))) return true;
+    }
+    return false;
+  };
+  return items.filter(item=>!excluded(item?.object));
 }
 export function filterCompositePresentationRoots(entries,loadedSha) {
   if (!Array.isArray(entries)) return null;
