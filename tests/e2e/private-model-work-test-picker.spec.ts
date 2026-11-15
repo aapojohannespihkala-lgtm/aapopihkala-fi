@@ -66,6 +66,19 @@ test('WORK_TEST picker puts dated review versions in newest-first date order, ne
   expect(groups.flatMap((group) => group.candidates).length).toBe(withReviews.length);
 });
 
+test('WORK_TEST picker puts the higher C80 model number first within the same review date', () => {
+  const groups = groupWorkTestCandidatesForPicker([
+    ...catalog,
+    candidate('c80-530-v27-no-trench-terrain-20261115', 'C80 530 - V27 maasto - 15.11.2026 WORK_TEST/HOST_HOLD'),
+    candidate('c80-524-rain-zones-t110-kvv-20261115', 'C80 524 - KV-nousut - 15.11.2026 WORK_TEST/HOST_HOLD'),
+    candidate('c80-488-x-20261115', 'C80 488 - viemäri - WORK_TEST/HOST_HOLD'),
+  ]);
+  expect(groups[0].label).toBe('Tarkistusversiot 15.11.2026');
+  expect(groups[0].candidates.map((c) => c.id)).toEqual([
+    'c80-530-v27-no-trench-terrain-20261115', 'c80-524-rain-zones-t110-kvv-20261115', 'c80-488-x-20261115',
+  ]);
+});
+
 test('WORK_TEST picker helpers parse dates, shorten auto labels and filter by all terms', () => {
   expect(workTestCandidateLabelDate('x 20261019 y 20261020 (scene69)')).toBe('2026-10-20');
   expect(workTestCandidateLabelDate('SOURCE156 scene300 no date')).toBeNull();
