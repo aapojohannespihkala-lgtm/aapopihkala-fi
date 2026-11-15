@@ -27,6 +27,7 @@ const encodeOriginalSyntheticScene67 = () => {
   };
   box(64, 6.266, 6.346, -1.124, 10.544);
   box(136, .231, 6.306, 5.032, 5.112);
+  box(120, 3.888, 6.346, 2.309, 2.389); // source sauna/KPH display-only faces
   // Three independent source-proven centerline-terminated orthogonal L joins.
   box(104, .231, 2.337, 10.504, 10.584); // upper horizontal
   box(160, 2.297, 2.377, 7.285149, 10.544); // source actual y terminus
@@ -136,6 +137,47 @@ test('D1F I03 has 1020 mm between visible faces and meets the east wall without 
     - Math.max(Math.min(...updated.map(v => v[1])), Math.min(...east.map(v => v[1])));
   expect(overlapX).toBeCloseTo(0, 6);
   expect(overlapY).toBeGreaterThan(.2);
+});
+
+test('D1F scene69 visible sauna-to-I03 field face chain holds on 347mm source mismatch, not 307mm centerline', () => {
+  const source = encodeOriginalSyntheticScene67();
+  const before = parse(source);
+  const combined = parse(makeP137EThreeCornerMeasuredWorkTest(source));
+  const wall = meshPositions(before, 406);
+  const i03 = meshPositions(combined, 555).slice(128, 136);
+  const faceMm = (meters: number) => Math.round(meters * 1000);
+
+  // Field distances are USER_FIELD_MEASURED_CURRENT, not source XYZ.
+  const fieldSaunaToI03Mm = 1765;
+  const fieldI03ThicknessMm = P137E_MEASURED_WALL_METRICS_MM.thickness;
+  const fieldI03ToLobbyMm = P137E_MEASURED_WALL_METRICS_MM.lobbyClearGap;
+  const fieldTotalMm = fieldSaunaToI03Mm + fieldI03ThicknessMm + fieldI03ToLobbyMm;
+
+  // Never use the source wall's Y=2.349 m centre as a finished-face datum.
+  const saunaSourceDisplayFaceMm = faceMm(Math.max(...wall.slice(120, 128).map(v => v[1])));
+  const i03KphFaceMm = faceMm(Math.min(...i03.map(v => v[1])));
+  const i03WcFaceMm = faceMm(Math.max(...i03.map(v => v[1])));
+  const lobbySourceDisplayFaceMm = faceMm(Math.min(...wall.slice(136, 144).map(v => v[1])));
+  const sourceFaceSpanMm = lobbySourceDisplayFaceMm - saunaSourceDisplayFaceMm;
+  const sourceSaunaToI03Mm = i03KphFaceMm - saunaSourceDisplayFaceMm;
+  const sourceI03ThicknessMm = i03WcFaceMm - i03KphFaceMm;
+  const sourceI03ToLobbyMm = lobbySourceDisplayFaceMm - i03WcFaceMm;
+
+  expect([saunaSourceDisplayFaceMm, i03KphFaceMm, i03WcFaceMm, lobbySourceDisplayFaceMm])
+    .toEqual([2389, 3807, 4012, 5032]);
+  expect([fieldTotalMm, sourceFaceSpanMm, fieldTotalMm - sourceFaceSpanMm])
+    .toEqual([2990, 2643, 347]);
+  expect([sourceSaunaToI03Mm, sourceI03ThicknessMm, sourceI03ToLobbyMm])
+    .toEqual([1418, 205, 1020]);
+  expect(fieldSaunaToI03Mm - sourceSaunaToI03Mm).toBe(347);
+  expect(sourceI03ToLobbyMm).toBe(fieldI03ToLobbyMm);
+  expect(sourceI03ThicknessMm).toBe(fieldI03ThicknessMm);
+  // 307mm is the earlier centreline-based comparison: not a visual-face residual.
+  expect(fieldTotalMm - (lobbySourceDisplayFaceMm - 2349)).toBe(307);
+  expect(fieldTotalMm - sourceFaceSpanMm).not.toBe(307);
+  expect(combined.json.scenes[69].extras.sourceXYBinding).toBe('CONDITIONAL_UNVERIFIED');
+  expect(combined.json.scenes[69].extras.current).toBe(false);
+  expect(combined.json.scenes[69].extras.HUMAN_REVIEW).toBe('NOT_RUN');
 });
 
 for (const face of [
