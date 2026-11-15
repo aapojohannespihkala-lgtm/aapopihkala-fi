@@ -104,8 +104,16 @@ import { sameSourceName } from './privateModelSourceNodeAssociations.mjs';
  * node IDs. Never apply this exclusion to other GLBs or their node indices.
  */
 const COMPOSITE_PRESENTATION_ROOTS = new Set([2220,11613,11945]);
+// C80 524/530 append-only successors keep the same immutable node indices
+// (SHA-gated profiles). Owner review 15.11.2026: the H24 KPH floor tiles and
+// the MJ54 Bosch washer (11996, an appliance, not an installation) were shown
+// as electrical orange. Grey them; H24 device leaves are re-added below.
+const C80_CHAIN_COMPOSITE_SHAS = new Set([C80_524_RAIN_GLB_SHA256, C80_530_V27_GLB_SHA256]);
+const C80_CHAIN_COMPOSITE_ROOTS = new Set([...COMPOSITE_PRESENTATION_ROOTS, 11996]);
 export function filterCompositePresentationRoots(entries,loadedSha) {
   if (!Array.isArray(entries)) return null;
+  if (C80_CHAIN_COMPOSITE_SHAS.has(loadedSha))
+    return entries.filter(entry=>!C80_CHAIN_COMPOSITE_ROOTS.has(entry.node));
   if (loadedSha !== TATE4_MJ6263_SOURCE_SHA256 &&
       loadedSha !== SUCCESSOR_R1_SHA256) return entries;
   return entries.filter(entry=>!COMPOSITE_PRESENTATION_ROOTS.has(entry.node));
@@ -168,7 +176,8 @@ const h24NestedSystems=new WeakMap();
 export function appendSourceExactH24Children(json,scene,sceneIndex,loadedSha,associations,roots) {
   if (!Array.isArray(roots)) return null;
   if (loadedSha !== SUCCESSOR_R1_SHA256 &&
-      loadedSha !== TATE4_MJ6263_SOURCE_SHA256) return roots;
+      loadedSha !== TATE4_MJ6263_SOURCE_SHA256 &&
+      !C80_CHAIN_COMPOSITE_SHAS.has(loadedSha)) return roots;
   const active=json?.scenes?.[sceneIndex]?.nodes;
   if (!Array.isArray(active) || !active.includes(11613)) return roots;
   const sourceParent=json.nodes?.[11613];
