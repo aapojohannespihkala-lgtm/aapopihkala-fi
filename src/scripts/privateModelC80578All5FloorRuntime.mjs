@@ -42,6 +42,30 @@ export function resolveC80578Scenes(gltf,sha){
  }
  return new Set(Object.values(scenes)).size===6?scenes:null;
 }
+/**
+ * One mount attempt plus verified rollback to the previous scene on failure.
+ * An unverified rollback must quarantine the caller, not retain a live claim.
+ * Exported for required CI without the private 56 MB GLB fixture.
+ */
+export function c80578AtomicMount({mount,mounted,target,previous}){
+ if(typeof mount!=='function'||typeof mounted!=='function')
+  throw new Error('C80_578_MOUNT_CONTRACT');
+ let error;
+ try{
+  mount(target);
+  if(mounted()!==target)
+   throw new Error('C80_578_SCENE_MOUNT_MISMATCH');
+  return {ok:true};
+ }catch(cause){error=cause;}
+ try{
+  mount(previous);
+  if(mounted()!==previous)
+   throw new Error('C80_578_SCENE_ROLLBACK_MISMATCH');
+  return {ok:false,restored:true,error};
+ }catch(rollbackError){
+  return {ok:false,restored:false,error,rollbackError};
+ }
+}
 export function createC80578All5FloorRuntime({gltf,sha,mount,mounted}){
  if(typeof mount!=='function'||typeof mounted!=='function')
   throw new Error('C80_578_MOUNT_CONTRACT');
@@ -55,36 +79,49 @@ export function createC80578All5FloorRuntime({gltf,sha,mount,mounted}){
    throw new Error('C80_578_RENDERED_SOURCE_GRAPH_MISMATCH');
  }
  let floor='BOTH',glazing='CLOSED',cutaway=false,sceneIndex=574;
- let active=false,disposed=false;
+ let active=false,disposed=false,quarantined=false;
  const isLive=i=>gltf.scenes?.[i]===scenes[i]&&
   scenes[i]?.name===json.scenes?.[i]?.name&&
   c80530RenderedSourceTreeUnchanged(scenes[i],proof[i])&&
   c80530RenderedRootPathMatches(json,scenes[i],i,gltf.parser?.associations)&&
   exactScene(json,sha,i,SPECS[i]?.floor);
- const mountedHere=()=>mounted()===scenes[sceneIndex];
+ const mountedHere=()=>!quarantined&&mounted()===scenes[sceneIndex];
+ // An attempted target mount is not a committed scene switch until mounted()
+ // proves it. If rollback also fails, permanently disable this runtime.
+ const commitMount=target=>{
+  const result=c80578AtomicMount({
+   mount,mounted,target:scenes[target],previous:scenes[sceneIndex],
+  });
+  if(result.ok)return;
+  if(!result.restored){
+   quarantined=true;disposed=true;active=false;
+   throw new Error('C80_578_SCENE_ROLLBACK_FAILED',{cause:result.rollbackError});
+  }
+  throw result.error;
+ };
  const swap=(f,g,c)=>{
   const target=resolveC80578SceneIndex(f,g,c);
   if(disposed||target===null||!mountedHere()||
     !isLive(sceneIndex)||!isLive(target))return null;
   const priorActive=active;active=false;
-  try{mount(scenes[target]);}finally{active=priorActive;}
-  if(mounted()!==scenes[target])
-   throw new Error('C80_578_SCENE_MOUNT_MISMATCH');
+  try{commitMount(target);}finally{if(!quarantined)active=priorActive;}
   floor=f;glazing=g;cutaway=c;sceneIndex=target;
   let included=0;
   scenes[target].traverse?.(obj=>{if(obj?.isMesh)included++;});
   return {included,exceptions:[]};
  };
  return {
-  available:true,isC80R2Chain:true,isC80578All5:true,
+  get available(){return !disposed&&!quarantined;},
+  isC80R2Chain:true,isC80578All5:true,
   chainLabel:'C80 578 ALL5 K07 clean WORK_TEST_HOST_HOLD',
   floorSceneSource:'C80_578_ALL5_SOURCE_ONLY',
   sourceModel:'D_C80',sourceSha256:sha,
   floorSceneNames:{'1F':scenes[572].name,'2F':scenes[573].name,BOTH:scenes[574].name},
   floorOptions:['1F','2F','BOTH'],supportsFirstFloor:true,
   defaultScene:scenes[574],
-  get selectedScene(){return scenes[sceneIndex];},
-  get sceneIndex(){return sceneIndex;},
+  get selectedScene(){return quarantined?null:scenes[sceneIndex];},
+  get sceneIndex(){return quarantined?null:sceneIndex;},
+  get quarantined(){return quarantined;},
   get floor(){return floor;},
   get glazing(){return glazing;},
   get cutaway(){return cutaway;},
@@ -103,9 +140,7 @@ export function createC80578All5FloorRuntime({gltf,sha,mount,mounted}){
   restore(){
    if(disposed||!mountedHere()||!isLive(sceneIndex)||!isLive(574))
     return false;
-   mount(scenes[574]);
-   if(mounted()!==scenes[574])
-    throw new Error('C80_578_SCENE_MOUNT_MISMATCH');
+   commitMount(574);
    floor='BOTH';glazing='CLOSED';cutaway=false;sceneIndex=574;active=false;
    return true;
   },
