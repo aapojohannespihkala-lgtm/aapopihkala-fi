@@ -14,8 +14,8 @@ import { C80_608C_GLB_SHA256 } from './privateModelC80608CSourceProfile.mjs';
 
 export const C80_614_GLB_SHA256='bced7811375df1c83bf58db4a90d83a72604972756e0f9d22a0f2d972c0389bc';
 export const C80_614_GLB_BYTES=57071348;
-export const C80_614_ZIP_SHA256='__ZIP_SHA__';
-export const C80_614_ZIP_DRIVE_ID='__ZIP_ID__';
+export const C80_614_ZIP_SHA256='4e630fa6d1a845503330e86cbc645a2b999b33307ab3f476dcd90fdc386e7f7e';
+export const C80_614_ZIP_DRIVE_ID='1SLQjvmvJ1Ahv20O_6p_jhrUSbnCBX9-2';
 export const C80_614_PARENT_GLB_SHA256=C80_608C_GLB_SHA256;
 export const C80_614_DUCT_ROOT=12400;
 export const C80_614_ILP_ROOT=12361;
