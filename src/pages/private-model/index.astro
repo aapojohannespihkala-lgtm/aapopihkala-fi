@@ -15387,7 +15387,7 @@ const title = 'Private 3D viewer';
         const wakeIdlePilot = () => viewerIdlePilot.invalidate(performance.now());
         for (const eventName of [
           'pointerdown', 'pointermove', 'pointerup', 'wheel',
-          'keydown', 'input', 'change', 'resize', 'scroll',
+          'keydown', 'input', 'change', 'resize', 'scroll', 'focus', 'pageshow',
         ]) window.addEventListener(eventName, wakeIdlePilot, { capture: true, passive: true });
         document.addEventListener('visibilitychange', wakeIdlePilot);
         controls.addEventListener('change', wakeIdlePilot);
