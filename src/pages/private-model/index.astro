@@ -2282,6 +2282,7 @@ const title = 'Private 3D viewer';
         selectionMetadataEntries as collectSelectionMetadataEntries,
         selectionSourceLinks as collectSelectionSourceLinks,
       } from '../../scripts/privateModelSelectionMetadata';
+      import { createC80536WW74SelectionEvidenceResolver } from '../../scripts/privateModelC80536WW74SelectionEvidence.mjs';
       import {
         createSelectionPanelController,
         formatSelectionDimensionsFi,
@@ -3453,6 +3454,7 @@ const title = 'Private 3D viewer';
       let resolveSelectionSources: (object: any) => SelectionSourceEvidence = () => ({
         state: 'unavailable', version: 'Mallia ei ole ladattu', cards: [],
       });
+      let resolveWW74HistoricalEvidence: (object: any, activeScene: any) => Array<readonly [string, string]> = () => [];
       let dInteriorScene: any = null;
       let p186dReviewRoomContextGroup: THREE.Group | null = null;
       let activeResearchPreset: ViewerResearchPreset = 'whole-building';
@@ -5508,6 +5510,7 @@ const title = 'Private 3D viewer';
           })(),
           metadataEntries: [
             ...technicalMetadata,
+            ...resolveWW74HistoricalEvidence(object, modelRoot.children[0] ?? null),
             ...collectSelectionMetadataEntries(object, modelRoot),
           ],
           sourceLinks: collectSelectionSourceLinks(object, modelRoot),
@@ -7811,6 +7814,15 @@ const title = 'Private 3D viewer';
         // GLTFLoader drops those indices for multi-scene GLBs (HI20 52scene),
         // so give them the structurally rebuilt, read-only node view.
         const sourceNodeGltf = sourceKind === 'work-test' ? sourceNodeModel(gltf) : gltf;
+        // Historical 1974 WW74 grade metadata: source-only and SHA-locked,
+        // never grants sourceLinks, physical approval or publication.
+        const ww74SelectionEvidence = createC80536WW74SelectionEvidenceResolver(
+          sourceNodeGltf, sourceKind === 'work-test' ? loadedModelSha256(gltf) : null,
+        );
+        resolveWW74HistoricalEvidence = (object, activeScene) =>
+          ww74SelectionEvidence(object, activeScene).map(
+            ([label, value]) => [label, value] as const,
+          );
         // C050's 16 SOURCE_ONLY KPH07 measurement guides and BOTH's original
         // 3-part W955 north-door gauge are not physical building geometry.
         hi20C050GuidesPresentation = createHi20C050GuidesPresentation(
