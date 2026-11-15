@@ -622,4 +622,8 @@ test('C80 524/530: Sisältö-bound KPH floor clones and Bosch washer are not tec
   assert.deepEqual(filterNonTechnicalBoundObjects(items, C80_530_V27_GLB_SHA256).map((i) => i.object.name),
     ['K11_XMIRROR_KPH09_PHOTO_ROTARY_BEZEL', 'PH_WASHER_OPEN_2015_CANDIDATE_P185C_HOST']);
   assert.equal(filterNonTechnicalBoundObjects(items, 'f'.repeat(64)), items);
+  // Bound washer child meshes are excluded through their exact source root.
+  const washerRoot = { name: 'MJ54_BOSCH_WNG254ABSN_CORRECT_PUMP_FRONT_RIGHT', parent: null };
+  const child = { object: { name: 'C80-037_BOSCH_1_MAIN_CABINET', parent: washerRoot } };
+  assert.deepEqual(filterNonTechnicalBoundObjects([child], C80_530_V27_GLB_SHA256), []);
 });
