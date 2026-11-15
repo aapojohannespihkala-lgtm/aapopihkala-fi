@@ -190,7 +190,9 @@ function exactInheritedPath(json,sceneIndex,path,sha=null) {
     const n=path[i],alias=aliasOf(sha,n),expected=receipt.nodes[alias?.orig??n],actual=json.nodes?.[n];
     if (!Number.isInteger(n)||!expected||!actual||
         // Receipt stores a group node's mesh as null; glTF omits the key.
-        actual.name!==expected.name || (actual.mesh??null)!==(expected.mesh??null) ||
+        actual.name!==expected.name ||
+        // A geometry COW alias pins its own new mesh index (alias.mesh).
+        (actual.mesh??null)!==(alias&&'mesh' in alias?alias.mesh:(expected.mesh??null)) ||
         nodeFingerprint(actual)!==(alias?alias.fnv:expected.fnv)) return false;
     if (i>0 && json.nodes[path[i-1]]?.children?.filter(n0=>n0===n).length!==1)
       return false;

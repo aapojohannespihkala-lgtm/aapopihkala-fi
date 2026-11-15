@@ -6,14 +6,15 @@
  * behind the tall cabinet to Y2.336, 2F WC exhaust rebuilt as two clean d125
  * runs (KSO125 wall valve + ceiling valve above the door) with the duplicate
  * hall valve and B47K flex fourway dropped; the V86 hanging stair hole-fill
- * block removed (slab-edge band kept). Append-only COW; scenes 0..607
+ * block removed (slab-edge band kept), and the hall door wall moved to X2.444
+ * in front of the locked stair opening (X0.229-2.424) with the niche front fitted. Append-only COW; scenes 0..607
  * and the 608C BIN prefix are unchanged. WORK_TEST/HOST_HOLD.
  * Caller supplies SHA256 of the complete original GLB, never an inferred name.
  */
 import { C80_608C_GLB_SHA256 } from './privateModelC80608CSourceProfile.mjs';
 
-export const C80_614_GLB_SHA256='bced7811375df1c83bf58db4a90d83a72604972756e0f9d22a0f2d972c0389bc';
-export const C80_614_GLB_BYTES=57071348;
+export const C80_614_GLB_SHA256='93a133ec8177dc84240779e217eb58a57ae4d413395de4f1134873c6b148fca9';
+export const C80_614_GLB_BYTES=57216336;
 export const C80_614_ZIP_SHA256='4e630fa6d1a845503330e86cbc645a2b999b33307ab3f476dcd90fdc386e7f7e';
 export const C80_614_ZIP_DRIVE_ID='1SLQjvmvJ1Ahv20O_6p_jhrUSbnCBX9-2';
 export const C80_614_PARENT_GLB_SHA256=C80_608C_GLB_SHA256;
@@ -29,6 +30,8 @@ export const C80_614_ROOT_REPLACEMENTS=Object.freeze({
  11729:12401,           // 2F IV root (2F) without duplicate hall valve 11617-11619
  12360:12400,           // 2F WC exhaust: two d125 runs
  12334:12402,           // stair: V86 hanging hole-fill block removed (owner 15.11 #2)
+ // Stair east wall line (owner photos 16.11): door wall to X2.444, niche front fitted.
+ 7221:12403, 9274:12404, 10534:12405, 10535:12406, 10536:12407, 9250:12411, 9231:12412,
 });
 // 608C roots that are not carried into the 614 scenes.
 export const C80_614_DROPPED_ROOTS=Object.freeze([6419,6420,12044]);
@@ -46,15 +49,26 @@ export const C80_614_COW_ALIASES=Object.freeze({
  12396:Object.freeze({orig:12222,fnv:'7a5d51ab'}),
  12397:Object.freeze({orig:11714,fnv:'2874c4c1'}),
  12401:Object.freeze({orig:11729,fnv:'fd75eaba'}),
+ // Geometry COWs: the new node also carries a new mesh (alias.mesh).
+ 12403:Object.freeze({orig:7221,fnv:'cdaced55',mesh:4666}),
+ 12404:Object.freeze({orig:9274,fnv:'5c279970',mesh:4667}),
+ 12405:Object.freeze({orig:10534,fnv:'822a694d',mesh:4668}),
+ 12406:Object.freeze({orig:10535,fnv:'d6bbd451',mesh:4669}),
+ 12407:Object.freeze({orig:10536,fnv:'0c859814',mesh:4670}),
+ 12408:Object.freeze({orig:7289,fnv:'6753296a'}),
+ 12409:Object.freeze({orig:9232,fnv:'9ea9fa48'}),
+ 12410:Object.freeze({orig:9233,fnv:'b11efca7'}),
+ 12411:Object.freeze({orig:9250,fnv:'c25be18f'}),
+ 12412:Object.freeze({orig:9231,fnv:'9e35072b'}),
 });
 // [glTF scene, parent scene, floorProfile, FNV root hash, parent hash].
 const rows=[
- [608,602,'1F','c1bea439','6767bb3e'],
+ [608,602,'1F','53609bc6','6767bb3e'],
  [609,603,'2F','86883039','8ca9b0d5'],
- [610,604,'BOTH_A','87c9e90d','8001baa9'],
- [611,605,'BOTH_B','1b9aebe3','f17c16e3'],
- [612,606,'BOTH_C','0fe76cff','1e2e3cc3'],
- [613,607,'BOTH_D','033ab9ce','14ca1974'],
+ [610,604,'BOTH_A','46cd1d7a','8001baa9'],
+ [611,605,'BOTH_B','f371369c','f17c16e3'],
+ [612,606,'BOTH_C','a5f737a0','1e2e3cc3'],
+ [613,607,'BOTH_D','597a72e1','14ca1974'],
 ];
 export const C80_614_SCENES=Object.freeze(Object.fromEntries(rows.map(
  ([scene,parent,profile,rootHash,parentRootHash])=>
@@ -77,8 +91,8 @@ export function isC80614SourceScene(json,sha,sceneIndex,floor){
     json?.scene!==292||json?.asset?.extras?.ModelStage!=='WORK_TEST'||
     json.asset.extras.current!==false||json.asset.extras.asBuilt!==false||
     json.asset.extras.HUMAN_REVIEW!=='NOT_RUN'||
-    json.scenes?.length!==614||json.nodes?.length!==12403||json.meshes?.length!==4666||
-    json.materials?.length!==758||json.accessors?.length!==10499||json.bufferViews?.length!==10505)return false;
+    json.scenes?.length!==614||json.nodes?.length!==12413||json.meshes?.length!==4671||
+    json.materials?.length!==758||json.accessors?.length!==10522||json.bufferViews?.length!==10528)return false;
  const scene=json.scenes[sceneIndex],parent=json.scenes[spec.parent];
  const roots=scene?.nodes,prior=parent?.nodes,e=scene?.extras;
  if(scene?.name!==`C80_614_OWNER_FIXES2_TCOLLECTOR_GHOST_SWITCHES_OUTLET_WC_EXHAUST_FROM_${spec.parent}_${spec.floor}_WORK_TEST_HOST_HOLD`||
