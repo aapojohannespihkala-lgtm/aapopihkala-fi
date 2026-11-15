@@ -10,6 +10,7 @@ import {
 } from '../../src/scripts/privateModelC80437SuccessorLayerInheritance.mjs';
 import { C80_WW74_L150_GLB_SHA256 } from '../../src/scripts/privateModelC80Ww74L150FloorRuntime.mjs';
 import { C80_500_GLB_SHA256 } from '../../src/scripts/privateModelC80500WW1974ABCSourceProfile.mjs';
+import { C80_530_V27_GLB_SHA256, C80_530_V27_SCENES } from '../../src/scripts/privateModelC80530V27SourceProfile.mjs';
 
 const make = (sceneCount,nodeCount,meshCount) => ({
   scene:292, scenes:Array.from({length:sceneCount},()=>({nodes:[]})),
@@ -152,4 +153,135 @@ test('viewer enables Sisältö layers for every inherited C80 successor (483/488
   const allow = page.match(/const verifiedChainSourceSha =([\s\S]*?)\? layersLoadedSha : null;/)?.[1] ?? '';
   for (const name of ['C80_SUCC455_SAVO483_GLB_SHA256', 'C80_WW74_L150_GLB_SHA256', 'C80_495_GLB_SHA256', 'C80_500_GLB_SHA256'])
     assert.match(allow, new RegExp(`layersLoadedSha === ${name} \\|\\|`));
+});
+
+
+// KP011 cross-SHA node-ID collision: ROOM3 donor indexes are not C80 identities.
+// The same numeric node index describes a different object in another GLB.
+test('KP011 cross-SHA node-ID collision is rejected while version-scoped new root is retained', async () => {
+  const { readFile } = await import('node:fs/promises');
+  const receipt = JSON.parse(await readFile(
+    new URL('../../src/scripts/privateModelC80437Receipt.json', import.meta.url), 'utf8'));
+  const room3DonorSha = '94727a3c93817b753f62a1e54a4fc7adc87f72f5587534701d5bfec7201f2a28';
+  const succ437Sha = 'ed91f792d8f21cc42c4488febd8772276fa3cc42649bd54b560a17823c50e4b8';
+  assert.equal(receipt.sha256, succ437Sha);
+  assert.equal(isC80LayerSuccessorSha(room3DonorSha), false);
+  assert.equal(isC80LayerSuccessorSha(succ437Sha), false);
+
+  const collisions = [
+    [12144, 'OM_2F_WALL_V84_RAISED_TOP_TO_Z5_280_5MM_COW_WORK_TEST'],
+    [12145, 'OM_V84_2F_STORAGE_WALL_NO_TOP_CAP_COFIT_FLOOR_ZFIGHT_WORK_TEST'],
+    [12158, 'PA2_1F_HOT_REAL_MESH_JOINT_20261114_WORK_TEST_HOT_COLD_CLEARANCE_428_COW'],
+  ];
+  const json = abc500();
+  const valid = resolveC80SuccessorTechnicalNode(json, C80_500_GLB_SHA256, 495, 12237);
+  assert.equal(valid?.id, 'technical-drainage', 'correctly reindexed 500 drainage root is accepted');
+  assert.equal(valid?.apartment, 'SHARED_OTHER');
+
+  for (const [node, succ437Name] of collisions) {
+    assert.equal(receipt.nodes[node]?.name, succ437Name);
+    // A donor door leaf/handle/latch copied with its old integer ID is NOT
+    // an inherited 437 wall/PA2 node of the authenticated 500 source scene.
+    json.nodes[node] = {
+      name: 'ROOM3_DONOR_UNMAPPED_NODE_' + node,
+      mesh: receipt.nodes[node].mesh,
+    };
+    assert.equal(resolveC80437SuccessorBuildingNode(
+      json, C80_500_GLB_SHA256, 495, node, [node]), null);
+    assert.equal(resolveC80SuccessorTechnicalNode(
+      json, C80_500_GLB_SHA256, 495, node), null);
+  }
+
+  for (const wrongSha of [room3DonorSha, succ437Sha, C80_WW74_L150_GLB_SHA256]) {
+    assert.equal(resolveC80437SuccessorReceiptScene(json, wrongSha, 495), null);
+    assert.equal(resolveC80SuccessorTechnicalNode(json, wrongSha, 495, 12237), null);
+  }
+  assert.equal(resolveC80SuccessorTechnicalNode(
+    json, C80_500_GLB_SHA256, 495, 12237)?.id, 'technical-drainage');
+});
+
+
+// Metamorphic proof: the same valid C80 500 source scene MUST be accepted
+// before a donor-ID substitution and rejected AFTER it, without changing SHA
+// or reusing a scene label. A negative-only fixture could pass vacuously.
+test('KP011 genuine accepted 500 source flips to rejected when ROOM3 IDs enter ABC root', () => {
+  const accepted = abc500();
+  assert.equal(resolveC80437SuccessorReceiptScene(accepted, C80_500_GLB_SHA256, 495)?.floor, '1F');
+  assert.equal(resolveC80SuccessorTechnicalNode(accepted, C80_500_GLB_SHA256, 495, 12237)?.id,
+    'technical-drainage');
+
+  for (const collision of [12144, 12145, 12158]) {
+    const changed = abc500();
+    const originalChildren = [...changed.nodes[12237].children];
+    // The invalid donor index was a ROOM3 door part in the other SHA,
+    // but means a wall/floor/PA2 hot-water part in the C80 437 receipt.
+    changed.nodes[12237].children = [collision, ...originalChildren.slice(1)];
+    changed.nodes[collision] = { name: 'ROOM3_DONOR_DOOR_ELEMENT_' + collision, mesh: 4570 };
+    assert.equal(resolveC80437SuccessorReceiptScene(changed, C80_500_GLB_SHA256, 495),
+      null, 'parent/child source identity must not accept donor ID ' + collision);
+    assert.equal(resolveC80SuccessorTechnicalNode(changed, C80_500_GLB_SHA256, 495, collision),
+      null, 'donor node cannot inherit drainage role');
+    assert.equal(resolveC80SuccessorTechnicalNode(changed, C80_500_GLB_SHA256, 495, 12237),
+      null, 'the entire modified source root is no longer authenticated');
+
+    changed.nodes[12237].children = originalChildren;
+    assert.equal(resolveC80SuccessorTechnicalNode(changed, C80_500_GLB_SHA256, 495, 12237)?.id,
+      'technical-drainage', 'restoring exact parent children restores source identity');
+  }
+
+  // Even when the numeric child ID is unchanged, replacing a source mesh
+  // with a donor door representation cannot inherit the correct route.
+  const wrongMesh = abc500();
+  wrongMesh.nodes[12231] = {
+    name: 'ROOM3_DOOR_LEAF_WRONG_SHA',
+    mesh: 4570,
+    extras: { current: false, asBuilt: false, sourceLinksBound: false },
+  };
+  assert.equal(resolveC80SuccessorTechnicalNode(wrongMesh, C80_500_GLB_SHA256, 495, 12231),
+    null, 'wrong mesh/name must be rejected under an otherwise correct root');
+});
+
+ 
+// C80 530 is a separately authenticated 6-scene V27 successor of C80 437.
+// It legitimately inherits source roles, but its SHA must never authenticate
+// a C80 500 scene or cloned 500 node/parent structure.
+test('KP011 C80 530 successor recognition rejects spoofed legacy 500 scene and roles', () => {
+  const c80530Sha = C80_530_V27_GLB_SHA256;
+  assert.equal(c80530Sha, '1a99cc32c80e1b87bbefcf9e6f373af42aee7e72ede574eabafe375298fd9f9e');
+  const source500 = abc500();
+  assert.notEqual(c80530Sha, C80_500_GLB_SHA256);
+  assert.equal(isC80LayerSuccessorSha(C80_500_GLB_SHA256), true);
+  assert.equal(resolveC80437SuccessorReceiptScene(source500, C80_500_GLB_SHA256, 495)?.floor, '1F');
+  assert.equal(resolveC80SuccessorTechnicalNode(source500, C80_500_GLB_SHA256, 495, 12237)?.id, 'technical-drainage');
+  // Current main deliberately recognizes the correctly SHA-locked 530 successor.
+  assert.equal(isC80LayerSuccessorSha(c80530Sha), true);
+  assert.equal(resolveC80437SuccessorReceiptScene(source500, c80530Sha, 495), null);
+  assert.equal(resolveC80437SuccessorBuildingNode(source500, c80530Sha, 495, 12237, [12237]), null);
+  assert.equal(resolveC80437SuccessorTechnicalNode(source500, c80530Sha, 495, 12237), null);
+  assert.equal(resolveC80SuccessorTechnicalNode(source500, c80530Sha, 495, 12237), null);
+
+  // A wrong-SHA scene cannot become source-authenticated simply by being
+  // copied to the correct 530 glTF scene index; root/provenance also matter.
+  const spoofed530 = abc500();
+  spoofed530.scenes[524] = {
+    ...spoofed530.scenes[495],
+    nodes: [...spoofed530.scenes[495].nodes],
+  };
+  assert.equal(resolveC80437SuccessorReceiptScene(spoofed530, c80530Sha, 524), null);
+  assert.equal(resolveC80SuccessorTechnicalNode(spoofed530, c80530Sha, 524, 12237), null);
+
+  // Guard all six genuine 530 scene roles: no 500 scene can masquerade as
+  // 530 by reusing a 500 root or simply moving it to a 530 scene index.
+  assert.deepEqual(Object.keys(C80_530_V27_SCENES).map(Number), [524,525,526,527,528,529]);
+  for (const sceneIndex of Object.keys(C80_530_V27_SCENES).map(Number)) {
+    const injected = abc500();
+    injected.scenes[sceneIndex] = {
+      ...injected.scenes[495],
+      nodes: [...injected.scenes[495].nodes],
+    };
+    assert.equal(resolveC80437SuccessorReceiptScene(injected, c80530Sha, sceneIndex), null,
+      'legacy 500 scene must not inherit as 530 scene ' + sceneIndex);
+    assert.equal(resolveC80SuccessorTechnicalNode(injected, c80530Sha, sceneIndex, 12237), null,
+      'legacy drain root must not receive 530 technical role ' + sceneIndex);
+  }
 });
