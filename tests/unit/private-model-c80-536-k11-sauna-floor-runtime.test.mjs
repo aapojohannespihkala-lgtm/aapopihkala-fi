@@ -138,8 +138,7 @@ test('K11 authenticated original scene graphs, scene switching and HOLD gates',
  assert.equal(r.restore(),false);
  current=scenes[534];
  assert.equal(r.restore(),true);
- const old=glTFNode();
- function glTFNode(){return gltf.scenes[530].children[0].name;}
+ const old=gltf.scenes[530].children[0].name;
  gltf.scenes[530].children[0].name='IMPOSTOR';
  assert.equal(r.apply('1F'),null);
  gltf.scenes[530].children[0].name=old;
