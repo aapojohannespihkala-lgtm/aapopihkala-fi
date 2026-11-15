@@ -7783,9 +7783,13 @@ const title = 'Private 3D viewer';
           if (!fullModelScene) throw new Error('C80 source WHOLE scene missing');
         }
         resolveSelectionSources = sourceCardResolverForModel(gltf);
-        resolveElectricalGroupEvidence = createC80530ElectricalGroupEvidenceResolver(
+        const sourceBoundElectricalGroup = createC80530ElectricalGroupEvidenceResolver(
           gltf, sourceKind === 'work-test' ? loadedModelSha256(gltf) : null,
         );
+        resolveElectricalGroupEvidence = (object, activeScene) =>
+          sourceBoundElectricalGroup(object, activeScene).map(
+            ([label, value]) => [label, value] as const,
+          );
         dInteriorScene = dInteriorOverride ??
           findSourceNamedScene(gltf, 'D CURRENT INTERIOR - BABYLON Y-UP');
         const modelLoadLayerState = createViewerLayerStateForModelLoad({
