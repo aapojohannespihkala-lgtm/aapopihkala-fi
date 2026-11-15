@@ -597,3 +597,15 @@ test('source-exact nested H24 leaves respect explicit presentation-only and arch
   assert.equal(electrical.material,original,'original GLB material restored');
   review.dispose();
 });
+
+test('C80 524/530: H24 floor wrapper and Bosch washer are grey, other roots kept (owner 15.11.2026)', async () => {
+  const { filterCompositePresentationRoots } = await import('../../src/scripts/privateModelTechnicalReviewPresentation.mjs');
+  const { C80_530_V27_GLB_SHA256 } = await import('../../src/scripts/privateModelC80530V27SourceProfile.mjs');
+  const { C80_524_RAIN_GLB_SHA256 } = await import('../../src/scripts/privateModelC80524RainZonesSourceProfile.mjs');
+  const entries = [2220, 11613, 11945, 11996, 11728, 12048, 12239].map((node) => ({ node, name: `n${node}` }));
+  for (const sha of [C80_530_V27_GLB_SHA256, C80_524_RAIN_GLB_SHA256]) {
+    assert.deepEqual(filterCompositePresentationRoots(entries, sha).map((e) => e.node), [11728, 12048, 12239]);
+  }
+  // Unrelated hashes remain unchanged.
+  assert.equal(filterCompositePresentationRoots(entries, 'f'.repeat(64)), entries);
+});
