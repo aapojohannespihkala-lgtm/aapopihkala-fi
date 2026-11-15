@@ -1,4 +1,6 @@
 import test from 'node:test';
+// Keep the hit-through source/pixel regression in the existing required CI test set.
+import './private-model-technical-review-hit-priority.test.mjs';
 import '../../src/scripts/privateModelKORJ7TechnicalReviewCompositeRoots.test.mjs';
 import assert from 'node:assert/strict';
 import {
