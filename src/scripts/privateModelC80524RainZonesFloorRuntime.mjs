@@ -3,6 +3,7 @@ import {
  C80_524_RAIN_SCENES as SPECS,
  isC80524RainSourceScene as exactScene,
 } from './privateModelC80524RainZonesSourceProfile.mjs';
+import {C80_437_SCENES} from './privateModelC80437SourceProfile.mjs';
 
 // A/B/C/D are the source's BOTH profiles inherited from glTF 514-517.
 // Their 512 ancestors correspond to CLOSED/ONE_OPEN/STACKED/CUTAWAY.
@@ -96,5 +97,25 @@ export function createC80524RainFloorRuntime({gltf,sha,mount,mounted}){
   },
   enforce(){},referenceCandidates(){return [];},
   dispose(){disposed=true;active=false;},
+ };
+}
+
+// Technical review keeps the inherited 437 MEP roots plus the later C80 MEP
+// roots (L150/A-C sewer, Savo, T110 roof vent, 518 water risers). The 505 H24
+// frame (12238) and the 524 rain presence zones (12251) are not MEP and stay
+// grey; the zones are presentation-only source markers, never pipes.
+const C80_524_REVIEW_MEP=new Set([
+ ...Object.values(C80_437_SCENES).flatMap(s=>s.review??[]),
+ 12193,12194,12224,12228,12230,12237,12239,12242,12243,12244,12245,12246,12247,12248,
+]);
+export function c80524RainReviewProfile(json,sha,sceneIndex){
+ const spec=SPECS[sceneIndex];
+ if(!Number.isInteger(sceneIndex)||!spec||!exactScene(json,sha,sceneIndex,spec.floor))return null;
+ const roots=json.scenes[sceneIndex].nodes.filter(n=>C80_524_REVIEW_MEP.has(n));
+ if(!roots.length)return null;
+ return {
+  count:524,floors:{'1F':350,'2F':351,BOTH:352},
+  scenes:{[sceneIndex]:{name:json.scenes[sceneIndex].name}},
+  roots:{[sceneIndex]:roots.map(n=>({node:n,name:json.nodes[n].name}))},
  };
 }
