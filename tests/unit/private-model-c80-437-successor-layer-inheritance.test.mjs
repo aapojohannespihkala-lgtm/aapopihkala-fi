@@ -153,3 +153,48 @@ test('viewer enables Sisältö layers for every inherited C80 successor (483/488
   for (const name of ['C80_SUCC455_SAVO483_GLB_SHA256', 'C80_WW74_L150_GLB_SHA256', 'C80_495_GLB_SHA256', 'C80_500_GLB_SHA256'])
     assert.match(allow, new RegExp(`layersLoadedSha === ${name} \\|\\|`));
 });
+
+
+// KP011 cross-SHA node-ID collision: ROOM3 donor indexes are not C80 identities.
+// The same numeric node index describes a different object in another GLB.
+test('KP011 cross-SHA node-ID collision is rejected while version-scoped new root is retained', async () => {
+  const { readFile } = await import('node:fs/promises');
+  const receipt = JSON.parse(await readFile(
+    new URL('../../src/scripts/privateModelC80437Receipt.json', import.meta.url), 'utf8'));
+  const room3DonorSha = '94727a3c93817b753f62a1e54a4fc7adc87f72f5587534701d5bfec7201f2a28';
+  const succ437Sha = 'ed91f792d8f21cc42c4488febd8772276fa3cc42649bd54b560a17823c50e4b8';
+  assert.equal(receipt.sha256, succ437Sha);
+  assert.equal(isC80LayerSuccessorSha(room3DonorSha), false);
+  assert.equal(isC80LayerSuccessorSha(succ437Sha), false);
+
+  const collisions = [
+    [12144, 'OM_2F_WALL_V84_RAISED_TOP_TO_Z5_280_5MM_COW_WORK_TEST'],
+    [12145, 'OM_V84_2F_STORAGE_WALL_NO_TOP_CAP_COFIT_FLOOR_ZFIGHT_WORK_TEST'],
+    [12158, 'PA2_1F_HOT_REAL_MESH_JOINT_20261114_WORK_TEST_HOT_COLD_CLEARANCE_428_COW'],
+  ];
+  const json = abc500();
+  const valid = resolveC80SuccessorTechnicalNode(json, C80_500_GLB_SHA256, 495, 12237);
+  assert.equal(valid?.id, 'technical-drainage', 'correctly reindexed 500 drainage root is accepted');
+  assert.equal(valid?.apartment, 'SHARED_OTHER');
+
+  for (const [node, succ437Name] of collisions) {
+    assert.equal(receipt.nodes[node]?.name, succ437Name);
+    // A donor door leaf/handle/latch copied with its old integer ID is NOT
+    // an inherited 437 wall/PA2 node of the authenticated 500 source scene.
+    json.nodes[node] = {
+      name: 'ROOM3_DONOR_UNMAPPED_NODE_' + node,
+      mesh: receipt.nodes[node].mesh,
+    };
+    assert.equal(resolveC80437SuccessorBuildingNode(
+      json, C80_500_GLB_SHA256, 495, node, [node]), null);
+    assert.equal(resolveC80SuccessorTechnicalNode(
+      json, C80_500_GLB_SHA256, 495, node), null);
+  }
+
+  for (const wrongSha of [room3DonorSha, succ437Sha, C80_WW74_L150_GLB_SHA256]) {
+    assert.equal(resolveC80437SuccessorReceiptScene(json, wrongSha, 495), null);
+    assert.equal(resolveC80SuccessorTechnicalNode(json, wrongSha, 495, 12237), null);
+  }
+  assert.equal(resolveC80SuccessorTechnicalNode(
+    json, C80_500_GLB_SHA256, 495, 12237)?.id, 'technical-drainage');
+});
