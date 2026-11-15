@@ -30,6 +30,10 @@ const V483 = Object.freeze({
   481:{floor:'BOTH',glazing:'STACKED',cutaway:false},
   482:{floor:'BOTH',glazing:'CLOSED',cutaway:true},
 });
+export const isC80LayerSuccessorSha = sha => [
+  C80_SUCC455_SAVO483_GLB_SHA256, C80_WW74_L150_GLB_SHA256,
+  C80_495_GLB_SHA256, C80_500_GLB_SHA256,
+].includes(sha);
 const specFor = (sha,index) => {
   if (sha===C80_SUCC455_SAVO483_GLB_SHA256) return V483[index];
   if (sha===C80_WW74_L150_GLB_SHA256) return C80_WW74_L150_VIEWER_ROLES[index];
@@ -98,9 +102,9 @@ const overrides = Object.freeze([
   { root:12193, id:'technical-electrical',storey:'1F',min:483 },
   { root:12194, id:'technical-electrical',storey:'2F',min:483 },
   { root:12224, id:'technical-electrical',storey:'2F',min:483,max:488 },
-  { root:12228, id:'technical-drainage',storey:'1F',min:488 },
+  { root:12228, id:'technical-drainage',storey:'1F',apartment:'SHARED_OTHER',min:488 },
   { root:12230, id:'technical-electrical',storey:'2F',min:495 },
-  { root:12237, id:'technical-drainage',storey:'1F',min:500 },
+  { root:12237, id:'technical-drainage',storey:'1F',apartment:'SHARED_OTHER',min:500 },
 ]);
 const modelNumber = sha => sha===C80_SUCC455_SAVO483_GLB_SHA256 ? 483
   : sha===C80_WW74_L150_GLB_SHA256 ? 488
@@ -130,7 +134,7 @@ export function resolveC80SuccessorNewTechnicalNode(json,sha,sceneIndex,node){
     if(version<item.min || version>(item.max??Infinity)||
        !Array.isArray(roots)||roots.filter(n=>n===item.root).length!==1)continue;
     if(withinRoot(json,item.root,node)) return {
-      id:item.id,storey:item.storey,kind:'WORK_TEST_NEW_ROOT',
+      id:item.id,storey:item.storey,apartment:item.apartment??'D',kind:'WORK_TEST_NEW_ROOT',
     };
   }
   return null;
