@@ -216,7 +216,7 @@ function c80584SyntheticGlb(){
  utf.copy(glb,20);
  const binOff=20+jsonLen;
  glb.writeUInt32LE(binLen,binOff);
- glb.write('BIN\\0',binOff+4,'ascii');
+ glb.writeUInt32LE(0x004e4942,binOff+4);
  bin.copy(glb,binOff+8);
  return glb.buffer.slice(glb.byteOffset,glb.byteOffset+glb.byteLength);
 }
