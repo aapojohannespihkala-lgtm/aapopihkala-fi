@@ -189,3 +189,75 @@ test('authentic 524 scene renderer mismatch rejects init and scene restore', {sk
  assert.equal(runtime.restore(),true);
  assert.equal(current,scenes[520]);
 });
+
+
+test('real GLTFLoader GLB graph preserves source roots and rejects a same-name replacement',async()=>{
+ const {GLTFLoader}=await import('three/addons/loaders/GLTFLoader.js');
+ const {MeshBasicMaterial,BufferGeometry}=await import('three');
+ // A small genuine binary glTF is assembled in memory so this test runs on
+ // every CI pass without downloading or claiming the protected 524 source GLB.
+ const positions=new Float32Array([0,0,0, 1,0,0, 0,1,0]);
+ const binary=Buffer.from(positions.buffer);
+ const json={
+  asset:{version:'2.0'},scene:0,
+  scenes:[{name:'TEST_SCENE',nodes:[0,1]}],
+  nodes:[
+   {name:'SOURCE_A',children:[2]},
+   {name:'SOURCE_B'},
+   {name:'SOURCE_MESH',mesh:0},
+  ],
+  meshes:[{primitives:[{attributes:{POSITION:0}}]}],
+  accessors:[{bufferView:0,componentType:5126,count:3,type:'VEC3',
+   min:[0,0,0],max:[1,1,0]}],
+  bufferViews:[{buffer:0,byteOffset:0,byteLength:binary.length}],
+  buffers:[{byteLength:binary.length}],
+ };
+ const source=Buffer.from(JSON.stringify(json),'utf8');
+ const padded=(source.length+3)&~3;
+ const length=12+8+padded+8+binary.length;
+ const glb=Buffer.alloc(length,0x20);
+ glb.writeUInt32LE(0x46546c67,0);
+ glb.writeUInt32LE(2,4);
+ glb.writeUInt32LE(length,8);
+ glb.writeUInt32LE(padded,12);
+ glb.writeUInt32LE(0x4e4f534a,16);
+ source.copy(glb,20);
+ const binStart=20+padded;
+ glb.writeUInt32LE(binary.length,binStart);
+ glb.writeUInt32LE(0x004e4942,binStart+4);
+ binary.copy(glb,binStart+8);
+ const raw=glb.buffer.slice(glb.byteOffset,glb.byteOffset+glb.byteLength);
+ const loaded=await new Promise((resolve,reject)=>
+  new GLTFLoader().parse(raw,'',resolve,reject));
+ const scene=loaded.scene;
+ assert.equal(scene.name,'TEST_SCENE');
+ assert.equal(scene.children.length,2);
+ assert.equal(renderedRootsMatch(json,scene,0),true);
+ const proof=snapshotRoots(scene,2);
+ assert.ok(proof);
+ const first=scene.children[0];
+ const mesh=first.children[0];
+ assert.equal(mesh.isMesh,true);
+ assert.equal(rootsUnchanged(scene,proof),true);
+ const previousMaterial=mesh.material;
+ mesh.material=new MeshBasicMaterial({color:0x224466});
+ assert.equal(rootsUnchanged(scene,proof),true,'review may change material');
+ const originalGeometry=mesh.geometry;
+ mesh.geometry=new BufferGeometry();
+ assert.equal(rootsUnchanged(scene,proof),false,'geometry rebinding blocked');
+ mesh.geometry=originalGeometry;
+ const impostor=first.clone(true);
+ scene.children[0]=impostor;
+ assert.equal(renderedRootsMatch(json,scene,0),true,'name-only false positive');
+ assert.equal(rootsUnchanged(scene,proof),false,'same-name real Object3D clone blocked');
+ scene.children[0]=first;
+ assert.equal(rootsUnchanged(scene,proof),true);
+ scene.add(new (await import('three')).Group());
+ assert.equal(rootsUnchanged(scene,proof),true,'appended viewer helper permitted');
+ first.remove(mesh);
+ assert.equal(rootsUnchanged(scene,proof),false,'removing source descendant blocked');
+ first.add(mesh);
+ assert.equal(rootsUnchanged(scene,proof),true,'restored child order accepted');
+ mesh.material.dispose();
+ mesh.material=previousMaterial;
+});
