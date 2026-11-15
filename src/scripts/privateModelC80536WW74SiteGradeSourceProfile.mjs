@@ -65,7 +65,7 @@ export function isC80536WW74GradeEvidence(json){
   p?.sourceGLBSHA256!==C80_536_WW74_PARENT_GLB_SHA256||
   p?.transformOnlyVerticalShiftM!==-2.4||p?.referenceLevelLocalZ0M!==21.75||
   p?.crossSourceDatum!=='UNVERIFIED'||
-  p?.1974UpstreamDesignInvertM!==18.15||p?.1974StreetDesignInvertM!==17.9||
+  p?.['1974UpstreamDesignInvertM']!==18.15||p?.['1974StreetDesignInvertM']!==17.9||
   p?.streetConnection!=='NOT_PHYSICALLY_VERIFIED'||
   p?.workAssumption!==true||p?.m5System!=='VIEMARI'||
   p?.current!==false||p?.asBuilt!==false||p?.sourceLinksBound!==false||
