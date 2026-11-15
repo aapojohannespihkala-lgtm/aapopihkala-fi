@@ -121,7 +121,8 @@ export function c80602ReviewProfile(json,sha,sceneIndex){
  const roots=json.scenes[sceneIndex].nodes.filter(n=>REVIEW_MEP.has(n));
  if(!roots.length)return null;
  return {
-  count:602,floors:{'1F':596,'2F':597,BOTH:598},
+  // Asset-level viewerFloorScenes (unchanged 350..352), as in the 530 profile.
+  count:602,floors:{'1F':350,'2F':351,BOTH:352},
   scenes:{[sceneIndex]:{name:json.scenes[sceneIndex].name}},
   roots:{[sceneIndex]:roots.map(n=>({node:n,name:json.nodes[n].name}))},
   publicationAllowed:false,humanReview:'NOT_RUN',current:false,
