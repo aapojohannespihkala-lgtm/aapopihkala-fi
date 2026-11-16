@@ -9,7 +9,7 @@ import {
 import {resolveC80614SceneIndex,c80614ReviewProfile} from '../../src/scripts/privateModelC80614FloorRuntime.mjs';
 import {isC80LayerSuccessorSha,resolveC80437SuccessorReceiptScene,resolveC80SuccessorTechnicalNode} from '../../src/scripts/privateModelC80437SuccessorLayerInheritance.mjs';
 const read = path => readFileSync(new URL(path,import.meta.url),'utf8');
-const ID='c80-614r5-stair-field-dims-20261116';
+const ID='c80-614r6-stair-railing-entry-20261116';
 
 test('C80 614 floor roles map to its own six scenes',()=>{
  assert.deepEqual([resolveC80614SceneIndex('1F'),resolveC80614SceneIndex('2F'),resolveC80614SceneIndex('BOTH'),
@@ -52,17 +52,23 @@ test('authentic 614 optional GLB: scenes, T-collector back, ghosts and flex drop
  assert.ok(resolveC80437SuccessorReceiptScene(json,SHA,608));
  const moved=structuredClone(json); moved.nodes[12403].mesh=21;
  assert.equal(isC80614SourceScene(moved,SHA,608,'1F'),true,'profile itself is structural');
- assert.ok(json.scenes[610].nodes.includes(12412)&&!json.scenes[609].nodes.includes(12412),'1F ceiling');
- assert.ok(json.scenes[610].nodes.includes(12411)&&!json.scenes[610].nodes.includes(12135),'R4 jamb COW');
+ assert.ok(json.scenes[610].nodes.includes(12418)&&!json.scenes[609].nodes.includes(12418),'1F ceiling');
+ assert.ok(json.scenes[610].nodes.includes(12417)&&!json.scenes[610].nodes.includes(12135),'R4 jamb COW');
+ // R6: entry boxout 5 cm in front of the door wall, panel/casing/switch, reveals and front door moved with it.
+ for(const [o,n] of [[7993,12411],[7999,12412],[7994,12413],[7995,12414],[7996,12415],[9175,12416]])
+  assert.ok(json.scenes[608].nodes.includes(n)&&!json.scenes[608].nodes.includes(o),'R6 entry '+o);
+ assert.equal(json.nodes[12413].translation[0],0.094);
  // R5: one rebuilt stair in every new scene, no old/duplicate stair roots.
  for(const s of [608,609,610,611,612,613]){
-  for(const n of [12413,12414,12415,12416,12417]) assert.ok(json.scenes[s].nodes.includes(n),'R5 stair '+n+' in '+s);
+  for(const n of [12419,12420,12421,12422,12423]) assert.ok(json.scenes[s].nodes.includes(n),'R6 stair '+n+' in '+s);
   for(const n of [9798,10532,10533,10534,10536,10537,10538,10553,10554]) assert.ok(!json.scenes[s].nodes.includes(n),'old stair '+n+' dropped in '+s);
  }
- const treads=json.nodes[12413].extras;
+ const treads=json.nodes[12419].extras;
  assert.equal(treads.treads,14); assert.equal(treads.goingM,0.29); assert.equal(treads.topGoingM,0.27);
  assert.equal(treads.boardThicknessM,0.04); assert.equal(treads.nosingM,0.02); assert.equal(treads.topDropToFloorM,0.2);
- assert.deepEqual(json.nodes[12416].extras.handrailSectionM,[0.028,0.15]);
+ const rail=json.nodes[12422].extras;
+ assert.deepEqual(rail.handrailSectionM,[0.028,0.15]); assert.equal(rail.postsOutsideTreadEnds,true); assert.equal(rail.whiteRailsFullLength,true);
+ assert.equal(rail.posts.bottom[1],2.464); assert.equal(rail.posts.bottom[2],6.03);
  for(const n of [6419,6420,6497,12044,12347,12360]) assert.ok(!json.scenes[610].nodes.includes(n),'dropped '+n);
  assert.equal(resolveC80SuccessorTechnicalNode(json,SHA,610,11769+1)?.id,'technical-electrical','moved 1F SW-02 keeps identity');
  assert.equal(resolveC80SuccessorTechnicalNode(json,SHA,609,12398)?.id,'technical-ventilation','new WC exhaust is ventilation');
@@ -72,5 +78,5 @@ test('authentic 614 optional GLB: scenes, T-collector back, ghosts and flex drop
  assert.equal(resolveC80SuccessorTechnicalNode(forged,SHA,608,11770),null,'altered COW node loses alias identity');
  const bad=structuredClone(json); bad.scenes[610].extras.asBuilt=true;
  assert.equal(isC80614SourceScene(bad,SHA,610,'BOTH'),false);
- assert.equal(Object.keys(ALIASES).length,20);
+ assert.equal(Object.keys(ALIASES).length,26);
 });
