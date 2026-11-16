@@ -3,6 +3,7 @@ import { isM6263Mj72Kiv005Pk1SuccessorSourceScene, SUCCESSOR_R1_SCENES } from '.
 import { isTate4Mj62Mj63SourceScene, TATE4_MJ6263_SCENES } from './privateModelTate4Mj62Mj63SourceProfile.mjs';
 import { sameSourceName } from './privateModelSourceNodeAssociations.mjs';
 import { C80_614_GLB_SHA256, C80_614_SCENES, isC80614SourceScene } from './privateModelC80614SourceProfile.mjs';
+import { C80_620R10_GLB_SHA256, C80_620R10_SCENES, isC80620R10SourceScene } from './privateModelC80620R10SourceProfile.mjs';
 
 // C80 614 (owner 15.11.2026: "IV-putket eivät näy WC-tilan sisätiloissa vaan
 // ovat sisäkaton sisällä"): the 1F P04 sauna exhaust route and the restored
@@ -22,6 +23,9 @@ const C80_614_CONCEALED = Object.freeze([
   { node: 10060, mesh: 3788, name: 'C80_KV17_IV15_OPTIN__D1F_IV2015_3PORT_TCOLLECTOR_XMIRROR_WORK_TEST',
     path: [11728, 10060], semantic: [10060, ['m5System'], 'IV'], floors: ['1F', 'BOTH'] },
 ]);
+// C80 620R10: same concealed routes; the T-collector n10060 is kept under the K14 root 12467.
+const C80_620R10_CONCEALED = Object.freeze(C80_614_CONCEALED.map(e => e.node === 10060
+  ? Object.freeze({ ...e, path: [12467, 10060] }) : e));
 
 // Filled from the SHA-verified original GLB, never appearance or name search.
 // These are display roles only. Hidden routes remain unverified WORK_TEST.
@@ -179,12 +183,14 @@ export function resolveConcealedTechnicalObjects(gltf, scene, sceneIndex, loaded
       (!isC80437SourceScene(json,loadedSha,sceneIndex) &&
        !isM6263Mj72Kiv005Pk1SuccessorSourceScene(json, loadedSha, sceneIndex) &&
        !isTate4Mj62Mj63SourceScene(json, loadedSha, sceneIndex) &&
-       !(loadedSha === C80_614_GLB_SHA256 && isC80614SourceScene(json, loadedSha, sceneIndex)))) return null;
+       !(loadedSha === C80_614_GLB_SHA256 && isC80614SourceScene(json, loadedSha, sceneIndex)) &&
+       !(loadedSha === C80_620R10_GLB_SHA256 && isC80620R10SourceScene(json, loadedSha, sceneIndex)))) return null;
   const is614 = loadedSha === C80_614_GLB_SHA256;
-  const profile = is614 ? C80_614_SCENES[sceneIndex]
+  const is620 = loadedSha === C80_620R10_GLB_SHA256;
+  const profile = is620 ? C80_620R10_SCENES[sceneIndex] : is614 ? C80_614_SCENES[sceneIndex]
     : C80_437_SCENES[sceneIndex] ?? SUCCESSOR_R1_SCENES[sceneIndex] ?? TATE4_MJ6263_SCENES[sceneIndex];
   const objects = [];
-  const specs=is614 ? [...C80_614_CONCEALED]
+  const specs=is620 ? [...C80_620R10_CONCEALED] : is614 ? [...C80_614_CONCEALED]
     : loadedSha===C80_437_GLB_SHA256 ? CONCEALED.filter(e=>![11829,11909,11911].includes(e.node)) : CONCEALED;
   if(loadedSha===C80_437_GLB_SHA256 && profile.floor!=='2F'){
     const node=profile.floor==='1F'?12138:12139;

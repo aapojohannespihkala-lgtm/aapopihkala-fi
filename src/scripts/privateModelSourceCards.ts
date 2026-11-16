@@ -9,6 +9,7 @@ import { C80_530_V27_GLB_SHA256, C80_530_V27_SCENES, isC80530V27SourceScene } fr
 import { C80_602_GLB_SHA256, C80_602_SCENES, isC80602SourceScene } from './privateModelC80602SourceProfile.mjs';
 import { C80_608C_GLB_SHA256, C80_608C_SCENES, isC80608CSourceScene } from './privateModelC80608CSourceProfile.mjs';
 import { C80_614_GLB_SHA256, C80_614_SCENES, isC80614SourceScene } from './privateModelC80614SourceProfile.mjs';
+import { C80_620R10_GLB_SHA256, C80_620R10_SCENES, isC80620R10SourceScene } from './privateModelC80620R10SourceProfile.mjs';
 import { resolveC80R2ChainFloorScenes } from './privateModelC80R2ChainScenes.mjs';
 
 type RecordData = Record<string, any>;
@@ -560,12 +561,19 @@ export const loadModelWithSourceCards = async <T extends GltfSource & object>(
       throw new Error('C80_614_SOURCE_SCENE_MISMATCH');
     for (const index of indexes) rehydrate.add(index);
   }
+  if (digest === C80_620R10_GLB_SHA256) {
+    const indexes = Object.keys(C80_620R10_SCENES).map(Number);
+    if (!indexes.every(index => isC80620R10SourceScene(json, digest, index, C80_620R10_SCENES[index].floor)))
+      throw new Error('C80_620R10_SOURCE_SCENE_MISMATCH');
+    for (const index of indexes) rehydrate.add(index);
+  }
   for (const sceneIndex of rehydrate) {
     try {
       const is530Scene = (digest === C80_530_V27_GLB_SHA256 && C80_530_V27_SCENES[sceneIndex] !== undefined) ||
         (digest === C80_602_GLB_SHA256 && C80_602_SCENES[sceneIndex] !== undefined) ||
         (digest === C80_608C_GLB_SHA256 && C80_608C_SCENES[sceneIndex] !== undefined) ||
-        (digest === C80_614_GLB_SHA256 && C80_614_SCENES[sceneIndex] !== undefined);
+        (digest === C80_614_GLB_SHA256 && C80_614_SCENES[sceneIndex] !== undefined) ||
+        (digest === C80_620R10_GLB_SHA256 && C80_620R10_SCENES[sceneIndex] !== undefined);
       const rebuilt = await rehydrateIncompleteScene(gltf, sceneIndex, { force: is530Scene });
       const cardMap = identity !== gltf ? identity.parser?.associations : undefined;
       if (rebuilt && cardMap) for (const [object, id] of rebuilt)
