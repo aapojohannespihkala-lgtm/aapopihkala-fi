@@ -4493,12 +4493,12 @@ const C80_530_V27_NO_TRENCH_WORK_TEST_CANDIDATE = {
 // C80 614: Claude owner fixes #2 15.11.2026 on C80 608C (T-collector restored,
 // ghost hatching removed, switches/outlet moved, 2F WC exhaust rebuilt).
 const C80_614_OWNER_FIXES2_WORK_TEST_CANDIDATE = {
-  id: 'c80-614r4-owner-fixes-20261116',
-  label: 'C80 614 R4 - porraskäänteen päätylevy ja kaide suoriksi, portaiden välin seinä, pylväs, 1F seinät kattoon asti, T-kokooja, katkaisijat, pistorasia, WC-poisto - 16.11.2026 WORK_TEST/HOST_HOLD',
-  path: `${PRIVATE_WORK_TEST_PREFIX}/c80-614r4-owner-fixes-20261116.glb`,
-  objectKey: 'work-test/c80-614r4-owner-fixes-20261116.glb',
-  expectedSize: 57346488,
-  expectedSha256: '29237f8d6cdec1fb198220fed5ae04fb288e471d0c8d9a2d47c0eb8f46f2f392',
+  id: 'c80-614r5-stair-field-dims-20261116',
+  label: 'C80 614 R5 - D-porras omistajan kenttämitoilla (900/290/270/~183, 40 mm askelma + 20 mm lippa, kiilakääntö, umpinaiset sivut, yhtenäinen käsijohde, L-lista) + R4 - 16.11.2026 WORK_TEST/HOST_HOLD',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/c80-614r5-stair-field-dims-20261116.glb`,
+  objectKey: 'work-test/c80-614r5-stair-field-dims-20261116.glb',
+  expectedSize: 57276192,
+  expectedSha256: 'b97f1678ff4514c111bd839c8fdb3af5ac512eb685170bcabea31c2ed991db8c',
 } as const satisfies PrivateWorkTestCandidate;
 
 // C80 608C: Claude owner fixes 15.11.2026 on C80 602 (switches per drawing,
