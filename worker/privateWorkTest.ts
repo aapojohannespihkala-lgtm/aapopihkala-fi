@@ -4492,6 +4492,17 @@ const C80_530_V27_NO_TRENCH_WORK_TEST_CANDIDATE = {
 
 // C80 614: Claude owner fixes #2 15.11.2026 on C80 608C (T-collector restored,
 // ghost hatching removed, switches/outlet moved, 2F WC exhaust rebuilt).
+// C80 620R10: High KANON-NEXT 16.11.2026 on the owner-reviewed C80 614 R10 (J1 NIBE+Savo,
+// J2 K11 bench, K10 store exhaust, K14 marker off, G2S09 Toshiba, K05 ROOM3 handles, K13 IV enclosure).
+const C80_620R10_HIGH_DONOR_WORK_TEST_CANDIDATE = {
+  id: 'c80-620r10-high-donor-j1j2-k10k14-g2s09-k05-k13-20261116',
+  label: 'C80 620R10 - 614 R10 + NIBE/Savo, saunan laude, varaston venttiili, Toshiba, ROOM3-kahvat, KPH IV-kotelo - 16.11.2026 WORK_TEST/HOST_HOLD',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/c80-620r10-high-donor-j1j2-k10k14-g2s09-k05-k13-20261116.glb`,
+  objectKey: 'work-test/c80-620r10-high-donor-j1j2-k10k14-g2s09-k05-k13-20261116.glb',
+  expectedSize: 57583012,
+  expectedSha256: '10eba5613aca712f1a7de67098c30a0d58a1291cc066bcc88bf5b921e30e12d4',
+} as const satisfies PrivateWorkTestCandidate;
+
 const C80_614_OWNER_FIXES2_WORK_TEST_CANDIDATE = {
   id: 'c80-614r10-posts-flush-walls-20261116',
   label: 'C80 614 R10 - D-porras: pylväät käsijohteen tasoon, taustalevy pylväiden yli, yhtenäiset seinät ja katto, eteisen jalkalinjat - 16.11.2026 WORK_TEST/HOST_HOLD',
@@ -4544,6 +4555,7 @@ const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
   C80_WW74_L150_WORK_TEST_CANDIDATE,
   C80_495_SAVO_SEWER_WORK_TEST_CANDIDATE,
   C80_500_WW1974_ABC_WORK_TEST_CANDIDATE,
+  C80_620R10_HIGH_DONOR_WORK_TEST_CANDIDATE,
   C80_614_OWNER_FIXES2_WORK_TEST_CANDIDATE,
   C80_608C_OWNER_FIXES_WORK_TEST_CANDIDATE,
   C80_602_ALL5_K04_WORK_TEST_CANDIDATE,
