@@ -4493,12 +4493,12 @@ const C80_530_V27_NO_TRENCH_WORK_TEST_CANDIDATE = {
 // C80 614: Claude owner fixes #2 15.11.2026 on C80 608C (T-collector restored,
 // ghost hatching removed, switches/outlet moved, 2F WC exhaust rebuilt).
 const C80_614_OWNER_FIXES2_WORK_TEST_CANDIDATE = {
-  id: 'c80-614r7-stair-hall-handles-20261116',
-  label: 'C80 614 R7 - D-porras: yläpylväs matalan seinän linjaan, viistetyt pylväät, saumat pois, tumma vain aulaan; eteisen seinä yhtenäiseksi, kahvat oikealle - 16.11.2026 WORK_TEST/HOST_HOLD',
-  path: `${PRIVATE_WORK_TEST_PREFIX}/c80-614r7-stair-hall-handles-20261116.glb`,
-  objectKey: 'work-test/c80-614r7-stair-hall-handles-20261116.glb',
-  expectedSize: 57314636,
-  expectedSha256: '3c67f1331467efca0c17292e0a9fda20eabf5312a9452f8937e430997e1898c3',
+  id: 'c80-614r8-railing-post-line-20261116',
+  label: 'C80 614 R8 - D-porras: käsijohde pylväiden linjaan, yläpylväs matalan seinän viereen, saumat ja välkyntä pois, syvennyksen tumma pinta, lattiasaumat - 16.11.2026 WORK_TEST/HOST_HOLD',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/c80-614r8-railing-post-line-20261116.glb`,
+  objectKey: 'work-test/c80-614r8-railing-post-line-20261116.glb',
+  expectedSize: 57320832,
+  expectedSha256: '7ca54b77dbff891b7938c897bd7f62c626cf49d9bfaaac3fbfbd21b5e46669b6',
 } as const satisfies PrivateWorkTestCandidate;
 
 // C80 608C: Claude owner fixes 15.11.2026 on C80 602 (switches per drawing,
