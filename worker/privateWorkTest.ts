@@ -4493,12 +4493,12 @@ const C80_530_V27_NO_TRENCH_WORK_TEST_CANDIDATE = {
 // C80 614: Claude owner fixes #2 15.11.2026 on C80 608C (T-collector restored,
 // ghost hatching removed, switches/outlet moved, 2F WC exhaust rebuilt).
 const C80_614_OWNER_FIXES2_WORK_TEST_CANDIDATE = {
-  id: 'c80-614r9-handrail-post-sides-20261116',
-  label: 'C80 614 R9 - D-porras: käsijohteet pylväiden kyljissä, 700-aukko seinässä, yhtenäinen katto, syvennyksen saumaviiva, otsan rako ja tumma kaista pois, kuilun saumaviiva pois - 16.11.2026 WORK_TEST/HOST_HOLD',
-  path: `${PRIVATE_WORK_TEST_PREFIX}/c80-614r9-handrail-post-sides-20261116.glb`,
-  objectKey: 'work-test/c80-614r9-handrail-post-sides-20261116.glb',
-  expectedSize: 57343040,
-  expectedSha256: '588ddf3402ca02747614eeecca0f60c775f3ee35945d119013d315c636e2f47f',
+  id: 'c80-614r10-posts-flush-walls-20261116',
+  label: 'C80 614 R10 - D-porras: pylväät käsijohteen tasoon, taustalevy pylväiden yli, yhtenäiset seinät ja katto, eteisen jalkalinjat - 16.11.2026 WORK_TEST/HOST_HOLD',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/c80-614r10-posts-flush-walls-20261116.glb`,
+  objectKey: 'work-test/c80-614r10-posts-flush-walls-20261116.glb',
+  expectedSize: 57364720,
+  expectedSha256: '20a7f19e0ee0f2f98ff1aee1ad51a6ba17049c2040c807b2c739c5f8648bd54b',
 } as const satisfies PrivateWorkTestCandidate;
 
 // C80 608C: Claude owner fixes 15.11.2026 on C80 602 (switches per drawing,
