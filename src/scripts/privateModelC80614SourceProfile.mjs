@@ -38,14 +38,18 @@
  * one seamless 1F ceiling polygon (no slit/overlap/T-junctions, band underside removed); niche floor joint on the tiles;
  * bulkhead down to the soffit and to Y6.32 (no gap, no dark strip); stairwell north wall 1F/2F seam shares edges.
  * Nodes: hall 12403-12430, ceiling 12431, stair 12432-12436, walls 7221->12437, 10794->12438.
+ * 614 R10 (owner R9 review 16.11 #9): post tops flush with the handrail tops, turn back board across the posts, hall
+ * south wall and stairwell wall one plane Y5.092 (V46 face, stair to the wall), ceiling hole edge inside the wall, west
+ * outer wall 1F/2F seam with shared edges, hall wall-base joints on the tiles. Nodes: hall 12403-12429, ceiling 12430,
+ * stair 12431-12435, walls 7221/10794/9365/6376/6432 -> 12436-12440, hall joints 12441.
  * Caller supplies SHA256 of the complete original GLB, never an inferred name.
  */
 import { C80_608C_GLB_SHA256 } from './privateModelC80608CSourceProfile.mjs';
 
-export const C80_614_GLB_SHA256='588ddf3402ca02747614eeecca0f60c775f3ee35945d119013d315c636e2f47f';
-export const C80_614_GLB_BYTES=57343040;
-export const C80_614_ZIP_SHA256='d4dbf54daaa36adcedb4618ed551097a52f402dc9a250ec9fccd355ac38e810a';
-export const C80_614_ZIP_DRIVE_ID='10x8QTefHPwoYr2Xt7fRf92TcqmuD10Qj';
+export const C80_614_GLB_SHA256='20a7f19e0ee0f2f98ff1aee1ad51a6ba17049c2040c807b2c739c5f8648bd54b';
+export const C80_614_GLB_BYTES=57364720;
+export const C80_614_ZIP_SHA256='07cbaba04cff99123818d518dc6692801b5037ab875d303090cd3549209f3a98';
+export const C80_614_ZIP_DRIVE_ID='1QJvVCyrSa1UYLRM3F-LJ67XpJkBi9-SG';
 export const C80_614_PARENT_GLB_SHA256=C80_608C_GLB_SHA256;
 export const C80_614_DUCT_ROOT=12400;
 export const C80_614_ILP_ROOT=12361;
@@ -60,11 +64,12 @@ export const C80_614_ROOT_REPLACEMENTS=Object.freeze({
  12360:12400,           // 2F WC exhaust: two d125 runs
  12334:12402,           // stair: V86 hanging hole-fill block removed (owner 15.11 #2)
  // Stair east wall line (owner photos 16.11): door wall to X2.444, niche bulkhead fitted.
- // 614 R9: 7221 also carries the 700 opening (X2.82-3.52) and the stairwell north wall top Z2.76; 10794 shares that edge.
- 7221:12437, 10794:12438, 9274:12403, 10535:12404, 9250:12408, 9231:12409,
- // 614 R7: hall south wall one plane, hosted items, KPH lever mirrored.
- 9375:12416, 9393:12417, 9365:12418, 12130:12419, 12111:12420, 12331:12422,
- 9209:12423, 9210:12424, 9211:12425, 9212:12426, 9213:12427, 9214:12428, 9215:12429, 9216:12430,
+ // 614 R9/R10: 7221 carries the 700 opening, stairwell north top Z2.76 and the hall south wall from X2.444; 10794 shares the
+ // north edge; V46 9365 face is the stairwell south wall Y5.092; west outer walls 6376/6432 share the Z2.76 edge.
+ 7221:12436, 10794:12437, 9365:12438, 6376:12439, 6432:12440, 9274:12403, 10535:12404, 9250:12408, 9231:12409,
+ // 614 R7: hall south wall hosted items, KPH lever mirrored.
+ 9375:12416, 9393:12417, 12130:12418, 12111:12419, 12331:12421,
+ 9209:12422, 9210:12423, 9211:12424, 9212:12425, 9213:12426, 9214:12427, 9215:12428, 9216:12429,
  // 614 R6: entry boxout 5 cm in front of the door wall; panel/casing/switch, front-door reveals and door +0.094.
  7993:12410, 7999:12411, 7994:12412, 7995:12413, 7996:12414, 9175:12415,
 });
@@ -75,9 +80,9 @@ export const C80_614_DROPPED_ROOTS=Object.freeze([6419,6420,12044,6497,
  // 614 R9: separate 700-opening jambs/head (the wall itself now has the opening at the casing line)
  12332,12333,12135]);
 // 1F/BOTH addition: the opaque 1F ceiling Z2.43 (R4: stair opening cut exactly).
-export const C80_614_ADDED_1F_ROOTS=Object.freeze([12431]);
+export const C80_614_ADDED_1F_ROOTS=Object.freeze([12430,12441]);
 // 614 R5: the rebuilt stair in every new scene (1F, 2F, BOTH): treads, sides, niche, railing, 2F edge trim.
-export const C80_614_ADDED_ALL_ROOTS=Object.freeze([12432,12433,12434,12435,12436]);
+export const C80_614_ADDED_ALL_ROOTS=Object.freeze([12431,12432,12433,12434,12435]);
 // COW nodes that keep the C80 437 receipt identity of their original node.
 // The whole-GLB SHA authenticates bytes; the FNV pins each new node JSON.
 export const C80_614_COW_ALIASES=Object.freeze({
@@ -108,30 +113,32 @@ export const C80_614_COW_ALIASES=Object.freeze({
  12415:Object.freeze({orig:9175,fnv:'80e80376'}),
  12416:Object.freeze({orig:9375,fnv:'1fc4bd0d',mesh:4670}),
  12417:Object.freeze({orig:9393,fnv:'59e27397',mesh:4671}),
- 12418:Object.freeze({orig:9365,fnv:'c750ebbc',mesh:4672}),
- 12419:Object.freeze({orig:12130,fnv:'7093d61c'}),
- 12420:Object.freeze({orig:12111,fnv:'eb28e271'}),
- 12421:Object.freeze({orig:6350,fnv:'c3b07140'}),
- 12422:Object.freeze({orig:12331,fnv:'dec75dd5'}),
- 12423:Object.freeze({orig:9209,fnv:'29307f6f'}),
- 12424:Object.freeze({orig:9210,fnv:'2f597af9'}),
- 12425:Object.freeze({orig:9211,fnv:'6d7fea2b'}),
- 12426:Object.freeze({orig:9212,fnv:'489ea6d3'}),
- 12427:Object.freeze({orig:9213,fnv:'eb6e45a6'}),
- 12428:Object.freeze({orig:9214,fnv:'90cd566c'}),
- 12429:Object.freeze({orig:9215,fnv:'23b088f2'}),
- 12430:Object.freeze({orig:9216,fnv:'6bdfebba'}),
- 12437:Object.freeze({orig:7221,fnv:'948cec0a',mesh:4679}),
- 12438:Object.freeze({orig:10794,fnv:'a1905da7',mesh:4680}),
+ 12418:Object.freeze({orig:12130,fnv:'7093d61c'}),
+ 12419:Object.freeze({orig:12111,fnv:'eb28e271'}),
+ 12420:Object.freeze({orig:6350,fnv:'c3b07140'}),
+ 12421:Object.freeze({orig:12331,fnv:'e8d3dc46'}),
+ 12422:Object.freeze({orig:9209,fnv:'29307f6f'}),
+ 12423:Object.freeze({orig:9210,fnv:'2f597af9'}),
+ 12424:Object.freeze({orig:9211,fnv:'6d7fea2b'}),
+ 12425:Object.freeze({orig:9212,fnv:'489ea6d3'}),
+ 12426:Object.freeze({orig:9213,fnv:'eb6e45a6'}),
+ 12427:Object.freeze({orig:9214,fnv:'90cd566c'}),
+ 12428:Object.freeze({orig:9215,fnv:'23b088f2'}),
+ 12429:Object.freeze({orig:9216,fnv:'6bdfebba'}),
+ 12436:Object.freeze({orig:7221,fnv:'aaff3018',mesh:4678}),
+ 12437:Object.freeze({orig:10794,fnv:'8e1ca8d7',mesh:4679}),
+ 12438:Object.freeze({orig:9365,fnv:'499e900d',mesh:4680}),
+ 12439:Object.freeze({orig:6376,fnv:'bf17a8cf',mesh:4681}),
+ 12440:Object.freeze({orig:6432,fnv:'af36b3aa',mesh:4682}),
 });
 // [glTF scene, parent scene, floorProfile, FNV root hash, parent hash].
 const rows=[
- [608,602,'1F','0511b123','6767bb3e'],
- [609,603,'2F','58a42967','8ca9b0d5'],
- [610,604,'BOTH_A','97ac78ba','8001baa9'],
- [611,605,'BOTH_B','f886df10','f17c16e3'],
- [612,606,'BOTH_C','aa7e58c4','1e2e3cc3'],
- [613,607,'BOTH_D','a20a4ddb','14ca1974'],
+ [608,602,'1F','1bff409d','6767bb3e'],
+ [609,603,'2F','505c42db','8ca9b0d5'],
+ [610,604,'BOTH_A','870f6b59','8001baa9'],
+ [611,605,'BOTH_B','d0b1dc63','f17c16e3'],
+ [612,606,'BOTH_C','0c2aace7','1e2e3cc3'],
+ [613,607,'BOTH_D','30c4061e','14ca1974'],
 ];
 export const C80_614_SCENES=Object.freeze(Object.fromEntries(rows.map(
  ([scene,parent,profile,rootHash,parentRootHash])=>
@@ -154,8 +161,8 @@ export function isC80614SourceScene(json,sha,sceneIndex,floor){
     json?.scene!==292||json?.asset?.extras?.ModelStage!=='WORK_TEST'||
     json.asset.extras.current!==false||json.asset.extras.asBuilt!==false||
     json.asset.extras.HUMAN_REVIEW!=='NOT_RUN'||
-    json.scenes?.length!==614||json.nodes?.length!==12439||json.meshes?.length!==4681||
-    json.materials?.length!==758||json.accessors?.length!==10566||json.bufferViews?.length!==10572)return false;
+    json.scenes?.length!==614||json.nodes?.length!==12442||json.meshes?.length!==4684||
+    json.materials?.length!==758||json.accessors?.length!==10585||json.bufferViews?.length!==10591)return false;
  const scene=json.scenes[sceneIndex],parent=json.scenes[spec.parent];
  const roots=scene?.nodes,prior=parent?.nodes,e=scene?.extras;
  if(scene?.name!==`C80_614_OWNER_FIXES2_TCOLLECTOR_GHOST_SWITCHES_OUTLET_WC_EXHAUST_FROM_${spec.parent}_${spec.floor}_WORK_TEST_HOST_HOLD`||
