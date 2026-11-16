@@ -4503,6 +4503,17 @@ const C80_620R10_HIGH_DONOR_WORK_TEST_CANDIDATE = {
   expectedSha256: '10eba5613aca712f1a7de67098c30a0d58a1291cc066bcc88bf5b921e30e12d4',
 } as const satisfies PrivateWorkTestCandidate;
 
+// C80 620R11: Claude KANON-NEXT 17.11.2026 on C80 620R10 (K13 IV enclosure split at the partition,
+// K10 store exhaust 6 mm below the ceiling, K11 bench ends clear of the side panelling).
+const C80_620R11_CLEARANCE_WORK_TEST_CANDIDATE = {
+  id: 'c80-620r11-clearance-k13-k10-k11-20261117',
+  label: 'C80 620R11 - 620R10 + KPH IV-kotelo irti väliseinästä, varaston venttiili irti katosta, saunan laude irti paneeleista - 17.11.2026 WORK_TEST/HOST_HOLD',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/c80-620r11-clearance-k13-k10-k11-20261117.glb`,
+  objectKey: 'work-test/c80-620r11-clearance-k13-k10-k11-20261117.glb',
+  expectedSize: 57681492,
+  expectedSha256: '8632ed927f05e36edf689c44cdef0dc5fac3fc7161c8790cfcb02e2661005b4e',
+} as const satisfies PrivateWorkTestCandidate;
+
 const C80_614_OWNER_FIXES2_WORK_TEST_CANDIDATE = {
   id: 'c80-614r10-posts-flush-walls-20261116',
   label: 'C80 614 R10 - D-porras: pylväät käsijohteen tasoon, taustalevy pylväiden yli, yhtenäiset seinät ja katto, eteisen jalkalinjat - 16.11.2026 WORK_TEST/HOST_HOLD',
@@ -4555,6 +4566,7 @@ const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
   C80_WW74_L150_WORK_TEST_CANDIDATE,
   C80_495_SAVO_SEWER_WORK_TEST_CANDIDATE,
   C80_500_WW1974_ABC_WORK_TEST_CANDIDATE,
+  C80_620R11_CLEARANCE_WORK_TEST_CANDIDATE,
   C80_620R10_HIGH_DONOR_WORK_TEST_CANDIDATE,
   C80_614_OWNER_FIXES2_WORK_TEST_CANDIDATE,
   C80_608C_OWNER_FIXES_WORK_TEST_CANDIDATE,

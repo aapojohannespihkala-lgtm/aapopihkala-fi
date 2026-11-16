@@ -4,6 +4,7 @@ import { isTate4Mj62Mj63SourceScene, TATE4_MJ6263_SCENES } from './privateModelT
 import { sameSourceName } from './privateModelSourceNodeAssociations.mjs';
 import { C80_614_GLB_SHA256, C80_614_SCENES, isC80614SourceScene } from './privateModelC80614SourceProfile.mjs';
 import { C80_620R10_GLB_SHA256, C80_620R10_SCENES, isC80620R10SourceScene } from './privateModelC80620R10SourceProfile.mjs';
+import { C80_620R11_GLB_SHA256, C80_620R11_SCENES, isC80620R11SourceScene } from './privateModelC80620R11SourceProfile.mjs';
 
 // C80 614 (owner 15.11.2026: "IV-putket eivät näy WC-tilan sisätiloissa vaan
 // ovat sisäkaton sisällä"): the 1F P04 sauna exhaust route and the restored
@@ -184,10 +185,13 @@ export function resolveConcealedTechnicalObjects(gltf, scene, sceneIndex, loaded
        !isM6263Mj72Kiv005Pk1SuccessorSourceScene(json, loadedSha, sceneIndex) &&
        !isTate4Mj62Mj63SourceScene(json, loadedSha, sceneIndex) &&
        !(loadedSha === C80_614_GLB_SHA256 && isC80614SourceScene(json, loadedSha, sceneIndex)) &&
-       !(loadedSha === C80_620R10_GLB_SHA256 && isC80620R10SourceScene(json, loadedSha, sceneIndex)))) return null;
+       !(loadedSha === C80_620R10_GLB_SHA256 && isC80620R10SourceScene(json, loadedSha, sceneIndex)) &&
+       !(loadedSha === C80_620R11_GLB_SHA256 && isC80620R11SourceScene(json, loadedSha, sceneIndex)))) return null;
   const is614 = loadedSha === C80_614_GLB_SHA256;
-  const is620 = loadedSha === C80_620R10_GLB_SHA256;
-  const profile = is620 ? C80_620R10_SCENES[sceneIndex] : is614 ? C80_614_SCENES[sceneIndex]
+  // C80 620R11 keeps the 620R10 concealed routes (root 12467 and its children are unchanged).
+  const is620R11 = loadedSha === C80_620R11_GLB_SHA256;
+  const is620 = is620R11 || loadedSha === C80_620R10_GLB_SHA256;
+  const profile = is620R11 ? C80_620R11_SCENES[sceneIndex] : is620 ? C80_620R10_SCENES[sceneIndex] : is614 ? C80_614_SCENES[sceneIndex]
     : C80_437_SCENES[sceneIndex] ?? SUCCESSOR_R1_SCENES[sceneIndex] ?? TATE4_MJ6263_SCENES[sceneIndex];
   const objects = [];
   const specs=is620 ? [...C80_620R10_CONCEALED] : is614 ? [...C80_614_CONCEALED]
