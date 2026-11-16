@@ -38,6 +38,10 @@ import {
   C80_620R10_GLB_SHA256, C80_620R10_SCENES, C80_620R10_COW_ALIASES,
   isC80620R10SourceScene,
 } from './privateModelC80620R10SourceProfile.mjs';
+import {
+  C80_620R11_GLB_SHA256, C80_620R11_SCENES, C80_620R11_COW_ALIASES,
+  isC80620R11SourceScene,
+} from './privateModelC80620R11SourceProfile.mjs';
 
 // Work-test identity only. The outer loader MUST authenticate the entire GLB
 // bytes before supplying sha. This never approves a new physical/as-built part.
@@ -101,12 +105,21 @@ const V620R10 = Object.freeze({
   618:{floor:'BOTH',glazing:'STACKED',cutaway:false},
   619:{floor:'BOTH',glazing:'CLOSED',cutaway:true},
 });
+const V620R11 = Object.freeze({
+  620:{floor:'1F',glazing:'CLOSED',cutaway:false},
+  621:{floor:'2F',glazing:'CLOSED',cutaway:false},
+  622:{floor:'BOTH',glazing:'CLOSED',cutaway:false},
+  623:{floor:'BOTH',glazing:'ONE_OPEN',cutaway:false},
+  624:{floor:'BOTH',glazing:'STACKED',cutaway:false},
+  625:{floor:'BOTH',glazing:'CLOSED',cutaway:true},
+});
 // SHA-locked copy-on-write aliases: a COW node keeps the receipt identity of
 // its original node only when its own JSON fingerprint matches exactly.
 const COW_ALIASES = Object.freeze({
   [C80_608C_GLB_SHA256]: C80_608C_COW_ALIASES,
   [C80_614_GLB_SHA256]: C80_614_COW_ALIASES,
   [C80_620R10_GLB_SHA256]: C80_620R10_COW_ALIASES,
+  [C80_620R11_GLB_SHA256]: C80_620R11_COW_ALIASES,
 });
 const aliasOf = (sha,node) => COW_ALIASES[sha]?.[node] ?? null;
 const toOrig = (sha,node) => aliasOf(sha,node)?.orig ?? node;
@@ -117,7 +130,7 @@ export const isC80LayerSuccessorSha = sha => [
   C80_SUCC455_SAVO483_GLB_SHA256, C80_WW74_L150_GLB_SHA256,
   C80_495_GLB_SHA256, C80_500_GLB_SHA256, C80_524_RAIN_GLB_SHA256,
   C80_530_V27_GLB_SHA256, C80_602_GLB_SHA256, C80_608C_GLB_SHA256,
-  C80_614_GLB_SHA256, C80_620R10_GLB_SHA256,
+  C80_614_GLB_SHA256, C80_620R10_GLB_SHA256, C80_620R11_GLB_SHA256,
 ].includes(sha);
 const specFor = (sha,index) => {
   if (sha===C80_SUCC455_SAVO483_GLB_SHA256) return V483[index];
@@ -129,6 +142,7 @@ const specFor = (sha,index) => {
   if (sha===C80_608C_GLB_SHA256) return V608C[index];
   if (sha===C80_614_GLB_SHA256) return V614[index];
   if (sha===C80_620R10_GLB_SHA256) return V620R10[index];
+  if (sha===C80_620R11_GLB_SHA256) return V620R11[index];
   if (sha===C80_524_RAIN_GLB_SHA256) return V524[index];
   return null;
 };
@@ -144,6 +158,8 @@ const acceptedScene = (json,sha,index) => {
     isC80530V27SourceScene(json,sha,index,C80_530_V27_SCENES[index].floor);
   if (sha===C80_620R10_GLB_SHA256) return !!C80_620R10_SCENES[index] &&
     isC80620R10SourceScene(json,sha,index,C80_620R10_SCENES[index].floor);
+  if (sha===C80_620R11_GLB_SHA256) return !!C80_620R11_SCENES[index] &&
+    isC80620R11SourceScene(json,sha,index,C80_620R11_SCENES[index].floor);
   if (sha===C80_614_GLB_SHA256) return !!C80_614_SCENES[index] &&
     isC80614SourceScene(json,sha,index,C80_614_SCENES[index].floor);
   if (sha===C80_608C_GLB_SHA256) return !!C80_608C_SCENES[index] &&
@@ -261,7 +277,7 @@ const modelNumber = sha => sha===C80_SUCC455_SAVO483_GLB_SHA256 ? 483
   : sha===C80_602_GLB_SHA256 ? 602
   : sha===C80_608C_GLB_SHA256 ? 608
   : sha===C80_614_GLB_SHA256 ? 614
-  : sha===C80_620R10_GLB_SHA256 ? 620 : -1;
+  : sha===C80_620R10_GLB_SHA256 || sha===C80_620R11_GLB_SHA256 ? 620 : -1;
 function withinRoot(json,root,node) {
   const seen=new Set(),queue=[root];
   while (queue.length) {
