@@ -4503,6 +4503,17 @@ const C80_620R10_HIGH_DONOR_WORK_TEST_CANDIDATE = {
   expectedSha256: '10eba5613aca712f1a7de67098c30a0d58a1291cc066bcc88bf5b921e30e12d4',
 } as const satisfies PrivateWorkTestCandidate;
 
+// C80 620R17: Claude KANON-NEXT 17.11.2026 on C80 620R16 after the owner's 23.21 note: bathroom ceiling without
+// the north-wall hole.
+const C80_620R17_BATH_CEILING_NO_HOLE_WORK_TEST_CANDIDATE = {
+  id: 'c80-620r17-bath-ceiling-no-hole-20261117',
+  label: 'C80 620R17 - 620R16 + kylpyhuoneen katto ilman reikää pohjoisseinällä - 17.11.2026 WORK_TEST/HOST_HOLD',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/c80-620r17-bath-ceiling-no-hole-20261117.glb`,
+  objectKey: 'work-test/c80-620r17-bath-ceiling-no-hole-20261117.glb',
+  expectedSize: 58446852,
+  expectedSha256: '65813c08e6bdeadad5be4b08177926ca4f96c0f955eb33a58d22bbe9734d70c6',
+} as const satisfies PrivateWorkTestCandidate;
+
 // C80 620R16: Claude KANON-NEXT 17.11.2026 on C80 620R15 after the owner's night review (bathroom ceiling always
 // visible, 2F WC exhaust one duct for the ceiling valve and the stair-hall wall valve).
 const C80_620R16_BATH_CEILING_KSO125_WORK_TEST_CANDIDATE = {
@@ -4621,6 +4632,7 @@ const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
   C80_WW74_L150_WORK_TEST_CANDIDATE,
   C80_495_SAVO_SEWER_WORK_TEST_CANDIDATE,
   C80_500_WW1974_ABC_WORK_TEST_CANDIDATE,
+  C80_620R17_BATH_CEILING_NO_HOLE_WORK_TEST_CANDIDATE,
   C80_620R16_BATH_CEILING_KSO125_WORK_TEST_CANDIDATE,
   C80_620R15_OWNER_REVIEW_LATE_WORK_TEST_CANDIDATE,
   C80_620R14_OWNER_CHECKLIST_WORK_TEST_CANDIDATE,
