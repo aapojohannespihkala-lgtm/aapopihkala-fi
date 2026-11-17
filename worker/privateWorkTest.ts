@@ -4503,6 +4503,17 @@ const C80_620R10_HIGH_DONOR_WORK_TEST_CANDIDATE = {
   expectedSha256: '10eba5613aca712f1a7de67098c30a0d58a1291cc066bcc88bf5b921e30e12d4',
 } as const satisfies PrivateWorkTestCandidate;
 
+// C80 620R14: Claude KANON-NEXT 17.11.2026 on C80 620R13 after the owner's electrical checklist (balcony heat-lamp
+// cord to the outdoor socket, sockets in the 2F WC mirror cabinet and above the fridge-freezer, duplicate soffit light out).
+const C80_620R14_OWNER_CHECKLIST_WORK_TEST_CANDIDATE = {
+  id: 'c80-620r14-owner-checklist-electrical-20261117',
+  label: 'C80 620R14 - 620R13 + parvekkeen lämpövalaisimen johto ulkorasiaan, peilikaapin ja jääkaapin pistorasiat, räystäsvalaisin pois - 17.11.2026 WORK_TEST/HOST_HOLD',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/c80-620r14-owner-checklist-electrical-20261117.glb`,
+  objectKey: 'work-test/c80-620r14-owner-checklist-electrical-20261117.glb',
+  expectedSize: 57891940,
+  expectedSha256: '71eff60eafa7744e915d6ec0903d330ab0c8bda637635b4adc375e82d0544297',
+} as const satisfies PrivateWorkTestCandidate;
+
 // C80 620R13: Claude KANON-NEXT 17.11.2026 on C80 620R12 after the owner review in the evening (solid IV
 // enclosure, store outlet at the facade, solid sauna ceiling, visible closet IV valve, oak-coloured ROOM3 door).
 const C80_620R13_OWNER_REVIEW_WORK_TEST_CANDIDATE = {
@@ -4588,6 +4599,7 @@ const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
   C80_WW74_L150_WORK_TEST_CANDIDATE,
   C80_495_SAVO_SEWER_WORK_TEST_CANDIDATE,
   C80_500_WW1974_ABC_WORK_TEST_CANDIDATE,
+  C80_620R14_OWNER_CHECKLIST_WORK_TEST_CANDIDATE,
   C80_620R13_OWNER_REVIEW_WORK_TEST_CANDIDATE,
   C80_620R12_OWNER_REVIEW_WORK_TEST_CANDIDATE,
   C80_620R11_CLEARANCE_WORK_TEST_CANDIDATE,

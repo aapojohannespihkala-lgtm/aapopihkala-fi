@@ -15,6 +15,7 @@ export const ELECTRICAL_KINDS = Object.freeze({
   SWITCH: 'Kytkin',
   LIGHT: 'Valaisin',
   BOARD: 'Sähkökeskus',
+  SMOKE: 'Palovaroitin',
   OTHER: 'Muu sähköpiste',
 });
 
@@ -22,6 +23,11 @@ const pad2 = value => String(Number(value)).padStart(2, '0');
 
 // First matching rule of the nearest matching ancestor wins.
 export const ELECTRICAL_POINT_RULES = Object.freeze([
+  // Points added from the owner's checklist (C80 620R14 onwards).
+  { re: /^C80_620R\d+_(1F|2F)-PR-([A-Z0-9]+)_/, kind: 'SOCKET', id: m => `${m[1]}-PR-${m[2]}`, note: 'omistajan tarkistuslistasta' },
+  { re: /^C80_620R\d+_BALCONY_HEAT_LAMP_LOOSE_CORD/, kind: 'OTHER', id: () => '2F-PARVEKE-JOHTO',
+    note: 'irrallinen johto lämpövalaisimelta ulkorasiaan' },
+  { re: /^OWNER_(1F|2F)-SM-(\d+)_SMOKE_DETECTOR/, kind: 'SMOKE', id: m => `${m[1]}-PALOVAROITIN-${pad2(m[2])}` },
   { re: /^D1F-PR-(\d+)_OWNER2026_PLAN_XY_PIN/, kind: 'SOCKET', id: m => `1F-PR-${pad2(m[1])}`,
     note: 'suunnitelman piste ilman seinää (vihreä merkki)' },
   { re: /^D1F_PR(\d\d)_/, kind: 'SOCKET', id: m => `1F-PR-${pad2(m[1])}` },
@@ -40,11 +46,12 @@ export const ELECTRICAL_POINT_RULES = Object.freeze([
   { re: /_WALL_LAMP_(?:SHADE|NECK|MOUNT)_(\d)_/, kind: 'LIGHT', id: m => `2F-SEINAVALAISIN-${m[1]}` },
   { re: /^K12_D_SOFFIT_LIGHT/, kind: 'LIGHT', id: () => 'RAYSTASVALAISIN' },
   { re: /^C80R2_D1F_TERRACE_CEILING_LAMP/, kind: 'LIGHT', id: () => 'TERASSIVALAISIN' },
-  { re: /^C80R2_D2F_BALCONY_LAMP/, kind: 'LIGHT', id: () => 'PARVEKEVALAISIN' },
+  { re: /^C80R2_D2F_BALCONY_LAMP/, kind: 'LIGHT', id: () => '2F-PARVEKE-LAMPOVALAISIN',
+    note: 'kattolamppu ja lämpösäteilijä samassa mallikappaleessa' },
   { re: /^N_P185C_X2_BOARD_N_RK_INTERFACE_ENCLOSURE/, kind: 'BOARD', id: () => 'SAHKOKESKUS' },
 ]);
 
-const KIND_ORDER = ['BOARD', 'SOCKET', 'CEILING_SOCKET', 'SWITCH', 'LIGHT', 'OTHER'];
+const KIND_ORDER = ['BOARD', 'SOCKET', 'CEILING_SOCKET', 'SWITCH', 'LIGHT', 'SMOKE', 'OTHER'];
 // Second-floor finished floor is at about G1 Z 2.76; everything above 2.6 m is 2F.
 const FLOOR_SPLIT_Z = 2.6;
 
