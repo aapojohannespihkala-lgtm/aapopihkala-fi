@@ -4503,6 +4503,17 @@ const C80_620R10_HIGH_DONOR_WORK_TEST_CANDIDATE = {
   expectedSha256: '10eba5613aca712f1a7de67098c30a0d58a1291cc066bcc88bf5b921e30e12d4',
 } as const satisfies PrivateWorkTestCandidate;
 
+// C80 620R12: Claude KANON-NEXT 17.11.2026 on C80 620R11 after the owner review of 620R11 (store exhaust
+// duct moved to the owner valve point, duplicate valve removed, outdoor unit set on the pavers).
+const C80_620R12_OWNER_REVIEW_WORK_TEST_CANDIDATE = {
+  id: 'c80-620r12-k10-duct-ilp-grounded-20261117',
+  label: 'C80 620R12 - 620R11 + varaston poistokanava omistajan venttiilipisteeseen, tuplaventtiili pois, ilmalämpöpumpun teline laatoitukselle - 17.11.2026 WORK_TEST/HOST_HOLD',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/c80-620r12-k10-duct-ilp-grounded-20261117.glb`,
+  objectKey: 'work-test/c80-620r12-k10-duct-ilp-grounded-20261117.glb',
+  expectedSize: 57740128,
+  expectedSha256: '3ce69727f65ddfc90468c13ed4a619b03fca92b194993d10c035db1a0aa387f1',
+} as const satisfies PrivateWorkTestCandidate;
+
 // C80 620R11: Claude KANON-NEXT 17.11.2026 on C80 620R10 (K13 IV enclosure split at the partition,
 // K10 store exhaust 6 mm below the ceiling, K11 bench ends clear of the side panelling).
 const C80_620R11_CLEARANCE_WORK_TEST_CANDIDATE = {
@@ -4566,6 +4577,7 @@ const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
   C80_WW74_L150_WORK_TEST_CANDIDATE,
   C80_495_SAVO_SEWER_WORK_TEST_CANDIDATE,
   C80_500_WW1974_ABC_WORK_TEST_CANDIDATE,
+  C80_620R12_OWNER_REVIEW_WORK_TEST_CANDIDATE,
   C80_620R11_CLEARANCE_WORK_TEST_CANDIDATE,
   C80_620R10_HIGH_DONOR_WORK_TEST_CANDIDATE,
   C80_614_OWNER_FIXES2_WORK_TEST_CANDIDATE,
