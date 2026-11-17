@@ -79,6 +79,20 @@ test('WORK_TEST picker puts the higher C80 model number first within the same re
   ]);
 });
 
+test('WORK_TEST picker puts the newest C80 revision first within the same review date', () => {
+  // Owner 17.11.2026: the latest WORK_TEST must always be at the top, whatever the catalog order.
+  const groups = groupWorkTestCandidatesForPicker([
+    candidate('c80-620r13-x', 'C80 620R13 - kotelo - 17.11.2026 WORK_TEST/HOST_HOLD'),
+    candidate('c80-620r12-x', 'C80 620R12 - kanava - 17.11.2026 WORK_TEST/HOST_HOLD'),
+    candidate('c80-620r11-x', 'C80 620R11 - välykset - 17.11.2026 WORK_TEST/HOST_HOLD'),
+    candidate('c80-614r10-x', 'C80 614 R10 - porras - 17.11.2026 WORK_TEST/HOST_HOLD'),
+    candidate('c80-608c-x', 'C80 608C - korjaukset - 17.11.2026 WORK_TEST/HOST_HOLD'),
+  ]);
+  expect(groups[0].candidates.map((item) => item.id)).toEqual([
+    'c80-620r13-x', 'c80-620r12-x', 'c80-620r11-x', 'c80-614r10-x', 'c80-608c-x',
+  ]);
+});
+
 test('WORK_TEST picker helpers parse dates, shorten auto labels and filter by all terms', () => {
   expect(workTestCandidateLabelDate('x 20261019 y 20261020 (scene69)')).toBe('2026-10-20');
   expect(workTestCandidateLabelDate('SOURCE156 scene300 no date')).toBeNull();
