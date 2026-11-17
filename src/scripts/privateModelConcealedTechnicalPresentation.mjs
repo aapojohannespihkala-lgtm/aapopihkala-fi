@@ -9,6 +9,7 @@ import { C80_620R12_GLB_SHA256, C80_620R12_SCENES, isC80620R12SourceScene } from
 import { C80_620R13_GLB_SHA256, C80_620R13_SCENES, isC80620R13SourceScene } from './privateModelC80620R13SourceProfile.mjs';
 import { C80_620R14_GLB_SHA256, C80_620R14_SCENES, isC80620R14SourceScene } from './privateModelC80620R14SourceProfile.mjs';
 import { C80_620R15_GLB_SHA256, C80_620R15_SCENES, isC80620R15SourceScene } from './privateModelC80620R15SourceProfile.mjs';
+import { C80_620R16_GLB_SHA256, C80_620R16_SCENES, isC80620R16SourceScene } from './privateModelC80620R16SourceProfile.mjs';
 
 // C80 614 (owner 15.11.2026: "IV-putket eivät näy WC-tilan sisätiloissa vaan
 // ovat sisäkaton sisällä"): the 1F P04 sauna exhaust route and the restored
@@ -194,7 +195,8 @@ export function resolveConcealedTechnicalObjects(gltf, scene, sceneIndex, loaded
        !(loadedSha === C80_620R12_GLB_SHA256 && isC80620R12SourceScene(json, loadedSha, sceneIndex)) &&
        !(loadedSha === C80_620R13_GLB_SHA256 && isC80620R13SourceScene(json, loadedSha, sceneIndex)) &&
        !(loadedSha === C80_620R14_GLB_SHA256 && isC80620R14SourceScene(json, loadedSha, sceneIndex)) &&
-       !(loadedSha === C80_620R15_GLB_SHA256 && isC80620R15SourceScene(json, loadedSha, sceneIndex)))) return null;
+       !(loadedSha === C80_620R15_GLB_SHA256 && isC80620R15SourceScene(json, loadedSha, sceneIndex)) &&
+       !(loadedSha === C80_620R16_GLB_SHA256 && isC80620R16SourceScene(json, loadedSha, sceneIndex)))) return null;
   const is614 = loadedSha === C80_614_GLB_SHA256;
   // C80 620R11 keeps the 620R10 concealed routes (root 12467 and its children are unchanged).
   const is620R11 = loadedSha === C80_620R11_GLB_SHA256;
@@ -206,8 +208,10 @@ export function resolveConcealedTechnicalObjects(gltf, scene, sceneIndex, loaded
   const is620R14 = loadedSha === C80_620R14_GLB_SHA256;
   // C80 620R15 keeps them as well (root 12467 is unchanged).
   const is620R15 = loadedSha === C80_620R15_GLB_SHA256;
-  const is620 = is620R15 || is620R14 || is620R13 || is620R12 || is620R11 || loadedSha === C80_620R10_GLB_SHA256;
-  const profile = is620R15 ? C80_620R15_SCENES[sceneIndex] : is620R14 ? C80_620R14_SCENES[sceneIndex] : is620R13 ? C80_620R13_SCENES[sceneIndex] : is620R12 ? C80_620R12_SCENES[sceneIndex] : is620R11 ? C80_620R11_SCENES[sceneIndex] : is620 ? C80_620R10_SCENES[sceneIndex] : is614 ? C80_614_SCENES[sceneIndex]
+  // C80 620R16 keeps them as well (root 12467 is unchanged).
+  const is620R16 = loadedSha === C80_620R16_GLB_SHA256;
+  const is620 = is620R16 || is620R15 || is620R14 || is620R13 || is620R12 || is620R11 || loadedSha === C80_620R10_GLB_SHA256;
+  const profile = is620R16 ? C80_620R16_SCENES[sceneIndex] : is620R15 ? C80_620R15_SCENES[sceneIndex] : is620R14 ? C80_620R14_SCENES[sceneIndex] : is620R13 ? C80_620R13_SCENES[sceneIndex] : is620R12 ? C80_620R12_SCENES[sceneIndex] : is620R11 ? C80_620R11_SCENES[sceneIndex] : is620 ? C80_620R10_SCENES[sceneIndex] : is614 ? C80_614_SCENES[sceneIndex]
     : C80_437_SCENES[sceneIndex] ?? SUCCESSOR_R1_SCENES[sceneIndex] ?? TATE4_MJ6263_SCENES[sceneIndex];
   const objects = [];
   const specs=is620 ? [...C80_620R10_CONCEALED] : is614 ? [...C80_614_CONCEALED]

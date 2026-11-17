@@ -252,6 +252,7 @@ jobs:
             tests/unit/private-model-c80-620r13-work-test-receiver.test.mjs \
             tests/unit/private-model-c80-620r14-work-test-receiver.test.mjs \
             tests/unit/private-model-c80-620r15-work-test-receiver.test.mjs \
+            tests/unit/private-model-c80-620r16-work-test-receiver.test.mjs \
             tests/unit/private-model-floor-depth-bias.test.mjs \
             tests/unit/private-model-c80-succ455-room3-photodoor-source-profile.test.mjs \
             tests/unit/private-model-c80-succ455-room3-mj83-source-profile.test.mjs \
