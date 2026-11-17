@@ -292,6 +292,23 @@ export function resolveTechnicalReviewRoots(gltf, scene, sceneIndex, loadedSha, 
   return appendSourceExactH24Children(json,scene,sceneIndex,loadedSha,associations,roots);
 }
 
+// WP-T4 (owner 15.11.2026 and 17.11.2026: "varaaja ja liesituuletin näkyvät täysväreissä"):
+// a source extras.ylisTechRole of DEVICE, ENCLOSURE or ACCESSORY marks a device body, a casing
+// or a fitting. Only ROUTE parts (pipes, ducts, cables) and unlabelled technical parts keep the
+// full system color; the labelled bodies get a light translucent tint of the same system so the
+// routes inside and behind them stay readable. Without the metadata nothing changes.
+const LIGHT_TECH_ROLES = new Set(['DEVICE', 'ENCLOSURE', 'ACCESSORY']);
+export const TECHNICAL_REVIEW_LIGHT_ROLE_OPACITY = 0.2;
+
+/** Nearest source ylisTechRole of an object or its ancestors below the scene root. */
+export function technicalReviewRoleOf(object, root) {
+  for (let node = object; node && node !== root; node = node.parent) {
+    const role = node.userData?.ylisTechRole;
+    if (typeof role === 'string') return role;
+  }
+  return null;
+}
+
 const isRenderable = object => object?.isMesh === true || object?.isLine === true ||
   object?.isLineSegments === true || object?.isPoints === true;
 
@@ -321,9 +338,25 @@ export function createTechnicalReviewPresentation(root, keepRoots, createMateria
     }
     return twin;
   };
+  // Light role tints are viewer-owned clones of the shared system materials.
+  let lightTints = new Map();
+  const lightOf = material => {
+    if (!material || typeof material.clone !== 'function') return material;
+    let tint = lightTints.get(material);
+    if (!tint) {
+      tint = material.clone();
+      tint.transparent = true;
+      tint.opacity = TECHNICAL_REVIEW_LIGHT_ROLE_OPACITY;
+      tint.depthWrite = false;
+      if (typeof tint.emissiveIntensity === 'number') tint.emissiveIntensity = Math.min(tint.emissiveIntensity, 0.25);
+      lightTints.set(material, tint);
+    }
+    return tint;
+  };
   let applied = false;
   let disposed = false;
   let systemCounts = {};
+  let lightRoleCount = 0;
 
   const kept = object => {
     for (let node = object; node && node !== root; node = node.parent) if (keep.has(node)) return true;
@@ -346,6 +379,8 @@ export function createTechnicalReviewPresentation(root, keepRoots, createMateria
     for (const material of Object.values(owned?.systems ?? {})) material?.dispose?.();
     for (const twin of flatTwins.values()) twin?.dispose?.();
     flatTwins = new Map();
+    for (const tint of lightTints.values()) tint?.dispose?.();
+    lightTints = new Map();
   };
 
   const apply = on => {
@@ -354,6 +389,7 @@ export function createTechnicalReviewPresentation(root, keepRoots, createMateria
     if (applied) return true;
     try {
       systemCounts = {};
+      lightRoleCount = 0;
       materials ??= markTechnicalReviewPickMaterials(createMaterials());
       root.traverse(object => {
         if (object === root || !isRenderable(object) || saved.has(object)) return;
@@ -365,8 +401,11 @@ export function createTechnicalReviewPresentation(root, keepRoots, createMateria
           // A palette-free legacy review keeps its original source materials.
           if (!materials.systems) return;
           const system = object.isMesh ? systemOf(object) : null;
+          const systemMaterial = object.isMesh ? materials.systems[system ?? ''] : null;
+          const light = !!systemMaterial && LIGHT_TECH_ROLES.has(technicalReviewRoleOf(object, root));
+          if (light) lightRoleCount += 1;
           shared = object.isMesh
-            ? forGeometry(materials.systems[system ?? ''] ?? materials.surface, object)
+            ? forGeometry(light ? lightOf(systemMaterial) : systemMaterial ?? materials.surface, object)
             : materials.line;
           if (object.isMesh) {
             const key = system && materials.systems[system] ? system : 'GREY';
@@ -398,7 +437,9 @@ export function createTechnicalReviewPresentation(root, keepRoots, createMateria
 
   return { apply, dispose, get applied() { return applied; }, get changedCount() { return saved.size; },
     /** Kept meshes per highlight system in the last apply (GREY = no system). */
-    get systemCounts() { return { ...systemCounts }; } };
+    get systemCounts() { return { ...systemCounts }; },
+    /** Kept system meshes shown as a light device/enclosure/accessory tint in the last apply. */
+    get lightRoleCount() { return lightRoleCount; } };
 }
 
 const DRAIN_NAME = /(?:^|_)(?:V75|V75_D\d|V110|T110|V50|V32|DRAIN|WASTE|SEWER|WW1974|WW74|WW20\d\d|VV20\d\d|LK_?75|KK_?32)(?:_|$)/;
