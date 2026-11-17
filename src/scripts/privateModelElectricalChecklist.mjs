@@ -25,6 +25,7 @@ const pad2 = value => String(Number(value)).padStart(2, '0');
 export const ELECTRICAL_POINT_RULES = Object.freeze([
   // Points added from the owner's checklist (C80 620R14 onwards).
   { re: /^C80_620R\d+_(1F|2F)-PR-([A-Z0-9]+)_/, kind: 'SOCKET', id: m => `${m[1]}-PR-${m[2]}`, note: 'omistajan tarkistuslistasta' },
+  { re: /^C80_620R\d+_(1F|2F)-VALAISIN-([A-Z0-9]+)_/, kind: 'LIGHT', id: m => `${m[1]}-VALAISIN-${m[2]}`, note: 'omistajan tarkistuslistasta' },
   { re: /^C80_620R\d+_BALCONY_HEAT_LAMP_LOOSE_CORD/, kind: 'OTHER', id: () => '2F-PARVEKE-JOHTO',
     note: 'irrallinen johto lämpövalaisimelta ulkorasiaan' },
   { re: /^OWNER_(1F|2F)-SM-(\d+)_SMOKE_DETECTOR/, kind: 'SMOKE', id: m => `${m[1]}-PALOVAROITIN-${pad2(m[2])}` },
