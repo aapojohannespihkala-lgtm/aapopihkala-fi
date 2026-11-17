@@ -17,7 +17,7 @@ import {
 export const C80_620R12_GLB_SHA256='3ce69727f65ddfc90468c13ed4a619b03fca92b194993d10c035db1a0aa387f1';
 export const C80_620R12_GLB_BYTES=57740128;
 export const C80_620R12_ZIP_SHA256='64688f20514ba11debd69ce6bf1c569f732807661bc9b3f093f68010fa36adc3';
-export const C80_620R12_ZIP_DRIVE_ID='PLACEHOLDER_DRIVE_ID';
+export const C80_620R12_ZIP_DRIVE_ID='1HpZulrPDYR3DSdOohxH8o2-YqTMy737J';
 export const C80_620R12_PARENT_GLB_SHA256=C80_620R11_GLB_SHA256;
 export const C80_620R12_DUCT_ROOT=C80_620R11_DUCT_ROOT;
 // The one store exhaust valve (owner point); a technical root of its own from 620R12 on.
