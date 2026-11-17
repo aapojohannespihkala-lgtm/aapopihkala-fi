@@ -201,6 +201,7 @@ jobs:
             tests/unit/private-model-building-part-layer-bindings.test.mjs \
             tests/unit/private-model-technical-review-presentation.test.mjs \
             tests/unit/private-model-technical-review-role-tint.test.mjs \
+            tests/unit/private-model-electrical-checklist.test.mjs \
             tests/unit/private-model-content-visibility-panel-guard.test.mjs \
             tests/unit/private-model-c80-437-successor-layer-inheritance.test.mjs \
             tests/unit/private-model-hl4-furniture-runtime-bindings.test.mjs \
