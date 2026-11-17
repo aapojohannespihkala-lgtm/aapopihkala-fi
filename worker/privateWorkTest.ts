@@ -4503,6 +4503,17 @@ const C80_620R10_HIGH_DONOR_WORK_TEST_CANDIDATE = {
   expectedSha256: '10eba5613aca712f1a7de67098c30a0d58a1291cc066bcc88bf5b921e30e12d4',
 } as const satisfies PrivateWorkTestCandidate;
 
+// C80 620R18: Claude KANON-NEXT 18.11.2026 on C80 620R17 after the owner's 00.07 note: bathroom room height
+// about 2350 mm (ceiling Z2.430), lights and the measured exhaust valve with it, 2015 Helmi out.
+const C80_620R18_BATH_ROOM_HEIGHT_2350_WORK_TEST_CANDIDATE = {
+  id: 'c80-620r18-bath-room-height-2350-20261118',
+  label: 'C80 620R18 - 620R17 + kylpyhuoneen huonekorkeus 2350 mm, valaisimet ja poistoventtiili katon mukana - 18.11.2026 WORK_TEST/HOST_HOLD',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/c80-620r18-bath-room-height-2350-20261118.glb`,
+  objectKey: 'work-test/c80-620r18-bath-room-height-2350-20261118.glb',
+  expectedSize: 58529876,
+  expectedSha256: '5951c731fb8f48b9c8b03ba23f83805883463ad5e8ef91653735517fc266ba6e',
+} as const satisfies PrivateWorkTestCandidate;
+
 // C80 620R17: Claude KANON-NEXT 17.11.2026 on C80 620R16 after the owner's 23.21 note: bathroom ceiling without
 // the north-wall hole.
 const C80_620R17_BATH_CEILING_NO_HOLE_WORK_TEST_CANDIDATE = {
@@ -4632,6 +4643,7 @@ const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
   C80_WW74_L150_WORK_TEST_CANDIDATE,
   C80_495_SAVO_SEWER_WORK_TEST_CANDIDATE,
   C80_500_WW1974_ABC_WORK_TEST_CANDIDATE,
+  C80_620R18_BATH_ROOM_HEIGHT_2350_WORK_TEST_CANDIDATE,
   C80_620R17_BATH_CEILING_NO_HOLE_WORK_TEST_CANDIDATE,
   C80_620R16_BATH_CEILING_KSO125_WORK_TEST_CANDIDATE,
   C80_620R15_OWNER_REVIEW_LATE_WORK_TEST_CANDIDATE,
