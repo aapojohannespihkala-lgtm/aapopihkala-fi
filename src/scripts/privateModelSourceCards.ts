@@ -12,6 +12,7 @@ import { C80_614_GLB_SHA256, C80_614_SCENES, isC80614SourceScene } from './priva
 import { C80_620R10_GLB_SHA256, C80_620R10_SCENES, isC80620R10SourceScene } from './privateModelC80620R10SourceProfile.mjs';
 import { C80_620R11_GLB_SHA256, C80_620R11_SCENES, isC80620R11SourceScene } from './privateModelC80620R11SourceProfile.mjs';
 import { C80_620R12_GLB_SHA256, C80_620R12_SCENES, isC80620R12SourceScene } from './privateModelC80620R12SourceProfile.mjs';
+import { C80_620R13_GLB_SHA256, C80_620R13_SCENES, isC80620R13SourceScene } from './privateModelC80620R13SourceProfile.mjs';
 import { resolveC80R2ChainFloorScenes } from './privateModelC80R2ChainScenes.mjs';
 
 type RecordData = Record<string, any>;
@@ -581,6 +582,12 @@ export const loadModelWithSourceCards = async <T extends GltfSource & object>(
       throw new Error('C80_620R12_SOURCE_SCENE_MISMATCH');
     for (const index of indexes) rehydrate.add(index);
   }
+  if (digest === C80_620R13_GLB_SHA256) {
+    const indexes = Object.keys(C80_620R13_SCENES).map(Number);
+    if (!indexes.every(index => isC80620R13SourceScene(json, digest, index, C80_620R13_SCENES[index].floor)))
+      throw new Error('C80_620R13_SOURCE_SCENE_MISMATCH');
+    for (const index of indexes) rehydrate.add(index);
+  }
   for (const sceneIndex of rehydrate) {
     try {
       const is530Scene = (digest === C80_530_V27_GLB_SHA256 && C80_530_V27_SCENES[sceneIndex] !== undefined) ||
@@ -589,7 +596,8 @@ export const loadModelWithSourceCards = async <T extends GltfSource & object>(
         (digest === C80_614_GLB_SHA256 && C80_614_SCENES[sceneIndex] !== undefined) ||
         (digest === C80_620R10_GLB_SHA256 && C80_620R10_SCENES[sceneIndex] !== undefined) ||
         (digest === C80_620R11_GLB_SHA256 && C80_620R11_SCENES[sceneIndex] !== undefined) ||
-        (digest === C80_620R12_GLB_SHA256 && C80_620R12_SCENES[sceneIndex] !== undefined);
+        (digest === C80_620R12_GLB_SHA256 && C80_620R12_SCENES[sceneIndex] !== undefined) ||
+        (digest === C80_620R13_GLB_SHA256 && C80_620R13_SCENES[sceneIndex] !== undefined);
       const rebuilt = await rehydrateIncompleteScene(gltf, sceneIndex, { force: is530Scene });
       const cardMap = identity !== gltf ? identity.parser?.associations : undefined;
       if (rebuilt && cardMap) for (const [object, id] of rebuilt)
