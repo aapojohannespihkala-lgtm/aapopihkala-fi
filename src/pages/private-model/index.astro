@@ -2669,7 +2669,7 @@ const title = 'Private 3D viewer';
       import { V93_MJ40_SOURCE_SHA256 } from '../../scripts/privateModelV93MJ40BoschOpen90SourceProfile.mjs';
       import { V90_H20_SOURCE_SHA256 } from '../../scripts/privateModelC80R2V90H20LayerSourceProfile.mjs';
       import { V90_IV_P04_SOURCE_SHA256 } from '../../scripts/privateModelC80R2V90IVP04LayerSourceProfile.mjs';
-      import { resolveTechnicalReviewRoots, createTechnicalReviewPresentation, technicalReviewSystemOf, technicalReviewLayerSystemOf, filterNonTechnicalBoundObjects } from '../../scripts/privateModelTechnicalReviewPresentation.mjs';
+      import { resolveTechnicalReviewRoots, createTechnicalReviewPresentation, technicalReviewSystemOf, technicalReviewLayerSystemOf, refineTechnicalReviewSystem, filterNonTechnicalBoundObjects } from '../../scripts/privateModelTechnicalReviewPresentation.mjs';
       import { resolveConcealedTechnicalObjects, createConcealedTechnicalPresentation } from '../../scripts/privateModelConcealedTechnicalPresentation.mjs';
       import { K17_RAIL900_SOURCE_SHA256 } from '../../scripts/privateModelK17Rail900LayerSourceProfile.mjs';
       import { createV69C035WhiteLobbyPresentation } from '../../scripts/privateModelV69C035WhiteLobbyPresentation.mjs';
@@ -14888,7 +14888,7 @@ const title = 'Private 3D viewer';
         }),
         line: new THREE.LineBasicMaterial({ color: 0x9aa1a9, transparent: true, opacity: 0.14, depthWrite: false }),
         // Opaque-looking but in the transparent pass so they draw after the grey shell.
-        systems: Object.fromEntries(([['SAHKO', 0xff7a1a], ['VESI', 0x1e88e5], ['IV', 0x2fa84f], ['VIEMARI', 0x8e44ad]] as const)
+        systems: Object.fromEntries(([['SAHKO', 0xff7a1a], ['VESI', 0x1e88e5], ['VESI_LV', 0xe53935], ['IV', 0x2fa84f], ['VIEMARI', 0x8e44ad]] as const)
           // Self-lit share keeps large solids (NIBE heater, H20 manifold) in
           // their system color on faces turned away from the lights.
           .map(([key, color]) => [key, new THREE.MeshStandardMaterial({
@@ -15089,7 +15089,7 @@ const title = 'Private 3D viewer';
               const layerIdByRoot = new Map<THREE.Object3D, string>(bindings.map(binding => [binding.root, binding.id]));
               technicalReview = createTechnicalReviewPresentation(root,
                 [...reviewRoots, ...filterNonTechnicalBoundObjects(technical.boundObjects, layersLoadedSha).map((item: { object: THREE.Object3D }) => item.object)], createTechnicalReviewMaterials,
-                (object: THREE.Object3D) => technicalReviewSystemOf(object, root) ?? technicalReviewLayerSystemOf(object, root, layerIdByRoot));
+                (object: THREE.Object3D) => refineTechnicalReviewSystem(technicalReviewSystemOf(object, root) ?? technicalReviewLayerSystemOf(object, root, layerIdByRoot), object, root));
               technicalReviewInput.checked = technicalReviewOn;
               technicalReview.apply(technicalReviewOn);
               canvas.dataset.technicalReview = technicalReviewOn && technicalReview.applied ? 'on' : 'off';

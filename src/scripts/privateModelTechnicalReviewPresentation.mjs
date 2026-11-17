@@ -468,6 +468,33 @@ const DRAIN_NAME = /(?:^|_)(?:V75|V75_D\d|V110|T110|V50|V32|DRAIN|WASTE|SEWER|WW
 // size (e.g. "..._ONE_V75_COW" wrappers, KV/LV clearance sleeves, cisterns).
 const NOT_DRAIN_NAME = /(?:^|_)(?:KV|LV|KVLV|PEX|KV\d+|LV\d+|VM\d+|ELECTRICAL\d*|IV|IV\d+|SAHKO|RK\d+|CISTERN)(?:_|$)/;
 
+// Domestic hot water (LV = lämmin vesi) vs cold water (KV) in builder names.
+// The nearest name that names only one temperature decides; a wrapper that
+// names both (e.g. "P02_2F_KV_LV_CONNECTIONS") is skipped upwards.
+const HOT_WATER_NAME = /(?:^|_)(?:LV|LV\d+|LKV|HOT|MIXED_HOT)(?:_|$)/;
+const COLD_WATER_NAME = /(?:^|_)(?:KV|KV\d+|COLD)(?:_|$)/;
+
+/**
+ * Water line of a mesh already classified as VESI: 'VESI_LV' for a hot-water
+ * part, 'VESI' otherwise. Only builder names are read; unnamed or mixed parts
+ * stay in the generic water color (no guessing from geometry or position).
+ */
+export function technicalReviewWaterLineOf(object, root) {
+  for (let node = object; node && node !== root; node = node.parent) {
+    // "..._HOT_COLD_CLEARANCE_..." is a provenance suffix, not a temperature.
+    const name = typeof node.name === 'string' ? node.name.replace(/HOT_COLD_CLEARANCE/g, '') : '';
+    const hot = HOT_WATER_NAME.test(name), cold = COLD_WATER_NAME.test(name);
+    if (hot && !cold) return 'VESI_LV';
+    if (cold && !hot) return 'VESI';
+  }
+  return 'VESI';
+}
+
+/** Splits VESI into cold (VESI) and hot (VESI_LV); other systems pass through. */
+export function refineTechnicalReviewSystem(system, object, root) {
+  return system === 'VESI' ? technicalReviewWaterLineOf(object, root) : system;
+}
+
 /** Sisältö (layer) ids that carry a technical review color. */
 export const TECHNICAL_REVIEW_LAYER_SYSTEMS = Object.freeze({
   'technical-electrical': 'SAHKO',
