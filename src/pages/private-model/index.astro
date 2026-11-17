@@ -5483,7 +5483,8 @@ const title = 'Private 3D viewer';
         pointPickCopyButton.disabled = true;
         canvas.dataset.pointPickState = 'empty';
       };
-      // Set by the electrical checklist below; receives every picked point (null on a miss).
+      // Set by the electrical checklist below; receives every picked point. A miss or a clear
+      // resets pointPickState, which the checklist checks before using the point.
       let electricalChecklistOnPick: ((point: any) => void) | null = null;
       const pickModelPoint = (clientX: number, clientY: number) => {
         const point = pickVisibleWorkTest3DPoint({
@@ -5494,7 +5495,6 @@ const title = 'Private 3D viewer';
           // A missed click is not a new host: invalidate old XYZ, mesh, floor and SHA.
           clearPickedPoint();
           pointPickFeedback.textContent = 'Ei osumaa näkyvään mallipintaan. Edellinen piste tyhjennetty. Kopiointi estetty.';
-          electricalChecklistOnPick?.(null);
           return;
         }
         pointPickOverlay.show(point, null);
@@ -5564,7 +5564,7 @@ const title = 'Private 3D viewer';
       const ecStatusFi: Record<string, string> = { ok: 'OK', moved: 'väärä paikka', missing: 'ei ole', '': 'avoin' };
       const ecXyz = (p: any) => `X ${p.xM.toFixed(2)} · Y ${p.yM.toFixed(2)} · Z ${p.zM.toFixed(2)}`;
       const ecModelSha = () => layersLoadedSha && /^[a-f0-9]{64}$/i.test(layersLoadedSha) ? layersLoadedSha.toLowerCase() : '';
-      const ecPicked = () => ecLastPoint ? { xM: ecLastPoint.xM, yM: ecLastPoint.yM, zM: ecLastPoint.sourceHeightYUpM,
+      const ecPicked = () => ecLastPoint && canvas.dataset.pointPickState === 'picked' ? { xM: ecLastPoint.xM, yM: ecLastPoint.yM, zM: ecLastPoint.sourceHeightYUpM,
         surface: ecLastPoint.surfaceObjectName ?? '' } : null;
       const ecToOverlay = (p: any) => ({ xM: p.xM, yM: p.yM, sourceHeightYUpM: p.zM });
       const ecCommit = (next: any, message: string) => {
@@ -5576,15 +5576,15 @@ const title = 'Private 3D viewer';
       const ecRenderActive = () => {
         const item = ecItems.find(candidate => candidate.id === ecActiveId);
         ecActive.hidden = !item;
-        ecMove.disabled = !item || !ecLastPoint;
-        ecAdd.disabled = !ecLastPoint;
+        ecMove.disabled = !item || !ecPicked();
+        ecAdd.disabled = !ecPicked();
         if (!item) return;
         const decision = ecState.decisions[item.id];
         ecActiveLabel.textContent = `${item.kindLabel} ${item.id}`;
         ecActiveDetail.textContent = [
           `Mallissa ${ecXyz(item)}${item.note ? ` · ${item.note}` : ''}`,
           decision ? `Kuittaus: ${ecStatusFi[decision.status]}${decision.point ? ` → ${ecXyz(decision.point)}` : ''}` : 'Kuittaus: avoin',
-          ecLastPoint ? `Klikattu piste: ${ecXyz(ecPicked())}` : 'Klikkaa malliin, jos paikka on väärä.',
+          ecPicked() ? `Klikattu piste: ${ecXyz(ecPicked())}` : 'Klikkaa malliin, jos paikka on väärä.',
         ].join('\n');
       };
       const ecRender = () => {
