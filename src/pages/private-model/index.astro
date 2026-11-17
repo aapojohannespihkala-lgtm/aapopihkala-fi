@@ -14619,6 +14619,7 @@ const title = 'Private 3D viewer';
         if (selectedObject && !isEffectivelyVisible(selectedObject, modelRoot)) clearSelection();
         canvas.dataset.technicalReview = technicalReviewOn && technicalReview?.applied ? 'on' : 'off';
         canvas.dataset.technicalReviewSystems = technicalReview?.applied ? JSON.stringify(technicalReview.systemCounts) : '';
+        canvas.dataset.technicalReviewLightRoles = technicalReview?.applied ? String(technicalReview.lightRoleCount) : '';
         refreshEdgeRendering(modelRoot.children[0] ?? null);
       });
 
@@ -14794,6 +14795,7 @@ const title = 'Private 3D viewer';
               technicalReview.apply(technicalReviewOn);
               canvas.dataset.technicalReview = technicalReviewOn && technicalReview.applied ? 'on' : 'off';
               canvas.dataset.technicalReviewSystems = technicalReview.applied ? JSON.stringify(technicalReview.systemCounts) : '';
+              canvas.dataset.technicalReviewLightRoles = technicalReview.applied ? String(technicalReview.lightRoleCount) : '';
               technicalReviewRow.hidden = false;
             }
             // Concealed WORK_TEST routes belong in inspection, not finished rooms.
