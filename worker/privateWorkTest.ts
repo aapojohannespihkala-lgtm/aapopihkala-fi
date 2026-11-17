@@ -4503,6 +4503,17 @@ const C80_620R10_HIGH_DONOR_WORK_TEST_CANDIDATE = {
   expectedSha256: '10eba5613aca712f1a7de67098c30a0d58a1291cc066bcc88bf5b921e30e12d4',
 } as const satisfies PrivateWorkTestCandidate;
 
+// C80 620R15: Claude KANON-NEXT 17.11.2026 on C80 620R14 after the owner's late review (paver spots = contours,
+// bathroom ceiling, simple 2F WC exhaust duct, heat-lamp cord along the floor, mirror socket right, TV in line, closet light).
+const C80_620R15_OWNER_REVIEW_LATE_WORK_TEST_CANDIDATE = {
+  id: 'c80-620r15-owner-review-late-20261117',
+  label: 'C80 620R15 - 620R14 + kylpyhuoneen katto, yksinkertainen WC-poisto, johto lattianrajaan, peilikaapin rasia oikealle, TV riviin, vaatehuoneen valaisin, korkeuskäyrät pois laatoista - 17.11.2026 WORK_TEST/HOST_HOLD',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/c80-620r15-owner-review-late-20261117.glb`,
+  objectKey: 'work-test/c80-620r15-owner-review-late-20261117.glb',
+  expectedSize: 58314340,
+  expectedSha256: 'a83959e3d859dc81a5214efe8579068166f443496b3d8455e9aef458f462e96d',
+} as const satisfies PrivateWorkTestCandidate;
+
 // C80 620R14: Claude KANON-NEXT 17.11.2026 on C80 620R13 after the owner's electrical checklist (balcony heat-lamp
 // cord to the outdoor socket, sockets in the 2F WC mirror cabinet and above the fridge-freezer, duplicate soffit light out).
 const C80_620R14_OWNER_CHECKLIST_WORK_TEST_CANDIDATE = {
@@ -4599,6 +4610,7 @@ const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
   C80_WW74_L150_WORK_TEST_CANDIDATE,
   C80_495_SAVO_SEWER_WORK_TEST_CANDIDATE,
   C80_500_WW1974_ABC_WORK_TEST_CANDIDATE,
+  C80_620R15_OWNER_REVIEW_LATE_WORK_TEST_CANDIDATE,
   C80_620R14_OWNER_CHECKLIST_WORK_TEST_CANDIDATE,
   C80_620R13_OWNER_REVIEW_WORK_TEST_CANDIDATE,
   C80_620R12_OWNER_REVIEW_WORK_TEST_CANDIDATE,
