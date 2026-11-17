@@ -5535,7 +5535,7 @@ const title = 'Private 3D viewer';
       // name, decisions stay in this browser and are copied as text for the next model round.
       const ecStorage = (() => { try { return window.localStorage; } catch { return null; } })();
       let ecItems: any[] = [];
-      let ecState = loadChecklistState(ecStorage);
+      let ecState: any = loadChecklistState(ecStorage);
       let ecActiveId: string | null = null;
       let ecLastPoint: any = null;
       const ecEl = <T extends HTMLElement>(selector: string) => {

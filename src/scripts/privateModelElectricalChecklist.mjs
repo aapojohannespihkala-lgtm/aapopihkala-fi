@@ -140,6 +140,12 @@ export function parseChecklistState(raw) {
   return { decisions, added };
 }
 
+/**
+ * @param {any} state
+ * @param {string} id
+ * @param {string|null} status
+ * @param {{point?: {xM:number, yM:number, zM:number, surface?:string}|null, modelSha?: string, at?: string}} [options]
+ */
 export function decide(state, id, status, { point = null, modelSha = '', at = new Date().toISOString() } = {}) {
   const next = { decisions: { ...state.decisions }, added: [...state.added] };
   if (status === null) { delete next.decisions[id]; return next; }
@@ -150,6 +156,10 @@ export function decide(state, id, status, { point = null, modelSha = '', at = ne
   return next;
 }
 
+/**
+ * @param {any} state
+ * @param {{kind: string, name?: string, point: {xM:number, yM:number, zM:number, surface?:string}|null, modelSha?: string, at?: string}} entry
+ */
 export function addMissing(state, { kind, name, point, modelSha = '', at = new Date().toISOString() }) {
   if (!ELECTRICAL_KINDS[kind]) throw new Error('CHECKLIST_KIND');
   if (!validPoint(point)) throw new Error('CHECKLIST_POINT_REQUIRED');
