@@ -562,6 +562,24 @@ const title = 'Private 3D viewer';
         color: #555853;
         font-size: 11px;
       }
+
+      /* Owner electrical checklist inside "Piste mallissa" (17.11.2026). */
+      .electrical-checklist { border-top: 1px solid rgba(127, 127, 127, 0.35); padding-top: 6px; }
+      .electrical-checklist > summary { cursor: pointer; font-weight: 600; }
+      .electrical-checklist[open] { display: grid; gap: 6px; }
+      .ec-help { font-size: 11px; opacity: 0.85; }
+      .ec-list { list-style: none; margin: 0; padding: 0; max-height: 30vh; overflow: auto; display: grid; gap: 2px; }
+      .ec-list button { width: 100%; text-align: left; display: flex; justify-content: space-between; gap: 6px; font-size: 12px; }
+      .ec-list button[aria-current="true"] { outline: 2px solid #ffc94a; }
+      .ec-chip { font-size: 10px; padding: 0 5px; border-radius: 8px; background: rgba(127, 127, 127, 0.25); white-space: nowrap; }
+      .ec-chip[data-status="ok"] { background: #2e7d32; color: #fff; }
+      .ec-chip[data-status="moved"] { background: #c62828; color: #fff; }
+      .ec-chip[data-status="missing"] { background: #6d4c41; color: #fff; }
+      .ec-active, .ec-add { display: grid; gap: 4px; padding: 6px; border: 1px solid rgba(127, 127, 127, 0.35); border-radius: 8px; }
+      .ec-active[hidden] { display: none; }
+      .ec-buttons { display: flex; flex-wrap: wrap; gap: 4px; }
+      .electrical-checklist textarea { width: 100%; font-size: 11px; }
+      #ec-active-detail { white-space: pre-line; }
       .p137e-place-panel {
         position: absolute;
         z-index: 6;
@@ -1947,6 +1965,45 @@ const title = 'Private 3D viewer';
           <button id="point-pick-copy" type="button" disabled>Kopioi XYZ ja pintatiedot</button>
           <div id="point-pick-feedback" class="point-measure-note" role="status"></div>
           <div class="point-measure-note">Piste ja sen merkki näkyvät kuvakaappauksessa. WORK_TEST-mallihavainto, ei tarkemittaus.</div>
+          <details id="electrical-checklist" class="electrical-checklist">
+            <summary>Sähköpisteiden tarkistus <span id="electrical-checklist-count"></span></summary>
+            <div class="ec-help">Valitse piste listalta: malli näyttää sen keltaisella merkillä. Kuittaa paikka oikeaksi, tai klikkaa oikea kohta malliin ja valitse "Oikea paikka = klikattu piste". Kuittaukset jäävät tähän selaimeen.</div>
+            <label>Kerros
+              <select id="ec-floor" aria-label="Sähköpisteiden kerros">
+                <option value="">kaikki</option>
+                <option value="1F">1F</option>
+                <option value="2F">2F</option>
+              </select>
+            </label>
+            <ol id="electrical-checklist-list" class="ec-list"></ol>
+            <div id="ec-active" class="ec-active" hidden>
+              <strong id="ec-active-label"></strong>
+              <div id="ec-active-detail" class="point-measure-detail"></div>
+              <div class="ec-buttons">
+                <button id="ec-ok" type="button">Paikka oikein</button>
+                <button id="ec-move" type="button" disabled>Oikea paikka = klikattu piste</button>
+                <button id="ec-missing" type="button">Ei ole olemassa</button>
+                <button id="ec-reset" type="button">Poista kuittaus</button>
+              </div>
+            </div>
+            <div class="ec-add">
+              <strong>Puuttuva piste</strong>
+              <select id="ec-add-kind" aria-label="Puuttuvan pisteen laji">
+                <option value="SOCKET">Pistorasia</option>
+                <option value="CEILING_SOCKET">Kattorasia</option>
+                <option value="SWITCH">Kytkin</option>
+                <option value="LIGHT">Valaisin</option>
+                <option value="BOARD">Sähkökeskus</option>
+                <option value="OTHER">Muu sähköpiste</option>
+              </select>
+              <input id="ec-add-name" type="text" maxlength="80" placeholder="esim. vaatehuoneen kattovalaisin" aria-label="Puuttuvan pisteen nimi" />
+              <button id="ec-add" type="button" disabled>Lisää klikattuun pisteeseen</button>
+              <ol id="ec-added" class="ec-list"></ol>
+            </div>
+            <button id="ec-copy" type="button">Kopioi tarkistuslista</button>
+            <textarea id="ec-report" rows="6" readonly hidden aria-label="Tarkistuslistan teksti"></textarea>
+            <div id="ec-feedback" class="point-measure-note" role="status"></div>
+          </details>
         </aside>
         <aside id="point-measure-panel" class="point-measure-panel" aria-live="polite" hidden>
           <div class="point-measure-header">
@@ -2580,6 +2637,7 @@ const title = 'Private 3D viewer';
       import {resolveC80620R12Scenes,createC80620R12FloorRuntime} from '../../scripts/privateModelC80620R12FloorRuntime.mjs';
       import {resolveC80620R11Scenes,createC80620R11FloorRuntime} from '../../scripts/privateModelC80620R11FloorRuntime.mjs';
       import {applyD2FFloorDepthBias} from '../../scripts/privateModelFloorDepthBias.mjs';
+      import {collectElectricalPoints,loadChecklistState,saveChecklistState,decide as decideElectricalPoint,addMissing as addMissingElectricalPoint,removeAdded as removeAddedElectricalPoint,checklistSummary as electricalChecklistSummary,formatChecklistReport as formatElectricalChecklistReport,ELECTRICAL_KINDS} from '../../scripts/privateModelElectricalChecklist.mjs';
       import {C80_524_RAIN_GLB_SHA256} from '../../scripts/privateModelC80524RainZonesSourceProfile.mjs';
       import {resolveC80524RainScenes,createC80524RainFloorRuntime} from '../../scripts/privateModelC80524RainZonesFloorRuntime.mjs';
       import {C80_500_GLB_SHA256,resolveC80500ABCScenes} from '../../scripts/privateModelC80500WW1974ABCSourceProfile.mjs';
@@ -5425,6 +5483,8 @@ const title = 'Private 3D viewer';
         pointPickCopyButton.disabled = true;
         canvas.dataset.pointPickState = 'empty';
       };
+      // Set by the electrical checklist below; receives every picked point (null on a miss).
+      let electricalChecklistOnPick: ((point: any) => void) | null = null;
       const pickModelPoint = (clientX: number, clientY: number) => {
         const point = pickVisibleWorkTest3DPoint({
           clientX, clientY, rect: canvas.getBoundingClientRect(),
@@ -5434,6 +5494,7 @@ const title = 'Private 3D viewer';
           // A missed click is not a new host: invalidate old XYZ, mesh, floor and SHA.
           clearPickedPoint();
           pointPickFeedback.textContent = 'Ei osumaa näkyvään mallipintaan. Edellinen piste tyhjennetty. Kopiointi estetty.';
+          electricalChecklistOnPick?.(null);
           return;
         }
         pointPickOverlay.show(point, null);
@@ -5467,7 +5528,188 @@ const title = 'Private 3D viewer';
         pointPickCopyButton.disabled = false;
         pointPickFeedback.textContent = 'Piste merkitty. Ota kuvakaappaus tai kopioi koordinaatit.';
         canvas.dataset.pointPickState = 'picked';
+        electricalChecklistOnPick?.(point);
       };
+
+      // Owner electrical checklist (17.11.2026). Points are found in the loaded model by source
+      // name, decisions stay in this browser and are copied as text for the next model round.
+      const ecStorage = (() => { try { return window.localStorage; } catch { return null; } })();
+      let ecItems: any[] = [];
+      let ecState = loadChecklistState(ecStorage);
+      let ecActiveId: string | null = null;
+      let ecLastPoint: any = null;
+      const ecEl = <T extends HTMLElement>(selector: string) => {
+        const element = document.querySelector<T>(selector);
+        if (!element) throw new Error(`ELECTRICAL_CHECKLIST_ELEMENT ${selector}`);
+        return element;
+      };
+      const ecRoot = ecEl<HTMLDetailsElement>('#electrical-checklist');
+      const ecList = ecEl<HTMLOListElement>('#electrical-checklist-list');
+      const ecCount = ecEl<HTMLElement>('#electrical-checklist-count');
+      const ecFloor = ecEl<HTMLSelectElement>('#ec-floor');
+      const ecActive = ecEl<HTMLElement>('#ec-active');
+      const ecActiveLabel = ecEl<HTMLElement>('#ec-active-label');
+      const ecActiveDetail = ecEl<HTMLElement>('#ec-active-detail');
+      const ecOk = ecEl<HTMLButtonElement>('#ec-ok');
+      const ecMove = ecEl<HTMLButtonElement>('#ec-move');
+      const ecMissing = ecEl<HTMLButtonElement>('#ec-missing');
+      const ecReset = ecEl<HTMLButtonElement>('#ec-reset');
+      const ecAddKind = ecEl<HTMLSelectElement>('#ec-add-kind');
+      const ecAddName = ecEl<HTMLInputElement>('#ec-add-name');
+      const ecAdd = ecEl<HTMLButtonElement>('#ec-add');
+      const ecAdded = ecEl<HTMLOListElement>('#ec-added');
+      const ecCopy = ecEl<HTMLButtonElement>('#ec-copy');
+      const ecReport = ecEl<HTMLTextAreaElement>('#ec-report');
+      const ecFeedback = ecEl<HTMLElement>('#ec-feedback');
+      const ecStatusFi: Record<string, string> = { ok: 'OK', moved: 'väärä paikka', missing: 'ei ole', '': 'avoin' };
+      const ecXyz = (p: any) => `X ${p.xM.toFixed(2)} · Y ${p.yM.toFixed(2)} · Z ${p.zM.toFixed(2)}`;
+      const ecModelSha = () => layersLoadedSha && /^[a-f0-9]{64}$/i.test(layersLoadedSha) ? layersLoadedSha.toLowerCase() : '';
+      const ecPicked = () => ecLastPoint ? { xM: ecLastPoint.xM, yM: ecLastPoint.yM, zM: ecLastPoint.sourceHeightYUpM,
+        surface: ecLastPoint.surfaceObjectName ?? '' } : null;
+      const ecToOverlay = (p: any) => ({ xM: p.xM, yM: p.yM, sourceHeightYUpM: p.zM });
+      const ecCommit = (next: any, message: string) => {
+        ecState = next;
+        ecFeedback.textContent = saveChecklistState(ecStorage, ecState)
+          ? message : `${message} Selaimen tallennus estetty: kopioi lista talteen.`;
+        ecRender();
+      };
+      const ecRenderActive = () => {
+        const item = ecItems.find(candidate => candidate.id === ecActiveId);
+        ecActive.hidden = !item;
+        ecMove.disabled = !item || !ecLastPoint;
+        ecAdd.disabled = !ecLastPoint;
+        if (!item) return;
+        const decision = ecState.decisions[item.id];
+        ecActiveLabel.textContent = `${item.kindLabel} ${item.id}`;
+        ecActiveDetail.textContent = [
+          `Mallissa ${ecXyz(item)}${item.note ? ` · ${item.note}` : ''}`,
+          decision ? `Kuittaus: ${ecStatusFi[decision.status]}${decision.point ? ` → ${ecXyz(decision.point)}` : ''}` : 'Kuittaus: avoin',
+          ecLastPoint ? `Klikattu piste: ${ecXyz(ecPicked())}` : 'Klikkaa malliin, jos paikka on väärä.',
+        ].join('\n');
+      };
+      const ecRender = () => {
+        const summary = electricalChecklistSummary(ecItems, ecState);
+        ecCount.textContent = ecItems.length
+          ? `(${ecItems.length - summary.open}/${ecItems.length} kuitattu${summary.added ? `, ${summary.added} lisätty` : ''})` : '';
+        canvas.dataset.electricalChecklistCount = String(ecItems.length);
+        canvas.dataset.electricalChecklistOpen = String(summary.open);
+        const floor = ecFloor.value;
+        ecList.replaceChildren(...ecItems.filter(item => !floor || item.floor === floor).map(item => {
+          const status = ecState.decisions[item.id]?.status ?? '';
+          const li = document.createElement('li');
+          const button = document.createElement('button');
+          button.type = 'button';
+          button.dataset.ecId = item.id;
+          button.setAttribute('aria-current', String(item.id === ecActiveId));
+          const label = document.createElement('span');
+          label.textContent = `${item.kindLabel} ${item.id}`;
+          const chip = document.createElement('span');
+          chip.className = 'ec-chip';
+          chip.dataset.status = status;
+          chip.textContent = ecStatusFi[status];
+          button.append(label, chip);
+          li.append(button);
+          return li;
+        }));
+        ecAdded.replaceChildren(...ecState.added.map((added: any, index: number) => {
+          const li = document.createElement('li');
+          const button = document.createElement('button');
+          button.type = 'button';
+          button.dataset.ecAddedIndex = String(index);
+          button.title = 'Poista lisätty piste';
+          const label = document.createElement('span');
+          label.textContent = `${(ELECTRICAL_KINDS as any)[added.kind]} "${added.name || 'nimetön'}"`;
+          const chip = document.createElement('span');
+          chip.className = 'ec-chip';
+          chip.textContent = 'poista';
+          button.append(label, chip);
+          li.append(button);
+          return li;
+        }));
+        ecRenderActive();
+      };
+      const ecCollect = () => {
+        ecItems = collectElectricalPoints(modelRoot, (object: any) => {
+          const bounds = new THREE.Box3().setFromObject(object);
+          return bounds.isEmpty() ? null : bounds;
+        });
+        if (ecActiveId && !ecItems.some(item => item.id === ecActiveId)) ecActiveId = null;
+        ecFeedback.textContent = ecItems.length ? '' : 'Tästä mallinäkymästä ei löytynyt sähköpisteitä.';
+        ecRender();
+      };
+      const ecShowActive = () => {
+        const item = ecItems.find(candidate => candidate.id === ecActiveId);
+        if (!item) return;
+        const moved = ecState.decisions[item.id]?.point;
+        pointPickOverlay.show(ecToOverlay(item), moved ? ecToOverlay(moved) : null);
+        if (activeCamera === camera) {
+          const target = new THREE.Vector3(item.xM, item.zM, -item.yM);
+          const offset = camera.position.clone().sub(controls.target);
+          offset.setLength(Math.min(Math.max(offset.length(), 1.5), 4));
+          controls.target.copy(target);
+          camera.position.copy(target).add(offset);
+          controls.update();
+        }
+      };
+      electricalChecklistOnPick = (point: any) => {
+        ecLastPoint = point;
+        ecRenderActive();
+      };
+      ecRoot.addEventListener('toggle', () => { if (ecRoot.open) ecCollect(); });
+      ecFloor.addEventListener('change', ecRender);
+      ecList.addEventListener('click', event => {
+        const id = (event.target as HTMLElement).closest<HTMLButtonElement>('button[data-ec-id]')?.dataset.ecId;
+        if (!id) return;
+        ecActiveId = id;
+        ecLastPoint = null;
+        ecRender();
+        ecShowActive();
+      });
+      ecOk.addEventListener('click', () => {
+        if (!ecActiveId) return;
+        ecCommit(decideElectricalPoint(ecState, ecActiveId, 'ok', { modelSha: ecModelSha() }), `${ecActiveId}: paikka oikein.`);
+      });
+      ecMissing.addEventListener('click', () => {
+        if (!ecActiveId) return;
+        ecCommit(decideElectricalPoint(ecState, ecActiveId, 'missing', { modelSha: ecModelSha() }), `${ecActiveId}: ei ole olemassa.`);
+      });
+      ecReset.addEventListener('click', () => {
+        if (!ecActiveId) return;
+        ecCommit(decideElectricalPoint(ecState, ecActiveId, null), `${ecActiveId}: kuittaus poistettu.`);
+      });
+      ecMove.addEventListener('click', () => {
+        const point = ecPicked();
+        if (!ecActiveId || !point) return;
+        ecCommit(decideElectricalPoint(ecState, ecActiveId, 'moved', { point, modelSha: ecModelSha() }),
+          `${ecActiveId}: oikea paikka tallennettu.`);
+        ecShowActive();
+      });
+      ecAdd.addEventListener('click', () => {
+        const point = ecPicked();
+        if (!point) return;
+        ecCommit(addMissingElectricalPoint(ecState, { kind: ecAddKind.value, name: ecAddName.value, point, modelSha: ecModelSha() }),
+          'Puuttuva piste lisätty.');
+        ecAddName.value = '';
+      });
+      ecAdded.addEventListener('click', event => {
+        const index = Number((event.target as HTMLElement).closest<HTMLButtonElement>('button[data-ec-added-index]')?.dataset.ecAddedIndex);
+        if (!Number.isInteger(index)) return;
+        ecCommit(removeAddedElectricalPoint(ecState, index), 'Lisätty piste poistettu.');
+      });
+      ecCopy.addEventListener('click', async () => {
+        const text = formatElectricalChecklistReport(ecItems, ecState, {
+          modelSha: ecModelSha() || 'UNKNOWN', candidate: canvas.dataset.workTestReviewCandidate || '-' });
+        ecReport.value = text;
+        try {
+          await navigator.clipboard.writeText(text);
+          ecReport.hidden = true;
+          ecFeedback.textContent = 'Tarkistuslista kopioitu. Liitä se chattiin.';
+        } catch {
+          ecReport.hidden = false;
+          ecReport.select();
+          ecFeedback.textContent = 'Kopiointi estetty: valitse teksti alta ja kopioi se.';
+        }
+      });
 
       type ViewerToolMode = 'navigate' | 'select' | 'measure' | 'place' | 'point-measure' | 'point-pick';
       const setViewerToolMode = (mode: ViewerToolMode) => {
