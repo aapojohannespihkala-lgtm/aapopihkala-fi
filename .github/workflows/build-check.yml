@@ -255,6 +255,7 @@ jobs:
             tests/unit/private-model-c80-620r16-work-test-receiver.test.mjs \
             tests/unit/private-model-c80-620r17-work-test-receiver.test.mjs \
             tests/unit/private-model-c80-620r18-work-test-receiver.test.mjs \
+            tests/unit/private-model-c80-620r19-work-test-receiver.test.mjs \
             tests/unit/private-model-technical-review-hot-water.test.mjs \
             tests/unit/private-model-hidden-seam-edges.test.mjs \
             tests/unit/private-model-floor-depth-bias.test.mjs \
