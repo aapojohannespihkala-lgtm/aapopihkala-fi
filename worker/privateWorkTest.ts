@@ -4503,6 +4503,17 @@ const C80_620R10_HIGH_DONOR_WORK_TEST_CANDIDATE = {
   expectedSha256: '10eba5613aca712f1a7de67098c30a0d58a1291cc066bcc88bf5b921e30e12d4',
 } as const satisfies PrivateWorkTestCandidate;
 
+// C80 620R19: Claude KANON-NEXT 18.11.2026 on C80 620R18: RELEASED High donors on 620R18 merged (ILP stand with
+// four legs H1811-1; 674R18 PA2 1F hot riser in the wall and terrace L-step west wall).
+const C80_620R19_ILP4_PA2_LSTEP_DONORS_WORK_TEST_CANDIDATE = {
+  id: 'c80-620r19-ilp4-pa2-lstep-donors-20261118',
+  label: 'C80 620R19 - 620R18 + ILP-teline 4 jalkaa, PA2 lämminvesinousu seinässä, terassin L-askelman länsihaara - 18.11.2026 WORK_TEST/HOST_HOLD',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/c80-620r19-ilp4-pa2-lstep-donors-20261118.glb`,
+  objectKey: 'work-test/c80-620r19-ilp4-pa2-lstep-donors-20261118.glb',
+  expectedSize: 58622172,
+  expectedSha256: '868f873288310e66d362ca1afa34d8b54ce1096504ab34b9514c09b4a109a5b4',
+} as const satisfies PrivateWorkTestCandidate;
+
 // C80 620R18: Claude KANON-NEXT 18.11.2026 on C80 620R17 after the owner's 00.07 note: bathroom room height
 // about 2350 mm (ceiling Z2.430), lights and the measured exhaust valve with it, 2015 Helmi out.
 const C80_620R18_BATH_ROOM_HEIGHT_2350_WORK_TEST_CANDIDATE = {
@@ -4643,6 +4654,7 @@ const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
   C80_WW74_L150_WORK_TEST_CANDIDATE,
   C80_495_SAVO_SEWER_WORK_TEST_CANDIDATE,
   C80_500_WW1974_ABC_WORK_TEST_CANDIDATE,
+  C80_620R19_ILP4_PA2_LSTEP_DONORS_WORK_TEST_CANDIDATE,
   C80_620R18_BATH_ROOM_HEIGHT_2350_WORK_TEST_CANDIDATE,
   C80_620R17_BATH_CEILING_NO_HOLE_WORK_TEST_CANDIDATE,
   C80_620R16_BATH_CEILING_KSO125_WORK_TEST_CANDIDATE,
