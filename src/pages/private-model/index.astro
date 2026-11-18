@@ -2713,6 +2713,7 @@ const title = 'Private 3D viewer';
       import { createOrientationGizmoController } from '../../scripts/privateModelOrientationGizmo';
       import { createViewerFrameProfiler } from '../../scripts/privateModelFrameProfiler';
       import { createUnifiedEdgeMemo } from '../../scripts/privateModelUnifiedEdgeMemo';
+      import { createCoplanarFaceIndex, surfaceLookKey } from '../../scripts/privateModelHiddenSeamEdges';
       import {
         activateReviewCoordinatePanel,
         clearReviewAnchorState,
@@ -4649,49 +4650,82 @@ const title = 'Private 3D viewer';
       const vertexKey = (point: any) =>
         [point.x, point.y, point.z].map((value) => Math.round(value * 10000)).join(',');
 
-      const addUnifiedMeshEdges = (
-        mesh: any,
-        edgeMap: Map<string, { a: any; b: any; normals: any[] }>,
-      ) => {
-        const geometry = mesh.geometry;
-        const position = geometry?.getAttribute?.('position');
-        if (!position || position.itemSize < 3) return;
+      type UnifiedEdgeRecord = { a: any; b: any; normals: any[]; owners: number[]; dropOwners: Set<number> | null };
 
-        const index = geometry.getIndex?.();
-        const triangleCount = index
-          ? Math.floor(index.count / 3)
-          : Math.floor(position.count / 3);
-        const readVertex = (vertexIndex: number) =>
-          new THREE.Vector3()
-            .fromBufferAttribute(position, vertexIndex)
-            .applyMatrix4(mesh.matrixWorld);
+      // Owner review 17.11 item 12: touching builder boxes (K17 low wall,
+      // stairwell 1F/2F wall boxes) draw seams inside one continuous surface.
+      // Contributions hidden against another mesh, or continued flat by
+      // another mesh of the same look, are left out (presentation only).
+      const addUnifiedMeshEdges = (meshes: any[], edgeMap: Map<string, UnifiedEdgeRecord>) => {
+        const faces = createCoplanarFaceIndex();
+        const triangles: { owner: number; look: string; v: any[]; n: any }[] = [];
+        meshes.forEach((mesh: any, owner: number) => {
+          const geometry = mesh.geometry;
+          const position = geometry?.getAttribute?.('position');
+          if (!position || position.itemSize < 3) return;
+          const look = surfaceLookKey(mesh.material);
+          const index = geometry.getIndex?.();
+          const triangleCount = index
+            ? Math.floor(index.count / 3)
+            : Math.floor(position.count / 3);
+          const readVertex = (vertexIndex: number) =>
+            new THREE.Vector3()
+              .fromBufferAttribute(position, vertexIndex)
+              .applyMatrix4(mesh.matrixWorld);
+          for (let triangle = 0; triangle < triangleCount; triangle += 1) {
+            const i0 = index ? index.getX(triangle * 3) : triangle * 3;
+            const i1 = index ? index.getX(triangle * 3 + 1) : triangle * 3 + 1;
+            const i2 = index ? index.getX(triangle * 3 + 2) : triangle * 3 + 2;
+            const vertices = [readVertex(i0), readVertex(i1), readVertex(i2)];
+            const normal = new THREE.Vector3()
+              .subVectors(vertices[1], vertices[0])
+              .cross(new THREE.Vector3().subVectors(vertices[2], vertices[0]));
+            if (normal.lengthSq() < 1e-12) continue;
+            normal.normalize();
+            triangles.push({ owner, look, v: vertices, n: normal });
+            faces.add(owner, look, vertices[0], vertices[1], vertices[2], normal);
+          }
+        });
 
-        for (let triangle = 0; triangle < triangleCount; triangle += 1) {
-          const i0 = index ? index.getX(triangle * 3) : triangle * 3;
-          const i1 = index ? index.getX(triangle * 3 + 1) : triangle * 3 + 1;
-          const i2 = index ? index.getX(triangle * 3 + 2) : triangle * 3 + 2;
-          const vertices = [readVertex(i0), readVertex(i1), readVertex(i2)];
-          const normal = new THREE.Vector3()
-            .subVectors(vertices[1], vertices[0])
-            .cross(new THREE.Vector3().subVectors(vertices[2], vertices[0]));
-          if (normal.lengthSq() < 1e-12) continue;
-          normal.normalize();
-
-          for (const [aIndex, bIndex] of [[0, 1], [1, 2], [2, 0]]) {
+        let contactCount = 0;
+        let continuedCount = 0;
+        const direction = new THREE.Vector3();
+        const inward = new THREE.Vector3();
+        for (const { owner, look, v: vertices, n: normal } of triangles) {
+          for (const [aIndex, bIndex, cIndex] of [[0, 1, 2], [1, 2, 0], [2, 0, 1]]) {
             const a = vertices[aIndex];
             const b = vertices[bIndex];
+            direction.subVectors(b, a);
+            if (direction.lengthSq() < 1e-18) continue;
+            direction.normalize();
+            inward.crossVectors(normal, direction);
+            if (inward.dot(new THREE.Vector3().subVectors(vertices[cIndex], a)) < 0) inward.negate();
+            const seam = faces.classify(owner, look, a, b, normal, inward);
+            if (seam === 'CONTACT') { contactCount += 1; continue; }
             const aKey = vertexKey(a);
             const bKey = vertexKey(b);
             const key = aKey < bKey ? aKey + '|' + bKey : bKey + '|' + aKey;
-            const record = edgeMap.get(key);
-            if (record) {
-              record.normals.push(normal.clone());
-            } else {
-              edgeMap.set(key, { a: a.clone(), b: b.clone(), normals: [normal.clone()] });
+            let record = edgeMap.get(key);
+            if (!record) {
+              record = { a: a.clone(), b: b.clone(), normals: [], owners: [], dropOwners: null };
+              edgeMap.set(key, record);
+            }
+            record.normals.push(normal.clone());
+            record.owners.push(owner);
+            if (seam === 'CONTINUED') {
+              continuedCount += 1;
+              (record.dropOwners ??= new Set()).add(owner);
             }
           }
         }
+        canvas.dataset.edgeHiddenSeamContactCount = String(contactCount);
+        canvas.dataset.edgeHiddenSeamContinuedCount = String(continuedCount);
       };
+
+      /** Normals that still draw an edge after hidden-seam contributions are left out. */
+      const effectiveEdgeNormals = (record: UnifiedEdgeRecord) => record.dropOwners
+        ? record.normals.filter((_, i) => !record.dropOwners!.has(record.owners[i]))
+        : record.normals;
 
       // VIEWER-PERF: identical input -> identical overlay; skips the ~4.5 s rebuild
       // repeated by one floor switch / Layers toggle. Output and algorithm unchanged.
@@ -4709,7 +4743,7 @@ const title = 'Private 3D viewer';
           v69SourceSha: V69_SOURCE_SHA256,
           preset: canvas.dataset.standardViewPreset,
         });
-        const memoKey = unifiedEdgeMemo.keyOf(meshes, isC044TwoFloorPreview ? 'c044' : 'plain');
+        const memoKey = unifiedEdgeMemo.keyOf(meshes, isC044TwoFloorPreview ? 'c044-seam' : 'plain-seam');
         const memo = unifiedEdgeMemo.get(memoKey);
         if (memo) {
           canvas.dataset.edgeTJunctionSuppressedCount = String(memo.suppressedTJunctions);
@@ -4718,15 +4752,17 @@ const title = 'Private 3D viewer';
             'position', new THREE.Float32BufferAttribute(memo.positions, 3));
         }
 
-        const edgeMap = new Map<string, { a: any; b: any; normals: any[] }>();
-        for (const mesh of meshes) addUnifiedMeshEdges(mesh, edgeMap);
+        const edgeMap = new Map<string, UnifiedEdgeRecord>();
+        addUnifiedMeshEdges(meshes, edgeMap);
 
         const creaseCos = Math.cos(THREE.MathUtils.degToRad(8));
-        const boundaries = [...edgeMap.values()].filter((record) => record.normals.length === 1);
+        const normalsByRecord = new Map<UnifiedEdgeRecord, any[]>();
+        for (const record of edgeMap.values()) normalsByRecord.set(record, effectiveEdgeNormals(record));
+        const boundaries = [...edgeMap.values()].filter((record) => normalsByRecord.get(record)!.length === 1);
         const suppressedIndexes = isC044TwoFloorPreview
           ? findCoplanarTJunctionBoundaryIndexes(
               boundaries.map((record) => ({
-                a: record.a, b: record.b, normal: record.normals[0],
+                a: record.a, b: record.b, normal: normalsByRecord.get(record)![0],
               })),
               8,
             )
@@ -4738,12 +4774,13 @@ const title = 'Private 3D viewer';
 
         const points: any[] = [];
         for (const record of edgeMap.values()) {
-          let keep = record.normals.length === 1
+          const normals = normalsByRecord.get(record)!;
+          let keep = normals.length === 1
             ? !suppressedBoundaries.has(record)
             : false;
-          if (record.normals.length > 1) {
-            const reference = record.normals[0];
-            keep = record.normals
+          if (normals.length > 1) {
+            const reference = normals[0];
+            keep = normals
               .slice(1)
               .some((normal) => Math.abs(reference.dot(normal)) < creaseCos);
           }
