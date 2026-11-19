@@ -4503,6 +4503,17 @@ const C80_620R10_HIGH_DONOR_WORK_TEST_CANDIDATE = {
   expectedSha256: '10eba5613aca712f1a7de67098c30a0d58a1291cc066bcc88bf5b921e30e12d4',
 } as const satisfies PrivateWorkTestCandidate;
 
+// C80 620R20: Claude KANON-NEXT 19.11.2026 on C80 620R19: six RELEASED High donors on 620R19 merged (T110 VIEMARI
+// names, ILP feet and refrigerant duct, AV1 casing, VM20 valves, S1 Croma/AS-9000 shower, Savo I-7603 identity).
+const C80_620R20_ALL_R19_DONORS_WORK_TEST_CANDIDATE = {
+  id: 'c80-620r20-all-r19-donors-20261119',
+  label: 'C80 620R20 - 620R19 + T110 viemäri, ILP-jalat ja kouru, ÄV1-kotelo, VM20, S1 Croma/AS-9000, Savo I-7603 - 19.11.2026 WORK_TEST/HOST_HOLD',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/c80-620r20-all-r19-donors-20261119.glb`,
+  objectKey: 'work-test/c80-620r20-all-r19-donors-20261119.glb',
+  expectedSize: 59438968,
+  expectedSha256: '55c74663cce04af482885b1ae4bf099327a282139e96a40ae24492e32767c422',
+} as const satisfies PrivateWorkTestCandidate;
+
 // C80 620R19: Claude KANON-NEXT 18.11.2026 on C80 620R18: RELEASED High donors on 620R18 merged (ILP stand with
 // four legs H1811-1; 674R18 PA2 1F hot riser in the wall and terrace L-step west wall).
 const C80_620R19_ILP4_PA2_LSTEP_DONORS_WORK_TEST_CANDIDATE = {
@@ -4654,6 +4665,7 @@ const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
   C80_WW74_L150_WORK_TEST_CANDIDATE,
   C80_495_SAVO_SEWER_WORK_TEST_CANDIDATE,
   C80_500_WW1974_ABC_WORK_TEST_CANDIDATE,
+  C80_620R20_ALL_R19_DONORS_WORK_TEST_CANDIDATE,
   C80_620R19_ILP4_PA2_LSTEP_DONORS_WORK_TEST_CANDIDATE,
   C80_620R18_BATH_ROOM_HEIGHT_2350_WORK_TEST_CANDIDATE,
   C80_620R17_BATH_CEILING_NO_HOLE_WORK_TEST_CANDIDATE,
