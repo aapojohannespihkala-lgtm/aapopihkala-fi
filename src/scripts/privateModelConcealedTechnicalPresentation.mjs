@@ -1,3 +1,4 @@
+import {C80_620R22_GLB_SHA256,C80_620R22_SCENES,C80_620R22_COW_ALIASES,isC80620R22SourceScene} from './privateModelC80620R22SourceProfile.mjs';
 import {C80_437_GLB_SHA256,C80_437_SCENES,isC80437SourceScene,resolveC80437TechnicalNode} from './privateModelC80437SourceProfile.mjs';
 import { isM6263Mj72Kiv005Pk1SuccessorSourceScene, SUCCESSOR_R1_SCENES } from './privateModelM6263Mj72Kiv005Pk1SuccessorSourceProfile.mjs';
 import { isTate4Mj62Mj63SourceScene, TATE4_MJ6263_SCENES } from './privateModelTate4Mj62Mj63SourceProfile.mjs';
@@ -41,6 +42,10 @@ const C80_620R20_CONCEALED = Object.freeze(C80_620R10_CONCEALED.map(e => e.node 
   ? Object.freeze({ ...e, path: [12557, 10060] }) : e));
 const C80_620R21_CONCEALED = Object.freeze(C80_620R10_CONCEALED.map(e => e.node === 10060
   ? Object.freeze({ ...e, node: 12854, path: [12951, 12854], semantic: [12854, ['m5System'], 'IV'] }) : e));
+
+// R22: preserve every source-pinned concealed path through its verified COW node aliases.
+const r22Cow = n => Number(Object.entries(C80_620R22_COW_ALIASES).find(([,a])=>a.orig===(n===12951?11728:n===12854?10060:n))?.[0]??n);
+const C80_620R22_CONCEALED=Object.freeze(C80_620R21_CONCEALED.map(e=>({...e,node:r22Cow(e.node),path:e.path.map(r22Cow),semantic:[r22Cow(e.semantic[0]),...e.semantic.slice(1)]})));
 
 // Filled from the SHA-verified original GLB, never appearance or name search.
 // These are display roles only. Hidden routes remain unverified WORK_TEST.
@@ -210,7 +215,8 @@ export function resolveConcealedTechnicalObjects(gltf, scene, sceneIndex, loaded
        !(loadedSha === C80_620R18_GLB_SHA256 && isC80620R18SourceScene(json, loadedSha, sceneIndex)) &&
        !(loadedSha === C80_620R19_GLB_SHA256 && isC80620R19SourceScene(json, loadedSha, sceneIndex)) &&
        !(loadedSha === C80_620R20_GLB_SHA256 && isC80620R20SourceScene(json, loadedSha, sceneIndex)) &&
-       !(loadedSha === C80_620R21_GLB_SHA256 && isC80620R21SourceScene(json, loadedSha, sceneIndex)))) return null;
+       !(loadedSha === C80_620R21_GLB_SHA256 && isC80620R21SourceScene(json, loadedSha, sceneIndex)) &&
+       !(loadedSha === C80_620R22_GLB_SHA256 && isC80620R22SourceScene(json, loadedSha, sceneIndex)))) return null;
   const is614 = loadedSha === C80_614_GLB_SHA256;
   // C80 620R11 keeps the 620R10 concealed routes (root 12467 and its children are unchanged).
   const is620R11 = loadedSha === C80_620R11_GLB_SHA256;
@@ -233,12 +239,13 @@ export function resolveConcealedTechnicalObjects(gltf, scene, sceneIndex, loaded
   // C80 620R20 copies the K14 root 12467 to 12557; the T-collector n10060 stays its child.
   const is620R20 = loadedSha === C80_620R20_GLB_SHA256;
   // C80 620R21 merges the K14 root into 12951 and clones the T-collector n10060 to 12854.
+  const is620R22 = loadedSha === C80_620R22_GLB_SHA256;
   const is620R21 = loadedSha === C80_620R21_GLB_SHA256;
-  const is620 = is620R21 || is620R20 || is620R19 || is620R18 || is620R17 || is620R16 || is620R15 || is620R14 || is620R13 || is620R12 || is620R11 || loadedSha === C80_620R10_GLB_SHA256;
-  const profile = is620R21 ? C80_620R21_SCENES[sceneIndex] : is620R20 ? C80_620R20_SCENES[sceneIndex] : is620R19 ? C80_620R19_SCENES[sceneIndex] : is620R18 ? C80_620R18_SCENES[sceneIndex] : is620R17 ? C80_620R17_SCENES[sceneIndex] : is620R16 ? C80_620R16_SCENES[sceneIndex] : is620R15 ? C80_620R15_SCENES[sceneIndex] : is620R14 ? C80_620R14_SCENES[sceneIndex] : is620R13 ? C80_620R13_SCENES[sceneIndex] : is620R12 ? C80_620R12_SCENES[sceneIndex] : is620R11 ? C80_620R11_SCENES[sceneIndex] : is620 ? C80_620R10_SCENES[sceneIndex] : is614 ? C80_614_SCENES[sceneIndex]
+  const is620 = is620R22 || is620R21 || is620R20 || is620R19 || is620R18 || is620R17 || is620R16 || is620R15 || is620R14 || is620R13 || is620R12 || is620R11 || loadedSha === C80_620R10_GLB_SHA256;
+  const profile = is620R22 ? C80_620R22_SCENES[sceneIndex] : is620R21 ? C80_620R21_SCENES[sceneIndex] : is620R20 ? C80_620R20_SCENES[sceneIndex] : is620R19 ? C80_620R19_SCENES[sceneIndex] : is620R18 ? C80_620R18_SCENES[sceneIndex] : is620R17 ? C80_620R17_SCENES[sceneIndex] : is620R16 ? C80_620R16_SCENES[sceneIndex] : is620R15 ? C80_620R15_SCENES[sceneIndex] : is620R14 ? C80_620R14_SCENES[sceneIndex] : is620R13 ? C80_620R13_SCENES[sceneIndex] : is620R12 ? C80_620R12_SCENES[sceneIndex] : is620R11 ? C80_620R11_SCENES[sceneIndex] : is620 ? C80_620R10_SCENES[sceneIndex] : is614 ? C80_614_SCENES[sceneIndex]
     : C80_437_SCENES[sceneIndex] ?? SUCCESSOR_R1_SCENES[sceneIndex] ?? TATE4_MJ6263_SCENES[sceneIndex];
   const objects = [];
-  const specs=is620R21 ? [...C80_620R21_CONCEALED] : is620R20 ? [...C80_620R20_CONCEALED] : is620 ? [...C80_620R10_CONCEALED] : is614 ? [...C80_614_CONCEALED]
+  const specs=is620R22 ? [...C80_620R22_CONCEALED] : is620R21 ? [...C80_620R21_CONCEALED] : is620R20 ? [...C80_620R20_CONCEALED] : is620 ? [...C80_620R10_CONCEALED] : is614 ? [...C80_614_CONCEALED]
     : loadedSha===C80_437_GLB_SHA256 ? CONCEALED.filter(e=>![11829,11909,11911].includes(e.node)) : CONCEALED;
   if(loadedSha===C80_437_GLB_SHA256 && profile.floor!=='2F'){
     const node=profile.floor==='1F'?12138:12139;
