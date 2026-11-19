@@ -68,5 +68,5 @@ test('authentic R22 GLB: immutable R21 tables/BIN, all source bindings and conce
 test('R22 opt-in scenes are rehydrated from the source graph before root validation',()=>{
  const src=readFileSync(new URL('../../src/scripts/privateModelSourceCards.ts',import.meta.url),'utf8');
  assert.match(src,/if \(digest === C80_620R22_GLB_SHA256\) \{\s*const indexes = Object\.keys\(C80_620R22_SCENES\)/);
- assert.match(src,/\(digest === C80_620R22_GLB_SHA256 && C80_620R22_SCENES\[sceneIndex\] !== undefined\)/);
+ assert.match(src,/\(digest === C80_620R22_GLB_SHA256 && \(C80_620R22_SCENES as Record<number, unknown>\)\[sceneIndex\] !== undefined\)/);
 });

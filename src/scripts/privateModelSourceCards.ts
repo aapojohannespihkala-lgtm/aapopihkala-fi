@@ -647,7 +647,7 @@ export const loadModelWithSourceCards = async <T extends GltfSource & object>(
   }
   if (digest === C80_620R22_GLB_SHA256) {
     const indexes = Object.keys(C80_620R22_SCENES).map(Number);
-    if (!indexes.every(index => isC80620R22SourceScene(json, digest, index, C80_620R22_SCENES[index].floor)))
+    if (!indexes.every(index => isC80620R22SourceScene(json, digest, index, (C80_620R22_SCENES as Record<number, { floor: string }>)[index].floor)))
       throw new Error('C80_620R22_SOURCE_SCENE_MISMATCH');
     for (const index of indexes) rehydrate.add(index);
   }
@@ -669,7 +669,7 @@ export const loadModelWithSourceCards = async <T extends GltfSource & object>(
         (digest === C80_620R19_GLB_SHA256 && C80_620R19_SCENES[sceneIndex] !== undefined) ||
         (digest === C80_620R20_GLB_SHA256 && C80_620R20_SCENES[sceneIndex] !== undefined) ||
         (digest === C80_620R21_GLB_SHA256 && C80_620R21_SCENES[sceneIndex] !== undefined) ||
-        (digest === C80_620R22_GLB_SHA256 && C80_620R22_SCENES[sceneIndex] !== undefined);
+        (digest === C80_620R22_GLB_SHA256 && (C80_620R22_SCENES as Record<number, unknown>)[sceneIndex] !== undefined);
       const rebuilt = await rehydrateIncompleteScene(gltf, sceneIndex, { force: is530Scene });
       const cardMap = identity !== gltf ? identity.parser?.associations : undefined;
       if (rebuilt && cardMap) for (const [object, id] of rebuilt)
