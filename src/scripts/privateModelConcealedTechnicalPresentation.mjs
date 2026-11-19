@@ -1,4 +1,4 @@
-import {C80_620R22_GLB_SHA256,C80_620R22_SCENES,C80_620R22_COW_ALIASES,isC80620R22SourceScene} from './privateModelC80620R22SourceProfile.mjs';
+import {C80_620R22_GLB_SHA256,C80_620R22_BACK_MAP,C80_620R22_SCENES,C80_620R22_COW_ALIASES,isC80620R22SourceScene} from './privateModelC80620R22SourceProfile.mjs';
 import {C80_437_GLB_SHA256,C80_437_SCENES,isC80437SourceScene,resolveC80437TechnicalNode} from './privateModelC80437SourceProfile.mjs';
 import { isM6263Mj72Kiv005Pk1SuccessorSourceScene, SUCCESSOR_R1_SCENES } from './privateModelM6263Mj72Kiv005Pk1SuccessorSourceProfile.mjs';
 import { isTate4Mj62Mj63SourceScene, TATE4_MJ6263_SCENES } from './privateModelTate4Mj62Mj63SourceProfile.mjs';
@@ -44,7 +44,7 @@ const C80_620R21_CONCEALED = Object.freeze(C80_620R10_CONCEALED.map(e => e.node 
   ? Object.freeze({ ...e, node: 12854, path: [12951, 12854], semantic: [12854, ['m5System'], 'IV'] }) : e));
 
 // R22: preserve every source-pinned concealed path through its verified COW node aliases.
-const r22Cow = n => Number(Object.entries(C80_620R22_COW_ALIASES).find(([,a])=>a.orig===(n===12951?11728:n===12854?10060:n))?.[0]??n);
+const r22Cow = n => Number(Object.entries(C80_620R22_BACK_MAP).find(([,old])=>old===n)?.[0]??n);
 const C80_620R22_CONCEALED=Object.freeze(C80_620R21_CONCEALED.map(e=>({...e,node:r22Cow(e.node),path:e.path.map(r22Cow),semantic:[r22Cow(e.semantic[0]),...e.semantic.slice(1)]})));
 
 // Filled from the SHA-verified original GLB, never appearance or name search.

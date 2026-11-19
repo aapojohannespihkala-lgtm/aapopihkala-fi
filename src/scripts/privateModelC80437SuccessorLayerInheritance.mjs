@@ -451,6 +451,7 @@ const overrides = Object.freeze([
   { root:C80_614_DUCT_ROOT, id:'technical-ventilation',storey:'2F',min:614 },
   // 620R12: the one store exhaust valve at the owner point joins the IV layer with its duct.
   { root:C80_620R12_K10_VALVE_ROOT, id:'technical-ventilation',storey:'1F',min:621 },
+  {root:13176,id:'technical-electrical',storey:'2F',min:631,max:631},
 ]);
 const modelNumber = sha => sha===C80_SUCC455_SAVO483_GLB_SHA256 ? 483
   : sha===C80_WW74_L150_GLB_SHA256 ? 488

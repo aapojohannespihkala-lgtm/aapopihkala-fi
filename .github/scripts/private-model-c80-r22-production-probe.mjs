@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import {createHash} from 'node:crypto';
 import {chromium} from '@playwright/test';
 import {C80_620R22_GLB_SHA256 as SHA,C80_620R22_GLB_BYTES as BYTES} from '../../src/scripts/privateModelC80620R22SourceProfile.mjs';
-const ID='c80-620r22-owner-k1k2k6k7k9-20261119',ORIGIN='https://aapopihkala.fi';
+const ID='c80-620r22-r21-s2vp1-k1k2k5k6k7k9-20261119',ORIGIN='https://aapopihkala.fi';
 const dir='test-results/c80-r22-production';fs.mkdirSync(dir,{recursive:true});
 const check=(v,c)=>{if(!v)throw new Error(c);};
 const report={result:'FAIL',candidate:ID,expectedSHA256:SHA,sourceAuthenticated:false,productionWebGL:false,humanReview:'NOT_RUN',errors:[]};

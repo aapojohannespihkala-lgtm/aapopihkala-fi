@@ -43,8 +43,14 @@ test('authentic R22 GLB: immutable R21 tables/BIN, all source bindings and conce
   assert.ok(isC80620R22SourceScene(j,SHA,+s,spec.floor));assert.ok(resolveC80437SuccessorReceiptScene(j,SHA,+s));
   assert.equal(isC80620R22SourceScene(j,PARENT_SHA,+s),false);
   const before=bindings(p,PARENT_SHA,spec.parent),now=bindings(j,SHA,+s),mapped=new Map([...now].map(([n,v])=>[BACK[n]??n,v]));
-  assert.deepEqual([...before].filter(([n,v])=>mapped.get(n)!==v),[],'lost/changed layer bindings '+s);
-  assert.ok(now.size>=before.size,'binding count '+s);
+  assert.deepEqual([...before].filter(([n,v])=>![1718,12035].includes(n)&&mapped.get(n)!==v),[],'lost/changed layer bindings '+s);
+  const removed=[...before.keys()].filter(n=>n===1718||n===12035).length;assert.ok(now.size>=before.size-removed,'binding count '+s);
+  const active=[];const visit=n=>{active.push(n);for(const c of j.nodes[n].children??[])visit(c);};for(const r of j.scenes[s].nodes)visit(r);
+  for(const n of [1718,1719,12035])assert.equal(active.includes(n),false,'removed original '+n);
+  assert.equal(active.filter(n=>n===13168).length,spec.floor==='2F'?0:1,'one S2 handset');
+  assert.equal(active.filter(n=>n===13176).length,spec.floor==='1F'?0:1,'one K5 socket');
+  for(const n of [12565,12567,12931,12932,12933,12934])assert.equal(active.filter(i=>(BACK[i]??i)===n).length,spec.floor==='2F'?0:1,'VM20 once '+n);
+  if(spec.floor==='1F')assert.ok(active.includes(12138),'concealed VP1 pipe retained');
   const associations=new Map(),scene=new Group();scene.name=j.scenes[s].name;
   const build=n=>{const o=new Object3D(),nd=j.nodes[n];o.name=nd.name??'';o.userData=nd.extras??{};o.isMesh=nd.mesh!==undefined;associations.set(o,{nodes:n,...(o.isMesh?{meshes:nd.mesh}:{})});for(const c of nd.children??[])o.add(build(c));return o;};
   for(const n of j.scenes[s].nodes)scene.add(build(n));

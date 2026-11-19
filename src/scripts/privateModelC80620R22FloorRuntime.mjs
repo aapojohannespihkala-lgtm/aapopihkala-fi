@@ -81,7 +81,7 @@ export function createC80620R22FloorRuntime({gltf,sha,mount,mounted}){
  };
  return {
   available:true,isC80R2Chain:true,isC80620R22:true,
-  chainLabel:'C80 620R22 (620R21 + owner K1/K2/K6/K7/K9) WORK_TEST_HOST_HOLD',
+  chainLabel:'C80 620R22 (620R21 + S2/VP1 + owner K1/K2/K5/K6/K7/K9) WORK_TEST_HOST_HOLD',
   floorSceneSource:'C80_620R22_SOURCE_ONLY',sourceModel:'D_C80',sourceSha256:sha,
   floorSceneNames:{'1F':scenes[686].name,'2F':scenes[687].name,BOTH:scenes[688].name},
   supportsFirstFloor:true,floorOptions:['1F','2F','BOTH'],defaultScene:scenes[688],
