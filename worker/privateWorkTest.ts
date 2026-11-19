@@ -4505,14 +4505,14 @@ const C80_620R10_HIGH_DONOR_WORK_TEST_CANDIDATE = {
 
 // C80 620R21: Claude KANON-NEXT 19.11.2026 on C80 620R20: four RELEASED High donors on 620R19 merged (Themo sensor
 // links, closed WC hatch, island AEG oven + Dometic D50, 2015 RK board +94 mm with the R20 T110 VIEMARI nodes kept).
-// R21 owner review K1/K2/K6/K7/K9. WORK_TEST/HOST_HOLD, physical acceptance remains separate.
+// R21 plus S2/VP1 and owner review K1/K2/K5/K6/K7/K9. WORK_TEST/HOST_HOLD, physical acceptance remains separate.
 const C80_620R22_OWNER_REVIEW_WORK_TEST_CANDIDATE = {
-  id: 'c80-620r22-owner-k1k2k6k7k9-20261119',
-  label: 'C80 620R22 - viemärit, itäseinä, uuni, ILP ja kaappien jaot - 19.11.2026 WORK_TEST/HOST_HOLD',
-  path: `${PRIVATE_WORK_TEST_PREFIX}/c80-620r22-owner-k1k2k6k7k9-20261119.glb`,
-  objectKey: 'work-test/c80-620r22-owner-k1k2k6k7k9-20261119.glb',
-  expectedSize: 61248332,
-  expectedSha256: '4cc75656eeb3d8be4d0d4978ad5a3911ef8028e6aef9de0146030f33a7e80ccc',
+  id: 'c80-620r22-r21-s2vp1-k1k2k5k6k7k9-20261119',
+  label: 'C80 620R22 - S2/VP1, viemärit, itäseinä, pistorasia, uuni, ILP ja kaappien jaot - 19.11.2026 WORK_TEST/HOST_HOLD',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/c80-620r22-r21-s2vp1-k1k2k5k6k7k9-20261119.glb`,
+  objectKey: 'work-test/c80-620r22-r21-s2vp1-k1k2k5k6k7k9-20261119.glb',
+  expectedSize: 61267668,
+  expectedSha256: '20beae53cd85b87beffc7afea8f22494b4c15eec8ddaf07eeca9bf5455ef8533',
 } as const satisfies PrivateWorkTestCandidate;
 
 const C80_620R21_R20_PLUS_R19_DONORS_WORK_TEST_CANDIDATE = {
