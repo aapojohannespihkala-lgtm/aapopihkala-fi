@@ -4505,6 +4505,16 @@ const C80_620R10_HIGH_DONOR_WORK_TEST_CANDIDATE = {
 
 // C80 620R21: Claude KANON-NEXT 19.11.2026 on C80 620R20: four RELEASED High donors on 620R19 merged (Themo sensor
 // links, closed WC hatch, island AEG oven + Dometic D50, 2015 RK board +94 mm with the R20 T110 VIEMARI nodes kept).
+// R21 owner review K1/K2/K6/K7/K9. WORK_TEST/HOST_HOLD, physical acceptance remains separate.
+const C80_620R22_OWNER_REVIEW_WORK_TEST_CANDIDATE = {
+  id: 'c80-620r22-owner-k1k2k6k7k9-20261119',
+  label: 'C80 620R22 - viemärit, itäseinä, uuni, ILP ja kaappien jaot - 19.11.2026 WORK_TEST/HOST_HOLD',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/c80-620r22-owner-k1k2k6k7k9-20261119.glb`,
+  objectKey: 'work-test/c80-620r22-owner-k1k2k6k7k9-20261119.glb',
+  expectedSize: 60657872,
+  expectedSha256: '9f4897cffd9316367e9d829fc0be14299ad3dc2836d2642f02638beeb584cc33',
+} as const satisfies PrivateWorkTestCandidate;
+
 const C80_620R21_R20_PLUS_R19_DONORS_WORK_TEST_CANDIDATE = {
   id: 'c80-620r21-r20-plus-r19-donors-20261119',
   label: 'C80 620R21 - 620R20 + Themo-anturilinkit, WC-huoltoluukku kiinni, saarekkeen AEG-uuni ja Dometic D50, RK-keskus +94 mm - 19.11.2026 WORK_TEST/HOST_HOLD',
@@ -4676,6 +4686,7 @@ const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
   C80_WW74_L150_WORK_TEST_CANDIDATE,
   C80_495_SAVO_SEWER_WORK_TEST_CANDIDATE,
   C80_500_WW1974_ABC_WORK_TEST_CANDIDATE,
+  C80_620R22_OWNER_REVIEW_WORK_TEST_CANDIDATE,
   C80_620R21_R20_PLUS_R19_DONORS_WORK_TEST_CANDIDATE,
   C80_620R20_ALL_R19_DONORS_WORK_TEST_CANDIDATE,
   C80_620R19_ILP4_PA2_LSTEP_DONORS_WORK_TEST_CANDIDATE,

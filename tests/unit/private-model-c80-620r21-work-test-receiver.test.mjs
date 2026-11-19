@@ -44,7 +44,7 @@ test('C80 620R21 viewer, review, concealed routes and Worker wiring',()=>{
  assert.ok(index.includes('(layersLoadedSha===C80_620R21_GLB_SHA256 && runtime?.isC80620R21)'));
  assert.ok(tech.includes('loadedSha === C80_620R21_GLB_SHA256 ? c80620R21ReviewProfile(json,loadedSha,sceneIndex)'));
  assert.ok(concealed.includes('is620R21 || is620R20 || is620R19 || is620R18 || is620R17 || is620R16 || is620R15 || is620R14 || is620R13 || is620R12 || is620R11 || loadedSha === C80_620R10_GLB_SHA256'));
- assert.ok(concealed.includes('path: [12951, 12854]') && concealed.includes('const specs=is620R21 ? [...C80_620R21_CONCEALED]'));
+ assert.ok(concealed.includes('path: [12951, 12854]') && concealed.includes('is620R21 ? [...C80_620R21_CONCEALED]'));
  assert.equal(catalog.candidates[ID].driveFileId,ZIP);
  assert.match(ZIP,/^[A-Za-z0-9_-]{25,128}$/);
  assert.ok(worker.includes("id: '"+ID+"'") && worker.includes('expectedSize: '+BYTES) && worker.includes("expectedSha256: '"+SHA+"'"));
