@@ -1,10 +1,10 @@
 /** R21 owner review K1/K2/K6/K7/K9 only. Append-only WORK_TEST/HOST_HOLD. */
 import {c80614Fnv32} from './privateModelC80614SourceProfile.mjs';
 import {C80_620R21_GLB_SHA256,C80_620R21_DUCT_ROOT,C80_620R21_K10_VALVE_ROOT,C80_620R21_CLOSET_VALVE_ROOT,C80_620R21_STORE_GRILLE_ROOT,C80_620R21_ELECTRICAL_ROOTS} from './privateModelC80620R21SourceProfile.mjs';
-export const C80_620R22_GLB_SHA256='9f4897cffd9316367e9d829fc0be14299ad3dc2836d2642f02638beeb584cc33';
-export const C80_620R22_GLB_BYTES=60657872;
+export const C80_620R22_GLB_SHA256='4cc75656eeb3d8be4d0d4978ad5a3911ef8028e6aef9de0146030f33a7e80ccc';
+export const C80_620R22_GLB_BYTES=61248332;
 export const C80_620R22_ZIP_DRIVE_ID='1w0PMZTtRu6rH76LTP5bNZLR2V45Dhc37';
-export const C80_620R22_ZIP_SHA256='b62dc039cb90b4b42e74aebc7dadd702339284d8d7dd625bec21445a71a68213';
+export const C80_620R22_ZIP_SHA256='37d86afd5f52de8b2c0cd69952d825b0cee6d6205c5e223f7337c940d09206f5';
 export const C80_620R22_PARENT_GLB_SHA256=C80_620R21_GLB_SHA256;
 export const C80_620R22_DUCT_ROOT=C80_620R21_DUCT_ROOT;
 export const C80_620R22_K10_VALVE_ROOT=C80_620R21_K10_VALVE_ROOT;
@@ -243,8 +243,8 @@ export const C80_620R22_COUNTS=Object.freeze({
  "nodes": 13167,
  "meshes": 5085,
  "materials": 803,
- "accessors": 11071,
- "bufferViews": 11077,
+ "accessors": 11074,
+ "bufferViews": 11080,
  "textures": 6,
  "images": 6,
  "samplers": 4,
@@ -867,7 +867,7 @@ export const C80_620R22_COW_ALIASES=Object.freeze(Object.fromEntries(Object.entr
  },
  "12965": {
   "orig": 10142,
-  "fnv": "7e7f4a85",
+  "fnv": "5f7e389e",
   "mesh": 4991,
   "name": "M5_WW2015_D2F_C80_WC1_SOURCE_EXACT_WC1_V75_HOSTX_EXISTING_MESH5_INSTANCE_K1_CLIPPED_INBOARD_WORK_TEST"
  },

@@ -4511,8 +4511,8 @@ const C80_620R22_OWNER_REVIEW_WORK_TEST_CANDIDATE = {
   label: 'C80 620R22 - viemärit, itäseinä, uuni, ILP ja kaappien jaot - 19.11.2026 WORK_TEST/HOST_HOLD',
   path: `${PRIVATE_WORK_TEST_PREFIX}/c80-620r22-owner-k1k2k6k7k9-20261119.glb`,
   objectKey: 'work-test/c80-620r22-owner-k1k2k6k7k9-20261119.glb',
-  expectedSize: 60657872,
-  expectedSha256: '9f4897cffd9316367e9d829fc0be14299ad3dc2836d2642f02638beeb584cc33',
+  expectedSize: 61248332,
+  expectedSha256: '4cc75656eeb3d8be4d0d4978ad5a3911ef8028e6aef9de0146030f33a7e80ccc',
 } as const satisfies PrivateWorkTestCandidate;
 
 const C80_620R21_R20_PLUS_R19_DONORS_WORK_TEST_CANDIDATE = {

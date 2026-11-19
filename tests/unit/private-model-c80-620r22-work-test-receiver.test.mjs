@@ -9,6 +9,12 @@ import {resolveC80620R22SceneIndex,c80620R22ReviewProfile} from '../../src/scrip
 import {resolveC80437SuccessorReceiptScene,resolveC80437SuccessorBuildingNode,resolveC80SuccessorTechnicalNode,withC80SuccessorMemo} from '../../src/scripts/privateModelC80437SuccessorLayerInheritance.mjs';
 import {resolveConcealedTechnicalObjects} from '../../src/scripts/privateModelConcealedTechnicalPresentation.mjs';
 const parse=p=>{const b=readFileSync(p),n=b.readUInt32LE(12);return {b,json:JSON.parse(b.subarray(20,20+n)),bin:b.subarray(28+n)};};
+const indices=(j,bin,node)=>{
+ const a=j.accessors[j.meshes[j.nodes[node].mesh].primitives[0].indices],v=j.bufferViews[a.bufferView],start=(v.byteOffset??0)+(a.byteOffset??0);
+ const size={5121:1,5123:2,5125:4}[a.componentType];assert.ok(size);
+ return Array.from({length:a.count},(_,i)=>size===1?bin.readUInt8(start+i):size===2?bin.readUInt16LE(start+2*i):bin.readUInt32LE(start+4*i));
+};
+const edgeCounts=ids=>{const edges=new Map();for(let i=0;i<ids.length;i+=3)for(const[a,b]of[[ids[i],ids[i+1]],[ids[i+1],ids[i+2]],[ids[i+2],ids[i]]]){const key=[Math.min(a,b),Math.max(a,b)].join(',');edges.set(key,(edges.get(key)??0)+1);}return [...edges.values()];};
 const bindings=(j,sha,s)=>withC80SuccessorMemo(()=>{
  const out=new Map();const walk=(n,p)=>{const path=[...p,n],nd=j.nodes[n];
   if(nd.mesh!==undefined){const b=resolveC80437SuccessorBuildingNode(j,sha,s,n,path),t=b?null:resolveC80SuccessorTechnicalNode(j,sha,s,n);if(b||t)out.set(n,(b?'B:':'T:')+(b??t).id+':'+(b??t).storey);}
@@ -30,6 +36,9 @@ test('authentic R22 GLB: immutable R21 tables/BIN, all source bindings and conce
  assert.equal(b.length,BYTES);assert.equal(createHash('sha256').update(b).digest('hex'),SHA);
  for(const k of ['scenes','nodes','meshes','materials','accessors','bufferViews','textures','images','samplers'])assert.deepEqual(j[k]?.slice(0,p[k]?.length??0),p[k],'immutable '+k);
  assert.deepEqual(bin.subarray(0,pb.length),pb);assert.equal(j.scene,292);
+ const v75=+Object.keys(BACK).find(n=>BACK[n]===12866),v87=+Object.keys(BACK).find(n=>BACK[n]===12947);
+ assert.ok(edgeCounts(indices(j,bin,v75)).every(n=>n===2),'K1 V75 capped mesh has no new open or non-manifold edges');
+ assert.deepEqual(indices(j,bin,v87),indices(p,pb,12947),'K1 V87 keeps the source index topology');
  for(const [s,spec] of Object.entries(SPECS)){
   assert.ok(isC80620R22SourceScene(j,SHA,+s,spec.floor));assert.ok(resolveC80437SuccessorReceiptScene(j,SHA,+s));
   assert.equal(isC80620R22SourceScene(j,PARENT_SHA,+s),false);
