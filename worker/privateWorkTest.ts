@@ -4503,6 +4503,17 @@ const C80_620R10_HIGH_DONOR_WORK_TEST_CANDIDATE = {
   expectedSha256: '10eba5613aca712f1a7de67098c30a0d58a1291cc066bcc88bf5b921e30e12d4',
 } as const satisfies PrivateWorkTestCandidate;
 
+// C80 620R21: Claude KANON-NEXT 19.11.2026 on C80 620R20: four RELEASED High donors on 620R19 merged (Themo sensor
+// links, closed WC hatch, island AEG oven + Dometic D50, 2015 RK board +94 mm with the R20 T110 VIEMARI nodes kept).
+const C80_620R21_R20_PLUS_R19_DONORS_WORK_TEST_CANDIDATE = {
+  id: 'c80-620r21-r20-plus-r19-donors-20261119',
+  label: 'C80 620R21 - 620R20 + Themo-anturilinkit, WC-huoltoluukku kiinni, saarekkeen AEG-uuni ja Dometic D50, RK-keskus +94 mm - 19.11.2026 WORK_TEST/HOST_HOLD',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/c80-620r21-r20-plus-r19-donors-20261119.glb`,
+  objectKey: 'work-test/c80-620r21-r20-plus-r19-donors-20261119.glb',
+  expectedSize: 59878620,
+  expectedSha256: '0655896b613563f893a806c8e997d199e91640dfc98c14f1fea759e7e3433d4e',
+} as const satisfies PrivateWorkTestCandidate;
+
 // C80 620R20: Claude KANON-NEXT 19.11.2026 on C80 620R19: six RELEASED High donors on 620R19 merged (T110 VIEMARI
 // names, ILP feet and refrigerant duct, AV1 casing, VM20 valves, S1 Croma/AS-9000 shower, Savo I-7603 identity).
 const C80_620R20_ALL_R19_DONORS_WORK_TEST_CANDIDATE = {
@@ -4665,6 +4676,7 @@ const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
   C80_WW74_L150_WORK_TEST_CANDIDATE,
   C80_495_SAVO_SEWER_WORK_TEST_CANDIDATE,
   C80_500_WW1974_ABC_WORK_TEST_CANDIDATE,
+  C80_620R21_R20_PLUS_R19_DONORS_WORK_TEST_CANDIDATE,
   C80_620R20_ALL_R19_DONORS_WORK_TEST_CANDIDATE,
   C80_620R19_ILP4_PA2_LSTEP_DONORS_WORK_TEST_CANDIDATE,
   C80_620R18_BATH_ROOM_HEIGHT_2350_WORK_TEST_CANDIDATE,
