@@ -405,7 +405,12 @@ export function resolveC80437SuccessorBuildingNode(json,sha,sceneIndex,node,path
   if (!entry || !Array.isArray(path)||path.at(-1)!==node ||
       !entry.paths?.some(p=>equalPath(p,path.map(n=>toOrig(sha,n)))) ||
       !exactInheritedPath(json,sceneIndex,path,sha)) return null;
-  return {...entry,...receipt.nodes[src]};
+  // A building geometry COW (alias.building) is the same fixture with an
+  // edited mesh: report the verified pinned name/mesh of the loaded node so
+  // the per-mesh layer check compares against what is actually mounted.
+  const alias=aliasOf(sha,node);
+  const own=alias?.building===true ? {name:alias.name??receipt.nodes[src].name,mesh:alias.mesh??receipt.nodes[src].mesh} : {};
+  return {...entry,...receipt.nodes[src],...own};
 }
 // Preserve 437's authored per-device storey, even in a BOTH scene.
 // Never derive a technical identity from a mesh name alone.
