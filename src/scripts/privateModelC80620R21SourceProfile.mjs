@@ -29,6 +29,7 @@ export const C80_620R21_ROOT_REPLACEMENTS=Object.freeze({11576:12629,12557:12951
 // Opt-in roots appended after R20's: H24 closed hatch (1F/BOTH), AEG oven and Dometic D50 (2F/BOTH).
 export const C80_620R21_APPENDED_ROOTS=Object.freeze({'1F':[12632],'2F':[12644,12695],BOTH:[12632,12644,12695]});
 // Keyed by the receipt node that is copied; COW nodes keep its receipt identity.
+// building:true = H1911-4 island body and drawers: same fixtures with cavity-edited meshes.
 const R21_ALIASES={
  10060:['12854',{"orig":10060,"fnv":"98a8a483"}],
  10062:['12855',{"orig":10062,"fnv":"3f13a77f"}],
@@ -116,12 +117,12 @@ const R21_ALIASES={
  10504:['12939',{"orig":10504,"fnv":"eab04ed3"}],
  10506:['12940',{"orig":10506,"fnv":"99d33fc8"}],
  10508:['12941',{"orig":10508,"fnv":"9bc06f5a"}],
- 10770:['12633',{"orig":10770,"fnv":"16dda684","mesh":4777,"name":"H1911_4_ISLAND_BODY_TWO_REAL_CAVITIES_WORKTEST"}],
- 10788:['12635',{"orig":10788,"fnv":"0ef3b8d5","mesh":4779,"name":"H1911_4_SHRUNK_CENTER_DRAWER_10788"}],
- 10789:['12636',{"orig":10789,"fnv":"fa8810f9","mesh":4780,"name":"H1911_4_SHRUNK_CENTER_DRAWER_10789"}],
- 10790:['12637',{"orig":10790,"fnv":"18e16030","mesh":4781,"name":"H1911_4_SHRUNK_CENTER_DRAWER_10790"}],
- 10791:['12638',{"orig":10791,"fnv":"b0ae273b","mesh":4782,"name":"H1911_4_SHRUNK_CENTER_DRAWER_10791"}],
- 10792:['12639',{"orig":10792,"fnv":"3d3013c6","mesh":4783,"name":"H1911_4_SHRUNK_CENTER_DRAWER_10792"}],
+ 10770:['12633',{"orig":10770,"fnv":"16dda684","mesh":4777,"name":"H1911_4_ISLAND_BODY_TWO_REAL_CAVITIES_WORKTEST","building":true}],
+ 10788:['12635',{"orig":10788,"fnv":"0ef3b8d5","mesh":4779,"name":"H1911_4_SHRUNK_CENTER_DRAWER_10788","building":true}],
+ 10789:['12636',{"orig":10789,"fnv":"fa8810f9","mesh":4780,"name":"H1911_4_SHRUNK_CENTER_DRAWER_10789","building":true}],
+ 10790:['12637',{"orig":10790,"fnv":"18e16030","mesh":4781,"name":"H1911_4_SHRUNK_CENTER_DRAWER_10790","building":true}],
+ 10791:['12638',{"orig":10791,"fnv":"b0ae273b","mesh":4782,"name":"H1911_4_SHRUNK_CENTER_DRAWER_10791","building":true}],
+ 10792:['12639',{"orig":10792,"fnv":"3d3013c6","mesh":4783,"name":"H1911_4_SHRUNK_CENTER_DRAWER_10792","building":true}],
  10849:['12641',{"orig":10849,"fnv":"9f87432d","name":"H1911_4_OPTIN_10849_R6_D2F_ISLAND_FRONT_PHOTO_CORRECTION_2024_WORK_TEST_K10_SAVO_SC17_HOOD_HIDDEN_AEG_WORK_TEST_SC0_HOB27_INTEGRATED_COW_HOB32_LIGHT_ISLAND_COW_PATH_V9COW_V9COW_AEG_OWNER_PRINT_COW_2F_20261102_V9COW_V51_WT_ONLY_COW_HOB_RELHEIGHT16_COW_V53_COHERENT_K17_ISLAND_HOB16"}],
  10851:['12640',{"orig":10851,"fnv":"e5bb6aaa","name":"H1911_4_OPTIN_10851_R6_ISLAND_APPLIANCES_WITH_OVEN_LEFT_DOMETIC_RIGHT_SOURCE_WORK_TEST_K10_SAVO_SC17_HOOD_HIDDEN_AEG_WORK_TEST_SC0_HOB27_INTEGRATED_COW_HOB32_LIGHT_ISLAND_COW_PATH_V9COW_V9COW_AEG_OWNER_PRINT_COW_2F_20261102_V9COW_V51_WT_ONLY_COW_HOB_RELHEIGHT16_COW_V53_COHERENT_K17_ISLAND_HOB16"}],
  11320:['12943',{"orig":11320,"fnv":"38bde5ee"}],

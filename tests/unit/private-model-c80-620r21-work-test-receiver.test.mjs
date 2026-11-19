@@ -84,4 +84,9 @@ test('authentic 620R21 optional GLB: four donors merged, every R20 layer binding
  assert.ok(c80620R21ReviewProfile(json,SHA,682).roots[682].length>0);
  assert.ok(json.nodes[TCOLL].children.includes(12854)&&json.nodes[TCOLL].children.includes(12555));
  assert.ok(!json.scenes[681].nodes.includes(12632),'2F gets no WC hatch');
+ // H1911-4 island body keeps its fixture identity with the cavity-edited mesh (alias.building).
+ const pathTo=(s,target)=>{let found=null;const w=(n,p)=>{const q=[...p,n];if(n===target)found=q;for(const c of json.nodes[n].children??[])w(c,q);};for(const r of json.scenes[s].nodes)w(r,[]);return found;};
+ const island=withC80SuccessorMemo(()=>resolveC80437SuccessorBuildingNode(json,SHA,682,12633,pathTo(682,12633)));
+ assert.equal(island?.mesh,json.nodes[12633].mesh);
+ assert.equal(island?.name,json.nodes[12633].name);
 });
