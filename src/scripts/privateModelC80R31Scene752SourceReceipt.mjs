@@ -255,3 +255,110 @@ export function c80R31Scene754SourceReceipt(json,authenticatedSha,sceneIndex,rol
   physicalDownspoutVerified:false,
  });
 }
+
+
+/**
+ * L16 __scene756 combines the TWO different __scene755 GLBs (ILP visible
+ * curved arc + KIV exterior case). The index 755 does not identify either
+ * donor. This is a read-only, SHA-authenticated WORK_TEST/HOST_HOLD receipt.
+ */
+export const C80_R31_SCENE756_SOURCE=Object.freeze({
+ role:'L16_CURVED_ARC_KIV_EXTERNAL_CASE_COMBINED',sceneIndex:756,
+ glbSha256:'c08dbafe022dcf836764518283c9f863adc87cbd23df661511c619f7beac3037',
+ glbBytes:63556632,zipDriveId:'1zTLCvLeVLaDCGmQKFYAPiq2eR2VTJ5aZ',
+ zipSha256:'c40dc484f3b62409fd6b395c971b2ba604c2e822a1361f8e97342b48131061b1',
+ sceneName:'Ylisrinne_C80_R31_L16_ILP_CURVE_KIV_EXT_CASE_COMBINED_WORK_TEST_HOST_HOLD__scene756',
+ parentName:'Ylisrinne_C80_R31_L16_OWNER_PHOTO_CURVED_ILP_LINK_OPTIN_WORK_TEST_HOST_HOLD__scene755',
+ sceneCount:757,nodeCount:13487,meshCount:5163,materialCount:812,
+ accessorCount:11250,bufferViewCount:11256,rootCount:495,rootFnv32:'2bebfdbd',
+ parentScene:755,parentRootCount:494,parentRootFnv32:'106be574',
+ curveDonorGlbSha256:'65526f9849c55c32f5c3658f32271ac0b04c918484faae86eba8a4660f43f1b3',
+ curveDonorZipDriveId:'13ti3aRjngBatHfNVYLxVvVenU50jLl0h',
+ caseDonorGlbSha256:'119ce45330c36a1fe3a5c7fbf6b58e17cad4f7bbd8ed809f6d9e1ebdfa8ea915',
+ caseDonorZipDriveId:'19SwiT-NFb89g4HtKcC3vuDG2QnExjRcJ',
+ sharedParentGlbSha256:'970efad28889f4bdbda8a0f4775846855cb9d217901e72fbf68ccf1b2e38aa03',
+ oldCurveRoot:13484,newCurveRoot:13485,newCaseRoot:13486,
+ visibleCurveNode:13483,oldCaseNode:13259,oldStraightNode:12561,
+ kitchenNode:12497,rainMarkerNode:13476,livingVisualNode:13482,
+});
+export function isC80R31Scene756Source(json,authenticatedSha,sceneIndex,role,floor){
+ const s=C80_R31_SCENE756_SOURCE,asset=json?.asset?.extras;
+ if(role!==s.role||sceneIndex!==s.sceneIndex||
+  authenticatedSha!==s.glbSha256||
+  (floor!==undefined&&floor!=='BOTH')||json?.scene!==292||
+  json?.scenes?.length!==s.sceneCount||json?.nodes?.length!==s.nodeCount||
+  json?.meshes?.length!==s.meshCount||json?.materials?.length!==s.materialCount||
+  json?.accessors?.length!==s.accessorCount||
+  json?.bufferViews?.length!==s.bufferViewCount||
+  asset?.ModelStage!=='WORK_TEST'||asset?.current!==false||
+  asset?.asBuilt!==false||asset?.HUMAN_REVIEW!=='NOT_RUN')return false;
+ const target=json.scenes[sceneIndex],parent=json.scenes[s.parentScene];
+ const roots=target?.nodes,prior=parent?.nodes,e=target?.extras;
+ const curve=json.nodes[s.newCurveRoot],c=curve?.extras;
+ const casing=json.nodes[s.newCaseRoot],v=casing?.extras;
+ if(target?.name!==s.sceneName||parent?.name!==s.parentName||
+  !Array.isArray(roots)||!Array.isArray(prior)||
+  roots.length!==s.rootCount||prior.length!==s.parentRootCount||
+  new Set(roots).size!==roots.length||new Set(prior).size!==prior.length||
+  c80R31Scene752RootsFnv32(roots)!==s.rootFnv32||
+  c80R31Scene752RootsFnv32(prior)!==s.parentRootFnv32||
+  prior.filter(x=>x===s.oldCurveRoot).length!==1||
+  !exactly(roots,[...prior.map(x=>x===s.oldCurveRoot?s.newCurveRoot:x),s.newCaseRoot])||
+  roots.includes(s.oldCurveRoot)||roots.includes(s.oldCaseNode)||
+  !roots.includes(s.kitchenNode)||!roots.includes(s.rainMarkerNode)||
+  !roots.includes(s.livingVisualNode)||roots.includes(13176)||
+  parent?.extras?.WORK_TEST!==true||parent?.extras?.HOST_HOLD!==true||
+  parent?.extras?.parentGLBSHA256!==s.sharedParentGlbSha256||
+  e?.stage!=='WORK_TEST_HOST_HOLD'||e?.parentSceneIndex!==s.parentScene||
+  e?.parentGLBSHA256!==s.curveDonorGlbSha256||
+  e?.otherBranchSceneIndex!==755||
+  e?.otherBranchGLBSHA256!==s.caseDonorGlbSha256||
+  e?.sourceParentScene754GLBSHA256!==s.sharedParentGlbSha256||
+  e?.sourceCurveDonorZipDriveID!==s.curveDonorZipDriveId||
+  e?.sourceExternalCaseDonorZipDriveID!==s.caseDonorZipDriveId||
+  e?.combinedVisibleArcNode!==s.visibleCurveNode||
+  e?.combinedArcCOWRoot!==s.newCurveRoot||
+  e?.combinedExternalCaseNode!==s.newCaseRoot||
+  e?.removedOnlyActiveLegacyCaseNode!==s.oldCaseNode||
+  e?.oldStraightConnectorStillOff!==s.oldStraightNode||
+  e?.externalCaseSourceOriginalNode!==12560||
+  e?.externalCaseSourceMesh!==4721||
+  !exactly(e?.retainedKIVRoots,[13256,13257])||
+  e?.newMeshes!==0||e?.newPhysicalRouteClaims!==0||
+  e?.arcAndCaseSurfaceIntersectExpectedVisualEnvelopeOnly!==true||
+  e?.arcConnectionPhysicalContinuity!=='NOT_VERIFIED'||
+  e?.caseLocationStatus!=='PHOTO_RELATIVE_NOT_MEASURED'||
+  e?.sourceLinksOutputSHA!=='NOT_BOUND'||
+  e?.productionWebGL!=='NOT_RUN'||e?.humanReview!=='NOT_RUN'||
+  e?.current!==false||e?.asBuilt!==false||e?.canonical!==false||
+  !exactly(curve?.children,[s.visibleCurveNode,13139,13138])||
+  c?.stage!=='WORK_TEST_HOST_HOLD'||
+  c?.integration!=='PHOTO_CURVE_PLUS_SOURCE_EXACT_EXT_CASE_REPLACES_OLD_CASE'||
+  c?.suppressedLegacyExteriorCaseNodeOnlyScene756!==s.oldCaseNode||
+  c?.newExteriorCaseRootInScene756!==s.newCaseRoot||
+  c?.originalCurvedScene755GLBSHA256!==s.curveDonorGlbSha256||
+  c?.current!==false||c?.asBuilt!==false||
+  c?.physicalConnectionVerified!==false||
+  c?.sourceLinksBound!==false||
+  casing?.mesh!==4721||!exactly(casing?.translation,[0.056,0,0])||
+  v?.stage!=='WORK_TEST_HOST_HOLD'||v?.WORK_TEST!==true||
+  v?.HOST_HOLD!==true||v?.sourceNode!==12560||
+  v?.sourceMesh!==4721||v?.shiftX_m!==0.056||
+  v?.sourceDonorGLBSHA256!==s.caseDonorGlbSha256||
+  v?.sourceDonorZipDriveId!==s.caseDonorZipDriveId||
+  v?.integratedNewNodeIndex!==s.newCaseRoot||
+  v?.physicalXYZMeasured!==false||v?.realWallHostVerified!==false||
+  v?.physicalPenetrationVerified!==false||
+  v?.sourceLinksOutputSHABound!==false||
+  v?.current!==false||v?.asBuilt!==false)return false;
+ return true;
+}
+export function c80R31Scene756SourceReceipt(json,authenticatedSha,sceneIndex,role,floor){
+ return Object.freeze({
+  exactSource:isC80R31Scene756Source(json,authenticatedSha,sceneIndex,role,floor),
+  stage:'WORK_TEST_HOST_HOLD',sourceLinksBound:false,
+  publishAllowed:false,productionWebGLVerified:false,humanReview:'NOT_RUN',
+  current:false,asBuilt:false,physicalHostVerified:false,
+  physicalRouteVerified:false,physicalClearanceVerified:false,
+ });
+}
