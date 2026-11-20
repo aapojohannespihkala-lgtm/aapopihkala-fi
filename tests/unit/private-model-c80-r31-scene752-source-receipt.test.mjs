@@ -236,3 +236,111 @@ test('R31 scene754 authenticated original GLB, parent/root and host-hold mutatio
  assert.equal(receipt.physicalLocationMeasured,false);
  assert.equal(receipt.physicalDownspoutVerified,false);
 });
+
+
+import {
+ C80_R31_SCENE756_SOURCE as S756,
+ isC80R31Scene756Source as valid756,
+ c80R31Scene756SourceReceipt as receipt756,
+} from '../../src/scripts/privateModelC80R31Scene752SourceReceipt.mjs';
+
+test('R31 combined L16 scene756 exact ZIP/GLB source role and two different scene755 donors',()=>{
+ assert.equal(S756.sceneIndex,756);
+ assert.equal(S756.parentScene,755);
+ assert.equal(S756.parentGlbSha256,undefined);
+ assert.equal(S756.sharedParentGlbSha256,S754.glbSha256);
+ assert.equal(S756.parentRootFnv32,'106be574');
+ assert.equal(S756.rootFnv32,'2bebfdbd');
+ assert.notEqual(S756.curveDonorGlbSha256,S756.caseDonorGlbSha256);
+ assert.notEqual(S756.glbSha256,S754.glbSha256);
+ assert.notEqual(S756.glbSha256,S756.curveDonorGlbSha256);
+ assert.notEqual(S756.glbSha256,S756.caseDonorGlbSha256);
+ assert.match(S756.zipSha256,/^[a-f0-9]{64}$/);
+ assert.match(S756.glbSha256,/^[a-f0-9]{64}$/);
+ assert.equal(S756.oldCurveRoot,13484);
+ assert.equal(S756.newCurveRoot,13485);
+ assert.equal(S756.newCaseRoot,13486);
+ for(const [sha,index,role,floor] of [
+  [S756.glbSha256,756,S756.role,'BOTH'],
+  [S756.glbSha256,755,S756.role,'BOTH'],
+  [S756.curveDonorGlbSha256,756,S756.role,'BOTH'],
+  [S756.caseDonorGlbSha256,756,S756.role,'BOTH'],
+  [S754.glbSha256,756,S756.role,'BOTH'],
+  [S756.glbSha256,756,S754.role,'BOTH'],
+  [S756.glbSha256,756,S756.role,'1F'],
+  [S756.glbSha256,756,'__proto__','BOTH'],
+ ])assert.equal(valid756({},sha,index,role,floor),false);
+ const r=receipt756({},S756.glbSha256,756,S756.role,'BOTH');
+ assert.equal(r.exactSource,false);
+ assert.equal(r.publishAllowed,false);
+ assert.equal(r.sourceLinksBound,false);
+ assert.equal(r.current,false);
+ assert.equal(r.asBuilt,false);
+ assert.equal(r.physicalHostVerified,false);
+ assert.equal(r.physicalRouteVerified,false);
+ assert.equal(r.physicalClearanceVerified,false);
+});
+const s756Path=process.env.C80_R31_L16_SCENE756_GLB_PATH;
+test('R31 combined L16 scene756 authenticated original exact roots, two donors and HOLD gates',
+ {skip:!s756Path},()=>{
+ const {b,json}=parse(s756Path);
+ const sha=createHash('sha256').update(b).digest('hex');
+ assert.equal(b.length,S756.glbBytes);
+ assert.equal(sha,S756.glbSha256);
+ assert.equal(json.scenes.length,S756.sceneCount);
+ assert.equal(json.scenes[756].name,S756.sceneName);
+ assert.equal(json.scenes[755].name,S756.parentName);
+ assert.equal(fnv(json.scenes[756].nodes),S756.rootFnv32);
+ assert.equal(fnv(json.scenes[755].nodes),S756.parentRootFnv32);
+ const old=json.scenes[755].nodes,roots=json.scenes[756].nodes;
+ assert.deepEqual(roots,[...old.map(x=>x===13484?13485:x),13486]);
+ assert.ok(!roots.includes(13484));
+ assert.ok(!roots.includes(13176));
+ for(const id of [12497,13476,13482,13485,13486])assert.ok(roots.includes(id));
+ assert.deepEqual(json.nodes[13485].children,[13483,13139,13138]);
+ assert.equal(json.nodes[13486].mesh,4721);
+ assert.deepEqual(json.nodes[13486].translation,[0.056,0,0]);
+ assert.equal(valid756(json,sha,756,S756.role,'BOTH'),true);
+ assert.equal(valid756(json,sha,755,S756.role,'BOTH'),false);
+ assert.equal(valid756(json,sha,756,S754.role,'BOTH'),false);
+ assert.equal(valid756(json,S756.curveDonorGlbSha256,756,S756.role,'BOTH'),false);
+ assert.equal(valid756(json,S756.caseDonorGlbSha256,756,S756.role,'BOTH'),false);
+ assert.equal(valid756(json,sha,756,S756.role,'2F'),false);
+ assert.equal(valid754(json,sha,754,S754.role,'BOTH'),false);
+ const mutate=(obj,field,value)=>{
+  const prior=obj[field];
+  obj[field]=value;
+  try{assert.equal(valid756(json,sha,756,S756.role,'BOTH'),false,String(field));}
+  finally{obj[field]=prior;}
+ };
+ mutate(json.scenes[756],'name','forged-scene-name');
+ mutate(json.scenes[756].nodes,0,999999);
+ mutate(json.scenes[755].nodes,0,999999);
+ mutate(json.scenes[756].extras,'parentGLBSHA256','0'.repeat(64));
+ mutate(json.scenes[756].extras,'otherBranchGLBSHA256','0'.repeat(64));
+ mutate(json.scenes[756].extras,'sourceParentScene754GLBSHA256','0'.repeat(64));
+ mutate(json.scenes[756].extras,'combinedArcCOWRoot',13484);
+ mutate(json.scenes[756].extras,'combinedExternalCaseNode',13259);
+ mutate(json.scenes[756].extras,'removedOnlyActiveLegacyCaseNode',123);
+ mutate(json.scenes[756].extras,'newMeshes',1);
+ mutate(json.scenes[756].extras,'newPhysicalRouteClaims',1);
+ mutate(json.scenes[756].extras,'arcConnectionPhysicalContinuity','VERIFIED');
+ mutate(json.scenes[756].extras,'caseLocationStatus','MEASURED');
+ mutate(json.scenes[756].extras,'sourceLinksOutputSHA','BOUND');
+ mutate(json.scenes[756].extras,'productionWebGL','PASS');
+ mutate(json.nodes[13485],'children',[13259,13483,13139,13138]);
+ mutate(json.nodes[13485].extras,'physicalConnectionVerified',true);
+ mutate(json.nodes[13486],'mesh',4722);
+ mutate(json.nodes[13486],'translation',[0,0,0]);
+ mutate(json.nodes[13486].extras,'sourceDonorGLBSHA256','0'.repeat(64));
+ mutate(json.nodes[13486].extras,'physicalXYZMeasured',true);
+ mutate(json.nodes[13486].extras,'sourceLinksOutputSHABound',true);
+ mutate(json.asset.extras,'current',true);
+ mutate(json.asset.extras,'asBuilt',true);
+ const r=receipt756(json,sha,756,S756.role,'BOTH');
+ assert.equal(r.exactSource,true);
+ assert.equal(r.publishAllowed,false);
+ assert.equal(r.sourceLinksBound,false);
+ assert.equal(r.physicalRouteVerified,false);
+ assert.equal(r.physicalClearanceVerified,false);
+});
