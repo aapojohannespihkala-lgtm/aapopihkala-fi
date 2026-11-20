@@ -2720,6 +2720,7 @@ const title = 'Private 3D viewer';
       import { createHeightScaleController } from '../../scripts/privateModelHeightScale';
       import { createOrientationGizmoController } from '../../scripts/privateModelOrientationGizmo';
       import { createViewerFrameProfiler } from '../../scripts/privateModelFrameProfiler';
+      import { createVisibleIdleFrameGovernor } from '../../scripts/privateModelVisibleIdleGovernor.mjs';
       import { createUnifiedEdgeMemo } from '../../scripts/privateModelUnifiedEdgeMemo';
       import { createCoplanarFaceIndex, surfaceLookKey } from '../../scripts/privateModelHiddenSeamEdges';
       import {
@@ -15804,7 +15805,32 @@ const title = 'Private 3D viewer';
           })
         : null;
 
+      // WP1d WORK_TEST only: foreground views remain fully responsive to events;
+      // invisible and ordinary viewer routes retain their original behavior.
+      // The fallback full-frame refresh covers asynchronous model/scene changes
+      // that have no DOM interaction event, without freezing a review image.
+      const viewerIdlePilot = new URLSearchParams(window.location.search)
+        .get('viewerIdlePilot') === '1'
+        ? createVisibleIdleFrameGovernor({ idleRefreshMs: 125, activeHoldMs: 1500 })
+        : null;
+      if (viewerIdlePilot) {
+        const wakeIdlePilot = () => viewerIdlePilot.invalidate(performance.now());
+        for (const eventName of [
+          'pointerdown', 'pointermove', 'pointerup', 'wheel',
+          'keydown', 'input', 'change', 'resize', 'scroll', 'focus', 'pageshow',
+        ]) window.addEventListener(eventName, wakeIdlePilot, { capture: true, passive: true });
+        document.addEventListener('visibilitychange', wakeIdlePilot);
+        controls.addEventListener('change', wakeIdlePilot);
+        planControls.addEventListener('change', wakeIdlePilot);
+        isoControls.addEventListener('change', wakeIdlePilot);
+      }
+
       renderer.setAnimationLoop(() => {
+        // WP1c: a hidden tab cannot present pixels. Avoid traversing 3D layers and
+        // issuing WebGL draws until the browser makes this canvas visible again.
+        // Keep the animation loop installed so foreground rendering resumes normally.
+        if (document.visibilityState === 'hidden') return;
+        if (viewerIdlePilot && !viewerIdlePilot.shouldRun(performance.now())) return;
         frameProfiler?.begin(performance.now());
         mainViewScope?.enforce();
         frameProfiler?.mark('scope', performance.now());
