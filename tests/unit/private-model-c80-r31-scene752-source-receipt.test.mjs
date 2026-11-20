@@ -145,3 +145,94 @@ test('R31 scene753 authenticated original exact parent/root and mutation gates',
  assert.equal(receipt753(json,sha,753,S753.role,'BOTH').exactSource,true);
  assert.equal(receipt753(json,sha,753,S753.role,'BOTH').publishAllowed,false);
 });
+
+
+import {
+ C80_R31_SCENE754_SOURCE as S754,
+ isC80R31Scene754Source as valid754,
+ c80R31Scene754SourceReceipt as receipt754,
+} from '../../src/scripts/privateModelC80R31Scene752SourceReceipt.mjs';
+
+test('R31 scene754 is SHA/scene/role-locked independently from scene752/753',()=>{
+ assert.equal(S754.sceneIndex,754);
+ assert.equal(S754.sourceScene,753);
+ assert.equal(S754.parentGlbSha256,S753.glbSha256);
+ assert.equal(S754.parentRootFnv32,S753.rootFnv32);
+ assert.equal(S754.rootFnv32,'bae9bd94');
+ assert.equal(S754.visualRoot,13482);
+ assert.deepEqual(S754.visualLeaves,[13477,13478,13479,13480,13481]);
+ assert.notEqual(S754.glbSha256,S753.glbSha256);
+ assert.notEqual(S754.glbSha256,SPECS.k5.glbSha256);
+ assert.notEqual(S754.glbSha256,SPECS.rain5.glbSha256);
+ assert.match(S754.zipSha256,/^[a-f0-9]{64}$/);
+ assert.match(S754.glbSha256,/^[a-f0-9]{64}$/);
+ for(const [sha,index,role,floor] of [
+  [S754.glbSha256,754,S754.role,'BOTH'],
+  [S754.glbSha256,753,S754.role,'BOTH'],
+  [S754.glbSha256,754,S753.role,'BOTH'],
+  [S753.glbSha256,754,S754.role,'BOTH'],
+  [S754.glbSha256,754,S754.role,'1F'],
+ ])assert.equal(valid754({},sha,index,role,floor),false);
+ const r=receipt754({},S754.glbSha256,754,S754.role,'BOTH');
+ assert.equal(r.exactSource,false);
+ assert.equal(r.publishAllowed,false);
+ assert.equal(r.sourceLinksBound,false);
+ assert.equal(r.physicalHostVerified,false);
+ assert.equal(r.physicalLocationMeasured,false);
+ assert.equal(r.physicalDownspoutVerified,false);
+ assert.equal(r.current,false);
+ assert.equal(r.asBuilt,false);
+});
+const s754Path=process.env.C80_R31_H18116_SCENE754_GLB_PATH;
+test('R31 scene754 authenticated original GLB, parent/root and host-hold mutation gates',
+ {skip:!s754Path},()=>{
+ const {b,json}=parse(s754Path);
+ const sha=createHash('sha256').update(b).digest('hex');
+ assert.equal(b.length,S754.glbBytes);
+ assert.equal(sha,S754.glbSha256);
+ assert.equal(json.scenes[754].name,S754.sceneName);
+ assert.equal(fnv(json.scenes[754].nodes),S754.rootFnv32);
+ assert.equal(fnv(json.scenes[753].nodes),S754.parentRootFnv32);
+ assert.deepEqual(json.scenes[754].nodes,[...json.scenes[753].nodes,13482]);
+ assert.ok(!json.scenes[754].nodes.includes(13176));
+ assert.ok(json.scenes[754].nodes.includes(12497));
+ assert.ok(json.scenes[754].nodes.includes(13476));
+ assert.equal(valid754(json,sha,754,S754.role,'BOTH'),true);
+ assert.equal(valid754(json,sha,753,S754.role,'BOTH'),false);
+ assert.equal(valid754(json,sha,754,S753.role,'BOTH'),false);
+ assert.equal(valid754(json,S753.glbSha256,754,S754.role,'BOTH'),false);
+ assert.equal(valid754(json,sha,754,S754.role,'2F'),false);
+ assert.equal(valid753(json,sha,753,S753.role,'BOTH'),false);
+ const mutate=(obj,field,value)=>{
+  const prior=obj[field];
+  obj[field]=value;
+  try{assert.equal(valid754(json,sha,754,S754.role,'BOTH'),false,String(field));}
+  finally{obj[field]=prior;}
+ };
+ mutate(json.scenes[754],'name','wrong-scene');
+ mutate(json.scenes[754].nodes,0,999999);
+ mutate(json.scenes[753].nodes,0,999999);
+ mutate(json.scenes[754].extras,'parentGLBSHA256','0'.repeat(64));
+ mutate(json.scenes[754].extras,'sourceVisualDonorGLBSHA256','0'.repeat(64));
+ mutate(json.scenes[754].extras,'H18116VisualRole','WRONG_K5_ROLE');
+ mutate(json.scenes[754].extras,'H18116ExactXYZ','SURVEYED');
+ mutate(json.scenes[754].extras,'H18116OldWrongK5SourceInactive',false);
+ mutate(json.scenes[754].extras,'additionalPhysicalSocketClaims',1);
+ mutate(json.scenes[754].extras,'sourceLinksOutputSHA','BOUND');
+ mutate(json.scenes[754].extras,'productionWebGL','SUCCESS');
+ mutate(json.nodes[13482],'children',[13477]);
+ mutate(json.nodes[13482].extras,'exactPhysicalPositionVerified',true);
+ mutate(json.nodes[13482].extras,'presentationOnly',false);
+ mutate(json.nodes[13477],'mesh',400);
+ mutate(json.nodes[13477].extras,'sourceDonorNodeIndex',0);
+ mutate(json.nodes[13477].extras,'sourceLinksOutputSHABound',true);
+ mutate(json.asset.extras,'current',true);
+ mutate(json.asset.extras,'asBuilt',true);
+ const receipt=receipt754(json,sha,754,S754.role,'BOTH');
+ assert.equal(receipt.exactSource,true);
+ assert.equal(receipt.publishAllowed,false);
+ assert.equal(receipt.sourceLinksBound,false);
+ assert.equal(receipt.physicalHostVerified,false);
+ assert.equal(receipt.physicalLocationMeasured,false);
+ assert.equal(receipt.physicalDownspoutVerified,false);
+});
