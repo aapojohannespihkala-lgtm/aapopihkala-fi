@@ -236,6 +236,7 @@ jobs:
             tests/unit/private-model-sameclick-review-evidence.test.mjs \
             tests/unit/private-model-point-measure-scene-reset.test.mjs \
             tests/unit/private-model-measure-geometry.test.mjs \
+            tests/unit/private-model-c80-r31-roof747-source-profile.test.mjs \
             tests/unit/private-model-c80-t110-roof512-source-profile.test.mjs \
             tests/unit/private-model-c80-t110-roof512-floor-runtime.test.mjs \
             tests/unit/private-model-c80-524-rain-zones-source.test.mjs \
