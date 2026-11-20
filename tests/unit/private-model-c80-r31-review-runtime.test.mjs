@@ -205,3 +205,21 @@ test('R31 combined scene756 review rejects collided scene755 donor hashes',()=>{
  assert.equal(resolve({parser:{json:{}},scenes:[]},spec.glbSha256,
   '__proto__'),null);
 });
+
+
+test('R31 source-collision roles must not be interchangeable',()=>{
+ const k5=ROLES.K5_PINK_OFF.spec;
+ const rain=ROLES.RAIN5.spec;
+ const combined=ROLES.L16_CURVE_KIV_CASE_COMBINED.spec;
+ assert.equal(k5.sceneIndex,752);
+ assert.equal(rain.sceneIndex,752);
+ assert.notEqual(k5.glbSha256,rain.glbSha256);
+ assert.equal(combined.sceneIndex,756);
+ assert.equal(combined.parentScene,755);
+ assert.notEqual(combined.curveDonorGlbSha256,combined.caseDonorGlbSha256);
+ assert.notEqual(combined.glbSha256,combined.curveDonorGlbSha256);
+ assert.notEqual(combined.glbSha256,combined.caseDonorGlbSha256);
+ assert.equal(combined.glbBytes,63556632);
+ assert.match(combined.sceneName,/__scene756$/);
+ assert.match(combined.parentName,/__scene755$/);
+});
