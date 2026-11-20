@@ -92,7 +92,87 @@ const c80530SameLocalTransform=(obj,baseline)=>{
     baseline.matrix.length===now.matrix.length&&
     baseline.matrix.every((v,i)=>Object.is(v,now.matrix[i]))));
 };
-export function c80530SnapshotRenderedSourceTree(scene,rootCount){
+// Pin the exact source BufferGeometry attribute bindings and typed-array bytes.
+// GLTFLoader gives renderable mutable arrays, so Object3D/geometry identity is
+// insufficient: in-place vertex/index edits would otherwise bypass source SHA.
+// All opt-in 530 scenes share one byte snapshot cache for reused source buffers.
+// Material recoloring is intentionally outside this geometry-only guard.
+function c80530AttributeArray(attr){
+ if(!attr)return null;
+ return attr.isInterleavedBufferAttribute?attr.data?.array:attr.array;
+}
+function c80530AttributeSnapshot(attr,bufferCopies){
+ if(!attr)return null;
+ const array=c80530AttributeArray(attr);
+ const typed=ArrayBuffer.isView(array)&&!(array instanceof DataView);
+ let original=null;
+ if(typed){
+  original=bufferCopies.get(array);
+  if(!original){
+   original=Uint8Array.from(new Uint8Array(array.buffer,array.byteOffset,array.byteLength));
+   bufferCopies.set(array,original);
+  }
+ }
+ return {attr,array,original,count:attr.count,itemSize:attr.itemSize,
+  normalized:attr.normalized,offset:attr.offset,stride:attr.data?.stride};
+}
+function c80530AttributeUnchanged(attr,proof,verified){
+ if(!proof)return attr==null;
+ if(attr!==proof.attr||c80530AttributeArray(attr)!==proof.array||
+    attr.count!==proof.count||attr.itemSize!==proof.itemSize||
+    attr.normalized!==proof.normalized||attr.offset!==proof.offset||
+    attr.data?.stride!==proof.stride)return false;
+ if(!proof.original)return true; // Non-typed GPU-only attributes: reference identity.
+ if(verified.has(proof.array))return true;
+ const current=new Uint8Array(proof.array.buffer,proof.array.byteOffset,proof.array.byteLength);
+ if(current.byteLength!==proof.original.byteLength)return false;
+ for(let i=0;i<current.byteLength;i++)
+  if(current[i]!==proof.original[i])return false;
+ verified.add(proof.array);
+ return true;
+}
+function c80530GeometrySnapshot(geometry,bufferCopies){
+ if(!geometry)return null;
+ const attrs=Object.entries(geometry.attributes??{}).map(([name,attr])=>[
+  name,c80530AttributeSnapshot(attr,bufferCopies)]);
+ const morph=Object.entries(geometry.morphAttributes??{}).map(([name,entries])=>[
+  name,entries.map(attr=>c80530AttributeSnapshot(attr,bufferCopies))]);
+ return {attrs,morph,index:c80530AttributeSnapshot(geometry.index,bufferCopies),
+  // BufferGeometry groups control the rendered triangles and material slots.
+  // Deep-copy each tuple: keeping the groups array would allow in-place edits.
+  groups:Array.isArray(geometry.groups)?geometry.groups.map(group=>[
+   group?.start,group?.count,group?.materialIndex]):null,
+  morphTargetsRelative:geometry.morphTargetsRelative,
+  drawStart:geometry.drawRange?.start,drawCount:geometry.drawRange?.count};
+}
+function c80530GeometryUnchanged(geometry,proof,verified){
+ if(!proof)return geometry==null;
+ if(!geometry||geometry.morphTargetsRelative!==proof.morphTargetsRelative||
+    geometry.drawRange?.start!==proof.drawStart||
+    geometry.drawRange?.count!==proof.drawCount||
+    !Array.isArray(proof.groups)||!Array.isArray(geometry.groups)||
+    geometry.groups.length!==proof.groups.length||
+    !proof.groups.every(([start,count,materialIndex],i)=>{
+     const group=geometry.groups[i];
+     return group&&Object.is(group.start,start)&&
+      Object.is(group.count,count)&&Object.is(group.materialIndex,materialIndex);
+    }))return false;
+ const attrs=geometry.attributes??{},morph=geometry.morphAttributes??{};
+ if(Object.keys(attrs).length!==proof.attrs.length||
+    Object.keys(morph).length!==proof.morph.length||
+    !c80530AttributeUnchanged(geometry.index,proof.index,verified))return false;
+ for(const [name,snapshot] of proof.attrs)
+  if(!Object.prototype.hasOwnProperty.call(attrs,name)||
+     !c80530AttributeUnchanged(attrs[name],snapshot,verified))return false;
+ for(const [name,items] of proof.morph){
+  const actual=morph[name];
+  if(!Array.isArray(actual)||actual.length!==items.length||
+     !items.every((item,i)=>c80530AttributeUnchanged(actual[i],item,verified)))return false;
+ }
+ return true;
+}
+
+export function c80530SnapshotRenderedSourceTree(scene,rootCount,bufferCopies=new WeakMap()){
  if(!Number.isInteger(rootCount)||rootCount<0||
     !Array.isArray(scene?.children)||scene.children.length<rootCount)return null;
  const roots=scene.children.slice(0,rootCount),records=new Map();
@@ -101,7 +181,8 @@ export function c80530SnapshotRenderedSourceTree(scene,rootCount){
      !Array.isArray(obj.children))return false;
   const transform=c80530LocalTransform(obj);
   if(!transform)return false;
-  records.set(obj,{children:[...obj.children],geometry:obj.geometry,transform});
+  records.set(obj,{children:[...obj.children],geometry:obj.geometry,transform,
+   geometryProof:c80530GeometrySnapshot(obj.geometry,bufferCopies)});
   return obj.children.every(visit);
  };
  return roots.every(visit)?{roots,records}:null;
@@ -110,9 +191,11 @@ export function c80530RenderedSourceTreeUnchanged(scene,proof){
  if(!proof||!Array.isArray(proof.roots)||!(proof.records instanceof Map)||
     !Array.isArray(scene?.children)||scene.children.length<proof.roots.length||
     !proof.roots.every((obj,i)=>scene.children[i]===obj))return false;
+ const verified=new Set();
  for(const [obj,record] of proof.records){
   const children=obj?.children;
   if(!Array.isArray(children)||obj.geometry!==record.geometry||
+     !c80530GeometryUnchanged(obj.geometry,record.geometryProof,verified)||
      !c80530SameLocalTransform(obj,record.transform)||
      children.length!==record.children.length||
      !record.children.every((child,i)=>children[i]===child))return false;
@@ -131,9 +214,10 @@ export function createC80530V27FloorRuntime({gltf,sha,mount,mounted}){
  // Capture every source child and mesh geometry, not only the scene roots.
  // This rejects a same-name nested impostor even if loader associations
  // don't record the forged object and the JSON itself stays unchanged.
+ const bufferCopies=new WeakMap();
  const graphProof=Object.fromEntries(Object.keys(scenes).map(k=>{
   const i=Number(k),count=json.scenes[i].nodes.length;
-  return [i,c80530SnapshotRenderedSourceTree(scenes[i],count)];
+  return [i,c80530SnapshotRenderedSourceTree(scenes[i],count,bufferCopies)];
  }));
  if(Object.values(graphProof).some(proof=>!proof))
   throw new Error('C80_530_RENDERED_SOURCE_GRAPH_MISMATCH');
