@@ -155,3 +155,103 @@ export function c80R31Scene753SourceReceipt(json,authenticatedSha,sceneIndex,rol
   physicalHostVerified:false,physicalDownspoutVerified:false,
  });
 }
+
+
+/**
+ * __scene754 adds a separate H1811-6 living-room visual review proxy to the
+ * RELEASED RAIN5+K5-off __scene753, without reactivating the wrong K5 socket.
+ * Original source-provenance receipt only. No browser runtime registration,
+ * geometry promotion, physical-location validation or publish approval.
+ */
+export const C80_R31_SCENE754_SOURCE=Object.freeze({
+ role:'RAIN5_K5_OFF_H18116_PINK_VISUAL_REUSE',sceneIndex:754,
+ glbSha256:'970efad28889f4bdbda8a0f4775846855cb9d217901e72fbf68ccf1b2e38aa03',
+ glbBytes:63529080,zipDriveId:'1OswwSeo2s8H04qvjcv0S0kk7QYnq_jI6',
+ zipSha256:'b427cb43b0bfc516e3e3501c4d530b488ca38a193cca373e2b59942d2f9c2f1a',
+ sceneName:'Ylisrinne_C80_R31_ROOF5_K5_OFF_H18116_PINK_VISUAL_REUSE_REVIEW_WORK_TEST_HOST_HOLD__scene754',
+ sceneCount:755,nodeCount:13483,meshCount:5162,materialCount:812,
+ accessorCount:11247,bufferViewCount:11253,rootCount:494,rootFnv32:'bae9bd94',
+ sourceScene:753,parentRootCount:493,parentRootFnv32:'6c112c36',
+ parentGlbSha256:'1cd3433ee6abeb246b58bc04433a3d5d8a2516800d9e4a7ecc7742ac33288165',
+ visualDonorGlbSha256:'4359768a1d37f091c807b3cb3a13628d5a42688e801297609fae8676a87bc046',
+ visualDonorDriveId:'18RWpd1gUbkhkz-LYfWc6FIvfAYEQzCfv',
+ visualDonorSceneIndex:747,visualDonorRoot:13338,
+ visualRoot:13482,visualLeaves:[13477,13478,13479,13480,13481],
+ oldIncorrectK5Root:13176,preservedKitchenNode:12497,rainMarkerRoot:13476,
+});
+export function isC80R31Scene754Source(json,authenticatedSha,sceneIndex,role,floor){
+ const s=C80_R31_SCENE754_SOURCE,asset=json?.asset?.extras;
+ if(role!==s.role||sceneIndex!==s.sceneIndex||authenticatedSha!==s.glbSha256||
+  (floor!==undefined&&floor!=='BOTH')||json?.scene!==292||
+  json?.scenes?.length!==s.sceneCount||json?.nodes?.length!==s.nodeCount||
+  json?.meshes?.length!==s.meshCount||json?.materials?.length!==s.materialCount||
+  json?.accessors?.length!==s.accessorCount||
+  json?.bufferViews?.length!==s.bufferViewCount||
+  asset?.ModelStage!=='WORK_TEST'||asset?.current!==false||
+  asset?.asBuilt!==false||asset?.HUMAN_REVIEW!=='NOT_RUN')return false;
+ const target=json.scenes[sceneIndex],parent=json.scenes[s.sourceScene];
+ const roots=target?.nodes,old=parent?.nodes,e=target?.extras;
+ const visual=json.nodes[s.visualRoot],v=visual?.extras;
+ if(target?.name!==s.sceneName||parent?.name!==C80_R31_SCENE753_SOURCE.sceneName||
+  !Array.isArray(roots)||!Array.isArray(old)||
+  roots.length!==s.rootCount||old.length!==s.parentRootCount||
+  new Set(roots).size!==roots.length||new Set(old).size!==old.length||
+  c80R31Scene752RootsFnv32(roots)!==s.rootFnv32||
+  c80R31Scene752RootsFnv32(old)!==s.parentRootFnv32||
+  !exactly(roots,[...old,s.visualRoot])||
+  roots.includes(s.oldIncorrectK5Root)||old.includes(s.oldIncorrectK5Root)||
+  !roots.includes(s.preservedKitchenNode)||!roots.includes(s.rainMarkerRoot)||
+  parent?.extras?.stage!=='WORK_TEST_HOST_HOLD'||
+  parent?.extras?.oldIncorrectRootSuppressed!==s.oldIncorrectK5Root||
+  parent?.extras?.H18116Exact3DHost!=='NOT_CONFIRMED_NOT_PROMOTED'||
+  e?.stage!=='WORK_TEST_HOST_HOLD'||e?.parentSceneIndex!==s.sourceScene||
+  e?.parentGLBSHA256!==s.parentGlbSha256||
+  e?.sourceVisualDonorGLBSHA256!==s.visualDonorGlbSha256||
+  e?.sourceVisualDonorDriveID!==s.visualDonorDriveId||
+  e?.sourceVisualDonorSceneIndex!==s.visualDonorSceneIndex||
+  e?.sourceVisualDonorRoot!==s.visualDonorRoot||
+  e?.H18116VisualReviewRoot!==s.visualRoot||
+  e?.H18116VisualRole!=='D2F_PINK_WEST_WALL_PHOTO_PROXY_ONLY'||
+  e?.H18116ExactXYZ!=='NOT_MEASURED'||
+  e?.H18116PhysicalExistence!=='OWNER_PHOTO_2026'||
+  e?.H18116OldWrongK5SourceInactive!==true||
+  e?.K5KitchenExistingNode12497!=='ACTIVE_CANDIDATE_NOT_CONFIRMED'||
+  e?.additionalVisualProxyNodes!==6||e?.additionalPhysicalSocketClaims!==0||
+  e?.additionalMeshData!==0||e?.sourceLinksOutputSHA!=='NOT_BOUND'||
+  e?.productionWebGL!=='NOT_RUN'||e?.humanReview!=='NOT_RUN'||
+  e?.current!==false||e?.asBuilt!==false||
+  !exactly(visual?.children,s.visualLeaves)||
+  v?.sourceOriginalR31Root!==s.oldIncorrectK5Root||
+  !exactly(v?.sourceOriginalR31Leaves,[13171,13172,13173,13174,13175])||
+  v?.sourceDonorRoot!==s.visualDonorRoot||
+  v?.sourceRoleDonorDriveID!==s.visualDonorDriveId||
+  v?.sourceRoleDonorGLBSHA256!==s.visualDonorGlbSha256||
+  v?.presentationOnly!==true||v?.exactPhysicalPositionVerified!==false||
+  v?.sourceLinksOutputSHABound!==false||v?.humanReview!=='NOT_RUN'||
+  v?.placementStatus!=='VISUAL_REVIEW_PIN_NOT_FIELD_MEASURED')return false;
+ for(let i=0;i<s.visualLeaves.length;i++){
+  const leaf=json.nodes[s.visualLeaves[i]],x=leaf?.extras;
+  if(!leaf||leaf.mesh!==[397,397,398,399,400][i]||
+   x?.newRoleCOW!=='H1811-6_PHOTO_VISUAL_REUSE'||
+   x?.sourceOriginalR31Node!==13171+i||
+   x?.sourceDonorNodeIndex!==13333+i||
+   x?.sourceRoleDonorDriveID!==s.visualDonorDriveId||
+   x?.sourceRoleDonorGLBSHA256!==s.visualDonorGlbSha256||
+   x?.pinLocationStatus!=='NOT_FIELD_SURVEYED'||
+   x?.exactPhysicalPositionVerified!==false||
+   x?.sourceLinksOutputSHABound!==false||
+   x?.current!==false||x?.asBuilt!==false||
+   x?.WORK_TEST!==true||x?.HOST_HOLD!==true)return false;
+ }
+ return true;
+}
+export function c80R31Scene754SourceReceipt(json,authenticatedSha,sceneIndex,role,floor){
+ return Object.freeze({
+  exactSource:isC80R31Scene754Source(json,authenticatedSha,sceneIndex,role,floor),
+  stage:'WORK_TEST_HOST_HOLD',sourceLinksBound:false,
+  publishAllowed:false,productionWebGLVerified:false,
+  humanReview:'NOT_RUN',current:false,asBuilt:false,
+  physicalHostVerified:false,physicalLocationMeasured:false,
+  physicalDownspoutVerified:false,
+ });
+}
