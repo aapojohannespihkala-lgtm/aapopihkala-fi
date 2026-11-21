@@ -26,7 +26,8 @@
         <div class="weather-solar-diagram">
           <span class="weather-solar-time" data-weather-sunrise>--:--</span>
 
-          <svg
+          <div class="weather-solar-visual">
+            <svg
             class="weather-solar-arc"
             data-weather-solar-arc
             viewBox="0 0 120 44"
@@ -53,7 +54,11 @@
               opacity="0"
               vector-effect="non-scaling-stroke"
             />
-          </svg>
+            </svg>
+            <span class="weather-daynight-disk" data-weather-daynight-disk hidden aria-hidden="true">
+              <i></i>
+            </span>
+          </div>
 
           <span class="weather-solar-time" data-weather-sunset>--:--</span>
         </div>
