@@ -216,7 +216,7 @@ export const createOrientationGizmoController = ({
       display: 'block',
       margin: '4px auto 0',
       padding: '4px 8px',
-      border: '1px solid var(--viewer-line-soft)',
+      border: '0',
       borderRadius: '5px',
       background: 'transparent',
       color: 'var(--viewer-ink)',
@@ -225,6 +225,15 @@ export const createOrientationGizmoController = ({
       cursor: 'pointer',
       pointerEvents: 'auto',
       touchAction: 'manipulation',
+    });
+    // Owner decision 21.11.2026: clicking the cube itself switches YLIS-G1 /
+    // map north; the text under it only shows the active frame.
+    northFrameSvg!.style.pointerEvents = 'auto';
+    northFrameSvg!.style.cursor = 'pointer';
+    northFrameSvg!.setAttribute('aria-hidden', 'true');
+    northFrameSvg!.addEventListener('click', (event) => {
+      event.stopPropagation();
+      northFrameController.button.click();
     });
   }
 
