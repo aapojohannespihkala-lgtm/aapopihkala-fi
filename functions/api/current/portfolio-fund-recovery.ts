@@ -196,7 +196,7 @@ export const parseNordnetEmbeddedFund = (
     if (foundAt < 0) break;
     startAt = foundAt + 'navInfo'.length;
     const decoded = html.slice(Math.max(0, foundAt - 6_000), foundAt + 5_000)
-      .replace(/\\\\+"/g, '"').replace(/&quot;/g, '"');
+      .replace(/\\+"/g, '"').replace(/&quot;/g, '"');
     const from = decoded.indexOf(marker);
     if (from < 0) continue;
     const context = decoded.slice(0, from);
