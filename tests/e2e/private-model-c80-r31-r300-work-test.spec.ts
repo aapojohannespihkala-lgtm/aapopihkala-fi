@@ -55,7 +55,7 @@ test('R300 review requires both a protected catalog candidate and exact bytes', 
   await expect(canvas).not.toHaveAttribute('data-r300-work-test-view', /.+/);
 });
 
-test('verified original R300 switches in the viewer without leaving the active camera projection', async ({ page }) => {
+test('verified original R300 switches in the viewer without moving the active camera', async ({ page }) => {
   test.skip(!fixture, 'Requires the private original GLB in the local test environment');
   test.setTimeout(150_000);
   await setup(page);
@@ -66,8 +66,17 @@ test('verified original R300 switches in the viewer without leaving the active c
   const canvas = page.locator('#private-model-canvas');
   await expect(canvas).toHaveAttribute('data-r300-work-test-view', 'normal', { timeout: 100_000 });
   await expect(canvas).toHaveAttribute('data-model-source', 'work-test');
-  const projection = await canvas.getAttribute('data-camera-projection');
-  expect(projection).toBeTruthy();
+  const readout = page.locator('#ai-navigator-readout');
+  await expect(readout).toHaveAttribute('data-model', 'C80 · WORK_TEST');
+  const pose = await readout.evaluate(element =>
+    ['data-camera', 'data-target', 'data-view', 'data-look-vector'].map(attribute =>
+      element.getAttribute(attribute)));
+  for (const value of pose) expect(value).toBeTruthy();
+  const expectCameraUnchanged = async () => {
+    for (const [i, attribute] of ['data-camera', 'data-target', 'data-view', 'data-look-vector'].entries()) {
+      await expect(readout).toHaveAttribute(attribute, pose[i]!);
+    }
+  };
 
   await page.locator('#model-menu summary').click();
   const normal = page.getByRole('button', { name: 'Normaali', exact: true });
@@ -76,11 +85,11 @@ test('verified original R300 switches in the viewer without leaving the active c
   await service.click();
   await expect(service).toHaveAttribute('aria-pressed', 'true');
   await expect(canvas).toHaveAttribute('data-r300-work-test-view', 'service');
-  await expect(canvas).toHaveAttribute('data-camera-projection', projection!);
+  await expectCameraUnchanged();
   await normal.click();
   await expect(normal).toHaveAttribute('aria-pressed', 'true');
   await expect(canvas).toHaveAttribute('data-r300-work-test-view', 'normal');
-  await expect(canvas).toHaveAttribute('data-camera-projection', projection!);
+  await expectCameraUnchanged();
 
   await page.locator('#current-model-button').click();
   await expect(canvas).toHaveAttribute('data-model-source', 'current');

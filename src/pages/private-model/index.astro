@@ -234,6 +234,18 @@ const title = 'Private 3D viewer';
         display: none;
       }
 
+      #r300-work-test-views:not([hidden]) {
+        display: flex;
+        gap: 6px;
+      }
+
+      #r300-work-test-views button[aria-pressed='true'] {
+        border-color: var(--viewer-line);
+        background: var(--viewer-bar);
+        color: var(--viewer-ink);
+        font-weight: 700;
+      }
+
       #c70-preview-controls p {
         margin: 6px 0;
         font-size: 12px;
@@ -3480,7 +3492,8 @@ const title = 'Private 3D viewer';
         else delete canvas.dataset.r300WorkTestView;
       };
       for (const [name, button] of Object.entries(r300ViewButtons)) {
-        button.addEventListener('click', () => {
+        button.addEventListener('click', (event) => {
+          event.stopPropagation();
           if (!r300ViewSwitch) return;
           try {
             status.textContent = r300ViewSwitch.select(name)
