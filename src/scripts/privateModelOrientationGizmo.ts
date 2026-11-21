@@ -497,7 +497,16 @@ export const createOrientationGizmoController = ({
     const navigatorChanged = renderNavigator(quaternion, projection);
     // Draw after the original Y-axis label so the selected north-frame
     // annotation wins. The toggle itself redraws with the cached quaternion.
-    if (axisChanged) northFrameController?.render({ quaternion });
+    // An optional annotation must never stop the viewer render loop: a
+    // transient non-finite camera pose (e.g. before the first model fit)
+    // only leaves the previous north annotation in place.
+    if (axisChanged) {
+      try {
+        northFrameController?.render({ quaternion });
+      } catch (error) {
+        root.dataset.northFrameError = error instanceof Error ? error.message : 'YLIS_NORTH_FRAME';
+      }
+    }
     return navigatorChanged || axisChanged;
   };
 
