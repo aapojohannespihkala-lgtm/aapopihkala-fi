@@ -1,4 +1,8 @@
 import { expect, test } from '@playwright/test';
+import { createHash } from 'node:crypto';
+import { readFileSync } from 'node:fs';
+import { C80_R31_R300_SOURCE } from '../../src/scripts/privateModelC80R31Scene752SourceReceipt.mjs';
+import { C80_R31_R300_WORK_TEST_ID } from '../../src/scripts/privateModelC80R31ReviewRuntime.mjs';
 
 import {
   PRIVATE_WORK_TEST_CANDIDATES,
@@ -744,6 +748,23 @@ test('private WORK_TEST candidate allowlist exposes named review routes includin
   expect(getPrivateWorkTestCandidate('/private-model/work-test/p136b-d-current-wall-corrected.glb/extra')).toBeNull();
 });
 
+test('R300 worker, publisher registry and viewer share one exact two-scene source', () => {
+  const id = C80_R31_R300_WORK_TEST_ID;
+  const path = `/private-model/work-test/${id}.glb`;
+  const candidate = getPrivateWorkTestCandidateById(id)!;
+  expect(candidate).toMatchObject({
+    id, path, objectKey: `work-test/${id}.glb`,
+    expectedSize: C80_R31_R300_SOURCE.glbBytes,
+    expectedSha256: C80_R31_R300_SOURCE.glbSha256,
+  });
+  expect(getPrivateWorkTestCandidate(path)).toBe(candidate);
+  expect(getPrivateWorkTestPublishCandidate(`${PRIVATE_WORK_TEST_PUBLISH_PREFIX}${id}.glb`)).toBe(candidate);
+  expect(getPrivateWorkTestVerifyCandidate(`${PRIVATE_WORK_TEST_VERIFY_GLB_PREFIX}${id}.glb`)).toBe(candidate);
+  expect(isPrivateCurrentModelMachinePath(`${PRIVATE_WORK_TEST_PUBLISH_PREFIX}${id}.glb`)).toBe(false);
+  const registry = JSON.parse(readFileSync('.github/work-test-candidates.json', 'utf8'));
+  expect(registry.candidates[id]).toEqual({ driveFileId: C80_R31_R300_SOURCE.zipDriveId });
+});
+
 test('private WORK_TEST candidates require exact R2 size and SHA metadata before availability', () => {
   for (const candidate of PRIVATE_WORK_TEST_CANDIDATES) {
     expect(
@@ -1474,6 +1495,101 @@ test('machine readback endpoints accept only readback JWT and expose only catalo
       env,
     );
     expect(notAllowlisted.status).toBe(404);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test('R300 original GLB passes the authenticated publisher, catalog and protected readback', async () => {
+  const fixture = process.env.C80_R31_R300_SCENE760_GLB_PATH;
+  test.skip(!fixture, 'Requires the original private GLB in the local test environment');
+  const original = readFileSync(fixture!);
+  const candidate = getPrivateWorkTestCandidateById(C80_R31_R300_WORK_TEST_ID)!;
+  const teamOrigin = 'https://r300-test.cloudflareaccess.com';
+  const signer = await createAccessJwtSigner(teamOrigin, 'r300-test-key');
+  const exp = Math.floor(Date.now() / 1000) + 300;
+  const [publisher, readback, viewer] = await Promise.all([
+    signer.sign({ type: 'app', aud: ['publisher-aud'], exp, sub: '', common_name: 'publisher.test' }),
+    signer.sign({ type: 'app', aud: ['readback-aud'], exp, sub: '', common_name: 'readback.test' }),
+    signer.sign({ aud: ['viewer-aud'], exp, sub: 'viewer-test' }),
+  ]);
+  let stored: { bytes: ArrayBuffer; customMetadata: Record<string, string> } | null = null;
+  const metadata = () => stored && ({
+    size: stored.bytes.byteLength, customMetadata: stored.customMetadata,
+  });
+  const env = {
+    ASSETS: { fetch: async () => new Response('unused') },
+    PRIVATE_MODEL_BUCKET: {
+      list: async () => {
+        const object = metadata();
+        return { objects: object ? [{ key: candidate.objectKey, ...object }] : [], truncated: false };
+      },
+      get: async (key: string) => {
+        if (key !== candidate.objectKey || !stored) return null;
+        const body = new ReadableStream<Uint8Array>({
+          start(controller) {
+            controller.enqueue(new Uint8Array(stored!.bytes));
+            controller.close();
+          },
+        });
+        return { ...metadata(), body };
+      },
+      put: async (key: string, bytes: ArrayBuffer, options: { customMetadata: Record<string, string> }) => {
+        expect(key).toBe(candidate.objectKey);
+        stored = { bytes, customMetadata: options.customMetadata };
+      },
+    },
+    CF_ACCESS_TEAM_DOMAIN: teamOrigin,
+    CF_ACCESS_AUD: 'viewer-aud',
+    CF_ACCESS_PUBLISHER_AUD: 'publisher-aud',
+    CF_ACCESS_PUBLISHER_COMMON_NAME: 'publisher.test',
+    CF_ACCESS_READBACK_AUD: 'readback-aud',
+    CF_ACCESS_READBACK_COMMON_NAME: 'readback.test',
+  } as unknown as PrivateModelEnv;
+  const access = (path: string, token?: string, body?: Buffer<ArrayBuffer>) => {
+    const headers = new Headers(token ? { 'cf-access-jwt-assertion': token } : {});
+    if (body) {
+      headers.set('Content-Type', 'model/gltf-binary');
+      headers.set('Content-Length', String(body.length));
+    }
+    return handlePrivateWorkTestRequest(new Request(`https://example.test${path}`, {
+      headers, body, method: body ? 'PUT' : 'GET',
+    }), env);
+  };
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = (async (url: RequestInfo | URL) => {
+    expect(String(url)).toBe(`${teamOrigin}/cdn-cgi/access/certs`);
+    return Response.json({ keys: [signer.jwk] });
+  }) as typeof fetch;
+  try {
+    const publishPath = `${PRIVATE_WORK_TEST_PUBLISH_PREFIX}${candidate.id}.glb`;
+    const readbackPath = `${PRIVATE_WORK_TEST_VERIFY_GLB_PREFIX}${candidate.id}.glb`;
+    await expect((await access(PRIVATE_WORK_TEST_CATALOG_PATH, viewer)).json())
+      .resolves.toEqual({ candidates: [] });
+    expect((await access(publishPath, viewer, Buffer.from('denied'))).status).toBe(404);
+    const corrupted = Buffer.from(original);
+    corrupted[corrupted.length - 1] ^= 1;
+    const blocked = await access(publishPath, publisher, corrupted);
+    expect(blocked.status).toBe(422);
+    await expect(blocked.json()).resolves.toEqual({ error: 'upload-sha256-mismatch' });
+    expect(stored).toBeNull();
+
+    const published = await access(publishPath, publisher, original);
+    expect(published.status).toBe(200);
+    await expect(published.json()).resolves.toMatchObject({ ready: true, published: true });
+    expect((await access(candidate.path)).status).toBe(404);
+    expect((await access(candidate.path, readback)).status).toBe(404);
+    expect((await access(readbackPath, viewer)).status).toBe(404);
+    await expect((await access(PRIVATE_WORK_TEST_CATALOG_PATH, viewer)).json())
+      .resolves.toMatchObject({ candidates: [{ id: candidate.id, path: candidate.path }] });
+
+    for (const [path, token] of [[candidate.path, viewer], [readbackPath, readback]]) {
+      const result = await access(path, token);
+      expect(result.status).toBe(200);
+      expect(result.headers.get('Content-Type')).toBe('model/gltf-binary');
+      const digest = createHash('sha256').update(Buffer.from(await result.arrayBuffer())).digest('hex');
+      expect(digest).toBe(C80_R31_R300_SOURCE.glbSha256);
+    }
   } finally {
     globalThis.fetch = originalFetch;
   }
