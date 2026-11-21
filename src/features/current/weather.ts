@@ -698,29 +698,39 @@ export const initCurrentWeather = () => {
       // yet serve it, retain Open-Meteo as a bounded browser fallback.
       const controller = new AbortController();
       const timeout = window.setTimeout(() => controller.abort(), 5_000);
-      let response: Response;
+      let data: OpenMeteoResponse;
+      let cachedForecast = false;
       try {
-        response = await fetch('/api/current/weather', {
+        const response = await fetch('/api/current/weather', {
           headers: { Accept: 'application/json' },
           cache: 'no-store',
           signal: controller.signal,
         });
         if (!response.ok) throw new Error(`Weather proxy failed: ${response.status}`);
+        const proxyData = (await response.json()) as OpenMeteoResponse;
+        // Astro development servers and older deployments can answer an API
+        // path with HTML or a placeholder. Those responses need a direct fallback.
+        if (
+          typeof proxyData?.current?.temperature_2m !== 'number' ||
+          typeof proxyData.current.time !== 'string' ||
+          !Array.isArray(proxyData.hourly?.time) ||
+          !Array.isArray(proxyData.daily?.time)
+        ) {
+          throw new Error('Weather proxy returned an incomplete forecast');
+        }
+        data = proxyData;
+        cachedForecast = response.headers.get('X-Current-Fallback') === 'last-known-good';
       } catch {
-        response = await fetch(buildApiUrl(), {
+        const response = await fetch(buildApiUrl(), {
           headers: { Accept: 'application/json' },
           cache: 'no-store',
         });
+        if (!response.ok) throw new Error(`Open-Meteo request failed: ${response.status}`);
+        data = (await response.json()) as OpenMeteoResponse;
       } finally {
         window.clearTimeout(timeout);
       }
 
-      if (!response.ok) {
-        throw new Error(`Open-Meteo request failed: ${response.status}`);
-      }
-
-      const cachedForecast = response.headers.get('X-Current-Fallback') === 'last-known-good';
-      const data = (await response.json()) as OpenMeteoResponse;
       renderData(data);
       if (cachedForecast) {
         conditionTarget.title = 'Showing the most recent cached forecast while the live source is unavailable';
