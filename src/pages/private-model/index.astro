@@ -21,7 +21,12 @@ const title = 'Private 3D viewer';
       .toolbar .desk-more { min-width: 22px; padding: 2px; opacity: .8; }
       .toolbar .desk-icon[aria-pressed='true'], .toolbar .desk-icon[aria-expanded='true'] {
         border-color: var(--viewer-line); background: var(--viewer-bar); box-shadow: inset 0 0 0 1px var(--viewer-line); }
-      .toolbar .desk-group > .toolbar-menu > summary { display: none !important; }
+      /* The native menu summaries become the small 'more' arrows (tests and keyboard keep working). */
+      .toolbar .desk-more { display: none !important; }
+      .toolbar .desk-group > .toolbar-menu > summary { display: grid; place-items: center; min-width: 22px; min-height: 36px;
+        padding: 0 2px; border: 1px solid transparent; border-radius: 7px; background: transparent; font-size: 0; line-height: 0; }
+      .toolbar .desk-group > .toolbar-menu > summary::before { content: ''; display: block; width: 18px; height: 18px; background: currentColor;
+        -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M7 10 L12 15 L17 10'/%3E%3C/svg%3E") center / contain no-repeat; mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M7 10 L12 15 L17 10'/%3E%3C/svg%3E") center / contain no-repeat; }
       .desk-group > .toolbar-menu { position: static; }
       .desk-group > .toolbar-menu > .toolbar-menu-panel { left: auto; right: 0; }
       .desk-layers-native { font-size: 0; line-height: 0; }
