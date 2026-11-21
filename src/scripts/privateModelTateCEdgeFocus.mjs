@@ -18,9 +18,11 @@ const roleNames = Object.freeze([
   'K11_XMIRROR_R989_FLOOR_INTEGRATION_DERIVED_CLONE_2960_',
   'K11_XMIRROR_KPH09_NORDIC3_3530_NORDIC3_3530_BOWL_CERAMIC',
 ]);
+/** @param {{sha?: string, sceneIndex?: number, technicalReview?: boolean}} [options] */
 export function isTateCSource({sha,sceneIndex,technicalReview=false}={}){
  return technicalReview===true && sha===TATE_C_R22_SOURCE_SHA256 && sceneIndex===TATE_C_R22_SCENE;
 }
+/** @param {{sha?: string, sceneIndex?: number, technicalReview?: boolean, midpoint?: {x:number,y:number,z:number}, ownerNames?: string[]}} [options] */
 export function isTateCFocusedContour({sha,sceneIndex,technicalReview=false,midpoint,ownerNames}={}){
  if(!isTateCSource({sha,sceneIndex,technicalReview})||!midpoint||!Array.isArray(ownerNames))return false;
  if(!['x','y','z'].every(axis=>Number.isFinite(midpoint[axis]) &&
