@@ -195,11 +195,11 @@ export const parseNordnetManagerNav = (html: string, now = new Date()): Recovere
   const price = numberValue(match[1]);
   if (price === null) return null;
   let year = now.getUTCFullYear();
-  let observedAt = dateFromToken(`${match[3]}.${match[2]}.${year}`);
+  let observedAt = dateFromToken(`${match[2]}.${match[3]}.${year}`);
   if (!observedAt) return null;
   if (Date.parse(`${observedAt}T00:00:00Z`) > now.getTime() + DAY_MS) {
     year -= 1;
-    observedAt = dateFromToken(`${match[3]}.${match[2]}.${year}`);
+    observedAt = dateFromToken(`${match[2]}.${match[3]}.${year}`);
   }
   if (!observedAt || !verifyFresh(observedAt, now)) return null;
   return {
@@ -253,7 +253,7 @@ export const recoverMissingFund = async (id: FundSpec['id'], now = new Date()) =
   if (spec.nordnet) {
     for (const url of [spec.nordnet, `https://r.jina.ai/${spec.nordnet}`]) {
       try {
-        const result = parseNordnetPublicFund(await fetchText(url), spec, now);
+        const result = parseNordnetPublicFund(await fetchText(url, 7_000), spec, now);
         if (result) return result;
       } catch {
         // Keep an unverified or stale share class absent from live data.
