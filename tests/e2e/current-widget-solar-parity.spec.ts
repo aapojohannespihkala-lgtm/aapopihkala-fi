@@ -38,16 +38,15 @@ const diskValues = (page: Page) => page.locator('.android-solar-disk').evaluate(
     x: percent('--sun-x'),
     y: percent('--sun-y'),
     horizon: percent('--horizon-y'),
-    chordInset: percent('--horizon-left'),
     fill: style.getPropertyValue('--sun-fill'),
     background: getComputedStyle(node).backgroundImage,
   };
 });
 
 for (const { sunrise, sunset, duration, expectedHorizon } of [
-  { sunrise: '08:34', sunset: '15:38', duration: '7H04M', expectedHorizon: 50 - 43 * Math.cos(Math.PI * 424 / 1440) },
+  { sunrise: '08:34', sunset: '15:38', duration: '7H04M', expectedHorizon: 50 - 50 * Math.cos(Math.PI * 424 / 1440) },
   { sunrise: '06:00', sunset: '18:00', duration: '12H00M', expectedHorizon: 50 },
-  { sunrise: '03:00', sunset: '21:00', duration: '18H00M', expectedHorizon: 50 - 43 * Math.cos(Math.PI * 1080 / 1440) },
+  { sunrise: '03:00', sunset: '21:00', duration: '18H00M', expectedHorizon: 50 - 50 * Math.cos(Math.PI * 1080 / 1440) },
 ]) {
   test(`standalone solar disk matches Android moving horizon for ${duration}`, async ({ page }) => {
     await page.clock.setFixedTime(new Date('2026-11-21T10:00:00.000Z'));
@@ -56,7 +55,6 @@ for (const { sunrise, sunset, duration, expectedHorizon } of [
     await expect(page.locator('.android-solar strong')).toHaveText(duration);
     const disk = await diskValues(page);
     expect(disk.horizon).toBeCloseTo(expectedHorizon, 1);
-    expect(disk.chordInset).toBeGreaterThanOrEqual(0);
     expect(disk.background).toContain(`${disk.horizon}%`);
   });
 }
@@ -95,4 +93,38 @@ test('sun position advances on the existing live clock without refetching', asyn
   const after = await diskValues(page);
   expect(after.horizon).toBeCloseTo(before.horizon, 2);
   expect(calls).toBe(1);
+});
+
+test('sun marker follows the visible ring and has no redundant grey horizon stroke', async ({ page }) => {
+  await page.clock.setFixedTime(new Date('2026-11-21T20:54:00.000Z'));
+  await mockWidget(page, '08:34', '15:38', '7H04M');
+
+  for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 }]) {
+    await page.setViewportSize(viewport);
+    await page.goto('/current/widget/');
+    await expect(page.locator('.android-solar-disk')).toBeVisible();
+
+    const measured = await page.locator('.android-solar-disk').evaluate((element) => {
+      const disk = element as HTMLElement;
+      const dot = disk.querySelector('b') as HTMLElement;
+      const diskBox = disk.getBoundingClientRect();
+      const dotBox = dot.getBoundingClientRect();
+      const diskStyle = getComputedStyle(disk);
+      const centerX = diskBox.left + diskBox.width / 2;
+      const centerY = diskBox.top + diskBox.height / 2;
+      const dotCenterX = dotBox.left + dotBox.width / 2;
+      const dotCenterY = dotBox.top + dotBox.height / 2;
+      const markerDistance = Math.hypot(dotCenterX - centerX, dotCenterY - centerY);
+      const scale = diskBox.width / parseFloat(diskStyle.width);
+      const ringCenterRadius = diskBox.width / 2 - (parseFloat(diskStyle.borderLeftWidth) * scale) / 2;
+      return {
+        markerDistance,
+        ringCenterRadius,
+        redundantHorizonContent: getComputedStyle(disk, '::after').content,
+      };
+    });
+
+    expect(Math.abs(measured.markerDistance - measured.ringCenterRadius)).toBeLessThan(1.2);
+    expect(measured.redundantHorizonContent).toBe('none');
+  }
 });
