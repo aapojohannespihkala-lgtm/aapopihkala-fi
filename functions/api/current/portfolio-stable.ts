@@ -320,17 +320,17 @@ const mergePortfolioItem = (current: PortfolioItem | undefined, incoming: Portfo
   };
 };
 
-const needsResilientRetry = (body: PortfolioResponse) => {
-  if (body.items.length < body.expected || body.unavailable.length > 0) return true;
+const findRetryIds = (byId: ReadonlyMap<string, PortfolioItem>) =>
+  new Set(PORTFOLIO_ORDER.filter((id) => {
+    const item = byId.get(id);
+    if (!item) return true;
+    return NORDNET_FULL_PERIOD_IDS.has(id) &&
+      PERFORMANCE_PERIODS.some((period) => item.changes[period] === null);
+  }));
 
-  return body.items.some(
-    (item) =>
-      NORDNET_FULL_PERIOD_IDS.has(item.id) &&
-      PERFORMANCE_PERIODS.some((period) => item.changes[period] === null)
-  );
-};
+type PublicFundRecovery = ReadonlyMap<string, ReturnType<typeof recoverMissingFund>>;
 
-const loadResilientPortfolio = async () => {
+const loadResilientPortfolio = async (publicFunds: PublicFundRecovery) => {
   let firstResponse: Response | null = null;
   let firstBody: PortfolioResponse | null = null;
   const byId = new Map<string, PortfolioItem>();
@@ -338,9 +338,13 @@ const loadResilientPortfolio = async () => {
   let version = 0;
   let expected: number = PORTFOLIO_ORDER.length;
   let liveExpected: number = PORTFOLIO_ORDER.length;
+  let only: ReadonlySet<string> | undefined;
 
   for (let attempt = 0; attempt < RESILIENT_ATTEMPTS; attempt += 1) {
-    const response = await getResilientPortfolio();
+    const response = await getResilientPortfolio({
+      only,
+      publicFunds: attempt === 0 ? publicFunds : undefined,
+    });
     if (!firstResponse) firstResponse = response;
     if (!response.ok) {
       if (attempt === 0) return { response, body: null as PortfolioResponse | null };
@@ -379,7 +383,8 @@ const loadResilientPortfolio = async () => {
       version,
     };
 
-    if (!needsResilientRetry(mergedBody)) {
+    only = findRetryIds(byId);
+    if (only.size === 0) {
       return { response: firstResponse ?? response, body: mergedBody };
     }
   }
@@ -403,7 +408,12 @@ const loadResilientPortfolio = async () => {
 };
 
 export const onRequestGet = async () => {
-  const { response, body } = await loadResilientPortfolio();
+  // Start the verified fund recovery before the larger Yahoo/OP wave.
+  // One exhausted legacy request budget must not prevent these known-good sources.
+  const publicFunds = new Map(PUBLIC_FUND_RECOVERY_IDS.map((id) =>
+    [id, recoverMissingFund(id).catch(() => null)] as const
+  ));
+  const { response, body } = await loadResilientPortfolio(publicFunds);
   if (!response.ok || !body) return response;
 
   const byId = new Map(body.items.map((item) => [item.id, item] as const));
@@ -433,7 +443,7 @@ export const onRequestGet = async () => {
     Promise.allSettled(
       missingSpecs.map((spec) => withTaskTimeout(recoverOpFund(spec), spec.id))
     ),
-    Promise.allSettled(missingPublicIds.map((id) => recoverMissingFund(id))),
+    Promise.allSettled(missingPublicIds.map((id) => publicFunds.get(id))),
   ]);
   const opRecovered = opSettled.flatMap((result) =>
     result.status === 'fulfilled' ? [result.value] : []);
@@ -458,7 +468,7 @@ export const onRequestGet = async () => {
       ...body,
       items,
       unavailable,
-      source: recoverySources.length ? `${body.source} + ${recoverySources.join(' + ')}` : body.source,
+      source: [body.source, ...recoverySources.filter((source) => !body.source.includes(source))].join(' + '),
       version: Math.max(body.version ?? 0, 13),
     }),
     {
