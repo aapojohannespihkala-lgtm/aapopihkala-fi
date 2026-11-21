@@ -432,3 +432,103 @@ test('R31 R300 ORIGINAL GLB: both views, root/parent SHA, copper pair, plexi & m
   assert.equal(receiptR300(json,sha,v.sceneIndex,v.role,'BOTH').publishAllowed,false);
  }
 });
+
+
+import {
+ C80_R31_VM20_HATCH_SOURCE as HATCH,
+ C80_R31_VM20_HATCH_VIEWS as HATCH_VIEWS,
+ isC80R31Vm20HatchSource as validHatch,
+ c80R31Vm20HatchSourceReceipt as receiptHatch,
+} from '../../src/scripts/privateModelC80R31Scene752SourceReceipt.mjs';
+
+test('R31 D1F VM20 761/762 source roles share one SHA and preserve screen-on parent 759',()=>{
+ const c=HATCH_VIEWS.closed,o=HATCH_VIEWS.opened;
+ assert.equal(HATCH.parentSceneIndex,759);
+ assert.equal(c.sceneIndex,761);
+ assert.equal(o.sceneIndex,762);
+ assert.notEqual(c.role,o.role);
+ assert.notEqual(c.rootFnv32,o.rootFnv32);
+ assert.equal(c.rootCount,o.rootCount);
+ assert.equal(HATCH.screenRoot,11625);
+ assert.equal(HATCH.copperRoot,13494);
+ assert.notEqual(HATCH.glbSha256,R300.glbSha256);
+ assert.match(HATCH.glbSha256,/^[a-f0-9]{64}$/);
+ assert.match(HATCH.zipSha256,/^[a-f0-9]{64}$/);
+ for(const view of Object.values(HATCH_VIEWS)){
+  for(const [sha,i,role,floor] of [
+   [HATCH.glbSha256,view.sceneIndex,view.role,'BOTH'],
+   [HATCH.glbSha256,view.sceneIndex-1,view.role,'BOTH'],
+   [R300.glbSha256,view.sceneIndex,view.role,'BOTH'],
+   [HATCH.glbSha256,view.sceneIndex,view.role,'1F'],
+   [HATCH.glbSha256,view.sceneIndex,'__proto__','BOTH'],
+  ])assert.equal(validHatch({},sha,i,role,floor),false);
+  const receipt=receiptHatch({},HATCH.glbSha256,view.sceneIndex,view.role,'BOTH');
+  assert.equal(receipt.exactSource,false);
+  assert.equal(receipt.publishAllowed,false);
+  assert.equal(receipt.sourceLinksBound,false);
+  assert.equal(receipt.physicalOpeningMeasured,false);
+  assert.equal(receipt.plumbingConnectivityVerified,false);
+  assert.equal(receipt.current,false);
+  assert.equal(receipt.asBuilt,false);
+ }
+});
+const hatchFixturePath=process.env.C80_R31_VM20_SCENE762_GLB_PATH;
+test('R31 D1F VM20 ORIGINAL GLB: scene761 closed and scene762 opened, exact wall, source root and negative mutations',
+ {skip:!hatchFixturePath},()=>{
+ const {b,json}=parse(hatchFixturePath),sha=createHash('sha256').update(b).digest('hex');
+ assert.equal(b.length,HATCH.glbBytes);
+ assert.equal(sha,HATCH.glbSha256);
+ assert.equal(json.scenes.length,HATCH.sceneCount);
+ const parent=json.scenes[759].nodes;
+ const closed=json.scenes[761].nodes;
+ const opened=json.scenes[762].nodes;
+ assert.equal(fnv(parent),HATCH.parentRootFnv32);
+ assert.equal(fnv(closed),HATCH_VIEWS.closed.rootFnv32);
+ assert.equal(fnv(opened),HATCH_VIEWS.opened.rootFnv32);
+ assert.deepEqual(closed,parent.map(n=>n===HATCH.oldWallRoot?HATCH.newWallRoot:n));
+ assert.deepEqual(opened,closed.map(n=>n===HATCH.oldS2Root?HATCH.newS2Root:n));
+ assert.ok(parent.includes(HATCH.screenRoot));
+ assert.ok(closed.includes(HATCH.screenRoot));
+ assert.ok(opened.includes(HATCH.screenRoot));
+ assert.ok(!closed.includes(HATCH.oldWallRoot));
+ assert.ok(!opened.includes(HATCH.oldS2Root));
+ assert.deepEqual(json.nodes[HATCH.newS2Root].children,
+  json.nodes[HATCH.oldS2Root].children.map(n=>
+   n===HATCH.oldLeafNode?HATCH.newLeafNode:n));
+ for(const v of Object.values(HATCH_VIEWS)){
+  const check=()=>validHatch(json,sha,v.sceneIndex,v.role,'BOTH');
+  assert.equal(check(),true,v.role);
+  assert.equal(validHatch(json,R300.glbSha256,v.sceneIndex,v.role,'BOTH'),false);
+  assert.equal(validHatch(json,sha,v.sceneIndex,v.role==='VM20_D1F_UPPER_ACCESS_HATCH_CLOSED'?
+   HATCH_VIEWS.opened.role:HATCH_VIEWS.closed.role,'BOTH'),false);
+  assert.equal(validHatch(json,sha,v.sceneIndex,v.role,'2F'),false);
+  const mutate=(obj,key,val)=>{
+   const old=obj[key];obj[key]=val;
+   try{assert.equal(check(),false,'wrong '+key);}
+   finally{obj[key]=old;}
+  };
+  mutate(json.scenes[v.sceneIndex],'name','forged');
+  mutate(json.scenes[759].nodes,0,999999);
+  mutate(json.scenes[761].nodes,0,999999);
+  mutate(json.scenes[762].nodes,0,999999);
+  mutate(json.scenes[v.sceneIndex].extras,'parentGLBSHA256','0'.repeat(64));
+  mutate(json.scenes[v.sceneIndex].extras,'sourceParentZipDriveID','WRONG');
+  mutate(json.scenes[v.sceneIndex].extras,'photoRelativeNotMeasured',false);
+  mutate(json.scenes[v.sceneIndex].extras,'activePhysicalPlumbingUnmodified',false);
+  mutate(json.scenes[v.sceneIndex].extras,'sourceLinksOutputSHA','BOUND');
+  mutate(json.scenes[v.sceneIndex].extras,'productionWebGL','PASS');
+  mutate(json.nodes[HATCH.newWallRoot],'mesh',0);
+  mutate(json.nodes[HATCH.newWallRoot].extras,'replacesNode',123);
+  mutate(json.nodes[HATCH.newLeafNode].extras,'photoRightHinge',false);
+  mutate(json.nodes[HATCH.newLeafNode].extras,'swing','MEASURED');
+  mutate(json.nodes[HATCH.newS2Root].extras,'allOtherChildrenExact',false);
+  mutate(json.nodes[HATCH.newS2Root],'children',[HATCH.newLeafNode]);
+  mutate(json.asset.extras,'current',true);
+  mutate(json.asset.extras,'asBuilt',true);
+  const receipt=receiptHatch(json,sha,v.sceneIndex,v.role,'BOTH');
+  assert.equal(receipt.exactSource,true);
+  assert.equal(receipt.publishAllowed,false);
+  assert.equal(receipt.physicalOpeningMeasured,false);
+  assert.equal(receipt.plumbingConnectivityVerified,false);
+ }
+});
