@@ -7,12 +7,17 @@ import {
  resolveC80R31ReviewScene as resolve,
  c80R31AtomicReviewMount as atomicMount,
  createC80R31ReviewRuntime as create,
+ prepareC80R31R300ReviewScenes as prepareR300,
 } from '../../src/scripts/privateModelC80R31ReviewRuntime.mjs';
 
-test('R31 opt-in runtime binds five distinct immutable source roles',()=>{
+const NORMAL_R300='R300_VISIBLE_COPPER_NORMAL_SCREEN_ON';
+const SERVICE_R300='R300_VISIBLE_COPPER_SERVICE_SCREEN_OFF';
+
+test('R31 opt-in runtime binds seven roles to six immutable sources',()=>{
  assert.deepEqual(Object.keys(ROLES),[
   'K5_PINK_OFF','RAIN5','RAIN5_K5_OFF',
   'RAIN5_K5_OFF_H18116_VISUAL','L16_CURVE_KIV_CASE_COMBINED',
+  NORMAL_R300,SERVICE_R300,
  ]);
  assert.equal(ROLES.K5_PINK_OFF.spec.sceneIndex,752);
  assert.equal(ROLES.RAIN5.spec.sceneIndex,752);
@@ -23,7 +28,12 @@ test('R31 opt-in runtime binds five distinct immutable source roles',()=>{
  assert.notEqual(ROLES.L16_CURVE_KIV_CASE_COMBINED.spec.curveDonorGlbSha256,
   ROLES.L16_CURVE_KIV_CASE_COMBINED.spec.caseDonorGlbSha256);
  const hashes=Object.values(ROLES).map(r=>r.spec.glbSha256);
- assert.equal(new Set(hashes).size,5);
+ assert.equal(new Set(hashes).size,6);
+ assert.equal(ROLES[NORMAL_R300].spec.glbSha256,ROLES[SERVICE_R300].spec.glbSha256);
+ assert.equal(ROLES[NORMAL_R300].spec.sceneIndex,759);
+ assert.equal(ROLES[SERVICE_R300].spec.sceneIndex,760);
+ assert.equal(ROLES[NORMAL_R300].spec.screenVisible,true);
+ assert.equal(ROLES[SERVICE_R300].spec.screenVisible,false);
  assert.equal(resolve(null,hashes[0],'K5_PINK_OFF'),null);
  assert.equal(resolve({parser:{json:{}},scenes:[]},hashes[0],'K5_PINK_OFF'),null);
  assert.equal(resolve({parser:{json:{}},scenes:[]},hashes[1],'K5_PINK_OFF'),null);
@@ -35,6 +45,15 @@ test('R31 opt-in runtime binds five distinct immutable source roles',()=>{
  assert.throws(()=>create({gltf:{},authenticatedSha:hashes[0],
   role:'K5_PINK_OFF',mount:()=>{},mounted:()=>null}),
   /C80_R31_REVIEW_SOURCE_MISMATCH/);
+});
+
+test('R300 preparation requires both exact same-file source receipts before any rebuild',async()=>{
+ const spec=ROLES[NORMAL_R300].spec;
+ let attempted=false;
+ const gltf={scenes:Array(spec.sceneCount),parser:{json:{scenes:[]},
+  getDependency(){attempted=true;throw new Error('unexpected read');}}};
+ await assert.rejects(prepareR300(gltf,spec.glbSha256),/C80_R31_REVIEW_SOURCE_MISMATCH/);
+ assert.equal(attempted,false);
 });
 
 test('R31 single-GLB atomic mount verifies target and previous identity',()=>{
@@ -223,3 +242,62 @@ test('R31 source-collision roles must not be interchangeable',()=>{
  assert.match(combined.sceneName,/__scene756$/);
  assert.match(combined.parentName,/__scene755$/);
 });
+
+const r300Fixture=process.env.C80_R31_R300_SCENE760_GLB_PATH;
+test('R300 real GLTFLoader restores shared nodes and mounts both modes from one SHA',
+ {skip:!r300Fixture}, async()=>{
+ const {GLTFLoader}=await import('three/addons/loaders/GLTFLoader.js');
+ const data=readFileSync(r300Fixture);
+ const sha=createHash('sha256').update(data).digest('hex');
+ assert.equal(sha,ROLES[NORMAL_R300].spec.glbSha256);
+ const originalSelf=globalThis.self,originalBitmap=globalThis.createImageBitmap;
+ globalThis.self=globalThis;
+ // Node fixture checks the actual Object3D and geometry, with no image or pixel assertions.
+ globalThis.createImageBitmap=async()=>({width:1,height:1});
+ let gltf;
+ try{
+  gltf=await new GLTFLoader().parseAsync(
+   data.buffer.slice(data.byteOffset,data.byteOffset+data.byteLength),'');
+ }finally{
+  if(originalSelf===undefined)delete globalThis.self;
+  else globalThis.self=originalSelf;
+  if(originalBitmap===undefined)delete globalThis.createImageBitmap;
+  else globalThis.createImageBitmap=originalBitmap;
+ }
+ const spec=ROLES[NORMAL_R300].spec;
+ const normal=gltf.scenes[spec.sceneIndex],service=gltf.scenes[ROLES[SERVICE_R300].spec.sceneIndex];
+ const parent=gltf.scenes[spec.parentSceneIndex],parentRoots=[...parent.children];
+ await assert.rejects(prepareR300(gltf,'0'.repeat(64)),/SOURCE_MISMATCH/);
+ await prepareR300(gltf,sha);
+ assert.equal(parent.children.length,parentRoots.length);
+ assert.ok(parentRoots.every((root,i)=>parent.children[i]===root));
+ assert.equal(resolve(gltf,sha,NORMAL_R300)?.scene,normal);
+ assert.equal(resolve(gltf,sha,SERVICE_R300)?.scene,service);
+ assert.equal(resolve(gltf,ROLES.K5_PINK_OFF.spec.glbSha256,SERVICE_R300),null);
+ const serviceRoots=[...service.children];
+ await prepareR300(gltf,sha);
+ assert.ok(serviceRoots.every((root,i)=>service.children[i]===root));
+
+ const rootIds=gltf.parser.json.scenes[spec.sceneIndex].nodes;
+ const screen=normal.children[rootIds.indexOf(spec.screenRoot)];
+ assert.ok(screen?.isObject3D);
+ const forgedScreen=screen.clone();
+ service.add(forgedScreen);
+ assert.equal(resolve(gltf,sha,SERVICE_R300),null);
+ service.remove(forgedScreen);
+
+ const baseline={name:'R22_BASELINE'};
+ let current=baseline;
+ const mount=target=>{current=target;};
+ const mounted=()=>current;
+ const normalView=create({gltf,authenticatedSha:sha,role:NORMAL_R300,mount,mounted});
+ const serviceView=create({gltf,authenticatedSha:sha,role:SERVICE_R300,mount,mounted});
+ assert.equal(normalView.preview()?.sceneIndex,759);
+ assert.equal(current,normal);
+ assert.equal(serviceView.preview()?.sceneIndex,760);
+ assert.equal(current,service);
+ assert.equal(serviceView.restore(),true);
+ assert.equal(current,normal);
+ assert.equal(normalView.restore(),true);
+ assert.equal(current,baseline);
+ });

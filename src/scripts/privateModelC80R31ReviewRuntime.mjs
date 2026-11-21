@@ -14,11 +14,21 @@ import {
  C80_R31_SCENE753_SOURCE,
  C80_R31_SCENE754_SOURCE,
  C80_R31_SCENE756_SOURCE,
+ C80_R31_R300_SOURCE,
+ C80_R31_R300_VIEWS,
  isC80R31Scene752Source,
  isC80R31Scene753Source,
  isC80R31Scene754Source,
  isC80R31Scene756Source,
+ isC80R31R300CopperSource,
 } from './privateModelC80R31Scene752SourceReceipt.mjs';
+import {rehydrateIncompleteScene} from './privateModelSourceSceneRehydrate.mjs';
+
+const r300Role=view=>Object.freeze({
+ spec:Object.freeze({...C80_R31_R300_SOURCE,...view}),
+ verify:(json,sha,i)=>isC80R31R300CopperSource(json,sha,i,view.role,'BOTH'),
+ exactRootCount:true,
+});
 
 export const C80_R31_REVIEW_ROLES=Object.freeze({
  K5_PINK_OFF:Object.freeze({
@@ -44,7 +54,33 @@ export const C80_R31_REVIEW_ROLES=Object.freeze({
   verify:(json,sha,i)=>isC80R31Scene756Source(
    json,sha,i,C80_R31_SCENE756_SOURCE.role,'BOTH'),
  }),
+ [C80_R31_R300_VIEWS.normal.role]:r300Role(C80_R31_R300_VIEWS.normal),
+ [C80_R31_R300_VIEWS.service.role]:r300Role(C80_R31_R300_VIEWS.service),
 });
+
+const matchesRenderedScene=(gltf,scene,i,cfg)=>{
+ const json=gltf.parser?.json;
+ return !!scene&&scene.name===json?.scenes?.[i]?.name&&
+  (!cfg.exactRootCount||scene.children?.length===cfg.spec.rootCount)&&
+  c80530RenderedRootPathMatches(json,scene,i,gltf.parser?.associations);
+};
+
+/** Restore any shared glTF children moved by the loader before mounting either R300 view. */
+export async function prepareC80R31R300ReviewScenes(gltf,authenticatedSha){
+ const views=Object.values(C80_R31_R300_VIEWS);
+ const json=gltf?.parser?.json;
+ if(!Array.isArray(gltf?.scenes)||gltf.scenes.length!==C80_R31_R300_SOURCE.sceneCount||
+  !views.every(view=>isC80R31R300CopperSource(
+   json,authenticatedSha,view.sceneIndex,view.role,'BOTH')))
+  throw new Error('C80_R31_REVIEW_SOURCE_MISMATCH');
+ for(const view of views){
+  if(!resolveC80R31ReviewScene(gltf,authenticatedSha,view.role)){
+   await rehydrateIncompleteScene(gltf,view.sceneIndex,{force:true});
+   if(!resolveC80R31ReviewScene(gltf,authenticatedSha,view.role))
+    throw new Error('C80_R31_REVIEW_GRAPH_MISMATCH');
+  }
+ }
+}
 
 /** Exact source role and Object3D binding, not a viewer mount or publication. */
 export function resolveC80R31ReviewScene(gltf,authenticatedSha,role){
@@ -55,9 +91,7 @@ export function resolveC80R31ReviewScene(gltf,authenticatedSha,role){
   gltf.scenes.length!==cfg.spec.sceneCount||
   authenticatedSha!==cfg.spec.glbSha256)return null;
  const i=cfg.spec.sceneIndex,scene=gltf.scenes[i];
- if(!scene||scene.name!==json.scenes?.[i]?.name||
-  !cfg.verify(json,authenticatedSha,i)||
-  !c80530RenderedRootPathMatches(json,scene,i,gltf.parser?.associations))return null;
+ if(!cfg.verify(json,authenticatedSha,i)||!matchesRenderedScene(gltf,scene,i,cfg))return null;
  return Object.freeze({scene,sceneIndex:i,role,authenticatedSha,
   sceneName:scene.name,rootCount:json.scenes[i].nodes.length});
 }
@@ -95,14 +129,15 @@ export function createC80R31ReviewRuntime({
  const proof=resolveC80R31ReviewScene(gltf,authenticatedSha,role);
  if(!proof)throw new Error('C80_R31_REVIEW_SOURCE_MISMATCH');
  const {scene,sceneIndex,rootCount}=proof,json=gltf.parser.json;
+ const cfg=C80_R31_REVIEW_ROLES[role];
  const snapshot=c80530SnapshotRenderedSourceTree(scene,rootCount);
  if(!snapshot)throw new Error('C80_R31_REVIEW_GRAPH_MISMATCH');
  let previous=null,active=false,disposed=false,quarantined=false;
  const live=()=>!disposed&&!quarantined&&
-  gltf.scenes?.[sceneIndex]===scene&&scene.name===json.scenes[sceneIndex].name&&
+  gltf.scenes?.[sceneIndex]===scene&&
   c80530RenderedSourceTreeUnchanged(scene,snapshot)&&
-  c80530RenderedRootPathMatches(json,scene,sceneIndex,gltf.parser?.associations)&&
-  C80_R31_REVIEW_ROLES[role].verify(json,authenticatedSha,sceneIndex);
+  matchesRenderedScene(gltf,scene,sceneIndex,cfg)&&
+  cfg.verify(json,authenticatedSha,sceneIndex);
  const quarantine=()=>{
   quarantined=true;disposed=true;active=false;previous=null;
  };
