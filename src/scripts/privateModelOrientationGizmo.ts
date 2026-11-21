@@ -7,6 +7,7 @@ import {
   viewerWorldToYlis,
 } from './privateModelAiNavigator';
 import { THREE, getTrackedOrbitControls } from './threeRuntime';
+import { createNorthFrameToggleController } from './privateModelNavigationNorthFrameToggle.mjs';
 
 type QuaternionLike = {
   x: number;
@@ -202,6 +203,30 @@ export const createOrientationGizmoController = ({
     pinRow.row,
   );
   root.append(readout);
+
+  // Existing axes stay YLIS-G1-LOCAL. Only the N annotation is switchable.
+  // The HUD deliberately has pointer-events:none; enable hits on this button
+  // alone so dragging elsewhere still belongs to the model canvas.
+  const northFrameSvg = root.querySelector<SVGSVGElement>('svg');
+  const northFrameController = northFrameSvg
+    ? createNorthFrameToggleController({ root, svg: northFrameSvg, northLabel })
+    : null;
+  if (northFrameController) {
+    Object.assign(northFrameController.button.style, {
+      display: 'block',
+      margin: '4px auto 0',
+      padding: '4px 8px',
+      border: '1px solid var(--viewer-line-soft)',
+      borderRadius: '5px',
+      background: 'transparent',
+      color: 'var(--viewer-ink)',
+      fontSize: '10px',
+      lineHeight: '1.3',
+      cursor: 'pointer',
+      pointerEvents: 'auto',
+      touchAction: 'manipulation',
+    });
+  }
 
   const findControls = (
     quaternion: QuaternionLike,
@@ -469,7 +494,11 @@ export const createOrientationGizmoController = ({
       root.dataset.ready = 'true';
     }
 
-    return renderNavigator(quaternion, projection) || axisChanged;
+    const navigatorChanged = renderNavigator(quaternion, projection);
+    // Draw after the original Y-axis label so the selected north-frame
+    // annotation wins. The toggle itself redraws with the cached quaternion.
+    if (axisChanged) northFrameController?.render({ quaternion });
+    return navigatorChanged || axisChanged;
   };
 
   return { render };
