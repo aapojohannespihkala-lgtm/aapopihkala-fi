@@ -265,9 +265,9 @@ const isPreview = mode === 'preview';
         // Match Android's SolarDetailVisual.kt: the 24-hour orbit crosses
         // the moving horizontal horizon at sunrise and sunset.
         const horizonOffset = Math.cos(Math.PI * dayFraction);
-        const radius = 43;
+        // Percentage of the disk's positioning box: 50% puts the marker on the ring.
+        const radius = 50;
         const horizonY = 50 - radius * horizonOffset;
-        const halfChord = radius * Math.sqrt(Math.max(0, 1 - horizonOffset ** 2));
         const solarNoon = sunrise + dayMinutes / 2;
         const now = helsinkiMinutesNow();
         const elapsed = (now - solarNoon + 1440) % 1440;
@@ -275,7 +275,7 @@ const isPreview = mode === 'preview';
         const x = 50 + radius * Math.sin(angle);
         const y = 50 - radius * Math.cos(angle);
         const night = now < sunrise || now > sunset;
-        return `--sun-x:${x.toFixed(2)}%;--sun-y:${y.toFixed(2)}%;--horizon-y:${horizonY.toFixed(2)}%;--horizon-left:${(50 - halfChord).toFixed(2)}%;--sun-fill:${night ? 'transparent' : 'var(--foreground)'};`;
+        return `--sun-x:${x.toFixed(2)}%;--sun-y:${y.toFixed(2)}%;--horizon-y:${horizonY.toFixed(2)}%;--sun-fill:${night ? 'transparent' : 'var(--foreground)'};`;
       };
 
       const updateSolarClock = () => {
@@ -960,14 +960,6 @@ const isPreview = mode === 'preview';
     border: 1px solid var(--line);
     border-radius: 50%;
     background: linear-gradient(to bottom, var(--foreground) 0 var(--horizon-y, 50%), transparent var(--horizon-y, 50%) 100%);
-  }
-  .android-solar-disk::after {
-    content: "";
-    position: absolute;
-    left: var(--horizon-left, 0%);
-    right: var(--horizon-left, 0%);
-    top: var(--horizon-y, 50%);
-    border-top: 1px solid var(--line);
   }
   .android-solar-disk b {
     position: absolute;
