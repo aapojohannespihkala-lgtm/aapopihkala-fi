@@ -818,3 +818,89 @@ test('R31 765 ORIGINAL G2b GLB: exact SHA, parent/role, shared mesh and fail-clo
  assert.equal(r.sourceLinksBound,false);
  assert.equal(r.humanReview,'NOT_RUN');
 });
+
+import {
+ C80_R31_SCENE766_CLOSED_VM20_SOURCE as S766,
+ isC80R31Scene766ClosedVm20Source as validS766,
+ c80R31Scene766ClosedVm20Receipt as receiptS766,
+} from '../../src/scripts/privateModelC80R31Scene752SourceReceipt.mjs';
+
+test('R31 scene766 SHA-gated closed-hatch original is source-only',()=>{
+ assert.equal(S766.sceneIndex,766);
+ assert.equal(S766.parentScene,765);
+ assert.equal(S766.parentRootFnv32,S765.targetRootFnv32);
+ assert.equal(S766.rootFnv32,'aee109ba');
+ assert.notEqual(S766.glbSha256,S765.glbSha256);
+ assert.notEqual(S766.zipDriveId,S765.zipDriveId);
+ assert.match(S766.glbSha256,/^[a-f0-9]{64}$/);
+ assert.match(S766.zipSha256,/^[a-f0-9]{64}$/);
+ for(const [sha,i,role,floor] of [
+  [S766.glbSha256,766,S766.role,'BOTH'],
+  [S766.glbSha256,765,S766.role,'BOTH'],
+  [S765.glbSha256,766,S766.role,'BOTH'],
+  [S766.glbSha256,766,S765.role,'BOTH'],
+  [S766.glbSha256,766,S766.role,'2F'],
+  [S766.glbSha256,766,'__proto__','BOTH'],
+ ])assert.equal(validS766({},sha,i,role,floor),false);
+ const r=receiptS766({},S766.glbSha256,766,S766.role,'BOTH');
+ assert.equal(r.exactSource,false);
+ assert.equal(r.publishAllowed,false);
+ assert.equal(r.sourceLinksBound,false);
+ assert.equal(r.physicalHatchOpeningVerified,false);
+ assert.equal(r.current,false);
+ assert.equal(r.asBuilt,false);
+});
+const scene766OriginalGlbPath=process.env.C80_R31_RK142_RK143_MJ83_VM20_CLOSED_SCENE766_GLB_PATH;
+test('R31 scene766 ORIGINAL GLB exact SHA, roots, role, parent and fail-closed mutations',
+ {skip:!scene766OriginalGlbPath},()=>{
+ const {b,json}=parse(scene766OriginalGlbPath);
+ const sha=createHash('sha256').update(b).digest('hex');
+ assert.equal(b.length,S766.glbBytes);
+ assert.equal(sha,S766.glbSha256);
+ assert.equal(json.scene,S766.defaultScene);
+ assert.equal(json.scenes.length,S766.sceneCount);
+ assert.equal(json.nodes.length,S766.nodeCount);
+ assert.equal(json.meshes.length,S766.meshCount);
+ assert.equal(json.materials.length,S766.materialCount);
+ assert.equal(json.accessors.length,S766.accessorCount);
+ assert.equal(json.bufferViews.length,S766.bufferViewCount);
+ const parent=json.scenes[S766.parentScene],target=json.scenes[S766.sceneIndex];
+ assert.equal(parent.name,S766.parentSceneName);
+ assert.equal(target.name,S766.sceneName);
+ assert.equal(fnv(parent.nodes),S766.parentRootFnv32);
+ assert.equal(fnv(target.nodes),S766.rootFnv32);
+ assert.equal(fnv(json.scenes[761].nodes),S766.closedSourceRootFnv32);
+ assert.deepEqual(target.nodes,
+  parent.nodes.map(id=>id===S766.openRoot?S766.closedRoot:id));
+ const check=()=>validS766(json,sha,766,S766.role,'BOTH');
+ assert.equal(check(),true);
+ assert.equal(validS766(json,S765.glbSha256,766,S766.role,'BOTH'),false);
+ assert.equal(validS766(json,sha,765,S766.role,'BOTH'),false);
+ assert.equal(validS766(json,sha,766,S765.role,'BOTH'),false);
+ assert.equal(validS766(json,sha,766,S766.role,'2F'),false);
+ const change=(obj,key,value)=>{
+  const old=obj[key];obj[key]=value;
+  try{assert.equal(check(),false,'tampered '+String(key));}
+  finally{obj[key]=old;}
+ };
+ change(target,'name','FORGED');
+ change(target.nodes,0,999999);
+ change(parent.nodes,0,999999);
+ change(json.scenes[761].nodes,0,999999);
+ change(target.extras,'sourceGlbSha256','0'.repeat(64));
+ change(target.extras,'vm20AccessView','OPEN');
+ change(target.extras,'vm20ClosedNode',13496);
+ change(target.extras,'sourceLinksForNewShaBound',true);
+ change(target.extras,'productionWebGL','PASS');
+ change(target.extras,'physical2026GroupConnectionVerified',true);
+ change(json.nodes[S766.closedLeaf],'mesh',0);
+ change(json.nodes[S766.openLeaf],'mesh',0);
+ change(json.asset.extras,'current',true);
+ change(json.asset.extras,'asBuilt',true);
+ const r=receiptS766(json,sha,766,S766.role,'BOTH');
+ assert.equal(r.exactSource,true);
+ assert.equal(r.publishAllowed,false);
+ assert.equal(r.sourceLinksBound,false);
+ assert.equal(r.physicalHatchOpeningVerified,false);
+ assert.equal(r.current,false);
+});
