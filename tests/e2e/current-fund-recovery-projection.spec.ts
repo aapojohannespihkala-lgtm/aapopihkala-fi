@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { buildInvestingOnlyShortChanges } from '../../functions/api/current/portfolio-complete';
 import { projectForestShortPeriods, projectQuarterReturn } from '../../functions/api/current/portfolio-projection';
 import {
   buildRecoveredHistoricalFund,
@@ -54,4 +55,17 @@ test('Storebrand public NAV recovery enforces share class and currency, and reje
   expect(current?.changes.month1).toBeNull();
   expect(parseNordnetPublicFund(html, spec, new Date('2026-12-21T12:00:00Z'))).toBeNull();
   expect(parseNordnetPublicFund(html.replace('Storebrand Japan A EUR','Storebrand Japan A SEK'), spec, new Date('2026-11-21T12:00:00Z'))).toBeNull();
+});
+
+test('OP short-period fallback only derives real recent NAV differences, never stale or guessed figures', () => {
+  const dates = [
+    { observedAt: '2026-11-12', value: 100 },
+    { observedAt: '2026-11-19', value: 104 },
+    { observedAt: '2026-11-20', value: 105 },
+  ];
+  const result = buildInvestingOnlyShortChanges(dates, new Date('2026-11-21T12:00:00Z'));
+  expect(result?.today).toBeCloseTo((105 / 104 - 1) * 100, 8);
+  expect(result?.week1).toBeCloseTo((105 / 100 - 1) * 100, 8);
+  expect(buildInvestingOnlyShortChanges(dates, new Date('2026-12-21T12:00:00Z'))).toBeNull();
+  expect(buildInvestingOnlyShortChanges(dates.slice(1), new Date('2026-11-21T12:00:00Z'))?.week1).toBeNull();
 });
