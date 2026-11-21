@@ -67,6 +67,9 @@ test('SHA, genuine scene mount and runtime association path are mandatory',()=>{
  const f=fixture();
  assert.equal(resolve({...f,loadedGlbSha256:'0'.repeat(64)}),null);
  assert.equal(resolve({...f,mountedScene:{}}),null);
+ const otherScene=fixture();
+ assert.equal(resolve({...otherScene,mountedScene:otherScene.gltf.scenes[760]}).state,'unbound',
+   'a stale selection from scene759 must not pass while scene760 is mounted');
  assert.equal(resolve({...f,selectedObject:{isMesh:true,name:'UI_HELPER'}}).state,'unbound');
  const wrongParent=fixture();
  wrongParent.gltf.parser.associations.set(wrongParent.selectedObject.parent,{nodes:13429});
