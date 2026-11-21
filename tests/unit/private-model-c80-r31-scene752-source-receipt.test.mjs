@@ -1118,3 +1118,113 @@ test('R31 original scene768 optional complete-GLB SHA and gated parent/new RK14.
  mutate(json.nodes[13506],'mesh',0);
  mutate(json.asset.extras,'asBuilt',true);
 });
+
+
+import {
+ C80_R31_SCENE771772_2F_R300_SOURCE as S771772,
+ isC80R31Scene771772Source as validate771772,
+ c80R31Scene771772SourceReceipt as receipt771772,
+ C80_R31_SCENE768_2F_RK141_COFIT_SOURCE as S768_771772,
+} from '../../src/scripts/privateModelC80R31Scene752SourceReceipt.mjs';
+const original771772Path=process.env.C80_R31_2F_R300_SCENE771772_GLB_PATH;
+const root768_771772=[7356,2658,6431,12440,13164,7361,7366,7367,5323,7368,5327,5629,13165,7369,5835,5836,9263,7370,6435,7371,8003,6472,6473,6474,6475,6476,6517,6518,6519,6831,6832,6564,6565,6994,7372,6653,6729,6730,12437,10795,9573,9574,9575,9576,7904,7905,7906,7907,7908,7909,7932,12136,7979,8024,8025,8026,9264,8199,8895,12106,9197,9198,9199,9200,9257,9332,9911,9912,9761,9338,9763,9764,9762,13141,10976,13505,10555,10556,10557,10558,10559,10560,10561,10562,10656,10657,10659,10763,12633,10771,10772,10773,10774,10775,10776,10777,10778,10779,10780,10781,10782,10783,10784,10785,10786,10787,12635,12636,12637,12638,12639,12144,12634,11304,11319,11339,11340,11341,11342,11343,11344,11345,11346,11347,11348,13227,13228,13229,13230,13231,12264,12265,12266,12267,12268,12269,12270,12271,11535,11536,11624,11625,11645,11648,13319,11662,11677,12157,11713,11727,11721,11722,11723,13242,13243,13244,13245,13246,12358,11858,11891,11907,11574,12622,12051,12137,12165,12166,12167,12168,12242,12244,12246,12248,12315,12312,12316,12431,12432,12433,12434,12435,12643,12623,12624,12625,12626,12466,12503,12504,12497,12505,13247,12695,13176,13252,13253,13309,13325,13499,13500,13502,13506];
+const makeSynthetic771772=()=>{
+ const s=S771772,base=[...root768_771772];
+ const normal=base.map(n=>n===s.oldR200?s.r300:n===s.oldP02?s.newP02:n);
+ normal.splice(normal.indexOf(s.r300)+1,0,s.copper);
+ const service=normal.filter(n=>n!==s.plexi);
+ const json={scene:s.defaultScene,scenes:Array(s.sceneCount),nodes:Array(s.nodeCount),
+  meshes:Array(s.meshCount),materials:Array(s.materialCount),
+  accessors:Array(s.accessorCount),bufferViews:Array(s.bufferViewCount),
+  asset:{extras:{ModelStage:'WORK_TEST',current:false,asBuilt:false,HUMAN_REVIEW:'NOT_RUN'}}};
+ json.scenes[768]={name:S768_771772.sceneName,nodes:base};
+ json.scenes[769]={name:'BOTH source normal',nodes:Array.from({length:499},(_,i)=>i)};
+ json.scenes[770]={name:'BOTH source service',nodes:Array.from({length:498},(_,i)=>i)};
+ // The source donor root lists are very large. Synthetic tests use an
+ // exact original-file fixture where supplied; without it, only negative
+ // tests run so no fabricated donor roots can yield a false positive.
+ const e={
+  stage:'WORK_TEST_HOST_HOLD',sourceDriveId:s.parentDriveId,
+  sourceGLBSHA256:s.parentGlbSha256,source2FSceneIndex:768,
+  donorBOTHNormalSceneIndex:769,donorBOTHServiceSceneIndex:770,
+  sourceRootMapping:{12466:13488,11713:13491},newCopperRoot:13494,
+  plexyRoot:11625,r300SKU:'NOT_VERIFIED',
+  copper:'2026_PHOTO_BASED_WORK_ASSUMPTION',
+  rk141to3:'HISTORICAL_SCHEMATIC_2015',L12:'VIEMARI_SOURCE_REVIEW',
+  sourceLinksForOutputSHA:'NOT_BOUND',productionWebGL:'NOT_RUN',
+  humanReview:'NOT_RUN',current:false,asBuilt:false
+ };
+ json.scenes[771]={name:s.normal.name,nodes:normal,extras:{...e,plexyState:'PLEX_ON'}};
+ json.scenes[772]={name:s.service.name,nodes:service,extras:{...e,plexyState:'PLEX_OFF'}};
+ json.nodes[13488]={children:[13487,13429,13430]};
+ json.nodes[13487]={children:[13415,13416,13417,13418,13419,13420,13421,13422,13423,13424]};
+ json.nodes[13491]={children:[13489,13490]};
+ json.nodes[13494]={children:[13492,13493]};
+ json.nodes[13492]={mesh:5163};json.nodes[13493]={mesh:5164};
+ json.nodes[11625]={mesh:4419};
+ json.nodes[13506]={mesh:5168,extras:{historicalCircuit:true,physicalWiring2026Verified:false,sourceLinksOutputSHA:'NOT_BOUND'}};
+ json.nodes[13505]={children:[13503,13504]};
+ json.nodes[13503]={mesh:4991,extras:{m5System:'VIEMARI'}};
+ json.nodes[13504]={mesh:3702,extras:{m5System:'VIEMARI'}};
+ return json;
+};
+test('R31 771/772 source identity and fail-closed synthetic negative boundaries',()=>{
+ const s=S771772;
+ assert.equal(s.normal.index,771);assert.equal(s.service.index,772);
+ assert.equal(s.normal.rootCount,204);assert.equal(s.service.rootCount,203);
+ assert.equal(fnv(root768_771772),s.base2FRootFnv32);
+ assert.equal(s.parentDriveId,'1N34goHGseX62ZubtLJZVRz4CvUqiFo6_');
+ assert.equal(s.glbSha256.length,64);assert.notEqual(s.glbSha256,S768_771772.glbSha256);
+ const j=makeSynthetic771772();
+ assert.equal(validate771772(j,s.glbSha256,771,s.normal.role,'2F'),false);
+ for(const [sha,i,role,floor] of [
+  [s.glbSha256,770,s.normal.role,'2F'],
+  [s.glbSha256,771,s.service.role,'2F'],
+  [s.glbSha256,772,s.normal.role,'2F'],
+  [s.glbSha256,771,s.normal.role,'BOTH'],
+  [S768_771772.glbSha256,771,s.normal.role,'2F'],
+  [s.glbSha256,772,'__proto__','2F'],
+ ])assert.equal(validate771772(j,sha,i,role,floor),false);
+ for(const [i,role] of [[771,s.normal.role],[772,s.service.role]]){
+  const out=receipt771772(j,s.glbSha256,i,role,'2F');
+  assert.equal(out.exactSource,false);
+  assert.equal(out.sourceLinksBound,false);assert.equal(out.publishAllowed,false);
+  assert.equal(out.productionWebGLVerified,false);
+  assert.equal(out.physicalMaintenanceClearanceVerified,false);
+  assert.equal(out.current,false);
+ }
+});
+test('R31 original private scene771/772 normal/service, SHA, root and mutation gates',
+ {skip:!original771772Path},()=>{
+ const {b,json}=parse(original771772Path),s=S771772;
+ const sha=createHash('sha256').update(b).digest('hex');
+ assert.equal(b.length,s.glbBytes);assert.equal(sha,s.glbSha256);
+ const normal=json.scenes[771],service=json.scenes[772],base=json.scenes[768];
+ assert.deepEqual(base.nodes,root768_771772);
+ assert.equal(fnv(normal.nodes),s.normal.rootFnv32);
+ assert.equal(fnv(service.nodes),s.service.rootFnv32);
+ assert.deepEqual(service.nodes,normal.nodes.filter(x=>x!==s.plexi));
+ for(const [i,view] of [[771,s.normal],[772,s.service]]){
+  const good=()=>validate771772(json,sha,i,view.role,'2F');
+  assert.equal(good(),true,'original GLB must be accepted: '+i);
+  assert.equal(receipt771772(json,sha,i,view.role,'2F').publishAllowed,false);
+  for(const [wrongSHA,wrongIndex,wrongRole,wrongFloor] of [
+   [S768_771772.glbSha256,i,view.role,'2F'],[sha,i===771?772:771,view.role,'2F'],
+   [sha,i,s.normal.role===view.role?s.service.role:s.normal.role,'2F'],
+   [sha,i,view.role,'BOTH']
+  ])assert.equal(validate771772(json,wrongSHA,wrongIndex,wrongRole,wrongFloor),false);
+  const change=(obj,key,value)=>{const prior=obj[key];obj[key]=value;
+   try{assert.equal(good(),false,'tampered '+i+' '+String(key));}
+   finally{obj[key]=prior;}};
+  change(json.scenes[i].extras,'sourceGLBSHA256','0'.repeat(64));
+  change(json.scenes[i].extras,'sourceLinksForOutputSHA','BOUND');
+  change(json.scenes[i].extras,'copper','VERIFIED');
+  change(json.scenes[i].extras,'plexyState','UNKNOWN');
+  change(json.scenes[i],'name','FORGED');
+  change(json.scenes[i].nodes,0,99999);
+  change(json.nodes[13494],'children',[13492]);
+  change(json.nodes[13506].extras,'physicalWiring2026Verified',true);
+  change(json.nodes[13503].extras,'m5System','VESI');
+  change(json.asset.extras,'asBuilt',true);
+ }
+});

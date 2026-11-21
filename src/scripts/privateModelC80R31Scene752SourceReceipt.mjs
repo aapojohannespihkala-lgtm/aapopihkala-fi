@@ -1156,3 +1156,114 @@ export function c80R31Scene768SourceReceipt(json,sha,index,role,floor){
   physicalWasteConnectionVerified:false,electricalSafetyVerified:false,
  });
 }
+
+
+/**
+ * Original private 2F __scene771 NORMAL and __scene772 SERVICE share one
+ * authenticated GLB. Their only intentional root delta is visible plexi.
+ * Model SHA is an external precondition, not inferred from JSON or filename.
+ * Read-only source receipt, NEVER a sourceLinks or publisher grant.
+ */
+export const C80_R31_SCENE771772_2F_R300_SOURCE=Object.freeze({
+ glbSha256:'9e0bf34fd838ddc92be12007412176a8ea449f66644f8876395ac6f659804ec3',
+ glbBytes:63833692,zipDriveId:'1EmsMz5AyyWQwoRdZf2NVOvnndvMfHLb7',
+ zipSha256:'9bcd56505c4608a9e00df2fcd659893c7dbc743cf44f2ec08f1ca7b151ef1812',
+ parentDriveId:'1N34goHGseX62ZubtLJZVRz4CvUqiFo6_',
+ parentGlbSha256:'06a30d42db7f8510a7405c0741e74b3dc4d8ea7d2c32c373b30817d236f7a5e4',
+ sceneCount:773,nodeCount:13507,meshCount:5169,materialCount:815,
+ accessorCount:11267,bufferViewCount:11273,defaultScene:292,
+ base2FScene:768,base2FRootCount:203,base2FRootFnv32:'f7676ffc',
+ bothNormalScene:769,bothNormalRootCount:499,bothNormalFnv32:'c493c3e8',
+ bothServiceScene:770,bothServiceRootCount:498,bothServiceFnv32:'1f600091',
+ normal:Object.freeze({index:771,role:'R31_2F_R300_NORMAL_PLEXI_ON',
+  name:'Ylisrinne_C80_R31_2F_R300_COPPER_RK141_RK142_RK143_L12_MJ83_NORMAL_WORK_TEST_HOST_HOLD__scene771',
+  rootCount:204,rootFnv32:'a9e2f210',plexyState:'PLEX_ON'}),
+ service:Object.freeze({index:772,role:'R31_2F_R300_SERVICE_PLEXI_OFF',
+  name:'Ylisrinne_C80_R31_2F_R300_COPPER_RK141_RK142_RK143_L12_MJ83_SERVICE_WORK_TEST_HOST_HOLD__scene772',
+  rootCount:203,rootFnv32:'49047c9d',plexyState:'PLEX_OFF'}),
+ oldR200:12466,oldP02:11713,r300:13488,newP02:13491,
+ copper:13494,copperLeaves:[13492,13493],plexi:11625,
+ schematics:[13506,13499,13500],panel:13502,l12Root:13505,l12Leaves:[13503,13504],
+});
+export function isC80R31Scene771772Source(json,sha,index,role,floor){
+ const s=C80_R31_SCENE771772_2F_R300_SOURCE;
+ const view=index===s.normal.index?s.normal:index===s.service.index?s.service:null;
+ const asset=json?.asset?.extras;
+ if(!view||sha!==s.glbSha256||role!==view.role||
+  (floor!==undefined&&floor!=='2F')||json?.scene!==s.defaultScene||
+  json?.scenes?.length!==s.sceneCount||json?.nodes?.length!==s.nodeCount||
+  json?.meshes?.length!==s.meshCount||json?.materials?.length!==s.materialCount||
+  json?.accessors?.length!==s.accessorCount||
+  json?.bufferViews?.length!==s.bufferViewCount||
+  asset?.ModelStage!=='WORK_TEST'||asset?.current!==false||
+  asset?.asBuilt!==false||asset?.HUMAN_REVIEW!=='NOT_RUN')return false;
+ const source=json.scenes[s.base2FScene],donor=json.scenes[s.bothNormalScene],
+  donorService=json.scenes[s.bothServiceScene],
+  target=json.scenes[index],e=target?.extras;
+ const src=source?.nodes,normalRoots=donor?.nodes,serviceRoots=donorService?.nodes,r=target?.nodes;
+ if(source?.name!==C80_R31_SCENE768_2F_RK141_COFIT_SOURCE.sceneName||
+  target?.name!==view.name||
+  !Array.isArray(src)||!Array.isArray(normalRoots)||!Array.isArray(serviceRoots)||!Array.isArray(r)||
+  src.length!==s.base2FRootCount||normalRoots.length!==s.bothNormalRootCount||
+  serviceRoots.length!==s.bothServiceRootCount||r.length!==view.rootCount||
+  [src,normalRoots,serviceRoots,r].some(x=>new Set(x).size!==x.length)||
+  c80R31Scene752RootsFnv32(src)!==s.base2FRootFnv32||
+  c80R31Scene752RootsFnv32(normalRoots)!==s.bothNormalFnv32||
+  c80R31Scene752RootsFnv32(serviceRoots)!==s.bothServiceFnv32||
+  c80R31Scene752RootsFnv32(r)!==view.rootFnv32)return false;
+ if(src.filter(n=>n===s.oldR200).length!==1||
+  src.filter(n=>n===s.oldP02).length!==1||
+  src.filter(n=>n===s.plexi).length!==1||
+  ![s.r300,s.newP02,s.copper].every(n=>normalRoots.includes(n))||
+  !normalRoots.includes(s.plexi)||serviceRoots.includes(s.plexi)||
+  src.some(n=>n===s.r300||n===s.newP02||n===s.copper))return false;
+ const projected=src.map(n=>n===s.oldR200?s.r300:n===s.oldP02?s.newP02:n);
+ projected.splice(projected.indexOf(s.r300)+1,0,s.copper);
+ const normal=json.scenes[s.normal.index]?.nodes,service=json.scenes[s.service.index]?.nodes;
+ if(!exactly(normal,projected)||!exactly(service,projected.filter(n=>n!==s.plexi))||
+  !exactly(r,view===s.normal?normal:service)||
+  r.includes(s.oldR200)||r.includes(s.oldP02)||
+  ![s.r300,s.newP02,s.copper,s.l12Root,s.panel,...s.schematics].every(n=>r.includes(n))||
+  r.includes(s.plexi)!==(view===s.normal))return false;
+ if(e?.stage!=='WORK_TEST_HOST_HOLD'||
+  e?.sourceDriveId!==s.parentDriveId||
+  e?.sourceGLBSHA256!==s.parentGlbSha256||
+  e?.source2FSceneIndex!==s.base2FScene||
+  e?.donorBOTHNormalSceneIndex!==s.bothNormalScene||
+  e?.donorBOTHServiceSceneIndex!==s.bothServiceScene||
+  e?.sourceRootMapping?.[String(s.oldR200)]!==s.r300||
+  e?.sourceRootMapping?.[String(s.oldP02)]!==s.newP02||
+  e?.newCopperRoot!==s.copper||e?.plexyRoot!==s.plexi||
+  e?.plexyState!==view.plexyState||e?.r300SKU!=='NOT_VERIFIED'||
+  e?.copper!=='2026_PHOTO_BASED_WORK_ASSUMPTION'||
+  e?.rk141to3!=='HISTORICAL_SCHEMATIC_2015'||
+  e?.L12!=='VIEMARI_SOURCE_REVIEW'||
+  e?.sourceLinksForOutputSHA!=='NOT_BOUND'||
+  e?.productionWebGL!=='NOT_RUN'||e?.humanReview!=='NOT_RUN'||
+  e?.current!==false||e?.asBuilt!==false)return false;
+ const nodes=json.nodes;
+ if(!exactly(nodes[s.r300]?.children,[13487,13429,13430])||
+  !exactly(nodes[13487]?.children,[13415,13416,13417,13418,13419,13420,13421,13422,13423,13424])||
+  !exactly(nodes[s.newP02]?.children,[13489,13490])||
+  !exactly(nodes[s.copper]?.children,s.copperLeaves)||
+  nodes[s.copperLeaves[0]]?.mesh!==5163||
+  nodes[s.copperLeaves[1]]?.mesh!==5164||
+  nodes[s.plexi]?.mesh!==4419||
+  nodes[s.schematics[0]]?.mesh!==5168||
+  nodes[s.schematics[0]]?.extras?.historicalCircuit!==true||
+  nodes[s.schematics[0]]?.extras?.physicalWiring2026Verified!==false||
+  nodes[s.schematics[0]]?.extras?.sourceLinksOutputSHA!=='NOT_BOUND'||
+  !Array.isArray(nodes[s.l12Root]?.children)||
+  !s.l12Leaves.every(n=>nodes[s.l12Root].children.includes(n))||
+  nodes[s.l12Leaves[0]]?.mesh!==4991||
+  nodes[s.l12Leaves[1]]?.mesh!==3702||
+  !s.l12Leaves.every(n=>nodes[n]?.extras?.m5System==='VIEMARI'))return false;
+ return true;
+}
+export function c80R31Scene771772SourceReceipt(json,sha,index,role,floor){
+ return Object.freeze({exactSource:isC80R31Scene771772Source(json,sha,index,role,floor),
+  stage:'WORK_TEST_HOST_HOLD',sourceLinksBound:false,publishAllowed:false,
+  productionWebGLVerified:false,humanReview:'NOT_RUN',current:false,asBuilt:false,
+  physicalR300AndCopperVerified:false,physicalMaintenanceClearanceVerified:false,
+  electricalSafetyVerified:false,latestAsBuiltVerified:false});
+}
