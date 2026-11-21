@@ -40,6 +40,9 @@ const SNAPSHOT_LIIGA_UPSTREAM_TIMEOUT_MS = 4_000;
 
 const WIDGET_LAST_KNOWN_GOOD_TTL_SECONDS = 24 * 60 * 60;
 const WIDGET_LIVE_WAIT_MS = 4_000;
+const WIDGET_FRESH_CACHE_MS = 90_000;
+const MARKETS_FRESH_CACHE_MS = 3 * 60_000;
+const PORTFOLIO_FRESH_CACHE_MS = 5 * 60_000;
 const PORTFOLIO_LAST_KNOWN_GOOD_TTL_SECONDS = 24 * 60 * 60;
 const PORTFOLIO_PERIODS = [
   'today',
@@ -77,6 +80,30 @@ const OP_FOREST_REQUIRED_PERIODS = ['month3', 'month6', 'ytd', 'year1', 'year3',
 
 const defaultResponseCache = (): ResponseCache | undefined =>
   (globalThis as typeof globalThis & { caches?: { default?: ResponseCache } }).caches?.default;
+
+// Serve a recently validated edge response without repeating expensive market
+// scrapes. Live-smoke requests always bypass this short circuit.
+const recentCachedResponse = async (
+  cache: ResponseCache,
+  key: Request,
+  stampedHeader: string,
+  maxAgeMs: number,
+  resultHeader: string,
+): Promise<Response | null> => {
+  try {
+    const cached = await cache.match(key);
+    if (!cached?.ok) return null;
+    const storedAt = Date.parse(cached.headers.get(stampedHeader) ?? '');
+    const age = Date.now() - storedAt;
+    if (!Number.isFinite(age) || age < 0 || age >= maxAgeMs) return null;
+    const headers = new Headers(cached.headers);
+    headers.set('Cache-Control', 'private, no-store');
+    headers.set(resultHeader, 'recent');
+    return new Response(cached.body, { status: cached.status, headers });
+  } catch {
+    return null;
+  }
+};
 
 const widgetCacheKeys = (request: Request) => {
   const source = new URL(request.url);
@@ -152,14 +179,23 @@ export const serveWidgetWithLastKnownGood = async (
   cache: ResponseCache | undefined = defaultResponseCache(),
   liveWaitMs = WIDGET_LIVE_WAIT_MS,
   waitUntil?: (promise: Promise<void>) => void,
+  preferRecentCache = false,
 ) => {
+  const keys = widgetCacheKeys(request);
+  if (preferRecentCache && cache && !new URL(request.url).searchParams.has('live_smoke')) {
+    for (const key of keys) {
+      const recent = await recentCachedResponse(
+        cache, key, 'X-Widget-Cached-At', WIDGET_FRESH_CACHE_MS, 'X-Widget-Cache',
+      );
+      if (recent) return recent;
+    }
+  }
   const loadPromise = load();
   if (!cache) return loadPromise;
 
   // A slow live refresh must not make the widget wait indefinitely when a
   // usable last-known-good payload is already available at the edge.
   void loadPromise.catch(() => undefined);
-  const keys = widgetCacheKeys(request);
   let timeout: ReturnType<typeof setTimeout> | undefined;
   const response = await Promise.race<Response | null>([
     // A rejected upstream request should still allow a cached fallback.
@@ -176,6 +212,7 @@ export const serveWidgetWithLastKnownGood = async (
     const liveGeneratedAt = keys.length === 2 ? await widgetGeneratedAtMs(liveResponse) : null;
     const headers = new Headers(liveResponse.headers);
     headers.set('Cache-Control', `public, max-age=${WIDGET_LAST_KNOWN_GOOD_TTL_SECONDS}`);
+    headers.set('X-Widget-Cached-At', new Date().toISOString());
     const cached = new Response(liveResponse.clone().body, {
       status: liveResponse.status,
       statusText: liveResponse.statusText,
@@ -222,11 +259,11 @@ const asRecord = (value: unknown): Record<string, unknown> | null =>
     ? (value as Record<string, unknown>)
     : null;
 
-const portfolioCacheKey = (request: Request) => {
+const portfolioCacheKey = (request: Request, variant = 'last-known-good-v1') => {
   const url = new URL(request.url);
   url.search = '';
   url.searchParams.set('portfolio', '1');
-  url.searchParams.set('cache', 'last-known-good-v1');
+  url.searchParams.set('cache', variant);
   return new Request(url.toString(), { method: 'GET' });
 };
 
@@ -350,17 +387,50 @@ export const servePortfolioWithLastKnownGood = async (
   request: Request,
   load: () => Promise<Response>,
   cache: ResponseCache | undefined = defaultResponseCache(),
+  preferRecentCache = false,
 ) => {
+  const key = portfolioCacheKey(request);
+  const partialKey = portfolioCacheKey(request, 'partial-last-known-good-v1');
+  const isSmoke = new URL(request.url).searchParams.has('live_smoke');
+  if (cache && preferRecentCache && !isSmoke) {
+    for (const candidate of [key, partialKey]) {
+      const recent = await recentCachedResponse(
+        cache, candidate, 'X-Portfolio-Cached-At',
+        PORTFOLIO_FRESH_CACHE_MS, 'X-Portfolio-Cache',
+      );
+      if (recent) return recent;
+    }
+  }
   const response = await load();
   if (!cache) return response;
 
   const liveBody = response.ok ? await parsePortfolioBody(response) : null;
   const complete = Boolean(liveBody && isCompletePortfolioBody(liveBody));
-  const key = portfolioCacheKey(request);
+  // Preserve a truthful 16/19 (or similar) result without claiming 19/19.
+  // A separately keyed partial snapshot reduces costly repeated refreshes.
+  const partialUsable = Boolean(
+    liveBody && liveBody.expected === PORTFOLIO_HOLDING_IDS.length &&
+    Array.isArray(liveBody.items) && liveBody.items.length >= 12 &&
+    new Set(liveBody.items.map((entry: unknown) => asRecord(entry)?.id)).size === liveBody.items.length &&
+    liveBody.items.every((entry: unknown) =>
+      typeof asRecord(entry)?.id === 'string' &&
+      (PORTFOLIO_HOLDING_IDS as readonly string[]).includes(asRecord(entry)?.id as string)),
+  );
+  if (!complete && partialUsable && liveBody) {
+    const headers = new Headers(response.headers);
+    headers.set('Cache-Control', 'public, max-age=1800');
+    headers.set('X-Portfolio-Cached-At', new Date().toISOString());
+    try {
+      await cache.put(partialKey, new Response(JSON.stringify(liveBody), { status: 200, headers }));
+    } catch {
+      // A cache write failure does not hide the live response.
+    }
+  }
 
   if (complete && liveBody) {
     const headers = new Headers(response.headers);
     headers.set('Cache-Control', `public, max-age=${PORTFOLIO_LAST_KNOWN_GOOD_TTL_SECONDS}`);
+    headers.set('X-Portfolio-Cached-At', new Date().toISOString());
     headers.set('Content-Type', 'application/json; charset=utf-8');
 
     try {
@@ -451,7 +521,19 @@ export const serveCurrentFeedWithLastKnownGood = async (
   kind: CachedCurrentFeed,
   load: () => Promise<Response>,
   cache: ResponseCache | undefined = defaultResponseCache(),
+  preferRecentCache = false,
 ) => {
+  const keyUrl = new URL(request.url);
+  keyUrl.search = '';
+  keyUrl.searchParams.set('cache', 'last-known-good-v1');
+  const key = new Request(keyUrl.toString());
+  if (kind === 'markets' && preferRecentCache && cache &&
+      !new URL(request.url).searchParams.has('live_smoke')) {
+    const recent = await recentCachedResponse(
+      cache, key, 'X-Current-Cached-At', MARKETS_FRESH_CACHE_MS, 'X-Current-Cache',
+    );
+    if (recent) return recent;
+  }
   let live: Response;
   try {
     live = await load();
@@ -460,15 +542,11 @@ export const serveCurrentFeedWithLastKnownGood = async (
   }
   if (!cache) return live;
 
-  const keyUrl = new URL(request.url);
-  keyUrl.search = '';
-  keyUrl.searchParams.set('cache', 'last-known-good-v1');
-  const key = new Request(keyUrl.toString());
-
   const liveBody = live.ok ? await parsePortfolioBody(live) : null;
   if (liveBody && isUsableCurrentFeed(kind, liveBody)) {
     const headers = new Headers(live.headers);
     headers.set('Cache-Control', `public, max-age=${CURRENT_FEED_CACHE_SECONDS[kind]}`);
+    headers.set('X-Current-Cached-At', new Date().toISOString());
     try {
       await cache.put(key, new Response(JSON.stringify(liveBody), { status: 200, headers }));
     } catch {
@@ -536,13 +614,13 @@ const worker = {
       if (request.method !== 'GET') return methodNotAllowed();
       if (url.searchParams.get('portfolio') === '1') {
         if (snapshotRequest) return getSnapshotPortfolioResponse();
-        return servePortfolioWithLastKnownGood(request, getPortfolioResponse);
+        return servePortfolioWithLastKnownGood(request, getPortfolioResponse, undefined, true);
       }
-      return serveCurrentFeedWithLastKnownGood(request, 'markets', () => getMarketsResponse({ request }));
+      return serveCurrentFeedWithLastKnownGood(request, 'markets', () => getMarketsResponse({ request }), undefined, true);
     }
     if (url.pathname === WIDGET_PATH) {
       if (request.method !== 'GET') return methodNotAllowed();
-      return serveWidgetWithLastKnownGood(request, () => url.searchParams.get('v') === '2' ? getWidgetV2Response({ request, env }) : getWidgetResponse({ request }), undefined, WIDGET_LIVE_WAIT_MS, ctx?.waitUntil.bind(ctx));
+      return serveWidgetWithLastKnownGood(request, () => url.searchParams.get('v') === '2' ? getWidgetV2Response({ request, env }) : getWidgetResponse({ request }), undefined, WIDGET_LIVE_WAIT_MS, ctx?.waitUntil.bind(ctx), true);
     }
     if (url.pathname === WIDGET_V2_PATH) { if (request.method !== 'GET') return methodNotAllowed(); return serveWidgetWithLastKnownGood(request, () => getWidgetV2Response({ request, env }), undefined, WIDGET_LIVE_WAIT_MS, ctx?.waitUntil.bind(ctx)); }
     if (url.pathname === LIIGA_PATH) {
