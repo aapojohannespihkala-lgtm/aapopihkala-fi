@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  R300_OWNER_GLB_SHA256, R300_OWNER_CARD_REF,
+  R300_OWNER_GLB_SHA256, R300_OWNER_R31_772_GLB_SHA256, R300_OWNER_CARD_REF,
   isR300OwnerCardNode, resolveR300OwnerCardSelection,
 } from '../../src/scripts/privateModelR300OwnerCardAdapter.mjs';
 
@@ -91,4 +91,56 @@ test('missing or untrusted protected source never substitutes public owner facts
     () => ({ ...card, id: 'WRONG' })).state, 'unavailable');
   assert.equal(resolveR300OwnerCardSelection(selected,
     () => ({ ...card, sources: [{ ...card.sources[0], url: 'https://evil.example/photo' }] })).state, 'unavailable');
+});
+
+const latestR300SceneNames = {
+  769: 'Ylisrinne_C80_R31_R300_ROOF_VM20_CLOSED_2F_L12_V75V110_RK141_RK142_RK143_MJ83_BOTH_REVIEW_WORK_TEST_HOST_HOLD__scene769',
+  770: 'Ylisrinne_C80_R31_BOTH_R300_KUPARIT_HUOLTO_PLEKSI_POIS_RK141_RK142_RK143_MJ83_VM20_CLOSED_WORK_TEST_HOST_HOLD__scene770',
+  771: 'Ylisrinne_C80_R31_2F_R300_COPPER_RK141_RK142_RK143_L12_MJ83_NORMAL_WORK_TEST_HOST_HOLD__scene771',
+  772: 'Ylisrinne_C80_R31_2F_R300_COPPER_RK141_RK142_RK143_L12_MJ83_SERVICE_WORK_TEST_HOST_HOLD__scene772',
+};
+const latestJson = () => {
+  const json = mockJson();
+  while (json.scenes.length < 773) json.scenes.push({ name: 'other', nodes: [] });
+  while (json.nodes.length < 13507) json.nodes.push({});
+  while (json.meshes.length < 5169) json.meshes.push({});
+  const rootCounts = { 769: 499, 770: 498, 771: 204, 772: 203 };
+  for (const [index, name] of Object.entries(latestR300SceneNames)) {
+    const sceneIndex = Number(index);
+    json.scenes[sceneIndex] = {
+      name, nodes: [13488, ...Array.from({ length: rootCounts[sceneIndex] - 1 }, (_, i) => i)],
+    };
+  }
+  return json;
+};
+const latestSelected = (json, sceneIndex, nodeIndex = 13415) => ({
+  ...context(json, sceneIndex, nodeIndex),
+  loadedGlbSha256: R300_OWNER_R31_772_GLB_SHA256,
+});
+
+test('R31 latest BOTH 769/770 and 2F 771/772 select the same ten source-exact casing leaves', () => {
+  const json = latestJson();
+  for (const sceneIndex of [769, 770, 771, 772]) for (let leaf = 13415; leaf <= 13424; leaf++) {
+    const selected = latestSelected(json, sceneIndex, leaf);
+    assert.equal(isR300OwnerCardNode(selected), true, 'scene '+sceneIndex+' leaf '+leaf);
+    const result = resolveR300OwnerCardSelection(selected, provider);
+    assert.equal(result.state, 'matched');
+    assert.equal(result.cards[0], card);
+  }
+});
+
+test('source variants cannot borrow scenes or roots from each other or impersonate R300', () => {
+  const json = latestJson();
+  assert.equal(isR300OwnerCardNode(latestSelected(json, 759)), false);
+  assert.equal(isR300OwnerCardNode(context(json, 772)), false);
+  const missing = latestJson(); missing.scenes[772].nodes.shift();
+  assert.equal(isR300OwnerCardNode(latestSelected(missing, 772)), false);
+  const renamed = latestJson(); renamed.scenes[769].name += '-INJECTED';
+  assert.equal(isR300OwnerCardNode(latestSelected(renamed, 769)), false);
+  const copper = latestSelected(json, 770, 13429);
+  assert.equal(resolveR300OwnerCardSelection(copper, provider).state, 'unbound');
+  const plexi = latestSelected(json, 771, 11625);
+  assert.equal(resolveR300OwnerCardSelection(plexi, provider).state, 'unbound');
+  assert.equal(resolveR300OwnerCardSelection(
+    { ...latestSelected(json, 772), sourcePath: [13488, 13415] }, provider).state, 'unbound');
 });
