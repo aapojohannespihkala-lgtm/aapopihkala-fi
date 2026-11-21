@@ -1,7 +1,6 @@
 import { onRequestGet as getElectricityResponse } from './electricity';
 import { onRequestGet as getMarketsResponse } from './markets-stable';
-import { onRequestGet as getPortfolioPerformance } from './portfolio-resilient';
-import { startPublicFundRecovery } from './portfolio-fund-recovery';
+import { onRequestGet as getPortfolioPerformance } from './portfolio-complete';
 import { estimatePortfolioItemIfValid, type PortfolioPeriod, type PeriodEstimateDetail } from './portfolio-estimation';
 
 type WeatherResponse = {
@@ -538,8 +537,8 @@ export const summarizeWidgetPortfolio = (data: PortfolioResponse, now = new Date
   };
 };
 
-const loadPortfolio = async (now: Date) => {
-  const response = await getPortfolioPerformance({ publicFunds: startPublicFundRecovery(now) });
+const loadPortfolio = async (now: Date, loadPortfolioResponse: () => Promise<Response>) => {
+  const response = await loadPortfolioResponse();
   const data = await readJson<PortfolioResponse>(response);
   return data ? summarizeWidgetPortfolio(data, now) : null;
 };
@@ -595,11 +594,15 @@ const safely = async <T>(loader: () => Promise<T>): Promise<T | null> => {
   }
 };
 
-export const buildWidgetResponse = async (request: Request, now = new Date()) => {
+export const buildWidgetResponse = async (
+  request: Request,
+  now = new Date(),
+  loadPortfolioResponse = getPortfolioPerformance,
+) => {
   const [weather, electricity, markets, rates] = await Promise.all([
     safely(() => loadWeather(now)),
     safely(() => loadElectricity(now)),
-    safely(() => loadPortfolio(now)),
+    safely(() => loadPortfolio(now, loadPortfolioResponse)),
     safely(() => loadRates(request)),
   ]);
 
@@ -615,4 +618,7 @@ export const buildWidgetResponse = async (request: Request, now = new Date()) =>
   return jsonResponse(hasData ? body : { ...body, error: 'widget_data_unavailable' }, hasData ? 200 : 503);
 };
 
-export const onRequestGet = (context: { request: Request }) => buildWidgetResponse(context.request);
+export const onRequestGet = (context: {
+  request: Request;
+  loadPortfolioResponse?: () => Promise<Response>;
+}) => buildWidgetResponse(context.request, undefined, context.loadPortfolioResponse);
