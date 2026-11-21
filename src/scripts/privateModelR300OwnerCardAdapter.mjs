@@ -33,6 +33,12 @@ const PROFILES_BY_SHA = Object.freeze({
   [R300_OWNER_R31_774_GLB_SHA256]: {
     sceneCount: 775, nodeCount: 13510, meshCount: 5171,
     scenes: {
+      759: { name: 'Ylisrinne_C80_R31_R300_NAKYVAT_YLAKUPARIT_WORK_TEST_HOST_HOLD__scene759', roots: 495, plexiRootPresent: true },
+      760: { name: 'Ylisrinne_C80_R31_R300_HUOLTONAKYMA_PLEKSI_POIS_WORK_TEST_HOST_HOLD__scene760', roots: 494, plexiRootPresent: false },
+      769: { name: 'Ylisrinne_C80_R31_R300_ROOF_VM20_CLOSED_2F_L12_V75V110_RK141_RK142_RK143_MJ83_BOTH_REVIEW_WORK_TEST_HOST_HOLD__scene769', roots: 499, plexiRootPresent: true },
+      770: { name: 'Ylisrinne_C80_R31_BOTH_R300_KUPARIT_HUOLTO_PLEKSI_POIS_RK141_RK142_RK143_MJ83_VM20_CLOSED_WORK_TEST_HOST_HOLD__scene770', roots: 498, plexiRootPresent: false },
+      771: { name: 'Ylisrinne_C80_R31_2F_R300_COPPER_RK141_RK142_RK143_L12_MJ83_NORMAL_WORK_TEST_HOST_HOLD__scene771', roots: 204, plexiRootPresent: true },
+      772: { name: 'Ylisrinne_C80_R31_2F_R300_COPPER_RK141_RK142_RK143_L12_MJ83_SERVICE_WORK_TEST_HOST_HOLD__scene772', roots: 203, plexiRootPresent: false },
       773: { name: 'Ylisrinne_C80_R31_2F_R300_K3_SW04_EXXACT_REFERENCE_NORMAL_PLEX_ON_WORK_TEST_HOST_HOLD__scene773', roots: 204, plexiRootPresent: true },
       774: { name: 'Ylisrinne_C80_R31_2F_R300_K3_SW04_EXXACT_REFERENCE_SERVICE_PLEX_OFF_WORK_TEST_HOST_HOLD__scene774', roots: 203, plexiRootPresent: false },
     },

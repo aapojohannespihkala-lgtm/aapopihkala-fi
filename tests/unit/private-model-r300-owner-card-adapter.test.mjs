@@ -150,6 +150,9 @@ const sw04R300Json = () => {
   while (json.scenes.length < 775) json.scenes.push({ name: 'other', nodes: [] });
   while (json.nodes.length < 13510) json.nodes.push({});
   while (json.meshes.length < 5171) json.meshes.push({});
+  // The SW04 successor retains every older glTF scene. Recreate real plexi
+  // root membership for the 759/769/771 normal states in the synthetic fixture.
+  for (const sceneIndex of [759, 769, 771]) json.scenes[sceneIndex].nodes[1] = 11625;
   json.scenes[773] = {
     name: 'Ylisrinne_C80_R31_2F_R300_K3_SW04_EXXACT_REFERENCE_NORMAL_PLEX_ON_WORK_TEST_HOST_HOLD__scene773',
     nodes: [13488, 11625, ...Array.from({ length: 202 }, (_, i) => i)],
@@ -165,9 +168,9 @@ const sw04Selected = (json, sceneIndex, nodeIndex = 13415) => ({
   loadedGlbSha256: R300_OWNER_R31_774_GLB_SHA256,
 });
 
-test('R31 SW04 773/774 NIBE shell uses identical authenticated owner card in both plexi states', () => {
+test('SW04 latest GLB all eight NIBE scenes retain one SHA-bound card across plexi states', () => {
   const json = sw04R300Json();
-  for (const sceneIndex of [773, 774]) for (let nodeIndex = 13415; nodeIndex <= 13424; nodeIndex++) {
+  for (const sceneIndex of [759, 760, 769, 770, 771, 772, 773, 774]) for (let nodeIndex = 13415; nodeIndex <= 13424; nodeIndex++) {
     const selected = sw04Selected(json, sceneIndex, nodeIndex);
     assert.equal(isR300OwnerCardNode(selected), true, 'SW04 scene '+sceneIndex+' NIBE '+nodeIndex);
     const result = resolveR300OwnerCardSelection(selected, provider);
@@ -179,7 +182,7 @@ test('R31 SW04 773/774 NIBE shell uses identical authenticated owner card in bot
 test('SW04 card rejects swapped plexi state, other version SHA, wrong parent and copper or plexi', () => {
   const json = sw04R300Json();
   assert.equal(isR300OwnerCardNode({ ...sw04Selected(json, 773), loadedGlbSha256: R300_OWNER_R31_772_GLB_SHA256 }), false);
-  assert.equal(isR300OwnerCardNode(sw04Selected(json, 771)), false);
+  assert.equal(isR300OwnerCardNode(sw04Selected(json, 768)), false);
   const lost = sw04R300Json(); lost.scenes[773].nodes.splice(lost.scenes[773].nodes.indexOf(11625), 1);
   lost.scenes[773].nodes.push(500);
   assert.equal(isR300OwnerCardNode(sw04Selected(lost, 773)), false);
