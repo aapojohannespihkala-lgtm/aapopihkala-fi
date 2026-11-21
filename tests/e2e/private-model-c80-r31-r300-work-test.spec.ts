@@ -66,6 +66,9 @@ test('verified original R300 switches in the viewer without moving the active ca
   const canvas = page.locator('#private-model-canvas');
   await expect(canvas).toHaveAttribute('data-r300-work-test-view', 'normal', { timeout: 100_000 });
   await expect(canvas).toHaveAttribute('data-model-source', 'work-test');
+  await expect(canvas).toHaveAttribute('data-work-test-review-autoload', 'true');
+  await expect(canvas).toHaveAttribute('data-work-test-review-mode', id + '-review');
+  await expect(canvas).toHaveAttribute('data-work-test-review-candidate', id);
   const readout = page.locator('#ai-navigator-readout');
   await expect(readout).toHaveAttribute('data-model', 'C80 · WORK_TEST');
   const pose = await readout.evaluate(element =>
@@ -93,6 +96,7 @@ test('verified original R300 switches in the viewer without moving the active ca
 
   await page.locator('#current-model-button').click();
   await expect(canvas).toHaveAttribute('data-model-source', 'current');
+  await expect(canvas).not.toHaveAttribute('data-work-test-review-candidate', /.+/);
   await expect(page.locator('#r300-work-test-views')).toBeHidden();
   await expect(canvas).not.toHaveAttribute('data-r300-work-test-view', /.+/);
 });

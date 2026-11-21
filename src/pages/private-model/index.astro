@@ -8014,10 +8014,12 @@ const title = 'Private 3D viewer';
         c70PreviewSession: any = null,
       ) => {
         onLayersModelLoaded(gltf, c70PreviewSession);
+        if (r300ViewSwitch) {
+          delete canvas.dataset.workTestReviewMode;
+          delete canvas.dataset.workTestReviewCandidate;
+        }
         r300ViewSwitch = null;
         syncR300WorkTestViews();
-        if (canvas.dataset.workTestReviewMode === 'r300-normal-service')
-          delete canvas.dataset.workTestReviewMode;
         modelLoadVersion++;
         hi20C050GuidesPresentation?.dispose();
         hi20C050GuidesPresentation = null;
@@ -12390,7 +12392,8 @@ const title = 'Private 3D viewer';
             applyLoadedModel(gltf, 'work-test', `WORK_TEST: ${candidate.label}`);
             r300ViewSwitch = view;
             syncR300WorkTestViews();
-            canvas.dataset.workTestReviewMode = 'r300-normal-service';
+            canvas.dataset.workTestReviewMode = candidate.id + '-review';
+            canvas.dataset.workTestReviewCandidate = candidate.id;
             status.textContent = 'NIBE R300 - WORK_TEST / HOST_HOLD';
             return true;
           }
