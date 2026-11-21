@@ -15595,7 +15595,7 @@ const title = 'Private 3D viewer';
         });
         const title = deskToolbarBar.querySelector('.title');
         (title ?? deskToolbarBar.firstChild)?.after?.(deskToolbar.root);
-        const groups = deskToolbar.root.querySelectorAll<HTMLElement>('.desk-group');
+        const groups = deskToolbar.root.querySelectorAll('.desk-group') as NodeListOf<HTMLElement>;
         groups[0]?.append(deskPresetMenu);
         groups[1]?.append(deskViewMenu);
         deskToolbarBar.classList.add('desk-ready');
