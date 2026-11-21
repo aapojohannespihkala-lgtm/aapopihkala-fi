@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { C80_R31_R300_SOURCE } from '../../src/scripts/privateModelC80R31Scene752SourceReceipt.mjs';
-import { C80_R31_R300_WORK_TEST_ID } from '../../src/scripts/privateModelC80R31ReviewRuntime.mjs';
+import { C80_R31_R300_WORK_TEST_ID, C80_R31_9E0B_WORK_TEST_ID, C80_R31_9E0B_SOURCE } from '../../src/scripts/privateModelC80R31ReviewRuntime.mjs';
 
 import {
   PRIVATE_WORK_TEST_CANDIDATES,
@@ -763,6 +763,25 @@ test('R300 worker, publisher registry and viewer share one exact two-scene sourc
   expect(isPrivateCurrentModelMachinePath(`${PRIVATE_WORK_TEST_PUBLISH_PREFIX}${id}.glb`)).toBe(false);
   const registry = JSON.parse(readFileSync('.github/work-test-candidates.json', 'utf8'));
   expect(registry.candidates[id]).toEqual({ driveFileId: C80_R31_R300_SOURCE.zipDriveId });
+});
+
+test('R31 9e0bf34f worker, publisher registry and viewer share one exact four-view source', () => {
+  const id = C80_R31_9E0B_WORK_TEST_ID;
+  const path = `/private-model/work-test/${id}.glb`;
+  const candidate = getPrivateWorkTestCandidateById(id)!;
+  expect(candidate).toMatchObject({
+    id, path, objectKey: `work-test/${id}.glb`,
+    expectedSize: C80_R31_9E0B_SOURCE.glbBytes,
+    expectedSha256: C80_R31_9E0B_SOURCE.glbSha256,
+  });
+  expect(getPrivateWorkTestCandidate(path)).toBe(candidate);
+  expect(getPrivateWorkTestPublishCandidate(`${PRIVATE_WORK_TEST_PUBLISH_PREFIX}${id}.glb`)).toBe(candidate);
+  expect(getPrivateWorkTestVerifyCandidate(`${PRIVATE_WORK_TEST_VERIFY_GLB_PREFIX}${id}.glb`)).toBe(candidate);
+  expect(isPrivateCurrentModelMachinePath(`${PRIVATE_WORK_TEST_PUBLISH_PREFIX}${id}.glb`)).toBe(false);
+  const registry = JSON.parse(readFileSync('.github/work-test-candidates.json', 'utf8'));
+  expect(registry.candidates[id]).toEqual({ driveFileId: C80_R31_9E0B_SOURCE.zipDriveId });
+  // The earlier 759/760 pilot keeps its own SHA and id.
+  expect(getPrivateWorkTestCandidateById(C80_R31_R300_WORK_TEST_ID)!.expectedSha256).toBe(C80_R31_R300_SOURCE.glbSha256);
 });
 
 test('private WORK_TEST candidates require exact R2 size and SHA metadata before availability', () => {

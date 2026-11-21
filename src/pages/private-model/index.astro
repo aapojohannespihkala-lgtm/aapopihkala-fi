@@ -1829,7 +1829,7 @@ const title = 'Private 3D viewer';
               <option value="">WORK_TEST ei saatavilla</option>
             </select>
             <button id="work-test-button" type="button" disabled>Avaa WORK_TEST</button>
-            <div id="r300-work-test-views" role="group" aria-label="NIBE R300 WORK_TEST" hidden>
+            <div id="r300-work-test-views" role="group" aria-label="C80 R31 WORK_TEST -näkymät" hidden>
               <button id="r300-view-normal" type="button" aria-pressed="false">Normaali</button>
               <button id="r300-view-service" type="button" aria-pressed="false">Huolto</button>
             </div>
@@ -2895,7 +2895,7 @@ const title = 'Private 3D viewer';
         type WorkTestLoadFailurePhase,
       } from '../../scripts/privateModelWorkTestLoadDiagnostics';
 
-      import { createC80R31R300ViewSwitch, r300WorkTestSource } from '../../scripts/privateModelC80R31ReviewRuntime.mjs';
+      import { createC80R31ViewSwitch, r31WorkTestReview } from '../../scripts/privateModelC80R31ReviewRuntime.mjs';
 
       const canvas = document.querySelector<HTMLCanvasElement>('#private-model-canvas');
       const status = document.querySelector<HTMLElement>('#viewer-status');
@@ -2948,10 +2948,12 @@ const title = 'Private 3D viewer';
       const profileButton = document.querySelector<HTMLButtonElement>('#profile-button');
       const workTestSelect = document.querySelector<HTMLSelectElement>('#work-test-select');
       const r300WorkTestViews = document.querySelector<HTMLElement>('#r300-work-test-views')!;
-      const r300ViewButtons = {
+      // Buttons are rebuilt per exact R31 candidate (R300 pilot: normal/service, 9e0bf34f: D and 2F pairs).
+      let r300ViewButtons: Record<string, HTMLButtonElement> = {
         normal: document.querySelector<HTMLButtonElement>('#r300-view-normal')!,
         service: document.querySelector<HTMLButtonElement>('#r300-view-service')!,
       };
+      let r31ReviewTitle = 'NIBE R300';
       const workTestFilter = document.querySelector<HTMLInputElement>('#work-test-filter');
       const workTestCount = document.querySelector<HTMLElement>('#work-test-count');
       const workTestButton = document.querySelector<HTMLButtonElement>('#work-test-button');
@@ -3481,7 +3483,7 @@ const title = 'Private 3D viewer';
         ticks: heightScaleTicks,
       });
       let fullModelScene: any = null;
-      let r300ViewSwitch: Awaited<ReturnType<typeof createC80R31R300ViewSwitch>> | null = null;
+      let r300ViewSwitch: Awaited<ReturnType<typeof createC80R31ViewSwitch>> | null = null;
       const syncR300WorkTestViews = () => {
         const view = r300ViewSwitch?.activeView();
         r300WorkTestViews.hidden = !view;
@@ -3491,21 +3493,41 @@ const title = 'Private 3D viewer';
         if (view) canvas.dataset.r300WorkTestView = view;
         else delete canvas.dataset.r300WorkTestView;
       };
-      for (const [name, button] of Object.entries(r300ViewButtons)) {
+      const bindR31ViewButton = (name: string, button: HTMLButtonElement) => {
         button.addEventListener('click', (event) => {
           event.stopPropagation();
           if (!r300ViewSwitch) return;
           try {
             status.textContent = r300ViewSwitch.select(name)
-              ? 'NIBE R300 - WORK_TEST / HOST_HOLD'
-              : 'NIBE R300 - näkymää ei voitu vaihtaa';
+              ? `${r31ReviewTitle} - WORK_TEST / HOST_HOLD`
+              : `${r31ReviewTitle} - näkymää ei voitu vaihtaa`;
           } catch (error) {
             console.error(error);
-            status.textContent = 'NIBE R300 - näkymän vaihto keskeytettiin';
+            status.textContent = `${r31ReviewTitle} - näkymän vaihto keskeytettiin`;
           }
           syncR300WorkTestViews();
         });
-      }
+      };
+      for (const [name, button] of Object.entries(r300ViewButtons)) bindR31ViewButton(name, button);
+      const setR31ViewButtons = (labels: Record<string, string>, title: string) => {
+        r31ReviewTitle = title;
+        if (Object.keys(labels).join() === Object.keys(r300ViewButtons).join()) {
+          for (const [name, label] of Object.entries(labels)) r300ViewButtons[name].textContent = label;
+          return;
+        }
+        r300WorkTestViews.replaceChildren();
+        r300ViewButtons = {};
+        for (const [name, label] of Object.entries(labels)) {
+          const button = document.createElement('button');
+          button.type = 'button';
+          button.id = `r300-view-${name}`;
+          button.setAttribute('aria-pressed', 'false');
+          button.textContent = label;
+          bindR31ViewButton(name, button);
+          r300ViewButtons[name] = button;
+          r300WorkTestViews.append(button);
+        }
+      };
       let modelLoadVersion = 0;
       let sourcePreviewContract: any = c70WorkTestContract;
       // Set only from the already byte/SHA-verified HI20 source session.
@@ -12379,22 +12401,24 @@ const title = 'Private 3D viewer';
         status.textContent = 'Avataan WORK_TEST-kandidaattia...';
 
         try {
-          const r300Source = r300WorkTestSource(candidate);
-          if (r300Source) {
+          const r31Review = r31WorkTestReview(candidate);
+          if (r31Review) {
             const previousModelVersion = modelLoadVersion;
-            const gltf = await loadModelWithSourceCards(loader, candidate.path, r300Source);
-            const view = await createC80R31R300ViewSwitch({
+            const gltf = await loadModelWithSourceCards(loader, candidate.path, r31Review.source);
+            const view = await createC80R31ViewSwitch({
               gltf, authenticatedSha: loadedModelSha256(gltf),
               mount: setModelScene, mounted: () => modelRoot.children[0] ?? null,
+              views: r31Review.views,
             });
             if (modelLoadVersion !== previousModelVersion) return false;
             gltf.scene = view.normalScene;
             applyLoadedModel(gltf, 'work-test', `WORK_TEST: ${candidate.label}`);
             r300ViewSwitch = view;
+            setR31ViewButtons(r31Review.labels, r31Review.title);
             syncR300WorkTestViews();
             canvas.dataset.workTestReviewMode = candidate.id + '-review';
             canvas.dataset.workTestReviewCandidate = candidate.id;
-            status.textContent = 'NIBE R300 - WORK_TEST / HOST_HOLD';
+            status.textContent = `${r31Review.title} - WORK_TEST / HOST_HOLD`;
             return true;
           }
 

@@ -11,6 +11,12 @@ import {
  createC80R31R300ViewSwitch as createR300Switch,
  r300WorkTestSource,
  C80_R31_R300_WORK_TEST_ID,
+ C80_R31_9E0B_WORK_TEST_ID,
+ C80_R31_9E0B_SOURCE,
+ C80_R31_9E0B_VIEWS,
+ isC80R31Scene769770Source,
+ r31WorkTestReview,
+ prepareC80R31ReviewScenes,
 } from '../../src/scripts/privateModelC80R31ReviewRuntime.mjs';
 
 const NORMAL_R300='R300_VISIBLE_COPPER_NORMAL_SCREEN_ON';
@@ -21,6 +27,7 @@ test('R31 opt-in runtime binds seven roles to six immutable sources',()=>{
   'K5_PINK_OFF','RAIN5','RAIN5_K5_OFF',
   'RAIN5_K5_OFF_H18116_VISUAL','L16_CURVE_KIV_CASE_COMBINED',
   NORMAL_R300,SERVICE_R300,
+  ...Object.values(C80_R31_9E0B_VIEWS).map(v=>v.role),
  ]);
  assert.equal(ROLES.K5_PINK_OFF.spec.sceneIndex,752);
  assert.equal(ROLES.RAIN5.spec.sceneIndex,752);
@@ -31,7 +38,7 @@ test('R31 opt-in runtime binds seven roles to six immutable sources',()=>{
  assert.notEqual(ROLES.L16_CURVE_KIV_CASE_COMBINED.spec.curveDonorGlbSha256,
   ROLES.L16_CURVE_KIV_CASE_COMBINED.spec.caseDonorGlbSha256);
  const hashes=Object.values(ROLES).map(r=>r.spec.glbSha256);
- assert.equal(new Set(hashes).size,6);
+ assert.equal(new Set(hashes).size,7);
  assert.equal(ROLES[NORMAL_R300].spec.glbSha256,ROLES[SERVICE_R300].spec.glbSha256);
  assert.equal(ROLES[NORMAL_R300].spec.sceneIndex,759);
  assert.equal(ROLES[SERVICE_R300].spec.sceneIndex,760);
@@ -342,3 +349,63 @@ test('R300 real GLTFLoader restores shared nodes and mounts both modes from one 
  mount(baseline);
  assert.equal(switcher.activeView(),null);
  });
+
+
+// ---- R31 9e0bf34f: whole D 769/770 + 2F 771/772 in ONE authenticated GLB
+const receiptTest=readFileSync(new URL('./private-model-c80-r31-scene752-source-receipt.test.mjs',import.meta.url),'utf8');
+const DONOR769=JSON.parse(receiptTest.match(/const donor769_771772=(\[[0-9,]+\]);/)[1]);
+function json9e0b(){
+ const s=C80_R31_9E0B_SOURCE;
+ const json={scene:s.defaultScene,asset:{extras:{ModelStage:'WORK_TEST',current:false,asBuilt:false,HUMAN_REVIEW:'NOT_RUN'}},
+  scenes:Array.from({length:s.sceneCount},()=>({nodes:[]})),nodes:Array(s.nodeCount),meshes:Array(s.meshCount),
+  materials:Array(s.materialCount),accessors:Array(s.accessorCount),bufferViews:Array(s.bufferViewCount)};
+ json.scenes[769]={name:'D normal',nodes:[...DONOR769],extras:{stage:'WORK_TEST_HOST_HOLD',current:false,asBuilt:false}};
+ json.scenes[770]={name:'D service',nodes:DONOR769.filter(n=>n!==11625),extras:{stage:'WORK_TEST_HOST_HOLD'}};
+ return json;
+}
+
+test('9e0bf34f catalog entry maps to one exact source and four named views',()=>{
+ const id=C80_R31_9E0B_WORK_TEST_ID,path=`/private-model/work-test/${id}.glb`;
+ const r=r31WorkTestReview({id,path});
+ assert.equal(r.source.glbSha256,'9e0bf34fd838ddc92be12007412176a8ea449f66644f8876395ac6f659804ec3');
+ assert.equal(r.source.glbBytes,63833692);
+ assert.equal(r.source.zipDriveId,'1EmsMz5AyyWQwoRdZf2NVOvnndvMfHLb7');
+ assert.deepEqual(Object.keys(r.views),['dNormal','dService','upperNormal','upperService']);
+ assert.deepEqual(Object.values(r.views).map(v=>v.sceneIndex),[769,770,771,772]);
+ for(const v of Object.values(r.views))assert.equal(ROLES[v.role].spec.glbSha256,r.source.glbSha256);
+ assert.equal(r31WorkTestReview({id:C80_R31_R300_WORK_TEST_ID,path:`/private-model/work-test/${C80_R31_R300_WORK_TEST_ID}.glb`}).source.glbSha256,
+  ROLES[NORMAL_R300].spec.glbSha256);
+ assert.equal(r31WorkTestReview({id:'default',path}),undefined);
+ assert.throws(()=>r31WorkTestReview({id,path:path+'?x=1'}),/CANDIDATE_PATH_MISMATCH/);
+});
+
+test('whole-D 769/770 gate requires exact SHA, counts, root FNV and the plexi-only difference',()=>{
+ const sha=C80_R31_9E0B_SOURCE.glbSha256,{dNormal,dService}=C80_R31_9E0B_VIEWS;
+ const json=json9e0b();
+ assert.equal(DONOR769.length,dNormal.rootCount);
+ assert.equal(isC80R31Scene769770Source(json,sha,769,dNormal.role,'BOTH'),true);
+ assert.equal(isC80R31Scene769770Source(json,sha,770,dService.role,'BOTH'),true);
+ assert.equal(isC80R31Scene769770Source(json,sha,770,dNormal.role,'BOTH'),false);
+ assert.equal(isC80R31Scene769770Source(json,sha,769,dNormal.role,'2F'),false);
+ assert.equal(isC80R31Scene769770Source(json,'0'.repeat(64),769,dNormal.role),false);
+ const plexiBack=json9e0b();plexiBack.scenes[770].nodes.push(11625);
+ assert.equal(isC80R31Scene769770Source(plexiBack,sha,770,dService.role),false);
+ const reordered=json9e0b();reordered.scenes[769].nodes.reverse();
+ assert.equal(isC80R31Scene769770Source(reordered,sha,769,dNormal.role),false);
+ const claimed=json9e0b();claimed.scenes[769].extras.current=true;
+ assert.equal(isC80R31Scene769770Source(claimed,sha,769,dNormal.role),false);
+ const staged=json9e0b();staged.asset.extras.asBuilt=true;
+ assert.equal(isC80R31Scene769770Source(staged,sha,769,dNormal.role),false);
+ const counted=json9e0b();counted.nodes.push({});
+ assert.equal(isC80R31Scene769770Source(counted,sha,769,dNormal.role),false);
+});
+
+test('9e0bf34f preparation rejects the set before any rebuild when 2F roles are not exact',async()=>{
+ let attempted=false;
+ const json=json9e0b();
+ const gltf={scenes:Array(C80_R31_9E0B_SOURCE.sceneCount),parser:{json,
+  getDependency(){attempted=true;throw new Error('unexpected read');}}};
+ await assert.rejects(prepareC80R31ReviewScenes(gltf,C80_R31_9E0B_SOURCE.glbSha256,C80_R31_9E0B_VIEWS),
+  /C80_R31_REVIEW_SOURCE_MISMATCH/);
+ assert.equal(attempted,false);
+});
