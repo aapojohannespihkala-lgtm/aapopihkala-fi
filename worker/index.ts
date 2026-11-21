@@ -4,6 +4,7 @@ import { onRequestGet as getElectricityMonthResponse } from '../functions/api/cu
 import { fetchHslDeparturesResponse } from '../functions/api/current/hsl';
 import { onRequestGet as getMarketsResponse } from '../functions/api/current/markets-stable';
 import { onRequestGet as getPortfolioResponse } from '../functions/api/current/portfolio-complete';
+import { diagnoseCurrentFundSource } from '../functions/api/current/portfolio-source-diagnostics';
 import { onRequestGet as getSnapshotPortfolioResponse } from '../functions/api/current/portfolio-snapshot';
 import { onRequestGet as getWidgetResponse } from '../functions/api/current/widget';
 import { onRequestGet as getWidgetV2Response } from '../functions/api/current/widget-v2';
@@ -613,6 +614,10 @@ const worker = {
     if (url.pathname === MARKETS_PATH) {
       if (request.method !== 'GET') return methodNotAllowed();
       if (url.searchParams.get('portfolio') === '1') {
+        // One-source diagnostics are available only to uncached smoke requests.
+        if (url.searchParams.has('live_smoke') && url.searchParams.has('source_probe')) {
+          return diagnoseCurrentFundSource(url.searchParams.get('source_probe') ?? '');
+        }
         if (snapshotRequest) return getSnapshotPortfolioResponse();
         return servePortfolioWithLastKnownGood(request, getPortfolioResponse, undefined, true);
       }

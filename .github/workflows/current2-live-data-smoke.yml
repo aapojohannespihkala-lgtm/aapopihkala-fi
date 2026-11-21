@@ -112,6 +112,22 @@ jobs:
           fi
           exit 1
 
+      - name: Diagnose unavailable Nordic fund sources
+        if: failure()
+        shell: bash
+        run: |
+          # Never change smoke pass/fail based on these diagnostic requests.
+          # Probe each failing public source once with bounded time; keep raw
+          # page content and credentials out of the workflow log.
+          for id in handelsbanken-usa nordnet-finland storebrand-japan nordnet-sweden spiltan-investmentbolag; do
+            echo "Nordnet source diagnosis: ${id}"
+            curl --silent --show-error --max-time 12 \
+              --header 'Accept: application/json' \
+              "https://aapopihkala.fi/api/current/markets?portfolio=1&source_probe=${id}&live_smoke=${GITHUB_RUN_ID}" \
+              || echo "diagnostic_request_failed for ${id}"
+            echo
+          done
+
       - name: Verify live Current market macro feed
         shell: bash
         run: |
