@@ -6,6 +6,7 @@
 import {
   R300_OWNER_GLB_SHA256,
   R300_OWNER_R31_772_GLB_SHA256,
+  R300_OWNER_R31_774_GLB_SHA256,
   R300_OWNER_CARD_REF,
   resolveR300OwnerCardSelection,
 } from './privateModelR300OwnerCardAdapter.mjs';
@@ -14,6 +15,7 @@ import { sameSourceName } from './privateModelSourceNodeAssociations.mjs';
 const supported = new Map([
   [R300_OWNER_GLB_SHA256, new Set([759, 760])],
   [R300_OWNER_R31_772_GLB_SHA256, new Set([769, 770, 771, 772])],
+  [R300_OWNER_R31_774_GLB_SHA256, new Set([759, 760, 769, 770, 771, 772, 773, 774])],
 ]);
 const validNode = index => Number.isInteger(index) && index >= 0;
 
