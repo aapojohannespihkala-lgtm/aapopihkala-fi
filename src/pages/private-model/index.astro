@@ -10,6 +10,30 @@ const title = 'Private 3D viewer';
     <meta name="robots" content="noindex,nofollow,noarchive" />
     <meta name="referrer" content="no-referrer" />
     <title>{title}</title>
+    <style is:global>
+      /* Desktop icon toolbar (owner decisions 21.11.2026): one-click presets and
+         camera angles, Layers from its own icon, tools as side icons. */
+      .desk-toolbar { display: inline-flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+      .desk-group { position: relative; display: inline-flex; align-items: center; gap: 2px; padding: 2px;
+        border: 1px solid var(--viewer-line-soft); border-radius: 9px; }
+      .toolbar .desk-icon, .toolbar .desk-more { display: inline-grid; place-items: center; min-width: 36px; min-height: 36px;
+        padding: 4px; border: 1px solid transparent; border-radius: 7px; background: transparent; color: var(--viewer-ink); }
+      .toolbar .desk-more { min-width: 22px; padding: 2px; opacity: .8; }
+      .toolbar .desk-icon[aria-pressed='true'], .toolbar .desk-icon[aria-expanded='true'] {
+        border-color: var(--viewer-line); background: var(--viewer-bar); box-shadow: inset 0 0 0 1px var(--viewer-line); }
+      .toolbar .desk-group > .toolbar-menu > summary { display: none !important; }
+      .desk-group > .toolbar-menu { position: static; }
+      .desk-group > .toolbar-menu > .toolbar-menu-panel { left: auto; right: 0; }
+      .desk-layers-native { font-size: 0; line-height: 0; }
+      .desk-layers-native::before { content: ''; display: block; width: 22px; height: 22px; background: currentColor;
+        -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.6' stroke-linejoin='round'%3E%3Cpath d='M12 4 L21 9 L12 14 L3 9 Z'/%3E%3Cpath d='M3 13 L12 18 L21 13'/%3E%3Cpath d='M3 17 L12 22 L21 17'/%3E%3C/svg%3E") center / contain no-repeat; mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.6' stroke-linejoin='round'%3E%3Cpath d='M12 4 L21 9 L12 14 L3 9 Z'/%3E%3Cpath d='M3 13 L12 18 L21 13'/%3E%3Cpath d='M3 17 L12 22 L21 17'/%3E%3C/svg%3E") center / contain no-repeat; }
+      .viewport > .interaction-tools.desk-side-tools { position: absolute; z-index: 15; left: 12px; top: 12px;
+        display: flex; flex-direction: column; gap: 4px; padding: 4px; background: var(--viewer-page); }
+      .viewport .desk-side-tools button { display: grid; place-items: center; min-width: 38px; min-height: 38px; padding: 6px; }
+      .viewport .desk-side-tools button[aria-pressed='true'] { box-shadow: inset 0 0 0 1px var(--viewer-line); }
+      .viewport .desk-side-tools button[disabled] { opacity: .35; }
+      .desk-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+    </style>
     <style>
       :root {
         color-scheme: light;
@@ -1721,28 +1745,6 @@ const title = 'Private 3D viewer';
           transition-duration: 0.01ms !important;
         }
       }
-      /* Desktop icon toolbar (owner decisions 21.11.2026): one-click presets and
-         camera angles, Layers from its own icon, tools as side icons. */
-      .desk-toolbar { display: inline-flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-      .desk-group { position: relative; display: inline-flex; align-items: center; gap: 2px; padding: 2px;
-        border: 1px solid var(--viewer-line-soft); border-radius: 9px; }
-      .desk-icon, .desk-more { display: inline-grid; place-items: center; min-width: 36px; min-height: 36px;
-        padding: 4px; border: 1px solid transparent; border-radius: 7px; background: transparent; color: var(--viewer-ink); }
-      .desk-more { min-width: 22px; padding: 2px; opacity: .8; }
-      .desk-icon[aria-pressed='true'], .desk-icon[aria-expanded='true'] {
-        border-color: var(--viewer-line); background: var(--viewer-bar); box-shadow: inset 0 0 0 1px var(--viewer-line); }
-      .desk-group > .toolbar-menu > summary { display: none; }
-      .desk-group > .toolbar-menu { position: static; }
-      .desk-group > .toolbar-menu > .toolbar-menu-panel { left: auto; right: 0; }
-      .desk-layers-native { font-size: 0; line-height: 0; }
-      .desk-layers-native::before { content: ''; display: block; width: 22px; height: 22px; background: currentColor;
-        -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.6' stroke-linejoin='round'%3E%3Cpath d='M12 4 L21 9 L12 14 L3 9 Z'/%3E%3Cpath d='M3 13 L12 18 L21 13'/%3E%3Cpath d='M3 17 L12 22 L21 17'/%3E%3C/svg%3E") center / contain no-repeat; mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.6' stroke-linejoin='round'%3E%3Cpath d='M12 4 L21 9 L12 14 L3 9 Z'/%3E%3Cpath d='M3 13 L12 18 L21 13'/%3E%3Cpath d='M3 17 L12 22 L21 17'/%3E%3C/svg%3E") center / contain no-repeat; }
-      .viewport > .interaction-tools.desk-side-tools { position: absolute; z-index: 15; left: 12px; top: 12px;
-        display: flex; flex-direction: column; gap: 4px; padding: 4px; background: var(--viewer-page); }
-      .desk-side-tools button { display: grid; place-items: center; min-width: 38px; min-height: 38px; padding: 6px; }
-      .desk-side-tools button[aria-pressed='true'] { box-shadow: inset 0 0 0 1px var(--viewer-line); }
-      .desk-side-tools button[disabled] { opacity: .35; }
-      .desk-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
     </style>
   </head>
   <body>
