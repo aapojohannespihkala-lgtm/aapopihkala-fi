@@ -787,3 +787,260 @@ export function c80R31RK143SourceReceipt(json,authenticatedSha,sceneIndex,role,f
   physicalCableVerified:false,electricalSafetyVerified:false,
  });
 }
+
+
+/**
+ * Original R31 scene765 = 2015 RK14.2/RK14.3 schematic circuits plus the
+ * 2026 owner-photo Savo I7603 right keypad. The exact GLB SHA is mandatory:
+ * scene765 alone is not a source identity. This is SOURCE_ONLY, not mounting
+ * a view, authorizing an electrical connection or publishing an as-built.
+ */
+export const C80_R31_SCENE765_RK142_RK143_MJ83_SOURCE=Object.freeze({
+ role:'RK14_2_RK14_3_MJ83_RIGHT_KEYPAD_2015_PLAN_2026_PHOTO',sceneIndex:765,
+ glbSha256:'1176509e91a5677561476a6a6ca84725b79fd9f2000b6cc2b0a89276f81856a6',
+ glbBytes:63763368,zipDriveId:'1oGqzL-P-AOBnE2gGflEUNg8AvmKT-ZGM',
+ zipSha256:'1e38a71ddc4d304350486b9b3691bed62494e610c0e311de39e2ffab8d544a9f',
+ sceneName:'Ylisrinne_C80_R31_RK14_2_RK14_3_MJ83_RIGHT_KEYPAD_COFIT_2015_PLAN_2026_PHOTO_WORK_TEST_HOST_HOLD__scene765',
+ parentSceneName:'Ylisrinne_C80_R31_RK14_2_WINE_RK14_3_HOOD_COMBINED_2015_SCHEMA_WORK_TEST_HOST_HOLD__scene764',
+ sceneCount:766,nodeCount:13503,meshCount:5168,materialCount:814,
+ accessorCount:11265,bufferViewCount:11271,defaultScene:292,
+ parentScene:764,parentRootCount:497,parentRootFnv32:'957cc832',
+ targetRootCount:498,targetRootFnv32:'dfc19064',
+ parentGlbSha256:'ff283855c3a1160021562b87d918bb98963f06d4844984f6e343c83c2e868017',
+ mj83CofitGlbSha256:'99aaa0b9c633e6968a1b964b8b2d7e5abbfa1441d713f82f87d664789be3c6ba',
+ mj83OriginalGlbSha256:'dafe740cd1f0fd4bf483b2fac35edefd617adc20cf4404e23bf451976363bf56',
+ newPanelRoot:13502,newPanelLeaf:13501,reusedPanelMesh:4540,
+ wineRoot:13499,hoodRoot:13500,
+});
+export function isC80R31Scene765RK142RK143MJ83Source(json,authenticatedSha,sceneIndex,role,floor){
+ const s=C80_R31_SCENE765_RK142_RK143_MJ83_SOURCE,a=json?.asset?.extras;
+ if(authenticatedSha!==s.glbSha256||sceneIndex!==s.sceneIndex||role!==s.role||
+  (floor!==undefined&&floor!=='BOTH')||
+  json?.scene!==s.defaultScene||json?.scenes?.length!==s.sceneCount||
+  json?.nodes?.length!==s.nodeCount||json?.meshes?.length!==s.meshCount||
+  json?.materials?.length!==s.materialCount||
+  json?.accessors?.length!==s.accessorCount||
+  json?.bufferViews?.length!==s.bufferViewCount||
+  a?.ModelStage!=='WORK_TEST'||a?.current!==false||a?.asBuilt!==false||
+  a?.HUMAN_REVIEW!=='NOT_RUN')return false;
+ const parent=json.scenes[s.parentScene],target=json.scenes[sceneIndex];
+ const prev=parent?.nodes,roots=target?.nodes,e=target?.extras,p=parent?.extras;
+ const r=json.nodes[s.newPanelRoot],leaf=json.nodes[s.newPanelLeaf];
+ const x=r?.extras,y=leaf?.extras;
+ if(parent?.name!==s.parentSceneName||target?.name!==s.sceneName||
+  !Array.isArray(prev)||!Array.isArray(roots)||
+  prev.length!==s.parentRootCount||roots.length!==s.targetRootCount||
+  new Set(prev).size!==prev.length||new Set(roots).size!==roots.length||
+  c80R31Scene752RootsFnv32(prev)!==s.parentRootFnv32||
+  c80R31Scene752RootsFnv32(roots)!==s.targetRootFnv32||
+  !exactly(roots,[...prev,s.newPanelRoot])||
+  !roots.includes(s.wineRoot)||!roots.includes(s.hoodRoot)||
+  !exactly(p?.circuitIds,['RK14.2','RK14.3'])||
+  p?.sourceRole!=='2014_15_TWO_SEPARATE_PLAN_ONLY_CIRCUITS'||
+  e?.stage!=='WORK_TEST_HOST_HOLD'||e?.WORK_TEST!==true||e?.HOST_HOLD!==true||
+  e?.sourceRole!=='2014_15_TWO_SEPARATE_PLAN_ONLY_CIRCUITS'||
+  e?.renderedCableRoutes!=='DIAGRAM_ONLY_NOT_INSTALLED'||
+  e?.physical2026GroupConnectionVerified!==false||
+  e?.actualCableRouteVerified!==false||e?.electricalSafetyApproval!==false||
+  e?.sourceLinksOutputSHA!=='NOT_BOUND'||e?.sourceLinksOutputShaBound!==false||
+  e?.productionWebGL!=='NOT_RUN'||e?.HUMAN_REVIEW!=='NOT_RUN'||
+  e?.current!==false||e?.asBuilt!==false||e?.canonical!==false||
+  r?.name!=='C80_R31_RK142_RK143_MJ83_OWNER_KEYPAD_COFIT_OPTIN_ROOT'||
+  !exactly(r?.children,[s.newPanelLeaf])||
+  x?.cofitBaseGLBSHA256!==s.parentGlbSha256||
+  x?.cofitBaseSceneIndex!==s.parentScene||
+  x?.cofitSourceGLBSHA256!==s.mj83CofitGlbSha256||
+  x?.cofitSourceSceneIndex!==762||
+  x?.sourceMJ83GLBSHA256!==s.mj83OriginalGlbSha256||
+  x?.photoGeometryOwnerRelativeOnly!==true||
+  x?.sourceLinksBoundForNewSHA!==false||
+  x?.current!==false||x?.asBuilt!==false||
+  leaf?.mesh!==s.reusedPanelMesh||
+  y?.visualRole!=='SAVO_I7603_OWNER_RIGHT_KEYPAD'||
+  y?.cofitSourceGLBSHA256!==s.mj83CofitGlbSha256||
+  y?.cofitSourceNode!==13497||
+  y?.sourceDonorGLBSha256!==s.mj83OriginalGlbSha256||
+  y?.sourceLinksBoundForNewSHA!==false||
+  y?.WORK_TEST!==true||y?.current!==false||y?.asBuilt!==false)return false;
+ return true;
+}
+export function c80R31Scene765RK142RK143MJ83SourceReceipt(json,authenticatedSha,sceneIndex,role,floor){
+ return Object.freeze({
+  exactSource:isC80R31Scene765RK142RK143MJ83Source(json,authenticatedSha,sceneIndex,role,floor),
+  stage:'WORK_TEST_HOST_HOLD',sourceLinksBound:false,publishAllowed:false,
+  productionWebGLVerified:false,humanReview:'NOT_RUN',current:false,asBuilt:false,
+  physicalHostVerified:false,physicalCableVerified:false,electricalSafetyVerified:false,
+ });
+}
+
+/** Source-only SHA gate for R31 __scene766: 2015 circuit diagrams,
+ * 2026 Savo keypad, and VM20 CLOSED. No runtime/as-built authorization. */
+export const C80_R31_SCENE766_CLOSED_VM20_SOURCE=Object.freeze({
+ role:'RK14_2_RK14_3_MJ83_VM20_ACCESS_CLOSED_2015_PLAN_2026_PHOTO',
+ sceneIndex:766,
+ glbSha256:'6cf2923afaa2b7b0a5028a13465ba13071bd8d9c612885e978d40d1e51904e1d',
+ glbBytes:63768192,zipDriveId:'1eP8alIGRVv7w5OfpO1NbKD3U5SG-Mqek',
+ zipSha256:'fa65d1cb3df6ed9d55bebd5f85400d4e9049e34da67c7d42cf9764e9a431746c',
+ sceneName:'Ylisrinne_C80_R31_RK142_RK143_MJ83_SAVO_VM20_ACCESS_CLOSED_2015_PLAN_2026_PHOTO_WORK_TEST_HOST_HOLD__scene766',
+ parentSceneName:C80_R31_SCENE765_RK142_RK143_MJ83_SOURCE.sceneName,
+ closedSceneName:'H1911-3_R31_VM20_WC_ACCESS_CLOSED_WORK_TEST_HOST_HOLD__scene761',
+ sceneCount:767,nodeCount:13503,meshCount:5168,materialCount:814,
+ accessorCount:11265,bufferViewCount:11271,defaultScene:292,
+ parentScene:765,parentRootCount:498,parentRootFnv32:'dfc19064',
+ rootCount:498,rootFnv32:'aee109ba',
+ parentGlbSha256:C80_R31_SCENE765_RK142_RK143_MJ83_SOURCE.glbSha256,
+ parentZipDriveId:C80_R31_SCENE765_RK142_RK143_MJ83_SOURCE.zipDriveId,
+ closedSourceScene:761,closedSourceRootFnv32:'da71cd8f',
+ openRoot:13497,closedRoot:13167,openLeaf:13496,closedLeaf:1727,
+ wineRoot:13499,hoodRoot:13500,panelRoot:13502,
+});
+export function isC80R31Scene766ClosedVm20Source(json,sha,index,role,floor){
+ const s=C80_R31_SCENE766_CLOSED_VM20_SOURCE,asset=json?.asset?.extras;
+ if(sha!==s.glbSha256||index!==s.sceneIndex||role!==s.role||
+  (floor!==undefined&&floor!=='BOTH')||json?.scene!==s.defaultScene||
+  json?.scenes?.length!==s.sceneCount||json?.nodes?.length!==s.nodeCount||
+  json?.meshes?.length!==s.meshCount||json?.materials?.length!==s.materialCount||
+  json?.accessors?.length!==s.accessorCount||
+  json?.bufferViews?.length!==s.bufferViewCount||
+  asset?.ModelStage!=='WORK_TEST'||asset?.current!==false||
+  asset?.asBuilt!==false||asset?.HUMAN_REVIEW!=='NOT_RUN')return false;
+ const target=json.scenes[index],parent=json.scenes[s.parentScene];
+ const source=json.scenes[s.closedSourceScene],r=target?.nodes,p=parent?.nodes,e=target?.extras;
+ if(target?.name!==s.sceneName||parent?.name!==s.parentSceneName||
+  source?.name!==s.closedSceneName||!Array.isArray(r)||!Array.isArray(p)||
+  r.length!==s.rootCount||p.length!==s.parentRootCount||
+  new Set(r).size!==r.length||new Set(p).size!==p.length||
+  c80R31Scene752RootsFnv32(r)!==s.rootFnv32||
+  c80R31Scene752RootsFnv32(p)!==s.parentRootFnv32||
+  c80R31Scene752RootsFnv32(source?.nodes)!==s.closedSourceRootFnv32||
+  p.filter(x=>x===s.openRoot).length!==1||
+  !exactly(r,p.map(x=>x===s.openRoot?s.closedRoot:x))||
+  !source?.nodes?.includes(s.closedRoot)||r.includes(s.openRoot)||
+  ![s.closedRoot,s.wineRoot,s.hoodRoot,s.panelRoot].every(x=>r.includes(x))||
+  json.nodes[s.closedLeaf]?.mesh!==833||json.nodes[s.openLeaf]?.mesh!==833||
+  e?.stage!=='WORK_TEST_HOST_HOLD'||e?.WORK_TEST!==true||e?.HOST_HOLD!==true||
+  e?.sourceRole!=='2014_15_TWO_SEPARATE_PLAN_ONLY_CIRCUITS'||
+  !exactly(e?.circuitIds,['RK14.2','RK14.3'])||
+  e?.renderedCableRoutes!=='DIAGRAM_ONLY_NOT_INSTALLED'||
+  e?.sourceDriveId!==s.parentZipDriveId||
+  e?.sourceGlbSha256!==s.parentGlbSha256||e?.sourceSceneIndex!==s.parentScene||
+  e?.vm20AccessView!=='CLOSED'||e?.vm20ClosedNode!==s.closedLeaf||
+  e?.vm20OriginalClosedRoot!==s.closedRoot||
+  e?.vm20OpenNodeOff!==s.openLeaf||e?.originRootOpenOff!==s.openRoot||
+  e?.sourceLinksForNewShaBound!==false||
+  e?.sourceLinksOutputSHA!=='NOT_BOUND'||e?.sourceLinksOutputShaBound!==false||
+  e?.physical2026GroupConnectionVerified!==false||
+  e?.actualCableRouteVerified!==false||e?.electricalSafetyApproval!==false||
+  e?.productionWebGL!=='NOT_RUN'||e?.HUMAN_REVIEW!=='NOT_RUN'||
+  e?.current!==false||e?.asBuilt!==false||e?.canonical!==false||
+  e?.isCurrent!==false)return false;
+ return true;
+}
+export function c80R31Scene766ClosedVm20Receipt(json,sha,index,role,floor){
+ return Object.freeze({
+  exactSource:isC80R31Scene766ClosedVm20Source(json,sha,index,role,floor),
+  stage:'WORK_TEST_HOST_HOLD',sourceLinksBound:false,publishAllowed:false,
+  productionWebGLVerified:false,humanReview:'NOT_RUN',current:false,asBuilt:false,
+  physicalHostVerified:false,physicalCableVerified:false,
+  electricalSafetyVerified:false,physicalHatchOpeningVerified:false,
+ });
+}
+
+/**
+ * Original standalone R31 __scene767 is a historical/2F WORK_TEST review:
+ * L12 V75/V110 inboard waste + 2015 RK14.2/RK14.3 schematic circuits +
+ * 2026 photo-derived MJ83 panel. It rebases scene743 (NOT scene766's
+ * BOTH roots), so no modern R300/roof/VM20 2F parity is asserted.
+ * Read-only SHA-authenticated receipt, never a viewer/publisher binding.
+ */
+export const C80_R31_SCENE767_2F_L12_RK14_MJ83_SOURCE=Object.freeze({
+ role:'R31_2F_L12_WASTE_RK142_RK143_MJ83_SOURCE_REVIEW',
+ sceneIndex:767,
+ glbSha256:'9546f3beaa260b24e3396820b216303430e3958c1f9741c41f8fc61b864506cd',
+ glbBytes:63793084,
+ zipDriveId:'13Djv8gzf4vE8jWdxDsYBSiYlzhZS8ub2',
+ zipSha256:'742c435ea4e40ab69d7d67399832de50efa9ce492a2a3fa5a730226c2c677eb3',
+ sceneName:'Ylisrinne_C80_R31_2F_L12_V75V110_RK142_RK143_SAVO_MJ83_REVIEW_WORK_TEST_HOST_HOLD__scene767',
+ sceneCount:768,nodeCount:13506,meshCount:5168,materialCount:814,
+ accessorCount:11265,bufferViewCount:11271,defaultScene:292,
+ source2FScene:743,source2FSceneName:'C80_R31_R30_G2S13_D_WEST_GABLE_2_SOURCE_PRESENCE_2F_OFF_OPTIN_WORK_TEST_HOST_HOLD__scene743',
+ source2FRootCount:199,source2FRootFnv32:'e89d7b8b',
+ rootCount:202,rootFnv32:'aeef8956',
+ baseScene:766,baseGlbSha256:'6cf2923afaa2b7b0a5028a13465ba13071bd8d9c612885e978d40d1e51904e1d',
+ baseDriveId:'1eP8alIGRVv7w5OfpO1NbKD3U5SG-Mqek',
+ donorGlbSha256:'1a05de4ad49cdd43b445ee807c19d7759f3b54f8363da305d1b10bf0d376832a',
+ donorDriveId:'1PYtojF_ny9NXBsY8qiDV00r6a4cMcUqs',
+ old2FRoot:13321,new2FRoot:13505,
+ wasteLeaves:[13503,13504],wasteMeshes:[4991,3702],
+ preservedReviewRoots:[13499,13500,13502],
+});
+export function isC80R31Scene767Source(json,sha,index,role,floor){
+ const s=C80_R31_SCENE767_2F_L12_RK14_MJ83_SOURCE,asset=json?.asset?.extras;
+ if(sha!==s.glbSha256||index!==s.sceneIndex||role!==s.role||
+  (floor!==undefined&&floor!=='2F')||json?.scene!==s.defaultScene||
+  json?.scenes?.length!==s.sceneCount||json?.nodes?.length!==s.nodeCount||
+  json?.meshes?.length!==s.meshCount||json?.materials?.length!==s.materialCount||
+  json?.accessors?.length!==s.accessorCount||
+  json?.bufferViews?.length!==s.bufferViewCount||
+  asset?.ModelStage!=='WORK_TEST'||asset?.current!==false||
+  asset?.asBuilt!==false||asset?.HUMAN_REVIEW!=='NOT_RUN')return false;
+ const target=json.scenes[index],source=json.scenes[s.source2FScene];
+ const roots=target?.nodes,prior=source?.nodes,e=target?.extras;
+ if(target?.name!==s.sceneName||source?.name!==s.source2FSceneName||
+  !Array.isArray(roots)||!Array.isArray(prior)||
+  roots.length!==s.rootCount||prior.length!==s.source2FRootCount||
+  new Set(roots).size!==roots.length||new Set(prior).size!==prior.length||
+  c80R31Scene752RootsFnv32(roots)!==s.rootFnv32||
+  c80R31Scene752RootsFnv32(prior)!==s.source2FRootFnv32||
+  prior.filter(x=>x===s.old2FRoot).length!==1||
+  !exactly(roots,[...prior.map(x=>x===s.old2FRoot?s.new2FRoot:x),...s.preservedReviewRoots])||
+  !exactly(e?.additional2FReviewRoots,s.preservedReviewRoots)||
+  !exactly(e?.circuitIds,['RK14.2','RK14.3'])||
+  e?.stage!=='WORK_TEST_HOST_HOLD'||e?.WORK_TEST!==true||e?.HOST_HOLD!==true||
+  e?.baseOriginalDriveId!==s.baseDriveId||e?.baseOriginalGlbSHA256!==s.baseGlbSha256||
+  e?.baseSceneIndex!==s.baseScene||e?.reviewSource2FSceneIndex!==s.source2FScene||
+  e?.donorOriginalDriveId!==s.donorDriveId||
+  e?.donorOriginalGlbSHA256!==s.donorGlbSha256||
+  e?.sourceRootReplaced!==s.old2FRoot||
+  e?.l12RebasedMap?.['13500']!==s.wasteLeaves[0]||
+  e?.l12RebasedMap?.['13501']!==s.wasteLeaves[1]||
+  e?.l12RebasedMap?.['13502']!==s.new2FRoot||
+  e?.twoSchematics!=='2015 RK14.2 VIINIKAAPPI + RK14.3 SAVO PLAN ONLY'||
+  e?.keypad!=='MJ83 2026 owner photo'||
+  e?.fullLatestR3002FParity!==false||e?.physicalDrainJoint!==false||
+  e?.physicalCircuitRouting!==false||e?.newMeshes!==0||
+  e?.newPhysicalPipes!==0||e?.sourceLinksOutputSHA!=='NOT_BOUND'||
+  e?.sourceLinksOutputShaBound!==false||e?.sourceLinksOutputSHABound!==false||
+  e?.published!==false||e?.productionWebGL!=='NOT_RUN'||e?.HUMAN_REVIEW!=='NOT_RUN'||
+  e?.current!==false||e?.asBuilt!==false||e?.canonical!==false||
+  e?.physicalJointVerified!==false||e?.physicalInstallationVerified!==false||
+  e?.physicalRouteVerified!==false)return false;
+ const root=json.nodes[s.new2FRoot],rex=root?.extras;
+ if(root?.mesh!==undefined||!Array.isArray(root?.children)||
+  !s.wasteLeaves.every(x=>root.children.includes(x))||
+  rex?.original2FRoot!==s.old2FRoot||rex?.semanticOnlyNoGeometryChange!==true||
+  rex?.hostHold!==true||rex?.physicalConnectionsVerified!==0||
+  rex?.sourceLinksBoundForOutputSHA!==false||rex?.current!==false||
+  rex?.asBuilt!==false)return false;
+ for(let i=0;i<s.wasteLeaves.length;i++){
+  const n=json.nodes[s.wasteLeaves[i]],x=n?.extras;
+  if(n?.mesh!==s.wasteMeshes[i]||x?.m5System!=='VIEMARI'||
+   x?.rebasedFromDonorDriveID!=='1oD0iFOK0K5XtB2SSnStV874B2txVfckv'||
+   x?.sourceDonorGlbSHA256!==s.donorGlbSha256||
+   x?.sourceDonorDriveId!==s.donorDriveId||
+   x?.rebasedFromL12DonorNode!==13495+i||
+   x?.hostHold!==true||x?.physicalConnectionsVerified!==0||
+   x?.physicalJointVerified!==false||x?.sourceLinksBoundForOutputSHA!==false||
+   x?.current!==false||x?.asBuilt!==false)return false;
+ }
+ return true;
+}
+export function c80R31Scene767SourceReceipt(json,sha,index,role,floor){
+ return Object.freeze({
+  exactSource:isC80R31Scene767Source(json,sha,index,role,floor),
+  stage:'WORK_TEST_HOST_HOLD',sourceLinksBound:false,publishAllowed:false,
+  productionWebGLVerified:false,humanReview:'NOT_RUN',current:false,asBuilt:false,
+  latest2FParityVerified:false,physicalWasteConnectionVerified:false,
+  electricalSafetyVerified:false,
+ });
+}
