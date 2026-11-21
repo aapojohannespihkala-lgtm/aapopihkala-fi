@@ -2879,7 +2879,7 @@ const title = 'Private 3D viewer';
         type WorkTestLoadFailurePhase,
       } from '../../scripts/privateModelWorkTestLoadDiagnostics';
 
-      import { isTateCSource, isTateCFocusedContour, TATE_C_OPACITY } from '../../scripts/privateModelTateCEdgeFocus.mjs';
+      import { isTateCSource, isTateCFocusedContour, tateCVisibleOwnerNames, TATE_C_OPACITY } from '../../scripts/privateModelTateCEdgeFocus.mjs';
       const canvas = document.querySelector<HTMLCanvasElement>('#private-model-canvas');
       const status = document.querySelector<HTMLElement>('#viewer-status');
       const toolbarMenus = Array.from(document.querySelectorAll<HTMLDetailsElement>('.toolbar-menu'));
@@ -4815,7 +4815,7 @@ const title = 'Private 3D viewer';
               sceneIndex: Number(canvas.dataset.c80SceneIndex),
               technicalReview: true,
               midpoint,
-              ownerNames: record.owners.map((owner) => meshes[owner]?.name),
+              ownerNames: tateCVisibleOwnerNames(record.owners, record.dropOwners, meshes),
             });
             (focused ? focusedPoints : points).push(record.a, record.b);
           }
@@ -4882,6 +4882,9 @@ const title = 'Private 3D viewer';
 
         let segmentCount = 0;
         canvas.dataset.edgeTJunctionSuppressedCount = '0';
+        // Clear stale C review flags on every mode change (including none/object).
+        canvas.dataset.tateCEdgeFocus = 'off';
+        canvas.dataset.tateCEdgeFocusedSegments = '0';
         const depthTest = edgeMode === 'visible';
 
         if (edgeMode === 'object') {

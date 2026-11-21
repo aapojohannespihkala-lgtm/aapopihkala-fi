@@ -22,6 +22,14 @@ const roleNames = Object.freeze([
 export function isTateCSource({sha,sceneIndex,technicalReview=false}={}){
  return technicalReview===true && sha===TATE_C_R22_SOURCE_SHA256 && sceneIndex===TATE_C_R22_SCENE;
 }
+/** Only retained edge contributors may decide C emphasis; continued/coplanar seams do not vote.
+ * @param {number[]} owners
+ * @param {Set<number> | null} dropOwners
+ * @param {{name?:string}[]} meshes
+ */
+export function tateCVisibleOwnerNames(owners,dropOwners,meshes){
+ return owners.filter(owner=>!dropOwners?.has(owner)).map(owner=>meshes[owner]?.name);
+}
 /** @param {{sha?: string | null, sceneIndex?: number, technicalReview?: boolean, midpoint?: {x:number,y:number,z:number}, ownerNames?: string[]}} [options] */
 export function isTateCFocusedContour({sha,sceneIndex,technicalReview=false,midpoint,ownerNames}={}){
  if(!isTateCSource({sha,sceneIndex,technicalReview})||!midpoint||!Array.isArray(ownerNames))return false;

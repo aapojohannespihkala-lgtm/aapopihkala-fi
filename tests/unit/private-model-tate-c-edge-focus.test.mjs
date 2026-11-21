@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {isTateCSource,isTateCFocusedContour,TATE_C_OPACITY,TATE_C_R22_SOURCE_SHA256,TATE_C_R22_SCENE} from '../../src/scripts/privateModelTateCEdgeFocus.mjs';
+import {isTateCSource,isTateCFocusedContour,tateCVisibleOwnerNames,TATE_C_OPACITY,TATE_C_R22_SOURCE_SHA256,TATE_C_R22_SCENE} from '../../src/scripts/privateModelTateCEdgeFocus.mjs';
 const auth={sha:TATE_C_R22_SOURCE_SHA256,sceneIndex:TATE_C_R22_SCENE,technicalReview:true};
 const p={x:4.1,y:0.1,z:-3.1};
 const focus=ownerNames=>isTateCFocusedContour({...auth,midpoint:p,ownerNames});
@@ -28,4 +28,14 @@ test('source, coordinates and tree context fail closed',()=>{
  assert.equal(isTateCFocusedContour({...auth,midpoint:p,ownerNames:['K12_KPH_FLOOR',name]}),true);
  assert.equal(isTateCFocusedContour({...auth,technicalReview:false,midpoint:p,ownerNames:[name]}),false);
  assert.equal(isTateCFocusedContour({...auth,sceneIndex:687,midpoint:p,ownerNames:[name]}),false);
+});
+
+test('continued coplanar owners cannot falsely promote remaining ordinary edges',()=>{
+ const focused='C80R2_V8_D1F_UNIFIED_INTERIOR_WALLS_INCL_SAUNA_WALL_WORK_TEST_HOST_HOLD_20261101';
+ const ordinary='K12_KPH_FLOOR_100x100_TILE_SOURCE_GEOMETRY';
+ const meshes=[{name:focused},{name:ordinary}];
+ const owners=[0,1];
+ assert.deepEqual(tateCVisibleOwnerNames(owners,new Set([0]),meshes),[ordinary]);
+ assert.equal(isTateCFocusedContour({...auth,midpoint:p,ownerNames:tateCVisibleOwnerNames(owners,new Set([0]),meshes)}),false);
+ assert.equal(isTateCFocusedContour({...auth,midpoint:p,ownerNames:tateCVisibleOwnerNames(owners,null,meshes)}),true);
 });
