@@ -1,3 +1,4 @@
+import { r31WorkTestReview } from '../../src/scripts/privateModelC80R31ReviewRuntime.mjs';
 import { loadD1FServiceModel } from '../../src/scripts/privateModelD1FServiceRuntime.mjs';
 import { test, expect } from '@playwright/test';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
@@ -398,6 +399,7 @@ test('actual viewer load callsite uses verified scene for ' + id, async () => {
     prefix + 'return { gltf, combinedWallReview }; } catch (error) { throw error; } }; loadWorkTestCandidate(candidate);',
     {
       candidate, canvas: { dataset: {} }, status: {}, p137ePlaceToolButton: {},
+      r31WorkTestReview,
       clearP137EPlaceDraft() {}, clearPointMeasure() {}, setViewerToolMode() {}, GLTFLoader: CheckedLoader,
       p137eScene67CandidateId: 'p137e-d1f-three-wall-mounted-themos',
       isP137EScene67ReviewRequested: () => false,
