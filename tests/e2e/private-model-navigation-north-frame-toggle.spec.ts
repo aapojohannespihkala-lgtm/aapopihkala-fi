@@ -85,7 +85,15 @@ test('navigation gizmo switches local/map north on click without moving the actu
   await expect(button).toHaveAttribute('aria-pressed', 'true');
   await expect(button).toHaveText('Pohjoinen: kartta');
   await expect(northLabel).toHaveText('N kartta');
-  await expect(mapLine).toBeVisible();
+  // SVG line elements can have a zero-height bounding box when horizontal,
+  // despite an actual visible stroke. Verify display and projected length.
+  await expect(mapLine).not.toHaveCSS('display', 'none');
+  const endpoint = await mapLine.evaluate((line) => {
+    const x = Number(line.getAttribute('x2'));
+    const y = Number(line.getAttribute('y2'));
+    return Math.hypot(x - 46, y - 46);
+  });
+  expect(endpoint).toBeGreaterThan(2);
   expect(await activeCameraState(page)).toEqual(before);
 
   // One more click restores exactly the former local view, not a second camera.
