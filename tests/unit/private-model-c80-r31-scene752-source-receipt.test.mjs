@@ -713,3 +713,194 @@ test('R31 ORIGINAL RK14.3 scene763 exact roots, 2015 hood and no-current gates',
  change(json.asset.extras,'asBuilt',true);
  assert.equal(check(),true);
 });
+
+
+import {
+ C80_R31_SCENE765_RK142_RK143_MJ83_SOURCE as S765,
+ isC80R31Scene765RK142RK143MJ83Source as validS765,
+ c80R31Scene765RK142RK143MJ83SourceReceipt as receiptS765,
+} from '../../src/scripts/privateModelC80R31Scene752SourceReceipt.mjs';
+
+test('R31 765 SHA-locked 2015 dual schematic + 2026 MJ83 panel is source-only, not published',()=>{
+ assert.equal(S765.sceneIndex,765);
+ assert.equal(S765.parentScene,764);
+ assert.equal(S765.sceneCount,766);
+ assert.equal(S765.parentRootCount,497);
+ assert.equal(S765.targetRootCount,498);
+ assert.equal(S765.parentRootFnv32,'957cc832');
+ assert.equal(S765.targetRootFnv32,'dfc19064');
+ assert.equal(S765.newPanelRoot,13502);
+ assert.equal(S765.newPanelLeaf,13501);
+ assert.equal(S765.reusedPanelMesh,4540);
+ assert.notEqual(S765.glbSha256,RK143.glbSha256);
+ assert.notEqual(S765.glbSha256,RK142.glbSha256);
+ assert.notEqual(S765.glbSha256,S756.glbSha256);
+ assert.match(S765.glbSha256,/^[a-f0-9]{64}$/);
+ assert.match(S765.zipSha256,/^[a-f0-9]{64}$/);
+ for(const [sha,index,role,floor] of [
+  [S765.glbSha256,765,S765.role,'BOTH'],
+  [S765.glbSha256,764,S765.role,'BOTH'],
+  [S765.glbSha256,765,S765.role,'2F'],
+  [S765.glbSha256,765,'__proto__','BOTH'],
+  [RK143.glbSha256,765,S765.role,'BOTH'],
+  [RK142.glbSha256,765,S765.role,'BOTH'],
+  [S765.glbSha256,765,RK143.role,'BOTH'],
+ ])assert.equal(validS765({},sha,index,role,floor),false);
+ const r=receiptS765({},S765.glbSha256,765,S765.role,'BOTH');
+ assert.equal(r.exactSource,false);
+ assert.equal(r.sourceLinksBound,false);
+ assert.equal(r.publishAllowed,false);
+ assert.equal(r.productionWebGLVerified,false);
+ assert.equal(r.physicalCableVerified,false);
+ assert.equal(r.electricalSafetyVerified,false);
+ assert.equal(r.current,false);
+ assert.equal(r.asBuilt,false);
+});
+
+const scene765OriginalGlbPath=process.env.C80_R31_RK142_RK143_MJ83_SCENE765_GLB_PATH;
+test('R31 765 ORIGINAL G2b GLB: exact SHA, parent/role, shared mesh and fail-closed mutations',
+ {skip:!scene765OriginalGlbPath},()=>{
+ const {b,json}=parse(scene765OriginalGlbPath);
+ const sha=createHash('sha256').update(b).digest('hex');
+ assert.equal(b.length,S765.glbBytes);
+ assert.equal(sha,S765.glbSha256);
+ assert.equal(json.scene,S765.defaultScene);
+ assert.equal(json.scenes.length,S765.sceneCount);
+ assert.equal(json.nodes.length,S765.nodeCount);
+ assert.equal(json.meshes.length,S765.meshCount);
+ assert.equal(json.materials.length,S765.materialCount);
+ assert.equal(json.accessors.length,S765.accessorCount);
+ assert.equal(json.bufferViews.length,S765.bufferViewCount);
+ const parent=json.scenes[S765.parentScene],target=json.scenes[S765.sceneIndex];
+ assert.equal(parent.name,S765.parentSceneName);
+ assert.equal(target.name,S765.sceneName);
+ assert.equal(fnv(parent.nodes),S765.parentRootFnv32);
+ assert.equal(fnv(target.nodes),S765.targetRootFnv32);
+ assert.deepEqual(target.nodes,[...parent.nodes,S765.newPanelRoot]);
+ assert.ok(target.nodes.includes(S765.wineRoot));
+ assert.ok(target.nodes.includes(S765.hoodRoot));
+ assert.deepEqual(json.nodes[S765.newPanelRoot].children,[S765.newPanelLeaf]);
+ assert.equal(json.nodes[S765.newPanelLeaf].mesh,S765.reusedPanelMesh);
+ const check=()=>validS765(json,sha,S765.sceneIndex,S765.role,'BOTH');
+ assert.equal(check(),true);
+ for(const [otherSha,otherScene,otherRole,otherFloor] of [
+  [RK143.glbSha256,765,S765.role,'BOTH'],
+  [RK142.glbSha256,765,S765.role,'BOTH'],
+  [sha,764,S765.role,'BOTH'],
+  [sha,765,RK143.role,'BOTH'],
+  [sha,765,S765.role,'1F'],
+ ])assert.equal(validS765(json,otherSha,otherScene,otherRole,otherFloor),false);
+ const change=(o,key,value)=>{
+  const old=o[key];o[key]=value;
+  try{assert.equal(check(),false,'wrong '+String(key));}
+  finally{o[key]=old;}
+ };
+ change(target,'name','FORGED_SCENE765');
+ change(target.nodes,0,999999);
+ change(parent.nodes,0,999999);
+ change(target.extras,'stage','CURRENT');
+ change(target.extras,'sourceRole','2026_INSTALLED');
+ change(target.extras,'actualCableRouteVerified',true);
+ change(target.extras,'electricalSafetyApproval',true);
+ change(target.extras,'sourceLinksOutputSHA','BOUND');
+ change(target.extras,'productionWebGL','PASS');
+ change(json.nodes[S765.newPanelRoot],'children',[13500]);
+ change(json.nodes[S765.newPanelRoot].extras,'cofitBaseGLBSHA256','0'.repeat(64));
+ change(json.nodes[S765.newPanelRoot].extras,'sourceLinksBoundForNewSHA',true);
+ change(json.nodes[S765.newPanelLeaf],'mesh',0);
+ change(json.nodes[S765.newPanelLeaf].extras,'cofitSourceGLBSHA256','0'.repeat(64));
+ change(json.nodes[S765.newPanelLeaf].extras,'current',true);
+ change(json.asset.extras,'current',true);
+ change(json.asset.extras,'asBuilt',true);
+ const r=receiptS765(json,sha,S765.sceneIndex,S765.role,'BOTH');
+ assert.equal(r.exactSource,true);
+ assert.equal(r.publishAllowed,false);
+ assert.equal(r.sourceLinksBound,false);
+ assert.equal(r.humanReview,'NOT_RUN');
+});
+
+import {
+ C80_R31_SCENE766_CLOSED_VM20_SOURCE as S766,
+ isC80R31Scene766ClosedVm20Source as validS766,
+ c80R31Scene766ClosedVm20Receipt as receiptS766,
+} from '../../src/scripts/privateModelC80R31Scene752SourceReceipt.mjs';
+
+test('R31 scene766 SHA-gated closed-hatch original is source-only',()=>{
+ assert.equal(S766.sceneIndex,766);
+ assert.equal(S766.parentScene,765);
+ assert.equal(S766.parentRootFnv32,S765.targetRootFnv32);
+ assert.equal(S766.rootFnv32,'aee109ba');
+ assert.notEqual(S766.glbSha256,S765.glbSha256);
+ assert.notEqual(S766.zipDriveId,S765.zipDriveId);
+ assert.match(S766.glbSha256,/^[a-f0-9]{64}$/);
+ assert.match(S766.zipSha256,/^[a-f0-9]{64}$/);
+ for(const [sha,i,role,floor] of [
+  [S766.glbSha256,766,S766.role,'BOTH'],
+  [S766.glbSha256,765,S766.role,'BOTH'],
+  [S765.glbSha256,766,S766.role,'BOTH'],
+  [S766.glbSha256,766,S765.role,'BOTH'],
+  [S766.glbSha256,766,S766.role,'2F'],
+  [S766.glbSha256,766,'__proto__','BOTH'],
+ ])assert.equal(validS766({},sha,i,role,floor),false);
+ const r=receiptS766({},S766.glbSha256,766,S766.role,'BOTH');
+ assert.equal(r.exactSource,false);
+ assert.equal(r.publishAllowed,false);
+ assert.equal(r.sourceLinksBound,false);
+ assert.equal(r.physicalHatchOpeningVerified,false);
+ assert.equal(r.current,false);
+ assert.equal(r.asBuilt,false);
+});
+const scene766OriginalGlbPath=process.env.C80_R31_RK142_RK143_MJ83_VM20_CLOSED_SCENE766_GLB_PATH;
+test('R31 scene766 ORIGINAL GLB exact SHA, roots, role, parent and fail-closed mutations',
+ {skip:!scene766OriginalGlbPath},()=>{
+ const {b,json}=parse(scene766OriginalGlbPath);
+ const sha=createHash('sha256').update(b).digest('hex');
+ assert.equal(b.length,S766.glbBytes);
+ assert.equal(sha,S766.glbSha256);
+ assert.equal(json.scene,S766.defaultScene);
+ assert.equal(json.scenes.length,S766.sceneCount);
+ assert.equal(json.nodes.length,S766.nodeCount);
+ assert.equal(json.meshes.length,S766.meshCount);
+ assert.equal(json.materials.length,S766.materialCount);
+ assert.equal(json.accessors.length,S766.accessorCount);
+ assert.equal(json.bufferViews.length,S766.bufferViewCount);
+ const parent=json.scenes[S766.parentScene],target=json.scenes[S766.sceneIndex];
+ assert.equal(parent.name,S766.parentSceneName);
+ assert.equal(target.name,S766.sceneName);
+ assert.equal(fnv(parent.nodes),S766.parentRootFnv32);
+ assert.equal(fnv(target.nodes),S766.rootFnv32);
+ assert.equal(fnv(json.scenes[761].nodes),S766.closedSourceRootFnv32);
+ assert.deepEqual(target.nodes,
+  parent.nodes.map(id=>id===S766.openRoot?S766.closedRoot:id));
+ const check=()=>validS766(json,sha,766,S766.role,'BOTH');
+ assert.equal(check(),true);
+ assert.equal(validS766(json,S765.glbSha256,766,S766.role,'BOTH'),false);
+ assert.equal(validS766(json,sha,765,S766.role,'BOTH'),false);
+ assert.equal(validS766(json,sha,766,S765.role,'BOTH'),false);
+ assert.equal(validS766(json,sha,766,S766.role,'2F'),false);
+ const change=(obj,key,value)=>{
+  const old=obj[key];obj[key]=value;
+  try{assert.equal(check(),false,'tampered '+String(key));}
+  finally{obj[key]=old;}
+ };
+ change(target,'name','FORGED');
+ change(target.nodes,0,999999);
+ change(parent.nodes,0,999999);
+ change(json.scenes[761].nodes,0,999999);
+ change(target.extras,'sourceGlbSha256','0'.repeat(64));
+ change(target.extras,'vm20AccessView','OPEN');
+ change(target.extras,'vm20ClosedNode',13496);
+ change(target.extras,'sourceLinksForNewShaBound',true);
+ change(target.extras,'productionWebGL','PASS');
+ change(target.extras,'physical2026GroupConnectionVerified',true);
+ change(json.nodes[S766.closedLeaf],'mesh',0);
+ change(json.nodes[S766.openLeaf],'mesh',0);
+ change(json.asset.extras,'current',true);
+ change(json.asset.extras,'asBuilt',true);
+ const r=receiptS766(json,sha,766,S766.role,'BOTH');
+ assert.equal(r.exactSource,true);
+ assert.equal(r.publishAllowed,false);
+ assert.equal(r.sourceLinksBound,false);
+ assert.equal(r.physicalHatchOpeningVerified,false);
+ assert.equal(r.current,false);
+});

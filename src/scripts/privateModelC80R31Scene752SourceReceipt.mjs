@@ -787,3 +787,162 @@ export function c80R31RK143SourceReceipt(json,authenticatedSha,sceneIndex,role,f
   physicalCableVerified:false,electricalSafetyVerified:false,
  });
 }
+
+
+/**
+ * Original R31 scene765 = 2015 RK14.2/RK14.3 schematic circuits plus the
+ * 2026 owner-photo Savo I7603 right keypad. The exact GLB SHA is mandatory:
+ * scene765 alone is not a source identity. This is SOURCE_ONLY, not mounting
+ * a view, authorizing an electrical connection or publishing an as-built.
+ */
+export const C80_R31_SCENE765_RK142_RK143_MJ83_SOURCE=Object.freeze({
+ role:'RK14_2_RK14_3_MJ83_RIGHT_KEYPAD_2015_PLAN_2026_PHOTO',sceneIndex:765,
+ glbSha256:'1176509e91a5677561476a6a6ca84725b79fd9f2000b6cc2b0a89276f81856a6',
+ glbBytes:63763368,zipDriveId:'1oGqzL-P-AOBnE2gGflEUNg8AvmKT-ZGM',
+ zipSha256:'1e38a71ddc4d304350486b9b3691bed62494e610c0e311de39e2ffab8d544a9f',
+ sceneName:'Ylisrinne_C80_R31_RK14_2_RK14_3_MJ83_RIGHT_KEYPAD_COFIT_2015_PLAN_2026_PHOTO_WORK_TEST_HOST_HOLD__scene765',
+ parentSceneName:'Ylisrinne_C80_R31_RK14_2_WINE_RK14_3_HOOD_COMBINED_2015_SCHEMA_WORK_TEST_HOST_HOLD__scene764',
+ sceneCount:766,nodeCount:13503,meshCount:5168,materialCount:814,
+ accessorCount:11265,bufferViewCount:11271,defaultScene:292,
+ parentScene:764,parentRootCount:497,parentRootFnv32:'957cc832',
+ targetRootCount:498,targetRootFnv32:'dfc19064',
+ parentGlbSha256:'ff283855c3a1160021562b87d918bb98963f06d4844984f6e343c83c2e868017',
+ mj83CofitGlbSha256:'99aaa0b9c633e6968a1b964b8b2d7e5abbfa1441d713f82f87d664789be3c6ba',
+ mj83OriginalGlbSha256:'dafe740cd1f0fd4bf483b2fac35edefd617adc20cf4404e23bf451976363bf56',
+ newPanelRoot:13502,newPanelLeaf:13501,reusedPanelMesh:4540,
+ wineRoot:13499,hoodRoot:13500,
+});
+export function isC80R31Scene765RK142RK143MJ83Source(json,authenticatedSha,sceneIndex,role,floor){
+ const s=C80_R31_SCENE765_RK142_RK143_MJ83_SOURCE,a=json?.asset?.extras;
+ if(authenticatedSha!==s.glbSha256||sceneIndex!==s.sceneIndex||role!==s.role||
+  (floor!==undefined&&floor!=='BOTH')||
+  json?.scene!==s.defaultScene||json?.scenes?.length!==s.sceneCount||
+  json?.nodes?.length!==s.nodeCount||json?.meshes?.length!==s.meshCount||
+  json?.materials?.length!==s.materialCount||
+  json?.accessors?.length!==s.accessorCount||
+  json?.bufferViews?.length!==s.bufferViewCount||
+  a?.ModelStage!=='WORK_TEST'||a?.current!==false||a?.asBuilt!==false||
+  a?.HUMAN_REVIEW!=='NOT_RUN')return false;
+ const parent=json.scenes[s.parentScene],target=json.scenes[sceneIndex];
+ const prev=parent?.nodes,roots=target?.nodes,e=target?.extras,p=parent?.extras;
+ const r=json.nodes[s.newPanelRoot],leaf=json.nodes[s.newPanelLeaf];
+ const x=r?.extras,y=leaf?.extras;
+ if(parent?.name!==s.parentSceneName||target?.name!==s.sceneName||
+  !Array.isArray(prev)||!Array.isArray(roots)||
+  prev.length!==s.parentRootCount||roots.length!==s.targetRootCount||
+  new Set(prev).size!==prev.length||new Set(roots).size!==roots.length||
+  c80R31Scene752RootsFnv32(prev)!==s.parentRootFnv32||
+  c80R31Scene752RootsFnv32(roots)!==s.targetRootFnv32||
+  !exactly(roots,[...prev,s.newPanelRoot])||
+  !roots.includes(s.wineRoot)||!roots.includes(s.hoodRoot)||
+  !exactly(p?.circuitIds,['RK14.2','RK14.3'])||
+  p?.sourceRole!=='2014_15_TWO_SEPARATE_PLAN_ONLY_CIRCUITS'||
+  e?.stage!=='WORK_TEST_HOST_HOLD'||e?.WORK_TEST!==true||e?.HOST_HOLD!==true||
+  e?.sourceRole!=='2014_15_TWO_SEPARATE_PLAN_ONLY_CIRCUITS'||
+  !exactly(e?.circuitIds,['RK14.2','RK14.3'])||
+  e?.renderedCableRoutes!=='DIAGRAM_ONLY_NOT_INSTALLED'||
+  e?.physical2026GroupConnectionVerified!==false||
+  e?.actualCableRouteVerified!==false||e?.electricalSafetyApproval!==false||
+  e?.sourceLinksOutputSHA!=='NOT_BOUND'||e?.sourceLinksOutputShaBound!==false||
+  e?.productionWebGL!=='NOT_RUN'||e?.HUMAN_REVIEW!=='NOT_RUN'||
+  e?.current!==false||e?.asBuilt!==false||e?.canonical!==false||
+  r?.name!=='C80_R31_RK142_RK143_MJ83_OWNER_KEYPAD_COFIT_OPTIN_ROOT'||
+  !exactly(r?.children,[s.newPanelLeaf])||
+  x?.cofitBaseGLBSHA256!==s.parentGlbSha256||
+  x?.cofitBaseSceneIndex!==s.parentScene||
+  x?.cofitSourceGLBSHA256!==s.mj83CofitGlbSha256||
+  x?.cofitSourceSceneIndex!==762||
+  x?.sourceMJ83GLBSHA256!==s.mj83OriginalGlbSha256||
+  x?.photoGeometryOwnerRelativeOnly!==true||
+  x?.sourceLinksBoundForNewSHA!==false||
+  x?.current!==false||x?.asBuilt!==false||
+  leaf?.mesh!==s.reusedPanelMesh||
+  y?.visualRole!=='SAVO_I7603_OWNER_RIGHT_KEYPAD'||
+  y?.cofitSourceGLBSHA256!==s.mj83CofitGlbSha256||
+  y?.cofitSourceNode!==13497||
+  y?.sourceDonorGLBSha256!==s.mj83OriginalGlbSha256||
+  y?.sourceLinksBoundForNewSHA!==false||
+  y?.WORK_TEST!==true||y?.current!==false||y?.asBuilt!==false)return false;
+ return true;
+}
+export function c80R31Scene765RK142RK143MJ83SourceReceipt(json,authenticatedSha,sceneIndex,role,floor){
+ return Object.freeze({
+  exactSource:isC80R31Scene765RK142RK143MJ83Source(json,authenticatedSha,sceneIndex,role,floor),
+  stage:'WORK_TEST_HOST_HOLD',sourceLinksBound:false,publishAllowed:false,
+  productionWebGLVerified:false,humanReview:'NOT_RUN',current:false,asBuilt:false,
+  physicalHostVerified:false,physicalCableVerified:false,electricalSafetyVerified:false,
+ });
+}
+
+/** Source-only SHA gate for R31 __scene766: 2015 circuit diagrams,
+ * 2026 Savo keypad, and VM20 CLOSED. No runtime/as-built authorization. */
+export const C80_R31_SCENE766_CLOSED_VM20_SOURCE=Object.freeze({
+ role:'RK14_2_RK14_3_MJ83_VM20_ACCESS_CLOSED_2015_PLAN_2026_PHOTO',
+ sceneIndex:766,
+ glbSha256:'6cf2923afaa2b7b0a5028a13465ba13071bd8d9c612885e978d40d1e51904e1d',
+ glbBytes:63768192,zipDriveId:'1eP8alIGRVv7w5OfpO1NbKD3U5SG-Mqek',
+ zipSha256:'fa65d1cb3df6ed9d55bebd5f85400d4e9049e34da67c7d42cf9764e9a431746c',
+ sceneName:'Ylisrinne_C80_R31_RK142_RK143_MJ83_SAVO_VM20_ACCESS_CLOSED_2015_PLAN_2026_PHOTO_WORK_TEST_HOST_HOLD__scene766',
+ parentSceneName:C80_R31_SCENE765_RK142_RK143_MJ83_SOURCE.sceneName,
+ closedSceneName:'H1911-3_R31_VM20_WC_ACCESS_CLOSED_WORK_TEST_HOST_HOLD__scene761',
+ sceneCount:767,nodeCount:13503,meshCount:5168,materialCount:814,
+ accessorCount:11265,bufferViewCount:11271,defaultScene:292,
+ parentScene:765,parentRootCount:498,parentRootFnv32:'dfc19064',
+ rootCount:498,rootFnv32:'aee109ba',
+ parentGlbSha256:C80_R31_SCENE765_RK142_RK143_MJ83_SOURCE.glbSha256,
+ parentZipDriveId:C80_R31_SCENE765_RK142_RK143_MJ83_SOURCE.zipDriveId,
+ closedSourceScene:761,closedSourceRootFnv32:'da71cd8f',
+ openRoot:13497,closedRoot:13167,openLeaf:13496,closedLeaf:1727,
+ wineRoot:13499,hoodRoot:13500,panelRoot:13502,
+});
+export function isC80R31Scene766ClosedVm20Source(json,sha,index,role,floor){
+ const s=C80_R31_SCENE766_CLOSED_VM20_SOURCE,asset=json?.asset?.extras;
+ if(sha!==s.glbSha256||index!==s.sceneIndex||role!==s.role||
+  (floor!==undefined&&floor!=='BOTH')||json?.scene!==s.defaultScene||
+  json?.scenes?.length!==s.sceneCount||json?.nodes?.length!==s.nodeCount||
+  json?.meshes?.length!==s.meshCount||json?.materials?.length!==s.materialCount||
+  json?.accessors?.length!==s.accessorCount||
+  json?.bufferViews?.length!==s.bufferViewCount||
+  asset?.ModelStage!=='WORK_TEST'||asset?.current!==false||
+  asset?.asBuilt!==false||asset?.HUMAN_REVIEW!=='NOT_RUN')return false;
+ const target=json.scenes[index],parent=json.scenes[s.parentScene];
+ const source=json.scenes[s.closedSourceScene],r=target?.nodes,p=parent?.nodes,e=target?.extras;
+ if(target?.name!==s.sceneName||parent?.name!==s.parentSceneName||
+  source?.name!==s.closedSceneName||!Array.isArray(r)||!Array.isArray(p)||
+  r.length!==s.rootCount||p.length!==s.parentRootCount||
+  new Set(r).size!==r.length||new Set(p).size!==p.length||
+  c80R31Scene752RootsFnv32(r)!==s.rootFnv32||
+  c80R31Scene752RootsFnv32(p)!==s.parentRootFnv32||
+  c80R31Scene752RootsFnv32(source?.nodes)!==s.closedSourceRootFnv32||
+  p.filter(x=>x===s.openRoot).length!==1||
+  !exactly(r,p.map(x=>x===s.openRoot?s.closedRoot:x))||
+  !source?.nodes?.includes(s.closedRoot)||r.includes(s.openRoot)||
+  ![s.closedRoot,s.wineRoot,s.hoodRoot,s.panelRoot].every(x=>r.includes(x))||
+  json.nodes[s.closedLeaf]?.mesh!==833||json.nodes[s.openLeaf]?.mesh!==833||
+  e?.stage!=='WORK_TEST_HOST_HOLD'||e?.WORK_TEST!==true||e?.HOST_HOLD!==true||
+  e?.sourceRole!=='2014_15_TWO_SEPARATE_PLAN_ONLY_CIRCUITS'||
+  !exactly(e?.circuitIds,['RK14.2','RK14.3'])||
+  e?.renderedCableRoutes!=='DIAGRAM_ONLY_NOT_INSTALLED'||
+  e?.sourceDriveId!==s.parentZipDriveId||
+  e?.sourceGlbSha256!==s.parentGlbSha256||e?.sourceSceneIndex!==s.parentScene||
+  e?.vm20AccessView!=='CLOSED'||e?.vm20ClosedNode!==s.closedLeaf||
+  e?.vm20OriginalClosedRoot!==s.closedRoot||
+  e?.vm20OpenNodeOff!==s.openLeaf||e?.originRootOpenOff!==s.openRoot||
+  e?.sourceLinksForNewShaBound!==false||
+  e?.sourceLinksOutputSHA!=='NOT_BOUND'||e?.sourceLinksOutputShaBound!==false||
+  e?.physical2026GroupConnectionVerified!==false||
+  e?.actualCableRouteVerified!==false||e?.electricalSafetyApproval!==false||
+  e?.productionWebGL!=='NOT_RUN'||e?.HUMAN_REVIEW!=='NOT_RUN'||
+  e?.current!==false||e?.asBuilt!==false||e?.canonical!==false||
+  e?.isCurrent!==false)return false;
+ return true;
+}
+export function c80R31Scene766ClosedVm20Receipt(json,sha,index,role,floor){
+ return Object.freeze({
+  exactSource:isC80R31Scene766ClosedVm20Source(json,sha,index,role,floor),
+  stage:'WORK_TEST_HOST_HOLD',sourceLinksBound:false,publishAllowed:false,
+  productionWebGLVerified:false,humanReview:'NOT_RUN',current:false,asBuilt:false,
+  physicalHostVerified:false,physicalCableVerified:false,
+  electricalSafetyVerified:false,physicalHatchOpeningVerified:false,
+ });
+}
