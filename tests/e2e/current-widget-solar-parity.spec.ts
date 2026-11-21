@@ -66,7 +66,7 @@ for (const { time, state, atHorizon, side } of [
   { time: '2026-11-21T10:06:00.000Z', state: 'day', atHorizon: false, side: 'center' },
   { time: '2026-11-21T13:38:00.000Z', state: 'day', atHorizon: true, side: 'right' },
   { time: '2026-11-21T13:39:00.000Z', state: 'night', atHorizon: false, side: 'right' },
-  { time: '2026-11-21T20:42:00.000Z', state: 'night', atHorizon: false, side: 'center' },
+  { time: '2026-11-21T22:06:00.000Z', state: 'night', atHorizon: false, side: 'center' },
 ]) {
   test(`24h marker at ${time} is ${state} and ${side}`, async ({ page }) => {
     await page.clock.setFixedTime(new Date(time));
