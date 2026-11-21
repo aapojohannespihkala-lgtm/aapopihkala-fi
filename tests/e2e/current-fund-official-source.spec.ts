@@ -78,3 +78,16 @@ test('Nordnet Sweden and Spiltan use matching SEK NAV, not another fund on the p
     });
   }
 });
+
+test('a stale duplicated hydration entry cannot shadow a fresh matching ISIN entry', () => {
+  const spec = { id: 'storebrand-japan', label: 'STOREBRAND JAPAN A EUR', isin: 'SE0013801479' };
+  const one = (date: string, value: number, change: number) =>
+    '{"isin":"SE0013801479","currency":"EUR"},"navInfo":{' +
+    '"latestNav":{"date":"' + date + '","value":' + value + '},' +
+    '"returns":[{"development":' + change + ',"period":"YEAR_5"}]}';
+  const raw = one('2026-10-01', 200, 9) + ' ' + one('2026-11-19', 208.47, 43.39);
+  const item = parseNordnetEmbeddedFund(raw, spec, new Date('2026-11-21T10:00:00Z'));
+  expect(item).toMatchObject({
+    observedAt: '2026-11-19', price: 208.47, changes: { year5: 43.39 },
+  });
+});
