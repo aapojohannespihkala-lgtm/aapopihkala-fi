@@ -1,4 +1,6 @@
 import { onRequestGet as getBasePortfolio } from './portfolio-stable';
+import { projectForestShortPeriods } from './portfolio-projection';
+import { parseInvestingFundHistory } from './portfolio-fund-recovery';
 
 type PerformanceChanges = {
   today: number | null;
@@ -187,24 +189,9 @@ const fetchOfficialOpNav = async (spec: OpShortHistorySpec): Promise<NavPoint> =
 };
 
 const parseInvestingHistory = (body: string, isin: string): NavPoint[] => {
-  const text = htmlToText(body);
-  if (!new RegExp(`ISIN\\s*:?\\s*${isin}`, 'i').test(text)) {
-    throw new Error(`Investing ISIN mismatch for ${isin}`);
-  }
-
-  const points = new Map<string, NavPoint>();
-  const rowPattern = /(\d{2})\.(\d{2})\.(\d{4})\s*(?:\|\s*)?([\d\s]+,\d{2,4})\b/g;
-
-  for (const match of text.matchAll(rowPattern)) {
-    const value = parseNumber(match[4]);
-    if (value === null || value <= 0) continue;
-    const observedAt = `${match[3]}-${match[2]}-${match[1]}`;
-    points.set(observedAt, { observedAt, value });
-  }
-
-  const result = [...points.values()].sort((a, b) => a.observedAt.localeCompare(b.observedAt));
-  if (result.length < 2) throw new Error(`Investing history incomplete for ${isin}`);
-  return result;
+  const history = parseInvestingFundHistory(body, isin);
+  if (history.length < 2) throw new Error(`Investing ISIN-matched history unavailable for ${isin}`);
+  return history;
 };
 
 const fetchInvestingHistory = async (spec: OpShortHistorySpec) => {
@@ -274,36 +261,69 @@ const buildShortChanges = (official: NavPoint, history: NavPoint[]) => {
   };
 };
 
+// Use a validated and recent third-party NAV series only when OP's official
+// NAV is unavailable. A conflicting official and third-party NAV fails closed.
+export const buildInvestingOnlyShortChanges = (history: NavPoint[], now = new Date()) => {
+  const latest = history.at(-1);
+  const previous = history.at(-2);
+  if (!latest || !previous) return null;
+  const latestTime = Date.parse(`${latest.observedAt}T00:00:00Z`);
+  const previousTime = Date.parse(`${previous.observedAt}T00:00:00Z`);
+  if (!Number.isFinite(latestTime) || latestTime > now.getTime() + DAY_MS ||
+      now.getTime() - latestTime > 10 * DAY_MS ||
+      latestTime - previousTime > MAX_REFERENCE_GAP_MS || previous.value <= 0) return null;
+  const weekTarget = latestTime - 7 * DAY_MS;
+  const reference = findReference(history, weekTarget);
+  const referenceTime = reference ? Date.parse(`${reference.observedAt}T00:00:00Z`) : NaN;
+  return {
+    latest,
+    today: percentChange(latest, previous),
+    week1: reference && Number.isFinite(referenceTime) &&
+      weekTarget - referenceTime <= MAX_REFERENCE_GAP_MS
+      ? percentChange(latest, reference) : null,
+  };
+};
+
 const enrichOpShortHistory = async (item: PortfolioItem, spec: OpShortHistorySpec) => {
   if (item.changes.today !== null && item.changes.week1 !== null) {
     return { item, enriched: false };
   }
+  const [officialResult, historyResult] = await Promise.allSettled([
+    withTaskTimeout(fetchOfficialOpNav(spec), `${spec.id} OP NAV`),
+    withTaskTimeout(fetchInvestingHistory(spec), `${spec.id} Investing history`),
+  ]);
+  if (historyResult.status !== 'fulfilled') return { item, enriched: false };
 
-  try {
-    const [official, history] = await Promise.all([
-      withTaskTimeout(fetchOfficialOpNav(spec), `${spec.id} OP NAV`),
-      withTaskTimeout(fetchInvestingHistory(spec), `${spec.id} Investing history`),
-    ]);
-    const short = buildShortChanges(official, history);
-    const changes = {
-      ...item.changes,
-      today: item.changes.today ?? short.today,
-      week1: item.changes.week1 ?? short.week1,
-    };
-    const enriched = changes.today !== item.changes.today || changes.week1 !== item.changes.week1;
-
-    return {
-      item: {
-        ...item,
-        price: item.price ?? official.value,
-        observedAt: official.observedAt > item.observedAt ? official.observedAt : item.observedAt,
-        changes,
-      },
-      enriched,
-    };
-  } catch {
-    return { item, enriched: false };
+  let short: { today: number | null; week1: number | null };
+  let latest: NavPoint;
+  if (officialResult.status === 'fulfilled') {
+    try {
+      short = buildShortChanges(officialResult.value, historyResult.value);
+    } catch {
+      return { item, enriched: false };
+    }
+    latest = officialResult.value;
+  } else {
+    const recovered = buildInvestingOnlyShortChanges(historyResult.value);
+    if (!recovered) return { item, enriched: false };
+    short = recovered;
+    latest = recovered.latest;
   }
+  const changes = {
+    ...item.changes,
+    today: item.changes.today ?? short.today,
+    week1: item.changes.week1 ?? short.week1,
+  };
+  const enriched = changes.today !== item.changes.today || changes.week1 !== item.changes.week1;
+  return {
+    item: {
+      ...item,
+      price: item.price ?? latest.value,
+      observedAt: latest.observedAt > item.observedAt ? latest.observedAt : item.observedAt,
+      changes,
+    },
+    enriched,
+  };
 };
 
 export const onRequestGet = async () => {
@@ -330,9 +350,9 @@ export const onRequestGet = async () => {
   return new Response(
     JSON.stringify({
       ...body,
-      items: results.map((result) => result.item),
+      items: results.map((result) => projectForestShortPeriods(result.item)),
       source: enriched ? `${body.source} + Investing.com ISIN-matched OP NAV history` : body.source,
-      version: Math.max(body.version ?? 0, 14),
+      version: Math.max(body.version ?? 0, 15),
     }),
     {
       status: baseResponse.status,

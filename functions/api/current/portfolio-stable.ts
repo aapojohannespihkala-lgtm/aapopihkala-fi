@@ -1,4 +1,5 @@
 import { onRequestGet as getResilientPortfolio } from './portfolio-resilient';
+import { recoverMissingFund } from './portfolio-fund-recovery';
 
 type PerformanceChanges = {
   today: number | null;
@@ -93,6 +94,8 @@ const OP_RECOVERY_SPECS: OpRecoverySpec[] = [
     rowLabel: 'OP-Forest Owner B',
   },
 ];
+
+const PUBLIC_FUND_RECOVERY_IDS = ['handelsbanken-usa', 'nordnet-finland', 'storebrand-japan'] as const;
 
 const PORTFOLIO_ORDER = [
   'handelsbanken-usa',
@@ -405,7 +408,8 @@ export const onRequestGet = async () => {
 
   const byId = new Map(body.items.map((item) => [item.id, item] as const));
   const missingSpecs = OP_RECOVERY_SPECS.filter((spec) => !byId.has(spec.id));
-  if (missingSpecs.length === 0) {
+  const missingPublicIds = PUBLIC_FUND_RECOVERY_IDS.filter((id) => !byId.has(id));
+  if (missingSpecs.length === 0 && missingPublicIds.length === 0) {
     return new Response(
       JSON.stringify({
         ...body,
@@ -425,12 +429,21 @@ export const onRequestGet = async () => {
     );
   }
 
-  const settled = await Promise.allSettled(
-    missingSpecs.map((spec) => withTaskTimeout(recoverOpFund(spec), spec.id))
-  );
-  const recovered = settled.flatMap((result) =>
-    result.status === 'fulfilled' ? [result.value] : []
-  );
+  const [opSettled, publicSettled] = await Promise.all([
+    Promise.allSettled(
+      missingSpecs.map((spec) => withTaskTimeout(recoverOpFund(spec), spec.id))
+    ),
+    Promise.allSettled(missingPublicIds.map((id) => recoverMissingFund(id))),
+  ]);
+  const opRecovered = opSettled.flatMap((result) =>
+    result.status === 'fulfilled' ? [result.value] : []);
+  const publicRecovered = publicSettled.flatMap((result) =>
+    result.status === 'fulfilled' && result.value ? [result.value] : []);
+  const recovered = [...opRecovered, ...publicRecovered];
+  const recoverySources = [
+    ...(opRecovered.length ? ['OP official reader fallback'] : []),
+    ...(publicRecovered.length ? ['verified public fund recovery'] : []),
+  ];
 
   for (const item of recovered) byId.set(item.id, item);
   const items = [...byId.values()].sort(
@@ -445,7 +458,7 @@ export const onRequestGet = async () => {
       ...body,
       items,
       unavailable,
-      source: recovered.length > 0 ? `${body.source} + OP official reader fallback` : body.source,
+      source: recoverySources.length ? `${body.source} + ${recoverySources.join(' + ')}` : body.source,
       version: Math.max(body.version ?? 0, 13),
     }),
     {

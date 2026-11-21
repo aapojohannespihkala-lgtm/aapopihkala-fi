@@ -42,6 +42,8 @@ type MarketPerformanceItem = {
   price: number | null;
   observedAt: string;
   changes: Record<PerformancePeriod, number | null>;
+  estimatedPeriods?: PerformancePeriod[];
+  estimationMethod?: string;
 };
 
 type MarketPerformanceResponse = {
@@ -269,7 +271,10 @@ const resetRows = (root: HTMLElement) => {
 
     row.querySelectorAll<HTMLElement>('[data-market-performance-change]').forEach((cell) => {
       cell.textContent = '--';
-      cell.classList.remove('is-positive', 'is-negative', 'is-flat');
+      cell.classList.remove('is-positive', 'is-negative', 'is-flat', 'is-estimated');
+      cell.removeAttribute('title');
+      cell.removeAttribute('aria-label');
+      cell.removeAttribute('data-estimated');
     });
   });
 };
@@ -485,11 +490,27 @@ export const initCurrentMarketPerformance = () => {
           continue;
         }
 
-        target.textContent = formatChange(value);
+        const estimated = item.estimatedPeriods?.includes(period.key) === true;
+        target.textContent = estimated ? `≈${formatChange(value)}` : formatChange(value);
+        target.classList.toggle('is-estimated', estimated);
+        if (estimated) {
+          target.dataset.estimated = 'true';
+          target.title = 'Arvio: tasainen laskennallinen tuotto viimeisimmästä 3 kk tuotosta, ei julkaistu 1D/1W/1M arvo';
+          target.setAttribute('aria-label', `Arvioitu ${period.label} muutos ${formatChange(value)}`);
+        } else {
+          target.removeAttribute('data-estimated');
+          target.removeAttribute('title');
+          target.removeAttribute('aria-label');
+        }
         applyChangeTone(target, value);
       }
 
       row.dataset.marketPerformanceLoaded = 'true';
+      if (item.estimatedPeriods?.length) {
+        row.title = '≈ = laskennallinen arvio 3 kk tuotosta, ei julkaistu päivä-, viikko- tai kuukausiarvo';
+      } else {
+        row.removeAttribute('title');
+      }
     }
 
     sortRows();
