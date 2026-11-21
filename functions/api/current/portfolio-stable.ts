@@ -435,10 +435,14 @@ export const onRequestGet = async () => {
     ),
     Promise.allSettled(missingPublicIds.map((id) => recoverMissingFund(id))),
   ]);
-  const recovered = [
-    ...opSettled.flatMap((result) => result.status === 'fulfilled' ? [result.value] : []),
-    ...publicSettled.flatMap((result) =>
-      result.status === 'fulfilled' && result.value ? [result.value] : []),
+  const opRecovered = opSettled.flatMap((result) =>
+    result.status === 'fulfilled' ? [result.value] : []);
+  const publicRecovered = publicSettled.flatMap((result) =>
+    result.status === 'fulfilled' && result.value ? [result.value] : []);
+  const recovered = [...opRecovered, ...publicRecovered];
+  const recoverySources = [
+    ...(opRecovered.length ? ['OP official reader fallback'] : []),
+    ...(publicRecovered.length ? ['verified public fund recovery'] : []),
   ];
 
   for (const item of recovered) byId.set(item.id, item);
@@ -454,7 +458,7 @@ export const onRequestGet = async () => {
       ...body,
       items,
       unavailable,
-      source: recovered.length > 0 ? `${body.source} + verified public fund recovery` : body.source,
+      source: recoverySources.length ? `${body.source} + ${recoverySources.join(' + ')}` : body.source,
       version: Math.max(body.version ?? 0, 13),
     }),
     {
