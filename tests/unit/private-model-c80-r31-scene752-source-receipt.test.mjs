@@ -998,3 +998,123 @@ test('R31 ORIGINAL scene767: SHA + 2F source743 rebase with L12 roots + negative
  assert.equal(receipt.latest2FParityVerified,false);
  assert.equal(receipt.electricalSafetyVerified,false);
 });
+
+import {
+ C80_R31_SCENE768_2F_RK141_COFIT_SOURCE as S768,
+ C80_R31_SCENE767_2F_L12_RK14_MJ83_SOURCE as S767_768,
+ isC80R31Scene768Source as validS768,
+ c80R31Scene768SourceReceipt as receiptS768,
+} from '../../src/scripts/privateModelC80R31Scene752SourceReceipt.mjs';
+
+const scene768OriginalGlbPath=process.env.C80_R31_2F_RK141_COFIT_SCENE768_GLB_PATH;
+const source768ParentRoots=[7356,2658,6431,12440,13164,7361,7366,7367,5323,7368,5327,5629,13165,7369,5835,5836,9263,7370,6435,7371,8003,6472,6473,6474,6475,6476,6517,6518,6519,6831,6832,6564,6565,6994,7372,6653,6729,6730,12437,10795,9573,9574,9575,9576,7904,7905,7906,7907,7908,7909,7932,12136,7979,8024,8025,8026,9264,8199,8895,12106,9197,9198,9199,9200,9257,9332,9911,9912,9761,9338,9763,9764,9762,13141,10976,13505,10555,10556,10557,10558,10559,10560,10561,10562,10656,10657,10659,10763,12633,10771,10772,10773,10774,10775,10776,10777,10778,10779,10780,10781,10782,10783,10784,10785,10786,10787,12635,12636,12637,12638,12639,12144,12634,11304,11319,11339,11340,11341,11342,11343,11344,11345,11346,11347,11348,13227,13228,13229,13230,13231,12264,12265,12266,12267,12268,12269,12270,12271,11535,11536,11624,11625,11645,11648,13319,11662,11677,12157,11713,11727,11721,11722,11723,13242,13243,13244,13245,13246,12358,11858,11891,11907,11574,12622,12051,12137,12165,12166,12167,12168,12242,12244,12246,12248,12315,12312,12316,12431,12432,12433,12434,12435,12643,12623,12624,12625,12626,12466,12503,12504,12497,12505,13247,12695,13176,13252,13253,13309,13325,13499,13500,13502];
+test('R31 scene768 synthetic positive receipt and fail-closed source/host/circuit mutations',()=>{
+ assert.equal(source768ParentRoots.length,202);
+ assert.equal(fnv(source768ParentRoots),S768.baseRootFnv32);
+ assert.equal(fnv([...source768ParentRoots,S768.newRoot]),S768.rootFnv32);
+ assert.equal(S768.baseGlbSha256,S767_768.glbSha256);
+ assert.equal(S768.newRoot,13506);
+ assert.notEqual(S768.glbSha256,S767_768.glbSha256);
+ const n13506={
+  name:S768.newNodeName,mesh:S768.newMesh,
+  extras:{
+   m5System:'SAHKO',ylisTechRole:'HISTORICAL_SCHEMATIC_REVIEW_GUIDE',
+   stage:'WORK_TEST_HOST_HOLD',circuitId:'RK14.1',historicalCircuit:true,
+   evidenceLevel:'HISTORICAL_2015_PLUS_2026_WORK_ASSUMPTION',
+   physicalRouteVerified:false,physicalWiring2026Verified:false,
+   switchControlsVerified:false,newPhysicalCableClaim:false,
+   electricalSafetyApproval:false,confidence:'LOW_PHYSICAL_ROUTE',
+   sourcePanelCircuitNode:13012,sourcePanelMesh:3754,
+   sourceSwitchNotBound:13246,sourceLinksOutputSHA:'NOT_BOUND',
+   sourceOriginalDriveId:S768.rk141DonorDriveId,
+   sourceOriginalGLBSha256:S768.rk141DonorGlbSha256,
+   donorNode:13483,donorMesh:5162,outputScene:768,
+   current:false,asBuilt:false,humanReview:'NOT_RUN',productionWebGL:'NOT_RUN',
+  },
+ };
+ const e={
+  stage:'WORK_TEST_HOST_HOLD',WORK_TEST:true,HOST_HOLD:true,
+  sourceBaseScene:767,sourceBaseDriveId:S768.baseZipDriveId,
+  sourceBaseGlbSha256:S768.baseGlbSha256,
+  rk141DonorDriveId:S768.rk141DonorDriveId,
+  rk141DonorGLBSHA256:S768.rk141DonorGlbSha256,
+  circuits2015:['RK14.1','RK14.2','RK14.3'],
+  rebaseMap:{node13483:13506,mesh5162:5168,material812:814,
+   'accessors11247-11248':'11265-11266'},
+  physicalWiringVerified:false,latest2F_R300RoofHostParity:false,
+  sourceLinksOutputSHA:'NOT_BOUND',sourceLinksOutputSHABound:false,
+  published:false,productionWebGL:'NOT_RUN',HUMAN_REVIEW:'NOT_RUN',
+  current:false,asBuilt:false,canonical:false,fullLatestR3002FParity:false,
+  physicalRouteVerified:false,
+ };
+ const json={
+  scene:292,asset:{extras:{ModelStage:'WORK_TEST',current:false,asBuilt:false,
+   HUMAN_REVIEW:'NOT_RUN'}},
+  scenes:Array(769),nodes:Array(13507),meshes:Array(5169),
+  materials:Array(815),accessors:Array(11267),bufferViews:Array(11273),
+ };
+ json.scenes[767]={name:S767_768.sceneName,nodes:[...source768ParentRoots]};
+ json.scenes[768]={name:S768.sceneName,nodes:[...source768ParentRoots,13506],extras:e};
+ json.nodes[13505]={children:[13503,13504]};
+ json.nodes[13503]={mesh:4991,extras:{m5System:'VIEMARI'}};
+ json.nodes[13504]={mesh:3702,extras:{m5System:'VIEMARI'}};
+ json.nodes[13506]=n13506;
+ const check=()=>validS768(json,S768.glbSha256,768,S768.role,'2F');
+ assert.equal(check(),true);
+ for(const [sha,index,role,floor] of [
+  [S767_768.glbSha256,768,S768.role,'2F'],
+  [S768.glbSha256,767,S768.role,'2F'],
+  [S768.glbSha256,768,S767_768.role,'2F'],
+  [S768.glbSha256,768,S768.role,'BOTH'],
+  [S768.glbSha256,768,'__proto__','2F'],
+ ])assert.equal(validS768(json,sha,index,role,floor),false);
+ const mutate=(o,key,value)=>{const before=o[key];o[key]=value;
+  try{assert.equal(check(),false,'must reject mutation: '+key);}
+  finally{o[key]=before;}};
+ mutate(json.scenes[768],'name','FORGED');
+ mutate(json.scenes[768].nodes,0,999999);
+ mutate(json.scenes[767].nodes,0,999999);
+ mutate(e,'sourceBaseGlbSha256','0'.repeat(64));
+ mutate(e,'rk141DonorGLBSHA256','0'.repeat(64));
+ mutate(e,'latest2F_R300RoofHostParity',true);
+ mutate(e,'physicalWiringVerified',true);
+ mutate(e,'sourceLinksOutputSHABound',true);
+ mutate(e,'published',true);
+ mutate(e.rebaseMap,'mesh5162',0);
+ mutate(n13506,'mesh',0);
+ mutate(n13506.extras,'physicalWiring2026Verified',true);
+ mutate(n13506.extras,'newPhysicalCableClaim',true);
+ mutate(n13506.extras,'electricalSafetyApproval',true);
+ mutate(n13506.extras,'circuitId','RK14.2');
+ mutate(json.nodes[13503].extras,'m5System','VESI');
+ mutate(json.asset.extras,'current',true);
+ const r=receiptS768(json,S768.glbSha256,768,S768.role,'2F');
+ assert.equal(r.exactSource,true);
+ assert.equal(r.publishAllowed,false);
+ assert.equal(r.sourceLinksBound,false);
+ assert.equal(r.latest2FParityVerified,false);
+ assert.equal(r.physicalCableRouteVerified,false);
+ assert.equal(r.productionWebGLVerified,false);
+ assert.equal(r.current,false);
+ assert.equal(r.asBuilt,false);
+});
+test('R31 original scene768 optional complete-GLB SHA and gated parent/new RK14.1', 
+ {skip:!scene768OriginalGlbPath},()=>{
+ const {b,json}=parse(scene768OriginalGlbPath);
+ const sha=createHash('sha256').update(b).digest('hex');
+ assert.equal(b.length,S768.glbBytes);
+ assert.equal(sha,S768.glbSha256);
+ const check=()=>validS768(json,sha,768,S768.role,'2F');
+ assert.equal(check(),true);
+ assert.equal(fnv(json.scenes[767].nodes),S768.baseRootFnv32);
+ assert.equal(fnv(json.scenes[768].nodes),S768.rootFnv32);
+ assert.deepEqual(json.scenes[768].nodes,[...json.scenes[767].nodes,13506]);
+ const mutate=(o,key,value)=>{const before=o[key];o[key]=value;
+  try{assert.equal(check(),false,'original mutation '+key);}
+  finally{o[key]=before;}};
+ mutate(json.scenes[768].extras,'physicalWiringVerified',true);
+ mutate(json.scenes[768].extras,'latest2F_R300RoofHostParity',true);
+ mutate(json.nodes[13506].extras,'sourceLinksOutputSHA','BOUND');
+ mutate(json.nodes[13506],'mesh',0);
+ mutate(json.asset.extras,'asBuilt',true);
+});
