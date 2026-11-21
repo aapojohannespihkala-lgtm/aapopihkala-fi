@@ -106,11 +106,55 @@ test('Wrangler sends every Current API route through the Worker first', () => {
   ]);
 });
 
-test('Worker preserves environment bindings for both Widget v2 routes', () => {
-  const source = readFileSync(new URL('../../worker/index.ts', import.meta.url), 'utf8');
-  const calls = source.match(/getWidgetV2Response\(\{ request, env \}\)/g) ?? [];
+test('Widget and Current reuse the same verified portfolio response', async () => {
+  const portfolioEntry = {
+    id: 'handelsbanken-usa', symbol: 'SE0006800140', price: 100,
+    observedAt: new Date().toISOString().slice(0, 10),
+    changes: { today: -0.28, week1: 1, month1: 2, month3: 3, month6: 4,
+      ytd: 5, year1: 6, year3: 7, year5: 8 },
+  };
+  const body = { items: [portfolioEntry] };
+  const cacheRequests: string[] = [];
+  const hslKeys: Array<string | null> = [];
+  const originalCaches = Object.getOwnPropertyDescriptor(globalThis, 'caches');
+  const originalFetch = globalThis.fetch;
+  Object.defineProperty(globalThis, 'caches', { configurable: true, value: { default: {
+    match: async (request: Request) => {
+      cacheRequests.push(request.url);
+      if (request.url !== 'https://aapopihkala.fi/api/current/markets?portfolio=1&cache=last-known-good-v1') return undefined;
+      return Response.json(body, { headers: { 'X-Portfolio-Cached-At': new Date().toISOString() } });
+    },
+    put: async () => undefined,
+  } } });
+  globalThis.fetch = async (input, init) => {
+    if (new URL(String(input)).hostname === 'api.digitransit.fi') {
+      hslKeys.push(new Headers(init?.headers).get('digitransit-subscription-key'));
+    }
+    return new Response(null, { status: 404 });
+  };
+  const env = {
+    ASSETS: { fetch: async () => new Response(null, { status: 404 }) },
+    DIGITRANSIT_API_KEY: 'fixture-key',
+  };
 
-  expect(calls).toHaveLength(2);
+  try {
+    const current = await worker.fetch(new Request('https://aapopihkala.fi/api/current/markets?portfolio=1&v=6'), env);
+    expect(await current.json()).toEqual(body);
+    for (const path of ['/api/current/widget-v2?channel=prod', '/api/current/widget?v=2&channel=prod']) {
+      const widget = await worker.fetch(new Request('https://aapopihkala.fi' + path), env);
+      const payload = await widget.json();
+      expect(payload.sections.find((section: { id: string }) => section.id === 'markets')?.rows)
+        .toContainEqual(expect.objectContaining({ label: 'USA', value: '-0.28%' }));
+    }
+    expect(hslKeys).toEqual(['fixture-key', 'fixture-key']);
+    await worker.fetch(new Request('https://aapopihkala.fi/api/current/widget-v2?channel=prod&live_smoke=check'), env);
+    expect(cacheRequests.filter((url) => url.includes('portfolio=1&cache=last-known-good-v1')))
+      .toHaveLength(3);
+  } finally {
+    globalThis.fetch = originalFetch;
+    if (originalCaches) Object.defineProperty(globalThis, 'caches', originalCaches);
+    else Reflect.deleteProperty(globalThis, 'caches');
+  }
 });
 
 test('Worker serves Current APIs, enforces route methods and keeps static assets as fallback', async () => {

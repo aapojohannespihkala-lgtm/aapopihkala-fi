@@ -4677,6 +4677,26 @@ const C80_524_RAIN_ZONES_WORK_TEST_CANDIDATE = {
   expectedSha256: 'b9b04ba2f9dfc85c4519052ab0fd05e71669ea61fa37e755d85cd438da3df285',
 } as const satisfies PrivateWorkTestCandidate;
 
+// Preserve both original R300 review scenes in one immutable GLB.
+const C80_R31_R300_WORK_TEST_CANDIDATE = {
+  id: 'c80-r31-r300-sc759-sc760-work-test',
+  label: 'C80 R31 - NIBE R300, normaali ja huolto - WORK_TEST/HOST_HOLD',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/c80-r31-r300-sc759-sc760-work-test.glb`,
+  objectKey: 'work-test/c80-r31-r300-sc759-sc760-work-test.glb',
+  expectedSize: 63_630_516,
+  expectedSha256: '0ec686edc2c36b1230b81edf7e27237e2ee95b34ac2fe18768519c255ad1ec13',
+} as const satisfies PrivateWorkTestCandidate;
+
+// R31 9e0bf34f: whole D (769/770) and 2F (771/772), normal and service, in one immutable GLB.
+const C80_R31_9E0B_WORK_TEST_CANDIDATE = {
+  id: 'c80-r31-9e0bf34f-d-2f-sc769-sc772-work-test',
+  label: 'C80 R31 - koko D ja yläkerta, normaali ja huolto - WORK_TEST/HOST_HOLD',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/c80-r31-9e0bf34f-d-2f-sc769-sc772-work-test.glb`,
+  objectKey: 'work-test/c80-r31-9e0bf34f-d-2f-sc769-sc772-work-test.glb',
+  expectedSize: 63_833_692,
+  expectedSha256: '9e0bf34fd838ddc92be12007412176a8ea449f66644f8876395ac6f659804ec3',
+} as const satisfies PrivateWorkTestCandidate;
+
 const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
   C80_M6263_MJ72_KIV005_PK1_SUCCESSOR_WORK_TEST_CANDIDATE,
   C80_TATE_MJ6263_WORK_TEST_CANDIDATE,
@@ -4725,6 +4745,8 @@ const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
   D_C80_HI12_WORK_TEST_CANDIDATE,
   D_C80_SOURCE_ONLY_PREVIEW_CANDIDATE,
   D_C70_SOURCE_ONLY_PREVIEW_CANDIDATE,
+  C80_R31_9E0B_WORK_TEST_CANDIDATE,
+  C80_R31_R300_WORK_TEST_CANDIDATE,
   ...PRIVATE_WORK_TEST_CANDIDATES,
   M5A_Z2D_D100_D300_DIAMETER_CANDIDATE,
   M5A_Z2D_R1090_WELL_TOP_GROUND_SURFACE_CANDIDATE,

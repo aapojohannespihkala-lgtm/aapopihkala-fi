@@ -93,6 +93,7 @@ type SolarForecastResponse = {
 
 type WidgetV2Context = {
   request: Request;
+  loadPortfolioResponse?: () => Promise<Response>;
   env?: {
     DIGITRANSIT_API_KEY?: string;
   };
@@ -698,7 +699,7 @@ export const onRequestGet = async (context: WidgetV2Context) => {
   const generatedAt = new Date().toISOString();
 
   const [baseResponse, liigaResponse, solar, hsl, electricityMonthResponse] = await Promise.all([
-    getWidgetResponse({ request: context.request }),
+    getWidgetResponse({ request: context.request, loadPortfolioResponse: context.loadPortfolioResponse }),
     fetchLiigaResponse(4_000),
     fetchSolarData(),
     fetchWidgetHslData({
