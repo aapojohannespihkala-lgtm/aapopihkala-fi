@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  R300_OWNER_GLB_SHA256, R300_OWNER_R31_772_GLB_SHA256, R300_OWNER_CARD_REF,
+  R300_OWNER_GLB_SHA256, R300_OWNER_R31_772_GLB_SHA256, R300_OWNER_R31_774_GLB_SHA256, R300_OWNER_CARD_REF,
   isR300OwnerCardNode, resolveR300OwnerCardSelection,
 } from '../../src/scripts/privateModelR300OwnerCardAdapter.mjs';
 
@@ -143,4 +143,52 @@ test('source variants cannot borrow scenes or roots from each other or impersona
   assert.equal(resolveR300OwnerCardSelection(plexi, provider).state, 'unbound');
   assert.equal(resolveR300OwnerCardSelection(
     { ...latestSelected(json, 772), sourcePath: [13488, 13415] }, provider).state, 'unbound');
+});
+
+const sw04R300Json = () => {
+  const json = latestJson();
+  while (json.scenes.length < 775) json.scenes.push({ name: 'other', nodes: [] });
+  while (json.nodes.length < 13510) json.nodes.push({});
+  while (json.meshes.length < 5171) json.meshes.push({});
+  json.scenes[773] = {
+    name: 'Ylisrinne_C80_R31_2F_R300_K3_SW04_EXXACT_REFERENCE_NORMAL_PLEX_ON_WORK_TEST_HOST_HOLD__scene773',
+    nodes: [13488, 11625, ...Array.from({ length: 202 }, (_, i) => i)],
+  };
+  json.scenes[774] = {
+    name: 'Ylisrinne_C80_R31_2F_R300_K3_SW04_EXXACT_REFERENCE_SERVICE_PLEX_OFF_WORK_TEST_HOST_HOLD__scene774',
+    nodes: [13488, ...Array.from({ length: 202 }, (_, i) => i)],
+  };
+  return json;
+};
+const sw04Selected = (json, sceneIndex, nodeIndex = 13415) => ({
+  ...context(json, sceneIndex, nodeIndex),
+  loadedGlbSha256: R300_OWNER_R31_774_GLB_SHA256,
+});
+
+test('R31 SW04 773/774 NIBE shell uses identical authenticated owner card in both plexi states', () => {
+  const json = sw04R300Json();
+  for (const sceneIndex of [773, 774]) for (let nodeIndex = 13415; nodeIndex <= 13424; nodeIndex++) {
+    const selected = sw04Selected(json, sceneIndex, nodeIndex);
+    assert.equal(isR300OwnerCardNode(selected), true, 'SW04 scene '+sceneIndex+' NIBE '+nodeIndex);
+    const result = resolveR300OwnerCardSelection(selected, provider);
+    assert.equal(result.state, 'matched');
+    assert.equal(result.cards[0], card);
+  }
+});
+
+test('SW04 card rejects swapped plexi state, other version SHA, wrong parent and copper or plexi', () => {
+  const json = sw04R300Json();
+  assert.equal(isR300OwnerCardNode({ ...sw04Selected(json, 773), loadedGlbSha256: R300_OWNER_R31_772_GLB_SHA256 }), false);
+  assert.equal(isR300OwnerCardNode(sw04Selected(json, 771)), false);
+  const lost = sw04R300Json(); lost.scenes[773].nodes.splice(lost.scenes[773].nodes.indexOf(11625), 1);
+  lost.scenes[773].nodes.push(500);
+  assert.equal(isR300OwnerCardNode(sw04Selected(lost, 773)), false);
+  const injected = sw04R300Json(); injected.scenes[774].nodes.push(11625);
+  injected.scenes[774].nodes.pop(); injected.scenes[774].nodes[1] = 11625;
+  assert.equal(isR300OwnerCardNode(sw04Selected(injected, 774)), false);
+  const fake = sw04Selected(json, 774);
+  assert.equal(isR300OwnerCardNode({ ...fake, sourcePath: [13488, 13429, 13415] }), false);
+  assert.equal(isR300OwnerCardNode(sw04Selected(json, 773, 13429)), false);
+  assert.equal(isR300OwnerCardNode(sw04Selected(json, 773, 11625)), false);
+  assert.equal(resolveR300OwnerCardSelection(sw04Selected(json, 774), () => null).state, 'unavailable');
 });

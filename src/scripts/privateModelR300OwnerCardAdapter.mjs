@@ -10,6 +10,8 @@ export const R300_OWNER_GLB_SHA256 = '0ec686edc2c36b1230b81edf7e27237e2ee95b34ac
 export const R300_OWNER_CARD_REF = 'HIGH-UX-D-KOHDEKORTTI-R300';
 
 export const R300_OWNER_R31_772_GLB_SHA256 = '9e0bf34fd838ddc92be12007412176a8ea449f66644f8876395ac6f659804ec3';
+/** Source-exact successor: the unrelated D2F-SW04 proxy must not change NIBE identity. */
+export const R300_OWNER_R31_774_GLB_SHA256 = 'aa56361ce355fdf31f0fbe301364156a6548eebd0ac1eb57bc25475acdca77c0';
 
 const PROFILES_BY_SHA = Object.freeze({
   [R300_OWNER_GLB_SHA256]: {
@@ -26,6 +28,13 @@ const PROFILES_BY_SHA = Object.freeze({
       770: { name: 'Ylisrinne_C80_R31_BOTH_R300_KUPARIT_HUOLTO_PLEKSI_POIS_RK141_RK142_RK143_MJ83_VM20_CLOSED_WORK_TEST_HOST_HOLD__scene770', roots: 498 },
       771: { name: 'Ylisrinne_C80_R31_2F_R300_COPPER_RK141_RK142_RK143_L12_MJ83_NORMAL_WORK_TEST_HOST_HOLD__scene771', roots: 204 },
       772: { name: 'Ylisrinne_C80_R31_2F_R300_COPPER_RK141_RK142_RK143_L12_MJ83_SERVICE_WORK_TEST_HOST_HOLD__scene772', roots: 203 },
+    },
+  },
+  [R300_OWNER_R31_774_GLB_SHA256]: {
+    sceneCount: 775, nodeCount: 13510, meshCount: 5171,
+    scenes: {
+      773: { name: 'Ylisrinne_C80_R31_2F_R300_K3_SW04_EXXACT_REFERENCE_NORMAL_PLEX_ON_WORK_TEST_HOST_HOLD__scene773', roots: 204, plexiRootPresent: true },
+      774: { name: 'Ylisrinne_C80_R31_2F_R300_K3_SW04_EXXACT_REFERENCE_SERVICE_PLEX_OFF_WORK_TEST_HOST_HOLD__scene774', roots: 203, plexiRootPresent: false },
     },
   },
 });
@@ -65,6 +74,8 @@ export function isR300OwnerCardNode({ json, loadedGlbSha256, sceneIndex, nodeInd
     asset?.ModelStage === 'WORK_TEST' && asset?.asBuilt === false &&
     asset?.current === false && asset?.HUMAN_REVIEW === 'NOT_RUN' &&
     scene?.name === expected.name && scene?.nodes?.length === expected.roots &&
+    (expected.plexiRootPresent === undefined ||
+      scene.nodes.filter(id => id === 11625).length === (expected.plexiRootPresent ? 1 : 0)) &&
     isOnce(scene.nodes, ROOT) &&
     root?.name === 'NIBE_COMPACT_R300_FRONT_NORTH_WC_WORK_TEST_HOST_HOLD' &&
     isOnce(root?.children, CASING) &&
