@@ -256,7 +256,7 @@ const isPreview = mode === 'preview';
         return part('hour') * 60 + part('minute');
       };
 
-      const solarMarkerStyle = (solar) => {
+      const solarMarkerStyle = (solar, halfStrokePx = 0.5) => {
         const sunrise = clockMinutes(solar?.sunrise);
         const sunset = clockMinutes(solar?.sunset);
         if (sunrise === null || sunset === null || sunset <= sunrise) return '';
@@ -276,10 +276,10 @@ const isPreview = mode === 'preview';
         const cosAngle = Math.cos(angle);
         const x = 50 + radius * sinAngle;
         const y = 50 - radius * cosAngle;
-        // CSS percentages are measured inside the 1px border, while the orbit
-        // is the border stroke's centreline. Correct its radial 0.5px inset.
-        const rimX = 0.5 * sinAngle;
-        const rimY = -0.5 * cosAngle;
+        // CSS percentages use the padding box, while the orbit is the border
+        // stroke centreline. Under stage CSS zoom, computed border width changes.
+        const rimX = halfStrokePx * sinAngle;
+        const rimY = -halfStrokePx * cosAngle;
         const night = now < sunrise || now > sunset;
         return `--sun-x:${x.toFixed(2)}%;--sun-y:${y.toFixed(2)}%;--sun-rim-x:${rimX.toFixed(3)}px;--sun-rim-y:${rimY.toFixed(3)}px;--horizon-y:${horizonY.toFixed(2)}%;--sun-fill:${night ? 'transparent' : 'var(--foreground)'};`;
       };
@@ -289,7 +289,11 @@ const isPreview = mode === 'preview';
         const disk = widget.querySelector('.android-solar-disk');
         const weather = payload.sections.find((section) => section.id === 'weather');
         const solar = weather ? parseSolarDetail(weather.detail) : null;
-        if (disk && solar) disk.style.cssText = solarMarkerStyle(solar);
+        if (disk && solar) {
+          const cssBorderWidth = Number.parseFloat(window.getComputedStyle(disk).borderLeftWidth);
+          const halfStrokePx = Number.isFinite(cssBorderWidth) ? cssBorderWidth / 2 : 0.5;
+          disk.style.cssText = solarMarkerStyle(solar, halfStrokePx);
+        }
       };
 
       const renderAndroidHeading = (section) => `
@@ -530,6 +534,7 @@ const isPreview = mode === 'preview';
         if (!isTablet) {
           stage.style.zoom = '';
           widget.style.minHeight = '';
+          updateSolarClock();
           return;
         }
 
@@ -544,6 +549,7 @@ const isPreview = mode === 'preview';
           stage.style.zoom = String(scale);
           const targetRenderedHeight = Math.max(0, viewportHeight * 0.92);
           widget.style.minHeight = `${Math.round(targetRenderedHeight / scale)}px`;
+          updateSolarClock();
           return;
         }
 
@@ -551,6 +557,7 @@ const isPreview = mode === 'preview';
         const heightScale = Math.max(1, (viewportHeight - 28) / naturalHeight);
         const scale = Math.min(1.6, Math.max(1, Math.min(widthScale, heightScale)));
         stage.style.zoom = String(scale);
+        updateSolarClock();
       };
 
       const render = () => {
