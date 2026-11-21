@@ -24,12 +24,13 @@ const title = 'Private 3D viewer';
       /* The native menu summaries become the small 'more' arrows (tests and keyboard keep working). */
       .toolbar .desk-more { display: none !important; }
       .toolbar .desk-group > .toolbar-menu > summary { display: grid; place-items: center; min-width: 22px; min-height: 36px;
-        padding: 0 2px; border: 1px solid transparent; border-radius: 7px; background: transparent; font-size: 0; line-height: 0; }
+        padding: 0 2px; border: 1px solid transparent; border-radius: 7px; background: transparent; font-size: 0 !important; line-height: 0 !important; color: var(--viewer-ink); }
+      .toolbar .desk-group > .toolbar-menu > summary > * { display: none !important; }
       .toolbar .desk-group > .toolbar-menu > summary::before { content: ''; display: block; width: 18px; height: 18px; background: currentColor;
         -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M7 10 L12 15 L17 10'/%3E%3C/svg%3E") center / contain no-repeat; mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M7 10 L12 15 L17 10'/%3E%3C/svg%3E") center / contain no-repeat; }
       .desk-group > .toolbar-menu { position: static; }
       .desk-group > .toolbar-menu > .toolbar-menu-panel { left: auto; right: 0; }
-      .desk-layers-native { font-size: 0; line-height: 0; }
+      .toolbar .desk-layers-native { font-size: 0 !important; line-height: 0 !important; display: inline-grid; place-items: center; min-width: 36px; min-height: 36px; padding: 4px; }
       .desk-layers-native::before { content: ''; display: block; width: 22px; height: 22px; background: currentColor;
         -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.6' stroke-linejoin='round'%3E%3Cpath d='M12 4 L21 9 L12 14 L3 9 Z'/%3E%3Cpath d='M3 13 L12 18 L21 13'/%3E%3Cpath d='M3 17 L12 22 L21 17'/%3E%3C/svg%3E") center / contain no-repeat; mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.6' stroke-linejoin='round'%3E%3Cpath d='M12 4 L21 9 L12 14 L3 9 Z'/%3E%3Cpath d='M3 13 L12 18 L21 13'/%3E%3Cpath d='M3 17 L12 22 L21 17'/%3E%3C/svg%3E") center / contain no-repeat; }
       .viewport > .interaction-tools.desk-side-tools { position: absolute; z-index: 15; left: 12px; top: 12px;
