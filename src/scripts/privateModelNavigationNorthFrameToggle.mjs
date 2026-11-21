@@ -78,6 +78,7 @@ export function projectNorthMarker(quaternion, frame) {
  * then calls controller.render({ quaternion }) so this annotation wins.
  * The created switch changes only SVG arrow/text and its own aria state.
  * No camera object is accepted, and no model or layer state is mutated.
+ * @param {{ root?: any, svg?: any, northLabel?: any, buttonHost?: any }} [options]
  */
 export function createNorthFrameToggleController({
   root, svg, northLabel, buttonHost = root,
