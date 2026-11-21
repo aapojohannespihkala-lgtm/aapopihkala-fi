@@ -28,7 +28,14 @@ export function isTateCSource({sha,sceneIndex,technicalReview=false}={}){
  * @param {{name?:string}[]} meshes
  */
 export function tateCVisibleOwnerNames(owners,dropOwners,meshes){
- return owners.filter(owner=>!dropOwners?.has(owner)).map(owner=>meshes[owner]?.name);
+ /** @type {string[]} */
+ const names=[];
+ for(const owner of owners){
+  if(dropOwners?.has(owner))continue;
+  const name=meshes[owner]?.name;
+  if(typeof name==='string')names.push(name);
+ }
+ return names;
 }
 /** @param {{sha?: string | null, sceneIndex?: number, technicalReview?: boolean, midpoint?: {x:number,y:number,z:number}, ownerNames?: string[]}} [options] */
 export function isTateCFocusedContour({sha,sceneIndex,technicalReview=false,midpoint,ownerNames}={}){
