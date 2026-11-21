@@ -174,6 +174,67 @@ export const parseNordnetPublicFund = (
   return { id: spec.id, label: spec.label, symbol: spec.isin, price, observedAt: obs, changes };
 };
 
+
+// Nordnet renders the selected share class as escaped, structured hydration
+// JSON in its public page HTML. The old screening API now returns HTTP 404.
+// Bind NAV and returns to the nearest exact ISIN/currency before accepting.
+export const parseNordnetEmbeddedFund = (
+  html: string,
+  spec: Pick<FundSpec, 'id' | 'label' | 'isin'>,
+  now = new Date(),
+): RecoveredFund | null => {
+  if (!html.includes(spec.isin) || html.length > 2_000_000) return null;
+  const decoded = html.replace(/\\"/g, '"').replace(/&quot;/g, '"');
+  const marker = '"navInfo":{';
+  const expectedCurrency = spec.id === 'nordnet-sweden' || spec.id === 'spiltan-investmentbolag'
+    ? 'SEK' : 'EUR';
+  let from = 0;
+  while ((from = decoded.indexOf(marker, from)) !== -1) {
+    const context = decoded.slice(Math.max(0, from - 6_000), from);
+    const allIsins = [...context.matchAll(/"isin":"([A-Z0-9]+)"/g)];
+    const nearestIsin = allIsins.at(-1)?.[1];
+    const currencies = [...context.matchAll(/"currency":"([A-Z]{3})"/g)];
+    const nearestCurrency = currencies.at(-1)?.[1];
+    if (nearestIsin === spec.isin && nearestCurrency === expectedCurrency) {
+      const slice = decoded.slice(from, from + 4_500);
+      const nav = slice.match(/"latestNav":\{"date":"(\d{4}-\d{2}-\d{2})","value":(-?\d+(?:\.\d+)?)/);
+      if (!nav || !verifyFresh(nav[1], now)) return null;
+      const price = Number(nav[2]);
+      if (!Number.isFinite(price) || price <= 0) return null;
+      const changes = emptyChanges();
+      const returnsBlock = slice.match(/"returns":\[([^\]]*)\]/);
+      if (returnsBlock) {
+        try {
+          const entries: unknown = JSON.parse('[' + returnsBlock[1] + ']');
+          if (Array.isArray(entries)) {
+            const periodMap: Record<string, Period> = {
+              DAY_1: 'today', WEEK_1: 'week1', MONTH_1: 'month1',
+              MONTH_3: 'month3', MONTH_6: 'month6', YTD: 'ytd',
+              YEAR_1: 'year1', YEAR_3: 'year3', YEAR_5: 'year5',
+            };
+            for (const entry of entries) {
+              if (!entry || typeof entry !== 'object') continue;
+              const value = entry as Record<string, unknown>;
+              if (typeof value.period !== 'string') continue;
+              const period = periodMap[value.period];
+              if (period && typeof value.development === 'number' &&
+                  Number.isFinite(value.development)) {
+                changes[period] = value.development;
+              }
+            }
+          }
+        } catch {
+          // Preserve the verified NAV if the optional returns payload changes.
+        }
+      }
+      return { id: spec.id, label: spec.label, symbol: spec.isin,
+        price, observedAt: nav[1], changes };
+    }
+    from += marker.length;
+  }
+  return null;
+};
+
 // Nordnet's own fund-company page publishes a dated NAV for its Suomi fund.
 // This source is independent from the public screening API and Investing pages.
 export const parseNordnetManagerNav = (html: string, now = new Date()): RecoveredFund | null => {
@@ -228,37 +289,67 @@ const fetchText = async (url: string, timeoutMs = FETCH_TIMEOUT_MS): Promise<str
 export const recoverMissingFund = async (id: FundSpec['id'], now = new Date()) => {
   const spec = SPECS.find((candidate) => candidate.id === id);
   if (!spec) return null;
+
+  // Try the presently reachable fund's structured public page before
+  // Investing.com's blocked 403 and the retired Nordnet screening 404 API.
+  if (spec.nordnet) {
+    for (const url of [spec.nordnet, 'https://r.jina.ai/' + spec.nordnet]) {
+      try {
+        const html = await fetchText(url, 7_000);
+        const structured = parseNordnetEmbeddedFund(html, spec, now);
+        if (structured) return structured;
+        const visible = parseNordnetPublicFund(html, spec, now);
+        if (visible) return visible;
+      } catch {
+        // Try the next independently validated source.
+      }
+    }
+  }
+  if (id === 'nordnet-finland') {
+    for (const url of ['https://nordnetab.com/funds/our-funds/',
+      'https://r.jina.ai/https://nordnetab.com/funds/our-funds/']) {
+      try {
+        const result = parseNordnetManagerNav(await fetchText(url), now);
+        if (result) return result;
+      } catch {
+        // Try historical fund-price data if the fund company's NAV is stale.
+      }
+    }
+  }
   if (spec.investing) {
-    for (const url of [spec.investing, `https://au.investing.com${new URL(spec.investing).pathname}`, `https://r.jina.ai/${spec.investing}`]) {
+    for (const url of [spec.investing, 'https://r.jina.ai/' + spec.investing]) {
       try {
         const result = buildRecoveredHistoricalFund(
           spec, parseInvestingFundHistory(await fetchText(url), spec.isin), now,
         );
         if (result) return result;
       } catch {
-        // Try another public source instead of fabricating the missing row.
-      }
-    }
-  }
-  if (id === 'nordnet-finland') {
-    for (const url of ['https://nordnetab.com/funds/our-funds/', 'https://r.jina.ai/https://nordnetab.com/funds/our-funds/']) {
-      try {
-        const result = parseNordnetManagerNav(await fetchText(url), now);
-        if (result) return result;
-      } catch {
-        // Try Nordnet's retail fund profile before leaving the row missing.
-      }
-    }
-  }
-  if (spec.nordnet) {
-    for (const url of [spec.nordnet, `https://r.jina.ai/${spec.nordnet}`]) {
-      try {
-        const result = parseNordnetPublicFund(await fetchText(url, 7_000), spec, now);
-        if (result) return result;
-      } catch {
-        // Keep an unverified or stale share class absent from live data.
+        // Keep unavailable or mismatched rows missing, never invent values.
       }
     }
   }
   return null;
+};
+
+// Independently recover only truly missing Nordnet/Spiltan return periods.
+const PERIOD_RECOVERY_SPECS = [
+  { id: 'nordnet-sweden', label: 'NORDNET SVERIGE INDEX',
+    isin: 'SE0002756973',
+    url: 'https://www.nordnet.se/fonder/lista/nordnet-sverige-index-sek-aa7a9014' },
+  { id: 'spiltan-investmentbolag', label: 'SPILTAN AKTIEFOND INVESTMENTBOLAG',
+    isin: 'SE0004297927',
+    url: 'https://www.nordnet.se/fonder/lista/spiltan-aktiefond-investmentbolag-sek-d8fe1a7e' },
+] as const;
+
+export const recoverNordicReturnPeriods = async (
+  id: 'nordnet-sweden' | 'spiltan-investmentbolag',
+  now = new Date(),
+) => {
+  const spec = PERIOD_RECOVERY_SPECS.find((candidate) => candidate.id === id);
+  if (!spec) return null;
+  try {
+    return parseNordnetEmbeddedFund(await fetchText(spec.url, 7_000), spec, now);
+  } catch {
+    return null;
+  }
 };
