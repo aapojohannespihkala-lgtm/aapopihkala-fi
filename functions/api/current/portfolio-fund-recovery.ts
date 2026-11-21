@@ -209,9 +209,9 @@ export const parseNordnetEmbeddedFund = (
     if (nearestIsin === spec.isin && nearestCurrency === expectedCurrency) {
       const slice = decoded.slice(from, from + 4_500);
       const nav = slice.match(/"latestNav":\{"date":"(\d{4}-\d{2}-\d{2})","value":(-?\d+(?:\.\d+)?)/);
-      if (!nav || !verifyFresh(nav[1], now)) return null;
+      if (!nav || !verifyFresh(nav[1], now)) continue;
       const price = Number(nav[2]);
-      if (!Number.isFinite(price) || price <= 0) return null;
+      if (!Number.isFinite(price) || price <= 0) continue;
       const changes = emptyChanges();
       const returnsBlock = slice.match(/"returns":\[([^\]]*)\]/);
       if (returnsBlock) {
