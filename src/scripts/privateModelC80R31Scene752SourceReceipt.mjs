@@ -460,3 +460,132 @@ export function c80R31R300CopperSourceReceipt(json,authenticatedSha,sceneIndex,r
   serviceClearanceVerified:false,
  });
 }
+
+
+/**
+ * H1911-3 D1F VM20 access-hatch review COW.
+ * Both scenes are in ONE authenticated GLB, based on __scene759 (screen ON),
+ * NOT the R300 service __scene760 (screen OFF). Scene761 replaces only the
+ * wall host; scene762 additionally replaces the S2 upper hatch leaf.
+ * No measured 2026 opening, plumbing connection, publication or as-built.
+ */
+export const C80_R31_VM20_HATCH_SOURCE=Object.freeze({
+ glbSha256:'8ce36626b5a9133091076721cac6940c9dbb5b47e3dad719508d20dde3b4f0de',
+ glbBytes:63670812,
+ zipDriveId:'1aLLTVDoKfqTSHVa64unEjYLJ5i9XF7AB',
+ zipSha256:'32df8053cae5ee2a8b40cca39e28221a973712868f380e3d41335f1d8bac59b8',
+ sceneCount:763,nodeCount:13498,meshCount:5166,materialCount:812,
+ accessorCount:11260,bufferViewCount:11266,defaultScene:292,
+ parentSceneIndex:759,
+ parentName:'Ylisrinne_C80_R31_R300_NAKYVAT_YLAKUPARIT_WORK_TEST_HOST_HOLD__scene759',
+ parentRootCount:495,parentRootFnv32:'0cd5a96a',
+ parentGlbSha256:'0ec686edc2c36b1230b81edf7e27237e2ee95b34ac2fe18768519c255ad1ec13',
+ parentZipDriveId:'13SUVUJEtaoLFkACF_LQ2I3wLKiv47ktW',
+ oldWallRoot:12436,newWallRoot:13495,wallMesh:5165,
+ oldS2Root:13167,newS2Root:13497,
+ oldLeafNode:1727,newLeafNode:13496,leafMesh:833,
+ screenRoot:11625,copperRoot:13494,
+ sourcePhotoOpenId:'1YthoZIlCmDnLg1y5nnfvmLbZbXo2fEA1',
+ sourcePhotoOverviewId:'16vATBxFzEd1270VKv4wvxCRHYu3O8O5l',
+});
+export const C80_R31_VM20_HATCH_VIEWS=Object.freeze({
+ closed:Object.freeze({
+  role:'VM20_D1F_UPPER_ACCESS_HATCH_CLOSED',sceneIndex:761,
+  sceneName:'H1911-3_R31_VM20_WC_ACCESS_CLOSED_WORK_TEST_HOST_HOLD__scene761',
+  rootCount:495,rootFnv32:'da71cd8f',openDoor:false,
+ }),
+ opened:Object.freeze({
+  role:'VM20_D1F_UPPER_ACCESS_HATCH_OPEN_RIGHT_HINGE',sceneIndex:762,
+  sceneName:'H1911-3_R31_VM20_WC_ACCESS_OPEN_RIGHT_HINGE_WORK_TEST_HOST_HOLD__scene762',
+  rootCount:495,rootFnv32:'ecb5f9e5',openDoor:true,
+ }),
+});
+export function isC80R31Vm20HatchSource(json,authenticatedSha,sceneIndex,role,floor){
+ const s=C80_R31_VM20_HATCH_SOURCE,views=C80_R31_VM20_HATCH_VIEWS;
+ const view=Object.values(views).find(v=>v.role===role),a=json?.asset?.extras;
+ if(!view||sceneIndex!==view.sceneIndex||
+  authenticatedSha!==s.glbSha256||(floor!==undefined&&floor!=='BOTH')||
+  json?.scene!==s.defaultScene||json?.scenes?.length!==s.sceneCount||
+  json?.nodes?.length!==s.nodeCount||json?.meshes?.length!==s.meshCount||
+  json?.materials?.length!==s.materialCount||
+  json?.accessors?.length!==s.accessorCount||
+  json?.bufferViews?.length!==s.bufferViewCount||
+  a?.ModelStage!=='WORK_TEST'||a?.current!==false||
+  a?.asBuilt!==false||a?.HUMAN_REVIEW!=='NOT_RUN')return false;
+ const parent=json.scenes[s.parentSceneIndex],closed=json.scenes[761];
+ const opened=json.scenes[762],target=json.scenes[sceneIndex];
+ const p=parent?.nodes,c=closed?.nodes,o=opened?.nodes,roots=target?.nodes;
+ if(parent?.name!==s.parentName||
+  closed?.name!==views.closed.sceneName||
+  opened?.name!==views.opened.sceneName||
+  target?.name!==view.sceneName||
+  !Array.isArray(p)||!Array.isArray(c)||!Array.isArray(o)||
+  !Array.isArray(roots)||
+  p.length!==s.parentRootCount||
+  c.length!==views.closed.rootCount||o.length!==views.opened.rootCount||
+  roots.length!==view.rootCount||
+  new Set(p).size!==p.length||
+  new Set(c).size!==c.length||new Set(o).size!==o.length||
+  c80R31Scene752RootsFnv32(p)!==s.parentRootFnv32||
+  c80R31Scene752RootsFnv32(c)!==views.closed.rootFnv32||
+  c80R31Scene752RootsFnv32(o)!==views.opened.rootFnv32||
+  !exactly(c,p.map(n=>n===s.oldWallRoot?s.newWallRoot:n))||
+  !exactly(o,c.map(n=>n===s.oldS2Root?s.newS2Root:n))||
+  p.filter(n=>n===s.oldWallRoot).length!==1||
+  c.filter(n=>n===s.oldS2Root).length!==1||
+  !p.includes(s.screenRoot)||!c.includes(s.screenRoot)||
+  !o.includes(s.screenRoot)||!o.includes(s.copperRoot)||
+  !c.includes(s.newWallRoot)||o.includes(s.oldWallRoot)||
+  o.includes(s.oldS2Root))return false;
+ for(const [v,scene] of [[views.closed,closed],[views.opened,opened]]){
+  const e=scene?.extras;
+  if(e?.stage!=='WORK_TEST_HOST_HOLD'||
+   e?.parentSceneIndex!==s.parentSceneIndex||
+   e?.parentGLBSHA256!==s.parentGlbSha256||
+   e?.sourceParentZipDriveID!==s.parentZipDriveId||
+   e?.sourcePhotoOpenCabinetID!==s.sourcePhotoOpenId||
+   e?.sourcePhotoWCOverviewID!==s.sourcePhotoOverviewId||
+   e?.localWallReplacementRoot!==s.newWallRoot||
+   e?.originalWallNode!==s.oldWallRoot||
+   e?.closedDoorOriginalNode!==s.oldLeafNode||
+   e?.openDoorCOWNode!==(v.openDoor?s.newLeafNode:null)||
+   e?.photoRelativeNotMeasured!==true||
+   e?.activePhysicalPlumbingUnmodified!==true||
+   e?.sourceLinksOutputSHA!=='NOT_BOUND'||
+   e?.sourceLinksOutputShaBound!==false||
+   e?.productionWebGL!=='NOT_RUN'||e?.HUMAN_REVIEW!=='NOT_RUN'||
+   e?.current!==false||e?.asBuilt!==false||e?.canonical!==false)return false;
+ }
+ const wall=json.nodes[s.newWallRoot],w=wall?.extras;
+ const leaf=json.nodes[s.newLeafNode],l=leaf?.extras;
+ const oldS2=json.nodes[s.oldS2Root],newS2=json.nodes[s.newS2Root];
+ const r=newS2?.extras;
+ if(wall?.mesh!==s.wallMesh||w?.replacesNode!==s.oldWallRoot||
+  !exactly(w?.evidencePhotos,[s.sourcePhotoOpenId,s.sourcePhotoOverviewId])||
+  w?.fitStatus!=='PHOTO_RELATIVE_TO_EXISTING_MODEL_HATCH_NOT_FIELD_MEASURED'||
+  w?.sourceLinksOutputSHA!=='NOT_BOUND'||
+  leaf?.mesh!==s.leafMesh||l?.originalLeafNode!==s.oldLeafNode||
+  l?.photoRightHinge!==true||
+  l?.swing!=='90deg_visual_only_not_measured'||
+  l?.sourceLinksOutputSHA!=='NOT_BOUND'||
+  !exactly(newS2?.translation,oldS2?.translation)||
+  !exactly(newS2?.children,
+   oldS2?.children?.map(n=>n===s.oldLeafNode?s.newLeafNode:n))||
+  oldS2?.children?.filter(n=>n===s.oldLeafNode).length!==1||
+  r?.replacesRoot!==s.oldS2Root||
+  r?.originalLeafNode!==s.oldLeafNode||
+  r?.openLeafNode!==s.newLeafNode||
+  r?.allOtherChildrenExact!==true||
+  r?.sourceLinksRuntimeBound!==false||
+  r?.current!==false||r?.asBuilt!==false)return false;
+ return true;
+}
+export function c80R31Vm20HatchSourceReceipt(json,authenticatedSha,sceneIndex,role,floor){
+ return Object.freeze({
+  exactSource:isC80R31Vm20HatchSource(json,authenticatedSha,sceneIndex,role,floor),
+  stage:'WORK_TEST_HOST_HOLD',sourceLinksBound:false,publishAllowed:false,
+  productionWebGLVerified:false,humanReview:'NOT_RUN',current:false,
+  asBuilt:false,physicalHostVerified:false,physicalOpeningMeasured:false,
+  plumbingConnectivityVerified:false,
+ });
+}
