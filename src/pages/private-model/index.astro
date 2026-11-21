@@ -4647,14 +4647,20 @@ const title = 'Private 3D viewer';
       // Technical review: dense facade boards (150 mm siding) merge their
       // outlines into a solid-looking face at overview distance, so the
       // architectural outline is dimmed while technical colors are shown.
-      const makeEdgeMaterial = (depthTest: boolean, overrideOpacity?: number) =>
+      const makeEdgeMaterial = (depthTest: boolean) =>
         new THREE.LineBasicMaterial({
           color: 0x6d716e,
           transparent: true,
-          opacity: overrideOpacity ?? (technicalReviewColorsActive() ? 0.2 : 0.72),
+          opacity: technicalReviewColorsActive() ? 0.2 : 0.72,
           depthTest,
           depthWrite: false,
         });
+
+      const makeTateCFocusedEdgeMaterial = (depthTest: boolean) => {
+        const material = makeEdgeMaterial(depthTest);
+        material.opacity = TATE_C_OPACITY.focused;
+        return material;
+      };
 
       const vertexKey = (point: any) =>
         [point.x, point.y, point.z].map((value) => Math.round(value * 10000)).join(',');
@@ -4918,7 +4924,7 @@ const title = 'Private 3D viewer';
             canvas.dataset.tateCEdgeFocusedSegments = String(focusCount);
             segmentCount += focusCount;
             if (focusCount > 0) {
-              const lines = new THREE.LineSegments(focusedGeometry, makeEdgeMaterial(depthTest, TATE_C_OPACITY.focused));
+              const lines = new THREE.LineSegments(focusedGeometry, makeTateCFocusedEdgeMaterial(depthTest));
               lines.frustumCulled = false;
               edgeOverlayGroup.add(lines);
             } else focusedGeometry.dispose();
