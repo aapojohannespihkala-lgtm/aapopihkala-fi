@@ -198,6 +198,7 @@ jobs:
             tests/unit/private-model-source-node-associations.test.mjs \
             tests/unit/private-model-c80-cross-sha-part-identity.test.mjs \
             tests/unit/private-model-scene-selection-invalidation.test.mjs \
+            tests/unit/private-model-r300-owner-card-adapter.test.mjs \
             tests/unit/private-model-building-part-layer-bindings.test.mjs \
             tests/unit/private-model-technical-review-presentation.test.mjs \
             tests/unit/private-model-technical-review-role-tint.test.mjs \
