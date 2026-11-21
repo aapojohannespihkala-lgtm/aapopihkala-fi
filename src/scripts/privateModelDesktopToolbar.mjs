@@ -23,14 +23,14 @@ export const DESKTOP_PRESETS = Object.freeze([
   Object.freeze({ id: 'd-2f', label: 'D yläkerta', icon: svg(house(false, true, false)) }),
   Object.freeze({ id: 'd-apartment', label: 'Koko D, katto piilossa', icon: svg(house(true, true, false)) }),
   Object.freeze({ id: 'd-roof', label: 'Koko D katolla', icon: svg(house(true, true, true)) }),
-  Object.freeze({ id: 'whole-building', label: 'Koko rakennus', icon: svg(
+  Object.freeze({ id: 'whole-building', label: 'Koko rakennus', aria: 'rakennus kokonaan', icon: svg(
     '<path d="M2 12 L7 8 L12 12 L17 8 L22 12"/><rect x="3" y="12" width="18" height="8"/><path d="M9 12 V20 M15 12 V20"/>') }),
   Object.freeze({ id: 'technical', label: 'Talotekniikka korostettuna', toggle: true, icon: svg(
     '<path d="M3 7 H13 V17 H21"/><circle cx="13" cy="7" r="1.6"/><path d="M3 15 H8 V21" stroke-dasharray="2 2"/>') }),
 ]);
 export const DESKTOP_ANGLES = Object.freeze([
-  Object.freeze({ id: 'orbit', label: 'Vapaa 3D', icon: svg('<path d="M12 3 L20 7.5 V16.5 L12 21 L4 16.5 V7.5 Z"/><path d="M4 7.5 L12 12 L20 7.5 M12 12 V21"/>') }),
-  Object.freeze({ id: 'iso', label: 'Isometrinen', icon: svg('<path d="M12 4 L20 8.5 L12 13 L4 8.5 Z"/><path d="M4 8.5 V15.5 L12 20 L20 15.5 V8.5 M12 13 V20"/>') }),
+  Object.freeze({ id: 'orbit', label: 'Vapaa 3D', aria: '3D, vapaa kierto', icon: svg('<path d="M12 3 L20 7.5 V16.5 L12 21 L4 16.5 V7.5 Z"/><path d="M4 7.5 L12 12 L20 7.5 M12 12 V21"/>') }),
+  Object.freeze({ id: 'iso', label: 'Isometrinen', aria: 'isometria', icon: svg('<path d="M12 4 L20 8.5 L12 13 L4 8.5 Z"/><path d="M4 8.5 V15.5 L12 20 L20 15.5 V8.5 M12 13 V20"/>') }),
   Object.freeze({ id: 'top', label: 'Pohja ylhäältä', icon: svg('<rect x="4" y="4" width="16" height="16"/><path d="M4 11 H13 V4 M13 11 V20"/>') }),
   Object.freeze({ id: 'elev-pos-y', label: 'Julkisivu +Y (pohjoinen, YLIS-G1)', icon: svg(elev('N')) }),
   Object.freeze({ id: 'elev-neg-y', label: 'Julkisivu −Y (etelä, YLIS-G1)', icon: svg(elev('S')) }),
@@ -74,7 +74,8 @@ export function mountDesktopToolbar(doc, actions) {
       b.dataset.deskKind = kind;
       b.dataset.deskId = item.id;
       b.title = item.label;
-      b.setAttribute('aria-label', item.label);
+      // Prefixed so the old menu buttons keep their unique accessible names.
+      b.setAttribute('aria-label', `${kind === 'preset' ? 'Preset' : 'Kuvakulma'}: ${item.aria ?? item.label}`);
       b.setAttribute('aria-pressed', 'false');
       b.innerHTML = item.icon;
       b.addEventListener('click', (event) => { event.stopPropagation(); actions[kind](item.id); });
