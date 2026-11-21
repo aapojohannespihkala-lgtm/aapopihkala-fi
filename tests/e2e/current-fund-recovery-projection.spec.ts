@@ -12,11 +12,14 @@ test('forest quarterly return is compounded into marked approximate 1D/1W/1M val
     id: 'op-forest-owner-b',
     changes: { today: null, week1: null, month1: 3.2, month3: 6 },
   });
-  expect(forest.estimatedPeriods).toEqual(['today', 'week1', 'month1']);
+  expect(forest.estimatedPeriods).toEqual(['today', 'week1']);
   expect(forest.changes.today).toBeCloseTo((Math.pow(1.06, 1 / 91) - 1) * 100, 9);
   expect(forest.changes.week1).toBeCloseTo((Math.pow(1.06, 7 / 91) - 1) * 100, 9);
-  expect(forest.changes.month1).toBeCloseTo((Math.pow(1.06, 30 / 91) - 1) * 100, 9);
+  expect(forest.changes.month1).toBe(3.2);
   expect(forest.changes.month3).toBe(6);
+  const existing = { id: 'op-forest-owner-b',
+    changes: { today: 0.12, week1: 0.3, month1: 3.2, month3: 6 } };
+  expect(projectForestShortPeriods(existing)).toBe(existing);
   expect(projectQuarterReturn(-5, 7)).toBeLessThan(0);
   expect(projectQuarterReturn(-101, 1)).toBeNull();
   const other = { id: 'nordnet-finland', changes: { today: null, week1: null, month1: null, month3: 3 } };
@@ -55,6 +58,10 @@ test('Storebrand public NAV recovery enforces share class and currency, and reje
   expect(current?.changes.month1).toBeNull();
   expect(parseNordnetPublicFund(html, spec, new Date('2026-12-21T12:00:00Z'))).toBeNull();
   expect(parseNordnetPublicFund(html.replace('Storebrand Japan A EUR','Storebrand Japan A SEK'), spec, new Date('2026-11-21T12:00:00Z'))).toBeNull();
+  const differentFund = 'Other Fund +95%12 kk ' + html;
+  expect(parseNordnetPublicFund(differentFund, spec, new Date('2026-11-21T12:00:00Z'))?.changes.year1).toBeCloseTo(11.24, 9);
+  const contaminated = 'Storebrand Japan A EUR +0,42%20.11. Other Fund +95%12 kk NAV (20.11.)214,32 EUR';
+  expect(parseNordnetPublicFund(contaminated, spec, new Date('2026-11-21T12:00:00Z'))).toBeNull();
 });
 
 test('OP short-period fallback only derives real recent NAV differences, never stale or guessed figures', () => {
@@ -68,4 +75,23 @@ test('OP short-period fallback only derives real recent NAV differences, never s
   expect(result?.week1).toBeCloseTo((105 / 100 - 1) * 100, 8);
   expect(buildInvestingOnlyShortChanges(dates, new Date('2026-12-21T12:00:00Z'))).toBeNull();
   expect(buildInvestingOnlyShortChanges(dates.slice(1), new Date('2026-11-21T12:00:00Z'))?.week1).toBeNull();
+});
+
+test('sparse historical NAV rows never fabricate short-period changes', () => {
+  const spec = { id: 'nordnet-finland' as const, label: 'NORDNET SUOMI INDEKSI', isin: 'SE0005993102' };
+  const sparse = [
+    { observedAt: '2024-01-01', value: 100 },
+    { observedAt: '2026-11-20', value: 150 },
+  ];
+  const result = buildRecoveredHistoricalFund(spec, sparse, new Date('2026-11-21T12:00:00Z'));
+  expect(result?.price).toBe(150);
+  expect(result?.changes.today).toBeNull();
+  expect(result?.changes.week1).toBeNull();
+  expect(result?.changes.month1).toBeNull();
+  const adjacent = buildRecoveredHistoricalFund(spec, [
+    { observedAt: '2026-11-19', value: 149 },
+    { observedAt: '2026-11-20', value: 150 },
+  ], new Date('2026-11-21T12:00:00Z'));
+  expect(adjacent?.changes.today).toBeCloseTo((150 / 149 - 1) * 100, 8);
+  expect(adjacent?.changes.week1).toBeNull();
 });
