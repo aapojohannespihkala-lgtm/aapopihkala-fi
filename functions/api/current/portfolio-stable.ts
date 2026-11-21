@@ -1,5 +1,5 @@
 import { onRequestGet as getResilientPortfolio } from './portfolio-resilient';
-import { recoverMissingFund } from './portfolio-fund-recovery';
+import { startPublicFundRecovery } from './portfolio-fund-recovery';
 
 type PerformanceChanges = {
   today: number | null;
@@ -95,7 +95,6 @@ const OP_RECOVERY_SPECS: OpRecoverySpec[] = [
   },
 ];
 
-const PUBLIC_FUND_RECOVERY_IDS = ['handelsbanken-usa', 'nordnet-finland', 'storebrand-japan'] as const;
 
 const PORTFOLIO_ORDER = [
   'handelsbanken-usa',
@@ -328,7 +327,7 @@ const findRetryIds = (byId: ReadonlyMap<string, PortfolioItem>) =>
       PERFORMANCE_PERIODS.some((period) => item.changes[period] === null);
   }));
 
-type PublicFundRecovery = ReadonlyMap<string, ReturnType<typeof recoverMissingFund>>;
+type PublicFundRecovery = ReturnType<typeof startPublicFundRecovery>;
 
 const loadResilientPortfolio = async (publicFunds: PublicFundRecovery) => {
   let firstResponse: Response | null = null;
@@ -410,15 +409,13 @@ const loadResilientPortfolio = async (publicFunds: PublicFundRecovery) => {
 export const onRequestGet = async () => {
   // Start the verified fund recovery before the larger Yahoo/OP wave.
   // One exhausted legacy request budget must not prevent these known-good sources.
-  const publicFunds = new Map(PUBLIC_FUND_RECOVERY_IDS.map((id) =>
-    [id, recoverMissingFund(id).catch(() => null)] as const
-  ));
+  const publicFunds = startPublicFundRecovery();
   const { response, body } = await loadResilientPortfolio(publicFunds);
   if (!response.ok || !body) return response;
 
   const byId = new Map(body.items.map((item) => [item.id, item] as const));
   const missingSpecs = OP_RECOVERY_SPECS.filter((spec) => !byId.has(spec.id));
-  const missingPublicIds = PUBLIC_FUND_RECOVERY_IDS.filter((id) => !byId.has(id));
+  const missingPublicIds = [...publicFunds.keys()].filter((id) => !byId.has(id));
   if (missingSpecs.length === 0 && missingPublicIds.length === 0) {
     return new Response(
       JSON.stringify({

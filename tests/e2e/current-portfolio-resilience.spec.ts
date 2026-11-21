@@ -231,9 +231,9 @@ test('portfolio feed recovers transient sources and enriches OP index 1D/1W from
     expect(forest).toBeDefined();
     expect(forest?.changes.today).toBeCloseTo((Math.pow(1.02, 1 / 91) - 1) * 100, 8);
     expect(forest?.changes.week1).toBeCloseTo((Math.pow(1.02, 7 / 91) - 1) * 100, 8);
-    expect(forest?.changes.month1).toBeCloseTo((Math.pow(1.02, 30 / 91) - 1) * 100, 8);
+    expect(forest?.changes.month1).toBe(1); // Keep the source-provided 1M return.
     expect(forest?.changes.month3).toBe(2);
-    expect(forest?.estimatedPeriods).toEqual(['today', 'week1', 'month1']);
+    expect(forest?.estimatedPeriods).toEqual(['today', 'week1']);
     expect(forest?.estimationMethod).toBe('compound-3m-over-91-days');
     expect(forest?.changes.month6).toBe(3);
     expect(forest?.changes.ytd).toBe(0.6);

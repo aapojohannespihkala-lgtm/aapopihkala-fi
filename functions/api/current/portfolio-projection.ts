@@ -23,10 +23,20 @@ export const projectForestShortPeriods = <T extends {
   const week1 = projectQuarterReturn(quarter, 7);
   const month1 = projectQuarterReturn(quarter, 30);
   if (today === null || week1 === null || month1 === null) return item;
+  const projected = { today, week1, month1 };
+  const estimatedPeriods = FOREST_ESTIMATED_PERIODS.filter(
+    (period) => item.changes[period] === null
+  );
+  if (estimatedPeriods.length === 0) return item;
   return {
     ...item,
-    changes: { ...item.changes, today, week1, month1 },
-    estimatedPeriods: [...FOREST_ESTIMATED_PERIODS],
+    changes: {
+      ...item.changes,
+      today: item.changes.today ?? projected.today,
+      week1: item.changes.week1 ?? projected.week1,
+      month1: item.changes.month1 ?? projected.month1,
+    },
+    estimatedPeriods,
     estimationMethod: 'compound-3m-over-91-days',
   };
 };

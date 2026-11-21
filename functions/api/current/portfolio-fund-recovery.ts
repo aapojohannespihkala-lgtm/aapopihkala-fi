@@ -107,10 +107,16 @@ const verifyFresh = (date: string, now: Date) => {
   return Number.isFinite(millis) && age >= -DAY_MS && age <= MAX_AGE_DAYS * DAY_MS;
 };
 
+// Sparse histories are not valid short-period return comparisons.
+const MAX_REFERENCE_LOOKBACK_MS = 5 * DAY_MS;
 const compareReturn = (latest: Observation, history: Observation[], days: number) => {
-  const target = Date.parse(`${latest.observedAt}T00:00:00Z`) - days * DAY_MS;
-  const older = history.filter((item) => Date.parse(`${item.observedAt}T00:00:00Z`) <= target).at(-1);
-  return older && older.value > 0 ? (latest.value / older.value - 1) * 100 : null;
+  const target = Date.parse(latest.observedAt + 'T00:00:00Z') - days * DAY_MS;
+  const older = history.filter((item) => Date.parse(item.observedAt + 'T00:00:00Z') <= target).at(-1);
+  if (!older || older.value <= 0) return null;
+  const observed = Date.parse(older.observedAt + 'T00:00:00Z');
+  return Number.isFinite(observed) && target - observed >= 0 &&
+    target - observed <= MAX_REFERENCE_LOOKBACK_MS
+    ? (latest.value / older.value - 1) * 100 : null;
 };
 
 export const buildRecoveredHistoricalFund = (
@@ -122,7 +128,12 @@ export const buildRecoveredHistoricalFund = (
   if (!latest || history.length < 2 || !verifyFresh(latest.observedAt, now)) return null;
   const changes = emptyChanges();
   const prior = history.at(-2);
-  if (prior && prior.value > 0) changes.today = (latest.value / prior.value - 1) * 100;
+  const latestMs = Date.parse(latest.observedAt + 'T00:00:00Z');
+  const priorMs = prior ? Date.parse(prior.observedAt + 'T00:00:00Z') : NaN;
+  if (prior && prior.value > 0 && Number.isFinite(priorMs) &&
+      latestMs - priorMs > 0 && latestMs - priorMs <= MAX_REFERENCE_LOOKBACK_MS) {
+    changes.today = (latest.value / prior.value - 1) * 100;
+  }
   changes.week1 = compareReturn(latest, history, 7);
   changes.month1 = compareReturn(latest, history, 30);
   changes.month3 = compareReturn(latest, history, 92);
@@ -143,35 +154,40 @@ export const parseNordnetPublicFund = (
   now = new Date(),
 ): RecoveredFund | null => {
   const text = asText(html);
-  // Nordnet public fund pages do not always print the ISIN. Match exact fund
-  // class and currency to avoid combining another share class with this row.
+  // Require one contiguous fund card. Known metrics between returns and NAV
+  // are allowed, but another fund's return or unknown text fails closed.
   const name = spec.id === 'storebrand-japan'
     ? 'Storebrand Japan A EUR'
     : spec.id === 'handelsbanken-usa'
       ? 'Handelsbanken USA Index (A1 EUR)'
       : 'Nordnet Suomi Indeksi';
-  if (!text.toLowerCase().includes(name.toLowerCase())) return null;
-  const match = text.match(/NAV\s*\((\d{1,2})\.(\d{1,2})\.\)\s*([\d.,]+)\s*EUR/i);
-  if (!match) return null;
-  let year = now.getUTCFullYear();
-  let obs = dateFromToken(`${match[1]}.${match[2]}.${year}`);
-  if (!obs) return null;
-  if (Date.parse(`${obs}T00:00:00Z`) > now.getTime() + DAY_MS) {
-    year -= 1;
-    obs = dateFromToken(`${match[1]}.${match[2]}.${year}`);
+  const lowered = text.toLowerCase();
+  const key = name.toLowerCase();
+  let from = 0;
+  while (from < text.length) {
+    const nameIndex = lowered.indexOf(key, from);
+    if (nameIndex < 0) return null;
+    from = nameIndex + name.length;
+    const section = text.slice(from, from + 550);
+    const match = section.match(/^\s*([+\-]?\d+(?:[.,]\d+)?)%\s*(\d{1,2})\.(\d{1,2})\.\s*([+\-]?\d+(?:[.,]\d+)?)%\s*12\s*kk\s*(?:Juoksevat\s+kulut\s+[\d.,]+%\s*)?(?:Morningstar\s+rating\s+\d+\s+stars\s*)?(?:Vastuullisuus\s*\(SFDR\)\s*\d+\s*)?NAV\s*\((\d{1,2})\.(\d{1,2})\.\)\s*([\d.,]+)\s*EUR\b/i);
+    if (!match) continue;
+    if (Number(match[2]) !== Number(match[5]) ||
+        Number(match[3]) !== Number(match[6])) continue;
+    let year = now.getUTCFullYear();
+    let obs = dateFromToken(match[5] + '.' + match[6] + '.' + year);
+    if (!obs) continue;
+    if (Date.parse(obs + 'T00:00:00Z') > now.getTime() + DAY_MS) {
+      year -= 1;
+      obs = dateFromToken(match[5] + '.' + match[6] + '.' + year);
+    }
+    const price = numberValue(match[7]);
+    if (!obs || price === null || !verifyFresh(obs, now)) continue;
+    const changes = emptyChanges();
+    changes.today = Number(match[1].replace(',', '.'));
+    changes.year1 = Number(match[4].replace(',', '.'));
+    return { id: spec.id, label: spec.label, symbol: spec.isin, price, observedAt: obs, changes };
   }
-  const price = numberValue(match[3]);
-  if (!obs || price === null || !verifyFresh(obs, now)) return null;
-  const changes = emptyChanges();
-  const escaped = name.replace(/[.*+?^$()|[\]{}\\]/g, '\\$&');
-  const day = text.match(new RegExp(`([+\\-]?\\d+(?:[.,]\\d+)?)%\\s*${match[1]}\\.${match[2]}\\.`));
-  const yearReturn = text.match(/([+\-]?\d+(?:[.,]\d+)?)%\s*12\s*kk/i);
-  if (day) changes.today = Number(day[1].replace(',', '.'));
-  if (yearReturn) changes.year1 = Number(yearReturn[1].replace(',', '.'));
-  // A dated, source-verified NAV is still useful when daily returns are not published.
-  // Never invent 1D/1W/1M figures from one quote.
-  void escaped;
-  return { id: spec.id, label: spec.label, symbol: spec.isin, price, observedAt: obs, changes };
+  return null;
 };
 
 
@@ -340,6 +356,10 @@ export const recoverMissingFund = async (id: FundSpec['id'], now = new Date()) =
   }
   return null;
 };
+
+// Start these exact-share-class reads together before the older Yahoo/OP wave.
+export const startPublicFundRecovery = (now = new Date()) =>
+  new Map(SPECS.map(({ id }) => [id, recoverMissingFund(id, now).catch(() => null)] as const));
 
 // Independently recover only truly missing Nordnet/Spiltan return periods.
 const PERIOD_RECOVERY_SPECS = [
