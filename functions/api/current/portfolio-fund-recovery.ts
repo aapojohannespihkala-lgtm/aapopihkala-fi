@@ -25,6 +25,7 @@ const SPECS: FundSpec[] = [
     label: 'HANDELSBANKEN USA INDEKSI',
     isin: 'SE0006800140',
     investing: 'https://fi.investing.com/funds/usa-index-a1-eur-historical-data',
+    nordnet: 'https://www.nordnet.se/fonder/lista/handelsbanken-usa-index-a1-eur-348def3b',
   },
   {
     id: 'nordnet-finland',
@@ -144,7 +145,11 @@ export const parseNordnetPublicFund = (
   const text = asText(html);
   // Nordnet public fund pages do not always print the ISIN. Match exact fund
   // class and currency to avoid combining another share class with this row.
-  const name = spec.id === 'storebrand-japan' ? 'Storebrand Japan A EUR' : 'Nordnet Suomi Indeksi';
+  const name = spec.id === 'storebrand-japan'
+    ? 'Storebrand Japan A EUR'
+    : spec.id === 'handelsbanken-usa'
+      ? 'Handelsbanken USA Index (A1 EUR)'
+      : 'Nordnet Suomi Indeksi';
   if (!text.toLowerCase().includes(name.toLowerCase())) return null;
   const match = text.match(/NAV\s*\((\d{1,2})\.(\d{1,2})\.\)\s*([\d.,]+)\s*EUR/i);
   if (!match) return null;
@@ -163,9 +168,36 @@ export const parseNordnetPublicFund = (
   const yearReturn = text.match(/([+\-]?\d+(?:[.,]\d+)?)%\s*12\s*kk/i);
   if (day) changes.today = Number(day[1].replace(',', '.'));
   if (yearReturn) changes.year1 = Number(yearReturn[1].replace(',', '.'));
-  if (changes.today === null && changes.year1 === null) return null;
+  // A dated, source-verified NAV is still useful when daily returns are not published.
+  // Never invent 1D/1W/1M figures from one quote.
   void escaped;
   return { id: spec.id, label: spec.label, symbol: spec.isin, price, observedAt: obs, changes };
+};
+
+// Nordnet's own fund-company page publishes a dated NAV for its Suomi fund.
+// This source is independent from the public screening API and Investing pages.
+export const parseNordnetManagerNav = (html: string, now = new Date()): RecoveredFund | null => {
+  const text = asText(html);
+  const name = 'Nordnet Suomi Indeksi';
+  const isin = 'SE0005993102';
+  const rowPattern = /Nordnet Suomi Indeksi\s+SE0005993102\b([\s\S]{0,1000})/i;
+  const row = text.match(rowPattern)?.[1];
+  const match = row?.match(/(\d{1,6}[.,]\d{2,4})\s*(\d{1,2})\/(\d{1,2})\b/);
+  if (!match || !text.includes(name) || !text.includes(isin)) return null;
+  const price = numberValue(match[1]);
+  if (price === null) return null;
+  let year = now.getUTCFullYear();
+  let observedAt = dateFromToken(`${match[3]}.${match[2]}.${year}`);
+  if (!observedAt) return null;
+  if (Date.parse(`${observedAt}T00:00:00Z`) > now.getTime() + DAY_MS) {
+    year -= 1;
+    observedAt = dateFromToken(`${match[3]}.${match[2]}.${year}`);
+  }
+  if (!observedAt || !verifyFresh(observedAt, now)) return null;
+  return {
+    id: 'nordnet-finland', label: 'NORDNET SUOMI INDEKSI', symbol: isin,
+    price, observedAt, changes: emptyChanges(),
+  };
 };
 
 const fetchText = async (url: string, timeoutMs = FETCH_TIMEOUT_MS): Promise<string> => {
@@ -189,7 +221,7 @@ export const recoverMissingFund = async (id: FundSpec['id'], now = new Date()) =
   const spec = SPECS.find((candidate) => candidate.id === id);
   if (!spec) return null;
   if (spec.investing) {
-    for (const url of [spec.investing, `https://r.jina.ai/${spec.investing}`]) {
+    for (const url of [spec.investing, `https://au.investing.com${new URL(spec.investing).pathname}`, `https://r.jina.ai/${spec.investing}`]) {
       try {
         const result = buildRecoveredHistoricalFund(
           spec, parseInvestingFundHistory(await fetchText(url), spec.isin), now,
@@ -197,6 +229,16 @@ export const recoverMissingFund = async (id: FundSpec['id'], now = new Date()) =
         if (result) return result;
       } catch {
         // Try another public source instead of fabricating the missing row.
+      }
+    }
+  }
+  if (id === 'nordnet-finland') {
+    for (const url of ['https://nordnetab.com/funds/our-funds/', 'https://r.jina.ai/https://nordnetab.com/funds/our-funds/']) {
+      try {
+        const result = parseNordnetManagerNav(await fetchText(url), now);
+        if (result) return result;
+      } catch {
+        // Try Nordnet's retail fund profile before leaving the row missing.
       }
     }
   }
