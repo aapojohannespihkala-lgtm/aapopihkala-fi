@@ -106,7 +106,7 @@ export const estimatePortfolioPeriods = <T extends PeriodItem>(
   };
 };
 
-export const estimatePortfolioItemIfValid = (raw: unknown): unknown => {
+export const estimatePortfolioItemIfValid = (raw: unknown, now = new Date()): unknown => {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return raw;
   const item = raw as Record<string, unknown>;
   if (typeof item.observedAt !== 'string' ||
@@ -123,5 +123,5 @@ export const estimatePortfolioItemIfValid = (raw: unknown): unknown => {
   return estimatePortfolioPeriods({
     ...item, observedAt: item.observedAt, changes: changes as PortfolioChanges,
     estimatedPeriods: estimated,
-  });
+  }, now);
 };

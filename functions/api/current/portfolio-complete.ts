@@ -1,7 +1,7 @@
 import { onRequestGet as getBasePortfolio } from './portfolio-stable';
 import { projectForestShortPeriods } from './portfolio-projection';
 import { estimatePortfolioPeriods } from './portfolio-estimation';
-import { parseInvestingFundHistory } from './portfolio-fund-recovery';
+import { parseInvestingFundHistory, recoverNordicReturnPeriods } from './portfolio-fund-recovery';
 
 type PerformanceChanges = {
   today: number | null;
@@ -347,12 +347,31 @@ export const onRequestGet = async () => {
     })
   );
   const enriched = results.some((result) => result.enriched);
+  // The old screening API drops Nordnet Sverige and Spiltan 5Y returns.
+  // Fill null periods from the same exact ISIN's public structured fund
+  // payload, without changing previously sourced values.
+  const nordic = await Promise.all(results.map(async (result) => {
+    const item = result.item;
+    if ((item.id !== 'nordnet-sweden' && item.id !== 'spiltan-investmentbolag') ||
+        Object.values(item.changes).every((change) => change !== null)) return { item, recovered: false };
+    const supplementary = await recoverNordicReturnPeriods(item.id);
+    if (!supplementary) return { item, recovered: false };
+    const changes = { ...item.changes };
+    for (const period of Object.keys(changes) as Array<keyof PerformanceChanges>) {
+      if (changes[period] === null) changes[period] = supplementary.changes[period];
+    }
+    return { item: { ...item, changes }, recovered: changes.year5 !== item.changes.year5 };
+  }));
+  const nordicEnriched = nordic.some((result) => result.recovered);
 
   return new Response(
     JSON.stringify({
       ...body,
-      items: results.map((result) => estimatePortfolioPeriods(projectForestShortPeriods(result.item))),
-      source: enriched ? `${body.source} + Investing.com ISIN-matched OP NAV history` : body.source,
+      items: nordic.map((result) => estimatePortfolioPeriods(projectForestShortPeriods(result.item))),
+      source: [body.source,
+        ...(enriched ? ['Investing.com ISIN-matched OP NAV history'] : []),
+        ...(nordicEnriched ? ['Nordnet ISIN-matched historical returns'] : []),
+      ].join(' + '),
       version: Math.max(body.version ?? 0, 16),
     }),
     {

@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { summarizeWidgetPortfolio } from '../../functions/api/current/widget';
+import { buildWidgetResponse, summarizeWidgetPortfolio } from '../../functions/api/current/widget';
 import { buildWidgetV2Payload } from '../../functions/api/current/widget-v2';
 
 const periods = ['today','week1','month1','month3','month6','ytd','year1','year3','year5'];
@@ -77,4 +77,55 @@ test('Widget never invents returns for entirely missing source periods', () => {
   expect(card?.detail).toContain('SOURCE GAPS: world');
   // A source gap is a failing coverage condition, never a fabricated 0%.
   expect(card?.rows?.[0].value).toBe('--');
+});
+
+test('Widget reads verified Nordnet returns for the USA and Finland rows', async () => {
+  const originalFetch = globalThis.fetch;
+  const now = new Date('2026-11-21T12:00:00Z');
+  const funds = [
+    { slug: 'handelsbanken-usa-index', isin: 'SE0006800140', daily: -0.28 },
+    { slug: 'nordnet-suomi-indeksi', isin: 'SE0005993102', daily: 0.58 },
+    { slug: 'storebrand-japan-a-eur', isin: 'SE0013801479', daily: -0.19 },
+  ];
+  globalThis.fetch = async (input) => {
+    const url = new URL(String(input));
+    const fund = funds.find(({ slug }) => url.pathname.includes(slug));
+    if (!fund || !['www.nordnet.fi', 'www.nordnet.se'].includes(url.hostname)) {
+      return new Response(null, { status: 404 });
+    }
+    return Response.json({
+      isin: fund.isin,
+      currency: 'EUR',
+      navInfo: {
+        latestNav: { date: '2026-11-20', value: 100 },
+        returns: ['DAY_1', 'WEEK_1', 'MONTH_1', 'MONTH_3', 'MONTH_6', 'YTD',
+          'YEAR_1', 'YEAR_3', 'YEAR_5'].map((period) => ({
+          period, development: period === 'DAY_1' ? fund.daily : 1,
+        })),
+      },
+    });
+  };
+  try {
+    const response = await buildWidgetResponse(
+      new Request('https://aapopihkala.fi/api/current/widget-v2?channel=prod'),
+      now,
+    );
+    const data = await response.json();
+    expect(response.status).toBe(200);
+    expect(data.markets).toMatchObject({
+      usa: -0.28,
+      finland: 0.58,
+      selectedSources: {
+        usa: { symbol: 'SE0006800140', estimated: false },
+        finland: { symbol: 'SE0005993102', estimated: false },
+      },
+    });
+    const card = buildWidgetV2Payload(data, null, 'prod', now.toISOString()).sections.find(
+      (section) => section.id === 'markets'
+    );
+    expect(card?.rows?.find(({ label }) => label === 'USA')?.value).toBe('-0.28%');
+    expect(card?.rows?.find(({ label }) => label === 'FINLAND')?.value).toBe('+0.58%');
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
 });

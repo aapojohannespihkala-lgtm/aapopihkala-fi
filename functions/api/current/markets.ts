@@ -335,7 +335,7 @@ export const onRequestGet = async (context: { request: Request }) => {
       if (!Array.isArray(body.items)) return response;
       return new Response(JSON.stringify({
         ...body,
-        items: body.items.map(estimatePortfolioItemIfValid),
+        items: body.items.map((item) => estimatePortfolioItemIfValid(item)),
         version: Math.max(typeof body.version === 'number' ? body.version : 0, 16),
       }), { status: response.status, headers: response.headers });
     } catch {

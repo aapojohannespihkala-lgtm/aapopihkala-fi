@@ -1,6 +1,7 @@
 import { onRequestGet as getElectricityResponse } from './electricity';
 import { onRequestGet as getMarketsResponse } from './markets-stable';
-import { onRequestGet as getPortfolioPerformance } from './portfolio';
+import { onRequestGet as getPortfolioPerformance } from './portfolio-resilient';
+import { startPublicFundRecovery } from './portfolio-fund-recovery';
 import { estimatePortfolioItemIfValid, type PortfolioPeriod, type PeriodEstimateDetail } from './portfolio-estimation';
 
 type WeatherResponse = {
@@ -470,8 +471,8 @@ export const summarizeWidgetPortfolio = (data: PortfolioResponse, now = new Date
 
   for (const raw of data.items) {
     if (!raw || typeof raw !== 'object' || Array.isArray(raw)) continue;
-    // Local calculation only: do not add upstream HTTP calls to the widget path.
-    const item = estimatePortfolioItemIfValid(raw) as PortfolioItem;
+    // Keep the presentation estimate local once the verified observations arrive.
+    const item = estimatePortfolioItemIfValid(raw, now) as PortfolioItem;
     if (typeof item.id !== 'string') continue;
     byId.set(item.id, item);
     for (const period of WIDGET_SUMMARY_PERIODS) {
@@ -538,7 +539,8 @@ export const summarizeWidgetPortfolio = (data: PortfolioResponse, now = new Date
 };
 
 const loadPortfolio = async (now: Date) => {
-  const data = await readJson<PortfolioResponse>(await getPortfolioPerformance());
+  const response = await getPortfolioPerformance({ publicFunds: startPublicFundRecovery(now) });
+  const data = await readJson<PortfolioResponse>(response);
   return data ? summarizeWidgetPortfolio(data, now) : null;
 };
 
