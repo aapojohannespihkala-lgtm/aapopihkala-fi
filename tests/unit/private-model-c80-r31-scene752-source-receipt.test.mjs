@@ -344,3 +344,91 @@ test('R31 combined L16 scene756 authenticated original exact roots, two donors a
  assert.equal(r.physicalRouteVerified,false);
  assert.equal(r.physicalClearanceVerified,false);
 });
+
+
+import {
+ C80_R31_R300_SOURCE as R300,
+ C80_R31_R300_VIEWS as R300_VIEWS,
+ isC80R31R300CopperSource as validR300,
+ c80R31R300CopperSourceReceipt as receiptR300,
+} from '../../src/scripts/privateModelC80R31Scene752SourceReceipt.mjs';
+
+test('R31 R300 scene759/760 share a single GLB SHA but have distinct screen roles',()=>{
+ const n=R300_VIEWS.normal,s=R300_VIEWS.service;
+ assert.notEqual(n.role,s.role);
+ assert.notEqual(n.sceneIndex,s.sceneIndex);
+ assert.equal(n.sceneIndex,759);
+ assert.equal(s.sceneIndex,760);
+ assert.equal(n.rootCount,s.rootCount+1);
+ assert.notEqual(n.rootFnv32,s.rootFnv32);
+ assert.match(R300.glbSha256,/^[a-f0-9]{64}$/);
+ assert.match(R300.zipSha256,/^[a-f0-9]{64}$/);
+ assert.notEqual(R300.glbSha256,S756.glbSha256);
+ assert.deepEqual(R300.copperLeaves,[13492,13493]);
+ assert.deepEqual(R300.copperMeshes,[5163,5164]);
+ for(const v of Object.values(R300_VIEWS)){
+  for(const [sha,index,role,floor] of [
+   [R300.glbSha256,v.sceneIndex,v.role,'BOTH'],
+   [R300.glbSha256,v.sceneIndex-1,v.role,'BOTH'],
+   [R300.glbSha256,v.sceneIndex,v.role,'1F'],
+   [S756.glbSha256,v.sceneIndex,v.role,'BOTH'],
+   [R300.glbSha256,v.sceneIndex,'__proto__','BOTH'],
+  ])assert.equal(validR300({},sha,index,role,floor),false);
+  const receipt=receiptR300({},R300.glbSha256,v.sceneIndex,v.role,'BOTH');
+  assert.equal(receipt.exactSource,false);
+  assert.equal(receipt.publishAllowed,false);
+  assert.equal(receipt.sourceLinksBound,false);
+  assert.equal(receipt.physicalConnectionsVerified,false);
+  assert.equal(receipt.serviceClearanceVerified,false);
+  assert.equal(receipt.current,false);
+  assert.equal(receipt.asBuilt,false);
+ }
+});
+const r300FixturePath=process.env.C80_R31_R300_SCENE760_GLB_PATH;
+test('R31 R300 ORIGINAL GLB: both views, root/parent SHA, copper pair, plexi & mutations',
+ {skip:!r300FixturePath},()=>{
+ const {b,json}=parse(r300FixturePath),sha=createHash('sha256').update(b).digest('hex');
+ assert.equal(b.length,R300.glbBytes);
+ assert.equal(sha,R300.glbSha256);
+ assert.equal(json.scenes.length,R300.sceneCount);
+ const parent=json.scenes[R300.parentSceneIndex].nodes;
+ const normal=json.scenes[R300_VIEWS.normal.sceneIndex].nodes;
+ const service=json.scenes[R300_VIEWS.service.sceneIndex].nodes;
+ assert.equal(fnv(parent),R300.parentRootFnv32);
+ assert.equal(fnv(normal),R300_VIEWS.normal.rootFnv32);
+ assert.equal(fnv(service),R300_VIEWS.service.rootFnv32);
+ assert.deepEqual(normal,[...parent,R300.copperRoot]);
+ assert.deepEqual(service,normal.filter(n=>n!==R300.screenRoot));
+ assert.ok(normal.includes(R300.screenRoot));
+ assert.ok(!service.includes(R300.screenRoot));
+ assert.deepEqual(json.nodes[R300.copperRoot].children,R300.copperLeaves);
+ for(const v of Object.values(R300_VIEWS)){
+  const check=()=>validR300(json,sha,v.sceneIndex,v.role,'BOTH');
+  assert.equal(check(),true);
+  assert.equal(validR300(json,sha,v.sceneIndex,v.role==='R300_VISIBLE_COPPER_NORMAL_SCREEN_ON'?
+   R300_VIEWS.service.role:R300_VIEWS.normal.role,'BOTH'),false);
+  assert.equal(validR300(json,sha,v.sceneIndex,R300_VIEWS.normal.role,'1F'),false);
+  assert.equal(validR300(json,S756.glbSha256,v.sceneIndex,v.role,'BOTH'),false);
+  const mutate=(obj,key,val)=>{
+   const old=obj[key];obj[key]=val;
+   try{assert.equal(check(),false,'wrong '+key);}
+   finally{obj[key]=old;}
+  };
+  mutate(json.scenes[v.sceneIndex],'name','wrong-scene');
+  mutate(json.scenes[v.sceneIndex].nodes,0,999999);
+  mutate(json.scenes[R300.parentSceneIndex].nodes,0,999999);
+  mutate(json.scenes[v.sceneIndex].extras,'sourceGLBSHA256','0'.repeat(64));
+  mutate(json.scenes[v.sceneIndex].extras,'splashScreenVisible',!v.screenVisible);
+  mutate(json.scenes[v.sceneIndex].extras,'maintenanceAccessPhysicallyVerified',true);
+  mutate(json.scenes[v.sceneIndex].extras,'physicalWaterConnectionsVerified',1);
+  mutate(json.scenes[v.sceneIndex].extras,'sourceLinksOutputShaBound',true);
+  mutate(json.scenes[v.sceneIndex].extras,'productionWebGL','PASS');
+  mutate(json.nodes[R300.copperRoot],'children',[13492]);
+  mutate(json.nodes[13492],'mesh',0);
+  mutate(json.nodes[13493].extras,'copperFunction','ASSUMED_COLD');
+  mutate(json.asset.extras,'current',true);
+  mutate(json.asset.extras,'asBuilt',true);
+  assert.equal(receiptR300(json,sha,v.sceneIndex,v.role,'BOTH').exactSource,true);
+  assert.equal(receiptR300(json,sha,v.sceneIndex,v.role,'BOTH').publishAllowed,false);
+ }
+});
