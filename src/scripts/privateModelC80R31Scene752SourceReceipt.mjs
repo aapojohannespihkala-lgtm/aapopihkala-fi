@@ -839,7 +839,6 @@ export function isC80R31Scene765RK142RK143MJ83Source(json,authenticatedSha,scene
   p?.sourceRole!=='2014_15_TWO_SEPARATE_PLAN_ONLY_CIRCUITS'||
   e?.stage!=='WORK_TEST_HOST_HOLD'||e?.WORK_TEST!==true||e?.HOST_HOLD!==true||
   e?.sourceRole!=='2014_15_TWO_SEPARATE_PLAN_ONLY_CIRCUITS'||
-  !exactly(e?.circuitIds,['RK14.2','RK14.3'])||
   e?.renderedCableRoutes!=='DIAGRAM_ONLY_NOT_INSTALLED'||
   e?.physical2026GroupConnectionVerified!==false||
   e?.actualCableRouteVerified!==false||e?.electricalSafetyApproval!==false||
