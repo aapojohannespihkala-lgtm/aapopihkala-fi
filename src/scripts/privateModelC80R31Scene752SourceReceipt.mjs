@@ -1267,3 +1267,93 @@ export function c80R31Scene771772SourceReceipt(json,sha,index,role,floor){
   physicalR300AndCopperVerified:false,physicalMaintenanceClearanceVerified:false,
   electricalSafetyVerified:false,latestAsBuiltVerified:false});
 }
+
+
+/**
+ * Original 2F SW04 Exxact-style reference COW: TWO opt-in scenes in one GLB.
+ * Authentic complete-GLB SHA must be checked by caller before using this gate.
+ * This receipt is source-only, NEVER published or an installed product claim.
+ */
+export const C80_R31_SCENE773774_SW04_SOURCE=Object.freeze({
+ glbSha256:'aa56361ce355fdf31f0fbe301364156a6548eebd0ac1eb57bc25475acdca77c0',
+ glbBytes:63842380,zipDriveId:'14R1L7dFUyHrjSQoffVFfrcT_PtcmDkru',
+ zipSha256:'f771cfbd7bf65128906be6eb770733fda195f8bad6b66040b3b5bd99d024915a',
+ parentGlbSha256:'9e0bf34fd838ddc92be12007412176a8ea449f66644f8876395ac6f659804ec3',
+ parentZipDriveId:'1EmsMz5AyyWQwoRdZf2NVOvnndvMfHLb7',
+ sceneCount:775,nodeCount:13510,meshCount:5171,materialCount:815,
+ accessorCount:11271,bufferViewCount:11277,defaultScene:292,
+ oldSwitchRoot:13245,newSwitchRoot:13507,children:[13508,13509],
+ meshIds:[5169,5170],stableId:'D2F-SW-04',plexi:11625,
+ normal:Object.freeze({index:773,parentIndex:771,role:'R31_2F_K3_SW04_REFERENCE_NORMAL',
+  name:'Ylisrinne_C80_R31_2F_R300_K3_SW04_EXXACT_REFERENCE_NORMAL_PLEX_ON_WORK_TEST_HOST_HOLD__scene773',
+  rootCount:204,rootFnv32:'7b66d506',parentCount:204,parentFnv32:'a9e2f210',plexy:'PLEX_ON'}),
+ service:Object.freeze({index:774,parentIndex:772,role:'R31_2F_K3_SW04_REFERENCE_SERVICE',
+  name:'Ylisrinne_C80_R31_2F_R300_K3_SW04_EXXACT_REFERENCE_SERVICE_PLEX_OFF_WORK_TEST_HOST_HOLD__scene774',
+  rootCount:203,rootFnv32:'d53dce03',parentCount:203,parentFnv32:'49047c9d',plexy:'PLEX_OFF'}),
+});
+export function isC80R31Scene773774SW04Source(json,sha,index,role,floor){
+ const s=C80_R31_SCENE773774_SW04_SOURCE;
+ const v=index===s.normal.index?s.normal:index===s.service.index?s.service:null;
+ const asset=json?.asset?.extras;
+ if(!v||role!==v.role||sha!==s.glbSha256||
+  (floor!==undefined&&floor!=='2F')||json?.scene!==s.defaultScene||
+  json?.scenes?.length!==s.sceneCount||json?.nodes?.length!==s.nodeCount||
+  json?.meshes?.length!==s.meshCount||json?.materials?.length!==s.materialCount||
+  json?.accessors?.length!==s.accessorCount||json?.bufferViews?.length!==s.bufferViewCount||
+  asset?.ModelStage!=='WORK_TEST'||asset?.current!==false||
+  asset?.asBuilt!==false||asset?.HUMAN_REVIEW!=='NOT_RUN')return false;
+ const current=json.scenes[index],old=json.scenes[v.parentIndex],
+  r=current?.nodes,prev=old?.nodes,e=current?.extras;
+ const parentSpec=C80_R31_SCENE771772_2F_R300_SOURCE;
+ if(current?.name!==v.name||
+  old?.name!==(v===s.normal?parentSpec.normal.name:parentSpec.service.name)||
+  !Array.isArray(r)||!Array.isArray(prev)||
+  r.length!==v.rootCount||prev.length!==v.parentCount||
+  new Set(r).size!==r.length||new Set(prev).size!==prev.length||
+  c80R31Scene752RootsFnv32(r)!==v.rootFnv32||
+  c80R31Scene752RootsFnv32(prev)!==v.parentFnv32||
+  prev.filter(n=>n===s.oldSwitchRoot).length!==1||
+  !exactly(r,prev.map(n=>n===s.oldSwitchRoot?s.newSwitchRoot:n))||
+  r.includes(s.oldSwitchRoot)||r.filter(n=>n===s.newSwitchRoot).length!==1||
+  r.includes(s.plexi)!==(v===s.normal)||
+  ![13488,13491,13494,13505,13506,13499,13500,13502].every(n=>r.includes(n))||
+  e?.stage!=='WORK_TEST_HOST_HOLD'||e?.sourceGlbSHA256!==s.parentGlbSha256||
+  e?.sourceSceneName!==old.name||e?.sourceLinksNewShaBound!==false||
+  e?.newRoot!==s.newSwitchRoot||e?.sourceRootReplaced!==s.oldSwitchRoot||
+  e?.productSkuInstalledVerified!==false||e?.sourceLinksForOutputSHA!=='NOT_BOUND'||
+  e?.plexyState!==v.plexy||e?.r300SKU!=='NOT_VERIFIED'||
+  e?.rk141to3!=='HISTORICAL_SCHEMATIC_2015'||
+  e?.productionWebGL!=='NOT_RUN'||e?.humanReview!=='NOT_RUN'||
+  e?.current!==false||e?.asBuilt!==false)return false;
+ const root=json.nodes[s.newSwitchRoot],x=root?.extras;
+ if(!exactly(root?.children,s.children)||root?.name!==
+   'K3_D2F_SW04_WHITE_EXXACT_STYLE_REFERENCE_87x87MM_WORK_TEST_HOST_HOLD'||
+  x?.stableID!==s.stableId||x?.sourceOriginalG2bDriveID!==s.parentZipDriveId||
+  x?.sourceOriginalGlbSHA256!==s.parentGlbSha256||
+  x?.sourcePreviousRootNode!==s.oldSwitchRoot||
+  !exactly(x?.sourcePreviousLeaves,[13219,13220])||
+  x?.sourceHostNodeID!==10794||x?.sourceHostMeshID!==4188||
+  x?.proxyFrameOuterM!==0.087||x?.proxyFrameThicknessM!==0.0116||
+  x?.geometrySource!=='PROCEDURAL_VISUAL_PROXY_NOT_MANUFACTURER_CAD'||
+  x?.installedSwitchSkuVerified!==false||
+  x?.measuredPhysicalWallHostVerified!==false||
+  x?.physicalInstalledPositionVerified!==false||
+  x?.electricalCircuitVerified!==false||x?.workTest!==true||x?.hostHold!==true||
+  x?.current!==false||x?.asBuilt!==false||
+  x?.sourceLinksBoundToOutputSha!==false||
+  x?.productionWebGLVerified!==false||x?.humanReview!==false||
+  json.nodes[s.children[0]]?.mesh!==s.meshIds[0]||
+  json.nodes[s.children[1]]?.mesh!==s.meshIds[1]||
+  json.nodes[s.plexi]?.mesh!==4419||
+  !exactly(json.nodes[13494]?.children,[13492,13493])||
+  json.nodes[13503]?.extras?.m5System!=='VIEMARI'||
+  json.nodes[13504]?.extras?.m5System!=='VIEMARI'||
+  json.nodes[13506]?.extras?.physicalWiring2026Verified!==false)return false;
+ return true;
+}
+export function c80R31Scene773774SW04SourceReceipt(json,sha,index,role,floor){
+ return Object.freeze({exactSource:isC80R31Scene773774SW04Source(json,sha,index,role,floor),
+  stage:'WORK_TEST_HOST_HOLD',sourceLinksBound:false,publishAllowed:false,
+  productionWebGLVerified:false,humanReview:'NOT_RUN',current:false,asBuilt:false,
+  installedSKUVerified:false,physicalHostVerified:false,electricalSafetyVerified:false});
+}
