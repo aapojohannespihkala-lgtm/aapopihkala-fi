@@ -532,3 +532,96 @@ test('R31 D1F VM20 ORIGINAL GLB: scene761 closed and scene762 opened, exact wall
   assert.equal(receipt.plumbingConnectivityVerified,false);
  }
 });
+
+
+import {
+ C80_R31_RK142_SOURCE as RK142,
+ isC80R31RK142Source as validRK142,
+ c80R31RK142SourceReceipt as receiptRK142,
+} from '../../src/scripts/privateModelC80R31Scene752SourceReceipt.mjs';
+
+test('R31 RK14.2 scene763 pins a distinct schematic SHA and rejects source confusion',()=>{
+ assert.equal(RK142.sceneIndex,763);
+ assert.equal(RK142.parentScene,762);
+ assert.equal(RK142.sceneCount,764);
+ assert.equal(RK142.newRoot,13499);
+ assert.equal(RK142.newLeaf,13498);
+ assert.equal(RK142.newMesh,5166);
+ assert.equal(RK142.role,'RK14_2_WINE_COOLER_2015_SCHEMATIC_ONLY');
+ assert.notEqual(RK142.glbSha256,R300.glbSha256);
+ assert.notEqual(RK142.glbSha256,HATCH.glbSha256);
+ assert.match(RK142.glbSha256,/^[a-f0-9]{64}$/);
+ assert.match(RK142.zipSha256,/^[a-f0-9]{64}$/);
+ for(const [sha,scene,role,floor] of [
+  [RK142.glbSha256,763,RK142.role,'BOTH'],
+  [RK142.glbSha256,762,RK142.role,'BOTH'],
+  [RK142.glbSha256,761,RK142.role,'BOTH'],
+  [HATCH.glbSha256,763,RK142.role,'BOTH'],
+  [R300.glbSha256,763,RK142.role,'BOTH'],
+  [RK142.glbSha256,763,'__proto__','BOTH'],
+  [RK142.glbSha256,763,RK142.role,'2F'],
+ ])assert.equal(validRK142({},sha,scene,role,floor),false);
+ const r=receiptRK142({},RK142.glbSha256,763,RK142.role,'BOTH');
+ assert.equal(r.exactSource,false);
+ assert.equal(r.publishAllowed,false);
+ assert.equal(r.sourceLinksBound,false);
+ assert.equal(r.physicalCableRouteVerified,false);
+ assert.equal(r.physicalConnectionVerified,false);
+ assert.equal(r.current,false);
+ assert.equal(r.asBuilt,false);
+});
+const rk142Fixture=process.env.C80_R31_RK142_SCENE763_GLB_PATH;
+test('R31 ORIGINAL RK14.2 scene763 SHA, ordered roots, labels and HOLD metadata',
+ {skip:!rk142Fixture},()=>{
+ const {b,json}=parse(rk142Fixture);
+ const sha=createHash('sha256').update(b).digest('hex');
+ assert.equal(b.length,RK142.glbBytes);
+ assert.equal(sha,RK142.glbSha256);
+ assert.equal(json.scene,RK142.defaultScene);
+ assert.equal(json.scenes.length,RK142.sceneCount);
+ assert.equal(json.nodes.length,RK142.nodeCount);
+ assert.equal(json.meshes.length,RK142.meshCount);
+ const parent=json.scenes[RK142.parentScene];
+ const target=json.scenes[RK142.sceneIndex];
+ assert.equal(parent.name,RK142.parentSceneName);
+ assert.equal(target.name,RK142.sceneName);
+ assert.equal(fnv(parent.nodes),RK142.parentRootFnv32);
+ assert.equal(fnv(target.nodes),RK142.targetRootFnv32);
+ assert.deepEqual(target.nodes,[...parent.nodes,RK142.newRoot]);
+ assert.deepEqual(json.nodes[RK142.newRoot].children,[RK142.newLeaf]);
+ const check=()=>validRK142(json,sha,RK142.sceneIndex,RK142.role,'BOTH');
+ assert.equal(check(),true);
+ assert.equal(validRK142(json,HATCH.glbSha256,RK142.sceneIndex,RK142.role,'BOTH'),false);
+ assert.equal(validRK142(json,sha,762,RK142.role,'BOTH'),false);
+ assert.equal(validRK142(json,sha,763,RK142.role,'1F'),false);
+ const mutate=(o,k,v)=>{
+  const old=o[k];o[k]=v;
+  try{assert.equal(check(),false,'mutated '+k);}
+  finally{o[k]=old;}
+ };
+ mutate(target,'name','FORGED_763');
+ mutate(target.nodes,0,123456);
+ mutate(parent.nodes,0,123456);
+ mutate(target.extras,'sourceParentGLBSHA256','0'.repeat(64));
+ mutate(target.extras,'physicalCableConnectionVerified',true);
+ mutate(target.extras,'sourceLinksBoundForOutputSHA',true);
+ mutate(target.extras,'sourceRole','2026_CURRENT');
+ mutate(json.nodes[RK142.newRoot],'children',[13013]);
+ mutate(json.nodes[RK142.newRoot].extras,'physicalConnectionVerified',true);
+ mutate(json.nodes[RK142.newRoot].extras,'sourceLinksBoundForOutputSHA',true);
+ mutate(json.nodes[RK142.newLeaf],'mesh',0);
+ mutate(json.nodes[RK142.newLeaf].extras,'2026CircuitConnectionVerified',true);
+ mutate(json.nodes[RK142.newLeaf].extras,'physicalWiringRouteVerified',true);
+ mutate(json.nodes[RK142.newLeaf].extras,'circuitId','RK14.3');
+ mutate(json.nodes[RK142.newLeaf].extras,'sourceProductRootNode',12633);
+ mutate(json.nodes[RK142.newLeaf].extras,'sourceLinksBoundForOutputSHA',true);
+ mutate(json.nodes[RK142.newLeaf].extras.sourceLinks[0],'docId','WRONG_SOURCE');
+ mutate(json.asset.extras,'current',true);
+ mutate(json.asset.extras,'asBuilt',true);
+ assert.equal(check(),true);
+ const receipt=receiptRK142(json,sha,763,RK142.role,'BOTH');
+ assert.equal(receipt.exactSource,true);
+ assert.equal(receipt.publishAllowed,false);
+ assert.equal(receipt.sourceLinksBound,false);
+ assert.equal(receipt.humanReview,'NOT_RUN');
+});
