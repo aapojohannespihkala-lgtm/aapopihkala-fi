@@ -694,17 +694,39 @@ export const initCurrentWeather = () => {
     setLoadingState();
 
     try {
-      const response = await fetch(buildApiUrl(), {
-        headers: { Accept: 'application/json' },
-        cache: 'no-store',
-      });
+      // Prefer the same-origin Worker proxy. If an older deployment does not
+      // yet serve it, retain Open-Meteo as a bounded browser fallback.
+      const controller = new AbortController();
+      const timeout = window.setTimeout(() => controller.abort(), 5_000);
+      let response: Response;
+      try {
+        response = await fetch('/api/current/weather', {
+          headers: { Accept: 'application/json' },
+          cache: 'no-store',
+          signal: controller.signal,
+        });
+        if (!response.ok) throw new Error(`Weather proxy failed: ${response.status}`);
+      } catch {
+        response = await fetch(buildApiUrl(), {
+          headers: { Accept: 'application/json' },
+          cache: 'no-store',
+        });
+      } finally {
+        window.clearTimeout(timeout);
+      }
 
       if (!response.ok) {
         throw new Error(`Open-Meteo request failed: ${response.status}`);
       }
 
+      const cachedForecast = response.headers.get('X-Current-Fallback') === 'last-known-good';
       const data = (await response.json()) as OpenMeteoResponse;
       renderData(data);
+      if (cachedForecast) {
+        conditionTarget.title = 'Showing the most recent cached forecast while the live source is unavailable';
+      } else {
+        conditionTarget.removeAttribute('title');
+      }
     } catch (error) {
       void error;
       root.setAttribute('aria-busy', 'false');
