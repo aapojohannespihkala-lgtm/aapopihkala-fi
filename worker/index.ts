@@ -584,6 +584,17 @@ const publicLiigaResponse = async (response: Response, error: string) => {
   return Response.json({ error }, { status: response.status, headers: response.headers });
 };
 
+const shareWidgetPortfolio = (request: Request) => {
+  const portfolioUrl = new URL(MARKETS_PATH, request.url);
+  portfolioUrl.searchParams.set('portfolio', '1');
+  if (new URL(request.url).searchParams.has('live_smoke')) {
+    portfolioUrl.searchParams.set('live_smoke', '1');
+  }
+  return () => servePortfolioWithLastKnownGood(
+    new Request(portfolioUrl), getPortfolioResponse, undefined, true,
+  );
+};
+
 const worker = {
   async fetch(request: Request, env: WorkerEnv, ctx?: WorkerExecutionContext): Promise<Response> {
     const url = new URL(request.url);
@@ -623,11 +634,21 @@ const worker = {
       }
       return serveCurrentFeedWithLastKnownGood(request, 'markets', () => getMarketsResponse({ request }), undefined, true);
     }
-    if (url.pathname === WIDGET_PATH) {
+    if (url.pathname === WIDGET_PATH || url.pathname === WIDGET_V2_PATH) {
       if (request.method !== 'GET') return methodNotAllowed();
-      return serveWidgetWithLastKnownGood(request, () => url.searchParams.get('v') === '2' ? getWidgetV2Response({ request, env }) : getWidgetResponse({ request }), undefined, WIDGET_LIVE_WAIT_MS, ctx?.waitUntil.bind(ctx), true);
+      const isV2 = url.pathname === WIDGET_V2_PATH || url.searchParams.get('v') === '2';
+      const loadPortfolioResponse = shareWidgetPortfolio(request);
+      return serveWidgetWithLastKnownGood(
+        request,
+        () => isV2
+          ? getWidgetV2Response({ request, env, loadPortfolioResponse })
+          : getWidgetResponse({ request, loadPortfolioResponse }),
+        undefined,
+        WIDGET_LIVE_WAIT_MS,
+        ctx?.waitUntil.bind(ctx),
+        url.pathname === WIDGET_PATH,
+      );
     }
-    if (url.pathname === WIDGET_V2_PATH) { if (request.method !== 'GET') return methodNotAllowed(); return serveWidgetWithLastKnownGood(request, () => getWidgetV2Response({ request, env }), undefined, WIDGET_LIVE_WAIT_MS, ctx?.waitUntil.bind(ctx)); }
     if (url.pathname === LIIGA_PATH) {
       if (request.method !== 'GET') return methodNotAllowed();
       const response = snapshotRequest ? await fetchLiigaResponse(SNAPSHOT_LIIGA_UPSTREAM_TIMEOUT_MS) : await getLiigaResponse();
