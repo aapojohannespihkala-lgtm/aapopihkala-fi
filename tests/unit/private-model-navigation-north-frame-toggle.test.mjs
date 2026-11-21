@@ -133,8 +133,9 @@ test('controller validates its mount and does not update a label on bad pose', (
   const { node } = makeDom();
   const root = node(), svg = node(), northLabel = node();
   const controller = createNorthFrameToggleController({ root, svg, northLabel });
+  assert.equal(northLabel.textContent, 'N');
   assert.throws(() => controller.render({ quaternion: { ...identity, w: Infinity } }), /finite camera/);
-  assert.equal(northLabel.textContent, '');
+  assert.equal(northLabel.textContent, 'N');
   controller.dispose();
 });
 
