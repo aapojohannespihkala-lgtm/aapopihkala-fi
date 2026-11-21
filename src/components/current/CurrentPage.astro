@@ -164,9 +164,11 @@ const canonicalUrl = `${site.url}/current/`;
       import { initCurrentChartPresentation } from '../../features/current/chartPresentation';
       import { initCurrentChartPolish } from '../../features/current/chartPolish';
       import { initCurrentSolarPresentation } from '../../features/current/solarPresentation';
+      import { initCurrentDayNightDisk } from '../../features/current/dayNightDisk';
 
       initCurrentClock();
       initCurrentSolarPresentation();
+      initCurrentDayNightDisk();
       initCurrentElectricityPresentation();
       initCurrentElectricitySummary();
       initCurrentChartPolish();
