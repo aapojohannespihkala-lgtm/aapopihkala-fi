@@ -362,3 +362,101 @@ export function c80R31Scene756SourceReceipt(json,authenticatedSha,sceneIndex,rol
   physicalRouteVerified:false,physicalClearanceVerified:false,
  });
 }
+
+
+/**
+ * The two NIBE Compact R300 preview roles share ONE authenticated source GLB:
+ * __scene759 includes the clear screen, __scene760 suppresses ONLY that screen.
+ * Caller independently verifies SHA-256 of the complete original GLB bytes.
+ * Read-only receipt, not a model registration or publication permission.
+ */
+export const C80_R31_R300_SOURCE=Object.freeze({
+ glbSha256:'0ec686edc2c36b1230b81edf7e27237e2ee95b34ac2fe18768519c255ad1ec13',
+ glbBytes:63630516,
+ zipDriveId:'13SUVUJEtaoLFkACF_LQ2I3wLKiv47ktW',
+ zipSha256:'03c221aaf9ea4883c743c6c5ec0ef767643c58385d3002238331ce03b8b121c8',
+ sceneCount:761,nodeCount:13495,meshCount:5165,materialCount:812,
+ accessorCount:11254,bufferViewCount:11260,defaultScene:292,
+ parentSceneIndex:758,parentSceneName:'Ylisrinne_C80_R31_R300_ETUPUOLI_WCHUONEESEEN_WORK_TEST_HOST_HOLD__scene758',
+ parentRootCount:494,parentRootFnv32:'b4f58f98',
+ parentGlbSha256:'bbb0ff168255d2b56454be25df0550802cc6c658e18a76c70d84c78533fbba7e',
+ newR300Root:13488,screenRoot:11625,copperRoot:13494,
+ copperLeaves:Object.freeze([13492,13493]),copperMeshes:Object.freeze([5163,5164]),
+});
+export const C80_R31_R300_VIEWS=Object.freeze({
+ normal:Object.freeze({
+  role:'R300_VISIBLE_COPPER_NORMAL_SCREEN_ON',sceneIndex:759,
+  sceneName:'Ylisrinne_C80_R31_R300_NAKYVAT_YLAKUPARIT_WORK_TEST_HOST_HOLD__scene759',
+  rootCount:495,rootFnv32:'0cd5a96a',screenVisible:true,
+ }),
+ service:Object.freeze({
+  role:'R300_VISIBLE_COPPER_SERVICE_SCREEN_OFF',sceneIndex:760,
+  sceneName:'Ylisrinne_C80_R31_R300_HUOLTONAKYMA_PLEKSI_POIS_WORK_TEST_HOST_HOLD__scene760',
+  rootCount:494,rootFnv32:'09cac651',screenVisible:false,
+ }),
+});
+export function isC80R31R300CopperSource(json,authenticatedSha,sceneIndex,role,floor){
+ const s=C80_R31_R300_SOURCE,views=C80_R31_R300_VIEWS;
+ const view=Object.values(views).find(v=>v.role===role);
+ const a=json?.asset?.extras;
+ if(!view||sceneIndex!==view.sceneIndex||
+  authenticatedSha!==s.glbSha256||(floor!==undefined&&floor!=='BOTH')||
+  json?.scene!==s.defaultScene||json?.scenes?.length!==s.sceneCount||
+  json?.nodes?.length!==s.nodeCount||json?.meshes?.length!==s.meshCount||
+  json?.materials?.length!==s.materialCount||
+  json?.accessors?.length!==s.accessorCount||
+  json?.bufferViews?.length!==s.bufferViewCount||
+  a?.ModelStage!=='WORK_TEST'||a?.current!==false||
+  a?.asBuilt!==false||a?.HUMAN_REVIEW!=='NOT_RUN')return false;
+ const prior=json.scenes[s.parentSceneIndex],target=json.scenes[sceneIndex];
+ const old=prior?.nodes,roots=target?.nodes,e=target?.extras;
+ if(prior?.name!==s.parentSceneName||target?.name!==view.sceneName||
+  !Array.isArray(old)||!Array.isArray(roots)||
+  old.length!==s.parentRootCount||roots.length!==view.rootCount||
+  new Set(old).size!==old.length||new Set(roots).size!==roots.length||
+  c80R31Scene752RootsFnv32(old)!==s.parentRootFnv32||
+  c80R31Scene752RootsFnv32(roots)!==view.rootFnv32||
+  prior?.extras?.newR300Root!==s.newR300Root||
+  !old.includes(s.screenRoot)||!old.includes(s.newR300Root)||
+  !exactly(roots,view.screenVisible?
+   [...old,s.copperRoot]:
+   [...old.filter(x=>x!==s.screenRoot),s.copperRoot])||
+  e?.stage!=='WORK_TEST_HOST_HOLD'||
+  e?.sourceSceneIndex!==s.parentSceneIndex||
+  e?.sourceGLBSHA256!==s.parentGlbSha256||
+  e?.visibleCopperRoot!==s.copperRoot||
+  e?.normalSceneIndex!==views.normal.sceneIndex||
+  e?.serviceSceneIndex!==views.service.sceneIndex||
+  e?.splashScreenVisible!==view.screenVisible||
+  e?.maintenanceAccessPhysicallyVerified!==false||
+  e?.physicalWaterConnectionsVerified!==0||
+  e?.r300FrontOrientationG1!=='N'||
+  e?.newR300Root!==s.newR300Root||
+  e?.sourceLinksOutputSHA!=='NOT_BOUND'||
+  e?.sourceLinksOutputShaBound!==false||
+  e?.productionWebGL!=='NOT_RUN'||
+  e?.HUMAN_REVIEW!=='NOT_RUN'||
+  e?.humanReview!=='NOT_RUN'||
+  e?.current!==false||e?.asBuilt!==false||e?.canonical!==false)return false;
+ const copper=json.nodes[s.copperRoot],children=copper?.children;
+ if(!exactly(children,s.copperLeaves)||copper?.mesh!==undefined)return false;
+ for(let i=0;i<s.copperLeaves.length;i++){
+  const n=json.nodes[s.copperLeaves[i]],x=n?.extras;
+  if(n?.mesh!==s.copperMeshes[i]||x?.stage!=='WORK_TEST_HOST_HOLD'||
+   x?.sourceGLBSHA256!==s.parentGlbSha256||
+   x?.visualOnly!==true||x?.visibleGeometryOnly!==true||
+   x?.wallXYZMeasured!==false||x?.copperFunction!=='UNASSIGNED'||
+   x?.physicalConnectionsVerified!==0||
+   x?.current!==false||x?.asBuilt!==false)return false;
+ }
+ return true;
+}
+export function c80R31R300CopperSourceReceipt(json,authenticatedSha,sceneIndex,role,floor){
+ return Object.freeze({
+  exactSource:isC80R31R300CopperSource(json,authenticatedSha,sceneIndex,role,floor),
+  stage:'WORK_TEST_HOST_HOLD',sourceLinksBound:false,publishAllowed:false,
+  productionWebGLVerified:false,humanReview:'NOT_RUN',current:false,
+  asBuilt:false,physicalHostVerified:false,physicalConnectionsVerified:false,
+  serviceClearanceVerified:false,
+ });
+}
