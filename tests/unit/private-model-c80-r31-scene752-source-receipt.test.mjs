@@ -1234,3 +1234,91 @@ test('R31 original private scene771/772 normal/service, SHA, root and mutation g
   change(json.asset.extras,'asBuilt',true);
  }
 });
+
+
+import {
+ C80_R31_SCENE773774_SW04_SOURCE as SW04,
+ isC80R31Scene773774SW04Source as validSW04,
+ c80R31Scene773774SW04SourceReceipt as receiptSW04,
+} from '../../src/scripts/privateModelC80R31Scene752SourceReceipt.mjs';
+const sw04OriginalPath=process.env.C80_R31_2F_SW04_SCENE773774_GLB_PATH;
+const makeSyntheticSW04=()=>{
+ const j=makeSynthetic771772(),s=SW04;
+ j.scenes.length=s.sceneCount;j.nodes.length=s.nodeCount;
+ j.meshes.length=s.meshCount;j.accessors.length=s.accessorCount;
+ j.bufferViews.length=s.bufferViewCount;
+ j.nodes[13245]={children:[13219,13220]};
+ j.nodes[13507]={
+  name:'K3_D2F_SW04_WHITE_EXXACT_STYLE_REFERENCE_87x87MM_WORK_TEST_HOST_HOLD',
+  children:[13508,13509],extras:{
+   stableID:'D2F-SW-04',sourceOriginalG2bDriveID:s.parentZipDriveId,
+   sourceOriginalGlbSHA256:s.parentGlbSha256,sourcePreviousRootNode:13245,
+   sourcePreviousLeaves:[13219,13220],sourceHostNodeID:10794,sourceHostMeshID:4188,
+   proxyFrameOuterM:0.087,proxyFrameThicknessM:0.0116,
+   geometrySource:'PROCEDURAL_VISUAL_PROXY_NOT_MANUFACTURER_CAD',
+   installedSwitchSkuVerified:false,measuredPhysicalWallHostVerified:false,
+   physicalInstalledPositionVerified:false,electricalCircuitVerified:false,
+   workTest:true,hostHold:true,current:false,asBuilt:false,
+   sourceLinksBoundToOutputSha:false,productionWebGLVerified:false,humanReview:false,
+  }};
+ j.nodes[13508]={mesh:5169};j.nodes[13509]={mesh:5170};
+ for(const [v,p] of [[s.normal,SW04.normal],[s.service,SW04.service]]){
+  const base=j.scenes[v.parentIndex];
+  j.scenes[v.index]={
+   name:v.name,nodes:base.nodes.map(n=>n===13245?13507:n),
+   extras:{...base.extras,sourceGlbSHA256:s.parentGlbSha256,
+    sourceSceneName:base.name,sourceLinksNewShaBound:false,
+    newRoot:13507,sourceRootReplaced:13245,productSkuInstalledVerified:false}};
+ }
+ return j;
+};
+test('R31 2F SW04 SHA/role/scene/root and metadata gate synthetic positive+negative',()=>{
+ const j=makeSyntheticSW04(),s=SW04;
+ assert.equal(j.scenes.length,775);assert.equal(s.glbSha256.length,64);
+ for(const v of [s.normal,s.service]){
+  const good=()=>validSW04(j,s.glbSha256,v.index,v.role,'2F');
+  assert.equal(fnv(j.scenes[v.index].nodes),v.rootFnv32);
+  assert.equal(good(),true);
+  assert.equal(receiptSW04(j,s.glbSha256,v.index,v.role,'2F').publishAllowed,false);
+  for(const [sha,i,role,floor] of [
+   [s.parentGlbSha256,v.index,v.role,'2F'],
+   [s.glbSha256,v.parentIndex,v.role,'2F'],
+   [s.glbSha256,v.index,v===s.normal?s.service.role:s.normal.role,'2F'],
+   [s.glbSha256,v.index,v.role,'BOTH'],
+   [s.glbSha256,v.index,'__proto__','2F']
+  ])assert.equal(validSW04(j,sha,i,role,floor),false);
+  const mutate=(obj,key,value)=>{const old=obj[key];obj[key]=value;
+   try{assert.equal(good(),false,'reject '+String(key));}finally{obj[key]=old;}};
+  mutate(j.scenes[v.index].nodes,0,999999);
+  mutate(j.scenes[v.index].extras,'sourceGlbSHA256','0'.repeat(64));
+  mutate(j.scenes[v.index].extras,'sourceLinksNewShaBound',true);
+  mutate(j.scenes[v.index].extras,'productSkuInstalledVerified',true);
+  mutate(j.nodes[13507].extras,'installedSwitchSkuVerified',true);
+  mutate(j.nodes[13507].extras,'electricalCircuitVerified',true);
+  mutate(j.nodes[13507],'children',[13508]);
+  mutate(j.nodes[13509],'mesh',0);
+  mutate(j.asset.extras,'asBuilt',true);
+ }
+ assert.equal(validSW04({},s.glbSha256,773,s.normal.role,'2F'),false);
+});
+test('R31 SW04 original GLB SHA, source parent and plexi source mutation gates',
+ {skip:!sw04OriginalPath},()=>{
+ const {b,json}=parse(sw04OriginalPath),s=SW04;
+ const sha=createHash('sha256').update(b).digest('hex');
+ assert.equal(b.length,s.glbBytes);assert.equal(sha,s.glbSha256);
+ for(const v of [s.normal,s.service]){
+  const good=()=>validSW04(json,sha,v.index,v.role,'2F');
+  assert.equal(fnv(json.scenes[v.index].nodes),v.rootFnv32);
+  assert.equal(good(),true);
+  assert.deepEqual(json.scenes[v.index].nodes,
+   json.scenes[v.parentIndex].nodes.map(n=>n===s.oldSwitchRoot?s.newSwitchRoot:n));
+  const mutate=(o,k,value)=>{const old=o[k];o[k]=value;
+   try{assert.equal(good(),false,'original tamper '+k);}finally{o[k]=old;}};
+  mutate(json.scenes[v.index].extras,'sourceGlbSHA256','0'.repeat(64));
+  mutate(json.scenes[v.index].extras,'sourceLinksForOutputSHA','BOUND');
+  mutate(json.nodes[s.newSwitchRoot].extras,'physicalInstalledPositionVerified',true);
+  mutate(json.nodes[s.newSwitchRoot].extras,'sourceHostMeshID',0);
+  mutate(json.nodes[s.children[0]],'mesh',0);
+  mutate(json.asset.extras,'current',true);
+ }
+});
