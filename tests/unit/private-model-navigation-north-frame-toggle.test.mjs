@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import {
   G1_MAP_AXES,
   g1ToMapXY,
@@ -135,4 +136,22 @@ test('controller validates its mount and does not update a label on bad pose', (
   assert.throws(() => controller.render({ quaternion: { ...identity, w: Infinity } }), /finite camera/);
   assert.equal(northLabel.textContent, '');
   controller.dispose();
+});
+
+test('real orientation HUD integrates the opt-in north frame without making the canvas overlay interactive', () => {
+  const source = readFileSync(
+    new URL('../../src/scripts/privateModelOrientationGizmo.ts', import.meta.url), 'utf8',
+  );
+  const page = readFileSync(
+    new URL('../../src/pages/private-model/index.astro', import.meta.url), 'utf8',
+  );
+  assert.match(source, /import \{ createNorthFrameToggleController \} from '\.\/privateModelNavigationNorthFrameToggle\.mjs';/);
+  assert.match(source, /createNorthFrameToggleController\(\{ root, svg: northFrameSvg, northLabel \}\)/);
+  assert.match(source, /pointerEvents: 'auto'/);
+  assert.match(source, /touchAction: 'manipulation'/);
+  const nav = source.indexOf('const navigatorChanged = renderNavigator(quaternion, projection)');
+  const north = source.indexOf('northFrameController?.render({ quaternion })');
+  assert.ok(nav >= 0 && north > nav, 'north is rendered after existing G1 axis');
+  assert.match(page, /\.orientation-gizmo \{[\s\S]*?pointer-events: none;/);
+  assert.match(page, /id="orientation-north-label"/);
 });
