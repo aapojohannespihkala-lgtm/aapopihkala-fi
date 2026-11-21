@@ -19,14 +19,25 @@ export const projectForestShortPeriods = <T extends {
   if (item.id !== 'op-forest-owner-b') return item;
   const quarter = item.changes.month3;
   if (quarter === null) return item;
-  const today = projectQuarterReturn(quarter, 1);
-  const week1 = projectQuarterReturn(quarter, 7);
-  const month1 = projectQuarterReturn(quarter, 30);
-  if (today === null || week1 === null || month1 === null) return item;
+  // A reported source return always takes precedence over a projection.
+  // Estimate only genuinely missing periods and label only those cells.
+  const changes = { ...item.changes };
+  const estimatedPeriods: ForestEstimatedPeriod[] = [];
+  const periods: [ForestEstimatedPeriod, number][] = [
+    ['today', 1], ['week1', 7], ['month1', 30],
+  ];
+  for (const [period, days] of periods) {
+    if (changes[period] !== null) continue;
+    const estimated = projectQuarterReturn(quarter, days);
+    if (estimated === null) return item;
+    changes[period] = estimated;
+    estimatedPeriods.push(period);
+  }
+  if (estimatedPeriods.length === 0) return item;
   return {
     ...item,
-    changes: { ...item.changes, today, week1, month1 },
-    estimatedPeriods: [...FOREST_ESTIMATED_PERIODS],
+    changes,
+    estimatedPeriods,
     estimationMethod: 'compound-3m-over-91-days',
   };
 };
