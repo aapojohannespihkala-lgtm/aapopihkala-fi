@@ -47,8 +47,9 @@ function fixture(sha=R300_OWNER_GLB_SHA256,sceneIndex=759){
  }},associations:new Map([
   [root,{nodes:13488}],[casing,{nodes:13487}],[leaf,{nodes:13415,meshes:4368}],
  ])}};
+ const originalSceneDef=scenes[sceneIndex];
+ scene.nodes=originalSceneDef.nodes;
  gltf.scenes[sceneIndex]=scene;
- scene.nodes=scenes[sceneIndex].nodes;
  return {gltf,loadedGlbSha256:sha,mountedScene:scene,selectedObject:leaf,protectedEvidence};
 }
 test('one protected source card is preserved for old normal/service and latest 4 scenes',()=>{
