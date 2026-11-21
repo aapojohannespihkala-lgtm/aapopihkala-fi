@@ -10,7 +10,7 @@ import {
 test('forest quarterly return is compounded into marked approximate 1D/1W/1M values', () => {
   const forest = projectForestShortPeriods({
     id: 'op-forest-owner-b',
-    changes: { today: null, week1: null, month1: 3.2, month3: 6 },
+    changes: { today: null, week1: null, month1: null, month3: 6 },
   });
   expect(forest.estimatedPeriods).toEqual(['today', 'week1', 'month1']);
   expect(forest.changes.today).toBeCloseTo((Math.pow(1.06, 1 / 91) - 1) * 100, 9);
@@ -21,6 +21,30 @@ test('forest quarterly return is compounded into marked approximate 1D/1W/1M val
   expect(projectQuarterReturn(-101, 1)).toBeNull();
   const other = { id: 'nordnet-finland', changes: { today: null, week1: null, month1: null, month3: 3 } };
   expect(projectForestShortPeriods(other)).toBe(other);
+});
+
+test('forest preserves published returns and estimates only missing periods', () => {
+  const mixed = projectForestShortPeriods({
+    id: 'op-forest-owner-b',
+    changes: { today: 0.4, week1: null, month1: 3.2, month3: 6 },
+  });
+  expect(mixed.changes.today).toBe(0.4);
+  expect(mixed.changes.month1).toBe(3.2);
+  expect(mixed.changes.week1).toBeCloseTo((Math.pow(1.06, 7 / 91) - 1) * 100, 9);
+  expect(mixed.estimatedPeriods).toEqual(['week1']);
+  expect(mixed.estimationMethod).toBe('compound-3m-over-91-days');
+
+  const complete = {
+    id: 'op-forest-owner-b',
+    changes: { today: 0.4, week1: 1.1, month1: 3.2, month3: 6 },
+  };
+  expect(projectForestShortPeriods(complete)).toBe(complete);
+
+  const noQuarter = {
+    id: 'op-forest-owner-b',
+    changes: { today: null, week1: null, month1: 3.2, month3: null },
+  };
+  expect(projectForestShortPeriods(noQuarter)).toBe(noQuarter);
 });
 
 test('fund history parser checks exact ISIN and calculates only periods supported by dates', () => {
