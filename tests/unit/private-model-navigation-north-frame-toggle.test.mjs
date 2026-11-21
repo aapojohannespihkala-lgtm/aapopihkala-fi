@@ -138,6 +138,36 @@ test('controller validates its mount and does not update a label on bad pose', (
   controller.dispose();
 });
 
+
+test('button recovers read-only camera pose from existing HUD signature before first overlay frame', () => {
+  const { node } = makeDom();
+  const root = node(), svg = node(), northLabel = node();
+  root.dataset.cameraQuaternion = '0.00000|0.00000|0.00000|1.00000';
+  northLabel.textContent = 'N';
+  const controller = createNorthFrameToggleController({ root, svg, northLabel });
+  assert.equal(root.dataset.northProjectionReady, 'true');
+  controller.button.click();
+  assert.equal(controller.frame, 'map');
+  assert.equal(northLabel.textContent, 'N kartta');
+  assert.equal(root.dataset.northReference, 'EPSG:3879');
+  assert.equal(root.dataset.northProjectionReady, 'true');
+  assert.ok(svg.children[0].getAttribute('x2') !== null);
+  controller.dispose();
+});
+
+test('without a usable camera pose, map label changes but unprojected arrow is hidden', () => {
+  const { node } = makeDom();
+  const root = node(), svg = node(), northLabel = node();
+  root.dataset.cameraQuaternion = 'not-a-camera-pose';
+  northLabel.textContent = 'N';
+  const controller = createNorthFrameToggleController({ root, svg, northLabel });
+  controller.toggle();
+  assert.equal(northLabel.textContent, 'N kartta');
+  assert.equal(root.dataset.northProjectionReady, 'false');
+  assert.equal(svg.children[0].style.display, 'none');
+  controller.dispose();
+});
+
 test('real orientation HUD integrates the opt-in north frame without making the canvas overlay interactive', () => {
   const source = readFileSync(
     new URL('../../src/scripts/privateModelOrientationGizmo.ts', import.meta.url), 'utf8',

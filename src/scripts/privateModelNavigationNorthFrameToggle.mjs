@@ -110,16 +110,30 @@ export function createNorthFrameToggleController({
     y: northLabel.getAttribute?.('y'),
   };
   let frame = 'local', quaternion = null, disposed = false;
+  // The existing orientation HUD publishes a rounded active-camera quaternion
+  // before updating its readout. Recover that camera pose if the optional
+  // overlay was mounted but never received its own render callback.
+  // This is READ-ONLY camera state, not a second orientation model.
+  const hudQuaternion = () => {
+    const items = root.dataset.cameraQuaternion?.split('|');
+    if (!items || items.length !== 4 || items.some((v) => v.trim() === '')) return null;
+    const values = items.map(Number);
+    if (!values.every(finite) || Math.abs(Math.hypot(...values) - 1) > 0.001) return null;
+    return { x: values[0], y: values[1], z: values[2], w: values[3] };
+  };
   const sync = () => {
     if (disposed) return;
     root.dataset.northFrame = frame;
     root.dataset.northReference = frame === 'local' ? 'YLIS-G1-LOCAL' : 'EPSG:3879';
     button.textContent = frame === 'local' ? 'Pohjoinen: rakennus' : 'Pohjoinen: kartta';
     button.setAttribute('aria-pressed', String(frame === 'map'));
-    line.style.display = marker.style.display = frame === 'map' ? '' : 'none';
-    if (!quaternion) return;
-    const p = projectNorthMarker(quaternion, frame);
     northLabel.textContent = frame === 'local' ? 'N' : 'N kartta';
+    const pose = quaternion ?? hudQuaternion();
+    // A map marker cannot be projected honestly without the live camera.
+    line.style.display = marker.style.display = frame === 'map' && pose ? '' : 'none';
+    root.dataset.northProjectionReady = String(Boolean(pose));
+    if (!pose) return;
+    const p = projectNorthMarker(pose, frame);
     northLabel.setAttribute('x', p.labelX.toFixed(2));
     northLabel.setAttribute('y', p.labelY.toFixed(2));
     northLabel.dataset.depth = p.depth;
@@ -161,6 +175,7 @@ export function createNorthFrameToggleController({
       if (original.y != null) northLabel.setAttribute('y', original.y);
       delete root.dataset.northFrame;
       delete root.dataset.northReference;
+      delete root.dataset.northProjectionReady;
     },
   });
 }
