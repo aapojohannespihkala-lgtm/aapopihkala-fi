@@ -126,7 +126,7 @@ test('sun marker follows the visible ring and has no redundant grey horizon stro
       };
     });
 
-    expect(Math.abs(measured.markerDistance - measured.ringCenterRadius)).toBeLessThan(1.2);
+    expect(Math.abs(measured.markerDistance - measured.ringCenterRadius)).toBeLessThan(0.2);
     expect(measured.redundantHorizonContent).toBe('none');
     }
   }

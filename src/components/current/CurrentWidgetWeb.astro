@@ -272,10 +272,16 @@ const isPreview = mode === 'preview';
         const now = helsinkiMinutesNow();
         const elapsed = (now - solarNoon + 1440) % 1440;
         const angle = 2 * Math.PI * elapsed / 1440;
-        const x = 50 + radius * Math.sin(angle);
-        const y = 50 - radius * Math.cos(angle);
+        const sinAngle = Math.sin(angle);
+        const cosAngle = Math.cos(angle);
+        const x = 50 + radius * sinAngle;
+        const y = 50 - radius * cosAngle;
+        // CSS percentages are measured inside the 1px border, while the orbit
+        // is the border stroke's centreline. Correct its radial 0.5px inset.
+        const rimX = 0.5 * sinAngle;
+        const rimY = -0.5 * cosAngle;
         const night = now < sunrise || now > sunset;
-        return `--sun-x:${x.toFixed(2)}%;--sun-y:${y.toFixed(2)}%;--horizon-y:${horizonY.toFixed(2)}%;--sun-fill:${night ? 'transparent' : 'var(--foreground)'};`;
+        return `--sun-x:${x.toFixed(2)}%;--sun-y:${y.toFixed(2)}%;--sun-rim-x:${rimX.toFixed(3)}px;--sun-rim-y:${rimY.toFixed(3)}px;--horizon-y:${horizonY.toFixed(2)}%;--sun-fill:${night ? 'transparent' : 'var(--foreground)'};`;
       };
 
       const updateSolarClock = () => {
@@ -963,8 +969,8 @@ const isPreview = mode === 'preview';
   }
   .android-solar-disk b {
     position: absolute;
-    left: var(--sun-x, 50%);
-    top: var(--sun-y, 8%);
+    left: calc(var(--sun-x, 50%) + var(--sun-rim-x, 0px));
+    top: calc(var(--sun-y, 8%) + var(--sun-rim-y, 0px));
     width: 4px;
     height: 4px;
     translate: -50% -50%;
