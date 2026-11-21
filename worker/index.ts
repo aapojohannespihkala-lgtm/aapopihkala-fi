@@ -1,8 +1,10 @@
 import { onRequestGet as getElectricityPriceResponse } from '../functions/api/current/electricity';
+import { onRequestGet as getWeatherResponse } from '../functions/api/current/weather';
 import { onRequestGet as getElectricityMonthResponse } from '../functions/api/current/electricity-month';
 import { fetchHslDeparturesResponse } from '../functions/api/current/hsl';
 import { onRequestGet as getMarketsResponse } from '../functions/api/current/markets-stable';
 import { onRequestGet as getPortfolioResponse } from '../functions/api/current/portfolio-complete';
+import { diagnoseCurrentFundSource } from '../functions/api/current/portfolio-source-diagnostics';
 import { onRequestGet as getSnapshotPortfolioResponse } from '../functions/api/current/portfolio-snapshot';
 import { onRequestGet as getWidgetResponse } from '../functions/api/current/widget';
 import { onRequestGet as getWidgetV2Response } from '../functions/api/current/widget-v2';
@@ -27,6 +29,7 @@ type ResponseCache = {
 type WorkerExecutionContext = { waitUntil(promise: Promise<unknown>): void };
 
 const ELECTRICITY_PATH = '/api/current/electricity';
+const WEATHER_PATH = '/api/current/weather';
 const ELECTRICITY_MONTH_PATH = '/api/current/electricity-month';
 const HSL_PATH = '/api/current/hsl';
 const MARKETS_PATH = '/api/current/markets';
@@ -38,6 +41,9 @@ const SNAPSHOT_LIIGA_UPSTREAM_TIMEOUT_MS = 4_000;
 
 const WIDGET_LAST_KNOWN_GOOD_TTL_SECONDS = 24 * 60 * 60;
 const WIDGET_LIVE_WAIT_MS = 4_000;
+const WIDGET_FRESH_CACHE_MS = 90_000;
+const MARKETS_FRESH_CACHE_MS = 3 * 60_000;
+const PORTFOLIO_FRESH_CACHE_MS = 5 * 60_000;
 const PORTFOLIO_LAST_KNOWN_GOOD_TTL_SECONDS = 24 * 60 * 60;
 const PORTFOLIO_PERIODS = [
   'today',
@@ -75,6 +81,30 @@ const OP_FOREST_REQUIRED_PERIODS = ['month3', 'month6', 'ytd', 'year1', 'year3',
 
 const defaultResponseCache = (): ResponseCache | undefined =>
   (globalThis as typeof globalThis & { caches?: { default?: ResponseCache } }).caches?.default;
+
+// Serve a recently validated edge response without repeating expensive market
+// scrapes. Live-smoke requests always bypass this short circuit.
+const recentCachedResponse = async (
+  cache: ResponseCache,
+  key: Request,
+  stampedHeader: string,
+  maxAgeMs: number,
+  resultHeader: string,
+): Promise<Response | null> => {
+  try {
+    const cached = await cache.match(key);
+    if (!cached?.ok) return null;
+    const storedAt = Date.parse(cached.headers.get(stampedHeader) ?? '');
+    const age = Date.now() - storedAt;
+    if (!Number.isFinite(age) || age < 0 || age >= maxAgeMs) return null;
+    const headers = new Headers(cached.headers);
+    headers.set('Cache-Control', 'private, no-store');
+    headers.set(resultHeader, 'recent');
+    return new Response(cached.body, { status: cached.status, headers });
+  } catch {
+    return null;
+  }
+};
 
 const widgetCacheKeys = (request: Request) => {
   const source = new URL(request.url);
@@ -150,14 +180,23 @@ export const serveWidgetWithLastKnownGood = async (
   cache: ResponseCache | undefined = defaultResponseCache(),
   liveWaitMs = WIDGET_LIVE_WAIT_MS,
   waitUntil?: (promise: Promise<void>) => void,
+  preferRecentCache = false,
 ) => {
+  const keys = widgetCacheKeys(request);
+  if (preferRecentCache && cache && !new URL(request.url).searchParams.has('live_smoke')) {
+    for (const key of keys) {
+      const recent = await recentCachedResponse(
+        cache, key, 'X-Widget-Cached-At', WIDGET_FRESH_CACHE_MS, 'X-Widget-Cache',
+      );
+      if (recent) return recent;
+    }
+  }
   const loadPromise = load();
   if (!cache) return loadPromise;
 
   // A slow live refresh must not make the widget wait indefinitely when a
   // usable last-known-good payload is already available at the edge.
   void loadPromise.catch(() => undefined);
-  const keys = widgetCacheKeys(request);
   let timeout: ReturnType<typeof setTimeout> | undefined;
   const response = await Promise.race<Response | null>([
     // A rejected upstream request should still allow a cached fallback.
@@ -174,6 +213,7 @@ export const serveWidgetWithLastKnownGood = async (
     const liveGeneratedAt = keys.length === 2 ? await widgetGeneratedAtMs(liveResponse) : null;
     const headers = new Headers(liveResponse.headers);
     headers.set('Cache-Control', `public, max-age=${WIDGET_LAST_KNOWN_GOOD_TTL_SECONDS}`);
+    headers.set('X-Widget-Cached-At', new Date().toISOString());
     const cached = new Response(liveResponse.clone().body, {
       status: liveResponse.status,
       statusText: liveResponse.statusText,
@@ -220,11 +260,11 @@ const asRecord = (value: unknown): Record<string, unknown> | null =>
     ? (value as Record<string, unknown>)
     : null;
 
-const portfolioCacheKey = (request: Request) => {
+const portfolioCacheKey = (request: Request, variant = 'last-known-good-v1') => {
   const url = new URL(request.url);
   url.search = '';
   url.searchParams.set('portfolio', '1');
-  url.searchParams.set('cache', 'last-known-good-v1');
+  url.searchParams.set('cache', variant);
   return new Request(url.toString(), { method: 'GET' });
 };
 
@@ -348,17 +388,50 @@ export const servePortfolioWithLastKnownGood = async (
   request: Request,
   load: () => Promise<Response>,
   cache: ResponseCache | undefined = defaultResponseCache(),
+  preferRecentCache = false,
 ) => {
+  const key = portfolioCacheKey(request);
+  const partialKey = portfolioCacheKey(request, 'partial-last-known-good-v1');
+  const isSmoke = new URL(request.url).searchParams.has('live_smoke');
+  if (cache && preferRecentCache && !isSmoke) {
+    for (const candidate of [key, partialKey]) {
+      const recent = await recentCachedResponse(
+        cache, candidate, 'X-Portfolio-Cached-At',
+        PORTFOLIO_FRESH_CACHE_MS, 'X-Portfolio-Cache',
+      );
+      if (recent) return recent;
+    }
+  }
   const response = await load();
   if (!cache) return response;
 
   const liveBody = response.ok ? await parsePortfolioBody(response) : null;
   const complete = Boolean(liveBody && isCompletePortfolioBody(liveBody));
-  const key = portfolioCacheKey(request);
+  // Preserve a truthful 16/19 (or similar) result without claiming 19/19.
+  // A separately keyed partial snapshot reduces costly repeated refreshes.
+  const partialUsable = Boolean(
+    liveBody && liveBody.expected === PORTFOLIO_HOLDING_IDS.length &&
+    Array.isArray(liveBody.items) && liveBody.items.length >= 12 &&
+    new Set(liveBody.items.map((entry: unknown) => asRecord(entry)?.id)).size === liveBody.items.length &&
+    liveBody.items.every((entry: unknown) =>
+      typeof asRecord(entry)?.id === 'string' &&
+      (PORTFOLIO_HOLDING_IDS as readonly string[]).includes(asRecord(entry)?.id as string)),
+  );
+  if (!complete && partialUsable && liveBody) {
+    const headers = new Headers(response.headers);
+    headers.set('Cache-Control', 'public, max-age=1800');
+    headers.set('X-Portfolio-Cached-At', new Date().toISOString());
+    try {
+      await cache.put(partialKey, new Response(JSON.stringify(liveBody), { status: 200, headers }));
+    } catch {
+      // A cache write failure does not hide the live response.
+    }
+  }
 
   if (complete && liveBody) {
     const headers = new Headers(response.headers);
     headers.set('Cache-Control', `public, max-age=${PORTFOLIO_LAST_KNOWN_GOOD_TTL_SECONDS}`);
+    headers.set('X-Portfolio-Cached-At', new Date().toISOString());
     headers.set('Content-Type', 'application/json; charset=utf-8');
 
     try {
@@ -397,6 +470,109 @@ export const servePortfolioWithLastKnownGood = async (
   return portfolioFallbackResponse(fallbackBody, cached.headers);
 };
 
+
+type CachedCurrentFeed = 'weather' | 'electricity' | 'markets';
+const CURRENT_FEED_CACHE_SECONDS: Record<CachedCurrentFeed, number> = {
+  weather: 90 * 60,
+  electricity: 30 * 60 * 60,
+  markets: 3 * 24 * 60 * 60,
+};
+
+const isUsableCurrentFeed = (kind: CachedCurrentFeed, body: Record<string, unknown>) => {
+  if (kind === 'weather') {
+    const current = asRecord(body.current);
+    const hourly = asRecord(body.hourly);
+    const daily = asRecord(body.daily);
+    return (
+      isFinitePortfolioValue(current?.temperature_2m) &&
+      typeof current?.time === 'string' &&
+      Array.isArray(hourly?.time) &&
+      hourly.time.length > 0 &&
+      Array.isArray(daily?.time) &&
+      daily.time.length > 0
+    );
+  }
+  if (kind === 'electricity') {
+    if (!Array.isArray(body.prices)) return false;
+    // Published spot prices are fixed for their interval. Never show an old
+    // day as the current price if its intervals no longer cover now.
+    const now = Date.now();
+    return body.prices.some((candidate) => {
+      const item = asRecord(candidate);
+      const start = typeof item?.startDate === 'string' ? Date.parse(item.startDate) : NaN;
+      const end = typeof item?.endDate === 'string' ? Date.parse(item.endDate) : NaN;
+      return isFinitePortfolioValue(item?.price) && start <= now && now < end;
+    });
+  }
+  if (!Array.isArray(body.items) || !Array.isArray(body.series)) return false;
+  return (
+    body.items.some((candidate) => {
+      const item = asRecord(candidate);
+      return item?.id === 'euribor-3m' && isFinitePortfolioValue(item.value);
+    }) &&
+    body.series.some((candidate) => {
+      const series = asRecord(candidate);
+      return series?.id === 'euribor-3m' && Array.isArray(series.points) && series.points.length > 0;
+    })
+  );
+};
+
+export const serveCurrentFeedWithLastKnownGood = async (
+  request: Request,
+  kind: CachedCurrentFeed,
+  load: () => Promise<Response>,
+  cache: ResponseCache | undefined = defaultResponseCache(),
+  preferRecentCache = false,
+) => {
+  const keyUrl = new URL(request.url);
+  keyUrl.search = '';
+  keyUrl.searchParams.set('cache', 'last-known-good-v1');
+  const key = new Request(keyUrl.toString());
+  if (kind === 'markets' && preferRecentCache && cache &&
+      !new URL(request.url).searchParams.has('live_smoke')) {
+    const recent = await recentCachedResponse(
+      cache, key, 'X-Current-Cached-At', MARKETS_FRESH_CACHE_MS, 'X-Current-Cache',
+    );
+    if (recent) return recent;
+  }
+  let live: Response;
+  try {
+    live = await load();
+  } catch {
+    live = Response.json({ error: 'upstream_unavailable' }, { status: 502 });
+  }
+  if (!cache) return live;
+
+  const liveBody = live.ok ? await parsePortfolioBody(live) : null;
+  if (liveBody && isUsableCurrentFeed(kind, liveBody)) {
+    const headers = new Headers(live.headers);
+    headers.set('Cache-Control', `public, max-age=${CURRENT_FEED_CACHE_SECONDS[kind]}`);
+    headers.set('X-Current-Cached-At', new Date().toISOString());
+    try {
+      await cache.put(key, new Response(JSON.stringify(liveBody), { status: 200, headers }));
+    } catch {
+      // An unavailable edge cache must not break otherwise healthy feeds.
+    }
+    return live;
+  }
+
+  // Production smoke checks must see the real upstream failure, not cached data.
+  if (new URL(request.url).searchParams.has('live_smoke')) return live;
+
+  try {
+    const cached = await cache.match(key);
+    if (!cached) return live;
+    const body = await parsePortfolioBody(cached);
+    if (!body || !isUsableCurrentFeed(kind, body)) return live;
+    const headers = new Headers(cached.headers);
+    headers.set('Cache-Control', 'private, no-store');
+    headers.set('X-Current-Fallback', 'last-known-good');
+    return new Response(JSON.stringify(body), { status: 200, headers });
+  } catch {
+    return live;
+  }
+};
+
 const methodNotAllowed = (allow = 'GET') => new Response('Method not allowed', { status: 405, headers: { Allow: allow } });
 const isSnapshotRequest = (request: Request) => {
   const referer = request.headers.get('Referer');
@@ -406,6 +582,17 @@ const isSnapshotRequest = (request: Request) => {
 const publicLiigaResponse = async (response: Response, error: string) => {
   if (response.status < 500) return response;
   return Response.json({ error }, { status: response.status, headers: response.headers });
+};
+
+const shareWidgetPortfolio = (request: Request) => {
+  const portfolioUrl = new URL(MARKETS_PATH, request.url);
+  portfolioUrl.searchParams.set('portfolio', '1');
+  if (new URL(request.url).searchParams.has('live_smoke')) {
+    portfolioUrl.searchParams.set('live_smoke', '1');
+  }
+  return () => servePortfolioWithLastKnownGood(
+    new Request(portfolioUrl), getPortfolioResponse, undefined, true,
+  );
 };
 
 const worker = {
@@ -428,7 +615,8 @@ const worker = {
       return handlePrivatePlacementReviewRequest(request, env);
     }
     if (isPrivateModelPath(url.pathname)) return handlePrivateModelRequest(request, env);
-    if (url.pathname === ELECTRICITY_PATH) { if (request.method !== 'GET') return methodNotAllowed(); return getElectricityPriceResponse(); }
+    if (url.pathname === ELECTRICITY_PATH) { if (request.method !== 'GET') return methodNotAllowed(); return serveCurrentFeedWithLastKnownGood(request, 'electricity', getElectricityPriceResponse); }
+    if (url.pathname === WEATHER_PATH) { if (request.method !== 'GET') return methodNotAllowed(); return serveCurrentFeedWithLastKnownGood(request, 'weather', getWeatherResponse); }
     if (url.pathname === ELECTRICITY_MONTH_PATH) { if (request.method !== 'GET') return methodNotAllowed(); return getElectricityMonthResponse(); }
     if (url.pathname === HSL_PATH) {
       if (request.method !== 'POST') return methodNotAllowed('POST');
@@ -437,16 +625,30 @@ const worker = {
     if (url.pathname === MARKETS_PATH) {
       if (request.method !== 'GET') return methodNotAllowed();
       if (url.searchParams.get('portfolio') === '1') {
+        // One-source diagnostics are available only to uncached smoke requests.
+        if (url.searchParams.has('live_smoke') && url.searchParams.has('source_probe')) {
+          return diagnoseCurrentFundSource(url.searchParams.get('source_probe') ?? '');
+        }
         if (snapshotRequest) return getSnapshotPortfolioResponse();
-        return servePortfolioWithLastKnownGood(request, getPortfolioResponse);
+        return servePortfolioWithLastKnownGood(request, getPortfolioResponse, undefined, true);
       }
-      return getMarketsResponse({ request });
+      return serveCurrentFeedWithLastKnownGood(request, 'markets', () => getMarketsResponse({ request }), undefined, true);
     }
-    if (url.pathname === WIDGET_PATH) {
+    if (url.pathname === WIDGET_PATH || url.pathname === WIDGET_V2_PATH) {
       if (request.method !== 'GET') return methodNotAllowed();
-      return serveWidgetWithLastKnownGood(request, () => url.searchParams.get('v') === '2' ? getWidgetV2Response({ request, env }) : getWidgetResponse({ request }), undefined, WIDGET_LIVE_WAIT_MS, ctx?.waitUntil.bind(ctx));
+      const isV2 = url.pathname === WIDGET_V2_PATH || url.searchParams.get('v') === '2';
+      const loadPortfolioResponse = shareWidgetPortfolio(request);
+      return serveWidgetWithLastKnownGood(
+        request,
+        () => isV2
+          ? getWidgetV2Response({ request, env, loadPortfolioResponse })
+          : getWidgetResponse({ request, loadPortfolioResponse }),
+        undefined,
+        WIDGET_LIVE_WAIT_MS,
+        ctx?.waitUntil.bind(ctx),
+        url.pathname === WIDGET_PATH,
+      );
     }
-    if (url.pathname === WIDGET_V2_PATH) { if (request.method !== 'GET') return methodNotAllowed(); return serveWidgetWithLastKnownGood(request, () => getWidgetV2Response({ request, env }), undefined, WIDGET_LIVE_WAIT_MS, ctx?.waitUntil.bind(ctx)); }
     if (url.pathname === LIIGA_PATH) {
       if (request.method !== 'GET') return methodNotAllowed();
       const response = snapshotRequest ? await fetchLiigaResponse(SNAPSHOT_LIIGA_UPSTREAM_TIMEOUT_MS) : await getLiigaResponse();

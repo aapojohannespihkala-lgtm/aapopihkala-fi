@@ -32,6 +32,16 @@ type PerformancePeriod =
   | 'year3'
   | 'year5';
 
+type PeriodEstimateDetail = {
+  sourcePeriod: PerformancePeriod;
+  sourceReturnPercent: number;
+  sourceDays: number;
+  targetDays: number;
+  sourceObservedAt: string;
+  sourceAgeDays: number;
+  method: 'geometric-period-scaling' | 'compound-3m-over-91-days';
+};
+
 type SortKey = 'market' | PerformancePeriod;
 type SortDirection = 'asc' | 'desc';
 
@@ -42,6 +52,10 @@ type MarketPerformanceItem = {
   price: number | null;
   observedAt: string;
   changes: Record<PerformancePeriod, number | null>;
+  estimatedPeriods?: PerformancePeriod[];
+  estimationMethod?: string;
+  estimationDetails?: Partial<Record<PerformancePeriod, PeriodEstimateDetail>>;
+  unresolvedPeriods?: PerformancePeriod[];
 };
 
 type MarketPerformanceResponse = {
@@ -71,11 +85,6 @@ const API_URL = '/api/current/markets?portfolio=1&v=6';
 const REFRESH_INTERVAL_MS = 30 * 60 * 1000;
 const MARKET_ERROR_RETRY_DELAYS_MS = [0, 700, 1_500] as const;
 const MARKET_PARTIAL_RETRY_DELAYS_MS = [2_000, 6_000, 12_000] as const;
-const OP_SHORT_HISTORY_IDS = new Set<MarketPerformanceId>([
-  'op-asia-index-a',
-  'op-europe-index-a',
-  'op-world-index-a',
-]);
 const DEFAULT_SUMMARY_PERIOD: PerformancePeriod = 'year1';
 
 const PERIODS: PeriodDefinition[] = [
@@ -143,6 +152,28 @@ const isPerformanceItem = (value: unknown): value is MarketPerformanceItem => {
 const formatChange = (value: number) => {
   const sign = value > 0 ? '+' : '';
   return `${sign}${value.toFixed(2)}%`;
+};
+
+const describeReturn = (item: MarketPerformanceItem, period: PeriodDefinition) => {
+  const detail = item.estimationDetails?.[period.key];
+  if (!item.estimatedPeriods?.includes(period.key)) {
+    return 'Lähdearvo ' + period.label + ', instrumentti ' + item.symbol +
+      ', havainto ' + item.observedAt;
+  }
+  if (!detail) {
+    return 'Laskennallinen arvio ' + period.label + ', instrumentti ' +
+      item.symbol + ', lähde- ja laskentatiedot eivät ole vahvistettuja';
+  }
+  const sourceLabel = PERIOD_BY_KEY.get(detail.sourcePeriod)?.label ?? detail.sourcePeriod;
+  const calculation = detail.method === 'compound-3m-over-91-days'
+    ? '91 päivän geometrinen 3M-projektio'
+    : 'geometrinen jaksoasteikko';
+  const sign = detail.sourceReturnPercent > 0 ? '+' : '';
+  return 'Arvio ' + period.label + ': ' + calculation +
+    ', lähde ' + sourceLabel + ' ' + sign + detail.sourceReturnPercent.toFixed(2) +
+    '% (' + detail.sourceDays + ' pv), kohde ' + detail.targetDays +
+    ' pv, tunniste ' + item.symbol + ', havainto ' + detail.sourceObservedAt +
+    ', tuoreus ' + detail.sourceAgeDays + ' pv';
 };
 
 const applyChangeTone = (element: HTMLElement, value: number) => {
@@ -266,10 +297,14 @@ const syncDisplayRows = (root: HTMLElement) => {
 const resetRows = (root: HTMLElement) => {
   root.querySelectorAll<HTMLElement>('[data-market-performance-row]').forEach((row) => {
     row.removeAttribute('data-market-performance-loaded');
+    row.removeAttribute('data-market-performance-incomplete');
 
     row.querySelectorAll<HTMLElement>('[data-market-performance-change]').forEach((cell) => {
       cell.textContent = '--';
-      cell.classList.remove('is-positive', 'is-negative', 'is-flat');
+      cell.classList.remove('is-positive', 'is-negative', 'is-flat', 'is-estimated');
+      cell.removeAttribute('title');
+      cell.removeAttribute('aria-label');
+      cell.removeAttribute('data-estimated');
     });
   });
 };
@@ -431,12 +466,8 @@ export const initCurrentMarketPerformance = () => {
   });
 
   const needsPortfolioRecovery = (items: MarketPerformanceItem[], expected: number) =>
-    items.length < expected ||
-    items.some(
-      (item) =>
-        OP_SHORT_HISTORY_IDS.has(item.id) &&
-        (item.changes.today === null || item.changes.week1 === null)
-    );
+    items.length < expected || items.some((item) =>
+      PERIODS.some(({ key }) => !isFiniteNumber(item.changes[key])));
 
   const mergePerformanceItem = (
     current: MarketPerformanceItem | undefined,
@@ -445,17 +476,42 @@ export const initCurrentMarketPerformance = () => {
     if (!current) return incoming;
 
     const changes = { ...current.changes };
-    for (const period of PERIODS) {
-      const value = incoming.changes[period.key];
-      if (value !== null) changes[period.key] = value;
+    const estimated = new Set<PerformancePeriod>(current.estimatedPeriods ?? []);
+    const details = { ...(current.estimationDetails ?? {}) };
+    const incomingEstimated = new Set(incoming.estimatedPeriods ?? []);
+    const incomingIsNewer = incoming.observedAt >= current.observedAt;
+
+    for (const { key } of PERIODS) {
+      const value = incoming.changes[key];
+      if (!isFiniteNumber(value)) continue;
+      const hadValue = isFiniteNumber(changes[key]);
+      const existingEstimated = estimated.has(key);
+      const candidateEstimated = incomingEstimated.has(key);
+      // A real reported value is preferred to an estimate, regardless of fetch order.
+      const useIncoming = !hadValue ||
+        (existingEstimated && !candidateEstimated) ||
+        (existingEstimated === candidateEstimated && incomingIsNewer);
+      if (!useIncoming) continue;
+      changes[key] = value;
+      if (candidateEstimated) estimated.add(key);
+      else estimated.delete(key);
+      if (candidateEstimated && incoming.estimationDetails?.[key]) {
+        details[key] = incoming.estimationDetails[key];
+      } else {
+        delete details[key];
+      }
     }
 
     return {
       ...current,
       ...incoming,
       price: incoming.price ?? current.price,
-      observedAt: incoming.observedAt || current.observedAt,
+      observedAt: incomingIsNewer ? incoming.observedAt : current.observedAt,
       changes,
+      estimatedPeriods: [...estimated],
+      estimationDetails: details,
+      unresolvedPeriods: PERIODS.filter(({ key }) => changes[key] === null)
+        .map(({ key }) => key),
     };
   };
 
@@ -482,14 +538,31 @@ export const initCurrentMarketPerformance = () => {
         if (typeof value !== 'number' || !Number.isFinite(value)) {
           target.textContent = '--';
           target.classList.remove('is-positive', 'is-negative', 'is-flat');
+          row.dataset.marketPerformanceIncomplete = 'true';
           continue;
         }
 
-        target.textContent = formatChange(value);
+        const estimated = item.estimatedPeriods?.includes(period.key) === true;
+        target.textContent = estimated ? '≈' + formatChange(value) : formatChange(value);
+        target.classList.toggle('is-estimated', estimated);
+        target.title = describeReturn(item, period);
+        target.setAttribute('aria-label',
+          (estimated ? 'Laskennallinen arvio ' : 'Lähdearvo ') +
+          period.label + ' ' + formatChange(value) + '. ' + target.title);
+        if (estimated) target.dataset.estimated = 'true';
+        else target.removeAttribute('data-estimated');
         applyChangeTone(target, value);
       }
 
       row.dataset.marketPerformanceLoaded = 'true';
+      const missing = PERIODS.filter(({ key }) => !isFiniteNumber(item.changes[key])).length;
+      if (missing) row.dataset.marketPerformanceIncomplete = String(missing);
+      else row.removeAttribute('data-market-performance-incomplete');
+      if (item.estimatedPeriods?.length) {
+        row.title = '≈ merkitsee lähdetietoon perustuvaa arviota. Jakson tietolähde ja tuoreus näkyvät arvon kohdalla.';
+      } else {
+        row.removeAttribute('title');
+      }
     }
 
     sortRows();
@@ -503,7 +576,7 @@ export const initCurrentMarketPerformance = () => {
         : complete
           ? `LIVE / ${items.length} HOLDINGS`
           : items.length === expected
-            ? `PARTIAL / ${items.length} HOLDINGS`
+            ? `PARTIAL / ${items.length} HOLDINGS / SOURCE GAPS`
             : `PARTIAL / ${items.length} OF ${expected} HOLDINGS`;
     }
   };

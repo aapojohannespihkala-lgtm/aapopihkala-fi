@@ -260,21 +260,30 @@ const isPreview = mode === 'preview';
         const sunrise = clockMinutes(solar?.sunrise);
         const sunset = clockMinutes(solar?.sunset);
         if (sunrise === null || sunset === null || sunset <= sunrise) return '';
+        const dayMinutes = sunset - sunrise;
+        const dayFraction = dayMinutes / 1440;
+        // Match Android's SolarDetailVisual.kt: the 24-hour orbit crosses
+        // the moving horizontal horizon at sunrise and sunset.
+        const horizonOffset = Math.cos(Math.PI * dayFraction);
+        const radius = 43;
+        const horizonY = 50 - radius * horizonOffset;
+        const halfChord = radius * Math.sqrt(Math.max(0, 1 - horizonOffset ** 2));
+        const solarNoon = sunrise + dayMinutes / 2;
         const now = helsinkiMinutesNow();
-        let angle;
-        let night = false;
-        if (now >= sunrise && now <= sunset) {
-          const progress = (now - sunrise) / (sunset - sunrise);
-          angle = Math.PI - progress * Math.PI;
-        } else {
-          night = true;
-          const nightLength = 1440 - sunset + sunrise;
-          const elapsed = now > sunset ? now - sunset : 1440 - sunset + now;
-          angle = -Math.min(1, elapsed / nightLength) * Math.PI;
-        }
-        const x = 50 + Math.cos(angle) * 43;
-        const y = 50 - Math.sin(angle) * 43;
-        return `--sun-x:${x.toFixed(1)}%;--sun-y:${y.toFixed(1)}%;--sun-fill:${night ? 'transparent' : 'var(--foreground)'};`;
+        const elapsed = (now - solarNoon + 1440) % 1440;
+        const angle = 2 * Math.PI * elapsed / 1440;
+        const x = 50 + radius * Math.sin(angle);
+        const y = 50 - radius * Math.cos(angle);
+        const night = now < sunrise || now > sunset;
+        return `--sun-x:${x.toFixed(2)}%;--sun-y:${y.toFixed(2)}%;--horizon-y:${horizonY.toFixed(2)}%;--horizon-left:${(50 - halfChord).toFixed(2)}%;--sun-fill:${night ? 'transparent' : 'var(--foreground)'};`;
+      };
+
+      const updateSolarClock = () => {
+        if (isPreview || !payload || !widget) return;
+        const disk = widget.querySelector('.android-solar-disk');
+        const weather = payload.sections.find((section) => section.id === 'weather');
+        const solar = weather ? parseSolarDetail(weather.detail) : null;
+        if (disk && solar) disk.style.cssText = solarMarkerStyle(solar);
       };
 
       const renderAndroidHeading = (section) => `
@@ -478,6 +487,7 @@ const isPreview = mode === 'preview';
         }
         if (date) date.textContent = header.dateShort;
         if (week) week.textContent = header.week;
+        updateSolarClock();
         // The clock keeps running after the initial fetch. A previously fresh
         // payload must not remain labelled ready indefinitely on an open tab.
         if (root?.dataset.loadState === 'ready' && payload && !isFreshPayload(payload)) {
@@ -949,15 +959,15 @@ const isPreview = mode === 'preview';
     height: 27px;
     border: 1px solid var(--line);
     border-radius: 50%;
-    background: linear-gradient(to bottom, var(--foreground) 0 50%, transparent 50% 100%);
+    background: linear-gradient(to bottom, var(--foreground) 0 var(--horizon-y, 50%), transparent var(--horizon-y, 50%) 100%);
   }
   .android-solar-disk::after {
     content: "";
     position: absolute;
-    left: -1px;
-    right: -1px;
-    top: 50%;
-    border-top: 1px solid var(--background);
+    left: var(--horizon-left, 0%);
+    right: var(--horizon-left, 0%);
+    top: var(--horizon-y, 50%);
+    border-top: 1px solid var(--line);
   }
   .android-solar-disk b {
     position: absolute;

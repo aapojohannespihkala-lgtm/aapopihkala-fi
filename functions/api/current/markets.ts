@@ -1,4 +1,5 @@
 import { onRequestGet as getPortfolioPerformance } from './portfolio';
+import { estimatePortfolioItemIfValid } from './portfolio-estimation';
 
 type MarketMacroId = 'euribor-3m';
 type MarketSeriesId = 'euribor-3m' | 'world';
@@ -327,7 +328,19 @@ const buildWorldSeries = (observations: Observation[]): MarketSeries => {
 export const onRequestGet = async (context: { request: Request }) => {
   const url = new URL(context.request.url);
   if (url.searchParams.get('portfolio') === '1') {
-    return getPortfolioPerformance();
+    const response = await getPortfolioPerformance();
+    if (!response.ok) return response;
+    try {
+      const body = (await response.clone().json()) as { items?: unknown; [key: string]: unknown };
+      if (!Array.isArray(body.items)) return response;
+      return new Response(JSON.stringify({
+        ...body,
+        items: body.items.map((item) => estimatePortfolioItemIfValid(item)),
+        version: Math.max(typeof body.version === 'number' ? body.version : 0, 16),
+      }), { status: response.status, headers: response.headers });
+    } catch {
+      return response;
+    }
   }
 
   try {

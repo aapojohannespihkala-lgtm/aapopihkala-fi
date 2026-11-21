@@ -93,6 +93,7 @@ type SolarForecastResponse = {
 
 type WidgetV2Context = {
   request: Request;
+  loadPortfolioResponse?: () => Promise<Response>;
   env?: {
     DIGITRANSIT_API_KEY?: string;
   };
@@ -345,9 +346,55 @@ const buildElectricitySection = (
   };
 };
 
-const marketRow = (label: string, value: unknown): WidgetRow => {
+const renderMarketSource = (source: unknown): string | null => {
+  const metadata = asRecord(source);
+  if (!metadata) return null;
+  const symbol = stringValue(metadata.symbol);
+  const observedAt = stringValue(metadata.observedAt);
+  const estimated = metadata.estimated === true;
+  const detail = asRecord(metadata.detail);
+  const label = [symbol, observedAt].filter(Boolean).join(' / ');
+  if (!estimated) return label || null;
+  if (!detail) return '≈ ESTIMATE / ' + (label || 'SOURCE NOT VERIFIED');
+  const sourcePeriod = stringValue(detail.sourcePeriod)?.toUpperCase() ?? '?';
+  const sourceReturn = finiteNumber(detail.sourceReturnPercent);
+  const sourceDays = finiteNumber(detail.sourceDays);
+  const targetDays = finiteNumber(detail.targetDays);
+  const sourceAge = finiteNumber(detail.sourceAgeDays);
+  const method = stringValue(detail.method);
+  return [
+    '≈ ' + sourcePeriod,
+    sourceReturn === null ? '' : formatPercent(sourceReturn, true, 2),
+    sourceDays === null || targetDays === null ? '' :
+      sourceDays + 'D→' + targetDays + 'D',
+    method === 'compound-3m-over-91-days' ? '3M COMPOUND' : 'GEOMETRIC',
+    label,
+    sourceAge === null ? '' : 'AGE ' + sourceAge + 'D',
+  ].filter(Boolean).join(' / ');
+};
+
+const marketRow = (label: string, value: unknown, provenance?: unknown): WidgetRow => {
   const number = finiteNumber(value);
-  return { label, value: formatPercent(number, true, 2), tone: toneFor(number) };
+  const source = asRecord(provenance);
+  const estimated = number !== null && source?.estimated === true;
+  const secondary = renderMarketSource(provenance);
+  return {
+    label,
+    value: (estimated ? '≈' : '') + formatPercent(number, true, 2),
+    tone: toneFor(number),
+    ...(secondary ? { secondary } : {}),
+  };
+};
+
+const marketEstimateCount = (
+  counts: Record<string, unknown> | null,
+  period: string,
+): { estimated: number; total: number } | null => {
+  const raw = asRecord(counts?.[period]);
+  const estimated = finiteNumber(raw?.estimated);
+  const total = finiteNumber(raw?.total);
+  if (estimated === null || total === null || estimated > total || estimated < 0) return null;
+  return { estimated, total };
 };
 
 const buildMarketsSection = (value: unknown, fetchedAt?: string): WidgetSection | null => {
@@ -358,25 +405,46 @@ const buildMarketsSection = (value: unknown, fetchedAt?: string): WidgetSection 
   const year1Median = finiteNumber(markets.year1Median);
   const observedAt = stringValue(markets.observedAt);
   const remedyPrice = formatEuroPrice(finiteNumber(markets.remedyPrice));
+  const counts = asRecord(markets.estimatedCounts);
+  const selected = asRecord(markets.selectedSources);
+  const oneDay = marketEstimateCount(counts, 'today');
+  const oneMonth = marketEstimateCount(counts, 'month1');
+  const oneYear = marketEstimateCount(counts, 'year1');
+  const formatMedian = (value: number | null, estimateCount: { estimated: number; total: number } | null) =>
+    (value !== null && estimateCount && estimateCount.estimated > 0 ? '≈' : '') +
+      formatPercent(value, true, 2);
   const rows = [
-    marketRow('WORLD', markets.world),
-    marketRow('USA', markets.usa),
-    marketRow('FINLAND', markets.finland),
-    marketRow('BTC / EUR', markets.btcEur),
-    marketRow(['REMEDY', remedyPrice].filter(Boolean).join(' '), markets.remedy),
+    marketRow('WORLD', markets.world, selected?.world),
+    marketRow('USA', markets.usa, selected?.usa),
+    marketRow('FINLAND', markets.finland, selected?.finland),
+    marketRow('BTC / EUR', markets.btcEur, selected?.btcEur),
+    marketRow(['REMEDY', remedyPrice].filter(Boolean).join(' '), markets.remedy, selected?.remedy),
   ];
   if (median === null && rows.every((row) => row.value === '--')) return null;
   const longerMedians = [
-    `1M ${formatPercent(month1Median, true, 2)}`,
-    `1Y ${formatPercent(year1Median, true, 2)}`,
+    '1M ' + formatMedian(month1Median, oneMonth),
+    '1Y ' + formatMedian(year1Median, oneYear),
   ].join('  ·  ');
+  const estimationInfo: string[] = [];
+  for (const [period, count] of Object.entries({
+    '1D': oneDay, '1M': oneMonth, '1Y': oneYear,
+  })) {
+    if (count && count.estimated > 0) {
+      estimationInfo.push(period + ' MEDIAN: ' + count.estimated + '/' + count.total +
+        ' SOURCE-BASED ESTIMATES');
+    }
+  }
+  const unresolvedSelected = Array.isArray(markets.unresolvedSelected)
+    ? markets.unresolvedSelected.filter((key): key is string => typeof key === 'string') : [];
   return {
     id: 'markets',
     index: '03',
     label: 'MARKETS',
-    primary: formatPercent(median, true, 2),
+    primary: formatMedian(median, oneDay),
     secondary: '1D / MEDIAN',
-    detail: longerMedians,
+    detail: [longerMedians, ...estimationInfo,
+      ...(unresolvedSelected.length ? ['SOURCE GAPS: ' + unresolvedSelected.join(', ')] : [])]
+      .join('\n'),
     tone: toneFor(median),
     span: 'full',
     layout: 'split',
@@ -385,6 +453,7 @@ const buildMarketsSection = (value: unknown, fetchedAt?: string): WidgetSection 
     rows,
   };
 };
+
 
 const timestampOf = (value: string) => {
   const timestamp = new Date(value).getTime();
@@ -630,7 +699,7 @@ export const onRequestGet = async (context: WidgetV2Context) => {
   const generatedAt = new Date().toISOString();
 
   const [baseResponse, liigaResponse, solar, hsl, electricityMonthResponse] = await Promise.all([
-    getWidgetResponse({ request: context.request }),
+    getWidgetResponse({ request: context.request, loadPortfolioResponse: context.loadPortfolioResponse }),
     fetchLiigaResponse(4_000),
     fetchSolarData(),
     fetchWidgetHslData({
