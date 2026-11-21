@@ -839,7 +839,6 @@ export function isC80R31Scene765RK142RK143MJ83Source(json,authenticatedSha,scene
   p?.sourceRole!=='2014_15_TWO_SEPARATE_PLAN_ONLY_CIRCUITS'||
   e?.stage!=='WORK_TEST_HOST_HOLD'||e?.WORK_TEST!==true||e?.HOST_HOLD!==true||
   e?.sourceRole!=='2014_15_TWO_SEPARATE_PLAN_ONLY_CIRCUITS'||
-  !exactly(e?.circuitIds,['RK14.2','RK14.3'])||
   e?.renderedCableRoutes!=='DIAGRAM_ONLY_NOT_INSTALLED'||
   e?.physical2026GroupConnectionVerified!==false||
   e?.actualCableRouteVerified!==false||e?.electricalSafetyApproval!==false||
@@ -944,5 +943,104 @@ export function c80R31Scene766ClosedVm20Receipt(json,sha,index,role,floor){
   productionWebGLVerified:false,humanReview:'NOT_RUN',current:false,asBuilt:false,
   physicalHostVerified:false,physicalCableVerified:false,
   electricalSafetyVerified:false,physicalHatchOpeningVerified:false,
+ });
+}
+
+/**
+ * Original standalone R31 __scene767 is a historical/2F WORK_TEST review:
+ * L12 V75/V110 inboard waste + 2015 RK14.2/RK14.3 schematic circuits +
+ * 2026 photo-derived MJ83 panel. It rebases scene743 (NOT scene766's
+ * BOTH roots), so no modern R300/roof/VM20 2F parity is asserted.
+ * Read-only SHA-authenticated receipt, never a viewer/publisher binding.
+ */
+export const C80_R31_SCENE767_2F_L12_RK14_MJ83_SOURCE=Object.freeze({
+ role:'R31_2F_L12_WASTE_RK142_RK143_MJ83_SOURCE_REVIEW',
+ sceneIndex:767,
+ glbSha256:'9546f3beaa260b24e3396820b216303430e3958c1f9741c41f8fc61b864506cd',
+ glbBytes:63793084,
+ zipDriveId:'13Djv8gzf4vE8jWdxDsYBSiYlzhZS8ub2',
+ zipSha256:'742c435ea4e40ab69d7d67399832de50efa9ce492a2a3fa5a730226c2c677eb3',
+ sceneName:'Ylisrinne_C80_R31_2F_L12_V75V110_RK142_RK143_SAVO_MJ83_REVIEW_WORK_TEST_HOST_HOLD__scene767',
+ sceneCount:768,nodeCount:13506,meshCount:5168,materialCount:814,
+ accessorCount:11265,bufferViewCount:11271,defaultScene:292,
+ source2FScene:743,source2FSceneName:'C80_R31_R30_G2S13_D_WEST_GABLE_2_SOURCE_PRESENCE_2F_OFF_OPTIN_WORK_TEST_HOST_HOLD__scene743',
+ source2FRootCount:199,source2FRootFnv32:'e89d7b8b',
+ rootCount:202,rootFnv32:'aeef8956',
+ baseScene:766,baseGlbSha256:'6cf2923afaa2b7b0a5028a13465ba13071bd8d9c612885e978d40d1e51904e1d',
+ baseDriveId:'1eP8alIGRVv7w5OfpO1NbKD3U5SG-Mqek',
+ donorGlbSha256:'1a05de4ad49cdd43b445ee807c19d7759f3b54f8363da305d1b10bf0d376832a',
+ donorDriveId:'1PYtojF_ny9NXBsY8qiDV00r6a4cMcUqs',
+ old2FRoot:13321,new2FRoot:13505,
+ wasteLeaves:[13503,13504],wasteMeshes:[4991,3702],
+ preservedReviewRoots:[13499,13500,13502],
+});
+export function isC80R31Scene767Source(json,sha,index,role,floor){
+ const s=C80_R31_SCENE767_2F_L12_RK14_MJ83_SOURCE,asset=json?.asset?.extras;
+ if(sha!==s.glbSha256||index!==s.sceneIndex||role!==s.role||
+  (floor!==undefined&&floor!=='2F')||json?.scene!==s.defaultScene||
+  json?.scenes?.length!==s.sceneCount||json?.nodes?.length!==s.nodeCount||
+  json?.meshes?.length!==s.meshCount||json?.materials?.length!==s.materialCount||
+  json?.accessors?.length!==s.accessorCount||
+  json?.bufferViews?.length!==s.bufferViewCount||
+  asset?.ModelStage!=='WORK_TEST'||asset?.current!==false||
+  asset?.asBuilt!==false||asset?.HUMAN_REVIEW!=='NOT_RUN')return false;
+ const target=json.scenes[index],source=json.scenes[s.source2FScene];
+ const roots=target?.nodes,prior=source?.nodes,e=target?.extras;
+ if(target?.name!==s.sceneName||source?.name!==s.source2FSceneName||
+  !Array.isArray(roots)||!Array.isArray(prior)||
+  roots.length!==s.rootCount||prior.length!==s.source2FRootCount||
+  new Set(roots).size!==roots.length||new Set(prior).size!==prior.length||
+  c80R31Scene752RootsFnv32(roots)!==s.rootFnv32||
+  c80R31Scene752RootsFnv32(prior)!==s.source2FRootFnv32||
+  prior.filter(x=>x===s.old2FRoot).length!==1||
+  !exactly(roots,[...prior.map(x=>x===s.old2FRoot?s.new2FRoot:x),...s.preservedReviewRoots])||
+  !exactly(e?.additional2FReviewRoots,s.preservedReviewRoots)||
+  !exactly(e?.circuitIds,['RK14.2','RK14.3'])||
+  e?.stage!=='WORK_TEST_HOST_HOLD'||e?.WORK_TEST!==true||e?.HOST_HOLD!==true||
+  e?.baseOriginalDriveId!==s.baseDriveId||e?.baseOriginalGlbSHA256!==s.baseGlbSha256||
+  e?.baseSceneIndex!==s.baseScene||e?.reviewSource2FSceneIndex!==s.source2FScene||
+  e?.donorOriginalDriveId!==s.donorDriveId||
+  e?.donorOriginalGlbSHA256!==s.donorGlbSha256||
+  e?.sourceRootReplaced!==s.old2FRoot||
+  e?.l12RebasedMap?.['13500']!==s.wasteLeaves[0]||
+  e?.l12RebasedMap?.['13501']!==s.wasteLeaves[1]||
+  e?.l12RebasedMap?.['13502']!==s.new2FRoot||
+  e?.twoSchematics!=='2015 RK14.2 VIINIKAAPPI + RK14.3 SAVO PLAN ONLY'||
+  e?.keypad!=='MJ83 2026 owner photo'||
+  e?.fullLatestR3002FParity!==false||e?.physicalDrainJoint!==false||
+  e?.physicalCircuitRouting!==false||e?.newMeshes!==0||
+  e?.newPhysicalPipes!==0||e?.sourceLinksOutputSHA!=='NOT_BOUND'||
+  e?.sourceLinksOutputShaBound!==false||e?.sourceLinksOutputSHABound!==false||
+  e?.published!==false||e?.productionWebGL!=='NOT_RUN'||e?.HUMAN_REVIEW!=='NOT_RUN'||
+  e?.current!==false||e?.asBuilt!==false||e?.canonical!==false||
+  e?.physicalJointVerified!==false||e?.physicalInstallationVerified!==false||
+  e?.physicalRouteVerified!==false)return false;
+ const root=json.nodes[s.new2FRoot],rex=root?.extras;
+ if(root?.mesh!==undefined||!Array.isArray(root?.children)||
+  !s.wasteLeaves.every(x=>root.children.includes(x))||
+  rex?.original2FRoot!==s.old2FRoot||rex?.semanticOnlyNoGeometryChange!==true||
+  rex?.hostHold!==true||rex?.physicalConnectionsVerified!==0||
+  rex?.sourceLinksBoundForOutputSHA!==false||rex?.current!==false||
+  rex?.asBuilt!==false)return false;
+ for(let i=0;i<s.wasteLeaves.length;i++){
+  const n=json.nodes[s.wasteLeaves[i]],x=n?.extras;
+  if(n?.mesh!==s.wasteMeshes[i]||x?.m5System!=='VIEMARI'||
+   x?.rebasedFromDonorDriveID!=='1oD0iFOK0K5XtB2SSnStV874B2txVfckv'||
+   x?.sourceDonorGlbSHA256!==s.donorGlbSha256||
+   x?.sourceDonorDriveId!==s.donorDriveId||
+   x?.rebasedFromL12DonorNode!==13495+i||
+   x?.hostHold!==true||x?.physicalConnectionsVerified!==0||
+   x?.physicalJointVerified!==false||x?.sourceLinksBoundForOutputSHA!==false||
+   x?.current!==false||x?.asBuilt!==false)return false;
+ }
+ return true;
+}
+export function c80R31Scene767SourceReceipt(json,sha,index,role,floor){
+ return Object.freeze({
+  exactSource:isC80R31Scene767Source(json,sha,index,role,floor),
+  stage:'WORK_TEST_HOST_HOLD',sourceLinksBound:false,publishAllowed:false,
+  productionWebGLVerified:false,humanReview:'NOT_RUN',current:false,asBuilt:false,
+  latest2FParityVerified:false,physicalWasteConnectionVerified:false,
+  electricalSafetyVerified:false,
  });
 }

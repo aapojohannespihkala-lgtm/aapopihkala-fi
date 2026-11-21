@@ -904,3 +904,97 @@ test('R31 scene766 ORIGINAL GLB exact SHA, roots, role, parent and fail-closed m
  assert.equal(r.physicalHatchOpeningVerified,false);
  assert.equal(r.current,false);
 });
+
+import {
+ C80_R31_SCENE767_2F_L12_RK14_MJ83_SOURCE as S767,
+ isC80R31Scene767Source as validS767,
+ c80R31Scene767SourceReceipt as receiptS767,
+} from '../../src/scripts/privateModelC80R31Scene752SourceReceipt.mjs';
+
+test('R31 767 has a distinct source-only 2F view and rejects 766/BOTH confusion',()=>{
+ assert.equal(S767.sceneIndex,767);
+ assert.equal(S767.source2FScene,743);
+ assert.equal(S767.source2FRootCount,199);
+ assert.equal(S767.source2FRootFnv32,'e89d7b8b');
+ assert.equal(S767.rootCount,202);
+ assert.equal(S767.rootFnv32,'aeef8956');
+ assert.notEqual(S767.glbSha256,S766.glbSha256);
+ assert.notEqual(S767.zipDriveId,S766.zipDriveId);
+ assert.match(S767.glbSha256,/^[a-f0-9]{64}$/);
+ assert.match(S767.zipSha256,/^[a-f0-9]{64}$/);
+ for(const [sha,i,role,floor] of [
+  [S767.glbSha256,767,S767.role,'2F'],
+  [S767.glbSha256,766,S767.role,'2F'],
+  [S766.glbSha256,767,S767.role,'2F'],
+  [S767.glbSha256,767,S766.role,'2F'],
+  [S767.glbSha256,767,S767.role,'BOTH'],
+  [S767.glbSha256,767,'__proto__','2F'],
+ ])assert.equal(validS767({},sha,i,role,floor),false);
+ const r=receiptS767({},S767.glbSha256,767,S767.role,'2F');
+ assert.equal(r.exactSource,false);
+ assert.equal(r.publishAllowed,false);
+ assert.equal(r.sourceLinksBound,false);
+ assert.equal(r.latest2FParityVerified,false);
+ assert.equal(r.current,false);
+ assert.equal(r.asBuilt,false);
+});
+const scene767OriginalGlbPath=process.env.C80_R31_2F_L12_RK14_MJ83_SCENE767_GLB_PATH;
+test('R31 ORIGINAL scene767: SHA + 2F source743 rebase with L12 roots + negative mutations',
+ {skip:!scene767OriginalGlbPath},()=>{
+ const {b,json}=parse(scene767OriginalGlbPath);
+ const sha=createHash('sha256').update(b).digest('hex');
+ assert.equal(b.length,S767.glbBytes);
+ assert.equal(sha,S767.glbSha256);
+ assert.equal(json.scene,S767.defaultScene);
+ assert.equal(json.scenes.length,S767.sceneCount);
+ assert.equal(json.nodes.length,S767.nodeCount);
+ assert.equal(json.meshes.length,S767.meshCount);
+ assert.equal(json.materials.length,S767.materialCount);
+ assert.equal(json.accessors.length,S767.accessorCount);
+ assert.equal(json.bufferViews.length,S767.bufferViewCount);
+ const source=json.scenes[S767.source2FScene],target=json.scenes[767];
+ assert.equal(source.name,S767.source2FSceneName);
+ assert.equal(target.name,S767.sceneName);
+ assert.equal(fnv(source.nodes),S767.source2FRootFnv32);
+ assert.equal(fnv(target.nodes),S767.rootFnv32);
+ assert.deepEqual(target.nodes,
+  [...source.nodes.map(x=>x===S767.old2FRoot?S767.new2FRoot:x),...S767.preservedReviewRoots]);
+ assert.equal(target.nodes.length,202);
+ assert.ok(!target.nodes.includes(S767.old2FRoot));
+ assert.ok(target.nodes.includes(S767.new2FRoot));
+ for(const x of S767.preservedReviewRoots)assert.ok(target.nodes.includes(x));
+ const check=()=>validS767(json,sha,767,S767.role,'2F');
+ assert.equal(check(),true);
+ for(const [wrongSha,wrongScene,wrongRole,wrongFloor] of [
+  [S766.glbSha256,767,S767.role,'2F'],
+  [sha,766,S767.role,'2F'],
+  [sha,767,S766.role,'2F'],
+  [sha,767,S767.role,'BOTH'],
+ ])assert.equal(validS767(json,wrongSha,wrongScene,wrongRole,wrongFloor),false);
+ const mutate=(obj,key,value)=>{
+  const old=obj[key];obj[key]=value;
+  try{assert.equal(check(),false,'tampered '+String(key));}
+  finally{obj[key]=old;}
+ };
+ mutate(target,'name','FORGED');
+ mutate(target.nodes,0,999999);
+ mutate(source.nodes,0,999999);
+ mutate(target.extras,'baseOriginalGlbSHA256','0'.repeat(64));
+ mutate(target.extras,'reviewSource2FSceneIndex',766);
+ mutate(target.extras,'donorOriginalGlbSHA256','0'.repeat(64));
+ mutate(target.extras,'fullLatestR3002FParity',true);
+ mutate(target.extras,'sourceLinksOutputSHABound',true);
+ mutate(target.extras,'physicalDrainJoint',true);
+ mutate(target.extras,'published',true);
+ mutate(json.nodes[S767.new2FRoot].extras,'original2FRoot',12345);
+ mutate(json.nodes[S767.new2FRoot],'children',[S767.wasteLeaves[0]]);
+ mutate(json.nodes[S767.wasteLeaves[0]],'mesh',0);
+ mutate(json.nodes[S767.wasteLeaves[1]].extras,'m5System','VESI');
+ mutate(json.asset.extras,'current',true);
+ mutate(json.asset.extras,'asBuilt',true);
+ const receipt=receiptS767(json,sha,767,S767.role,'2F');
+ assert.equal(receipt.exactSource,true);
+ assert.equal(receipt.publishAllowed,false);
+ assert.equal(receipt.latest2FParityVerified,false);
+ assert.equal(receipt.electricalSafetyVerified,false);
+});
