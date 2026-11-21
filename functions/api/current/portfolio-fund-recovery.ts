@@ -195,9 +195,11 @@ export const parseNordnetEmbeddedFund = (
     const foundAt = html.indexOf('navInfo', startAt);
     if (foundAt < 0) break;
     startAt = foundAt + 'navInfo'.length;
-    const decoded = html.slice(Math.max(0, foundAt - 6_000), foundAt + 5_000)
-      .replace(/\\+"/g, '"').replace(/&quot;/g, '"');
-    const from = decoded.indexOf(marker);
+    const decode = (part: string) => part.replace(/\\+"/g, '"').replace(/&quot;/g, '"');
+    const before = decode(html.slice(Math.max(0, foundAt - 6_000), foundAt));
+    const decoded = before + decode(html.slice(foundAt, foundAt + 5_000));
+    // Anchor to THIS navInfo, not an earlier adjacent fund's object.
+    const from = decoded.indexOf(marker, Math.max(0, before.length - 4));
     if (from < 0) continue;
     const context = decoded.slice(0, from);
     const allIsins = [...context.matchAll(/"isin":"([A-Z0-9]+)"/g)];
