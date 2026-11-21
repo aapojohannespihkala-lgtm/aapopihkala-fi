@@ -1118,3 +1118,119 @@ test('R31 original scene768 optional complete-GLB SHA and gated parent/new RK14.
  mutate(json.nodes[13506],'mesh',0);
  mutate(json.asset.extras,'asBuilt',true);
 });
+
+
+import {
+ C80_R31_SCENE771772_2F_R300_SOURCE as S771772,
+ isC80R31Scene771772Source as validate771772,
+ c80R31Scene771772SourceReceipt as receipt771772,
+ C80_R31_SCENE768_2F_RK141_COFIT_SOURCE as S768_771772,
+} from '../../src/scripts/privateModelC80R31Scene752SourceReceipt.mjs';
+const original771772Path=process.env.C80_R31_2F_R300_SCENE771772_GLB_PATH;
+const root768_771772=[7356,2658,6431,12440,13164,7361,7366,7367,5323,7368,5327,5629,13165,7369,5835,5836,9263,7370,6435,7371,8003,6472,6473,6474,6475,6476,6517,6518,6519,6831,6832,6564,6565,6994,7372,6653,6729,6730,12437,10795,9573,9574,9575,9576,7904,7905,7906,7907,7908,7909,7932,12136,7979,8024,8025,8026,9264,8199,8895,12106,9197,9198,9199,9200,9257,9332,9911,9912,9761,9338,9763,9764,9762,13141,10976,13505,10555,10556,10557,10558,10559,10560,10561,10562,10656,10657,10659,10763,12633,10771,10772,10773,10774,10775,10776,10777,10778,10779,10780,10781,10782,10783,10784,10785,10786,10787,12635,12636,12637,12638,12639,12144,12634,11304,11319,11339,11340,11341,11342,11343,11344,11345,11346,11347,11348,13227,13228,13229,13230,13231,12264,12265,12266,12267,12268,12269,12270,12271,11535,11536,11624,11625,11645,11648,13319,11662,11677,12157,11713,11727,11721,11722,11723,13242,13243,13244,13245,13246,12358,11858,11891,11907,11574,12622,12051,12137,12165,12166,12167,12168,12242,12244,12246,12248,12315,12312,12316,12431,12432,12433,12434,12435,12643,12623,12624,12625,12626,12466,12503,12504,12497,12505,13247,12695,13176,13252,13253,13309,13325,13499,13500,13502,13506];
+const makeSynthetic771772=()=>{
+ const s=S771772,base=[...root768_771772];
+ const normal=base.map(n=>n===s.oldR200?s.r300:n===s.oldP02?s.newP02:n);
+ normal.splice(normal.indexOf(s.r300)+1,0,s.copper);
+ const service=normal.filter(n=>n!==s.plexi);
+ const json={scene:s.defaultScene,scenes:Array(s.sceneCount),nodes:Array(s.nodeCount),
+  meshes:Array(s.meshCount),materials:Array(s.materialCount),
+  accessors:Array(s.accessorCount),bufferViews:Array(s.bufferViewCount),
+  asset:{extras:{ModelStage:'WORK_TEST',current:false,asBuilt:false,HUMAN_REVIEW:'NOT_RUN'}}};
+ json.scenes[768]={name:S768_771772.sceneName,nodes:base};
+ const donor769_771772=[6430,12415,9280,8746,12545,8748,12546,8750,12547,8752,12548,13466,13166,5224,6457,13184,7647,7648,12411,9281,5285,6955,6956,6957,6958,6959,6960,6631,6632,7651,7652,7653,7654,12145,12421,7655,8756,8672,6524,7656,7657,7658,8673,6620,7660,12439,6652,6727,6728,6847,6848,9201,9202,9203,9204,9205,9206,9207,9208,12422,12423,12424,12425,12426,12427,12428,12429,6850,13495,12498,7594,8758,7597,9282,12410,12412,12413,12414,8007,9261,12404,8760,8674,8675,8681,8684,8687,9262,8846,8690,9283,12408,8857,9286,13258,9003,9006,12254,9194,12409,9287,12403,9272,10660,9277,12438,12416,9385,9387,12417,9394,9395,9396,13137,3698,10563,10564,10565,10566,10567,10568,10569,10570,10571,10572,10573,10574,10575,10576,10577,10578,10579,10580,10581,10582,10583,10584,10585,10586,10587,10588,10589,10590,10591,10592,10593,10594,10595,10596,10597,10598,10599,10600,10601,10602,10603,10604,10605,10606,10607,10608,10609,10610,10611,10612,10613,10614,10615,10616,10617,10618,10619,10620,10621,10622,10623,10624,10625,10626,10627,10628,10629,10630,10631,10632,10633,10634,10635,10636,10637,10638,10639,10640,10641,10642,10643,10644,10645,10646,10647,10648,10649,10650,10651,10652,10653,10654,7227,8843,11362,11307,11308,12402,11310,11311,12521,11675,12098,11546,11560,12629,11589,11591,11604,13236,11612,12114,12115,12238,7356,2658,6431,12440,13164,7361,7366,7367,5323,7368,5327,5629,13165,7369,5835,5836,9263,7370,6435,7371,8003,6472,6473,6474,6475,6476,6517,6518,6519,6831,6832,6564,6565,6994,7372,6653,6729,6730,12437,10795,9573,9574,9575,9576,7904,7905,7906,7907,7908,7909,7932,12136,7979,8024,8025,8026,9264,8199,8895,12106,9197,9198,9199,9200,9257,9332,9911,9912,9761,9338,9763,9764,9762,13141,13469,13358,10555,10556,10557,10558,10559,10560,10561,10562,10656,10657,10659,10763,12633,10771,10772,10773,10774,10775,10776,10777,10778,10779,10780,10781,10782,10783,10784,10785,10786,10787,12635,12636,12637,12638,12639,12144,12634,11304,11319,11339,11340,11341,11342,11343,11344,11345,11346,11347,11348,13227,13228,13229,13230,13231,12264,12265,12266,12267,12268,12269,12270,12271,11535,11536,11624,11625,11645,11648,13319,11662,11677,12157,13491,11721,11722,11723,11730,12510,13237,13238,12134,11775,13239,11819,11824,13242,13243,13244,13245,13246,12358,11858,11891,11900,11901,11902,11903,11904,13179,13180,11907,12529,12522,12523,12524,12525,12526,11574,11945,11996,12622,12051,12137,12020,12024,13250,13181,12086,12087,12088,12089,12090,12091,12486,12419,12418,12165,12166,12167,12168,12261,12237,12239,12243,12245,12247,12244,12246,12248,12315,12312,12316,12430,12441,12431,12432,12433,12434,12435,13167,12643,12477,12476,12623,12624,12625,12626,13488,13331,12554,12487,13185,12489,12503,12504,12497,12511,12505,12558,13485,12568,12632,13247,12695,13188,13252,13253,13263,13307,13309,13324,13325,13363,13369,13414,13472,13476,13482,13486,13494,13499,13500,13502,13506];
+ json.scenes[769]={name:'BOTH source normal',nodes:donor769_771772};
+ json.scenes[770]={name:'BOTH source service',nodes:donor769_771772.filter(n=>n!==11625)};
+ const e={
+  stage:'WORK_TEST_HOST_HOLD',sourceDriveId:s.parentDriveId,
+  sourceGLBSHA256:s.parentGlbSha256,source2FSceneIndex:768,
+  donorBOTHNormalSceneIndex:769,donorBOTHServiceSceneIndex:770,
+  sourceRootMapping:{12466:13488,11713:13491},newCopperRoot:13494,
+  plexyRoot:11625,r300SKU:'NOT_VERIFIED',
+  copper:'2026_PHOTO_BASED_WORK_ASSUMPTION',
+  rk141to3:'HISTORICAL_SCHEMATIC_2015',L12:'VIEMARI_SOURCE_REVIEW',
+  sourceLinksForOutputSHA:'NOT_BOUND',productionWebGL:'NOT_RUN',
+  humanReview:'NOT_RUN',current:false,asBuilt:false
+ };
+ json.scenes[771]={name:s.normal.name,nodes:normal,extras:{...e,plexyState:'PLEX_ON'}};
+ json.scenes[772]={name:s.service.name,nodes:service,extras:{...e,plexyState:'PLEX_OFF'}};
+ json.nodes[13488]={children:[13487,13429,13430]};
+ json.nodes[13487]={children:[13415,13416,13417,13418,13419,13420,13421,13422,13423,13424]};
+ json.nodes[13491]={children:[13489,13490]};
+ json.nodes[13494]={children:[13492,13493]};
+ json.nodes[13492]={mesh:5163};json.nodes[13493]={mesh:5164};
+ json.nodes[11625]={mesh:4419};
+ json.nodes[13506]={mesh:5168,extras:{historicalCircuit:true,physicalWiring2026Verified:false,sourceLinksOutputSHA:'NOT_BOUND'}};
+ json.nodes[13505]={children:[13503,13504]};
+ json.nodes[13503]={mesh:4991,extras:{m5System:'VIEMARI'}};
+ json.nodes[13504]={mesh:3702,extras:{m5System:'VIEMARI'}};
+ return json;
+};
+test('R31 771/772 source identity and fail-closed synthetic negative boundaries',()=>{
+ const s=S771772;
+ assert.equal(s.normal.index,771);assert.equal(s.service.index,772);
+ assert.equal(s.normal.rootCount,204);assert.equal(s.service.rootCount,203);
+ assert.equal(fnv(root768_771772),s.base2FRootFnv32);
+ assert.equal(s.parentDriveId,'1N34goHGseX62ZubtLJZVRz4CvUqiFo6_');
+ assert.equal(s.glbSha256.length,64);assert.notEqual(s.glbSha256,S768_771772.glbSha256);
+ const j=makeSynthetic771772();
+ assert.equal(validate771772(j,s.glbSha256,771,s.normal.role,'2F'),true);
+ assert.equal(validate771772(j,s.glbSha256,772,s.service.role,'2F'),true);
+ for(const [sha,i,role,floor] of [
+  [s.glbSha256,770,s.normal.role,'2F'],
+  [s.glbSha256,771,s.service.role,'2F'],
+  [s.glbSha256,772,s.normal.role,'2F'],
+  [s.glbSha256,771,s.normal.role,'BOTH'],
+  [S768_771772.glbSha256,771,s.normal.role,'2F'],
+  [s.glbSha256,772,'__proto__','2F'],
+ ])assert.equal(validate771772(j,sha,i,role,floor),false);
+ for(const [i,role] of [[771,s.normal.role],[772,s.service.role]]){
+  const out=receipt771772(j,s.glbSha256,i,role,'2F');
+  assert.equal(out.exactSource,true);
+  assert.equal(out.sourceLinksBound,false);assert.equal(out.publishAllowed,false);
+  assert.equal(out.productionWebGLVerified,false);
+  assert.equal(out.physicalMaintenanceClearanceVerified,false);
+  assert.equal(out.current,false);
+ }
+ const mutation=(o,key,value)=>{const oldValue=o[key];o[key]=value;
+  try{assert.equal(validate771772(j,s.glbSha256,771,s.normal.role,'2F'),false,'reject '+String(key));}
+  finally{o[key]=oldValue;}};
+ mutation(j.scenes[771].extras,'sourceLinksForOutputSHA','BOUND');
+ mutation(j.scenes[771].extras,'r300SKU','verified');
+ mutation(j.nodes[13506].extras,'physicalWiring2026Verified',true);
+ mutation(j.nodes[13494],'children',[13492]);
+});
+test('R31 original private scene771/772 normal/service, SHA, root and mutation gates',
+ {skip:!original771772Path},()=>{
+ const {b,json}=parse(original771772Path),s=S771772;
+ const sha=createHash('sha256').update(b).digest('hex');
+ assert.equal(b.length,s.glbBytes);assert.equal(sha,s.glbSha256);
+ const normal=json.scenes[771],service=json.scenes[772],base=json.scenes[768];
+ assert.deepEqual(base.nodes,root768_771772);
+ assert.equal(fnv(normal.nodes),s.normal.rootFnv32);
+ assert.equal(fnv(service.nodes),s.service.rootFnv32);
+ assert.deepEqual(service.nodes,normal.nodes.filter(x=>x!==s.plexi));
+ for(const [i,view] of [[771,s.normal],[772,s.service]]){
+  const good=()=>validate771772(json,sha,i,view.role,'2F');
+  assert.equal(good(),true,'original GLB must be accepted: '+i);
+  assert.equal(receipt771772(json,sha,i,view.role,'2F').publishAllowed,false);
+  for(const [wrongSHA,wrongIndex,wrongRole,wrongFloor] of [
+   [S768_771772.glbSha256,i,view.role,'2F'],[sha,i===771?772:771,view.role,'2F'],
+   [sha,i,s.normal.role===view.role?s.service.role:s.normal.role,'2F'],
+   [sha,i,view.role,'BOTH']
+  ])assert.equal(validate771772(json,wrongSHA,wrongIndex,wrongRole,wrongFloor),false);
+  const change=(obj,key,value)=>{const prior=obj[key];obj[key]=value;
+   try{assert.equal(good(),false,'tampered '+i+' '+String(key));}
+   finally{obj[key]=prior;}};
+  change(json.scenes[i].extras,'sourceGLBSHA256','0'.repeat(64));
+  change(json.scenes[i].extras,'sourceLinksForOutputSHA','BOUND');
+  change(json.scenes[i].extras,'copper','VERIFIED');
+  change(json.scenes[i].extras,'plexyState','UNKNOWN');
+  change(json.scenes[i],'name','FORGED');
+  change(json.scenes[i].nodes,0,99999);
+  change(json.nodes[13494],'children',[13492]);
+  change(json.nodes[13506].extras,'physicalWiring2026Verified',true);
+  change(json.nodes[13503].extras,'m5System','VESI');
+  change(json.asset.extras,'asBuilt',true);
+ }
+});
