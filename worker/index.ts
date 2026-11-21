@@ -1,4 +1,5 @@
 import { onRequestGet as getElectricityPriceResponse } from '../functions/api/current/electricity';
+import { onRequestGet as getWeatherResponse } from '../functions/api/current/weather';
 import { onRequestGet as getElectricityMonthResponse } from '../functions/api/current/electricity-month';
 import { fetchHslDeparturesResponse } from '../functions/api/current/hsl';
 import { onRequestGet as getMarketsResponse } from '../functions/api/current/markets-stable';
@@ -27,6 +28,7 @@ type ResponseCache = {
 type WorkerExecutionContext = { waitUntil(promise: Promise<unknown>): void };
 
 const ELECTRICITY_PATH = '/api/current/electricity';
+const WEATHER_PATH = '/api/current/weather';
 const ELECTRICITY_MONTH_PATH = '/api/current/electricity-month';
 const HSL_PATH = '/api/current/hsl';
 const MARKETS_PATH = '/api/current/markets';
@@ -397,6 +399,101 @@ export const servePortfolioWithLastKnownGood = async (
   return portfolioFallbackResponse(fallbackBody, cached.headers);
 };
 
+
+type CachedCurrentFeed = 'weather' | 'electricity' | 'markets';
+const CURRENT_FEED_CACHE_SECONDS: Record<CachedCurrentFeed, number> = {
+  weather: 90 * 60,
+  electricity: 30 * 60 * 60,
+  markets: 3 * 24 * 60 * 60,
+};
+
+const isUsableCurrentFeed = (kind: CachedCurrentFeed, body: Record<string, unknown>) => {
+  if (kind === 'weather') {
+    const current = asRecord(body.current);
+    const hourly = asRecord(body.hourly);
+    const daily = asRecord(body.daily);
+    return (
+      isFinitePortfolioValue(current?.temperature_2m) &&
+      typeof current?.time === 'string' &&
+      Array.isArray(hourly?.time) &&
+      hourly.time.length > 0 &&
+      Array.isArray(daily?.time) &&
+      daily.time.length > 0
+    );
+  }
+  if (kind === 'electricity') {
+    if (!Array.isArray(body.prices)) return false;
+    // Published spot prices are fixed for their interval. Never show an old
+    // day as the current price if its intervals no longer cover now.
+    const now = Date.now();
+    return body.prices.some((candidate) => {
+      const item = asRecord(candidate);
+      const start = typeof item?.startDate === 'string' ? Date.parse(item.startDate) : NaN;
+      const end = typeof item?.endDate === 'string' ? Date.parse(item.endDate) : NaN;
+      return isFinitePortfolioValue(item?.price) && start <= now && now < end;
+    });
+  }
+  if (!Array.isArray(body.items) || !Array.isArray(body.series)) return false;
+  return (
+    body.items.some((candidate) => {
+      const item = asRecord(candidate);
+      return item?.id === 'euribor-3m' && isFinitePortfolioValue(item.value);
+    }) &&
+    body.series.some((candidate) => {
+      const series = asRecord(candidate);
+      return series?.id === 'euribor-3m' && Array.isArray(series.points) && series.points.length > 0;
+    })
+  );
+};
+
+export const serveCurrentFeedWithLastKnownGood = async (
+  request: Request,
+  kind: CachedCurrentFeed,
+  load: () => Promise<Response>,
+  cache: ResponseCache | undefined = defaultResponseCache(),
+) => {
+  let live: Response;
+  try {
+    live = await load();
+  } catch {
+    live = Response.json({ error: 'upstream_unavailable' }, { status: 502 });
+  }
+  if (!cache) return live;
+
+  const keyUrl = new URL(request.url);
+  keyUrl.search = '';
+  keyUrl.searchParams.set('cache', 'last-known-good-v1');
+  const key = new Request(keyUrl.toString());
+
+  const liveBody = live.ok ? await parsePortfolioBody(live) : null;
+  if (liveBody && isUsableCurrentFeed(kind, liveBody)) {
+    const headers = new Headers(live.headers);
+    headers.set('Cache-Control', `public, max-age=${CURRENT_FEED_CACHE_SECONDS[kind]}`);
+    try {
+      await cache.put(key, new Response(JSON.stringify(liveBody), { status: 200, headers }));
+    } catch {
+      // An unavailable edge cache must not break otherwise healthy feeds.
+    }
+    return live;
+  }
+
+  // Production smoke checks must see the real upstream failure, not cached data.
+  if (new URL(request.url).searchParams.has('live_smoke')) return live;
+
+  try {
+    const cached = await cache.match(key);
+    if (!cached) return live;
+    const body = await parsePortfolioBody(cached);
+    if (!body || !isUsableCurrentFeed(kind, body)) return live;
+    const headers = new Headers(cached.headers);
+    headers.set('Cache-Control', 'private, no-store');
+    headers.set('X-Current-Fallback', 'last-known-good');
+    return new Response(JSON.stringify(body), { status: 200, headers });
+  } catch {
+    return live;
+  }
+};
+
 const methodNotAllowed = (allow = 'GET') => new Response('Method not allowed', { status: 405, headers: { Allow: allow } });
 const isSnapshotRequest = (request: Request) => {
   const referer = request.headers.get('Referer');
@@ -428,7 +525,8 @@ const worker = {
       return handlePrivatePlacementReviewRequest(request, env);
     }
     if (isPrivateModelPath(url.pathname)) return handlePrivateModelRequest(request, env);
-    if (url.pathname === ELECTRICITY_PATH) { if (request.method !== 'GET') return methodNotAllowed(); return getElectricityPriceResponse(); }
+    if (url.pathname === ELECTRICITY_PATH) { if (request.method !== 'GET') return methodNotAllowed(); return serveCurrentFeedWithLastKnownGood(request, 'electricity', getElectricityPriceResponse); }
+    if (url.pathname === WEATHER_PATH) { if (request.method !== 'GET') return methodNotAllowed(); return serveCurrentFeedWithLastKnownGood(request, 'weather', getWeatherResponse); }
     if (url.pathname === ELECTRICITY_MONTH_PATH) { if (request.method !== 'GET') return methodNotAllowed(); return getElectricityMonthResponse(); }
     if (url.pathname === HSL_PATH) {
       if (request.method !== 'POST') return methodNotAllowed('POST');
@@ -440,7 +538,7 @@ const worker = {
         if (snapshotRequest) return getSnapshotPortfolioResponse();
         return servePortfolioWithLastKnownGood(request, getPortfolioResponse);
       }
-      return getMarketsResponse({ request });
+      return serveCurrentFeedWithLastKnownGood(request, 'markets', () => getMarketsResponse({ request }));
     }
     if (url.pathname === WIDGET_PATH) {
       if (request.method !== 'GET') return methodNotAllowed();
