@@ -1044,3 +1044,226 @@ export function c80R31Scene767SourceReceipt(json,sha,index,role,floor){
   electricalSafetyVerified:false,
  });
 }
+
+/**
+ * Original 2F-only scene768 extends source scene767 by ONE historical
+ * RK14.1 schematic visualization root. Not an installed 2026 cable route,
+ * not a 2F R300/roof/VM20 parity assertion, and not a viewer registration.
+ * The caller must independently verify the complete GLB SHA-256 first.
+ */
+export const C80_R31_SCENE768_2F_RK141_COFIT_SOURCE=Object.freeze({
+ role:'R31_2F_L12_RK141_RK142_RK143_MJ83_HISTORICAL_REVIEW',
+ sceneIndex:768,
+ glbSha256:'0deec84e389af3caf5c1a8528c162487378b02e90aa9eb9bc7d85800d1e07200',
+ glbBytes:63820448,
+ zipDriveId:'13dAkAl2nCtd-muclu2cITvG7_WZc1cAt',
+ zipSha256:'2f3f3c4638cbfaed3d4ffcf4535a9574f0f39aa52711df64dc6300bf1269ac3e',
+ sceneName:'Ylisrinne_C80_R31_2F_L12_RK141_RK142_RK143_MJ83_SAVO_2015_HISTORICAL_REVIEW_WORK_TEST_HOST_HOLD__scene768',
+ sceneCount:769,nodeCount:13507,meshCount:5169,materialCount:815,
+ accessorCount:11267,bufferViewCount:11273,defaultScene:292,
+ baseScene:767,
+ baseGlbSha256:'9546f3beaa260b24e3396820b216303430e3958c1f9741c41f8fc61b864506cd',
+ baseZipDriveId:'13Djv8gzf4vE8jWdxDsYBSiYlzhZS8ub2',
+ baseRootCount:202,baseRootFnv32:'aeef8956',
+ rootCount:203,rootFnv32:'f7676ffc',
+ rk141DonorDriveId:'1MysIWp4FQRF7Lbh8gvrQRXX3PjFCCXF7',
+ rk141DonorGlbSha256:'28860dca89226fade81f67c2ce6af41872a7dc100a958c9bf38570baf03cbfe4',
+ newRoot:13506,newMesh:5168,
+ newNodeName:'K8_RK14_1_2F_LIVING_2015_GROUP_VISUAL_WORK_ASSUMPTION_NOT_CABLE_2026__REBASED_SCENE768',
+ existingReviewRoots:[13505,13499,13500,13502],
+});
+export function isC80R31Scene768Source(json,sha,index,role,floor){
+ const s=C80_R31_SCENE768_2F_RK141_COFIT_SOURCE,asset=json?.asset?.extras;
+ if(sha!==s.glbSha256||index!==s.sceneIndex||role!==s.role||
+  (floor!==undefined&&floor!=='2F')||json?.scene!==s.defaultScene||
+  json?.scenes?.length!==s.sceneCount||json?.nodes?.length!==s.nodeCount||
+  json?.meshes?.length!==s.meshCount||json?.materials?.length!==s.materialCount||
+  json?.accessors?.length!==s.accessorCount||
+  json?.bufferViews?.length!==s.bufferViewCount||
+  asset?.ModelStage!=='WORK_TEST'||asset?.current!==false||
+  asset?.asBuilt!==false||asset?.HUMAN_REVIEW!=='NOT_RUN')return false;
+ const target=json.scenes[index],base=json.scenes[s.baseScene];
+ const roots=target?.nodes,baseRoots=base?.nodes,e=target?.extras;
+ if(target?.name!==s.sceneName||
+  base?.name!==C80_R31_SCENE767_2F_L12_RK14_MJ83_SOURCE.sceneName||
+  !Array.isArray(roots)||!Array.isArray(baseRoots)||
+  roots.length!==s.rootCount||baseRoots.length!==s.baseRootCount||
+  new Set(roots).size!==roots.length||new Set(baseRoots).size!==baseRoots.length||
+  c80R31Scene752RootsFnv32(roots)!==s.rootFnv32||
+  c80R31Scene752RootsFnv32(baseRoots)!==s.baseRootFnv32||
+  !exactly(roots,[...baseRoots,s.newRoot])||
+  !s.existingReviewRoots.every(n=>roots.includes(n))||
+  e?.stage!=='WORK_TEST_HOST_HOLD'||e?.WORK_TEST!==true||
+  e?.HOST_HOLD!==true||e?.sourceBaseScene!==s.baseScene||
+  e?.sourceBaseDriveId!==s.baseZipDriveId||
+  e?.sourceBaseGlbSha256!==s.baseGlbSha256||
+  e?.rk141DonorDriveId!==s.rk141DonorDriveId||
+  e?.rk141DonorGLBSHA256!==s.rk141DonorGlbSha256||
+  !exactly(e?.circuits2015,['RK14.1','RK14.2','RK14.3'])||
+  e?.rebaseMap?.node13483!==s.newRoot||
+  e?.rebaseMap?.mesh5162!==s.newMesh||
+  e?.rebaseMap?.material812!==814||
+  e?.rebaseMap?.['accessors11247-11248']!=='11265-11266'||
+  e?.physicalWiringVerified!==false||
+  e?.latest2F_R300RoofHostParity!==false||
+  e?.sourceLinksOutputSHA!=='NOT_BOUND'||
+  e?.sourceLinksOutputSHABound!==false||
+  e?.published!==false||e?.productionWebGL!=='NOT_RUN'||
+  e?.HUMAN_REVIEW!=='NOT_RUN'||e?.current!==false||
+  e?.asBuilt!==false||e?.canonical!==false||
+  e?.fullLatestR3002FParity!==false||
+  e?.physicalRouteVerified!==false)return false;
+ const n=json.nodes[s.newRoot],x=n?.extras;
+ if(n?.name!==s.newNodeName||n?.mesh!==s.newMesh||
+  n?.children!==undefined||
+  x?.m5System!=='SAHKO'||
+  x?.ylisTechRole!=='HISTORICAL_SCHEMATIC_REVIEW_GUIDE'||
+  x?.stage!=='WORK_TEST_HOST_HOLD'||
+  x?.circuitId!=='RK14.1'||x?.historicalCircuit!==true||
+  x?.evidenceLevel!=='HISTORICAL_2015_PLUS_2026_WORK_ASSUMPTION'||
+  x?.physicalRouteVerified!==false||
+  x?.physicalWiring2026Verified!==false||
+  x?.switchControlsVerified!==false||
+  x?.newPhysicalCableClaim!==false||
+  x?.electricalSafetyApproval!==false||
+  x?.confidence!=='LOW_PHYSICAL_ROUTE'||
+  x?.sourcePanelCircuitNode!==13012||x?.sourcePanelMesh!==3754||
+  x?.sourceSwitchNotBound!==13246||
+  x?.sourceLinksOutputSHA!=='NOT_BOUND'||
+  x?.sourceOriginalDriveId!==s.rk141DonorDriveId||
+  x?.sourceOriginalGLBSha256!==s.rk141DonorGlbSha256||
+  x?.donorNode!==13483||x?.donorMesh!==5162||
+  x?.outputScene!==s.sceneIndex||
+  x?.current!==false||x?.asBuilt!==false||
+  x?.humanReview!=='NOT_RUN'||x?.productionWebGL!=='NOT_RUN')
+  return false;
+ // 2F waste is inherited from 767, not independently re-verified here.
+ const l12=json.nodes[13505];
+ if(!Array.isArray(l12?.children)||!l12.children.includes(13503)||
+  !l12.children.includes(13504)||
+  json.nodes[13503]?.mesh!==4991||
+  json.nodes[13504]?.mesh!==3702||
+  json.nodes[13503]?.extras?.m5System!=='VIEMARI'||
+  json.nodes[13504]?.extras?.m5System!=='VIEMARI')return false;
+ return true;
+}
+export function c80R31Scene768SourceReceipt(json,sha,index,role,floor){
+ return Object.freeze({
+  exactSource:isC80R31Scene768Source(json,sha,index,role,floor),
+  stage:'WORK_TEST_HOST_HOLD',sourceLinksBound:false,publishAllowed:false,
+  productionWebGLVerified:false,humanReview:'NOT_RUN',current:false,asBuilt:false,
+  latest2FParityVerified:false,physicalCableRouteVerified:false,
+  physicalWasteConnectionVerified:false,electricalSafetyVerified:false,
+ });
+}
+
+
+/**
+ * Original private 2F __scene771 NORMAL and __scene772 SERVICE share one
+ * authenticated GLB. Their only intentional root delta is visible plexi.
+ * Model SHA is an external precondition, not inferred from JSON or filename.
+ * Read-only source receipt, NEVER a sourceLinks or publisher grant.
+ */
+export const C80_R31_SCENE771772_2F_R300_SOURCE=Object.freeze({
+ glbSha256:'9e0bf34fd838ddc92be12007412176a8ea449f66644f8876395ac6f659804ec3',
+ glbBytes:63833692,zipDriveId:'1EmsMz5AyyWQwoRdZf2NVOvnndvMfHLb7',
+ zipSha256:'9bcd56505c4608a9e00df2fcd659893c7dbc743cf44f2ec08f1ca7b151ef1812',
+ parentDriveId:'1N34goHGseX62ZubtLJZVRz4CvUqiFo6_',
+ parentGlbSha256:'06a30d42db7f8510a7405c0741e74b3dc4d8ea7d2c32c373b30817d236f7a5e4',
+ sceneCount:773,nodeCount:13507,meshCount:5169,materialCount:815,
+ accessorCount:11267,bufferViewCount:11273,defaultScene:292,
+ base2FScene:768,base2FRootCount:203,base2FRootFnv32:'f7676ffc',
+ bothNormalScene:769,bothNormalRootCount:499,bothNormalFnv32:'c493c3e8',
+ bothServiceScene:770,bothServiceRootCount:498,bothServiceFnv32:'1f600091',
+ normal:Object.freeze({index:771,role:'R31_2F_R300_NORMAL_PLEXI_ON',
+  name:'Ylisrinne_C80_R31_2F_R300_COPPER_RK141_RK142_RK143_L12_MJ83_NORMAL_WORK_TEST_HOST_HOLD__scene771',
+  rootCount:204,rootFnv32:'a9e2f210',plexyState:'PLEX_ON'}),
+ service:Object.freeze({index:772,role:'R31_2F_R300_SERVICE_PLEXI_OFF',
+  name:'Ylisrinne_C80_R31_2F_R300_COPPER_RK141_RK142_RK143_L12_MJ83_SERVICE_WORK_TEST_HOST_HOLD__scene772',
+  rootCount:203,rootFnv32:'49047c9d',plexyState:'PLEX_OFF'}),
+ oldR200:12466,oldP02:11713,r300:13488,newP02:13491,
+ copper:13494,copperLeaves:[13492,13493],plexi:11625,
+ schematics:[13506,13499,13500],panel:13502,l12Root:13505,l12Leaves:[13503,13504],
+});
+export function isC80R31Scene771772Source(json,sha,index,role,floor){
+ const s=C80_R31_SCENE771772_2F_R300_SOURCE;
+ const view=index===s.normal.index?s.normal:index===s.service.index?s.service:null;
+ const asset=json?.asset?.extras;
+ if(!view||sha!==s.glbSha256||role!==view.role||
+  (floor!==undefined&&floor!=='2F')||json?.scene!==s.defaultScene||
+  json?.scenes?.length!==s.sceneCount||json?.nodes?.length!==s.nodeCount||
+  json?.meshes?.length!==s.meshCount||json?.materials?.length!==s.materialCount||
+  json?.accessors?.length!==s.accessorCount||
+  json?.bufferViews?.length!==s.bufferViewCount||
+  asset?.ModelStage!=='WORK_TEST'||asset?.current!==false||
+  asset?.asBuilt!==false||asset?.HUMAN_REVIEW!=='NOT_RUN')return false;
+ const source=json.scenes[s.base2FScene],donor=json.scenes[s.bothNormalScene],
+  donorService=json.scenes[s.bothServiceScene],
+  target=json.scenes[index],e=target?.extras;
+ const src=source?.nodes,normalRoots=donor?.nodes,serviceRoots=donorService?.nodes,r=target?.nodes;
+ if(source?.name!==C80_R31_SCENE768_2F_RK141_COFIT_SOURCE.sceneName||
+  target?.name!==view.name||
+  !Array.isArray(src)||!Array.isArray(normalRoots)||!Array.isArray(serviceRoots)||!Array.isArray(r)||
+  src.length!==s.base2FRootCount||normalRoots.length!==s.bothNormalRootCount||
+  serviceRoots.length!==s.bothServiceRootCount||r.length!==view.rootCount||
+  [src,normalRoots,serviceRoots,r].some(x=>new Set(x).size!==x.length)||
+  c80R31Scene752RootsFnv32(src)!==s.base2FRootFnv32||
+  c80R31Scene752RootsFnv32(normalRoots)!==s.bothNormalFnv32||
+  c80R31Scene752RootsFnv32(serviceRoots)!==s.bothServiceFnv32||
+  c80R31Scene752RootsFnv32(r)!==view.rootFnv32)return false;
+ if(src.filter(n=>n===s.oldR200).length!==1||
+  src.filter(n=>n===s.oldP02).length!==1||
+  src.filter(n=>n===s.plexi).length!==1||
+  ![s.r300,s.newP02,s.copper].every(n=>normalRoots.includes(n))||
+  !normalRoots.includes(s.plexi)||serviceRoots.includes(s.plexi)||
+  src.some(n=>n===s.r300||n===s.newP02||n===s.copper))return false;
+ const projected=src.map(n=>n===s.oldR200?s.r300:n===s.oldP02?s.newP02:n);
+ projected.splice(projected.indexOf(s.r300)+1,0,s.copper);
+ const normal=json.scenes[s.normal.index]?.nodes,service=json.scenes[s.service.index]?.nodes;
+ if(!exactly(normal,projected)||!exactly(service,projected.filter(n=>n!==s.plexi))||
+  !exactly(r,view===s.normal?normal:service)||
+  r.includes(s.oldR200)||r.includes(s.oldP02)||
+  ![s.r300,s.newP02,s.copper,s.l12Root,s.panel,...s.schematics].every(n=>r.includes(n))||
+  r.includes(s.plexi)!==(view===s.normal))return false;
+ if(e?.stage!=='WORK_TEST_HOST_HOLD'||
+  e?.sourceDriveId!==s.parentDriveId||
+  e?.sourceGLBSHA256!==s.parentGlbSha256||
+  e?.source2FSceneIndex!==s.base2FScene||
+  e?.donorBOTHNormalSceneIndex!==s.bothNormalScene||
+  e?.donorBOTHServiceSceneIndex!==s.bothServiceScene||
+  e?.sourceRootMapping?.[String(s.oldR200)]!==s.r300||
+  e?.sourceRootMapping?.[String(s.oldP02)]!==s.newP02||
+  e?.newCopperRoot!==s.copper||e?.plexyRoot!==s.plexi||
+  e?.plexyState!==view.plexyState||e?.r300SKU!=='NOT_VERIFIED'||
+  e?.copper!=='2026_PHOTO_BASED_WORK_ASSUMPTION'||
+  e?.rk141to3!=='HISTORICAL_SCHEMATIC_2015'||
+  e?.L12!=='VIEMARI_SOURCE_REVIEW'||
+  e?.sourceLinksForOutputSHA!=='NOT_BOUND'||
+  e?.productionWebGL!=='NOT_RUN'||e?.humanReview!=='NOT_RUN'||
+  e?.current!==false||e?.asBuilt!==false)return false;
+ const nodes=json.nodes;
+ if(!exactly(nodes[s.r300]?.children,[13487,13429,13430])||
+  !exactly(nodes[13487]?.children,[13415,13416,13417,13418,13419,13420,13421,13422,13423,13424])||
+  !exactly(nodes[s.newP02]?.children,[13489,13490])||
+  !exactly(nodes[s.copper]?.children,s.copperLeaves)||
+  nodes[s.copperLeaves[0]]?.mesh!==5163||
+  nodes[s.copperLeaves[1]]?.mesh!==5164||
+  nodes[s.plexi]?.mesh!==4419||
+  nodes[s.schematics[0]]?.mesh!==5168||
+  nodes[s.schematics[0]]?.extras?.historicalCircuit!==true||
+  nodes[s.schematics[0]]?.extras?.physicalWiring2026Verified!==false||
+  nodes[s.schematics[0]]?.extras?.sourceLinksOutputSHA!=='NOT_BOUND'||
+  !Array.isArray(nodes[s.l12Root]?.children)||
+  !s.l12Leaves.every(n=>nodes[s.l12Root].children.includes(n))||
+  nodes[s.l12Leaves[0]]?.mesh!==4991||
+  nodes[s.l12Leaves[1]]?.mesh!==3702||
+  !s.l12Leaves.every(n=>nodes[n]?.extras?.m5System==='VIEMARI'))return false;
+ return true;
+}
+export function c80R31Scene771772SourceReceipt(json,sha,index,role,floor){
+ return Object.freeze({exactSource:isC80R31Scene771772Source(json,sha,index,role,floor),
+  stage:'WORK_TEST_HOST_HOLD',sourceLinksBound:false,publishAllowed:false,
+  productionWebGLVerified:false,humanReview:'NOT_RUN',current:false,asBuilt:false,
+  physicalR300AndCopperVerified:false,physicalMaintenanceClearanceVerified:false,
+  electricalSafetyVerified:false,latestAsBuiltVerified:false});
+}
