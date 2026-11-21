@@ -203,6 +203,6 @@ test('standalone Weather leaves loading state when Open-Meteo never responds', a
   await expect(page.locator('[data-current-weather]')).toHaveAttribute('aria-busy', 'false', {
     timeout: 16_000,
   });
-  await expect(page.locator('[data-weather-condition]').toHaveText('Forecast unavailable');
+  await expect(page.locator('[data-weather-condition]')).toHaveText('Forecast unavailable');
   await expect(page.locator('[data-weather-error]')).toBeVisible();
 });
