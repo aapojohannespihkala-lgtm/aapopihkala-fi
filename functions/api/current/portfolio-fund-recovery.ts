@@ -106,10 +106,16 @@ const verifyFresh = (date: string, now: Date) => {
   return Number.isFinite(millis) && age >= -DAY_MS && age <= MAX_AGE_DAYS * DAY_MS;
 };
 
-const compareReturn = (latest: Observation, history: Observation[], days: number) => {
+const compareReturn = (
+  latest: Observation, history: Observation[], days: number, maxLagDays = Infinity,
+) => {
   const target = Date.parse(`${latest.observedAt}T00:00:00Z`) - days * DAY_MS;
   const older = history.filter((item) => Date.parse(`${item.observedAt}T00:00:00Z`) <= target).at(-1);
-  return older && older.value > 0 ? (latest.value / older.value - 1) * 100 : null;
+  if (!older || older.value <= 0) return null;
+  // A sparse history must not turn a much older NAV into a claimed period return.
+  // A three-calendar-day grace period covers weekends around a 7-day reference.
+  if ((target - Date.parse(`${older.observedAt}T00:00:00Z`)) / DAY_MS > maxLagDays) return null;
+  return (latest.value / older.value - 1) * 100;
 };
 
 export const buildRecoveredHistoricalFund = (
@@ -121,8 +127,14 @@ export const buildRecoveredHistoricalFund = (
   if (!latest || history.length < 2 || !verifyFresh(latest.observedAt, now)) return null;
   const changes = emptyChanges();
   const prior = history.at(-2);
-  if (prior && prior.value > 0) changes.today = (latest.value / prior.value - 1) * 100;
-  changes.week1 = compareReturn(latest, history, 7);
+  // Previous trading-day NAV can span a weekend/holiday, not an arbitrary gap.
+  const previousGapDays = prior
+    ? (Date.parse(`${latest.observedAt}T00:00:00Z`) - Date.parse(`${prior.observedAt}T00:00:00Z`)) / DAY_MS
+    : Infinity;
+  if (prior && prior.value > 0 && previousGapDays >= 1 && previousGapDays <= 4) {
+    changes.today = (latest.value / prior.value - 1) * 100;
+  }
+  changes.week1 = compareReturn(latest, history, 7, 3);
   changes.month1 = compareReturn(latest, history, 30);
   changes.month3 = compareReturn(latest, history, 92);
   changes.month6 = compareReturn(latest, history, 183);
