@@ -16,6 +16,8 @@ test('diagnose which public fund sources are reachable from CI', async () => {
     'https://www.nordnet.fi/rahastot/lista/handelsbanken-usa-index-a1-eur-348def3b',
     'https://www.spiltanfonder.se/fonder/spiltan-aktiefond-investmentbolag',
     'https://www.nordnet.se/fonder/lista/nordnet-sverige-index-sek-aa7a9014',
+    'https://www.nordnet.se/fonder/lista/spiltan-aktiefond-investmentbolag-sek-d8fe1a7e',
+    'https://www.nordnet.fi/rahastot/lista/spiltan-aktiefond-investmentbolag-sek-d8fe1a7e',
     'https://api.prod.nntech.io/instrument-screening/v2/mutual-funds/web/nordnet-sverige-index-sek-aa7a9014',
   ];
   const results = await Promise.all(urls.map(async (url) => {
@@ -41,11 +43,13 @@ test('diagnose which public fund sources are reachable from CI', async () => {
           id: url.includes('storebrand-japan') ? 'storebrand-japan'
             : url.includes('handelsbanken-usa') ? 'handelsbanken-usa'
             : url.includes('nordnet-sverige') ? 'nordnet-sweden'
+            : url.includes('spiltan-aktiefond') ? 'spiltan-investmentbolag'
             : 'nordnet-finland',
           label: 'live matched fund',
           isin: url.includes('storebrand-japan') ? 'SE0013801479'
             : url.includes('handelsbanken-usa') ? 'SE0006800140'
-            : url.includes('nordnet-sverige') ? 'SE0002756973' : 'SE0005993102',
+            : url.includes('nordnet-sverige') ? 'SE0002756973'
+            : url.includes('spiltan-aktiefond') ? 'SE0004297927' : 'SE0005993102',
         }, new Date('2026-11-21T12:00:00Z')) : null;
       const patterns = ['navInfo', 'YEAR_5', 'yield_5y', 'MONTH_3', 'annual_growth', 'NAV (', 'Senaste NAV', '5 år:'];
       const matches = patterns.flatMap((term) => {
