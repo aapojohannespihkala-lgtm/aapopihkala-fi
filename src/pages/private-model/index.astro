@@ -2879,6 +2879,7 @@ const title = 'Private 3D viewer';
         type WorkTestLoadFailurePhase,
       } from '../../scripts/privateModelWorkTestLoadDiagnostics';
 
+      import { isTateCSource, isTateCFocusedContour, TATE_C_OPACITY } from '../../scripts/privateModelTateCEdgeFocus.mjs';
       const canvas = document.querySelector<HTMLCanvasElement>('#private-model-canvas');
       const status = document.querySelector<HTMLElement>('#viewer-status');
       const toolbarMenus = Array.from(document.querySelectorAll<HTMLDetailsElement>('.toolbar-menu'));
@@ -4646,11 +4647,11 @@ const title = 'Private 3D viewer';
       // Technical review: dense facade boards (150 mm siding) merge their
       // outlines into a solid-looking face at overview distance, so the
       // architectural outline is dimmed while technical colors are shown.
-      const makeEdgeMaterial = (depthTest: boolean) =>
+      const makeEdgeMaterial = (depthTest: boolean, overrideOpacity?: number) =>
         new THREE.LineBasicMaterial({
           color: 0x6d716e,
           transparent: true,
-          opacity: technicalReviewColorsActive() ? 0.2 : 0.72,
+          opacity: overrideOpacity ?? (technicalReviewColorsActive() ? 0.2 : 0.72),
           depthTest,
           depthWrite: false,
         });
@@ -4738,8 +4739,10 @@ const title = 'Private 3D viewer';
       // VIEWER-PERF: identical input -> identical overlay; skips the ~4.5 s rebuild
       // repeated by one floor switch / Layers toggle. Output and algorithm unchanged.
       const unifiedEdgeMemo = createUnifiedEdgeMemo(6);
+      const tateCOrdinaryEdgeMemo = createUnifiedEdgeMemo(6);
+      const tateCFocusedEdgeMemo = createUnifiedEdgeMemo(6);
 
-      const buildUnifiedEdgeGeometry = (meshes: any[]) => {
+      const buildUnifiedEdgeGeometry = (meshes: any[], focusTateC = false) => {
         // HI20 C80-044: shared coplanar T-junction edges from separately
         // triangulated wall parts are not architectural contours. The default
         // edgeMode=none from PR #1582 is unchanged; this affects manual unified/
@@ -4752,12 +4755,18 @@ const title = 'Private 3D viewer';
           preset: canvas.dataset.standardViewPreset,
         });
         const memoKey = unifiedEdgeMemo.keyOf(meshes, isC044TwoFloorPreview ? 'c044-seam' : 'plain-seam');
-        const memo = unifiedEdgeMemo.get(memoKey);
-        if (memo) {
+        const edgeMemo = focusTateC ? tateCOrdinaryEdgeMemo : unifiedEdgeMemo;
+        const memo = edgeMemo.get(memoKey);
+        const focusMemo = focusTateC ? tateCFocusedEdgeMemo.get(memoKey) : null;
+        if (memo && (!focusTateC || focusMemo)) {
           canvas.dataset.edgeTJunctionSuppressedCount = String(memo.suppressedTJunctions);
           canvas.dataset.edgeOverlayMemo = 'hit';
-          return new THREE.BufferGeometry().setAttribute(
-            'position', new THREE.Float32BufferAttribute(memo.positions, 3));
+          return {
+            geometry: new THREE.BufferGeometry().setAttribute(
+              'position', new THREE.Float32BufferAttribute(memo.positions, 3)),
+            focusedGeometry: focusTateC ? new THREE.BufferGeometry().setAttribute(
+              'position', new THREE.Float32BufferAttribute(focusMemo!.positions, 3)) : null,
+          };
         }
 
         const edgeMap = new Map<string, UnifiedEdgeRecord>();
@@ -4781,6 +4790,7 @@ const title = 'Private 3D viewer';
         canvas.dataset.edgeTJunctionSuppressedCount = String(suppressedBoundaries.size);
 
         const points: any[] = [];
+        const focusedPoints: any[] = [];
         for (const record of edgeMap.values()) {
           const normals = normalsByRecord.get(record)!;
           let keep = normals.length === 1
@@ -4792,13 +4802,28 @@ const title = 'Private 3D viewer';
               .slice(1)
               .some((normal) => Math.abs(reference.dot(normal)) < creaseCos);
           }
-          if (keep) points.push(record.a, record.b);
+          if (keep) {
+            const midpoint = record.a.clone().add(record.b).multiplyScalar(0.5);
+            const focused = focusTateC && isTateCFocusedContour({
+              sha: layersLoadedSha,
+              sceneIndex: Number(canvas.dataset.c80SceneIndex),
+              technicalReview: true,
+              midpoint,
+              ownerNames: record.owners.map((owner) => meshes[owner]?.name),
+            });
+            (focused ? focusedPoints : points).push(record.a, record.b);
+          }
         }
 
         const geometry = new THREE.BufferGeometry().setFromPoints(points);
-        unifiedEdgeMemo.set(memoKey, geometry.getAttribute('position').array, suppressedBoundaries.size);
+        edgeMemo.set(memoKey, geometry.getAttribute('position').array, suppressedBoundaries.size);
         canvas.dataset.edgeOverlayMemo = 'miss';
-        return geometry;
+        if (focusTateC) {
+          const focusedGeometry = new THREE.BufferGeometry().setFromPoints(focusedPoints);
+          tateCFocusedEdgeMemo.set(memoKey, focusedGeometry.getAttribute('position').array, suppressedBoundaries.size);
+          return { geometry, focusedGeometry };
+        }
+        return { geometry, focusedGeometry: null };
       };
 
       // Faceted pipe tubes get dense outline edges that hide their own color.
@@ -4871,7 +4896,13 @@ const title = 'Private 3D viewer';
           }
           if (edgeOverlayGroup.children.length === 0) material.dispose();
         } else if (edgeMode === 'unified' || edgeMode === 'visible') {
-          const geometry = buildUnifiedEdgeGeometry(meshes);
+          const tateCActive = isTateCSource({
+            sha: layersLoadedSha,
+            sceneIndex: Number(canvas.dataset.c80SceneIndex),
+            technicalReview: technicalReviewColorsActive(),
+          });
+          const { geometry, focusedGeometry } = buildUnifiedEdgeGeometry(meshes, tateCActive);
+          canvas.dataset.tateCEdgeFocus = tateCActive ? 'source-locked' : 'off';
           const positions = geometry.getAttribute('position');
           segmentCount = positions ? Math.floor(positions.count / 2) : 0;
           if (segmentCount > 0) {
@@ -4880,6 +4911,19 @@ const title = 'Private 3D viewer';
             edgeOverlayGroup.add(edgeObject);
           } else {
             geometry.dispose();
+          }
+          if (focusedGeometry) {
+            const focusedPositions = focusedGeometry.getAttribute('position');
+            const focusCount = focusedPositions ? Math.floor(focusedPositions.count / 2) : 0;
+            canvas.dataset.tateCEdgeFocusedSegments = String(focusCount);
+            segmentCount += focusCount;
+            if (focusCount > 0) {
+              const lines = new THREE.LineSegments(focusedGeometry, makeEdgeMaterial(depthTest, TATE_C_OPACITY.focused));
+              lines.frustumCulled = false;
+              edgeOverlayGroup.add(lines);
+            } else focusedGeometry.dispose();
+          } else {
+            canvas.dataset.tateCEdgeFocusedSegments = '0';
           }
         }
 
