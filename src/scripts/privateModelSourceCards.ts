@@ -506,16 +506,27 @@ const getBundle = () => bundleRequest ??= (async () => {
 /** Hash the same bytes passed to the existing GLTFLoader, never a catalog claim or a second fetch. */
 export const loadModelWithSourceCards = async <T extends GltfSource & object>(
   loader: { parseAsync(data: ArrayBuffer, path: string): Promise<T> }, path: string,
+  exactSource?: { glbBytes: number; glbSha256: string },
 ): Promise<T> => {
   const url = new URL(path, window.location.href);
   if (url.origin !== window.location.origin || !url.pathname.startsWith('/private-model/')) throw Error('Virheellinen mallipolku.');
-  const response = await fetch(url, { credentials: 'same-origin', signal: AbortSignal.timeout(60000) });
-  if (!response.ok) throw Error('Suojatun mallin lataus ei onnistunut.');
+  const response = await fetch(url, {
+    credentials: 'same-origin', signal: AbortSignal.timeout(60000),
+    ...(exactSource ? { mode: 'same-origin', redirect: 'error', cache: 'no-store' } : {}),
+  });
+  if (!response.ok || (exactSource &&
+      (response.status !== 200 || response.redirected || response.url !== url.href)))
+    throw Error('Suojatun mallin lataus ei onnistunut.');
   const bytes = await response.arrayBuffer();
+  if (exactSource && bytes.byteLength !== exactSource.glbBytes)
+    throw Error('WORK_TEST_SOURCE_LENGTH_MISMATCH');
+  const digestTask = crypto.subtle.digest('SHA-256', bytes)
+    .then(value => Array.from(new Uint8Array(value), byte => byte.toString(16).padStart(2, '0')).join(''))
+    .catch(() => null);
+  if (exactSource && await digestTask !== exactSource.glbSha256)
+    throw Error('WORK_TEST_SOURCE_SHA_MISMATCH');
   const [gltf, digest, cards] = await Promise.all([
-    loader.parseAsync(bytes, new URL('.', url).href),
-    crypto.subtle.digest('SHA-256', bytes).then(value => Array.from(new Uint8Array(value), byte => byte.toString(16).padStart(2, '0')).join('')).catch(() => null),
-    getBundle(),
+    loader.parseAsync(bytes, new URL('.', url).href), digestTask, getBundle(),
   ]);
   let identity: GltfSource = gltf;
   try { identity = await sourceCardIdentity(gltf); } catch { /* Cards fail closed, model loading remains available. */ }
