@@ -184,13 +184,22 @@ export const parseNordnetEmbeddedFund = (
   now = new Date(),
 ): RecoveredFund | null => {
   if (!html.includes(spec.isin) || html.length > 2_000_000) return null;
-  const decoded = html.replace(/\\"/g, '"').replace(/&quot;/g, '"');
   const marker = '"navInfo":{';
   const expectedCurrency = spec.id === 'nordnet-sweden' || spec.id === 'spiltan-investmentbolag'
     ? 'SEK' : 'EUR';
-  let from = 0;
-  while ((from = decoded.indexOf(marker, from)) !== -1) {
-    const context = decoded.slice(Math.max(0, from - 6_000), from);
+  let startAt = 0;
+  let inspected = 0;
+  // Decode only a small neighborhood around each fund payload. A 1.3 MB
+  // Nordnet page must not be fully unescaped in Cloudflare's CPU budget.
+  while (inspected++ < 50) {
+    const foundAt = html.indexOf('navInfo', startAt);
+    if (foundAt < 0) break;
+    startAt = foundAt + 'navInfo'.length;
+    const decoded = html.slice(Math.max(0, foundAt - 6_000), foundAt + 5_000)
+      .replace(/\\\\+"/g, '"').replace(/&quot;/g, '"');
+    const from = decoded.indexOf(marker);
+    if (from < 0) continue;
+    const context = decoded.slice(0, from);
     const allIsins = [...context.matchAll(/"isin":"([A-Z0-9]+)"/g)];
     const nearestIsin = allIsins.at(-1)?.[1];
     const currencies = [...context.matchAll(/"currency":"([A-Z]{3})"/g)];
@@ -230,7 +239,6 @@ export const parseNordnetEmbeddedFund = (
       return { id: spec.id, label: spec.label, symbol: spec.isin,
         price, observedAt: nav[1], changes };
     }
-    from += marker.length;
   }
   return null;
 };
