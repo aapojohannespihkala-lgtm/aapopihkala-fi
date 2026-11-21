@@ -424,14 +424,15 @@ const buildMarketsSection = (value: unknown, fetchedAt?: string): WidgetSection 
     '1M ' + formatMedian(month1Median, oneMonth),
     '1Y ' + formatMedian(year1Median, oneYear),
   ].join('  ·  ');
-  const estimationInfo = [
-    ['1D', oneDay], ['1M', oneMonth], ['1Y', oneYear],
-  ].filter(([, count]) => count && count.estimated > 0)
-    .map(([period, count]) => {
-      const stats = count as { estimated: number; total: number };
-      return period + ' MEDIAN: ' + stats.estimated + '/' + stats.total +
-        ' SOURCE-BASED ESTIMATES';
-    });
+  const estimationInfo: string[] = [];
+  for (const [period, count] of Object.entries({
+    '1D': oneDay, '1M': oneMonth, '1Y': oneYear,
+  })) {
+    if (count && count.estimated > 0) {
+      estimationInfo.push(period + ' MEDIAN: ' + count.estimated + '/' + count.total +
+        ' SOURCE-BASED ESTIMATES');
+    }
+  }
   const unresolvedSelected = Array.isArray(markets.unresolvedSelected)
     ? markets.unresolvedSelected.filter((key): key is string => typeof key === 'string') : [];
   return {
