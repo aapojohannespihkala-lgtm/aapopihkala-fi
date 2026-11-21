@@ -24,6 +24,16 @@ import {
 } from './privateModelC80R31Scene752SourceReceipt.mjs';
 import {rehydrateIncompleteScene} from './privateModelSourceSceneRehydrate.mjs';
 
+export const C80_R31_R300_WORK_TEST_ID='c80-r31-r300-sc759-sc760-work-test';
+
+/** Bind the R300 review to the one canonical protected catalog entry. */
+export function r300WorkTestSource(candidate){
+ if(candidate.id!==C80_R31_R300_WORK_TEST_ID)return undefined;
+ if(candidate.path!==`/private-model/work-test/${C80_R31_R300_WORK_TEST_ID}.glb`)
+  throw new Error('C80_R31_R300_CANDIDATE_PATH_MISMATCH');
+ return C80_R31_R300_SOURCE;
+}
+
 const r300Role=view=>Object.freeze({
  spec:Object.freeze({...C80_R31_R300_SOURCE,...view}),
  verify:(json,sha,i)=>isC80R31R300CopperSource(json,sha,i,view.role,'BOTH'),
@@ -119,6 +129,45 @@ export function c80R31AtomicReviewMount({mount,mounted,previous,target,verifyTar
  }catch(rollbackError){
   return {ok:false,restored:false,error,rollbackError};
  }
+}
+
+/** Switch only between the prepared R300 pair in the existing viewer mount. */
+export async function createC80R31R300ViewSwitch({gltf,authenticatedSha,mount,mounted}){
+ await prepareC80R31R300ReviewScenes(gltf,authenticatedSha);
+ const byView=Object.fromEntries(Object.entries(C80_R31_R300_VIEWS).map(([name,view])=>{
+  const proof=resolveC80R31ReviewScene(gltf,authenticatedSha,view.role);
+  return [name,{
+   ...proof,snapshot:c80530SnapshotRenderedSourceTree(proof.scene,proof.rootCount),
+  }];
+ }));
+ if(Object.values(byView).some(view=>!view.snapshot))
+  throw new Error('C80_R31_REVIEW_GRAPH_MISMATCH');
+ let quarantined=false;
+ const activeView=()=>{
+  if(quarantined)return null;
+  return Object.keys(byView).find(name=>byView[name].scene===mounted())??null;
+ };
+ return Object.freeze({
+  normalScene:byView.normal.scene,
+  activeView,
+  select(name){
+   const current=activeView();
+   if(!current||!Object.hasOwn(byView,name))return false;
+   if(current===name)return true;
+   const target=byView[name];
+   const valid=()=>c80530RenderedSourceTreeUnchanged(target.scene,target.snapshot)&&
+    resolveC80R31ReviewScene(gltf,authenticatedSha,target.role)?.scene===target.scene;
+   if(!valid())return false;
+   const outcome=c80R31AtomicReviewMount({
+    mount,mounted,previous:byView[current].scene,target:target.scene,verifyTarget:valid,
+   });
+   if(!outcome.ok&&!outcome.restored){
+    quarantined=true;
+    throw new Error('C80_R31_REVIEW_ROLLBACK_UNVERIFIED',{cause:outcome.rollbackError});
+   }
+   return outcome.ok;
+  },
+ });
 }
 
 export function createC80R31ReviewRuntime({

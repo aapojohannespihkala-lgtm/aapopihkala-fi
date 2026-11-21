@@ -8,6 +8,9 @@ import {
  c80R31AtomicReviewMount as atomicMount,
  createC80R31ReviewRuntime as create,
  prepareC80R31R300ReviewScenes as prepareR300,
+ createC80R31R300ViewSwitch as createR300Switch,
+ r300WorkTestSource,
+ C80_R31_R300_WORK_TEST_ID,
 } from '../../src/scripts/privateModelC80R31ReviewRuntime.mjs';
 
 const NORMAL_R300='R300_VISIBLE_COPPER_NORMAL_SCREEN_ON';
@@ -45,6 +48,15 @@ test('R31 opt-in runtime binds seven roles to six immutable sources',()=>{
  assert.throws(()=>create({gltf:{},authenticatedSha:hashes[0],
   role:'K5_PINK_OFF',mount:()=>{},mounted:()=>null}),
   /C80_R31_REVIEW_SOURCE_MISMATCH/);
+});
+
+test('R300 uses only its exact protected catalog entry',()=>{
+ const id=C80_R31_R300_WORK_TEST_ID;
+ const path=`/private-model/work-test/${id}.glb`;
+ assert.equal(r300WorkTestSource({id,path}).glbSha256,ROLES[NORMAL_R300].spec.glbSha256);
+ assert.equal(r300WorkTestSource({id:'default',path}),undefined);
+ for(const value of [path+'?revision=old','/private-model/model.glb','https://example.test'+path])
+  assert.throws(()=>r300WorkTestSource({id,path:value}),/CANDIDATE_PATH_MISMATCH/);
 });
 
 test('R300 preparation requires both exact same-file source receipts before any rebuild',async()=>{
@@ -300,4 +312,33 @@ test('R300 real GLTFLoader restores shared nodes and mounts both modes from one 
  assert.equal(current,normal);
  assert.equal(normalView.restore(),true);
  assert.equal(current,baseline);
+
+ let failMount=false;
+ const switcher=await createR300Switch({
+  gltf,authenticatedSha:sha,mounted,
+  mount(target){
+   current=target;
+   if(failMount&&target===service)throw new Error('PARTIAL_MOUNT');
+  },
+ });
+ assert.equal(switcher.normalScene,normal);
+ assert.equal(switcher.activeView(),null);
+ assert.equal(switcher.select('service'),false);
+ mount(normal);
+ assert.equal(switcher.activeView(),'normal');
+ assert.equal(switcher.select('unknown'),false);
+ failMount=true;
+ assert.equal(switcher.select('service'),false);
+ assert.equal(current,normal);
+ failMount=false;
+ assert.equal(switcher.select('service'),true);
+ assert.equal(switcher.activeView(),'service');
+ assert.equal(switcher.select('normal'),true);
+ assert.equal(current,normal);
+ service.add(forgedScreen);
+ assert.equal(switcher.select('service'),false);
+ assert.equal(switcher.activeView(),'normal');
+ service.remove(forgedScreen);
+ mount(baseline);
+ assert.equal(switcher.activeView(),null);
  });
