@@ -180,7 +180,7 @@ export const parseNordnetPublicFund = (
 // Bind NAV and returns to the nearest exact ISIN/currency before accepting.
 export const parseNordnetEmbeddedFund = (
   html: string,
-  spec: Pick<FundSpec, 'id' | 'label' | 'isin'>,
+  spec: { id: string; label: string; isin: string },
   now = new Date(),
 ): RecoveredFund | null => {
   if (!html.includes(spec.isin) || html.length > 2_000_000) return null;
