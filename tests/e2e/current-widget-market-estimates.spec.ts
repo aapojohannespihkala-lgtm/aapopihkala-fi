@@ -81,7 +81,8 @@ test('Widget never invents returns for entirely missing source periods', () => {
 
 test('Widget reads verified Nordnet returns for the USA and Finland rows', async () => {
   const originalFetch = globalThis.fetch;
-  const now = new Date('2026-11-21T12:00:00Z');
+  const now = new Date();
+  const observedAt = now.toISOString().slice(0, 10);
   const funds = [
     { slug: 'handelsbanken-usa-index', isin: 'SE0006800140', daily: -0.28 },
     { slug: 'nordnet-suomi-indeksi', isin: 'SE0005993102', daily: 0.58 },
@@ -97,7 +98,7 @@ test('Widget reads verified Nordnet returns for the USA and Finland rows', async
       isin: fund.isin,
       currency: 'EUR',
       navInfo: {
-        latestNav: { date: '2026-11-20', value: 100 },
+        latestNav: { date: observedAt, value: 100 },
         returns: ['DAY_1', 'WEEK_1', 'MONTH_1', 'MONTH_3', 'MONTH_6', 'YTD',
           'YEAR_1', 'YEAR_3', 'YEAR_5'].map((period) => ({
           period, development: period === 'DAY_1' ? fund.daily : 1,
