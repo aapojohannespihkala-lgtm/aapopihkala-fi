@@ -96,10 +96,12 @@ test('sun position advances on the existing live clock without refetching', asyn
 });
 
 test('sun marker follows the visible ring and has no redundant grey horizon stroke', async ({ page }) => {
-  await page.clock.setFixedTime(new Date('2026-11-21T20:54:00.000Z'));
   await mockWidget(page, '08:34', '15:38', '7H04M');
 
-  for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 }]) {
+  // Verify both a filled daytime sun and a hollow nighttime sun on the same rim.
+  for (const at of ['2026-11-21T10:06:00.000Z', '2026-11-21T20:54:00.000Z']) {
+    await page.clock.setFixedTime(new Date(at));
+    for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 }]) {
     await page.setViewportSize(viewport);
     await page.goto('/current/widget/');
     await expect(page.locator('.android-solar-disk')).toBeVisible();
@@ -126,5 +128,6 @@ test('sun marker follows the visible ring and has no redundant grey horizon stro
 
     expect(Math.abs(measured.markerDistance - measured.ringCenterRadius)).toBeLessThan(1.2);
     expect(measured.redundantHorizonContent).toBe('none');
+    }
   }
 });
