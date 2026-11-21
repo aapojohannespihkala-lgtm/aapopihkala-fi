@@ -12,6 +12,11 @@ test('diagnose which public fund sources are reachable from CI', async () => {
     'https://ycharts.com/mutual_funds/M:SE0013801479/net_asset_value',
     'https://api.prod.nntech.io/instrument-screening/v2/mutual-funds/web/storebrand-japan-a-eur-dbe9644c',
     'https://api.prod.nntech.io/instrument-screening/v2/mutual-funds/web/nordnet-suomi-indeksi-eur-a401761d',
+    'https://www.nordnet.se/fonder/lista/handelsbanken-usa-index-a1-eur-348def3b',
+    'https://www.nordnet.fi/rahastot/lista/handelsbanken-usa-index-a1-eur-348def3b',
+    'https://www.spiltanfonder.se/fonder/spiltan-aktiefond-investmentbolag',
+    'https://www.nordnet.se/fonder/lista/nordnet-sverige-index-sek-aa7a9014',
+    'https://api.prod.nntech.io/instrument-screening/v2/mutual-funds/web/nordnet-sverige-index-sek-aa7a9014',
   ];
   const results = await Promise.all(urls.map(async (url) => {
     const timeout = AbortSignal.timeout(9000);
@@ -31,10 +36,15 @@ test('diagnose which public fund sources are reachable from CI', async () => {
         ? parseNordnetPublicFund(body, {
           id: 'storebrand-japan', label: 'STOREBRAND JAPAN A EUR', isin: 'SE0013801479',
         }, new Date('2026-11-21T12:00:00Z'))?.observedAt ?? null : null;
+      const patterns = ['navInfo', 'YEAR_5', 'yield_5y', 'MONTH_3', 'annual_growth', 'NAV (', 'Senaste NAV', '5 år:'];
+      const matches = patterns.flatMap((term) => {
+        const offset = body.indexOf(term);
+        return offset < 0 ? [] : [{ term, around: body.slice(Math.max(0, offset - 25), offset + 110).replace(/\\n/g, ' ') }];
+      });
       return { host: new URL(url).hostname, path: new URL(url).pathname.slice(0,95), status: response.status,
         length: body.length, isinPresent: relevant.includes(isin), historyCount: parsed.length,
         historyLatest: parsed.at(-1)?.observedAt ?? null, nordnetNav: nav,
-        marker: ix >= 0 ? relevant.slice(Math.max(0,ix-25), ix+95) : relevant.slice(0,100),
+        marker: ix >= 0 ? relevant.slice(Math.max(0,ix-25), ix+95) : relevant.slice(0,100), matches,
       };
     } catch (error) {
       return { host: new URL(url).hostname, path: new URL(url).pathname.slice(0,95),
