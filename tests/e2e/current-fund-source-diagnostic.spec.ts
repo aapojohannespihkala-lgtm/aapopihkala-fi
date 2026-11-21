@@ -1,5 +1,5 @@
 import { test } from '@playwright/test';
-import { parseInvestingFundHistory, parseNordnetPublicFund } from '../../functions/api/current/portfolio-fund-recovery';
+import { parseInvestingFundHistory, parseNordnetPublicFund, parseNordnetEmbeddedFund } from '../../functions/api/current/portfolio-fund-recovery';
 
 test('diagnose which public fund sources are reachable from CI', async () => {
   const urls = [
@@ -36,6 +36,17 @@ test('diagnose which public fund sources are reachable from CI', async () => {
         ? parseNordnetPublicFund(body, {
           id: 'storebrand-japan', label: 'STOREBRAND JAPAN A EUR', isin: 'SE0013801479',
         }, new Date('2026-11-21T12:00:00Z'))?.observedAt ?? null : null;
+      const embedded = url.includes('/rahastot/lista/') || url.includes('/fonder/lista/')
+        ? parseNordnetEmbeddedFund(body, {
+          id: url.includes('storebrand-japan') ? 'storebrand-japan'
+            : url.includes('handelsbanken-usa') ? 'handelsbanken-usa'
+            : url.includes('nordnet-sverige') ? 'nordnet-sweden'
+            : 'nordnet-finland',
+          label: 'live matched fund',
+          isin: url.includes('storebrand-japan') ? 'SE0013801479'
+            : url.includes('handelsbanken-usa') ? 'SE0006800140'
+            : url.includes('nordnet-sverige') ? 'SE0002756973' : 'SE0005993102',
+        }, new Date('2026-11-21T12:00:00Z')) : null;
       const patterns = ['navInfo', 'YEAR_5', 'yield_5y', 'MONTH_3', 'annual_growth', 'NAV (', 'Senaste NAV', '5 år:'];
       const matches = patterns.flatMap((term) => {
         const offset = body.indexOf(term);
@@ -45,6 +56,9 @@ test('diagnose which public fund sources are reachable from CI', async () => {
         length: body.length, isinPresent: relevant.includes(isin), historyCount: parsed.length,
         historyLatest: parsed.at(-1)?.observedAt ?? null, nordnetNav: nav,
         marker: ix >= 0 ? relevant.slice(Math.max(0,ix-25), ix+95) : relevant.slice(0,100), matches,
+        embedded: embedded ? {id: embedded.id, price: embedded.price,
+          observedAt: embedded.observedAt, year5: embedded.changes.year5,
+          periods: Object.entries(embedded.changes).filter(([_, v]) => v !== null).map(([k]) => k)} : null,
       };
     } catch (error) {
       return { host: new URL(url).hostname, path: new URL(url).pathname.slice(0,95),
