@@ -690,3 +690,100 @@ export function c80R31RK142SourceReceipt(json,authenticatedSha,sceneIndex,role,f
   physicalCableRouteVerified:false,physicalConnectionVerified:false,
  });
 }
+
+
+/**
+ * Independent, SHA-bound original __scene763 for RK14.3 2015 hood C10.
+ * IMPORTANT: RK14.2 wine cooler also has scene index 763 in another GLB.
+ * This is a read-only WORK_TEST/HOST_HOLD receipt, NOT installed wiring.
+ */
+export const C80_R31_RK143_SOURCE=Object.freeze({
+ role:'RK14_3_HOOD_2015_SCHEMATIC_ONLY',
+ sceneIndex:763,
+ sceneName:'Ylisrinne_C80_R31_RK14_3_LIESITUULETIN_2015_LOGICAL_CIRCUIT_WORK_TEST_HOST_HOLD__scene763',
+ glbSha256:'02f21add60b0fabba1a3884ab55d7d6941e819466deaf8772dd6a1a99d68a693',
+ glbBytes:63729524,
+ zipDriveId:'1kM9m6dwbeWgiuZJ06aZkSdDNIH_nNXn2',
+ zipSha256:'07d9f7516fed1b94dfb07c2e14dcd8e4291ad4283f9f285afe1b232241b4aee3',
+ sceneCount:764,nodeCount:13499,meshCount:5167,materialCount:813,
+ accessorCount:11262,bufferViewCount:11268,defaultScene:292,
+ parentScene:761,
+ parentSceneName:'H1911-3_R31_VM20_WC_ACCESS_CLOSED_WORK_TEST_HOST_HOLD__scene761',
+ parentGlbSha256:'8ce36626b5a9133091076721cac6940c9dbb5b47e3dad719508d20dde3b4f0de',
+ parentRootCount:495,parentRootFnv32:'da71cd8f',
+ targetRootCount:496,targetRootFnv32:'166b4e6f',
+ newNode:13498,newMesh:5166,originalPanel:12412,originalHood:12622,
+ circuitSourceId:'1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP',
+ planSourceId:'1dzzZsa9FCiyqmv8WholhLxba6Kxobspg',
+ parentZipDriveId:'1aLLTVDoKfqTSHVa64unEjYLJ5i9XF7AB',
+});
+export function isC80R31RK143Source(json,authenticatedSha,sceneIndex,role,floor){
+ const s=C80_R31_RK143_SOURCE,a=json?.asset?.extras;
+ if(authenticatedSha!==s.glbSha256||sceneIndex!==s.sceneIndex||
+  role!==s.role||(floor!==undefined&&floor!=='BOTH')||
+  json?.scene!==s.defaultScene||
+  json?.scenes?.length!==s.sceneCount||json?.nodes?.length!==s.nodeCount||
+  json?.meshes?.length!==s.meshCount||json?.materials?.length!==s.materialCount||
+  json?.accessors?.length!==s.accessorCount||
+  json?.bufferViews?.length!==s.bufferViewCount||
+  a?.ModelStage!=='WORK_TEST'||a?.current!==false||
+  a?.asBuilt!==false||a?.HUMAN_REVIEW!=='NOT_RUN')return false;
+ const target=json.scenes[sceneIndex],parent=json.scenes[s.parentScene];
+ const roots=target?.nodes,prior=parent?.nodes,e=target?.extras;
+ const node=json.nodes[s.newNode],n=node?.extras,links=n?.sourceLinks;
+ if(parent?.name!==s.parentSceneName||target?.name!==s.sceneName||
+  !Array.isArray(roots)||!Array.isArray(prior)||
+  prior.length!==s.parentRootCount||roots.length!==s.targetRootCount||
+  new Set(prior).size!==prior.length||new Set(roots).size!==roots.length||
+  c80R31Scene752RootsFnv32(prior)!==s.parentRootFnv32||
+  c80R31Scene752RootsFnv32(roots)!==s.targetRootFnv32||
+  !exactly(roots,[...prior,s.newNode])||
+  e?.stage!=='WORK_TEST_HOST_HOLD'||e?.sourceSceneIndex!==s.parentScene||
+  e?.sourceGLBSHA256!==s.parentGlbSha256||
+  e?.circuit2015!=='RK14.3'||
+  e?.deviceExistingNode!==s.originalHood||
+  e?.panelExistingNode!==s.originalPanel||
+  e?.routeVisualRoot!==s.newNode||
+  e?.newPhysicalElectricalCableClaims!==0||
+  e?.visualDiagramOnly!==true||
+  e?.physical2026ConnectionsVerified!==false||
+  e?.current!==false||e?.asBuilt!==false||e?.canonical!==false||
+  e?.sourceLinksOutputSHA!=='NOT_BOUND'||
+  e?.productionWebGL!=='NOT_RUN'||e?.HUMAN_REVIEW!=='NOT_RUN'||
+  node?.name!=='D2F_RK14_3_2015_LIESITUULETIN_TO_SAVO_LOGICAL_DIAGRAM_WORK_TEST_HOST_HOLD'||
+  node?.mesh!==s.newMesh||n?.m5System!=='SAHKO'||
+  n?.circuitId!=='RK14.3'||n?.sourceRole!=='HISTORICAL_2015_GROUP_TO_EXISTING_2026_HOOD_VISUAL'||
+  n?.stage!=='WORK_TEST_HOST_HOLD'||n?.WORK_TEST!==true||
+  n?.HOST_HOLD!==true||n?.current!==false||n?.asBuilt!==false||
+  n?.HUMAN_REVIEW!=='NOT_RUN'||n?.productionWebGL!=='NOT_RUN'||
+  n?.sourceLinksOutputSHA!=='NOT_BOUND'||
+  n?.physical2026GroupVerified!==false||
+  n?.actualCableRouteVerified!==false||
+  n?.endToEndConductorContinuityVerified!==false||
+  n?.electricalSafetyApproval!==false||
+  n?.schematicOnly!==true||
+  n?.sourceSceneIndex!==s.parentScene||
+  n?.originalGLBSHA256!==s.parentGlbSha256||
+  n?.panelVisualNode!==s.originalPanel||
+  n?.hoodVisualRoot!==s.originalHood||
+  n?.physicalCableHost!=='NOT_SURVEYED'||
+  n?.exactCeilingPenetration!=='NOT_VERIFIED'||
+  n?.newElectricalConnectionsVerified!==0||
+  !Array.isArray(links)||links.length!==3||
+  links[0]?.role!=='HISTORICAL_2015_CIRCUIT_LABEL'||
+  links[0]?.link!=='https://drive.google.com/file/d/'+s.circuitSourceId+'/view'||
+  links[1]?.role!=='HISTORICAL_2015_PLAN_CALLOUT'||
+  links[1]?.link!=='https://drive.google.com/file/d/'+s.planSourceId+'/view'||
+  links[2]?.role!=='EXACT_PARENT_GLTF_SOURCE'||
+  links[2]?.link!=='https://drive.google.com/file/d/'+s.parentZipDriveId+'/view')return false;
+ return true;
+}
+export function c80R31RK143SourceReceipt(json,authenticatedSha,sceneIndex,role,floor){
+ return Object.freeze({
+  exactSource:isC80R31RK143Source(json,authenticatedSha,sceneIndex,role,floor),
+  stage:'WORK_TEST_HOST_HOLD',sourceLinksBound:false,publishAllowed:false,
+  productionWebGLVerified:false,humanReview:'NOT_RUN',
+  current:false,asBuilt:false,physicalHostVerified:false,
+  physicalCableVerified:false,electricalSafetyVerified:false,
+ });
+}

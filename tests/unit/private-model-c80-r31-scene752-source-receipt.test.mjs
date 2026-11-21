@@ -625,3 +625,91 @@ test('R31 ORIGINAL RK14.2 scene763 SHA, ordered roots, labels and HOLD metadata'
  assert.equal(receipt.sourceLinksBound,false);
  assert.equal(receipt.humanReview,'NOT_RUN');
 });
+
+
+import {
+ C80_R31_RK143_SOURCE as RK143,
+ isC80R31RK143Source as validRK143,
+ c80R31RK143SourceReceipt as receiptRK143,
+} from '../../src/scripts/privateModelC80R31Scene752SourceReceipt.mjs';
+
+test('R31 RK14.2 and RK14.3 same scene763 use distinct immutable source identities',()=>{
+ assert.equal(RK143.sceneIndex,RK142.sceneIndex);
+ assert.equal(RK143.sceneIndex,763);
+ assert.equal(RK143.parentScene,761);
+ assert.equal(RK142.parentScene,762);
+ assert.notEqual(RK143.glbSha256,RK142.glbSha256);
+ assert.notEqual(RK143.zipDriveId,RK142.zipDriveId);
+ assert.equal(RK143.parentGlbSha256,RK142.parentGLBSHA256);
+ assert.equal(RK143.newNode,13498);
+ assert.equal(RK143.newMesh,5166);
+ assert.equal(RK143.parentRootFnv32,'da71cd8f');
+ assert.equal(RK143.targetRootFnv32,'166b4e6f');
+ for(const [sha,scene,role,floor] of [
+  [RK143.glbSha256,763,RK143.role,'BOTH'],
+  [RK142.glbSha256,763,RK143.role,'BOTH'],
+  [RK143.glbSha256,763,RK142.role,'BOTH'],
+  [RK143.glbSha256,762,RK143.role,'BOTH'],
+  [RK143.glbSha256,763,RK143.role,'2F'],
+  [RK143.glbSha256,763,'__proto__','BOTH'],
+ ])
+  assert.equal(validRK143({},sha,scene,role,floor),false);
+ const r=receiptRK143({},RK143.glbSha256,763,RK143.role,'BOTH');
+ assert.equal(r.exactSource,false);
+ assert.equal(r.sourceLinksBound,false);
+ assert.equal(r.publishAllowed,false);
+ assert.equal(r.physicalCableVerified,false);
+ assert.equal(r.electricalSafetyVerified,false);
+ assert.equal(r.current,false);
+ assert.equal(r.asBuilt,false);
+});
+const rk143Fixture=process.env.C80_R31_RK143_SCENE763_GLB_PATH;
+test('R31 ORIGINAL RK14.3 scene763 exact roots, 2015 hood and no-current gates',
+ {skip:!rk143Fixture},()=>{
+ const {b,json}=parse(rk143Fixture);
+ const sha=createHash('sha256').update(b).digest('hex');
+ assert.equal(b.length,RK143.glbBytes);
+ assert.equal(sha,RK143.glbSha256);
+ assert.equal(json.scene,RK143.defaultScene);
+ assert.equal(json.scenes.length,RK143.sceneCount);
+ assert.equal(json.nodes.length,RK143.nodeCount);
+ assert.equal(json.meshes.length,RK143.meshCount);
+ assert.equal(json.materials.length,RK143.materialCount);
+ assert.equal(json.accessors.length,RK143.accessorCount);
+ assert.equal(json.bufferViews.length,RK143.bufferViewCount);
+ const parent=json.scenes[RK143.parentScene],target=json.scenes[RK143.sceneIndex];
+ assert.equal(parent.name,RK143.parentSceneName);
+ assert.equal(target.name,RK143.sceneName);
+ assert.equal(fnv(parent.nodes),RK143.parentRootFnv32);
+ assert.equal(fnv(target.nodes),RK143.targetRootFnv32);
+ assert.deepEqual(target.nodes,[...parent.nodes,RK143.newNode]);
+ const check=()=>validRK143(json,sha,RK143.sceneIndex,RK143.role,'BOTH');
+ assert.equal(check(),true);
+ for(const [source,scene,role,floor] of [
+  [RK142.glbSha256,763,RK143.role,'BOTH'],
+  [RK143.glbSha256,763,RK142.role,'BOTH'],
+  [RK143.glbSha256,762,RK143.role,'BOTH'],
+  [RK143.glbSha256,763,RK143.role,'1F'],
+ ])assert.equal(validRK143(json,source,scene,role,floor),false);
+ const change=(o,k,value)=>{
+  const old=o[k];o[k]=value;
+  try{assert.equal(check(),false,'mutated '+String(k));}
+  finally{o[k]=old;}
+ };
+ change(target,'name','FORGED');
+ change(target.nodes,0,999999);
+ change(parent.nodes,0,999999);
+ change(target.extras,'sourceSceneIndex',762);
+ change(target.extras,'sourceGLBSHA256','0'.repeat(64));
+ change(target.extras,'physical2026ConnectionsVerified',true);
+ change(target.extras,'sourceLinksOutputSHA','BOUND');
+ change(target.extras,'visualDiagramOnly',false);
+ change(json.nodes[RK143.newNode],'mesh',0);
+ change(json.nodes[RK143.newNode].extras,'circuitId','RK14.2');
+ change(json.nodes[RK143.newNode].extras,'actualCableRouteVerified',true);
+ change(json.nodes[RK143.newNode].extras,'electricalSafetyApproval',true);
+ change(json.nodes[RK143.newNode].extras.sourceLinks[0],'link','WRONG_SOURCE');
+ change(json.asset.extras,'current',true);
+ change(json.asset.extras,'asBuilt',true);
+ assert.equal(check(),true);
+});
