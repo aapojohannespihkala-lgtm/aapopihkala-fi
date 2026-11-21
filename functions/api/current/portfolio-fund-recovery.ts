@@ -177,13 +177,21 @@ export const parseNordnetPublicFund = (
 // Nordnet's own fund-company page publishes a dated NAV for its Suomi fund.
 // This source is independent from the public screening API and Investing pages.
 export const parseNordnetManagerNav = (html: string, now = new Date()): RecoveredFund | null => {
-  const text = asText(html);
   const name = 'Nordnet Suomi Indeksi';
   const isin = 'SE0005993102';
-  const rowPattern = /Nordnet Suomi Indeksi\s+SE0005993102\b([\s\S]{0,1000})/i;
-  const row = text.match(rowPattern)?.[1];
-  const match = row?.match(/(\d{1,6}[.,]\d{2,4})\s*(\d{1,2})\/(\d{1,2})\b/);
-  if (!match || !text.includes(name) || !text.includes(isin)) return null;
+  // Match a single HTML table row, or a single Markdown table row from the
+  // text-reader fallback. Do not accidentally borrow the NEXT fund's NAV.
+  const rows = [...(html.match(/<tr\b[\s\S]*?<\/tr>/gi) ?? []), ...html.split(/\r?\n/)];
+  const row = rows.find((candidate) => {
+    const text = asText(candidate);
+    return text.toLowerCase().includes(name.toLowerCase()) && text.includes(isin);
+  });
+  if (!row) return null;
+  const text = asText(row);
+  const isinIndex = text.indexOf(isin);
+  const match = text.slice(isinIndex + isin.length)
+    .match(/(\d{1,6}[.,]\d{2,4})\s*(\d{1,2})\/(\d{1,2})\b/);
+  if (!match) return null;
   const price = numberValue(match[1]);
   if (price === null) return null;
   let year = now.getUTCFullYear();
