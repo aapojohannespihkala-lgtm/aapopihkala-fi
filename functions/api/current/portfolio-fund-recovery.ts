@@ -153,27 +153,36 @@ export const parseNordnetPublicFund = (
   now = new Date(),
 ): RecoveredFund | null => {
   const text = asText(html);
-  // Bind each dated percentage and NAV to the same compact fund-class row.
+  // Require one contiguous fund card. Known metrics between returns and NAV
+  // are allowed, but another fund's return or unknown text fails closed.
   const name = spec.id === 'storebrand-japan' ? 'Storebrand Japan A EUR' : 'Nordnet Suomi Indeksi';
-  const nameIndex = text.toLowerCase().indexOf(name.toLowerCase());
-  if (nameIndex < 0) return null;
-  const section = text.slice(nameIndex + name.length, nameIndex + name.length + 220);
-  const match = section.match(/^\s*([+\-]?\d+(?:[.,]\d+)?)%\s*(\d{1,2})\.(\d{1,2})\.\s*([+\-]?\d+(?:[.,]\d+)?)%\s*12\s*kk\s*NAV\s*\((\d{1,2})\.(\d{1,2})\.\)\s*([\d.,]+)\s*EUR\b/i);
-  if (!match || Number(match[2]) !== Number(match[5]) ||
-      Number(match[3]) !== Number(match[6])) return null;
-  let year = now.getUTCFullYear();
-  let obs = dateFromToken(match[5] + '.' + match[6] + '.' + year);
-  if (!obs) return null;
-  if (Date.parse(obs + 'T00:00:00Z') > now.getTime() + DAY_MS) {
-    year -= 1;
-    obs = dateFromToken(match[5] + '.' + match[6] + '.' + year);
+  const lowered = text.toLowerCase();
+  const key = name.toLowerCase();
+  let from = 0;
+  while (from < text.length) {
+    const nameIndex = lowered.indexOf(key, from);
+    if (nameIndex < 0) return null;
+    from = nameIndex + name.length;
+    const section = text.slice(from, from + 550);
+    const match = section.match(/^\s*([+\-]?\d+(?:[.,]\d+)?)%\s*(\d{1,2})\.(\d{1,2})\.\s*([+\-]?\d+(?:[.,]\d+)?)%\s*12\s*kk\s*(?:Juoksevat\s+kulut\s+[\d.,]+%\s*)?(?:Morningstar\s+rating\s+\d+\s+stars\s*)?(?:Vastuullisuus\s*\(SFDR\)\s*\d+\s*)?NAV\s*\((\d{1,2})\.(\d{1,2})\.\)\s*([\d.,]+)\s*EUR\b/i);
+    if (!match) continue;
+    if (Number(match[2]) !== Number(match[5]) ||
+        Number(match[3]) !== Number(match[6])) continue;
+    let year = now.getUTCFullYear();
+    let obs = dateFromToken(match[5] + '.' + match[6] + '.' + year);
+    if (!obs) continue;
+    if (Date.parse(obs + 'T00:00:00Z') > now.getTime() + DAY_MS) {
+      year -= 1;
+      obs = dateFromToken(match[5] + '.' + match[6] + '.' + year);
+    }
+    const price = numberValue(match[7]);
+    if (!obs || price === null || !verifyFresh(obs, now)) continue;
+    const changes = emptyChanges();
+    changes.today = Number(match[1].replace(',', '.'));
+    changes.year1 = Number(match[4].replace(',', '.'));
+    return { id: spec.id, label: spec.label, symbol: spec.isin, price, observedAt: obs, changes };
   }
-  const price = numberValue(match[7]);
-  if (!obs || price === null || !verifyFresh(obs, now)) return null;
-  const changes = emptyChanges();
-  changes.today = Number(match[1].replace(',', '.'));
-  changes.year1 = Number(match[4].replace(',', '.'));
-  return { id: spec.id, label: spec.label, symbol: spec.isin, price, observedAt: obs, changes };
+  return null;
 };
 
 const fetchText = async (url: string, timeoutMs = FETCH_TIMEOUT_MS): Promise<string> => {

@@ -53,6 +53,12 @@ test('Storebrand public NAV recovery enforces share class and currency, and reje
   const html = 'Storebrand Japan A EUR +0,42%20.11. +11,24%12 kk NAV (20.11.)214,32 EUR';
   const current = parseNordnetPublicFund(html, spec, new Date('2026-11-21T12:00:00Z'));
   expect(current?.price).toBe(214.32);
+  const knownNordnetLayout = 'Storebrand Japan A EUR +0,42%20.11. +11,24%12 kk ' +
+    'Juoksevat kulut 0,21% Morningstar rating 3 stars Vastuullisuus (SFDR) 8 ' +
+    'NAV (20.11.)214,32 EUR';
+  const afterTitle = 'Storebrand Japan A EUR - Rahastot ja hinnat ' + knownNordnetLayout;
+  expect(parseNordnetPublicFund(afterTitle, spec, new Date('2026-11-21T12:00:00Z'))?.changes.year1).toBeCloseTo(11.24, 9);
+
   expect(current?.changes.today).toBeCloseTo(0.42, 9);
   expect(current?.changes.year1).toBeCloseTo(11.24, 9);
   expect(current?.changes.month1).toBeNull();
