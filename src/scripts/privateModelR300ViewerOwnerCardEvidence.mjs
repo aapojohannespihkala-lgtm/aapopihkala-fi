@@ -25,7 +25,7 @@ const validNode = index => Number.isInteger(index) && index >= 0;
 export function resolveR300ViewerOwnerCardEvidence({
   gltf, loadedGlbSha256, mountedScene, selectedObject, protectedEvidence,
 } = {}) {
-  const enabled = supported.get(loadedGlbSha256);
+  const enabled = typeof loadedGlbSha256 === 'string' ? supported.get(loadedGlbSha256) : null;
   if (!enabled) return null;
   const sceneIndex = gltf?.scenes?.indexOf(mountedScene) ?? -1;
   if (!enabled.has(sceneIndex)) return null;
