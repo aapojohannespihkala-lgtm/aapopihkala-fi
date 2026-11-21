@@ -1,4 +1,5 @@
 import { onRequestGet as getBasePortfolio } from './portfolio-stable';
+import { projectForestShortPeriods } from './portfolio-projection';
 
 type PerformanceChanges = {
   today: number | null;
@@ -330,9 +331,9 @@ export const onRequestGet = async () => {
   return new Response(
     JSON.stringify({
       ...body,
-      items: results.map((result) => result.item),
+      items: results.map((result) => projectForestShortPeriods(result.item)),
       source: enriched ? `${body.source} + Investing.com ISIN-matched OP NAV history` : body.source,
-      version: Math.max(body.version ?? 0, 14),
+      version: Math.max(body.version ?? 0, 15),
     }),
     {
       status: baseResponse.status,
