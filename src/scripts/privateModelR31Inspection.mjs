@@ -286,6 +286,13 @@ export const r31RoofUndersideY = (z) => 7.5238 - 0.25 * Math.abs(z + 4.58);
 
 /** Brick top / gable boarding start on both gables (source ALEMPI min y 5.28). */
 export const R31_GABLE_BOARDING_FROM_Y = 5.28;
+/**
+ * East brick top, checked separately (owner 22.11.2026 21.11 / High T7):
+ * R31 scene769 mass references C80_P186_RAKENNUSMASSA_VIITE_684 (wall top)
+ * and _767 (gable triangle base) both give y 5.15; the triangle base meets
+ * the A/B roof underside (ridge 1.00 m below the west) at z 0.916 / -10.076.
+ */
+export const R31_EAST_BRICK_TOP_Y = 5.15;
 /** Owner 22.11.2026 20.46 (Street View heinä 2026): dark brown vertical boarding in both gable triangles. */
 export const R31_GABLE_BOARDING_COLOR = 0x3b2a22;
 /** Presentation lift of the boarding overlays off the source faces (reversed depth, see liftGableFace). */
@@ -450,7 +457,9 @@ export function buildR31GableBoarding(THREE, { westMeshes = [], eastFace = null 
   if (eastFace) {
     const m = eastFace.matrix.clone();
     if (eastFace.parent?.matrixWorld) m.premultiply(eastFace.parent.matrixWorld);
-    add(clipGeometryAboveY(THREE, eastFace.geometry, m, R31_GABLE_BOARDING_FROM_Y),
+    // K14 copy is already clipped to the A/B roof underside (#2215): boarding
+    // = brick top 5.15 .. own roof underside, never the west height.
+    add(clipGeometryAboveY(THREE, eastFace.geometry, m, R31_EAST_BRICK_TOP_Y),
       'K14_A_GABLE_TRIANGLE_BROWN_BOARDING_OVERLAY', R31_GABLE_BOARDING_LIFT_M);
   }
   return group;
