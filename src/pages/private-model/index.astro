@@ -2933,7 +2933,9 @@ const title = 'Private 3D viewer';
         type WorkTestLoadFailurePhase,
       } from '../../scripts/privateModelWorkTestLoadDiagnostics';
 
-      import { createC80R31ViewSwitch, r31WorkTestReview } from '../../scripts/privateModelC80R31ReviewRuntime.mjs';
+      import { createC80R31ViewSwitch, r31WorkTestReview, C80_R31_9E0B_WORK_TEST_ID } from '../../scripts/privateModelC80R31ReviewRuntime.mjs';
+      // @ts-ignore - This source-verified Layers bridge is a standalone JavaScript module.
+      import { isAuthenticatedC80R31LayerSession } from '../../scripts/privateModelC80R31LayerGate.mjs';
       import { mountDesktopToolbar, activeDesktopPreset, activeDesktopAngle, DESKTOP_START_CANDIDATE_ID } from '../../scripts/privateModelDesktopToolbar.mjs';
 
       const canvas = document.querySelector<HTMLCanvasElement>('#private-model-canvas');
@@ -8073,8 +8075,9 @@ const title = 'Private 3D viewer';
         sourceLabel: string,
         dInteriorOverride: THREE.Object3D | null = null,
         c70PreviewSession: any = null,
+        r31LayersProof: any = null,
       ) => {
-        onLayersModelLoaded(gltf, c70PreviewSession);
+        onLayersModelLoaded(gltf, r31LayersProof ?? c70PreviewSession);
         if (r300ViewSwitch) {
           delete canvas.dataset.workTestReviewMode;
           delete canvas.dataset.workTestReviewCandidate;
@@ -12451,7 +12454,16 @@ const title = 'Private 3D viewer';
             });
             if (modelLoadVersion !== previousModelVersion) return false;
             gltf.scene = view.normalScene;
-            applyLoadedModel(gltf, 'work-test', `WORK_TEST: ${candidate.label}`);
+            // createC80R31ViewSwitch verified every source scene before this handoff.
+            // Never grant Layers authority to the distinct R300 759/760 pilot.
+            const r31LayersProof = candidate.id === C80_R31_9E0B_WORK_TEST_ID
+              ? Object.freeze({
+                  r31ViewsVerified: true, candidateId: candidate.id,
+                  contract: r31Review.source, gltf, defaultRoot: view.normalScene,
+                  sceneIndex: r31Review.views[view.defaultView].sceneIndex,
+                  authenticatedSha: loadedModelSha256(gltf),
+                }) : null;
+            applyLoadedModel(gltf, 'work-test', `WORK_TEST: ${candidate.label}`, null, r31LayersProof);
             r300ViewSwitch = view;
             setR31ViewButtons(r31Review.labels, r31Review.title);
             syncR300WorkTestViews();
@@ -15368,6 +15380,7 @@ const title = 'Private 3D viewer';
         layersLoadedSha = loadedModelSha256(gltf);
         // Main-chain pins come from independently RAW-verified GLB bytes.
         // Legacy source sessions keep their own independent byte/SHA contract.
+        const r31LayersVerified = isAuthenticatedC80R31LayerSession(gltf, layersLoadedSha, session);
         const verifiedChainSourceSha =
           layersLoadedSha === v26LayersSourceSha ||
           layersLoadedSha === V27_SOURCE_SHA256 ||
@@ -15442,7 +15455,8 @@ const title = 'Private 3D viewer';
           layersLoadedSha === V84_SOURCE_SHA256 ||
           layersLoadedSha === V83_SOURCE_SHA256 ||
           layersLoadedSha === V82_SOURCE_SHA256 ||
-          layersLoadedSha === K17_RAIL900_SOURCE_SHA256
+          layersLoadedSha === K17_RAIL900_SOURCE_SHA256 ||
+          r31LayersVerified
             ? layersLoadedSha : null;
         layersExpectedSha = session?.contract?.glbSha256 ?? verifiedChainSourceSha;
         // Restore the owner-approved white, doorless lobby only for the exact
