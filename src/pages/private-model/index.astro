@@ -12463,7 +12463,7 @@ const title = 'Private 3D viewer';
                   sceneIndex: r31Review.views[view.defaultView].sceneIndex,
                   authenticatedSha: loadedModelSha256(gltf),
                 }) : null;
-            applyLoadedModel(gltf, 'work-test', `WORK_TEST: ${candidate.label}`, null, r31LayersProof);
+            applyLoadedModel(gltf, 'work-test', `WORK_TEST: ${candidate.label}`, null, null, r31LayersProof);
             r300ViewSwitch = view;
             setR31ViewButtons(r31Review.labels, r31Review.title);
             syncR300WorkTestViews();
