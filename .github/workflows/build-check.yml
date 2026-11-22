@@ -276,6 +276,7 @@ jobs:
             tests/unit/private-model-desktop-toolbar.test.mjs \
             tests/unit/private-model-navigation-cube.test.mjs \
             tests/unit/private-model-r31-inspection.test.mjs \
+            tests/unit/private-model-k3-hallface-scene816817-source-receipt.test.mjs \
             tests/unit/private-model-r31-site-layer-controls.test.mjs \
             tests/unit/private-model-d-focus-ghost.test.mjs \
             tests/unit/private-model-technical-review-hot-water.test.mjs \
