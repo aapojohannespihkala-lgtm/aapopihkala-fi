@@ -135,5 +135,11 @@ test('owner-corrected zones win: downpipes move to the nearest zone, collar stay
   assert.ok(Math.abs(p.x + 0.14) < 1e-6 && Math.abs(p.z - 1.56) < 1e-6);
   const c = new THREE.Vector3().setFromMatrixPosition(collar.matrix);
   assert.ok(Math.abs(c.x + 0.14) < 1e-6 && Math.abs(c.z - 2.45) < 1e-6, 'collar only along the gutter');
-  assert.ok(group.children.some((m) => /CONNECTOR_TO_OWNER_ZONE/.test(m.name)));
+  const neck = group.children.find((m) => /SWAN_NECK/.test(m.name));
+  assert.ok(neck, 'swan neck replaces the straight pipe');
+  assert.equal(pipe.visible, false);
+  neck.geometry.computeBoundingBox();
+  const nb = neck.geometry.boundingBox;
+  assert.ok(nb.max.z > 2.3 && nb.min.z < 1.7, 'from the gutter back to the wall');
+  assert.ok(nb.min.y < 1, 'down to the source pipe bottom');
 });

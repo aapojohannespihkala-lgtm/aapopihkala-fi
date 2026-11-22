@@ -259,22 +259,32 @@ export function relocateR31Downpipes(THREE, group, zones) {
     shift(p.VERTICAL_PIPE, dx, dz);
     shift(p.TERMINAL_BEND, dx, dz);
     shift(p.INLET_COLLAR, dx, 0);
-    if (p.INLET_COLLAR && Math.hypot(dz, 0) > 0.05) {
-      const top = boxOf(p.VERTICAL_PIPE);
+    if (p.INLET_COLLAR && Math.abs(dz) > 0.05) {
+      // Owner photos 22.11.2026 18.25: a swan neck. Short drop from the gutter
+      // outlet, a 45-degree run back to the wall, then straight down the wall.
+      const pipe = boxOf(p.VERTICAL_PIPE);
       const collar = boxOf(p.INLET_COLLAR);
-      const a = new THREE.Vector3(zone.x, collar.min.y, collar.getCenter(new THREE.Vector3()).z);
-      const b = new THREE.Vector3(zone.x, top.max.y, zone.z);
-      const radius = Math.max(0.02, (top.max.x - top.min.x) / 2);
-      const length = a.distanceTo(b);
-      const connector = new THREE.Mesh(new THREE.CylinderGeometry(radius, radius, length, 12), p.VERTICAL_PIPE.material);
-      const mid = a.clone().add(b).multiplyScalar(0.5);
-      const q = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), b.clone().sub(a).normalize());
-      connector.matrixAutoUpdate = false;
-      connector.matrix.compose(mid, q, new THREE.Vector3(1, 1, 1));
-      connector.name = `${id}_DOWNPIPE_CONNECTOR_TO_OWNER_ZONE_WORK_ASSUMPTION`;
-      connector.userData = { presentationOnly: true, workAssumption: true, ModelStage: 'WORK_TEST_VIEW',
-        relocationBasis: 'OWNER_CORRECTED_PRESENCE_ZONE_20261115', physicalRouteClaim: false };
-      group.add(connector);
+      const zGutter = collar.getCenter(new THREE.Vector3()).z;
+      const radius = Math.max(0.02, (pipe.max.x - pipe.min.x) / 2);
+      const drop = 0.12;
+      const p0 = new THREE.Vector3(zone.x, collar.min.y, zGutter);
+      const p1 = new THREE.Vector3(zone.x, collar.min.y - drop, zGutter);
+      const p2 = new THREE.Vector3(zone.x, p1.y - Math.abs(dz), zone.z);
+      const p3 = new THREE.Vector3(zone.x, pipe.min.y, zone.z);
+      if (p2.y > p3.y + 0.2) {
+        const path = new THREE.CurvePath();
+        path.add(new THREE.LineCurve3(p0, p1));
+        path.add(new THREE.LineCurve3(p1, p2));
+        path.add(new THREE.LineCurve3(p2, p3));
+        const neck = new THREE.Mesh(new THREE.TubeGeometry(path, 48, radius, 12, false), p.VERTICAL_PIPE.material);
+        neck.name = `${id}_DOWNPIPE_SWAN_NECK_ROUTE_WORK_ASSUMPTION`;
+        neck.userData = { presentationOnly: true, workAssumption: true, ModelStage: 'WORK_TEST_VIEW',
+          relocationBasis: 'OWNER_CORRECTED_PRESENCE_ZONE_20261115', shapeBasis: 'OWNER_PHOTOS_20261122_SWAN_NECK_45DEG',
+          physicalRouteClaim: false };
+        group.add(neck);
+        // The straight source pipe is replaced by the swan-neck route.
+        p.VERTICAL_PIPE.visible = false;
+      }
     }
     moves.push({ id, dx: +dx.toFixed(3), dz: +dz.toFixed(3), zone: zone.name ?? null });
   }
