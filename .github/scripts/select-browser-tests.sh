@@ -102,6 +102,12 @@ for file in "$@"; do
       # HIGH2 source bindings and source-availability UI share one verified
       # technical inventory. Re-run their existing browser and DOM guards.
       add private-model-technical-systems-layers private-model-technical-layers-availability-ui private-model-technical-layers-availability-dom ;;
+    src/scripts/privateModelNavigationCube.mjs)
+      # An A-style cube change must always rerun the real Chromium edge and camera guard.
+      add private-model-navigation-cube-edge-arrows ;;
+    src/scripts/privateModelNavigationNorthFrameToggle.mjs|src/scripts/privateModelOrientationGizmo.ts)
+      # Camera-frame/renderer changes can alter both cube edges and north switching.
+      add private-model-navigation-cube-edge-arrows private-model-navigation-north-frame-toggle ;;
     src/scripts/privateModelObjectVisibility.ts)
       # Scene-root-scoped hide/isolate must retain stale-target and model-swap guards.
       add private-model-object-visibility ;;
