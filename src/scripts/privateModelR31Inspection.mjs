@@ -346,6 +346,86 @@ export function clipGeometryAboveY(THREE, geometry, matrix, minY) {
 }
 
 /**
+ * Source-exact AB lower-roof underside from R31 scene769 node13361 mesh5112.
+ * This is a WORK_TEST roof mesh, not a measured as-built roof profile.
+ */
+export const R31_AB_ROOF_UNDERSIDE_WORK_TEST = Object.freeze({
+  ridgeZ: -4.58, ridgeY: 6.523845, pitch: 0.25,
+  sourceScene: 769, sourceNode: 13361, sourceMesh: 5112,
+});
+export const r31ABRoofUndersideY = (z) =>
+  R31_AB_ROOF_UNDERSIDE_WORK_TEST.ridgeY -
+    R31_AB_ROOF_UNDERSIDE_WORK_TEST.pitch * Math.abs(z - R31_AB_ROOF_UNDERSIDE_WORK_TEST.ridgeZ);
+
+export const hasR31ABRoofClipSource = (json) => {
+  const source = R31_AB_ROOF_UNDERSIDE_WORK_TEST;
+  return json?.nodes?.[source.sourceNode]?.name === 'C80_R31_AB_ALEMPI_VESIKATTO_OPTIN' &&
+    json.nodes[source.sourceNode].mesh === source.sourceMesh &&
+    /__scene769$/.test(json?.scenes?.[source.sourceScene]?.name ?? '');
+};
+
+/**
+ * Intersect the K14 display COPY with the two sloping planes of the R31
+ * lower-roof underside. Split at the ridge BEFORE clipping: a single plane
+ * across both slopes would cut the wrong triangles. Return local-space
+ * positions so the source world matrix, material and source geometry survive.
+ */
+export function clipR31EastGableToABRoof(THREE, geometry, worldMatrix) {
+  const geo = geometry.index ? geometry.toNonIndexed() : geometry;
+  const pos = geo.getAttribute('position');
+  if (!pos || !worldMatrix?.isMatrix4) throw new Error('R31 east gable roof clip source missing');
+  const source = R31_AB_ROOF_UNDERSIDE_WORK_TEST;
+  const EPS = 1e-8;
+  const clip = (polygon, signedDistance) => {
+    const out = [];
+    for (let i = 0; i < polygon.length; i += 1) {
+      const p = polygon[i], q = polygon[(i + 1) % polygon.length];
+      const dp = signedDistance(p), dq = signedDistance(q);
+      const pin = dp >= -EPS, qin = dq >= -EPS;
+      if (pin) out.push(p);
+      if (pin !== qin && Math.abs(dp - dq) > EPS) out.push(p.clone().lerp(q, dp / (dp - dq)));
+    }
+    return out;
+  };
+  const inverse = worldMatrix.clone().invert();
+  const out = [];
+  for (let i = 0; i + 2 < pos.count; i += 3) {
+    const tri = [0, 1, 2].map((offset) =>
+      new THREE.Vector3().fromBufferAttribute(pos, i + offset).applyMatrix4(worldMatrix));
+    for (const half of [-1, 1]) {
+      let polygon = clip(tri, (p) => half * (p.z - source.ridgeZ));
+      if (polygon.length < 3) continue;
+      polygon = clip(polygon, (p) => r31ABRoofUndersideY(p.z) - p.y);
+      for (let j = 1; j + 1 < polygon.length; j += 1) {
+        const a = polygon[0], b = polygon[j], c = polygon[j + 1];
+        const area = new THREE.Vector3().subVectors(b, a)
+          .cross(new THREE.Vector3().subVectors(c, a)).lengthSq();
+        if (area <= 1e-14) continue;
+        out.push(a.clone().applyMatrix4(inverse), b.clone().applyMatrix4(inverse),
+          c.clone().applyMatrix4(inverse));
+      }
+    }
+  }
+  if (geo !== geometry) geo.dispose();
+  const result = new THREE.BufferGeometry().setFromPoints(out);
+  result.computeVertexNormals();
+  return result;
+}
+
+/** The only mutable geometry is the overlay clone, never the source K14 mesh. */
+function applyR31EastGableRoofClip(THREE, clone, json) {
+  if (!/^K14_A_GABLE_EXTERIOR_FACE/.test(clone.name ?? '')) return;
+  if (!hasR31ABRoofClipSource(json)) {
+    clone.userData = { ...clone.userData, roofClipStatus: 'SOURCE_HOLD' };
+    return;
+  }
+  clone.geometry = clipR31EastGableToABRoof(THREE, clone.geometry, clone.matrix);
+  clone.userData = { ...clone.userData, roofClipStatus: 'R31_AB_UNDERSIDE_WORK_TEST',
+    roofClipSourceNode: R31_AB_ROOF_UNDERSIDE_WORK_TEST.sourceNode,
+    physicalRoofClaim: false };
+}
+
+/**
  * Brown gable boarding overlays for both gables: the west source fills
  * (ALEMPI/YLEMPI) and the east K14 face above the brick line, each copied
  * world-placed and lifted 4 mm outwards. Presentation only.
@@ -537,6 +617,7 @@ export function buildR31EastGableOverlay(THREE, gltf) {
     liftGableFace(THREE, clone);
     clone.userData = { ...object.userData, sourceNode: index, sourceScene: R31_EAST_GABLE_SOURCE.sceneIndex,
       presentationOnly: true, ModelStage: 'WORK_TEST_VIEW', basis: 'OWNER_20261122_EAST_GABLE_AS_WIDE_AS_WEST' };
+    applyR31EastGableRoofClip(THREE, clone, json);
     group.add(clone);
   });
   if (!group.children.length) return null;
@@ -591,6 +672,7 @@ export async function loadR31EastGableOverlay(THREE, gltf) {
       liftGableFace(THREE, clone);
       clone.userData = { ...(node.extras ?? {}), sourceNode: index, sourceScene: R31_EAST_GABLE_SOURCE.sceneIndex,
         presentationOnly: true, ModelStage: 'WORK_TEST_VIEW', basis: 'OWNER_20261122_EAST_GABLE_AS_WIDE_AS_WEST' };
+      applyR31EastGableRoofClip(THREE, clone, json);
       group.add(clone);
     }
   }
