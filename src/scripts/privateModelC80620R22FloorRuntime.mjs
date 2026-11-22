@@ -144,3 +144,5 @@ export function c80620R22ReviewProfile(json,sha,sceneIndex){
   publicationAllowed:false,humanReview:'NOT_RUN',current:false,
  };
 }
+/** The exact R22 technical review source nodes (reused by the R31 successor). */
+export const C80_620R22_REVIEW_MEP_NODES=Object.freeze([...REVIEW_MEP].sort((a,b)=>a-b));

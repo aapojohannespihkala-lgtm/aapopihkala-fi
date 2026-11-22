@@ -14,8 +14,8 @@ test('desktop toolbar shows the agreed one-click presets and camera angles', () 
     assert.match(item.icon, /^<svg /);
     assert.ok(item.label.length > 2);
   }
-  // Owner 22.11.2026: start in the latest complete whole-building WORK_TEST (R22), not the D-only R31 review.
-  assert.equal(DESKTOP_START_CANDIDATE_ID, 'c80-620r22-r21-s2vp1-k1k2k5k6k7k9-20261119');
+  // Owner 22.11.2026 04.11: roof in the model -> R31 9e0bf34f (R22 scene 688 + whole-building roof group).
+  assert.equal(DESKTOP_START_CANDIDATE_ID, 'c80-r31-9e0bf34f-d-2f-sc769-sc772-work-test');
 });
 
 test('edge presentation is a one-click icon group with the four existing modes', () => {
