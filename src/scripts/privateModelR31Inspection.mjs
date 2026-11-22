@@ -482,24 +482,76 @@ export function clipGeometryToGableBand(THREE, geometry, matrix, roof, minY) {
   return result;
 }
 
+/** Brick course module of the R31 west 2F brick wall (node 6653): 77 mm brick + 9.6 mm joint. */
+export const R31_WEST_BRICK_COURSE_M = 0.0866;
+
 /**
- * West brick facade completion 5.30 -> 5.78 (ARK 3 brick top): same plane,
- * thickness, width and material as the existing 2F brick wall
- * C80R2_WEST_BRICK_PIER_2F (node 6653, top 5.30); touches it edge-to-edge,
- * no overlapping faces. `pierBox` = world Box3 of that wall.
+ * West brick facade completion 5.30 -> 5.78 (ARK 3 brick top +27,530).
+ * The existing 2F brick wall (node 6653: brick faces, recessed mortar plane,
+ * end returns; top 5.30) is continued with its own courses: every source
+ * primitive is clipped to the band [top - k*course, 5.78 - k*course] and
+ * lifted by k*course with an even k, so the running bond, joints and
+ * materials continue without a seam; nothing overlaps the source.
+ * `sources` = [{ geometry, matrixWorld, material }] of the wall's meshes.
  */
-export function buildR31WestBrickCompletion(THREE, material, pierBox, topY = R31_WEST_BRICK_TOP_Y) {
-  if (!pierBox || pierBox.max.y >= topY - 1e-6) return null;
-  const sx = pierBox.max.x - pierBox.min.x;
-  const sy = topY - pierBox.max.y;
-  const sz = pierBox.max.z - pierBox.min.z;
-  const mesh = new THREE.Mesh(new THREE.BoxGeometry(sx, sy, sz), material);
-  mesh.name = 'R31_WEST_BRICK_COMPLETION_TO_ARK3_LINE_WORK_TEST';
-  mesh.matrixAutoUpdate = false;
-  mesh.matrix.makeTranslation((pierBox.min.x + pierBox.max.x) / 2, pierBox.max.y + sy / 2, (pierBox.min.z + pierBox.max.z) / 2);
-  mesh.userData = { presentationOnly: true, ModelStage: 'WORK_TEST_VIEW', basis: 'ARK3_1985_WEST_BRICK_TOP_27530',
-    extendsNode: 6653, currentClaim: false, asBuiltClaim: false };
-  return mesh;
+export function buildR31WestBrickCompletion(THREE, sources, topY = R31_WEST_BRICK_TOP_Y) {
+  const list = (sources ?? []).filter((m) => m?.geometry && m?.matrixWorld);
+  if (!list.length) return null;
+  let wallTop = -Infinity;
+  for (const m of list) {
+    m.geometry.computeBoundingBox();
+    wallTop = Math.max(wallTop, m.geometry.boundingBox.clone().applyMatrix4(m.matrixWorld).max.y);
+  }
+  const need = topY - wallTop;
+  if (!(need > 1e-6)) return null;
+  let courses = Math.ceil(need / R31_WEST_BRICK_COURSE_M - 1e-9);
+  if (courses % 2) courses += 1; // even: same running-bond offset
+  const lift = courses * R31_WEST_BRICK_COURSE_M;
+  const y0 = wallTop - lift;
+  const y1 = topY - lift;
+  const group = new THREE.Group();
+  group.name = 'R31_WEST_BRICK_COMPLETION_TO_ARK3_LINE_WORK_TEST';
+  for (const src of list) {
+    const geometry = clipGeometryByYBand(THREE, src.geometry, src.matrixWorld, y0, y1);
+    if (!geometry.getAttribute('position').count) continue;
+    geometry.translate(0, lift, 0);
+    const mesh = new THREE.Mesh(geometry, src.material);
+    mesh.name = `R31_WEST_BRICK_COMPLETION_${src.name ?? 'PART'}`;
+    mesh.matrixAutoUpdate = false;
+    group.add(mesh);
+  }
+  group.userData = { presentationOnly: true, ModelStage: 'WORK_TEST_VIEW', basis: 'ARK3_1985_WEST_BRICK_TOP_27530',
+    extendsNode: 6653, fromY: wallTop, toY: topY, courseLift: lift, currentClaim: false, asBuiltClaim: false };
+  return group.children.length ? group : null;
+}
+
+/** World-space part of `geometry` with y0 <= y <= y1 (exact triangle clipping). */
+export function clipGeometryByYBand(THREE, geometry, matrix, y0, y1) {
+  const g = geometry.index ? geometry.toNonIndexed() : geometry;
+  const pos = g.getAttribute('position');
+  const clip = (poly, d) => {
+    const out = [];
+    for (let a = 0; a < poly.length; a += 1) {
+      const p = poly[a];
+      const q = poly[(a + 1) % poly.length];
+      const dp = d(p);
+      const dq = d(q);
+      if (dp >= 0) out.push(p);
+      if ((dp >= 0) !== (dq >= 0)) out.push(p.clone().lerp(q, dp / (dp - dq)));
+    }
+    return out;
+  };
+  const out = [];
+  for (let t = 0; t + 2 < pos.count; t += 3) {
+    let poly = [0, 1, 2].map((k) => new THREE.Vector3().fromBufferAttribute(pos, t + k).applyMatrix4(matrix));
+    poly = clip(poly, (p) => p.y - y0);
+    if (poly.length >= 3) poly = clip(poly, (p) => y1 - p.y);
+    for (let k = 1; k + 1 < poly.length; k += 1) out.push(poly[0], poly[k], poly[k + 1]);
+  }
+  if (g !== geometry) g.dispose();
+  const result = new THREE.BufferGeometry().setFromPoints(out);
+  result.computeVertexNormals();
+  return result;
 }
 
 /**

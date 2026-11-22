@@ -530,14 +530,30 @@ test('ARK 3 gable material lines: east 4.78, west 5.78, 1.00 m apart, each to it
     assert.ok(y <= m.r31RoofUndersideY(z) + 1e-6, 'west boarding stays under the C/D underside');
   }
   assert.ok(Math.abs(minY - 5.78) < 1e-6, 'west boarding starts at the ARK 3 brick line');
-  // Brick completion: edge-to-edge on the existing wall top, no overlap.
-  const pierBox = new THREE.Box3(new THREE.Vector3(-0.021, 2.575, -10.81), new THREE.Vector3(0.241, 5.30, 1.724));
-  const brick = m.buildR31WestBrickCompletion(THREE, new THREE.MeshBasicMaterial(), pierBox);
-  brick.geometry.computeBoundingBox();
-  const b = brick.geometry.boundingBox.clone().applyMatrix4(brick.matrix);
-  assert.ok(Math.abs(b.min.y - 5.30) < 1e-6 && Math.abs(b.max.y - 5.78) < 1e-6);
-  assert.ok(Math.abs(b.min.x + 0.021) < 1e-6 && Math.abs(b.max.z - 1.724) < 1e-6 && Math.abs(b.min.z + 10.81) < 1e-6);
+  // Brick completion: the wall's own courses continued 5.30 -> 5.78, no overlap.
+  const brickMat = new THREE.MeshBasicMaterial();
+  const arr = [];
+  for (let k = 0; k < 32; k += 1) {
+    const y = 2.5746 + k * m.R31_WEST_BRICK_COURSE_M;
+    const top = Math.min(y + 0.077, 5.30);
+    const [z0, z1, x] = [-10.81, 1.724, -0.021];
+    arr.push(x, y, z0, x, y, z1, x, top, z1, x, y, z0, x, top, z1, x, top, z0);
+  }
+  const wallGeo = new THREE.BufferGeometry();
+  wallGeo.setAttribute('position', new THREE.Float32BufferAttribute(arr, 3));
+  const wall = new THREE.Mesh(wallGeo, brickMat);
+  wall.name = 'C80R2_WEST_BRICK_PIER_2F_OUTWARD_NORMALS_D2F_WORK_TEST';
+  wall.updateMatrixWorld(true);
+  const brick = m.buildR31WestBrickCompletion(THREE, [wall]);
+  assert.ok(brick && brick.children.length === 1);
+  const part = brick.children[0];
+  assert.equal(part.material, brickMat, 'same material as the existing wall');
+  part.geometry.computeBoundingBox();
+  const b = part.geometry.boundingBox;
+  assert.ok(Math.abs(b.min.y - 5.30) < 1e-4 && b.max.y <= 5.78 + 1e-4 && b.max.y > 5.70);
+  assert.ok(Math.abs(b.min.x + 0.021) < 1e-4 && Math.abs(b.max.x + 0.021) < 1e-4, 'same plane as the wall');
+  assert.ok(Math.abs(brick.userData.courseLift / m.R31_WEST_BRICK_COURSE_M % 2) < 1e-6, 'even course lift keeps the bond');
   // Edges: brown band remains under both eaves (0.17-0.19 m), no gap to the roof.
   assert.ok(m.r31RoofUndersideY(1.724) - 5.78 > 0.16 && m.r31ABRoofUndersideY(1.709) - 4.78 > 0.16);
-  assert.equal(m.buildR31WestBrickCompletion(THREE, null, new THREE.Box3(new THREE.Vector3(), new THREE.Vector3(0, 6, 0))), null);
+  assert.equal(m.buildR31WestBrickCompletion(THREE, []), null);
 });
