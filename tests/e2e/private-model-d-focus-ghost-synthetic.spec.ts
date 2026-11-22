@@ -221,8 +221,8 @@ test('Chromium raster pixels reject source-clipped ghost fragments outside D and
   test.setTimeout(90_000);
   const { build } = await import('esbuild');
   const browserSource = `
-    import { DoubleSide, Group, Mesh, MeshBasicMaterial, OrthographicCamera, Plane,
-      PlaneGeometry, Scene, Vector3, WebGLRenderer, WebGLRenderTarget } from 'three';
+    import { BoxGeometry, DoubleSide, Group, Mesh, MeshBasicMaterial, OrthographicCamera, Plane,
+      Scene, Vector3, WebGLRenderer, WebGLRenderTarget } from 'three';
     import { createDFocusGhost } from './src/scripts/privateModelDFocusGhost.ts';
     window.__runDFocusSourceClipPixelQA = () => {
       const renderer = new WebGLRenderer({ antialias: false });
@@ -238,8 +238,7 @@ test('Chromium raster pixels reject source-clipped ghost fragments outside D and
       const original = new MeshBasicMaterial({
         color: 0xff0000, side: DoubleSide, clippingPlanes: [clip], clipIntersection: false,
       });
-      const roof = new Mesh(new PlaneGeometry(12, 8), original);
-      roof.rotation.x = -Math.PI / 2;
+      const roof = new Mesh(new BoxGeometry(12, 0.02, 8), original);
       roof.position.set(5, 1, -2); root.add(roof);
       const camera = new OrthographicCamera(-15, 15, 15, -15, 0.1, 100);
       camera.up.set(0, 0, -1);
