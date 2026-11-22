@@ -38,6 +38,14 @@ const title = 'Private 3D viewer';
       .viewport .desk-side-tools button { display: grid; place-items: center; min-width: 38px; min-height: 38px; padding: 6px; }
       .viewport .desk-side-tools button[aria-pressed='true'] { box-shadow: inset 0 0 0 1px var(--viewer-line); }
       .viewport .desk-side-tools button[disabled] { opacity: .35; }
+      /* Layers panel opens to the right of the side tool column, not under it. */
+      .viewport:has(> .desk-side-tools) .layers-panel { left: 66px !important; width: min(290px, calc(100% - 78px)) !important; }
+      /* Navigation cube behind the gizmo axes (owner request 22.11.2026). */
+      .orientation-gizmo .nav-cube-face { fill: #5d6f7c; stroke: #c9d3d9; stroke-width: .7; stroke-linejoin: round; }
+      .orientation-gizmo .nav-cube-face-top { fill: #7f93a0; }
+      .orientation-gizmo .nav-cube-face-north { fill: #4f7a63; }
+      .orientation-gizmo .nav-cube-label { fill: #f1f4f6; font: 800 6.4px ui-sans-serif, system-ui, sans-serif;
+        text-anchor: middle; dominant-baseline: central; letter-spacing: .02em; pointer-events: none; }
       .desk-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
     </style>
     <style>
@@ -15599,6 +15607,12 @@ const title = 'Private 3D viewer';
             deskAngleButtons[id]?.click();
             deskSync();
           },
+          edge(id: string) {
+            if (edgeModeSelect.value === id) return;
+            edgeModeSelect.value = id;
+            edgeModeSelect.dispatchEvent(new Event('change', { bubbles: true }));
+            deskSync();
+          },
           layers() { layersButton?.click(); deskSync(); },
           morePresets() { deskViewMenu.open = false; deskPresetMenu.open = !deskPresetMenu.open; },
           moreAngles() { deskPresetMenu.open = false; deskViewMenu.open = !deskViewMenu.open; },
@@ -15626,11 +15640,12 @@ const title = 'Private 3D viewer';
             }),
             technical: technicalReviewInput.checked,
             layersOpen: layersButton?.getAttribute('aria-expanded') === 'true',
+            edge: canvas.dataset.edgeMode ?? edgeModeSelect.value,
           });
         };
         new MutationObserver(() => deskSync()).observe(canvas, {
           attributes: true,
-          attributeFilter: ['data-standard-view-preset', 'data-view-preset', 'data-layer-roof-visible', 'data-technical-review'],
+          attributeFilter: ['data-standard-view-preset', 'data-view-preset', 'data-layer-roof-visible', 'data-technical-review', 'data-edge-mode'],
         });
         if (layersButton) new MutationObserver(() => deskSync()).observe(layersButton, { attributes: true, attributeFilter: ['aria-expanded'] });
         // Interaction tools become a vertical icon column on the model's left edge.
@@ -16145,8 +16160,15 @@ const title = 'Private 3D viewer';
             deskStartCatalogLoaded = true;
             const start = workTestCandidates.get(DESKTOP_START_CANDIDATE_ID);
             if (start && await loadWorkTestCandidate(start)) {
+              // The candidate field shows the model that is actually open.
+              if (workTestSelect.value !== start.id) {
+                workTestFilter.value = '';
+                renderWorkTestOptions(start.id);
+                workTestSelect.value = start.id;
+                workTestButton.disabled = false;
+              }
               applyStandardViewPreset('d-apartment');
-              canvas.dataset.deskStartView = 'latest-work-test-d-apartment';
+              canvas.dataset.deskStartView = 'start-work-test-d-apartment';
               deskSync();
               return;
             }

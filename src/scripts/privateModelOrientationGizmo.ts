@@ -8,6 +8,7 @@ import {
 } from './privateModelAiNavigator';
 import { THREE, getTrackedOrbitControls } from './threeRuntime';
 import { createNorthFrameToggleController } from './privateModelNavigationNorthFrameToggle.mjs';
+import { mountNavigationCube } from './privateModelNavigationCube.mjs';
 
 type QuaternionLike = {
   x: number;
@@ -237,6 +238,11 @@ export const createOrientationGizmoController = ({
     });
   }
 
+  // Owner request 22.11.2026: a navigation cube behind the axes. It turns with
+  // the camera and follows the selected north frame; clicking it (the svg)
+  // switches the frame as before. It never moves the camera.
+  const navCube = northFrameSvg ? mountNavigationCube({ svg: northFrameSvg, root }) : null;
+
   const findControls = (
     quaternion: QuaternionLike,
     projection: 'perspective' | 'orthographic',
@@ -271,7 +277,7 @@ export const createOrientationGizmoController = ({
       root.style.width = compact ? '196px' : '236px';
       const svg = root.querySelector<SVGElement>('svg');
       if (svg) {
-        svg.style.width = compact ? '60px' : '78px';
+        svg.style.width = compact ? '68px' : '96px';
         svg.style.maxWidth = svg.style.width;
         svg.style.marginInline = 'auto';
       }
@@ -516,7 +522,13 @@ export const createOrientationGizmoController = ({
         root.dataset.northFrameError = error instanceof Error ? error.message : 'YLIS_NORTH_FRAME';
       }
     }
-    return navigatorChanged || axisChanged;
+    let cubeChanged = false;
+    try {
+      cubeChanged = navCube?.render(quaternion, root.dataset.northFrame === 'map' ? 'map' : 'local') ?? false;
+    } catch (error) {
+      root.dataset.navCubeError = error instanceof Error ? error.message : 'YLIS_NAV_CUBE';
+    }
+    return navigatorChanged || axisChanged || cubeChanged;
   };
 
   return { render };
