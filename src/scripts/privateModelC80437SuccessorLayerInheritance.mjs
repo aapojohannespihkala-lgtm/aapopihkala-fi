@@ -83,6 +83,7 @@ import {
   isC80620R21SourceScene,
 } from './privateModelC80620R21SourceProfile.mjs';
 import {C80_620R22_GLB_SHA256,C80_620R22_SCENES,C80_620R22_COW_ALIASES,isC80620R22SourceScene} from './privateModelC80620R22SourceProfile.mjs';
+import {C80_R31_9E0B_SOURCE,C80_R31_9E0B_VIEWS,r31ViewerLayerSceneReceipt} from './privateModelC80R31ReviewRuntime.mjs';
 
 // Work-test identity only. The outer loader MUST authenticate the entire GLB
 // bytes before supplying sha. This never approves a new physical/as-built part.
@@ -242,6 +243,16 @@ const V620R22 = Object.freeze({
   690:{floor:'BOTH',glazing:'STACKED',cutaway:false},
   691:{floor:'BOTH',glazing:'CLOSED',cutaway:true},
 });
+const R31_SHA = C80_R31_9E0B_SOURCE.glbSha256;
+const R31 = Object.freeze(Object.fromEntries(Object.values(C80_R31_9E0B_VIEWS).map(view =>
+  [view.sceneIndex, {floor:view.floor,glazing:'CLOSED',cutaway:false}])));
+// The authored R31 roof is present only on the two whole-D review scenes.
+const R31_ROOF_ROOT = 13363;
+const R31_ROOF_ROOT_FNV = 'b9e1f9aa';
+const R31_ROOF_PARTS = Object.freeze({
+  13333: '04909ef6', 13334: '641b7365', 13335: '0b353e0b', 13336: 'bede8ae5',
+  13360: '98d31910', 13361: 'b4316ba7', 13362: '4c703065',
+});
 // SHA-locked copy-on-write aliases: a COW node keeps the receipt identity of
 // its original node only when its own JSON fingerprint matches exactly.
 const COW_ALIASES = Object.freeze({
@@ -260,6 +271,7 @@ const COW_ALIASES = Object.freeze({
   [C80_620R20_GLB_SHA256]: C80_620R20_COW_ALIASES,
   [C80_620R21_GLB_SHA256]: C80_620R21_COW_ALIASES,
   [C80_620R22_GLB_SHA256]: C80_620R22_COW_ALIASES,
+  [R31_SHA]: C80_620R22_COW_ALIASES,
 });
 const aliasOf = (sha,node) => COW_ALIASES[sha]?.[node] ?? null;
 const toOrig = (sha,node) => aliasOf(sha,node)?.orig ?? node;
@@ -275,6 +287,7 @@ export const isC80LayerSuccessorSha = sha => [
   C80_620R15_GLB_SHA256, C80_620R16_GLB_SHA256, C80_620R17_GLB_SHA256,
   C80_620R18_GLB_SHA256, C80_620R19_GLB_SHA256,
   C80_620R20_GLB_SHA256, C80_620R21_GLB_SHA256, C80_620R22_GLB_SHA256,
+  R31_SHA,
 ].includes(sha);
 const specFor = (sha,index) => {
   if (sha===C80_SUCC455_SAVO483_GLB_SHA256) return V483[index];
@@ -298,6 +311,7 @@ const specFor = (sha,index) => {
   if (sha===C80_620R20_GLB_SHA256) return V620R20[index];
   if (sha===C80_620R21_GLB_SHA256) return V620R21[index];
   if (sha===C80_620R22_GLB_SHA256) return V620R22[index];
+  if (sha===R31_SHA) return R31[index];
   if (sha===C80_524_RAIN_GLB_SHA256) return V524[index];
   return null;
 };
@@ -337,6 +351,7 @@ const acceptedScene = (json,sha,index) => {
     isC80620R21SourceScene(json,sha,index,C80_620R21_SCENES[index].floor);
   if (sha===C80_620R22_GLB_SHA256) return !!C80_620R22_SCENES[index] &&
     isC80620R22SourceScene(json,sha,index,C80_620R22_SCENES[index].floor);
+  if (sha===R31_SHA) return !!r31ViewerLayerSceneReceipt(json,sha,index);
   if (sha===C80_614_GLB_SHA256) return !!C80_614_SCENES[index] &&
     isC80614SourceScene(json,sha,index,C80_614_SCENES[index].floor);
   if (sha===C80_608C_GLB_SHA256) return !!C80_608C_SCENES[index] &&
@@ -413,6 +428,14 @@ function exactInheritedPath(json,sceneIndex,path,sha=null) {
 export function resolveC80437SuccessorBuildingNode(json,sha,sceneIndex,node,path){
   const receiptScene=resolveC80437SuccessorReceiptScene(json,sha,sceneIndex);
   if (!receiptScene || !Number.isInteger(node)) return null;
+  if (sha===R31_SHA && Object.hasOwn(R31_ROOF_PARTS,node)) {
+    const root=json.nodes[R31_ROOF_ROOT], part=json.nodes[node];
+    if (receiptScene.floor!=='BOTH' || !equalPath(path,[R31_ROOF_ROOT,node]) ||
+        !json.scenes[sceneIndex].nodes.includes(R31_ROOF_ROOT) ||
+        nodeFingerprint(root)!==R31_ROOF_ROOT_FNV ||
+        nodeFingerprint(part)!==R31_ROOF_PARTS[node]) return null;
+    return {id:'roof',name:part.name,mesh:part.mesh};
+  }
   const src=toOrig(sha,node);
   const entry=receiptScene.building?.[src];
   if (!entry || !Array.isArray(path)||path.at(-1)!==node ||
@@ -473,7 +496,7 @@ const modelNumber = sha => sha===C80_SUCC455_SAVO483_GLB_SHA256 ? 483
   : sha===C80_620R19_GLB_SHA256 ? 628
   : sha===C80_620R20_GLB_SHA256 ? 629
   : sha===C80_620R21_GLB_SHA256 ? 630
-  : sha===C80_620R22_GLB_SHA256 ? 631 : -1;
+  : sha===C80_620R22_GLB_SHA256 || sha===R31_SHA ? 631 : -1;
 function withinRoot(json,root,node) {
   const seen=new Set(),queue=[root];
   while (queue.length) {
