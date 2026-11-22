@@ -34,6 +34,16 @@ function synthetic() {
   nodes[SPEC.newRoot] = {
     name: 'K3_D2F_SW02_WHITE_EXXACT_STYLE_REFERENCE_87x87MM_WORLDHOST_WORK_TEST_HOST_HOLD',
     children: [13514, 13515],
+    extras: {
+      stableID: 'D2F-SW-02', floor: 'D2F',
+      sourceOriginalZipDriveID: SPEC.parentZipDriveId,
+      sourceOriginalGLBSHA256: SPEC.parentGlbSha256,
+      sourcePreviousRoot: SPEC.oldRoot,
+      activeHostNodeID: SPEC.hostNode, activeHostMeshID: SPEC.hostMesh,
+      activeHostTriangles: [14, 15], activeHostPlaneZ_m: -7.225,
+      hostHold: true, sourceLinksBoundToOutputSHA: false,
+      current: false, asBuilt: false,
+    },
   };
   nodes[13514] = { mesh: 5173 };
   nodes[13515] = { mesh: 5174 };
@@ -94,6 +104,9 @@ test('SW02 wrong SHA, source, floor, role, root, host, plexi and stage fail clos
     mutate(j.scenes[view.sceneIndex].nodes, 0, 99999);
     mutate(j.scenes[view.parentScene].nodes, 0, 99999);
     mutate(j.nodes[SPEC.newRoot], 'children', [13514]);
+    mutate(j.nodes[SPEC.newRoot].extras, 'stableID', 'D2F-SW-01');
+    mutate(j.nodes[SPEC.newRoot].extras, 'activeHostNodeID', 10794);
+    mutate(j.nodes[SPEC.newRoot].extras, 'sourceLinksBoundToOutputSHA', true);
     mutate(j.nodes[13514], 'mesh', 0);
     mutate(j.nodes[SPEC.hostNode], 'mesh', 4188);
     mutate(j.scenes[777].nodes, 1, 99999); // normal plexi removed
@@ -121,8 +134,11 @@ test('optional original bytes SHA and scene777/778 parity',
     const sha = createHash('sha256').update(bytes).digest('hex');
     assert.equal(sha, SPEC.glbSha256);
     const json = JSON.parse(bytes.subarray(20, 20 + bytes.readUInt32LE(12)).toString('utf8'));
+    // Authenticated original contains an independently verified defect:
+    // node13513 was copied with stableID D2F-SW-01 instead of D2F-SW-02.
+    assert.equal(json.nodes[SPEC.newRoot]?.extras?.stableID, 'D2F-SW-01');
     for (const v of Object.values(SPEC.views)) {
-      assert.equal(valid(json, sha, v.sceneIndex, v.role, 'D2F'), true);
-      assert.equal(valid(json, sha, v.sceneIndex, v.role, '1F'), false);
+      assert.equal(valid(json, sha, v.sceneIndex, v.role, 'D2F'), false);
+      assert.equal(receipt(json, sha, v.sceneIndex, v.role, 'D2F').publishAllowed, false);
     }
   });
