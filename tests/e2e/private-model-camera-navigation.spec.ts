@@ -121,6 +121,11 @@ test('owner menu presets keep the active isometric or elevation camera direction
     { viewButton: 'Isometrinen', mode: 'isometric', projection: 'orthographic' },
     { viewButton: 'Julk +Y', mode: 'elevation', projection: 'orthographic' },
   ]) {
+    // Each independent camera mode starts from a fresh fixture. Switching
+    // isometric -> elevation is a separate navigation action, not this test's
+    // menu-preset preservation contract.
+    await page.goto('/private-model/');
+    await expect(page.getByRole('status')).toHaveText('Malli ladattu - D-pohjat käytettävissä');
     await chooseView(viewButton);
     await expect(page.locator('#private-model-canvas')).toHaveAttribute('data-view-preset', mode);
     const before = await cameraSnapshot();
