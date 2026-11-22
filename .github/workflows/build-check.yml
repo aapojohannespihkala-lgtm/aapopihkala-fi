@@ -270,6 +270,7 @@ jobs:
             tests/unit/private-model-r31-t110-scene800801-source-receipt.test.mjs \
             tests/unit/private-model-r31-three-cards-source-receipt.test.mjs \
             tests/unit/private-model-r31-unified-3donor-source-receipt.test.mjs \
+            tests/unit/private-model-k3-combined-scene787788-source-receipt.test.mjs \
             tests/unit/private-model-k3-combined-scene789790-source-receipt.test.mjs \
             tests/unit/private-model-c80-r31-review-runtime.test.mjs \
             tests/unit/private-model-desktop-toolbar.test.mjs \
