@@ -90,6 +90,28 @@ const r31View=view=>Object.freeze({
  exactRootCount:true,
 });
 
+/**
+ * Source-lock Layerit to original authenticated R31 review scene receipts.
+ * Never infer current/as-built identity or layer classes from scene names.
+ */
+export function r31ViewerLayerSceneReceipt(json, loadedSha, sceneIndex) {
+ if (loadedSha !== C80_R31_9E0B_SOURCE.glbSha256) return null;
+ const view = Object.values(C80_R31_9E0B_VIEWS).find(v => v.sceneIndex === sceneIndex);
+ if (!view) return null;
+ const proven = view.floor === 'BOTH'
+  ? isC80R31Scene769770Source(json, loadedSha, sceneIndex, view.role, view.floor)
+  : isC80R31Scene771772Source(json, loadedSha, sceneIndex, view.role, view.floor);
+ return proven ? Object.freeze({sourceSha256: loadedSha, sceneIndex, role: view.role, floor: view.floor}) : null;
+}
+
+/** Layer binding scope derives exclusively from an authenticated R31 scene receipt.
+ * R31 2F views must not inherit a WHOLE/BOTH fallback from the inactive D UI.
+ */
+export function r31ViewerLayerBindingScope(json, loadedSha, sceneIndex) {
+  const proof = r31ViewerLayerSceneReceipt(json, loadedSha, sceneIndex);
+  return proof ? Object.freeze({area: 'D', floor: proof.floor}) : null;
+}
+
 /** Candidate id -> exact source + named views. Unknown ids are not R31 reviews. */
 export function r31WorkTestReview(candidate){
  const table={
@@ -162,9 +184,14 @@ export async function prepareC80R31ReviewScenes(gltf,authenticatedSha,viewSet){
   throw new Error('C80_R31_REVIEW_SOURCE_MISMATCH');
  for(const view of views){
   if(!resolveC80R31ReviewScene(gltf,authenticatedSha,view.role)){
-   await rehydrateIncompleteScene(gltf,view.sceneIndex,{force:true});
+   const rebuilt=await rehydrateIncompleteScene(gltf,view.sceneIndex,{force:true});
    if(!resolveC80R31ReviewScene(gltf,authenticatedSha,view.role))
     throw new Error('C80_R31_REVIEW_GRAPH_MISMATCH');
+   // The initial loader association map predates these verified scene copies.
+   // Keep the exact node indices on the mounted copies for Layers discovery.
+   const associations=gltf.parser.associations;
+   if(rebuilt&&associations instanceof Map)for(const [object,node] of rebuilt)
+    associations.set(object,{...associations.get(object),nodes:node});
   }
  }
 }

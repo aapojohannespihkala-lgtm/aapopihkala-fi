@@ -99,6 +99,111 @@ export function projectNavCube(quaternion, frame = 'local') {
   return Object.freeze(out);
 }
 
+/** Project the complete cube silhouette, including faces seen edge-on. */
+export function projectNavCubeSilhouette(quaternion, frame = 'local') {
+  // Keep the same input checks as the rendered faces.
+  projectNavCube(quaternion, frame);
+  const { north, east, up } = navCubeBasis(frame);
+  const points = [];
+  for (const x of [-1, 1]) for (const y of [-1, 1]) for (const z of [-1, 1]) {
+    const world = add(scale(east, x * NAV_CUBE_HALF),
+      scale(north, y * NAV_CUBE_HALF), scale(up, z * NAV_CUBE_HALF));
+    const v = inverseRotate(world, quaternion);
+    points.push({ x: NAV_CUBE_CENTER + v.x, y: NAV_CUBE_CENTER - v.y });
+  }
+  const unique = [...new Map(points.map(p =>
+    [p.x.toFixed(7) + ',' + p.y.toFixed(7), p])).values()]
+    .sort((a, b) => a.x - b.x || a.y - b.y);
+  const cross = (o, a, b) =>
+    (a.x - o.x) * (b.y - o.y) - (a.y - o.y) * (b.x - o.x);
+  const lower = [], upper = [];
+  for (const p of unique) {
+    while (lower.length >= 2 &&
+        cross(lower[lower.length - 2], lower[lower.length - 1], p) <= 0) lower.pop();
+    lower.push(p);
+  }
+  for (let i = unique.length - 1; i >= 0; i--) {
+    const p = unique[i];
+    while (upper.length >= 2 &&
+        cross(upper[upper.length - 2], upper[upper.length - 1], p) <= 0) upper.pop();
+    upper.push(p);
+  }
+  return Object.freeze([...lower.slice(0, -1), ...upper.slice(0, -1)]
+    .map(p => Object.freeze(p)));
+}
+
+const normalized2d = (x, y) => {
+  const n = Math.hypot(x, y);
+  return n > 1e-8 ? { x: x / n, y: y / n } : null;
+};
+
+/** Positive outside value = distance from convex silhouette, negative = inside. */
+function signedSilhouetteClearance(point, hull) {
+  if (hull.length < 3) return -Infinity;
+  let inside = true;
+  let distance = Infinity;
+  for (let i = 0; i < hull.length; i++) {
+    const a = hull[i], b = hull[(i + 1) % hull.length];
+    const dx = b.x - a.x, dy = b.y - a.y;
+    if (dx * (point.y - a.y) - dy * (point.x - a.x) < -1e-7) inside = false;
+    const t = Math.max(0, Math.min(1,
+      ((point.x - a.x) * dx + (point.y - a.y) * dy) / Math.max(dx * dx + dy * dy, 1e-10)));
+    distance = Math.min(distance, Math.hypot(point.x - a.x - t * dx, point.y - a.y - t * dy));
+  }
+  return inside ? -distance : distance;
+}
+
+/** Clearance (SVG units) that keeps a whole 7px letter and its outline off the cube. */
+// Measured glyph half-diagonal + outline in Chromium is up to ~6.4; keep 7.
+export const NAV_CUBE_LABEL_CLEARANCE = 7;
+// Centre spacing that keeps two 7px letters (with outline) from overlapping.
+export const NAV_CUBE_LABEL_SPACING = 9;
+
+/**
+ * Owner 22.11.2026 15.14: the letter centre lies on the same straight line as
+ * its arrow, beyond the positive arrow tip. If that extension runs across the
+ * cube (inward-pointing tip), the letter moves along the same line until the
+ * whole letter is past the silhouette. No sideways or radial fallback.
+ * No camera/model transforms are changed.
+ */
+const labelInView = (p) => p.x >= 8 && p.x <= 84 && p.y >= 8 && p.y <= 84;
+
+/** Clear positions along the arrow line beyond the tip, nearest first. */
+function onAxisCandidates(tip, d, hull) {
+  const out = [];
+  for (let t = 2; t <= 80; t += 0.25) {
+    const p = { x: tip.x + d.x * t, y: tip.y + d.y * t, t };
+    if (!labelInView(p)) break;
+    if (signedSilhouetteClearance(p, hull) >= NAV_CUBE_LABEL_CLEARANCE) out.push(p);
+  }
+  // Degenerate (tip at the viewport edge): stay on the line, just past the tip.
+  return out.length ? out : [{ x: tip.x + d.x * 2, y: tip.y + d.y * 2, t: 2 }];
+}
+
+/**
+ * Place all letters on their own lines: try every placing order greedily and
+ * keep the order with the least total travel whose letters stay apart.
+ */
+function placeOnAxisLabels(candidateLists) {
+  const n = candidateLists.length;
+  const orders = n <= 1 ? [[0]] : n === 2 ? [[0, 1], [1, 0]]
+    : [[0, 1, 2], [0, 2, 1], [1, 0, 2], [1, 2, 0], [2, 0, 1], [2, 1, 0]];
+  let best = null, bestCost = Infinity;
+  for (const order of orders) {
+    const chosen = new Array(n);
+    let ok = true, cost = 0;
+    for (const i of order) {
+      const p = candidateLists[i].find((c) => chosen.every((q) => !q ||
+        Math.hypot(q.x - c.x, q.y - c.y) >= NAV_CUBE_LABEL_SPACING));
+      if (!p) { ok = false; break; }
+      chosen[i] = p;
+      cost += p.t;
+    }
+    if (ok && cost < bestCost) { best = chosen; bestCost = cost; }
+  }
+  return best ?? candidateLists.map((list) => list[0]);
+}
+
 /**
  * Three positive coordinate-frame axes drawn along actual visible cube edges.
  * Each arrow spans a full edge: the two fixed coordinates select the camera-
@@ -118,6 +223,8 @@ export function projectNavCubeEdgeAxes(quaternion, frame = 'local') {
     return { x: NAV_CUBE_CENTER + v.x, y: NAV_CUBE_CENTER - v.y };
   };
   const out = [];
+  const silhouette = projectNavCubeSilhouette(quaternion, frame);
+  const candidates = [];
   for (let axis = 0; axis < axes.length; axis++) {
     const edgePoint = (sign) => screen(add(...axes.map(({ world }, i) =>
       scale(world, NAV_CUBE_HALF * (i === axis ? sign : facing[i])))));
@@ -130,20 +237,17 @@ export function projectNavCubeEdgeAxes(quaternion, frame = 'local') {
     const normal = { x: -uy * 1.8, y: ux * 1.8 };
     const head = [end, { x: base.x + normal.x, y: base.y + normal.y },
       { x: base.x - normal.x, y: base.y - normal.y }];
-    const midpoint = { x: (start.x + end.x) / 2, y: (start.y + end.y) / 2 };
-    const awayX = midpoint.x - NAV_CUBE_CENTER;
-    const awayY = midpoint.y - NAV_CUBE_CENTER;
-    const awayLength = Math.max(Math.hypot(awayX, awayY), 1);
-    const label = {
-      x: start.x + dx * 0.72 + awayX / awayLength * 4,
-      y: start.y + dy * 0.72 + awayY / awayLength * 4,
-    };
-    out.push(Object.freeze({ key: axes[axis].key, start, end,
+    // The arrowhead stays at the +axis endpoint; the letter travels along the
+    // same line beyond the tip until it is wholly outside the silhouette.
+    candidates.push(onAxisCandidates(end, { x: ux, y: uy }, silhouette));
+    out.push({ key: axes[axis].key, start, end,
       lineEnd: { x: base.x - ux * 0.6, y: base.y - uy * 0.6 },
       head: head.map((p) => `${p.x.toFixed(2)},${p.y.toFixed(2)}`).join(' '),
-      label, length, frame }));
+      label: null, length, frame });
   }
-  return Object.freeze(out);
+  const labels = placeOnAxisLabels(candidates);
+  return Object.freeze(out.map((axis, i) =>
+    Object.freeze({ ...axis, label: Object.freeze({ x: labels[i].x, y: labels[i].y }) })));
 }
 /** Sun on top: circle and eight short rays (face units, half an edge = 1). */
 export const NAV_CUBE_SUN = Object.freeze({ r: 0.2, rayFrom: 0.31, rayTo: 0.47, stroke: 0.057 });
