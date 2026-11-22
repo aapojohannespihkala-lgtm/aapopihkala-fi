@@ -40,6 +40,7 @@ const readCube = (page: Page) => page.evaluate(() => {
   const gizmo = document.querySelector<HTMLElement>('#orientation-gizmo')!;
   const svg = gizmo.querySelector('svg')!;
   const readout = document.querySelector<HTMLElement>('#ai-navigator-readout')!;
+  const toggle = gizmo.querySelector<HTMLButtonElement>('[data-navigation-north="toggle"]')!;
   const corners = Array.from(svg.querySelectorAll<SVGPolygonElement>('.nav-cube-face'))
     .flatMap(face => (face.getAttribute('points') || '').split(' ').filter(Boolean)
       .map(pair => pair.split(',').map(Number)));
@@ -68,6 +69,9 @@ const readCube = (page: Page) => page.evaluate(() => {
     pose: readout.dataset.worldPose,
     quaternion: gizmo.dataset.cameraQuaternion,
     corners, arrows, oldAxesHidden,
+    caption: toggle.dataset.frameLabel,
+    visibleCaption: getComputedStyle(toggle, '::after').content,
+    legacyCaptions: gizmo.querySelectorAll('.orientation-gizmo-title, .orientation-gizmo-note').length,
     error: gizmo.dataset.navCubeError ?? null,
   };
 });
@@ -103,12 +107,18 @@ test('desktop: actual cube edges carry positive X/Y/Z arrows and north switch pr
   await expect(gizmo).toHaveAttribute('data-nav-cube-axis-frame', 'local');
   const local = await readCube(page);
   verifyProjectedEdges(local);
+  expect(local.caption).toBe('YLIS-G1-LOCAL');
+  expect(local.visibleCaption).toContain('YLIS-G1-LOCAL');
+  expect(local.legacyCaptions).toBe(0);
   expect(local.pose).toBeTruthy();
 
   await toggle.click();
   await expect(gizmo).toHaveAttribute('data-nav-cube-axis-frame', 'map');
   const map = await readCube(page);
   verifyProjectedEdges(map);
+  expect(map.caption).toBe('ETRS-GK25');
+  expect(map.visibleCaption).toContain('ETRS-GK25');
+  expect(map.legacyCaptions).toBe(0);
   expect(map.cubeFrame).toBe('map');
   expect(map.pose).toBe(local.pose);
   expect(map.quaternion).toBe(local.quaternion);
@@ -119,6 +129,7 @@ test('desktop: actual cube edges carry positive X/Y/Z arrows and north switch pr
   await expect(gizmo).toHaveAttribute('data-nav-cube-axis-frame', 'local');
   const back = await readCube(page);
   verifyProjectedEdges(back);
+  expect(back.caption).toBe('YLIS-G1-LOCAL');
   expect(back.pose).toBe(local.pose);
   expect(back.arrows).toEqual(local.arrows);
 });

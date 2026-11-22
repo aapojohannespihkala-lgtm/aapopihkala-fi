@@ -162,9 +162,6 @@ export const createOrientationGizmoController = ({
   root.dataset.frame = 'YLIS-G1-LOCAL';
   root.dataset.northAxis = '+Y';
 
-  const title = root.querySelector<HTMLElement>('.orientation-gizmo-title');
-  if (title) title.textContent = 'YLIS-G1-LOCAL · m';
-
   const canvas =
     root.closest('.viewport')?.querySelector<HTMLCanvasElement>('canvas') ??
     document.querySelector<HTMLCanvasElement>('#private-model-canvas');
@@ -221,12 +218,16 @@ export const createOrientationGizmoController = ({
       borderRadius: '5px',
       background: 'transparent',
       color: 'var(--viewer-ink)',
-      fontSize: '10px',
+      // Keep accessible text unchanged; CSS shows only the active frame label.
+      fontSize: '0px',
       lineHeight: '1.3',
       cursor: 'pointer',
       pointerEvents: 'auto',
       touchAction: 'manipulation',
     });
+    // Place the button's visible coordinate-frame caption directly below the SVG,
+    // ahead of the independent diagnostic camera readout.
+    root.insertBefore(northFrameController.button, readout);
     // Owner decision 21.11.2026: clicking the cube itself switches YLIS-G1 /
     // map north; the text under it only shows the active frame.
     northFrameSvg!.style.pointerEvents = 'auto';
