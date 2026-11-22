@@ -43,9 +43,22 @@ export const R31_INSPECTION_COLORS = Object.freeze({
   WATER: 0x1e88e5, WASTEWATER: 0xb2672d, sewer: 0x8e44ad,
 });
 
+/** World-space points of a mesh/line geometry (source order kept). */
+function worldPoints(THREE, object) {
+  const position = object.geometry?.attributes?.position;
+  if (!position) return [];
+  const out = [];
+  for (let i = 0; i < position.count; i += 1) {
+    out.push(new THREE.Vector3().fromBufferAttribute(position, i).applyMatrix4(object.matrixWorld));
+  }
+  return out;
+}
+
 /**
- * Collect drain objects of the verified source scene as world-placed clones.
- * Returns null on any identity mismatch (wrong scene name/pass).
+ * Drain objects of the verified source scene as visible solids. The source
+ * draws them as 1-px lines (routes: line strips, wells and open ends: rings),
+ * so routes become tubes along the exact source vertices and wells/open ends
+ * become markers at the exact source centre. Null on identity mismatch.
  */
 export function buildR31DrainageOverlay(THREE, gltf) {
   const json = gltf?.parser?.json;
@@ -58,22 +71,41 @@ export function buildR31DrainageOverlay(THREE, gltf) {
   const materials = {};
   const material = (kind) => materials[kind] ??= new THREE.MeshStandardMaterial({
     color: R31_INSPECTION_COLORS[kind], emissive: R31_INSPECTION_COLORS[kind], emissiveIntensity: 0.45,
-    roughness: 0.6, metalness: 0, depthTest: true,
+    roughness: 0.6, metalness: 0,
   });
   const counts = { well: 0, route: 0, open: 0 };
   scene.traverse((object) => {
-    if (!object.isMesh) return;
+    if (!object.isMesh && !object.isLine && !object.isLineSegments) return;
     let kind = null;
     for (let node = object; node && node !== scene && !kind; node = node.parent) kind = r31DrainageKind(node.userData);
     if (!kind) return;
-    const clone = new THREE.Mesh(object.geometry, material(kind));
-    clone.name = object.name;
-    clone.matrixAutoUpdate = false;
-    clone.matrix.copy(object.matrixWorld);
-    clone.renderOrder = 6;
-    clone.userData = { ...object.userData, r31InspectionKind: kind, presentationOnly: true,
+    const points = worldPoints(THREE, object);
+    if (points.length < 2) return;
+    let mesh;
+    if (kind === 'route') {
+      // Line strips in source order; LINES pairs are joined the same way.
+      const path = new THREE.CurvePath();
+      for (let i = 1; i < points.length; i += 1) {
+        if (points[i].distanceTo(points[i - 1]) > 1e-6) path.add(new THREE.LineCurve3(points[i - 1], points[i]));
+      }
+      if (!path.curves.length) return;
+      mesh = new THREE.Mesh(new THREE.TubeGeometry(path, Math.max(4, path.curves.length * 6), 0.07, 8, false), material(kind));
+    } else {
+      const box = new THREE.Box3().setFromPoints(points);
+      const centre = box.getCenter(new THREE.Vector3());
+      const size = box.getSize(new THREE.Vector3());
+      const radius = Math.max(0.12, Math.max(size.x, size.z) / 2);
+      mesh = kind === 'well'
+        ? new THREE.Mesh(new THREE.CylinderGeometry(radius, radius, 0.3, 20), material(kind))
+        : new THREE.Mesh(new THREE.OctahedronGeometry(Math.max(0.18, radius)), material(kind));
+      mesh.position.copy(centre);
+      mesh.updateMatrix();
+    }
+    mesh.name = object.name;
+    mesh.renderOrder = 6;
+    mesh.userData = { ...object.userData, r31InspectionKind: kind, presentationOnly: true,
       ModelStage: 'WORK_TEST_VIEW', currentClaim: false, asBuiltClaim: false };
-    group.add(clone);
+    group.add(mesh);
     counts[kind] += 1;
   });
   if (!group.children.length) return null;
