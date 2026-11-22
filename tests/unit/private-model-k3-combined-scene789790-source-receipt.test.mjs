@@ -57,8 +57,9 @@ test('exact 789/790 synthetic scene graphs qualify SOURCE_ONLY, never publishabl
 });
 test('wrong SHA, source revision, role, floor or scene is rejected', () => {
   const j=fixture();
-  for(const sha of [S.parentGlbSha256,S.donorGlbSha256,'0'.repeat(64),'bad',undefined])
+  for(const sha of [S.parentGlbSha256,S.donorGlbSha256,'0'.repeat(64),'bad'])
     assert.equal(check(j,'NORMAL',sha),false);
+  assert.equal(valid(j,undefined,789,'NORMAL','BOTH'),false);
   assert.equal(valid(j,S.glbSha256,790,'NORMAL','BOTH'),false);
   assert.equal(valid(j,S.glbSha256,789,'NORMAL','D1F'),false);
   assert.equal(valid(j,S.glbSha256,789,'OTHER','BOTH'),false);
