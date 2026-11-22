@@ -126,3 +126,43 @@ test('same north-reference switch is keyboard accessible in the compact viewport
   await expect(button).toHaveAttribute('aria-pressed', 'false');
   expect(await activeCameraState(page)).toEqual(before);
 });
+
+test('synthetic north overlay exception cannot blank the canvas or freeze orbit rendering', async ({ page }) => {
+  // Regression for PR2139 -> PR2149: the optional north annotation once
+  // threw inside the render loop and left a default 300x150 blank canvas.
+  // Inject a failure ONLY in that annotation, not Three.js or source loading.
+  await page.addInitScript(() => {
+    const original = Element.prototype.setAttribute;
+    Element.prototype.setAttribute = function (name, value) {
+      if (name === 'x2' && this.getAttribute('data-navigation-north') === 'map-arrow') {
+        throw new Error('SYNTHETIC_NORTH_OVERLAY_FAULT');
+      }
+      return original.call(this, name, value);
+    };
+  });
+  await loadSyntheticViewer(page);
+  const gizmo = page.locator('#orientation-gizmo');
+  const readout = page.locator('#ai-navigator-readout');
+  const canvas = page.locator('#private-model-canvas');
+
+  await expect(gizmo).toHaveAttribute('data-north-frame-error', 'SYNTHETIC_NORTH_OVERLAY_FAULT');
+  await expect(readout).toHaveAttribute('data-ready', 'true');
+  await expect.poll(() => canvas.evaluate((element) =>
+    element.width > 300 && element.height > 150)).toBe(true);
+  const originalPose = await readout.getAttribute('data-world-pose');
+  expect(originalPose).toBeTruthy();
+
+  // The ACTUAL Orbit camera and readout must keep following user input after
+  // the north overlay has failed, rather than passing on an inert first frame.
+  const rect = await canvas.boundingBox();
+  expect(rect).not.toBeNull();
+  await page.mouse.move(rect!.x + rect!.width * .45, rect!.y + rect!.height * .45);
+  await page.mouse.down({ button: 'middle' });
+  await page.mouse.move(rect!.x + rect!.width * .45 + 80, rect!.y + rect!.height * .45 - 24,
+    { steps: 10 });
+  await page.mouse.up({ button: 'middle' });
+  await expect.poll(async () => readout.getAttribute('data-world-pose')).not.toBe(originalPose);
+  await expect(readout).toHaveAttribute('data-ready', 'true');
+  await expect.poll(() => canvas.evaluate((element) =>
+    element.width > 300 && element.height > 150)).toBe(true);
+});
