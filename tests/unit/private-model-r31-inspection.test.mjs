@@ -154,9 +154,9 @@ test('west gable infill closes the opening above the south pier up to the roof u
   const mesh = buildR31WestGableInfill(THREE, new THREE.MeshBasicMaterial());
   mesh.geometry.computeBoundingBox();
   const box = mesh.geometry.boundingBox.clone().applyMatrix4(mesh.matrix);
-  assert.ok(Math.abs(box.min.z) < 1e-6 && Math.abs(box.max.z - 1.72) < 1e-6);
+  assert.ok(Math.abs(box.min.z) < 1e-6 && Math.abs(box.max.z - 1.724) < 1e-6);
   assert.ok(Math.abs(box.min.x + 0.004) < 1e-6 && Math.abs(box.max.x - 0.22) < 1e-6);
-  assert.ok(Math.abs(box.max.y - r31RoofUndersideY(0)) < 1e-6 && Math.abs(box.min.y - 5.28) < 1e-6);
+  assert.ok(Math.abs(box.max.y - r31RoofUndersideY(0)) < 1e-6 && Math.abs(box.min.y - 5.78) < 1e-6);
   assert.ok(isR31ReplacedWestDownpipe('C80R2_D1F_TERRACE_WEST_BRICK_CORNER_DARK_DOWNSPOUT_LOWER_ELBOW_MINUS220_TOP_BRACKET'));
   assert.ok(!isR31ReplacedWestDownpipe('WPA_K01_D_GABLE_SW_BLUE_DOWNSPOUT_PRESENCE_ZONE'));
 });
@@ -211,7 +211,7 @@ test('source K14 east face and its brown boarding stay below R31 AB roof undersi
   const overlay = buildR31GableBoarding(THREE, { eastFace: face }, new THREE.MeshBasicMaterial());
   assert.equal(overlay.children.length, 1);
   check(overlay.children[0].geometry, overlay.children[0].matrix, R31_EAST_BRICK_TOP_Y);
-  // East brick line from the R31 mass references, not the west 5.28.
+  // East brick line from ARK 3 (+26,530), not the west line.
   overlay.children[0].geometry.computeBoundingBox();
   const eb = overlay.children[0].geometry.boundingBox.clone().applyMatrix4(overlay.children[0].matrix);
   assert.ok(Math.abs(eb.min.y - R31_EAST_BRICK_TOP_Y) < 1e-5 && Math.abs(eb.max.y - s.ridgeY) < 1e-4);
@@ -504,4 +504,40 @@ test('R31 owner fibre entry and Locus 2D map remain distinct WORK_ASSUMPTION sou
   assert.equal(route.userData.ModelStage, 'WORK_TEST_VIEW');
   const lastCurve = route.geometry.parameters.path.curves.at(-1);
   assert.ok(lastCurve.v2.distanceTo(new THREE.Vector3(closest.x, R31_FIBER_DISPLAY_Y, -closest.y)) < 1e-6);
+});
+
+test('ARK 3 gable material lines: east 4.78, west 5.78, 1.00 m apart, each to its own roof', async () => {
+  const m = await import('../../src/scripts/privateModelR31Inspection.mjs');
+  assert.ok(Math.abs(m.R31_EAST_BRICK_TOP_Y - 4.78) < 1e-9 && Math.abs(m.R31_WEST_BRICK_TOP_Y - 5.78) < 1e-9);
+  assert.ok(Math.abs(m.R31_WEST_BRICK_TOP_Y - m.R31_EAST_BRICK_TOP_Y - 1.0) < 1e-9);
+  assert.ok(Math.abs(m.r31RoofUndersideY(-4.58) - m.r31ABRoofUndersideY(-4.58) - 1.0) < 0.001);
+  // Source ALEMPI outline (x 0..0.22, z 0..-10.81, y 5.28..6.15, north edge on the underside).
+  const shape = new THREE.Shape([[0, 5.28], [0, 6.15], [-10.075, 6.15], [-10.562, 6.028], [-10.81, 5.966], [-10.81, 5.28]].map(([z, y]) => new THREE.Vector2(z, y)));
+  const geo = new THREE.ExtrudeGeometry(shape, { depth: 0.22, bevelEnabled: false });
+  const alempi = new THREE.Mesh(geo, new THREE.MeshBasicMaterial());
+  alempi.name = 'C80_D_KATON_LANSIPAATY_ALEMPI_WORK_TEST';
+  alempi.matrixAutoUpdate = false;
+  alempi.matrix.makeBasis(new THREE.Vector3(0, 0, 1), new THREE.Vector3(0, 1, 0), new THREE.Vector3(1, 0, 0));
+  alempi.matrixWorld.copy(alempi.matrix);
+  alempi.updateWorldMatrix = () => {};
+  const group = m.buildR31GableBoarding(THREE, { westMeshes: [alempi] }, new THREE.MeshBasicMaterial());
+  const w = group.children[0];
+  const pos = w.geometry.getAttribute('position');
+  let minY = Infinity;
+  for (let k = 0; k < pos.count; k += 1) {
+    const y = pos.getY(k); const z = pos.getZ(k);
+    minY = Math.min(minY, y);
+    assert.ok(y <= m.r31RoofUndersideY(z) + 1e-6, 'west boarding stays under the C/D underside');
+  }
+  assert.ok(Math.abs(minY - 5.78) < 1e-6, 'west boarding starts at the ARK 3 brick line');
+  // Brick completion: edge-to-edge on the existing wall top, no overlap.
+  const pierBox = new THREE.Box3(new THREE.Vector3(-0.021, 2.575, -10.81), new THREE.Vector3(0.241, 5.30, 1.724));
+  const brick = m.buildR31WestBrickCompletion(THREE, new THREE.MeshBasicMaterial(), pierBox);
+  brick.geometry.computeBoundingBox();
+  const b = brick.geometry.boundingBox.clone().applyMatrix4(brick.matrix);
+  assert.ok(Math.abs(b.min.y - 5.30) < 1e-9 && Math.abs(b.max.y - 5.78) < 1e-9);
+  assert.ok(Math.abs(b.min.x + 0.021) < 1e-9 && Math.abs(b.max.z - 1.724) < 1e-9 && Math.abs(b.min.z + 10.81) < 1e-9);
+  // Edges: brown band remains under both eaves (0.17-0.19 m), no gap to the roof.
+  assert.ok(m.r31RoofUndersideY(1.724) - 5.78 > 0.16 && m.r31ABRoofUndersideY(1.709) - 4.78 > 0.16);
+  assert.equal(m.buildR31WestBrickCompletion(THREE, null, new THREE.Box3(new THREE.Vector3(), new THREE.Vector3(0, 6, 0))), null);
 });
