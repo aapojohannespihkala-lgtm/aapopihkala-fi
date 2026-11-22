@@ -308,6 +308,18 @@ export const R31_EAST_GABLE_SOURCE = Object.freeze({
   namePattern: /^(K14_A_GABLE_EXTERIOR_FACE|K14_K12_A_GABLE_DREF_)/,
 });
 
+/**
+ * The K14 face shares the reference mass plane x = 25.40 (coplanar depth
+ * fight; polygonOffset is unreliable with the reversed depth buffer): show
+ * it 8 mm outward. Presentation-only, recorded on the object.
+ */
+export const R31_EAST_GABLE_FACE_LIFT_M = 0.008;
+function liftGableFace(THREE, mesh) {
+  if (!/^K14_A_GABLE_EXTERIOR_FACE/.test(mesh.name ?? '')) return;
+  mesh.matrix.premultiply(new THREE.Matrix4().makeTranslation(R31_EAST_GABLE_FACE_LIFT_M, 0, 0));
+  mesh.userData = { ...mesh.userData, presentationLiftXM: R31_EAST_GABLE_FACE_LIFT_M };
+}
+
 export function buildR31EastGableOverlay(THREE, gltf) {
   const json = gltf?.parser?.json;
   const associations = gltf?.parser?.associations;
@@ -320,17 +332,11 @@ export function buildR31EastGableOverlay(THREE, gltf) {
   scene.traverse((object) => {
     const index = associations.get(object)?.nodes;
     if (!object.isMesh || !wanted.has(index) || !R31_EAST_GABLE_SOURCE.namePattern.test(json?.nodes?.[index]?.name ?? '')) return;
-    // The face shares the reference mass plane x = 25.40: win the depth tie.
-    const material = Array.isArray(object.material) ? object.material : object.material?.clone?.();
-    if (material && !Array.isArray(material)) {
-      material.polygonOffset = true;
-      material.polygonOffsetFactor = -1;
-      material.polygonOffsetUnits = -1;
-    }
-    const clone = new THREE.Mesh(object.geometry, material ?? object.material);
+    const clone = new THREE.Mesh(object.geometry, object.material);
     clone.name = object.name;
     clone.matrixAutoUpdate = false;
     clone.matrix.copy(object.matrixWorld);
+    liftGableFace(THREE, clone);
     clone.userData = { ...object.userData, sourceNode: index, sourceScene: R31_EAST_GABLE_SOURCE.sceneIndex,
       presentationOnly: true, ModelStage: 'WORK_TEST_VIEW', basis: 'OWNER_20261122_EAST_GABLE_AS_WIDE_AS_WEST' };
     group.add(clone);
@@ -380,14 +386,11 @@ export async function loadR31EastGableOverlay(THREE, gltf) {
     const world = jsonWorldMatrix(THREE, json, index, parentOf);
     const list = meshes?.isMesh ? [meshes] : (meshes?.children ?? []).filter((m) => m.isMesh);
     for (const mesh of list) {
-      const material = mesh.material?.clone?.() ?? mesh.material;
-      if (material && !Array.isArray(material)) {
-        material.polygonOffset = true; material.polygonOffsetFactor = -1; material.polygonOffsetUnits = -1;
-      }
-      const clone = new THREE.Mesh(mesh.geometry, material);
+      const clone = new THREE.Mesh(mesh.geometry, mesh.material);
       clone.name = node.name;
       clone.matrixAutoUpdate = false;
       clone.matrix.copy(world);
+      liftGableFace(THREE, clone);
       clone.userData = { ...(node.extras ?? {}), sourceNode: index, sourceScene: R31_EAST_GABLE_SOURCE.sceneIndex,
         presentationOnly: true, ModelStage: 'WORK_TEST_VIEW', basis: 'OWNER_20261122_EAST_GABLE_AS_WIDE_AS_WEST' };
       group.add(clone);
