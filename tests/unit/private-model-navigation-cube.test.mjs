@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { projectNavCube, projectNavCubeEdgeAxes, navCubeFacePrint, navCubeBasis, NAV_CUBE_GROUND_RINGS, NAV_CUBE_RING, NAV_CUBE_SUN, NAV_CUBE_HALF } from '../../src/scripts/privateModelNavigationCube.mjs';
+import { projectNavCube, projectNavCubeEdgeAxes, projectNavCubeSilhouette, navCubeFacePrint, navCubeBasis, NAV_CUBE_GROUND_RINGS, NAV_CUBE_RING, NAV_CUBE_SUN, NAV_CUBE_HALF } from '../../src/scripts/privateModelNavigationCube.mjs';
 
 const unit = (q) => { const n = Math.hypot(q.x, q.y, q.z, q.w); return { x: q.x / n, y: q.y / n, z: q.z / n, w: q.w / n }; };
 const keys = (faces) => faces.map((f) => f.key).sort();
@@ -122,4 +122,72 @@ test('face prints hide when the face is almost edge-on', () => {
   assert.equal(navCubeFacePrint({ ...face, facing: 0.05 }), null);
   assert.equal(navCubeFacePrint({ ...face, matrix: [NaN, 0, 0, 1, 0, 0] }), null);
   assert.ok(navCubeFacePrint(face).opacity > 0.9);
+});
+
+/** Independent distance check against the eight-vertex convex silhouette. */
+function exteriorClearance(point, hull) {
+  let inside = true, closest = Infinity;
+  for (let i = 0; i < hull.length; i++) {
+    const a = hull[i], b = hull[(i + 1) % hull.length];
+    const dx = b.x - a.x, dy = b.y - a.y;
+    if (dx * (point.y - a.y) - dy * (point.x - a.x) < -1e-7) inside = false;
+    const t = Math.max(0, Math.min(1,
+      ((point.x - a.x) * dx + (point.y - a.y) * dy) / Math.max(dx * dx + dy * dy, 1e-8)));
+    closest = Math.min(closest, Math.hypot(point.x - a.x - t * dx, point.y - a.y - t * dy));
+  }
+  return inside ? -closest : closest;
+}
+
+test('owner rule: every X/Y/Z glyph stays entirely outside silhouette for both north frames and rotating cameras', () => {
+  const q0 = { x: 0, y: 0, z: 0, w: 1 };
+  const poses = [
+    q0,
+    { x: -Math.SQRT1_2, y: 0, z: 0, w: Math.SQRT1_2 },
+    unit({ x: -0.2264, y: 0.371, z: 0.0938, w: 0.8957 }),
+    ...Array.from({ length: 48 }, (_, i) => unit({
+      x: Math.sin(i * 0.37) * 0.7,
+      y: Math.cos(i * 0.29) * 0.8,
+      z: Math.sin(i * 0.43) * 0.45,
+      w: 0.4 + Math.cos(i * 0.19) * 0.48,
+    })),
+  ];
+  for (const frame of ['local', 'map']) for (const [i, q] of poses.entries()) {
+    const hull = projectNavCubeSilhouette(q, frame);
+    const arrows = projectNavCubeEdgeAxes(q, frame);
+    assert.ok(hull.length >= 3 && hull.length <= 6, frame + ' pose ' + i + ' convex hull');
+    const labels = [];
+    for (const axis of arrows) {
+      const { x, y } = axis.label;
+      assert.ok(x >= 8 && x <= 84 && y >= 8 && y <= 84,
+        frame + '/' + i + '/' + axis.key + ' glyph within SVG bounds');
+      // 7px uppercase text + 1.25px outline fits inside 6.25px radius.
+      assert.ok(exteriorClearance(axis.label, hull) >= 6.20,
+        frame + '/' + i + '/' + axis.key + ' glyph must clear entire cube');
+      assert.ok(labels.every(p => Math.hypot(p.x - x, p.y - y) >= 10.9),
+        frame + '/' + i + '/' + axis.key + ' distinct labels');
+      labels.push(axis.label);
+      // Preserve +axis arrow direction: the first polygon vertex is the
+      // projected positive endpoint, never a text-position surrogate.
+      assert.equal(axis.head.split(' ')[0],
+        axis.end.x.toFixed(2) + ',' + axis.end.y.toFixed(2));
+      const dx = axis.end.x - axis.start.x, dy = axis.end.y - axis.start.y;
+      assert.ok(Math.hypot(dx, dy) > 2.5);
+    }
+  }
+  assert.deepEqual(q0, { x: 0, y: 0, z: 0, w: 1 }, 'never modify camera quaternion');
+});
+
+test('positive axis arrowhead remains on cube edge while letter is outside in a head-on view', () => {
+  const q = { x: 0, y: 0, z: 0, w: 1 };
+  const silhouette = projectNavCubeSilhouette(q, 'local');
+  const edges = projectNavCubeEdgeAxes(q, 'local');
+  for (const edge of edges) {
+    assert.ok(exteriorClearance(edge.label, silhouette) > 6);
+    // The arrowhead endpoint remains at the original 30px cube edge.
+    assert.equal(edge.length, 2 * NAV_CUBE_HALF);
+  }
+  const x = edges.find(e => e.key === 'x');
+  const z = edges.find(e => e.key === 'z');
+  assert.ok(x.label.x > x.end.x, '+X letter after the positive tip');
+  assert.ok(z.label.y < z.end.y, '+Z letter after the positive tip');
 });
