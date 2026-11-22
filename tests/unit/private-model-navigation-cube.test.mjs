@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { projectNavCube, projectNavCubeEdgeAxes, projectNavCubeSilhouette, navCubeFacePrint, navCubeBasis, NAV_CUBE_GROUND_RINGS, NAV_CUBE_RING, NAV_CUBE_SUN, NAV_CUBE_HALF } from '../../src/scripts/privateModelNavigationCube.mjs';
+import { createNavCubeAxisState, mountNavigationCube, projectNavCube, projectNavCubeEdgeAxes, projectNavCubeSilhouette, navCubeFacePrint, navCubeBasis, NAV_CUBE_GROUND_RINGS, NAV_CUBE_RING, NAV_CUBE_SUN, NAV_CUBE_HALF } from '../../src/scripts/privateModelNavigationCube.mjs';
 
 const unit = (q) => { const n = Math.hypot(q.x, q.y, q.z, q.w); return { x: q.x / n, y: q.y / n, z: q.z / n, w: q.w / n }; };
 const keys = (faces) => faces.map((f) => f.key).sort();
@@ -233,5 +233,82 @@ test('owner 22.11.2026 16.13: letter on its arrow line, past the nearer arrow en
       assert.ok(Math.hypot(labels[i].x - labels[j].x, labels[i].y - labels[j].y) >= 8.9, `${name}/${frame} spacing`);
   }
   assert.ok(tails > 0, 'opposite (tail-side) placement is exercised');
+});
+
+test('mounted SVG labels expose and refresh their arrow end in both frames', () => {
+  const createElementNS = () => {
+    const attributes = new Map();
+    const children = [];
+    return {
+      children,
+      dataset: {},
+      style: {},
+      setAttribute: (name, value) => attributes.set(name, String(value)),
+      getAttribute: (name) => attributes.get(name),
+      append: (...nodes) => children.push(...nodes),
+      replaceChildren: () => { children.length = 0; },
+    };
+  };
+  const svg = createElementNS();
+  svg.ownerDocument = { createElementNS };
+  svg.insertBefore = (node) => svg.children.unshift(node);
+  const { render } = mountNavigationCube({ svg });
+  const axisLabels = () => Object.fromEntries(svg.children[0].children.at(-1).children
+    .filter((node) => node.getAttribute('data-cube-edge-label'))
+    .map((node) => [node.getAttribute('data-cube-edge-label'), node.getAttribute('data-cube-edge-label-end')]));
+  const headOn = { x: 0, y: 0, z: 0, w: 1 };
+  const oblique = unit({ x: -0.2264, y: 0.371, z: 0.0938, w: 0.8957 });
+
+  for (const frame of ['local', 'map']) {
+    render(oblique, frame);
+    assert.deepEqual(axisLabels(), { x: 'tail', y: 'tip', z: 'tail' }, `${frame} oblique`);
+    render(headOn, frame);
+    // Owner 22.11.2026 16.39 (no flicker): the mounted cube keeps per-frame
+    // memory, so it shows exactly what the stateful projection gives.
+    const replay = createNavCubeAxisState();
+    projectNavCubeEdgeAxes(oblique, frame, replay);
+    const expected = Object.fromEntries(projectNavCubeEdgeAxes(headOn, frame, replay)
+      .map((a) => [a.key, a.label.end]));
+    assert.deepEqual(axisLabels(), expected, `${frame} head-on after oblique`);
+    assert.equal(axisLabels().z, 'tail', `${frame} Z keeps its side when not clearly nearer`);
+  }
+  // A fresh mount (no history) still refreshes to the nearest end: the +tip.
+  const fresh = createElementNS();
+  fresh.ownerDocument = { createElementNS };
+  fresh.insertBefore = (node) => fresh.children.unshift(node);
+  mountNavigationCube({ svg: fresh }).render(headOn, 'local');
+  const freshLabels = Object.fromEntries(fresh.children[0].children.at(-1).children
+    .filter((node) => node.getAttribute('data-cube-edge-label'))
+    .map((node) => [node.getAttribute('data-cube-edge-label'), node.getAttribute('data-cube-edge-label-end')]));
+  assert.deepEqual(freshLabels, { x: 'tip', z: 'tip' }, 'fresh head-on');
+});
+
+test('owner 16.39: axis hide/show uses hysteresis, carrying edge and letter end do not flicker', () => {
+  const deg = Math.PI / 180;
+  const qFrom = (yaw, pitch) => {
+    const cy = Math.cos(yaw / 2), sy = Math.sin(yaw / 2), cp = Math.cos(pitch / 2), sp = Math.sin(pitch / 2);
+    return unit({ x: cy * sp, y: sy * cp, z: -sy * sp, w: cy * cp });
+  };
+  for (const frame of ['local', 'map']) {
+    const state = createNavCubeAxisState();
+    // Jitter across the HIDE limit near a top view: pitch -80.5..-83.5 deg (Z edge ~3.3..4.9).
+    let switches = 0, prev = null, prevSig = null;
+    for (let k = 0; k < 60; k++) {
+      const pitch = (-82 + Math.sin(k * 1.7) * 1.5) * deg;
+      const axes = projectNavCubeEdgeAxes(qFrom(-40 * deg + Math.sin(k) * 0.02, pitch), frame, state);
+      const keys = axes.map((a) => a.key).join('');
+      const sig = axes.map((a) => a.key + a.label.end + Math.round(a.start.x) + ',' + Math.round(a.start.y)).join('|');
+      if (prev !== null && keys !== prev) switches++;
+      prev = keys; prevSig = sig;
+    }
+    assert.ok(switches <= 1, `${frame}: at most one change, no on/off flicker (${switches})`);
+    // Hidden axis returns only past the SHOW limit.
+    const s2 = createNavCubeAxisState();
+    const zIn = (p) => projectNavCubeEdgeAxes(qFrom(-40 * deg, p * deg), frame, s2).some((a) => a.key === 'z');
+    assert.equal(zIn(-89), false, 'hidden when looking straight down');
+    assert.equal(zIn(-79), false, 'still hidden inside the hysteresis band');
+    assert.equal(zIn(-70), true, 'back when clearly oblique');
+    assert.equal(zIn(-79), true, 'stays visible inside the band once shown');
+  }
 });
 
