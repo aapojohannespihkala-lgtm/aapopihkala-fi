@@ -7,9 +7,9 @@
  * The original G2b ZIP and its prior QA are immutable.
  */
 export const K3_SW02_777778_SOURCE = Object.freeze({
-  zipDriveId: '1dxKQCkpiD8-cSrsEzv6RBdxzmW0hOsKJ',
-  zipSha256: '2e726077fe93eef536b66741f3a41f715c8dcf96c82b911ee2110e43e469d333',
-  glbSha256: '9e12d439ff220a96648d73eb805a759631d28fd9f53d3d366b9ce9a56fe279e9',
+  zipDriveId: '1QREA5stxJShXNupCf0gsEaag2lo0zQPM',
+  zipSha256: '30b648593babf3234caba7186481f5976579d890af7048af6c9ecd71194d03ed',
+  glbSha256: '9a33adeed011d7605cb84cf7897a0fa64206ce9f7405d44542b7bf8a3f984ec8',
   glbBytes: 63860908,
   parentZipDriveId: '1lu-qeiTmygOh-ZNJgZ_VPKK6tlORGnVL',
   parentGlbSha256: '96677bd79cef10d4daf49c5a0143413c55c6481f400e189ae2884b9e9ccf5128',
@@ -84,8 +84,8 @@ export function isK3Sw02Scene777778Source(json, authenticatedGlbSha256, sceneInd
 
   const node = json.nodes[s.newRoot];
   const x = node?.extras;
-  // The 22 Nov original ZIP fails here: its SW02 root still says D2F-SW-01.
-  // This is an intentional HOLD until a new, correctly attributed GLB SHA.
+  // The corrected 22 Nov SW02 GLB has D2F-SW-02; the old SHA and D2F-SW-01 fail closed.
+  // Correct source identity does not authorize publishing or establish a physical host.
   if (x?.stableID !== 'D2F-SW-02' ||
       x?.floor !== 'D2F' ||
       x?.sourceOriginalZipDriveID !== s.parentZipDriveId ||
