@@ -158,7 +158,7 @@ test('owner rule: every X/Y/Z glyph stays entirely outside silhouette for both n
     const labels = [];
     for (const axis of arrows) {
       const { x, y } = axis.label;
-      assert.ok(x >= 5 && x <= 87 && y >= 5 && y <= 87,
+      assert.ok(x >= 8 && x <= 84 && y >= 8 && y <= 84,
         frame + '/' + i + '/' + axis.key + ' glyph within SVG bounds');
       // 7px uppercase text + 1.25px outline fits inside 6.25px radius.
       assert.ok(exteriorClearance(axis.label, hull) >= 6.20,

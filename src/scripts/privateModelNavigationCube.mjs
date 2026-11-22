@@ -154,8 +154,8 @@ function signedSilhouetteClearance(point, hull) {
 }
 
 /** Clearance (SVG units) that keeps a whole 7px letter and its outline off the cube. */
-// 7px uppercase letter + 1.25px outline fits inside a 6.25px radius.
-export const NAV_CUBE_LABEL_CLEARANCE = 6.25;
+// Measured glyph half-diagonal + outline in Chromium is up to ~6.4; keep 7.
+export const NAV_CUBE_LABEL_CLEARANCE = 7;
 // Centre spacing that keeps two 7px letters (with outline) from overlapping.
 export const NAV_CUBE_LABEL_SPACING = 9;
 
@@ -166,7 +166,7 @@ export const NAV_CUBE_LABEL_SPACING = 9;
  * whole letter is past the silhouette. No sideways or radial fallback.
  * No camera/model transforms are changed.
  */
-const labelInView = (p) => p.x >= 5 && p.x <= 87 && p.y >= 5 && p.y <= 87;
+const labelInView = (p) => p.x >= 8 && p.x <= 84 && p.y >= 8 && p.y <= 84;
 
 /** Clear positions along the arrow line beyond the tip, nearest first. */
 function onAxisCandidates(tip, d, hull) {
