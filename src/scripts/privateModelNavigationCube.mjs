@@ -158,6 +158,24 @@ function signedSilhouetteClearance(point, hull) {
 export const NAV_CUBE_LABEL_CLEARANCE = 7;
 // Centre spacing that keeps two 7px letters (with outline) from overlapping.
 export const NAV_CUBE_LABEL_SPACING = 9;
+/**
+ * Owner 22.11.2026 16.39: a clear, flicker-free rule for hiding an axis.
+ * An axis (arrow + letter) is hidden only when the camera looks almost along
+ * it: its projected 30-unit edge is shorter than HIDE (about 8 degrees). It
+ * comes back only when the edge is longer than SHOW (about 13 degrees). The
+ * gap between the two limits stops on/off flicker near top/side views.
+ */
+export const NAV_CUBE_AXIS_HIDE_LENGTH = 4;
+export const NAV_CUBE_AXIS_SHOW_LENGTH = 7;
+/** Keep the edge carrying an arrow until its face turns clearly (|n.z| > this). */
+export const NAV_CUBE_AXIS_FACING_HYSTERESIS = 0.12;
+/** Keep the letter on its previous end until the other end is this much nearer. */
+export const NAV_CUBE_LABEL_END_HYSTERESIS = 10;
+
+/** Per-frame memory for flicker-free axis drawing (one per coordinate frame). */
+export function createNavCubeAxisState() {
+  return { facing: null, visible: {}, end: {} };
+}
 
 /**
  * Owner 22.11.2026 15.14, refined 16.13: the letter centre lies on the same
@@ -182,15 +200,24 @@ function onAxisCandidates(endPoint, d, hull, end) {
 
 /**
  * Both line extensions merged nearest-first; on equal travel the +tip side
- * wins. Degenerate (both ends at the viewport edge): just past the tip.
+ * wins. With `preferEnd` (the side used on the previous frame) that side is
+ * kept while it is at most NAV_CUBE_LABEL_END_HYSTERESIS longer, so a slowly
+ * orbiting camera never makes a letter jump back and forth across the cube.
+ * Degenerate (both ends at the viewport edge): just past the tip.
  */
-function bothEndCandidates(start, end, d, hull) {
+function bothEndCandidates(start, end, d, hull, preferEnd = null) {
   const merged = [
     ...onAxisCandidates(end, d, hull, 'tip'),
     ...onAxisCandidates(start, { x: -d.x, y: -d.y }, hull, 'tail'),
   ].sort((a, b) => a.t - b.t || (a.end === 'tip' ? -1 : 1));
-  return merged.length ? merged
-    : [{ x: end.x + d.x * 2, y: end.y + d.y * 2, t: 2, end: 'tip' }];
+  if (!merged.length) return [{ x: end.x + d.x * 2, y: end.y + d.y * 2, t: 2, end: 'tip' }];
+  if (preferEnd && merged[0].end !== preferEnd) {
+    const kept = merged.filter((c) => c.end === preferEnd);
+    if (kept.length && kept[0].t <= merged[0].t + NAV_CUBE_LABEL_END_HYSTERESIS) {
+      return [...kept, ...merged.filter((c) => c.end !== preferEnd)];
+    }
+  }
+  return merged;
 }
 
 /**
@@ -222,15 +249,22 @@ function placeOnAxisLabels(candidateLists) {
  * Each arrow spans a full edge: the two fixed coordinates select the camera-
  * facing faces, while the selected coordinate runs from -half to +half.
  * Map X/Y follow EPSG:3879 east/north, local X/Y follow YLIS-G1; Z is up.
- * End-on projected edges are omitted instead of showing a false direction.
+ * Near end-on edges are omitted instead of showing a false direction; with a
+ * `state` from createNavCubeAxisState() the hide/show limits, the carrying
+ * edge and the letter end all use hysteresis so nothing flickers.
  */
-export function projectNavCubeEdgeAxes(quaternion, frame = 'local') {
+export function projectNavCubeEdgeAxes(quaternion, frame = 'local', state = null) {
   // Use the same finite quaternion / known-frame contract as the face renderer.
   projectNavCube(quaternion, frame);
   const { north, east, up } = navCubeBasis(frame);
   const axes = [{ key: 'x', world: east }, { key: 'y', world: north }, { key: 'z', world: up }];
-  const facing = axes.map(({ world }) =>
-    inverseRotate(world, quaternion).z >= 0 ? 1 : -1);
+  const facing = axes.map(({ world }, i) => {
+    const z = inverseRotate(world, quaternion).z;
+    const prev = state?.facing?.[i];
+    if (prev && Math.abs(z) <= NAV_CUBE_AXIS_FACING_HYSTERESIS) return prev;
+    return z >= 0 ? 1 : -1;
+  });
+  if (state) state.facing = facing;
   const screen = (point) => {
     const v = inverseRotate(point, quaternion);
     return { x: NAV_CUBE_CENTER + v.x, y: NAV_CUBE_CENTER - v.y };
@@ -244,7 +278,13 @@ export function projectNavCubeEdgeAxes(quaternion, frame = 'local') {
     const start = edgePoint(-1), end = edgePoint(1);
     const dx = end.x - start.x, dy = end.y - start.y;
     const length = Math.hypot(dx, dy);
-    if (length < 2.5) continue;
+    const key = axes[axis].key;
+    const wasVisible = state ? state.visible[key] !== false : true;
+    const visible = state && !wasVisible
+      ? length > NAV_CUBE_AXIS_SHOW_LENGTH
+      : length >= NAV_CUBE_AXIS_HIDE_LENGTH;
+    if (state) state.visible[key] = visible;
+    if (!visible) { if (state) delete state.end[key]; continue; }
     const ux = dx / length, uy = dy / length;
     const base = { x: end.x - ux * 3.4, y: end.y - uy * 3.4 };
     const normal = { x: -uy * 1.8, y: ux * 1.8 };
@@ -252,13 +292,15 @@ export function projectNavCubeEdgeAxes(quaternion, frame = 'local') {
       { x: base.x - normal.x, y: base.y - normal.y }];
     // The arrowhead stays at the +axis endpoint; the letter travels along the
     // same line beyond the nearer arrow end until it is wholly outside.
-    candidates.push(bothEndCandidates(start, end, { x: ux, y: uy }, silhouette));
-    out.push({ key: axes[axis].key, start, end,
+    candidates.push(bothEndCandidates(start, end, { x: ux, y: uy }, silhouette,
+      state?.end[key] ?? null));
+    out.push({ key, start, end,
       lineEnd: { x: base.x - ux * 0.6, y: base.y - uy * 0.6 },
       head: head.map((p) => `${p.x.toFixed(2)},${p.y.toFixed(2)}`).join(' '),
       label: null, length, frame });
   }
   const labels = placeOnAxisLabels(candidates);
+  if (state) out.forEach((axis, i) => { state.end[axis.key] = labels[i].end; });
   return Object.freeze(out.map((axis, i) =>
     Object.freeze({ ...axis, label: Object.freeze({ x: labels[i].x, y: labels[i].y, end: labels[i].end }) })));
 }
@@ -303,6 +345,7 @@ export function mountNavigationCube({ svg, root }) {
   const edgeArrows = doc.createElementNS(SVG_NS, 'g');
   edgeArrows.setAttribute('class', 'nav-cube-edge-axes');
   const arrowSlots = new Map();
+  const axisStates = {};
   const arrowColors = { x: '#e99a9a', y: '#9cd4ab', z: '#95c3e1' };
   for (const key of ['x', 'y', 'z']) {
     const line = doc.createElementNS(SVG_NS, 'line');
@@ -409,7 +452,8 @@ export function mountNavigationCube({ svg, root }) {
         printed.push(face.key);
       }
     }
-    const axes = projectNavCubeEdgeAxes(quaternion, frame);
+    const axisState = axisStates[frame] ??= createNavCubeAxisState();
+    const axes = projectNavCubeEdgeAxes(quaternion, frame, axisState);
     edgeArrows.replaceChildren();
     for (const axis of axes) {
       const { line, head, label } = arrowSlots.get(axis.key);
