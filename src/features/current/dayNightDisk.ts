@@ -1,6 +1,8 @@
 // Mirrors Android SolarDetailVisual.kt and the web Widget's 24-hour disk.
 // The latitude-based solar ellipse remains available on /current/weather/.
-const CIRCLE_RADIUS_PERCENT = 43;
+const CIRCLE_RADIUS_PERCENT = 50;
+// The 1px CSS ring is drawn around its border centre, 0.5px outside the content box.
+const HALF_RING_STROKE_PX = 0.5;
 
 const readClockMinutes = (clock: string): number | null => {
   const match = /^(\d{2}):(\d{2})$/.exec(clock);
@@ -15,8 +17,9 @@ const readClockMinutes = (clock: string): number | null => {
 export type DayNightDiskGeometry = {
   sunX: number;
   sunY: number;
+  sunRimX: number;
+  sunRimY: number;
   horizonY: number;
-  horizonLeft: number;
   aboveHorizon: boolean;
 };
 
@@ -34,17 +37,18 @@ export const getDayNightDiskGeometry = (
   const daylightFraction = (set - rise) / 1440;
   const horizonOffset = Math.cos(Math.PI * daylightFraction);
   const horizonY = 50 - CIRCLE_RADIUS_PERCENT * horizonOffset;
-  const horizonLeft =
-    50 - CIRCLE_RADIUS_PERCENT * Math.sqrt(Math.max(0, 1 - horizonOffset ** 2));
   const solarNoon = (rise + set) / 2;
   const elapsed = ((nowMinutes - solarNoon) % 1440 + 1440) % 1440;
   const angle = (2 * Math.PI * elapsed) / 1440;
+  const sinAngle = Math.sin(angle);
+  const cosAngle = Math.cos(angle);
 
   return {
-    sunX: 50 + CIRCLE_RADIUS_PERCENT * Math.sin(angle),
-    sunY: 50 - CIRCLE_RADIUS_PERCENT * Math.cos(angle),
+    sunX: 50 + CIRCLE_RADIUS_PERCENT * sinAngle,
+    sunY: 50 - CIRCLE_RADIUS_PERCENT * cosAngle,
+    sunRimX: HALF_RING_STROKE_PX * sinAngle,
+    sunRimY: -HALF_RING_STROKE_PX * cosAngle,
     horizonY,
-    horizonLeft,
     aboveHorizon: nowMinutes >= rise && nowMinutes <= set,
   };
 };
@@ -86,8 +90,9 @@ export const initCurrentDayNightDisk = () => {
 
     disk.style.setProperty('--sun-x', `${geometry.sunX.toFixed(2)}%`);
     disk.style.setProperty('--sun-y', `${geometry.sunY.toFixed(2)}%`);
+    disk.style.setProperty('--sun-rim-x', `${geometry.sunRimX.toFixed(3)}px`);
+    disk.style.setProperty('--sun-rim-y', `${geometry.sunRimY.toFixed(3)}px`);
     disk.style.setProperty('--horizon-y', `${geometry.horizonY.toFixed(2)}%`);
-    disk.style.setProperty('--horizon-left', `${geometry.horizonLeft.toFixed(2)}%`);
     disk.style.setProperty('--sun-fill', geometry.aboveHorizon ? 'var(--moss-deep)' : 'transparent');
     disk.dataset.sunAboveHorizon = String(geometry.aboveHorizon);
   };

@@ -41,19 +41,10 @@
   );
 }
 
-.current-shell .current-weather .weather-daynight-disk::after {
-  content: "";
-  position: absolute;
-  top: var(--horizon-y, 50%);
-  left: var(--horizon-left, 0%);
-  right: var(--horizon-left, 0%);
-  border-top: 1px solid var(--stone-light);
-}
-
 .current-shell .current-weather .weather-daynight-disk i {
   position: absolute;
-  left: var(--sun-x, 50%);
-  top: var(--sun-y, 8%);
+  left: calc(var(--sun-x, 50%) + var(--sun-rim-x, 0px));
+  top: calc(var(--sun-y, 8%) + var(--sun-rim-y, 0px));
   width: 5px;
   height: 5px;
   translate: -50% -50%;
