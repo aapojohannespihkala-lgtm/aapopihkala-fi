@@ -2753,7 +2753,7 @@ const title = 'Private 3D viewer';
       // @ts-ignore - R31 review roots and inspection overlays have unit coverage.
       import { resolveC80R31TechnicalReviewRoots } from '../../scripts/privateModelC80R31TechnicalReview.mjs';
       // @ts-ignore - pure overlay builders, THREE injected.
-      import { R31_DRAINAGE_SOURCE, R31_EXTERIOR_DONORS, buildR31DrainageOverlay, buildR31InfraOverlay, buildR31FiberOverlay, buildR31ExteriorDonorOverlay, buildR31WestGableInfill, isR31ReplacedWestDownpipe, loadR31EastGableOverlay, relocateR31Downpipes } from '../../scripts/privateModelR31Inspection.mjs';
+      import { R31_DRAINAGE_SOURCE, R31_EXTERIOR_DONORS, buildR31DrainageOverlay, buildR31InfraOverlay, buildR31FiberOverlay, buildR31ExteriorDonorOverlay, buildR31WestGableInfill, isR31ReplacedWestDownpipe, loadR31EastGableOverlay, relocateR31Downpipes, syncR31ExteriorDonorMaterials } from '../../scripts/privateModelR31Inspection.mjs';
       import { R31_LOCUS_FIBER_LINES } from '../../scripts/privateModelR31LocusFiber.mjs';
       import { resolveTechnicalReviewRoots, createTechnicalReviewPresentation, technicalReviewSystemOf, technicalReviewLayerSystemOf, refineTechnicalReviewSystem, filterNonTechnicalBoundObjects } from '../../scripts/privateModelTechnicalReviewPresentation.mjs';
       import { resolveConcealedTechnicalObjects, createConcealedTechnicalPresentation } from '../../scripts/privateModelConcealedTechnicalPresentation.mjs';
@@ -15912,20 +15912,12 @@ const title = 'Private 3D viewer';
           group.visible = whole;
           if (whole) shown += group.children.length;
         }
-        // Talotekniikka: carport greys with the building, gutters/downpipes = stormwater.
-        if (technical && !r31DonorSwap) {
-          r31DonorSwap = new Map();
-          for (const [key, group] of Object.entries(r31ExteriorDonors)) {
-            group?.traverse?.((mesh: any) => {
-              if (!mesh.isMesh) return;
-              r31DonorSwap!.set(mesh, mesh.material);
-              mesh.material = key === 'rainwater' ? r31StormMaterial : r31DonorGrey;
-            });
-          }
-        } else if (!technical && r31DonorSwap) {
-          for (const [mesh, material] of r31DonorSwap) mesh.material = material;
-          r31DonorSwap = null;
-        }
+        // Re-run for newly loaded donors even if Talotekniikka was already on.
+        // The originals map is retained until OFF, so every material restores exactly.
+        r31DonorSwap = syncR31ExteriorDonorMaterials(
+          r31ExteriorDonors, r31DonorSwap, technical,
+          { rainwater: r31StormMaterial, grey: r31DonorGrey },
+        );
         const counts: Record<string, number> = {};
         for (const [key, group] of Object.entries(r31SiteNetworks)) {
           if (!group) continue;

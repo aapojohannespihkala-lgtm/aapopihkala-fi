@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import {
   R31_DRAINAGE_SOURCE, r31DrainageKind, buildR31DrainageOverlay, buildR31InfraOverlay,
-  dimR31ModelForInspection, isR31SiteSewerName,
+  dimR31ModelForInspection, isR31SiteSewerName, syncR31ExteriorDonorMaterials,
 } from '../../src/scripts/privateModelR31Inspection.mjs';
 import {
   C80_R31_TECHNICAL_REVIEW_ADDITIONS, c80R31TechnicalReviewNodeSet,
@@ -190,4 +190,46 @@ test('Locus fibre map: 22 source lines on one display level, Z unresolved', asyn
   // Source end at the house map reference: G1 (8.625, 3.442) -> three (8.625, y, -3.442).
   assert.ok(b.min.x < 8.7 && b.max.z > -3.5);
   assert.equal(m.userData.physicalZClaim, false);
+});
+
+test('Talotekniikka recolours donors loaded after ON and restores all exact materials after OFF', () => {
+  const gutterOriginal = new THREE.MeshBasicMaterial({ color: 0x135790 });
+  const carportOriginal = new THREE.MeshBasicMaterial({ color: 0x246802 });
+  const latePipeOriginal = new THREE.MeshBasicMaterial({ color: 0xabcdef });
+  const stormwater = new THREE.MeshBasicMaterial({ color: 0x26c6da });
+  const grey = new THREE.MeshBasicMaterial({ color: 0x9aa1a9 });
+  const donors = {};
+  const styles = { rainwater: stormwater, grey };
+  let saved = syncR31ExteriorDonorMaterials(donors, null, true, styles);
+  assert.equal(saved.size, 0, 'switching on before any donor exists makes an empty cache');
+
+  const gutter = new THREE.Mesh(new THREE.BoxGeometry(), gutterOriginal);
+  const carport = new THREE.Mesh(new THREE.BoxGeometry(), carportOriginal);
+  const rainwater = new THREE.Group(); rainwater.add(gutter);
+  const carportGroup = new THREE.Group(); carportGroup.add(carport);
+  donors.rainwater = rainwater;
+  donors.carport = carportGroup;
+  saved = syncR31ExteriorDonorMaterials(donors, saved, true, styles);
+  assert.equal(gutter.material, stormwater, 'late gutter gets stormwater colour');
+  assert.equal(carport.material, grey, 'late carport gets grey');
+  assert.equal(saved.size, 2);
+
+  const latePipe = new THREE.Mesh(new THREE.BoxGeometry(), latePipeOriginal);
+  rainwater.add(latePipe);
+  saved = syncR31ExteriorDonorMaterials(donors, saved, true, styles);
+  assert.equal(latePipe.material, stormwater, 'new child of an already-coloured donor is covered');
+  assert.equal(saved.size, 3);
+  saved = syncR31ExteriorDonorMaterials(donors, saved, true, styles);
+  assert.equal(saved.size, 3, 'repeated ON does not replace stored originals');
+
+  saved = syncR31ExteriorDonorMaterials(donors, saved, false, styles);
+  assert.equal(saved, null);
+  assert.equal(gutter.material, gutterOriginal);
+  assert.equal(carport.material, carportOriginal);
+  assert.equal(latePipe.material, latePipeOriginal);
+  assert.equal(syncR31ExteriorDonorMaterials(donors, saved, false, styles), null);
+  const nextCycle = syncR31ExteriorDonorMaterials(donors, saved, true, styles);
+  assert.equal(nextCycle.size, 3, 'subsequent ON recaptures restored originals');
+  syncR31ExteriorDonorMaterials(donors, nextCycle, false, styles);
+  assert.equal(latePipe.material, latePipeOriginal);
 });
