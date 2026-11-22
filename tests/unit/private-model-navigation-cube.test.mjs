@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { projectNavCube, projectNavCubeEdgeAxes, projectNavCubeSilhouette, navCubeFacePrint, navCubeBasis, NAV_CUBE_GROUND_RINGS, NAV_CUBE_RING, NAV_CUBE_SUN, NAV_CUBE_HALF } from '../../src/scripts/privateModelNavigationCube.mjs';
+import { mountNavigationCube, projectNavCube, projectNavCubeEdgeAxes, projectNavCubeSilhouette, navCubeFacePrint, navCubeBasis, NAV_CUBE_GROUND_RINGS, NAV_CUBE_RING, NAV_CUBE_SUN, NAV_CUBE_HALF } from '../../src/scripts/privateModelNavigationCube.mjs';
 
 const unit = (q) => { const n = Math.hypot(q.x, q.y, q.z, q.w); return { x: q.x / n, y: q.y / n, z: q.z / n, w: q.w / n }; };
 const keys = (faces) => faces.map((f) => f.key).sort();
@@ -233,5 +233,38 @@ test('owner 22.11.2026 16.13: letter on its arrow line, past the nearer arrow en
       assert.ok(Math.hypot(labels[i].x - labels[j].x, labels[i].y - labels[j].y) >= 8.9, `${name}/${frame} spacing`);
   }
   assert.ok(tails > 0, 'opposite (tail-side) placement is exercised');
+});
+
+test('mounted SVG labels expose and refresh their arrow end in both frames', () => {
+  const createElementNS = () => {
+    const attributes = new Map();
+    const children = [];
+    return {
+      children,
+      dataset: {},
+      style: {},
+      setAttribute: (name, value) => attributes.set(name, String(value)),
+      getAttribute: (name) => attributes.get(name),
+      append: (...nodes) => children.push(...nodes),
+      replaceChildren: () => { children.length = 0; },
+    };
+  };
+  const svg = createElementNS();
+  svg.ownerDocument = { createElementNS };
+  svg.insertBefore = (node) => svg.children.unshift(node);
+  const { render } = mountNavigationCube({ svg });
+  const axisLabels = () => Object.fromEntries(svg.children[0].children.at(-1).children
+    .filter((node) => node.getAttribute('data-cube-edge-label'))
+    .map((node) => [node.getAttribute('data-cube-edge-label'), node.getAttribute('data-cube-edge-label-end')]));
+  const headOn = { x: 0, y: 0, z: 0, w: 1 };
+  const oblique = unit({ x: -0.2264, y: 0.371, z: 0.0938, w: 0.8957 });
+
+  for (const frame of ['local', 'map']) {
+    render(oblique, frame);
+    assert.deepEqual(axisLabels(), { x: 'tail', y: 'tip', z: 'tail' }, `${frame} oblique`);
+    render(headOn, frame);
+    const expected = frame === 'local' ? { x: 'tip', z: 'tip' } : { x: 'tip', y: 'tip', z: 'tip' };
+    assert.deepEqual(axisLabels(), expected, `${frame} head-on`);
+  }
 });
 
