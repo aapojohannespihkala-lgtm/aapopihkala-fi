@@ -1,7 +1,9 @@
 /**
  * Navigation cube for the Ylisrinne orientation gizmo (owner request 22.11.2026).
- * The cube turns with the active camera. Air/Earth mark the top/bottom
- * screen-upright; N/S/E/W stay as labels on the compass side faces.
+ * The cube turns with the active camera. Owner decision 22.11.2026 (SOL-CLAUDE-
+ * NAVCUBE-17): every face carries a print in the face plane, foreshortened with
+ * the face: a sun (circle + eight short rays) on top, 17 open rings on the
+ * bottom, N/S/E/W letters on the compass faces. Air/Earth glyphs are retired.
  * In map mode (EPSG:3879, ETRS-GK25) the side faces follow map north instead of
  * the building's YLIS-G1 +Y. The cube never moves the camera or the model; a
  * click on it only switches the north frame (existing toggle button).
@@ -11,10 +13,11 @@ import { northWorldDirection } from './privateModelNavigationNorthFrameToggle.mj
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
 export const NAV_CUBE_CENTER = 46;
-export const NAV_CUBE_HALF = 12.5;
+export const NAV_CUBE_HALF = 15;
 const VISIBLE_MIN = 0.02;
 const LABEL_MIN = 0.3;
-const VERTICAL_SYMBOL_MIN = 0.38;
+const PRINT_MIN = 0.12;
+export const NAV_CUBE_PRINT_COLOR = '#e8eff2';
 
 const finite = (value) => typeof value === 'number' && Number.isFinite(value);
 
@@ -54,14 +57,16 @@ export function projectNavCube(quaternion, frame = 'local') {
   }
   const { north, east, up } = navCubeBasis(frame);
   const s = NAV_CUBE_HALF;
+  // `u` is the print's up direction on the face seen from outside.
   const faces = [
-    { key: 'top', label: 'YLÄ', n: up, a: east, b: north },
-    { key: 'bottom', label: 'ALA', n: scale(up, -1), a: east, b: north },
-    { key: 'north', label: 'N', n: north, a: east, b: up },
-    { key: 'south', label: 'S', n: scale(north, -1), a: east, b: up },
-    { key: 'east', label: 'E', n: east, a: north, b: up },
-    { key: 'west', label: 'W', n: scale(east, -1), a: north, b: up },
+    { key: 'top', label: 'YLÄ', n: up, a: east, b: north, u: north },
+    { key: 'bottom', label: 'ALA', n: scale(up, -1), a: east, b: north, u: north },
+    { key: 'north', label: 'N', n: north, a: east, b: up, u: up },
+    { key: 'south', label: 'S', n: scale(north, -1), a: east, b: up, u: up },
+    { key: 'east', label: 'E', n: east, a: north, b: up, u: up },
+    { key: 'west', label: 'W', n: scale(east, -1), a: north, b: up, u: up },
   ];
+  const cross = (p, q) => ({ x: p.y * q.z - p.z * q.y, y: p.z * q.x - p.x * q.z, z: p.x * q.y - p.y * q.x });
   const toScreen = (p) => {
     const v = inverseRotate(p, quaternion);
     return { x: NAV_CUBE_CENTER + v.x, y: NAV_CUBE_CENTER - v.y };
@@ -73,12 +78,20 @@ export function projectNavCube(quaternion, frame = 'local') {
     const c = scale(f.n, s);
     const corners = [[-1, -1], [1, -1], [1, 1], [-1, 1]].map(([i, j]) =>
       toScreen(add(c, scale(f.a, i * s), scale(f.b, j * s))));
+    // Face-plane print frame: x to the right and y downward as seen from
+    // outside the face, in units of half an edge (SVG matrix a b c d e f).
+    const center = toScreen(c);
+    const right = cross(f.u, f.n);
+    const r = toScreen(add(c, scale(right, s)));
+    const d = toScreen(add(c, scale(f.u, -s)));
+    const matrix = [r.x - center.x, r.y - center.y, d.x - center.x, d.y - center.y, center.x, center.y];
     out.push(Object.freeze({
       key: f.key,
       label: f.label,
       facing: Math.min(1, facing),
       points: corners.map((p) => `${p.x.toFixed(2)},${p.y.toFixed(2)}`).join(' '),
-      center: toScreen(c),
+      center,
+      matrix: Object.freeze(matrix),
       showLabel: facing >= LABEL_MIN,
     }));
   }
@@ -132,27 +145,26 @@ export function projectNavCubeEdgeAxes(quaternion, frame = 'local') {
   }
   return Object.freeze(out);
 }
+/** Sun on top: circle and eight short rays (face units, half an edge = 1). */
+export const NAV_CUBE_SUN = Object.freeze({ r: 0.2, rayFrom: 0.31, rayTo: 0.47, stroke: 0.057 });
+/** Bottom: 17 open rings in five interleaved rows (owner decision 22.11.2026). */
+export const NAV_CUBE_GROUND_RINGS = Object.freeze([-0.42, -0.21, 0, 0.21, 0.42].flatMap((y, row) =>
+  (row % 2 === 0 ? [-0.27, 0, 0.27] : [-0.40, -0.135, 0.135, 0.40]).map((x) => Object.freeze({ x, y }))));
+export const NAV_CUBE_RING = Object.freeze({ r: 0.06, stroke: 0.057 });
+
 /**
- * Air and Earth are upright 2D alchemical glyphs over the projected top /
- * bottom face centers. Screen geometry is deliberately independent of the
- * face's in-plane rotation: the apex always points up or down on the screen.
- * Suppress near-edge-on faces rather than squeezing or flipping the glyph.
+ * Print description for a projected face: 'sun', 'rings' or 'letter', with the
+ * SVG transform that maps face units into the gizmo. Null when nearly edge-on.
  */
-export function projectNavCubeVerticalSymbol(face) {
-  if (!face || !['top', 'bottom'].includes(face.key) ||
-      !finite(face.center?.x) || !finite(face.center?.y) ||
-      !finite(face.facing) || face.facing < VERTICAL_SYMBOL_MIN) return null;
-  const isAir = face.key === 'top';
-  const { x, y } = face.center;
-  const fmt = (n) => n.toFixed(2);
-  const apexY = y + (isAir ? -4.5 : 4.5);
-  const baseY = y + (isAir ? 4.5 : -4.5);
-  const barY = y + (isAir ? 0.7 : -0.7);
-  const outline = `M ${fmt(x - 4.3)} ${fmt(baseY)} L ${fmt(x)} ${fmt(apexY)} L ${fmt(x + 4.3)} ${fmt(baseY)} Z`;
-  const bar = Object.freeze({ x1: x - 3.0, y1: barY, x2: x + 3.0, y2: barY });
+export function navCubeFacePrint(face) {
+  if (!face || !Array.isArray(face.matrix) || face.matrix.length !== 6 ||
+      !face.matrix.every(finite) || !finite(face.facing) || face.facing < PRINT_MIN) return null;
+  const kind = face.key === 'top' ? 'sun' : face.key === 'bottom' ? 'rings' : 'letter';
   return Object.freeze({
-    kind: isAir ? 'air' : 'earth', x, y, apexY, baseY, outline, bar,
-    opacity: Math.min(1, 0.3 + (face.facing - VERTICAL_SYMBOL_MIN) * 1.2),
+    kind,
+    text: kind === 'letter' ? face.label : null,
+    transform: `matrix(${face.matrix.map((n) => n.toFixed(4)).join(' ')})`,
+    opacity: Math.min(1, (face.facing - PRINT_MIN) * 2.2),
   });
 }
 
@@ -198,35 +210,64 @@ export function mountNavigationCube({ svg, root }) {
     label.textContent = key.toUpperCase();
     arrowSlots.set(key, { line, head, label });
   }
-  const symbolLayer = doc.createElementNS(SVG_NS, 'g');
-  symbolLayer.setAttribute('class', 'nav-cube-vertical-symbols');
-  symbolLayer.style.pointerEvents = 'none';
-  const symbols = new Map();
-  for (const [faceKey, kind] of [['top', 'air'], ['bottom', 'earth']]) {
-    const icon = doc.createElementNS(SVG_NS, 'g');
-    icon.setAttribute('data-cube-vertical-symbol', kind);
-    icon.setAttribute('data-cube-face', faceKey);
-    const triangle = doc.createElementNS(SVG_NS, 'path');
-    triangle.setAttribute('fill', 'none');
-    triangle.setAttribute('stroke', '#e1e7ea');
-    triangle.setAttribute('stroke-width', '1.35');
-    triangle.setAttribute('stroke-linejoin', 'round');
-    const bar = doc.createElementNS(SVG_NS, 'line');
-    bar.setAttribute('stroke', '#e1e7ea');
-    bar.setAttribute('stroke-width', '1.35');
-    bar.setAttribute('stroke-linecap', 'round');
-    icon.append(triangle, bar);
-    symbols.set(kind, { icon, triangle, bar });
+  // Face prints, built once in face units; only their transforms change.
+  const prints = new Map();
+  const ink = (el) => {
+    el.setAttribute('fill', 'none');
+    el.setAttribute('stroke', NAV_CUBE_PRINT_COLOR);
+    el.setAttribute('stroke-linecap', 'round');
+    return el;
+  };
+  {
+    const sun = doc.createElementNS(SVG_NS, 'g');
+    sun.setAttribute('data-cube-print', 'sun');
+    sun.setAttribute('stroke-width', String(NAV_CUBE_SUN.stroke));
+    const disc = ink(doc.createElementNS(SVG_NS, 'circle'));
+    disc.setAttribute('r', String(NAV_CUBE_SUN.r));
+    sun.append(disc);
+    for (let i = 0; i < 8; i++) {
+      const angle = (i * Math.PI) / 4;
+      const ray = ink(doc.createElementNS(SVG_NS, 'line'));
+      ray.setAttribute('x1', (Math.cos(angle) * NAV_CUBE_SUN.rayFrom).toFixed(4));
+      ray.setAttribute('y1', (Math.sin(angle) * NAV_CUBE_SUN.rayFrom).toFixed(4));
+      ray.setAttribute('x2', (Math.cos(angle) * NAV_CUBE_SUN.rayTo).toFixed(4));
+      ray.setAttribute('y2', (Math.sin(angle) * NAV_CUBE_SUN.rayTo).toFixed(4));
+      sun.append(ray);
+    }
+    prints.set('top', sun);
+    const rings = doc.createElementNS(SVG_NS, 'g');
+    rings.setAttribute('data-cube-print', 'rings');
+    rings.setAttribute('stroke-width', String(NAV_CUBE_RING.stroke));
+    for (const { x, y } of NAV_CUBE_GROUND_RINGS) {
+      const ring = ink(doc.createElementNS(SVG_NS, 'circle'));
+      ring.setAttribute('cx', String(x));
+      ring.setAttribute('cy', String(y));
+      ring.setAttribute('r', String(NAV_CUBE_RING.r));
+      rings.append(ring);
+    }
+    prints.set('bottom', rings);
+    for (const key of ['north', 'south', 'east', 'west']) {
+      const letter = doc.createElementNS(SVG_NS, 'text');
+      letter.setAttribute('data-cube-print', 'letter');
+      letter.setAttribute('class', 'nav-cube-label');
+      letter.dataset.face = key;
+      letter.setAttribute('x', '0');
+      letter.setAttribute('y', '0.04');
+      letter.setAttribute('font-size', '0.78');
+      letter.setAttribute('font-weight', '800');
+      letter.setAttribute('text-anchor', 'middle');
+      letter.setAttribute('dominant-baseline', 'central');
+      letter.setAttribute('fill', NAV_CUBE_PRINT_COLOR);
+      letter.style.pointerEvents = 'none';
+      prints.set(key, letter);
+    }
   }
   const slots = new Map();
   for (const key of ['top', 'bottom', 'north', 'south', 'east', 'west']) {
     const poly = doc.createElementNS(SVG_NS, 'polygon');
     poly.setAttribute('class', `nav-cube-face nav-cube-face-${key}`);
     poly.dataset.face = key;
-    const text = doc.createElementNS(SVG_NS, 'text');
-    text.setAttribute('class', 'nav-cube-label');
-    text.dataset.face = key;
-    slots.set(key, { poly, text });
+    slots.set(key, { poly });
   }
   let signature = '';
   const render = (quaternion, frame = 'local') => {
@@ -235,31 +276,20 @@ export function mountNavigationCube({ svg, root }) {
     const faces = projectNavCube(quaternion, frame);
     signature = next;
     group.replaceChildren();
-    symbolLayer.replaceChildren();
-    const visibleSymbols = [];
+    const printed = [];
     for (const face of faces) {
-      const { poly, text } = slots.get(face.key);
+      const { poly } = slots.get(face.key);
       poly.setAttribute('points', face.points);
-      poly.style.fillOpacity = (0.25 + 0.55 * face.facing).toFixed(3);
+      poly.style.fillOpacity = (0.72 + 0.28 * face.facing).toFixed(3);
       group.append(poly);
-      if (face.key === 'top' || face.key === 'bottom') {
-        const glyph = projectNavCubeVerticalSymbol(face);
-        if (glyph) {
-          const { icon, triangle, bar } = symbols.get(glyph.kind);
-          triangle.setAttribute('d', glyph.outline);
-          for (const key of ['x1', 'y1', 'x2', 'y2']) {
-            bar.setAttribute(key, glyph.bar[key].toFixed(2));
-          }
-          icon.style.opacity = glyph.opacity.toFixed(3);
-          symbolLayer.append(icon);
-          visibleSymbols.push(glyph.kind);
-        }
-      } else if (face.showLabel) {
-        text.textContent = face.label;
-        text.setAttribute('x', face.center.x.toFixed(2));
-        text.setAttribute('y', face.center.y.toFixed(2));
-        text.style.opacity = Math.min(1, (face.facing - 0.2) * 1.6).toFixed(3);
-        group.append(text);
+      const print = navCubeFacePrint(face);
+      if (print) {
+        const el = prints.get(face.key);
+        if (print.kind === 'letter') el.textContent = print.text;
+        el.setAttribute('transform', print.transform);
+        el.style.opacity = print.opacity.toFixed(3);
+        group.append(el);
+        printed.push(face.key);
       }
     }
     const axes = projectNavCubeEdgeAxes(quaternion, frame);
@@ -275,14 +305,13 @@ export function mountNavigationCube({ svg, root }) {
       label.setAttribute('y', axis.label.y.toFixed(2));
       edgeArrows.append(line, head, label);
     }
-    group.append(symbolLayer);
     group.append(edgeArrows);
     if (root) {
       root.dataset.navCube = 'ready';
       root.dataset.navCubeFrame = frame;
       root.dataset.navCubeFaces = faces.map((f) => f.key).join(',');
       root.dataset.navCubeAxes = axes.map((axis) => axis.key).join(',');
-      root.dataset.navCubeVerticalSymbols = visibleSymbols.join(',');
+      root.dataset.navCubePrints = printed.join(',');
       root.dataset.navCubeAxisFrame = frame;
     }
     return true;

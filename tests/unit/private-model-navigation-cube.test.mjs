@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { projectNavCube, projectNavCubeEdgeAxes, projectNavCubeVerticalSymbol, navCubeBasis } from '../../src/scripts/privateModelNavigationCube.mjs';
+import { projectNavCube, projectNavCubeEdgeAxes, navCubeFacePrint, navCubeBasis, NAV_CUBE_GROUND_RINGS, NAV_CUBE_RING, NAV_CUBE_SUN, NAV_CUBE_HALF } from '../../src/scripts/privateModelNavigationCube.mjs';
 
 const unit = (q) => { const n = Math.hypot(q.x, q.y, q.z, q.w); return { x: q.x / n, y: q.y / n, z: q.z / n, w: q.w / n }; };
 const keys = (faces) => faces.map((f) => f.key).sort();
@@ -36,10 +36,11 @@ test('A-version arrows lie on full cube edges and point to positive frame axes',
   const axes = projectNavCubeEdgeAxes(q, 'local');
   assert.deepEqual(axes.map((a) => a.key), ['x', 'z']);
   const x = axes[0], z = axes[1];
-  assert.deepEqual([x.start.x, x.start.y, x.end.x, x.end.y], [33.5, 33.5, 58.5, 33.5]);
-  assert.deepEqual([z.start.x, z.start.y, z.end.x, z.end.y], [58.5, 58.5, 58.5, 33.5]);
+  const lo = 46 - NAV_CUBE_HALF, hi = 46 + NAV_CUBE_HALF;
+  assert.deepEqual([x.start.x, x.start.y, x.end.x, x.end.y], [lo, lo, hi, lo]);
+  assert.deepEqual([z.start.x, z.start.y, z.end.x, z.end.y], [hi, hi, hi, lo]);
   for (const edge of axes) {
-    assert.ok(edge.length > 24.9);
+    assert.ok(edge.length > 2 * NAV_CUBE_HALF - 0.1);
     assert.ok(edge.head.startsWith(`${edge.end.x.toFixed(2)},${edge.end.y.toFixed(2)}`));
     assert.equal(edge.frame, 'local');
   }
@@ -55,7 +56,7 @@ test('oblique view has three positive axes on visible face edges, map frame rota
     const faces = projectNavCube(q, frameEdges[0].frame);
     const vertices = faces.flatMap((face) => face.points.split(' ').map((v) => v.split(',').map(Number)));
     for (const edge of frameEdges) {
-      assert.ok(edge.length > 2.5 && edge.length <= 25.01);
+      assert.ok(edge.length > 2.5 && edge.length <= 2 * NAV_CUBE_HALF + 0.01);
       for (const point of [edge.start, edge.end]) {
         assert.ok(vertices.some(([x, y]) => Math.hypot(x - point.x, y - point.y) < 0.02),
           `${edge.key} endpoint must be a visible cube corner`);
@@ -72,39 +73,53 @@ test('axis arrows reject unknown north frame and non-finite pose, without camera
   assert.throws(() => projectNavCubeEdgeAxes({ ...q, x: NaN }), /YLIS_NAV_CUBE/);
   assert.deepEqual(q, prior);
 });
-test('Air/Earth glyphs stay upright and centered on top/bottom faces', () => {
-  const half = Math.SQRT1_2;
-  const topFace = projectNavCube({ x: -half, y: 0, z: 0, w: half }).find(f => f.key === 'top');
-  const bottomFace = projectNavCube({ x: half, y: 0, z: 0, w: half }).find(f => f.key === 'bottom');
-  assert.ok(topFace && bottomFace);
-  const air = projectNavCubeVerticalSymbol(topFace);
-  const earth = projectNavCubeVerticalSymbol(bottomFace);
-  assert.equal(air.kind, 'air');
-  assert.equal(earth.kind, 'earth');
-  for (const [face, glyph] of [[topFace, air], [bottomFace, earth]]) {
-    assert.equal(glyph.x, face.center.x);
-    assert.equal(glyph.y, face.center.y);
-    assert.equal(glyph.bar.y1, glyph.bar.y2, 'crossbar stays screen-horizontal');
-    assert.equal(glyph.bar.x1 + glyph.bar.x2, 2 * glyph.x);
-    assert.ok(glyph.opacity > 0 && glyph.opacity <= 1);
-  }
-  assert.ok(air.apexY < air.y && air.baseY > air.y, 'Air tip faces screen up');
-  assert.ok(earth.apexY > earth.y && earth.baseY < earth.y, 'Earth tip faces screen down');
-  assert.match(air.outline, /^M [-0-9.]+ [-0-9.]+ L [-0-9.]+ [-0-9.]+ L [-0-9.]+ [-0-9.]+ Z$/);
+const applyMatrix = ([a, b, c, d, e, f], x, y) => ({ x: a * x + c * y + e, y: b * x + d * y + f });
+
+test('17 ground rings: five interleaved rows, centered, owner sizes', () => {
+  assert.equal(NAV_CUBE_GROUND_RINGS.length, 17);
+  const rows = new Map();
+  for (const { x, y } of NAV_CUBE_GROUND_RINGS) rows.set(y, [...(rows.get(y) ?? []), x]);
+  assert.deepEqual([...rows.keys()], [-0.42, -0.21, 0, 0.21, 0.42]);
+  assert.deepEqual([...rows.values()].map((r) => r.length), [3, 4, 3, 4, 3]);
+  const sum = NAV_CUBE_GROUND_RINGS.reduce((a, p) => ({ x: a.x + p.x, y: a.y + p.y }), { x: 0, y: 0 });
+  assert.ok(Math.abs(sum.x) < 1e-9 && Math.abs(sum.y) < 1e-9, 'pattern centered');
+  assert.equal(NAV_CUBE_RING.r, 0.06);
+  assert.equal(NAV_CUBE_RING.stroke, 0.057);
+  assert.equal(NAV_CUBE_SUN.stroke, 0.057);
 });
 
-test('vertical face symbols hide when almost edge-on and never replace side labels', () => {
-  const nearEdge = { key: 'top', center: { x: 46, y: 46 }, facing: 0.37 };
-  assert.equal(projectNavCubeVerticalSymbol(nearEdge), null);
-  assert.equal(projectNavCubeVerticalSymbol({ ...nearEdge, key: 'north', facing: 1 }), null);
-  assert.equal(projectNavCubeVerticalSymbol({ ...nearEdge, key: 'bottom', center: { x: NaN, y: 46 }, facing: 1 }), null);
-  const barelyShown = projectNavCubeVerticalSymbol({ ...nearEdge, facing: 0.4 });
-  assert.equal(barelyShown.kind, 'air');
-  assert.ok(barelyShown.opacity < 0.5);
-  const mapTilted = projectNavCube({ x: -0.2264, y: 0.371, z: 0.0938, w: 0.8957 }, 'map')
-    .find(f => f.key === 'top');
-  const tiltedAir = projectNavCubeVerticalSymbol(mapTilted);
-  assert.ok(tiltedAir, 'oblique map frame retains upright Air');
-  assert.ok(tiltedAir.apexY < tiltedAir.y);
-  assert.equal(tiltedAir.bar.y1, tiltedAir.bar.y2);
+test('face prints lie in the face plane and foreshorten with it', () => {
+  const half = Math.SQRT1_2;
+  // Plan view from above: the top face is square and its print is not skewed.
+  const top = projectNavCube({ x: -half, y: 0, z: 0, w: half }).find((f) => f.key === 'top');
+  const sun = navCubeFacePrint(top);
+  assert.equal(sun.kind, 'sun');
+  const [a, b, c, d] = top.matrix;
+  assert.ok(Math.abs(Math.hypot(a, b) - NAV_CUBE_HALF) < 1e-6 && Math.abs(Math.hypot(c, d) - NAV_CUBE_HALF) < 1e-6);
+  // Seen from above with north up, the print's up (face -y) points to screen up and east to screen right.
+  const up = applyMatrix(top.matrix, 0, -1), right = applyMatrix(top.matrix, 1, 0);
+  assert.ok(up.y < top.center.y && right.x > top.center.x);
+  // Oblique SE view: corners of the print frame coincide with the face polygon.
+  const se = { x: -0.2264, y: 0.371, z: 0.0938, w: 0.8957 };
+  const n = Math.hypot(se.x, se.y, se.z, se.w); for (const k in se) se[k] /= n;
+  for (const face of projectNavCube(se)) {
+    const pts = face.points.split(' ').map((p) => p.split(',').map(Number));
+    for (const [u, v] of [[-1, -1], [1, -1], [1, 1], [-1, 1]]) {
+      const p = applyMatrix(face.matrix, u, v);
+      assert.ok(pts.some(([x, y]) => Math.hypot(x - p.x, y - p.y) < 0.02), `${face.key} corner`);
+    }
+    const print = navCubeFacePrint(face);
+    assert.equal(print.kind, face.key === 'top' ? 'sun' : face.key === 'bottom' ? 'rings' : 'letter');
+    assert.match(print.transform, /^matrix\(/);
+  }
+  // Side letters read correctly from outside: on the south face, print-right is east (+X screen in SE view).
+  const south = projectNavCube(se).find((f) => f.key === 'south');
+  assert.equal(navCubeFacePrint(south).text, 'S');
+});
+
+test('face prints hide when the face is almost edge-on', () => {
+  const face = projectNavCube({ x: 0, y: 0, z: 0, w: 1 }).find((f) => f.key === 'south');
+  assert.equal(navCubeFacePrint({ ...face, facing: 0.05 }), null);
+  assert.equal(navCubeFacePrint({ ...face, matrix: [NaN, 0, 0, 1, 0, 0] }), null);
+  assert.ok(navCubeFacePrint(face).opacity > 0.9);
 });

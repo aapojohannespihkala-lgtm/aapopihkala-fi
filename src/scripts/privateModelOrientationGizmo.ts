@@ -278,7 +278,7 @@ export const createOrientationGizmoController = ({
       root.style.width = compact ? '196px' : '236px';
       const svg = root.querySelector<SVGElement>('svg');
       if (svg) {
-        svg.style.width = compact ? '68px' : '96px';
+        svg.style.width = compact ? '78px' : '118px';
         svg.style.maxWidth = svg.style.width;
         svg.style.marginInline = 'auto';
       }
