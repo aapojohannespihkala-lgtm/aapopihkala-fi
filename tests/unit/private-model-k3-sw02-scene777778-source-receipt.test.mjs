@@ -134,11 +134,14 @@ test('optional original bytes SHA and scene777/778 parity',
     const sha = createHash('sha256').update(bytes).digest('hex');
     assert.equal(sha, SPEC.glbSha256);
     const json = JSON.parse(bytes.subarray(20, 20 + bytes.readUInt32LE(12)).toString('utf8'));
-    // Authenticated original contains an independently verified defect:
-    // node13513 was copied with stableID D2F-SW-01 instead of D2F-SW-02.
-    assert.equal(json.nodes[SPEC.newRoot]?.extras?.stableID, 'D2F-SW-01');
+    // Corrected G2b bytes: SW02 and SW01 each carry their unique stableID.
+    assert.equal(json.nodes[SPEC.newRoot]?.extras?.stableID, 'D2F-SW-02');
+    assert.equal(json.nodes[SPEC.sw01Root]?.extras?.stableID, 'D2F-SW-01');
     for (const v of Object.values(SPEC.views)) {
-      assert.equal(valid(json, sha, v.sceneIndex, v.role, 'D2F'), false);
+      assert.equal(valid(json, sha, v.sceneIndex, v.role, 'D2F'), true);
+      assert.equal(valid(json, '9e12d439ff220a96648d73eb805a759631d28fd9f53d3d366b9ce9a56fe279e9',
+        v.sceneIndex, v.role, 'D2F'), false);
+      assert.equal(valid(json, sha, v.sceneIndex, v.role, '1F'), false);
       assert.equal(receipt(json, sha, v.sceneIndex, v.role, 'D2F').publishAllowed, false);
     }
   });
