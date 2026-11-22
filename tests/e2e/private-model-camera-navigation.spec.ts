@@ -79,7 +79,7 @@ test('initial, whole-building, and D-apartment views keep perspective free orbit
   await expect(page.getByRole('status')).toHaveText('D-asunto - molemmat kerrokset, vapaa 3D');
 });
 
-const makeTriangleGlb = () => {
+const makeTriangleGlb = (withDScene = false) => {
   const positions = Buffer.alloc(36);
   [-1, -1, 0, 1, -1, 0, 0, 1, 0].forEach((value, index) => {
     positions.writeFloatLE(value, index * 4);
@@ -88,7 +88,10 @@ const makeTriangleGlb = () => {
   const json = {
     asset: { version: '2.0' },
     scene: 0,
-    scenes: [{ name: 'P133D REVIEW ROOT - BABYLON Y-UP', nodes: [0] }],
+    scenes: [
+      { name: 'P133D REVIEW ROOT - BABYLON Y-UP', nodes: [0] },
+      ...(withDScene ? [{ name: 'D CURRENT INTERIOR - BABYLON Y-UP', nodes: [0] }] : []),
+    ],
     nodes: [{ name: 'ELEVATION_CAMERA_TEST', mesh: 0 }],
     meshes: [
       {
@@ -190,7 +193,7 @@ test('owner menu presets keep the active isometric or elevation camera direction
 
 test('exact 3D/isometric projection toggle preserves target, view direction and visible frame', async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 800 });
-  const model = makeTriangleGlb();
+  const model = makeTriangleGlb(true);
   await page.route('**/private-model/model.glb', route =>
     route.fulfill({ status: 200, contentType: 'model/gltf-binary', body: model }));
   await page.goto('/private-model/');
