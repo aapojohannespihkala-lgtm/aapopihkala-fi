@@ -16,7 +16,7 @@ test('R31 Locus low-voltage remains its own source-bound 2D, NONCURRENT Layerit 
   assert.equal(r31SiteLayerKeyForNetwork('inventedCablePenetration'), null);
   assert.equal(R31_LOCUS_LOWVOLT_LINES.length, 32);
   assert.equal(R31_LOCUS_LOWVOLT_LINES.reduce((sum, line) => sum + line.points.length - 1, 0), 410);
-  assert.equal(R31_LOWVOLT_DISPLAY_Y - R31_FIBER_DISPLAY_Y, 0.15);
+  assert.ok(Math.abs((R31_LOWVOLT_DISPLAY_Y - R31_FIBER_DISPLAY_Y) - 0.15) < 1e-12);
 
   const group = buildR31LowVoltageOverlay(THREE, R31_LOCUS_LOWVOLT_LINES, R31_LOCUS_LOWVOLT_SOURCE);
   assert.deepEqual(group.userData.counts, { LOWVOLT: 32, LOWVOLT_SEGMENTS: 410 });
