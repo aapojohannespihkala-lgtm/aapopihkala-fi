@@ -158,12 +158,14 @@ test('owner rule: every X/Y/Z glyph stays entirely outside silhouette for both n
     const labels = [];
     for (const axis of arrows) {
       const { x, y } = axis.label;
-      assert.ok(x >= 8 && x <= 84 && y >= 8 && y <= 84,
+      assert.ok(x >= 5 && x <= 87 && y >= 5 && y <= 87,
         frame + '/' + i + '/' + axis.key + ' glyph within SVG bounds');
       // 7px uppercase text + 1.25px outline fits inside 6.25px radius.
       assert.ok(exteriorClearance(axis.label, hull) >= 6.20,
         frame + '/' + i + '/' + axis.key + ' glyph must clear entire cube');
-      assert.ok(labels.every(p => Math.hypot(p.x - x, p.y - y) >= 10.9),
+      // Owner 22.11.2026 15.14: letters stay on their arrow lines; 9 units
+      // between centres still keeps two outlined 7px glyphs apart.
+      assert.ok(labels.every(p => Math.hypot(p.x - x, p.y - y) >= 8.9),
         frame + '/' + i + '/' + axis.key + ' distinct labels');
       labels.push(axis.label);
       // Preserve +axis arrow direction: the first polygon vertex is the
@@ -190,4 +192,29 @@ test('positive axis arrowhead remains on cube edge while letter is outside in a 
   const z = edges.find(e => e.key === 'z');
   assert.ok(x.label.x > x.end.x, '+X letter after the positive tip');
   assert.ok(z.label.y < z.end.y, '+Z letter after the positive tip');
+});
+
+test('owner 22.11.2026 15.14: letter centre on the arrow line beyond the +tip, wholly outside the cube', () => {
+  const deg = Math.PI / 180;
+  const qFrom = (yaw, pitch) => {
+    const cy = Math.cos(yaw / 2), sy = Math.sin(yaw / 2), cp = Math.cos(pitch / 2), sp = Math.sin(pitch / 2);
+    return unit({ x: cy * sp, y: sy * cp, z: -sy * sp, w: cy * cp });
+  };
+  const poses = {
+    oblique: qFrom(-40 * deg, -30 * deg), side: qFrom(0, 0), side90: qFrom(90 * deg, 0),
+    upperOblique: qFrom(30 * deg, -60 * deg), lowerOblique: qFrom(-35 * deg, 50 * deg),
+  };
+  for (const [name, q] of Object.entries(poses)) for (const frame of ['local', 'map']) {
+    const hull = projectNavCubeSilhouette(q, frame);
+    const arrows = projectNavCubeEdgeAxes(q, frame);
+    assert.ok(arrows.length >= 2, `${name}/${frame} arrows`);
+    for (const a of arrows) {
+      const dx = a.end.x - a.start.x, dy = a.end.y - a.start.y, len = Math.hypot(dx, dy);
+      const off = Math.abs((a.label.x - a.end.x) * dy - (a.label.y - a.end.y) * dx) / len;
+      const along = ((a.label.x - a.end.x) * dx + (a.label.y - a.end.y) * dy) / len;
+      assert.ok(off < 1e-6, `${name}/${frame}/${a.key} on the arrow line`);
+      assert.ok(along > 0, `${name}/${frame}/${a.key} beyond the positive tip`);
+      assert.ok(exteriorClearance(a.label, hull) >= 6.2, `${name}/${frame}/${a.key} wholly outside`);
+    }
+  }
 });

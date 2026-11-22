@@ -2943,7 +2943,18 @@ const title = 'Private 3D viewer';
 
       const canvas = document.querySelector<HTMLCanvasElement>('#private-model-canvas');
       // Owner 22.11.2026: whole D at full strength, the rest of the building faint.
-      const deskDFocus = createDFocusGhost(0.1);
+      // Dashed lines and review aids (owner 22.11.2026 15.14: hidden by default in
+      // the D views): source roots that declare themselves schematic, assumed
+      // routes, logical diagrams or review guides. Shown with Talotekniikka.
+      const isDeskReviewAid = (object: any) => {
+        if (technicalReviewInput?.checked) return false;
+        const d = object?.userData ?? {};
+        const text = [d.ylisTechRole, d.classification, d.representationKind, d.stage, d.sourceRole]
+          .filter((v) => typeof v === 'string').join(' ');
+        return /SCHEMATIC|REVIEW_GUIDE|ASSUMED_ROUTE|ReviewOnly|REFERENCE_GUIDE|LOGICAL_DIAGRAM/i.test(text) ||
+          /LOGICAL_DIAGRAM|_SCHEMATIC_|ELECTRICAL_ROUTE_OPTIN|REVIEW_BENT_GUIDES|RAIN_ZONES_PRESENTATION_ONLY/.test(object?.name ?? '');
+      };
+      const deskDFocus = createDFocusGhost(0.1, { hideObject: isDeskReviewAid });
       const status = document.querySelector<HTMLElement>('#viewer-status');
       const toolbarMenus = Array.from(document.querySelectorAll<HTMLDetailsElement>('.toolbar-menu'));
       const { closeToolbarMenus } = setupPrivateModelToolbarMenus(toolbarMenus);
@@ -15804,17 +15815,27 @@ const title = 'Private 3D viewer';
       };
       // Whole D: the full model (no per-object D scope filter, which left parts
       // floating in R31), D footprint at full strength, everything else faint.
+      // Layerit owns the roof when it is bound (R31 #2157): keep its Vesikatto
+      // mode in step with the desk roof presets, otherwise "katto piilossa"
+      // still showed the roof. The camera is not touched.
+      const deskSyncLayerRoof = (visible: boolean) => {
+        if (!layersAvailable.includes('roof' as any)) return;
+        layersState = setViewerInteractionLayerBranchMode(layersState, 'roof' as any, visible ? 'visible' : 'hidden', layersAvailable);
+        layersEnabled = true;
+        refreshLayers();
+      };
       const deskEnterDFocus = (roof: boolean, storey: '1F' | '2F' | null = null) => {
         const key = storey === '1F' ? 'd-1f' : storey === '2F' ? 'd-2f' : roof ? 'd-roof' : 'd-apartment';
         applyStandardViewPreset('whole-building', true);
         applyViewerLayerState({ roofVisible: roof && !storey }, `preset:${key}`);
+        deskSyncLayerRoof(roof && !storey);
         const root = modelRoot.children[0] ?? modelRoot;
         // No padding: the C building masses start exactly at the D/C party wall
         // (x 6.38); a padded box drew a 0.37 m opaque slice of C onto D's wall.
         const whole = dFootprintFromScope(root, 0);
         const footprint = storey ? dStoreyFootprint(whole, storey) : whole;
         const counts = deskDFocus.apply(root, footprint);
-        canvas.dataset.dFocusGhost = `${key}|in:${counts.inside}|out:${counts.outside}|split:${counts.split}|hidden:${counts.hidden}`;
+        canvas.dataset.dFocusGhost = `${key}|in:${counts.inside}|out:${counts.outside}|split:${counts.split}|hidden:${counts.hidden}|aids:${counts.aids}`;
         canvas.dataset.dFocusFootprint = [footprint.x0, footprint.x1, footprint.z0, footprint.z1].map((v) => v.toFixed(2)).join(',');
         refreshEdgeRendering(root);
       };
@@ -15830,6 +15851,13 @@ const title = 'Private 3D viewer';
             if (id === 'technical') {
               technicalReviewInput.checked = !technicalReviewInput.checked;
               technicalReviewInput.dispatchEvent(new Event('change', { bubbles: true }));
+              // Review aids follow Talotekniikka: re-run the D focus in place.
+              const focusKey = canvas.dataset.dFocusGhost?.split('|')[0];
+              if (focusKey) {
+                const pose = deskCapturePose();
+                deskEnterDFocus(focusKey === 'd-roof', focusKey === 'd-1f' ? '1F' : focusKey === 'd-2f' ? '2F' : null);
+                if (pose) deskApplyPose(pose);
+              }
               deskSync();
               return;
             }
@@ -15841,6 +15869,7 @@ const title = 'Private 3D viewer';
             else {
               applyStandardViewPreset(target, true);
               applyViewerLayerState({ roofVisible: id === 'whole-building' }, `preset:${id}`);
+              deskSyncLayerRoof(id === 'whole-building');
             }
             if (angleBefore && deskCurrentAngle() !== angleBefore) deskAngleButtons[angleBefore]?.click();
             if (pose && !deskApplyPose(pose)) deskRefitKeepingDirection();
