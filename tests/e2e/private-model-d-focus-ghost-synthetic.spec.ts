@@ -80,7 +80,7 @@ test('D roof and roof-hidden presets retain unscoped D walls, split shared meshe
   await expect(preset('d-roof')).toBeVisible();
 
   await preset('d-roof').click();
-  await expect(canvas).toHaveAttribute('data-d-focus-ghost', /^d-roof\|in:\d+\|out:\d+\|split:\d+$/);
+  await expect(canvas).toHaveAttribute('data-d-focus-ghost', /^d-roof\|in:\d+\|out:\d+\|split:\d+(?:\|hidden:\d+)?$/);
   const roof = await canvas.getAttribute('data-d-focus-ghost');
   const [, inside, outside, split] = roof!.match(/in:(\d+)\|out:(\d+)\|split:(\d+)/)!.map(Number);
   expect(inside).toBeGreaterThanOrEqual(3);
@@ -90,7 +90,7 @@ test('D roof and roof-hidden presets retain unscoped D walls, split shared meshe
   await expect(canvas).toHaveAttribute('data-d-focus-footprint', /-?\d+\.\d+,-?\d+\.\d+,-?\d+\.\d+,-?\d+\.\d+/);
 
   await preset('d-apartment').click();
-  await expect(canvas).toHaveAttribute('data-d-focus-ghost', `d-apartment|in:${inside}|out:${outside}|split:${split}`);
+  await expect(canvas).toHaveAttribute('data-d-focus-ghost', roof!.replace(/^d-roof\|/, 'd-apartment|'));
   await expect(canvas).toHaveAttribute('data-layer-roof-visible', 'false');
 
   await preset('whole-building').click();
