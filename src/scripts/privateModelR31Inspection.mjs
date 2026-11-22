@@ -281,18 +281,27 @@ export const isR31ReplacedWestDownpipe = (name) =>
   typeof name === 'string' && /DOWNSPO/.test(name) && !/PRESENCE/.test(name) &&
   /(WEST_BRICK_CORNER|NW_CORNER)/.test(name);
 
-/** Roof underside of the R31 C/D roof (source: ridge y 7.5238, slope 0.25). */
+/** Roof underside of the R31 C/D roof (node 13360: ridge y 7.5238 at z -4.58, slope 0.25, eaves 5.806). */
+export const R31_CD_ROOF_UNDERSIDE = Object.freeze({ ridgeY: 7.5238, ridgeZ: -4.58, slope: 0.25, sourceNode: 13360 });
 export const r31RoofUndersideY = (z) => 7.5238 - 0.25 * Math.abs(z + 4.58);
 
-/** Brick top / gable boarding start on both gables (source ALEMPI min y 5.28). */
-export const R31_GABLE_BOARDING_FROM_Y = 5.28;
 /**
- * East brick top, checked separately (owner 22.11.2026 21.11 / High T7):
- * R31 scene769 mass references C80_P186_RAKENNUSMASSA_VIITE_684 (wall top)
- * and _767 (gable triangle base) both give y 5.15; the triangle base meets
- * the A/B roof underside (ridge 1.00 m below the west) at z 0.916 / -10.076.
+ * Gable brick / brown boarding line, derived from the 1985 ARK 3 drawing
+ * (Drive 1h1qq98wTfVQTEEJIG45WqeKhLD_JfvjG, 600 dpi): the brick top is drawn
+ * at the lower eave/fascia level, east +26,530 and west +27,530 (ARK 2
+ * 1u8jhHfL...: same levels = fascia bottom on the long facades). Local
+ * datum +21,750 = 0 (checked against R31: A/B ridge 6.73 = +28,480). DESIGN
+ * WORK_TEST values; +-0.03 m = drawing interpretation, not a site measurement.
+ * The earlier 5.15 / 5.28 came from the mass model (roof plane +26,900) and a
+ * P186 work solid, not from any material line source.
  */
-export const R31_EAST_BRICK_TOP_Y = 5.15;
+export const R31_GABLE_DESIGN_DATUM = 21.75;
+export const R31_EAST_BRICK_TOP_Y = 26.53 - R31_GABLE_DESIGN_DATUM; // 4.78
+export const R31_WEST_BRICK_TOP_Y = 27.53 - R31_GABLE_DESIGN_DATUM; // 5.78
+/** West brick top / boarding start (kept name for older callers). */
+export const R31_GABLE_BOARDING_FROM_Y = R31_WEST_BRICK_TOP_Y;
+/** South edge of the west brick facade (node 6653 world z max). */
+export const R31_WEST_FACADE_SOUTH_Z = 1.724;
 /** Owner 22.11.2026 20.46 (Street View heinä 2026): dark brown vertical boarding in both gable triangles. */
 export const R31_GABLE_BOARDING_COLOR = 0x3b2a22;
 /** Presentation lift of the boarding overlays off the source faces (reversed depth, see liftGableFace). */
@@ -302,15 +311,15 @@ export const isR31WestGableBoardingSource = (name) =>
 
 /**
  * West gable infill (owner 22.11.2026 20.12 "reikä pitäisi korjata"): the
- * source gable fills stop at z = 0 while the brick pier runs to z = 1.72, so
- * above the brick (y 5.28) up to the roof underside there is an opening.
+ * source gable fills stop at z = 0 while the brick wall runs to z = 1.72, so
+ * above the ARK 3 brick line (y 5.78) up to the roof underside there is an opening.
  * Same plane as the source fills (x 0..0.22), lifted 4 mm out; z 0..1.72.
  */
 export function buildR31WestGableInfill(THREE, material) {
   const shape = new THREE.Shape();
   shape.moveTo(0, R31_GABLE_BOARDING_FROM_Y);
-  shape.lineTo(1.72, R31_GABLE_BOARDING_FROM_Y);
-  shape.lineTo(1.72, r31RoofUndersideY(1.72));
+  shape.lineTo(R31_WEST_FACADE_SOUTH_Z, R31_GABLE_BOARDING_FROM_Y);
+  shape.lineTo(R31_WEST_FACADE_SOUTH_Z, r31RoofUndersideY(R31_WEST_FACADE_SOUTH_Z));
   shape.lineTo(0, r31RoofUndersideY(0));
   shape.closePath();
   const geometry = new THREE.ExtrudeGeometry(shape, { depth: 0.22 + R31_GABLE_BOARDING_LIFT_M, bevelEnabled: false });
@@ -433,6 +442,67 @@ function applyR31EastGableRoofClip(THREE, clone, json) {
 }
 
 /**
+ * World-space part of `geometry` between minY and a symmetric pitched roof
+ * underside { ridgeY, ridgeZ, slope }. Split at the ridge first so each half
+ * is clipped by its own slope plane.
+ */
+export function clipGeometryToGableBand(THREE, geometry, matrix, roof, minY) {
+  const g = geometry.index ? geometry.toNonIndexed() : geometry;
+  const pos = g.getAttribute('position');
+  const EPS = 1e-9;
+  const clip = (polygon, d) => {
+    const out = [];
+    for (let i = 0; i < polygon.length; i += 1) {
+      const p = polygon[i];
+      const q = polygon[(i + 1) % polygon.length];
+      const dp = d(p);
+      const dq = d(q);
+      if (dp >= -EPS) out.push(p);
+      if ((dp >= -EPS) !== (dq >= -EPS) && Math.abs(dp - dq) > EPS) out.push(p.clone().lerp(q, dp / (dp - dq)));
+    }
+    return out;
+  };
+  const under = (z) => roof.ridgeY - roof.slope * Math.abs(z - roof.ridgeZ);
+  const out = [];
+  for (let t = 0; t + 2 < pos.count; t += 3) {
+    const tri = [0, 1, 2].map((k) => new THREE.Vector3().fromBufferAttribute(pos, t + k).applyMatrix4(matrix));
+    for (const half of [-1, 1]) {
+      let poly = clip(tri, (p) => half * (p.z - roof.ridgeZ));
+      if (poly.length >= 3) poly = clip(poly, (p) => under(p.z) - p.y);
+      if (poly.length >= 3) poly = clip(poly, (p) => p.y - minY);
+      for (let k = 1; k + 1 < poly.length; k += 1) {
+        const area = new THREE.Vector3().subVectors(poly[k], poly[0]).cross(new THREE.Vector3().subVectors(poly[k + 1], poly[0])).lengthSq();
+        if (area > 1e-14) out.push(poly[0], poly[k], poly[k + 1]);
+      }
+    }
+  }
+  if (g !== geometry) g.dispose();
+  const result = new THREE.BufferGeometry().setFromPoints(out);
+  result.computeVertexNormals();
+  return result;
+}
+
+/**
+ * West brick facade completion 5.30 -> 5.78 (ARK 3 brick top): same plane,
+ * thickness, width and material as the existing 2F brick wall
+ * C80R2_WEST_BRICK_PIER_2F (node 6653, top 5.30); touches it edge-to-edge,
+ * no overlapping faces. `pierBox` = world Box3 of that wall.
+ */
+export function buildR31WestBrickCompletion(THREE, material, pierBox, topY = R31_WEST_BRICK_TOP_Y) {
+  if (!pierBox || pierBox.max.y >= topY - 1e-6) return null;
+  const sx = pierBox.max.x - pierBox.min.x;
+  const sy = topY - pierBox.max.y;
+  const sz = pierBox.max.z - pierBox.min.z;
+  const mesh = new THREE.Mesh(new THREE.BoxGeometry(sx, sy, sz), material);
+  mesh.name = 'R31_WEST_BRICK_COMPLETION_TO_ARK3_LINE_WORK_TEST';
+  mesh.matrixAutoUpdate = false;
+  mesh.matrix.makeTranslation((pierBox.min.x + pierBox.max.x) / 2, pierBox.max.y + sy / 2, (pierBox.min.z + pierBox.max.z) / 2);
+  mesh.userData = { presentationOnly: true, ModelStage: 'WORK_TEST_VIEW', basis: 'ARK3_1985_WEST_BRICK_TOP_27530',
+    extendsNode: 6653, currentClaim: false, asBuiltClaim: false };
+  return mesh;
+}
+
+/**
  * Brown gable boarding overlays for both gables: the west source fills
  * (ALEMPI/YLEMPI) and the east K14 face above the brick line, each copied
  * world-placed and lifted 4 mm outwards. Presentation only.
@@ -451,14 +521,15 @@ export function buildR31GableBoarding(THREE, { westMeshes = [], eastFace = null 
   };
   for (const source of westMeshes) {
     source.updateWorldMatrix?.(true, false);
-    add(clipGeometryAboveY(THREE, source.geometry, source.matrixWorld, R31_GABLE_BOARDING_FROM_Y),
+    // West: ARK 3 brick line 5.78 up to the C/D roof's own underside.
+    add(clipGeometryToGableBand(THREE, source.geometry, source.matrixWorld, R31_CD_ROOF_UNDERSIDE, R31_WEST_BRICK_TOP_Y),
       `${source.name}_BROWN_BOARDING_OVERLAY`, -R31_GABLE_BOARDING_LIFT_M);
   }
   if (eastFace) {
     const m = eastFace.matrix.clone();
     if (eastFace.parent?.matrixWorld) m.premultiply(eastFace.parent.matrixWorld);
     // K14 copy is already clipped to the A/B roof underside (#2215): boarding
-    // = brick top 5.15 .. own roof underside, never the west height.
+    // = ARK 3 brick line 4.78 .. own roof underside (1.00 m below the west).
     add(clipGeometryAboveY(THREE, eastFace.geometry, m, R31_EAST_BRICK_TOP_Y),
       'K14_A_GABLE_TRIANGLE_BROWN_BOARDING_OVERLAY', R31_GABLE_BOARDING_LIFT_M);
   }

@@ -2753,7 +2753,7 @@ const title = 'Private 3D viewer';
       // @ts-ignore - R31 review roots and inspection overlays have unit coverage.
       import { resolveC80R31TechnicalReviewRoots } from '../../scripts/privateModelC80R31TechnicalReview.mjs';
       // @ts-ignore - pure overlay builders, THREE injected.
-      import { R31_DRAINAGE_SOURCE, R31_EXTERIOR_DONORS, buildR31DrainageOverlay, buildR31InfraOverlay, buildR31FiberOverlay, buildR31ExteriorDonorOverlay, buildR31WestGableInfill, buildR31GableBoarding, buildR31FiberEntryBox, buildR31FiberEntryLink, isR31WestGableBoardingSource, R31_GABLE_BOARDING_COLOR, isR31ReplacedWestDownpipe, loadR31EastGableOverlay, relocateR31Downpipes, syncR31ExteriorDonorMaterials, setR31SiteNetworkLayerMode } from '../../scripts/privateModelR31Inspection.mjs';
+      import { R31_DRAINAGE_SOURCE, R31_EXTERIOR_DONORS, buildR31DrainageOverlay, buildR31InfraOverlay, buildR31FiberOverlay, buildR31ExteriorDonorOverlay, buildR31WestGableInfill, buildR31GableBoarding, buildR31WestBrickCompletion, buildR31FiberEntryBox, buildR31FiberEntryLink, isR31WestGableBoardingSource, R31_GABLE_BOARDING_COLOR, isR31ReplacedWestDownpipe, loadR31EastGableOverlay, relocateR31Downpipes, syncR31ExteriorDonorMaterials, setR31SiteNetworkLayerMode } from '../../scripts/privateModelR31Inspection.mjs';
       import { R31_LOCUS_FIBER_LINES } from '../../scripts/privateModelR31LocusFiber.mjs';
       import { r31SiteLayerKeyForNetwork } from '../../scripts/privateModelR31SiteLayerKey.mjs';
       import { resolveTechnicalReviewRoots, createTechnicalReviewPresentation, technicalReviewSystemOf, technicalReviewLayerSystemOf, refineTechnicalReviewSystem, filterNonTechnicalBoundObjects } from '../../scripts/privateModelTechnicalReviewPresentation.mjs';
@@ -16049,8 +16049,17 @@ const title = 'Private 3D viewer';
             const eastFace = r31ExteriorDonors.eastGable?.children.find((m: any) => /K14_A_GABLE_EXTERIOR_FACE/.test(m.name ?? '')) ?? null;
             const gable = buildR31GableBoarding(THREE, { westMeshes, eastFace } as any, boarding);
             gable.add(buildR31WestGableInfill(THREE, boarding));
+            // ARK 3 (1985) brick line west 5.78: complete the existing brick wall 5.30 -> 5.78.
+            let westBrick: any = null;
+            modelRoot.traverse((object: any) => {
+              if (!westBrick && object.isMesh && /C80R2_WEST_BRICK_PIER_2F/.test(object.name ?? '')) westBrick = object;
+            });
+            const brickCompletion = westBrick
+              ? buildR31WestBrickCompletion(THREE, westBrick.material, new THREE.Box3().setFromObject(westBrick))
+              : null;
+            if (brickCompletion) gable.add(brickCompletion);
             r31ExteriorDonors.gableBoarding = gable;
-            canvas.dataset.r31GableBoarding = `west:${westMeshes.length}|east:${eastFace ? 1 : 0}|infill:1`;
+            canvas.dataset.r31GableBoarding = `west:${westMeshes.length}|east:${eastFace ? 1 : 0}|infill:1|westBrick:${brickCompletion ? 1 : 0}`;
             // Owner 20.46 photos: fibre box right of the D north door, cable down.
             const fiberBox = new THREE.Group();
             fiberBox.name = 'R31_FIBER_ENTRY_BOX_WORK_TEST';
