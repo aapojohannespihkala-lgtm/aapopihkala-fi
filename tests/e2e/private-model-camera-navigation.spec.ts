@@ -25,7 +25,7 @@ const openPresetMenu = async (page: Page) => {
 
 const selectResearchPreset = async (page: Page, name: 'Koko rakennus' | 'D-asunto') => {
   await openPresetMenu(page);
-  await page.getByRole('button', { name, exact: true }).click();
+  await menu.getByRole('button', { name, exact: true }).click();
 };
 
 const expectPerspectiveFreeOrbit = async (page: Page) => {
@@ -77,4 +77,61 @@ test('initial, whole-building, and D-apartment views keep perspective free orbit
   );
   await expectPerspectiveFreeOrbit(page);
   await expect(page.getByRole('status')).toHaveText('D-asunto - molemmat kerrokset, vapaa 3D');
+});
+
+test('owner menu presets keep the active isometric or elevation camera direction', async ({ page }) => {
+  // A synthetic fixture exercises the actual viewer controls without publishing
+  // any original Ylisrinne geometry or requiring a protected model.
+  const model = makeMinimalGlb({
+    asset: { version: '2.0' },
+    scene: 0,
+    scenes: [
+      { name: 'P133D REVIEW ROOT - BABYLON Y-UP', nodes: [] },
+      { name: 'D CURRENT INTERIOR - BABYLON Y-UP', nodes: [] },
+    ],
+    nodes: [],
+  });
+
+  await page.route('**/private-model/model.glb', (route) =>
+    route.fulfill({ status: 200, contentType: 'model/gltf-binary', body: model }),
+  );
+  await page.goto('/private-model/');
+  await expect(page.getByRole('status')).toHaveText('Malli ladattu - D-pohjat käytettävissä');
+
+  const cameraSnapshot = () => page.evaluate(() => {
+    const canvas = document.querySelector<HTMLCanvasElement>('#private-model-canvas');
+    const readout = document.querySelector<HTMLElement>('#ai-navigator-readout');
+    return {
+      view: canvas?.dataset.viewPreset ?? null,
+      projection: canvas?.dataset.cameraProjection ?? null,
+      look: readout?.dataset.lookVector ?? null,
+      elevation: canvas?.dataset.elevationDirection ?? null,
+    };
+  });
+
+  const chooseView = async (name: string) => {
+    const menu = page.locator('#view-menu');
+    if ((await menu.getAttribute('open')) === null) {
+      await menu.locator(':scope > summary').click();
+    }
+    await menu.getByRole('button', { name, exact: true }).click();
+  };
+
+  for (const { viewButton, mode, projection } of [
+    { viewButton: 'Isometrinen', mode: 'isometric', projection: 'orthographic' },
+    { viewButton: 'Julk +Y', mode: 'elevation', projection: 'orthographic' },
+  ]) {
+    await chooseView(viewButton);
+    await expect(page.locator('#private-model-canvas')).toHaveAttribute('data-view-preset', mode);
+    const before = await cameraSnapshot();
+    expect(before.projection).toBe(projection);
+    expect(before.look).toMatch(/^X[+-]/);
+
+    for (const preset of ['Koko rakennus', 'D-asunto'] as const) {
+      await selectResearchPreset(page, preset);
+      await expect.poll(cameraSnapshot, {
+        message: `${preset} must preserve ${viewButton} camera orientation and projection`,
+      }).toEqual(before);
+    }
+  }
 });
