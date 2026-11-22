@@ -143,3 +143,56 @@ test('owner-corrected zones win: downpipes move to the nearest zone, collar stay
   assert.ok(nb.max.z > 2.3 && nb.min.z < 1.7, 'from the gutter back to the wall');
   assert.ok(nb.min.y < 1, 'down to the source pipe bottom');
 });
+
+test('five downpipes use five distinct owner zones without claiming real underground routes', async () => {
+  const { relocateR31Downpipes } = await import('../../src/scripts/privateModelR31Inspection.mjs');
+  // Synthetic coordinates and owner-observed delta magnitudes, not surveyed as-built routes.
+  const fixtures = [
+    { id: 'SW', x: 0, z: 0, targetX: 0.36, targetZ: -0.87 },
+    { id: 'NW', x: 10, z: 0, targetX: 10.35, targetZ: 0.94 },
+    { id: 'AE_S', x: 20, z: 0, targetX: 20.40, targetZ: -2.59 },
+    { id: 'AE_N', x: 30, z: 0, targetX: 30.32, targetZ: 0.94 },
+    { id: 'BC_S', x: 40, z: 0, targetX: 40.39, targetZ: -2.29 },
+  ];
+  const group = new THREE.Group();
+  const source = new Map();
+  const part = (name, x, y, z, height) => {
+    const mesh = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, height), new THREE.MeshBasicMaterial());
+    mesh.name = name;
+    mesh.matrixAutoUpdate = false;
+    mesh.matrix.makeTranslation(x, y, z);
+    group.add(mesh);
+    return mesh;
+  };
+  for (const f of fixtures) {
+    const base = `T12_2026_${f.id}_DOWNPIPE`;
+    source.set(f.id, {
+      pipe: part(`${base}_VERTICAL_PIPE_WORK_TEST`, f.x, 3, f.z, 5),
+      bend: part(`${base}_TERMINAL_BEND_WORK_TEST`, f.x, 0.5, f.z, 0.2),
+      collar: part(`${base}_INLET_COLLAR_WORK_TEST`, f.x, 5.75, f.z, 0.1),
+    });
+  }
+  const zones = fixtures.map((f) => ({ x: f.targetX, z: f.targetZ, name: f.id })).reverse();
+  const moves = relocateR31Downpipes(THREE, group, zones);
+  assert.equal(moves.length, 5, 'all five distinct downpipes are accounted for');
+  assert.deepEqual(new Set(moves.map((m) => m.zone)), new Set(fixtures.map((f) => f.id)),
+    'each owner zone may be assigned only once');
+  for (const f of fixtures) {
+    const { pipe, bend, collar } = source.get(f.id);
+    const pos = (mesh) => new THREE.Vector3().setFromMatrixPosition(mesh.matrix);
+    for (const mesh of [pipe, bend]) {
+      assert.ok(Math.abs(pos(mesh).x - f.targetX) < 1e-6, `${f.id} X`);
+      assert.ok(Math.abs(pos(mesh).z - f.targetZ) < 1e-6, `${f.id} Z`);
+      assert.equal(mesh.userData.relocationBasis, 'OWNER_CORRECTED_PRESENCE_ZONE_20261115');
+      assert.equal(mesh.userData.workAssumption, true);
+    }
+    assert.ok(Math.abs(pos(collar).x - f.targetX) < 1e-6);
+    assert.ok(Math.abs(pos(collar).z - f.z) < 1e-6, 'inlet collar stays on original gutter Z');
+  }
+  const connectors = group.children.filter((m) => m.name.endsWith('_CONNECTOR_TO_OWNER_ZONE_WORK_ASSUMPTION'));
+  assert.equal(connectors.length, 5, 'connector display geometry is explicitly provisional');
+  for (const connector of connectors) {
+    assert.equal(connector.userData.workAssumption, true);
+    assert.equal(connector.userData.physicalRouteClaim, false);
+  }
+});
