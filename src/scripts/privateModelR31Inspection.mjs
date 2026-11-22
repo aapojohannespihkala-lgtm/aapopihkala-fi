@@ -284,20 +284,29 @@ export const isR31ReplacedWestDownpipe = (name) =>
 /** Roof underside of the R31 C/D roof (source: ridge y 7.5238, slope 0.25). */
 export const r31RoofUndersideY = (z) => 7.5238 - 0.25 * Math.abs(z + 4.58);
 
+/** Brick top / gable boarding start on both gables (source ALEMPI min y 5.28). */
+export const R31_GABLE_BOARDING_FROM_Y = 5.28;
+/** Owner 22.11.2026 20.46 (Street View heinä 2026): dark brown vertical boarding in both gable triangles. */
+export const R31_GABLE_BOARDING_COLOR = 0x3b2a22;
+/** Presentation lift of the boarding overlays off the source faces (reversed depth, see liftGableFace). */
+export const R31_GABLE_BOARDING_LIFT_M = 0.004;
+export const isR31WestGableBoardingSource = (name) =>
+  typeof name === 'string' && /C80_D_KATON_LANSIPAATY_(ALEMPI|YLEMPI)/.test(name);
+
 /**
  * West gable infill (owner 22.11.2026 20.12 "reikä pitäisi korjata"): the
  * source gable fills stop at z = 0 while the brick pier runs to z = 1.72, so
- * above the pier (y 5.30) up to the roof underside there is an opening.
- * Brick-faced solid x -0.02..0.22, z 0..1.72; WORK_TEST presentation.
+ * above the brick (y 5.28) up to the roof underside there is an opening.
+ * Same plane as the source fills (x 0..0.22), lifted 4 mm out; z 0..1.72.
  */
 export function buildR31WestGableInfill(THREE, material) {
   const shape = new THREE.Shape();
-  shape.moveTo(0, 5.30);
-  shape.lineTo(1.72, 5.30);
+  shape.moveTo(0, R31_GABLE_BOARDING_FROM_Y);
+  shape.lineTo(1.72, R31_GABLE_BOARDING_FROM_Y);
   shape.lineTo(1.72, r31RoofUndersideY(1.72));
   shape.lineTo(0, r31RoofUndersideY(0));
   shape.closePath();
-  const geometry = new THREE.ExtrudeGeometry(shape, { depth: 0.24, bevelEnabled: false });
+  const geometry = new THREE.ExtrudeGeometry(shape, { depth: 0.22 + R31_GABLE_BOARDING_LIFT_M, bevelEnabled: false });
   const mesh = new THREE.Mesh(geometry, material);
   // Shape X -> world +Z, shape Y -> world +Y, extrusion -> world -X (from x 0.22).
   mesh.matrixAutoUpdate = false;
@@ -305,8 +314,122 @@ export function buildR31WestGableInfill(THREE, material) {
   mesh.matrix.setPosition(0.22, 0, 0);
   mesh.name = 'R31_WEST_GABLE_INFILL_ABOVE_SOUTH_PIER_WORK_TEST';
   mesh.userData = { presentationOnly: true, workAssumption: true, ModelStage: 'WORK_TEST_VIEW',
-    basis: 'OWNER_20261122_HOLE_FIX', currentClaim: false, asBuiltClaim: false };
+    basis: 'OWNER_20261122_HOLE_FIX_BROWN_BOARDING', currentClaim: false, asBuiltClaim: false };
   return mesh;
+}
+
+/**
+ * World-space copy of `geometry` (placed by `matrix`) keeping only the part
+ * with y >= minY; triangles crossing the cut are clipped exactly.
+ */
+export function clipGeometryAboveY(THREE, geometry, matrix, minY) {
+  const g = geometry.index ? geometry.toNonIndexed() : geometry;
+  const pos = g.getAttribute('position');
+  const out = [];
+  const v = (k) => new THREE.Vector3().fromBufferAttribute(pos, k).applyMatrix4(matrix);
+  for (let t = 0; t + 2 < pos.count; t += 3) {
+    const tri = [v(t), v(t + 1), v(t + 2)];
+    const poly = [];
+    for (let a = 0; a < 3; a += 1) {
+      const p = tri[a];
+      const q = tri[(a + 1) % 3];
+      const pin = p.y >= minY;
+      const qin = q.y >= minY;
+      if (pin) poly.push(p);
+      if (pin !== qin) poly.push(p.clone().lerp(q, (minY - p.y) / (q.y - p.y)));
+    }
+    for (let k = 1; k + 1 < poly.length; k += 1) out.push(poly[0], poly[k], poly[k + 1]);
+  }
+  const result = new THREE.BufferGeometry().setFromPoints(out);
+  result.computeVertexNormals();
+  return result;
+}
+
+/**
+ * Brown gable boarding overlays for both gables: the west source fills
+ * (ALEMPI/YLEMPI) and the east K14 face above the brick line, each copied
+ * world-placed and lifted 4 mm outwards. Presentation only.
+ */
+export function buildR31GableBoarding(THREE, { westMeshes = [], eastFace = null } = {}, material) {
+  const group = new THREE.Group();
+  group.name = 'R31_GABLE_TRIANGLE_BROWN_BOARDING_WORK_TEST';
+  const add = (geometry, name, dx) => {
+    const mesh = new THREE.Mesh(geometry, material);
+    mesh.name = name;
+    mesh.matrixAutoUpdate = false;
+    mesh.matrix.makeTranslation(dx, 0, 0);
+    mesh.userData = { presentationOnly: true, ModelStage: 'WORK_TEST_VIEW', basis: 'OWNER_20261122_GABLE_TRIANGLE_BROWN_BOARDING',
+      currentClaim: false, asBuiltClaim: false };
+    group.add(mesh);
+  };
+  for (const source of westMeshes) {
+    source.updateWorldMatrix?.(true, false);
+    add(clipGeometryAboveY(THREE, source.geometry, source.matrixWorld, R31_GABLE_BOARDING_FROM_Y),
+      `${source.name}_BROWN_BOARDING_OVERLAY`, -R31_GABLE_BOARDING_LIFT_M);
+  }
+  if (eastFace) {
+    const m = eastFace.matrix.clone();
+    if (eastFace.parent?.matrixWorld) m.premultiply(eastFace.parent.matrixWorld);
+    add(clipGeometryAboveY(THREE, eastFace.geometry, m, R31_GABLE_BOARDING_FROM_Y),
+      'K14_A_GABLE_TRIANGLE_BROWN_BOARDING_OVERLAY', R31_GABLE_BOARDING_LIFT_M);
+  }
+  return group;
+}
+
+/**
+ * Owner 22.11.2026 20.46 (photos): the fibre enters at the D north entrance,
+ * outside box right of the door (west of it, x < 2.43) with the cable running
+ * down; inside it is the small casing under the electric centre (source node
+ * C80R2_V15_D1F_ENTRY_SMALL_CASING_FIBER_SOCKETS). Door outer face z -9.04.
+ */
+export const R31_FIBER_ENTRY = Object.freeze({
+  box: Object.freeze({ x: 2.33, y: 0.605, z: -9.075, w: 0.10, h: 0.25, d: 0.06 }),
+  conduitX: 2.33, conduitZ: -9.10, outsideMinG1Y: 9.2,
+  basis: 'OWNER_PHOTOS_20261122_D_NORTH_ENTRANCE_RIGHT_OF_DOOR',
+});
+
+/** Exterior fibre box (whole-building view). */
+export function buildR31FiberEntryBox(THREE, material) {
+  const { box } = R31_FIBER_ENTRY;
+  const mesh = new THREE.Mesh(new THREE.BoxGeometry(box.w, box.h, box.d), material);
+  mesh.name = 'R31_D1F_NORTH_ENTRANCE_FIBER_BOX_OWNER_OBSERVED_WORK_TEST';
+  mesh.matrixAutoUpdate = false;
+  mesh.matrix.makeTranslation(box.x, box.y, box.z);
+  mesh.userData = { system: 'FIBER', basis: R31_FIBER_ENTRY.basis, presentationOnly: true,
+    ModelStage: 'WORK_TEST_VIEW', dimensionsAssumed: true, currentClaim: false, asBuiltClaim: false };
+  return mesh;
+}
+
+/**
+ * Fibre drop from the box down to the map display level and a link to the
+ * nearest Locus fibre map point north of the facade. The link is a work
+ * assumption (the map itself ends inside the house outline).
+ */
+export function buildR31FiberEntryLink(THREE, lines, displayY = R31_FIBER_DISPLAY_Y) {
+  const { box, conduitX, conduitZ, outsideMinG1Y } = R31_FIBER_ENTRY;
+  let best = null;
+  for (const line of lines ?? []) {
+    for (const [x, y] of line.points ?? []) {
+      if (y < outsideMinG1Y) continue;
+      const d = Math.hypot(x - conduitX, y + conduitZ);
+      if (!best || d < best.d) best = { d, x, y, line: line.name };
+    }
+  }
+  const group = new THREE.Group();
+  group.name = 'R31_FIBER_ENTRY_LINK_WORK_ASSUMPTION';
+  const material = new THREE.MeshStandardMaterial({ color: R31_INSPECTION_COLORS.FIBER, emissive: R31_INSPECTION_COLORS.FIBER,
+    emissiveIntensity: 0.4, roughness: 0.6, metalness: 0, transparent: true, opacity: 0.55 });
+  const pts = [new THREE.Vector3(conduitX, box.y - box.h / 2, conduitZ), new THREE.Vector3(conduitX, displayY, conduitZ)];
+  if (best) pts.push(new THREE.Vector3(best.x, displayY, -best.y));
+  const path = new THREE.CurvePath();
+  for (let i = 1; i < pts.length; i += 1) path.add(new THREE.LineCurve3(pts[i - 1], pts[i]));
+  const mesh = new THREE.Mesh(new THREE.TubeGeometry(path, 24, 0.03, 6, false), material);
+  mesh.name = 'R31_FIBER_ENTRY_DROP_AND_LINK_WORK_ASSUMPTION';
+  mesh.userData = { system: 'FIBER', basis: R31_FIBER_ENTRY.basis, linkedMapLine: best?.line ?? null,
+    workAssumption: true, physicalRouteClaim: false, presentationOnly: true, ModelStage: 'WORK_TEST_VIEW' };
+  group.add(mesh);
+  group.userData = { counts: { FIBER_ENTRY: 1 }, linkedMapLine: best?.line ?? null, presentationOnly: true };
+  return group;
 }
 
 /**
