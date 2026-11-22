@@ -260,6 +260,7 @@ jobs:
             tests/unit/private-model-c80-620r21-work-test-receiver.test.mjs \
             tests/unit/private-model-c80-620r22-work-test-receiver.test.mjs \
             tests/unit/private-model-c80-r31-scene752-source-receipt.test.mjs \
+            tests/unit/private-model-k3-d1f-sw05-visual-source-association.test.mjs \
             tests/unit/private-model-c80-r31-review-runtime.test.mjs \
             tests/unit/private-model-desktop-toolbar.test.mjs \
             tests/unit/private-model-navigation-cube.test.mjs \
