@@ -8,7 +8,7 @@
 export const K3_SW03_779780_SOURCE = Object.freeze({
   zipDriveId: '1BC0fogL2GqWikJizWgyXLU58yhLBptjz',
   zipSha256: '1340a23f235bd52fbf6ae230cab4ab29a80f866fb970452eb03d79fe4ad5d35e',
-  glbSha256: 'a30dd2dae96dc6c5e5bb8c6cf1930c4a02bfb70fce5c6a2ecb68b5689318ab3',
+  glbSha256: 'a30dd2dae96dc6c5e5bb8c6cf1930c4a02bfb70fce5c6a2ecb68b5689318ab3e',
   glbBytes: 63870196,
   parentZipDriveId: '1QREA5stxJShXNupCf0gsEaag2lo0zQPM',
   parentGlbSha256: '9a33adeed011d7605cb84cf7897a0fa64206ce9f7405d44542b7bf8a3f984ec8',
