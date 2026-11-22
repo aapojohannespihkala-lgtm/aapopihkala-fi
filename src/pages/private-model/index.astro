@@ -15984,7 +15984,7 @@ const title = 'Private 3D viewer';
               if (object.isMesh && isR31WestGableBoardingSource(object.name)) westMeshes.push(object);
             });
             const eastFace = r31ExteriorDonors.eastGable?.children.find((m: any) => /K14_A_GABLE_EXTERIOR_FACE/.test(m.name ?? '')) ?? null;
-            const gable = buildR31GableBoarding(THREE, { westMeshes, eastFace }, boarding);
+            const gable = buildR31GableBoarding(THREE, { westMeshes, eastFace } as any, boarding);
             gable.add(buildR31WestGableInfill(THREE, boarding));
             r31ExteriorDonors.gableBoarding = gable;
             canvas.dataset.r31GableBoarding = `west:${westMeshes.length}|east:${eastFace ? 1 : 0}|infill:1`;
