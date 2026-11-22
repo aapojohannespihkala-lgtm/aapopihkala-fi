@@ -475,3 +475,27 @@ export async function loadR31EastGableOverlay(THREE, gltf) {
   group.userData = { count: group.children.length, presentationOnly: true };
   return group;
 }
+
+/**
+ * Technical overlay colours exterior donors independently of their arrival order.
+ * Called again after each asynchronous donor load and when the preset changes.
+ * The map stores each mesh's original material only once per ON/OFF cycle.
+ * No dependency on the renderer or on a particular glTF scene index.
+ */
+export function syncR31ExteriorDonorMaterials(groups, originals, enabled, materials) {
+  if (!enabled) {
+    if (originals) {
+      for (const [mesh, material] of originals) mesh.material = material;
+    }
+    return null;
+  }
+  const saved = originals ?? new Map();
+  for (const [key, group] of Object.entries(groups)) {
+    group?.traverse?.((object) => {
+      if (!object.isMesh) return;
+      if (!saved.has(object)) saved.set(object, object.material);
+      object.material = key === 'rainwater' ? materials.rainwater : materials.grey;
+    });
+  }
+  return saved;
+}
