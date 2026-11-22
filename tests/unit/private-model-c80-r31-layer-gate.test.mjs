@@ -55,6 +55,6 @@ test('actual viewer forwards only post-review source proof to R31 Layers owner',
   assert.match(s,/isAuthenticatedC80R31LayerSession\(gltf, layersLoadedSha, session\)/);
   assert.match(s,/r31LayersVerified\s*\?\s*layersLoadedSha/);
   assert.match(s,/r31ViewsVerified:\s*true/);
-  assert.match(s,/applyLoadedModel\(gltf, 'work-test', `WORK_TEST: \$\{candidate\.label\}`, null, r31LayersProof\)/);
+  assert.match(s,/applyLoadedModel\(gltf, 'work-test', `WORK_TEST: \$\{candidate\.label\}`, null, null, r31LayersProof\)/);
   assert.match(s,/layersEnabled = verifiedChainSourceSha !== null/);
 });
