@@ -90,6 +90,20 @@ const r31View=view=>Object.freeze({
  exactRootCount:true,
 });
 
+/**
+ * Source-lock Layerit to original authenticated R31 review scene receipts.
+ * Never infer current/as-built identity or layer classes from scene names.
+ */
+export function r31ViewerLayerSceneReceipt(json, loadedSha, sceneIndex) {
+ if (loadedSha !== C80_R31_9E0B_SOURCE.glbSha256) return null;
+ const view = Object.values(C80_R31_9E0B_VIEWS).find(v => v.sceneIndex === sceneIndex);
+ if (!view) return null;
+ const proven = view.floor === 'BOTH'
+  ? isC80R31Scene769770Source(json, loadedSha, sceneIndex, view.role, view.floor)
+  : isC80R31Scene771772Source(json, loadedSha, sceneIndex, view.role, view.floor);
+ return proven ? Object.freeze({sourceSha256: loadedSha, sceneIndex, role: view.role, floor: view.floor}) : null;
+}
+
 /** Candidate id -> exact source + named views. Unknown ids are not R31 reviews. */
 export function r31WorkTestReview(candidate){
  const table={

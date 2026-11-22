@@ -2933,7 +2933,7 @@ const title = 'Private 3D viewer';
         type WorkTestLoadFailurePhase,
       } from '../../scripts/privateModelWorkTestLoadDiagnostics';
 
-      import { createC80R31ViewSwitch, r31WorkTestReview } from '../../scripts/privateModelC80R31ReviewRuntime.mjs';
+      import { createC80R31ViewSwitch, r31WorkTestReview, r31ViewerLayerSceneReceipt, C80_R31_9E0B_SOURCE } from '../../scripts/privateModelC80R31ReviewRuntime.mjs';
       import { mountDesktopToolbar, activeDesktopPreset, activeDesktopAngle, DESKTOP_START_CANDIDATE_ID } from '../../scripts/privateModelDesktopToolbar.mjs';
 
       const canvas = document.querySelector<HTMLCanvasElement>('#private-model-canvas');
@@ -15200,7 +15200,11 @@ const title = 'Private 3D viewer';
           layersSyncQueued = false;
           const root = modelRoot.children[0] ?? null;
           const sceneIndex = layersGltf?.scenes?.indexOf(root) ?? -1;
-          const verified = !!layersExpectedSha && layersExpectedSha === layersLoadedSha && sceneIndex >= 0;
+          // A matching digest alone cannot bind other glTF scenes in an R31 GLB.
+          const r31SceneProof = layersLoadedSha === C80_R31_9E0B_SOURCE.glbSha256
+            ? r31ViewerLayerSceneReceipt(layersGltf?.parser?.json, layersLoadedSha, sceneIndex) : true;
+          const verified = !!layersExpectedSha && layersExpectedSha === layersLoadedSha &&
+            sceneIndex >= 0 && !!r31SceneProof;
           const filterActive = canvas.dataset.objectVisibilityFilter === 'active';
           if (filterActive) {
             technicalReviewInput.disabled = true;
@@ -15444,7 +15448,12 @@ const title = 'Private 3D viewer';
           layersLoadedSha === V82_SOURCE_SHA256 ||
           layersLoadedSha === K17_RAIL900_SOURCE_SHA256
             ? layersLoadedSha : null;
-        layersExpectedSha = session?.contract?.glbSha256 ?? verifiedChainSourceSha;
+        // R31 must prove its own SHA, root set and stage, never borrow the R22
+        // baseline. The mounted role is independently rechecked in refreshLayers.
+        const verifiedR31LayerSource = !!r31ViewerLayerSceneReceipt(
+          gltf?.parser?.json, layersLoadedSha, 769);
+        layersExpectedSha = session?.contract?.glbSha256 ?? verifiedChainSourceSha ??
+          (verifiedR31LayerSource ? layersLoadedSha : null);
         // Restore the owner-approved white, doorless lobby only for the exact
         // V69 GLB. This changes loaded material instances, never the source GLB.
         if (layersLoadedSha === V69_SOURCE_SHA256 && layersExpectedSha === V69_SOURCE_SHA256) {
@@ -15461,7 +15470,7 @@ const title = 'Private 3D viewer';
             canvas.dataset.v69C020UpperGlassSourceReady = 'true';
           }
         }
-        layersEnabled = verifiedChainSourceSha !== null;
+        layersEnabled = verifiedChainSourceSha !== null || verifiedR31LayerSource;
         layersContextVisible = true;
         layersState = withViewerLayerBranchVisibility(applyViewerLayerPreset(createViewerInteractionState(), 'whole-building'));
         layersAvailable = [];
