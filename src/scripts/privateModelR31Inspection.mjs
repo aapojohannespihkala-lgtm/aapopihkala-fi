@@ -512,10 +512,95 @@ export const R31_EAST_GABLE_SOURCE = Object.freeze({
  * it 8 mm outward. Presentation-only, recorded on the object.
  */
 export const R31_EAST_GABLE_FACE_LIFT_M = 0.008;
+/**
+ * R31 ORIGINAL G2b A/B roof n13361 mesh5112, BOTH scenes769/770:
+ * world Y-up ridge (z=-4.58, y=6.523845), each slope 1:4.
+ * The C/D roof is 1.000 m higher and MUST NOT bound the east A/B gable.
+ * Presentation reference only: not a field measurement or as-built surface.
+ */
+export const R31_AB_ROOF_UNDERSIDE = Object.freeze({ ridgeY: 6.523845, ridgeZ: -4.58, slope: 0.25 });
+export const r31ABRoofUndersideY = (z) =>
+  R31_AB_ROOF_UNDERSIDE.ridgeY - R31_AB_ROOF_UNDERSIDE.slope * Math.abs(z - R31_AB_ROOF_UNDERSIDE.ridgeZ);
+
+/**
+ * Clip a K14 SOURCE COPY, never the original GLB geometry, against BOTH
+ * piecewise roof halfplanes in world coordinates. Preserve UV/vertex-colour
+ * attributes and source material; compute fresh normals on the clipped faces.
+ */
+export function clipR31EastGableAtABRoofUnderside(THREE, geometry, worldMatrix) {
+  const source = geometry.index ? geometry.toNonIndexed() : geometry;
+  const position = source.getAttribute('position');
+  const names = Object.keys(source.attributes).filter(
+    (name) => !['position', 'normal', 'tangent'].includes(name) && source.getAttribute(name)?.isBufferAttribute
+  );
+  const extras = Object.fromEntries(names.map((name) => [name, source.getAttribute(name)]));
+  const result = new THREE.BufferGeometry();
+  const output = { position: [] };
+  for (const name of names) output[name] = [];
+  const read = (i) => ({
+    position: new THREE.Vector3().fromBufferAttribute(position, i).applyMatrix4(worldMatrix),
+    data: Object.fromEntries(names.map((name) => {
+      const attr = extras[name];
+      return [name, Array.from({ length: attr.itemSize }, (_, j) => attr.getComponent(i, j))];
+    })),
+  });
+  const mix = (a, b, t) => ({
+    position: a.position.clone().lerp(b.position, t),
+    data: Object.fromEntries(names.map((name) => [
+      name, a.data[name].map((v, i) => v + (b.data[name][i] - v) * t),
+    ])),
+  });
+  // roof underside is the INTERSECTION of the two linear upper bounds.
+  const planes = [
+    (p) => p.y + R31_AB_ROOF_UNDERSIDE.slope * (p.z - R31_AB_ROOF_UNDERSIDE.ridgeZ) - R31_AB_ROOF_UNDERSIDE.ridgeY,
+    (p) => p.y - R31_AB_ROOF_UNDERSIDE.slope * (p.z - R31_AB_ROOF_UNDERSIDE.ridgeZ) - R31_AB_ROOF_UNDERSIDE.ridgeY,
+  ];
+  let written = 0;
+  for (let t = 0; t + 2 < position.count; t += 3) {
+    let poly = [read(t), read(t + 1), read(t + 2)];
+    for (const distance of planes) {
+      const clipped = [];
+      for (let j = 0; j < poly.length; j += 1) {
+        const a = poly[j];
+        const b = poly[(j + 1) % poly.length];
+        const da = distance(a.position);
+        const db = distance(b.position);
+        if (da <= 0) clipped.push(a);
+        if ((da <= 0) !== (db <= 0)) clipped.push(mix(a, b, da / (da - db)));
+      }
+      poly = clipped;
+      if (poly.length < 3) break;
+    }
+    const start = written;
+    for (let j = 1; j + 1 < poly.length; j += 1) {
+      for (const v of [poly[0], poly[j], poly[j + 1]]) {
+        output.position.push(v.position.x, v.position.y, v.position.z);
+        for (const name of names) output[name].push(...v.data[name]);
+        written++;
+      }
+    }
+    if (written !== start && source.groups.length) {
+      const group = source.groups.find((g) => 3 * t >= g.start && 3 * t < g.start + g.count);
+      result.addGroup(start, written - start, group?.materialIndex ?? 0);
+    }
+  }
+  result.setAttribute('position', new THREE.Float32BufferAttribute(output.position, 3));
+  for (const name of names) result.setAttribute(name, new THREE.Float32BufferAttribute(output[name], extras[name].itemSize));
+  result.computeVertexNormals();
+  result.computeBoundingBox();
+  return result;
+}
 function liftGableFace(THREE, mesh) {
   if (!/^K14_A_GABLE_EXTERIOR_FACE/.test(mesh.name ?? '')) return;
-  mesh.matrix.premultiply(new THREE.Matrix4().makeTranslation(R31_EAST_GABLE_FACE_LIFT_M, 0, 0));
-  mesh.userData = { ...mesh.userData, presentationLiftXM: R31_EAST_GABLE_FACE_LIFT_M };
+  // Both normal glTF-loader and on-demand JSON-loader supply a WORLD matrix.
+  // Bake it into the copied vertices before the display-only +X lift.
+  mesh.geometry = clipR31EastGableAtABRoofUnderside(THREE, mesh.geometry, mesh.matrix);
+  mesh.matrix.makeTranslation(R31_EAST_GABLE_FACE_LIFT_M, 0, 0);
+  mesh.userData = {
+    ...mesh.userData, presentationLiftXM: R31_EAST_GABLE_FACE_LIFT_M,
+    clippedToRoofSourceNode: 13361, clippedToRoofProfile: 'R31_AB_ROOF_UNDERSIDE_WORK_TEST',
+    currentClaim: false, asBuiltClaim: false,
+  };
 }
 
 export function buildR31EastGableOverlay(THREE, gltf) {
