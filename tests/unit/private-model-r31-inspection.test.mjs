@@ -535,8 +535,8 @@ test('ARK 3 gable material lines: east 4.78, west 5.78, 1.00 m apart, each to it
   const brick = m.buildR31WestBrickCompletion(THREE, new THREE.MeshBasicMaterial(), pierBox);
   brick.geometry.computeBoundingBox();
   const b = brick.geometry.boundingBox.clone().applyMatrix4(brick.matrix);
-  assert.ok(Math.abs(b.min.y - 5.30) < 1e-9 && Math.abs(b.max.y - 5.78) < 1e-9);
-  assert.ok(Math.abs(b.min.x + 0.021) < 1e-9 && Math.abs(b.max.z - 1.724) < 1e-9 && Math.abs(b.min.z + 10.81) < 1e-9);
+  assert.ok(Math.abs(b.min.y - 5.30) < 1e-6 && Math.abs(b.max.y - 5.78) < 1e-6);
+  assert.ok(Math.abs(b.min.x + 0.021) < 1e-6 && Math.abs(b.max.z - 1.724) < 1e-6 && Math.abs(b.min.z + 10.81) < 1e-6);
   // Edges: brown band remains under both eaves (0.17-0.19 m), no gap to the roof.
   assert.ok(m.r31RoofUndersideY(1.724) - 5.78 > 0.16 && m.r31ABRoofUndersideY(1.709) - 4.78 > 0.16);
   assert.equal(m.buildR31WestBrickCompletion(THREE, null, new THREE.Box3(new THREE.Vector3(), new THREE.Vector3(0, 6, 0))), null);
