@@ -912,7 +912,7 @@ const title = 'Private 3D viewer';
 
       /* Only the selected coordinate frame is printed below the cube.
          Preserve the existing button text/ARIA for keyboard and browser guards. */
-      .orientation-gizmo [data-navigation-north="toggle"]::after {
+      :global(.orientation-gizmo [data-navigation-north="toggle"]::after) {
         content: attr(data-frame-label);
         display: inline-block;
         font-size: 9px;
