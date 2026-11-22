@@ -219,14 +219,29 @@ export function buildR31ExteriorDonorOverlay(THREE, key, gltf) {
 }
 
 /**
- * Owner 22.11.2026 18.08: human observation wins. The T12 (24.10) downpipes
- * move onto the owner-corrected M5B-R1109 presence zones (15.11). Each
- * downpipe (vertical pipe + terminal bend) moves to its nearest zone; the
- * inlet collar stays on its gutter (moved only along the gutter, X) and a
- * straight connector joins collar and pipe top (WORK_TEST assumption).
- * `zones` = [{ x, z }] world centres. Returns the moves for the record.
+ * Downpipe targets from human observation (owner 22.11.2026 18.08-19.27).
+ * West gable: R31 already carries the photo-based lower pipes (nodes 8756
+ * SW / 8832 NW, top y 2.62); the gutter swan neck ends on top of them, no
+ * second pipe. East gable: mirror of the west (east facade as wide as the
+ * west, owner 19.27). C/B: between the balcony boarding and the brick wall
+ * (owner photo 19.27). `outlet` = direction the bottom outlet points.
  */
-export function relocateR31Downpipes(THREE, group, zones) {
+export const R31_DOWNPIPE_TARGETS = Object.freeze({
+  T12_2026_CD_LANSI_ETELA: Object.freeze({ x: -0.145, z: 1.665, stopY: 2.62, basis: 'R31_NODE_8756_PHOTO_LOWER_PIPE' }),
+  T12_2026_CD_LANSI_POHJOINEN: Object.freeze({ x: -0.145, z: -10.875, stopY: 2.62, basis: 'R31_NODE_8832_PHOTO_LOWER_PIPE' }),
+  T12_2026_AB_ITA_ETELA: Object.freeze({ x: 25.545, z: 1.665, outlet: [1, 0], basis: 'OWNER_20261122_EAST_GABLE_AS_WIDE_AS_WEST_MIRROR_SW' }),
+  T12_2026_AB_ITA_POHJOINEN: Object.freeze({ x: 25.545, z: -10.875, outlet: [1, 0], basis: 'OWNER_20261122_EAST_GABLE_MIRROR_NW' }),
+  T12_2026_CB_ETELAJULKISIVU: Object.freeze({ x: 12.7, z: 1.665, outlet: [0, 1], basis: 'OWNER_PHOTO_20261122_BETWEEN_BALCONY_BOARDING_AND_BRICK' }),
+});
+
+/**
+ * Re-route each T12 downpipe to its target: collar slides along its gutter,
+ * short drop, 45-degree swan neck back to the wall (owner photos 18.25),
+ * straight down; either onto the existing R31 lower pipe (stopY) or to a low
+ * outlet bend pointing away from the wall. The source straight pipe and its
+ * high terminal bend are hidden. Returns the moves for the record.
+ */
+export function relocateR31Downpipes(THREE, group, targets = R31_DOWNPIPE_TARGETS) {
   const parts = new Map();
   for (const mesh of group?.children ?? []) {
     const m = /^(T12_2026_.+?)_DOWNPIPE_(INLET_COLLAR|VERTICAL_PIPE|TERMINAL_BEND)/.exec(mesh.name ?? '');
@@ -238,56 +253,89 @@ export function relocateR31Downpipes(THREE, group, zones) {
     mesh.geometry.computeBoundingBox();
     return mesh.geometry.boundingBox.clone().applyMatrix4(mesh.matrix);
   };
-  const free = [...(zones ?? [])];
   const moves = [];
   for (const [id, p] of parts) {
-    if (!p.VERTICAL_PIPE || !free.length) continue;
-    const pipeBox = boxOf(p.VERTICAL_PIPE);
-    const c = pipeBox.getCenter(new THREE.Vector3());
-    let best = 0;
-    free.forEach((z, i) => {
-      if (Math.hypot(z.x - c.x, z.z - c.z) < Math.hypot(free[best].x - c.x, free[best].z - c.z)) best = i;
-    });
-    const zone = free.splice(best, 1)[0];
-    const dx = zone.x - c.x, dz = zone.z - c.z;
-    const shift = (mesh, x, z) => {
-      if (!mesh) return;
-      mesh.matrix.premultiply(new THREE.Matrix4().makeTranslation(x, 0, z));
-      mesh.userData = { ...mesh.userData, relocatedTo: zone.name ?? 'M5B-R1109 zone',
-        relocationBasis: 'OWNER_CORRECTED_PRESENCE_ZONE_20261115', workAssumption: true };
-    };
-    shift(p.VERTICAL_PIPE, dx, dz);
-    shift(p.TERMINAL_BEND, dx, dz);
-    shift(p.INLET_COLLAR, dx, 0);
-    if (p.INLET_COLLAR && Math.abs(dz) > 0.05) {
-      // Owner photos 22.11.2026 18.25: a swan neck. Short drop from the gutter
-      // outlet, a 45-degree run back to the wall, then straight down the wall.
-      const pipe = boxOf(p.VERTICAL_PIPE);
-      const collar = boxOf(p.INLET_COLLAR);
-      const zGutter = collar.getCenter(new THREE.Vector3()).z;
-      const radius = Math.max(0.02, (pipe.max.x - pipe.min.x) / 2);
-      const drop = 0.12;
-      const p0 = new THREE.Vector3(zone.x, collar.min.y, zGutter);
-      const p1 = new THREE.Vector3(zone.x, collar.min.y - drop, zGutter);
-      const p2 = new THREE.Vector3(zone.x, p1.y - Math.abs(dz), zone.z);
-      const p3 = new THREE.Vector3(zone.x, pipe.min.y, zone.z);
-      if (p2.y > p3.y + 0.2) {
-        const path = new THREE.CurvePath();
-        path.add(new THREE.LineCurve3(p0, p1));
-        path.add(new THREE.LineCurve3(p1, p2));
-        path.add(new THREE.LineCurve3(p2, p3));
-        const neck = new THREE.Mesh(new THREE.TubeGeometry(path, 48, radius, 12, false), p.VERTICAL_PIPE.material);
-        neck.name = `${id}_DOWNPIPE_SWAN_NECK_ROUTE_WORK_ASSUMPTION`;
-        neck.userData = { presentationOnly: true, workAssumption: true, ModelStage: 'WORK_TEST_VIEW',
-          relocationBasis: 'OWNER_CORRECTED_PRESENCE_ZONE_20261115', shapeBasis: 'OWNER_PHOTOS_20261122_SWAN_NECK_45DEG',
-          physicalRouteClaim: false };
-        group.add(neck);
-        // The straight source pipe is replaced by the swan-neck route.
-        p.VERTICAL_PIPE.visible = false;
-      }
+    const target = targets[id];
+    if (!target || !p.VERTICAL_PIPE || !p.INLET_COLLAR) continue;
+    const pipe = boxOf(p.VERTICAL_PIPE);
+    const collar = boxOf(p.INLET_COLLAR);
+    const bend = p.TERMINAL_BEND ? boxOf(p.TERMINAL_BEND) : pipe;
+    const groundY = Math.min(bend.min.y, pipe.min.y);
+    const c = collar.getCenter(new THREE.Vector3());
+    const dx = target.x - c.x;
+    p.INLET_COLLAR.matrix.premultiply(new THREE.Matrix4().makeTranslation(dx, 0, 0));
+    const radius = Math.max(0.02, (pipe.max.x - pipe.min.x) / 2);
+    const top = collar.min.y;
+    const p0 = new THREE.Vector3(target.x, top, c.z);
+    const p1 = new THREE.Vector3(target.x, top - 0.12, c.z);
+    const run = Math.abs(target.z - c.z);
+    const p2 = new THREE.Vector3(target.x, p1.y - run, target.z);
+    const points = [p0, p1, p2];
+    if (Number.isFinite(target.stopY)) {
+      points.push(new THREE.Vector3(target.x, target.stopY, target.z));
+    } else {
+      const [ox, oz] = target.outlet ?? [0, 1];
+      const low = groundY + 0.25;
+      points.push(new THREE.Vector3(target.x, low, target.z));
+      points.push(new THREE.Vector3(target.x + ox * 0.22, low - 0.18, target.z + oz * 0.22));
     }
-    moves.push({ id, dx: +dx.toFixed(3), dz: +dz.toFixed(3), zone: zone.name ?? null });
+    const path = new THREE.CurvePath();
+    for (let i = 1; i < points.length; i += 1) {
+      if (points[i].distanceTo(points[i - 1]) > 1e-4) path.add(new THREE.LineCurve3(points[i - 1], points[i]));
+    }
+    const route = new THREE.Mesh(new THREE.TubeGeometry(path, 64, radius, 12, false), p.VERTICAL_PIPE.material);
+    route.name = `${id}_DOWNPIPE_SWAN_NECK_ROUTE_WORK_ASSUMPTION`;
+    route.userData = { presentationOnly: true, workAssumption: true, ModelStage: 'WORK_TEST_VIEW',
+      targetBasis: target.basis, shapeBasis: 'OWNER_PHOTOS_20261122_SWAN_NECK_45DEG', physicalRouteClaim: false };
+    group.add(route);
+    p.VERTICAL_PIPE.visible = false;
+    if (p.TERMINAL_BEND) p.TERMINAL_BEND.visible = false;
+    moves.push({ id, x: target.x, z: target.z, endsOnExistingPipe: Number.isFinite(target.stopY), basis: target.basis });
   }
   group.userData = { ...group.userData, downpipeMoves: moves };
   return moves;
+}
+
+/**
+ * Owner 22.11.2026 19.27: the east gable facade is as wide as the west one.
+ * R31 itself carries the source A gable face (K14, full width to the balcony
+ * front) and its balcony end in scene 23; the whole-building scene only has
+ * the narrower reference mass. Cloned source-exact, world-placed.
+ */
+export const R31_EAST_GABLE_SOURCE = Object.freeze({
+  sceneIndex: 23,
+  nodes: Object.freeze([3665, ...Array.from({ length: 18 }, (_, k) => 4653 + k)]),
+  namePattern: /^(K14_A_GABLE_EXTERIOR_FACE|K14_K12_A_GABLE_DREF_)/,
+});
+
+export function buildR31EastGableOverlay(THREE, gltf) {
+  const json = gltf?.parser?.json;
+  const associations = gltf?.parser?.associations;
+  const scene = gltf?.scenes?.[R31_EAST_GABLE_SOURCE.sceneIndex];
+  if (!scene || typeof associations?.get !== 'function') return null;
+  const wanted = new Set(R31_EAST_GABLE_SOURCE.nodes);
+  scene.updateMatrixWorld(true);
+  const group = new THREE.Group();
+  group.name = 'R31_EAST_GABLE_K14_SOURCE_SCENE23';
+  scene.traverse((object) => {
+    const index = associations.get(object)?.nodes;
+    if (!object.isMesh || !wanted.has(index) || !R31_EAST_GABLE_SOURCE.namePattern.test(json?.nodes?.[index]?.name ?? '')) return;
+    // The face shares the reference mass plane x = 25.40: win the depth tie.
+    const material = Array.isArray(object.material) ? object.material : object.material?.clone?.();
+    if (material && !Array.isArray(material)) {
+      material.polygonOffset = true;
+      material.polygonOffsetFactor = -1;
+      material.polygonOffsetUnits = -1;
+    }
+    const clone = new THREE.Mesh(object.geometry, material ?? object.material);
+    clone.name = object.name;
+    clone.matrixAutoUpdate = false;
+    clone.matrix.copy(object.matrixWorld);
+    clone.userData = { ...object.userData, sourceNode: index, sourceScene: R31_EAST_GABLE_SOURCE.sceneIndex,
+      presentationOnly: true, ModelStage: 'WORK_TEST_VIEW', basis: 'OWNER_20261122_EAST_GABLE_AS_WIDE_AS_WEST' };
+    group.add(clone);
+  });
+  if (!group.children.length) return null;
+  group.userData = { count: group.children.length, presentationOnly: true };
+  return group;
 }

@@ -120,83 +120,28 @@ test('exterior donors keep only their own source parts and check the scene name'
   assert.equal(buildR31ExteriorDonorOverlay(THREE, 'rainwater', gltf('other')), null);
 });
 
-test('owner-corrected zones win: downpipes move to the nearest zone, collar stays on the gutter', async () => {
-  const { relocateR31Downpipes } = await import('../../src/scripts/privateModelR31Inspection.mjs');
+test('owner targets: west pipes end on the existing R31 lower pipes, others get a low outward outlet', async () => {
+  const { relocateR31Downpipes, R31_DOWNPIPE_TARGETS } = await import('../../src/scripts/privateModelR31Inspection.mjs');
   const group = new THREE.Group();
   const part = (name, x, y, z, h) => {
     const m = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, h), new THREE.MeshBasicMaterial());
     m.name = name; m.matrixAutoUpdate = false; m.matrix.makeTranslation(x, y, z); group.add(m); return m;
   };
-  const pipe = part('T12_2026_CD_LANSI_ETELA_DOWNPIPE_VERTICAL_PIPE_WORK_TEST', -0.5, 3, 2.45, 5);
-  const collar = part('T12_2026_CD_LANSI_ETELA_DOWNPIPE_INLET_COLLAR_WORK_TEST', -0.5, 5.75, 2.45, 0.1);
-  const moves = relocateR31Downpipes(THREE, group, [{ x: -0.14, z: 1.56, name: 'SW' }, { x: 25.5, z: -10.6, name: 'NE' }]);
-  assert.equal(moves[0].zone, 'SW');
-  const p = new THREE.Vector3().setFromMatrixPosition(pipe.matrix);
-  assert.ok(Math.abs(p.x + 0.14) < 1e-6 && Math.abs(p.z - 1.56) < 1e-6);
-  const c = new THREE.Vector3().setFromMatrixPosition(collar.matrix);
-  assert.ok(Math.abs(c.x + 0.14) < 1e-6 && Math.abs(c.z - 2.45) < 1e-6, 'collar only along the gutter');
-  const neck = group.children.find((m) => /SWAN_NECK/.test(m.name));
-  assert.ok(neck, 'swan neck replaces the straight pipe');
-  assert.equal(pipe.visible, false);
-  neck.geometry.computeBoundingBox();
-  const nb = neck.geometry.boundingBox;
-  assert.ok(nb.max.z > 2.3 && nb.min.z < 1.7, 'from the gutter back to the wall');
-  assert.ok(nb.min.y < 1, 'down to the source pipe bottom');
-});
-
-test('five downpipes use five distinct owner zones without claiming real underground routes', async () => {
-  const { relocateR31Downpipes } = await import('../../src/scripts/privateModelR31Inspection.mjs');
-  // Synthetic coordinates and owner-observed delta magnitudes, not surveyed as-built routes.
-  const fixtures = [
-    { id: 'SW', x: 0, z: 0, targetX: 0.36, targetZ: -0.87 },
-    { id: 'NW', x: 10, z: 0, targetX: 10.35, targetZ: 0.94 },
-    { id: 'AE_S', x: 20, z: 0, targetX: 20.40, targetZ: -2.59 },
-    { id: 'AE_N', x: 30, z: 0, targetX: 30.32, targetZ: 0.94 },
-    { id: 'BC_S', x: 40, z: 0, targetX: 40.39, targetZ: -2.29 },
-  ];
-  const group = new THREE.Group();
-  const source = new Map();
-  const part = (name, x, y, z, height) => {
-    const mesh = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, height), new THREE.MeshBasicMaterial());
-    mesh.name = name;
-    mesh.matrixAutoUpdate = false;
-    mesh.matrix.makeTranslation(x, y, z);
-    group.add(mesh);
-    return mesh;
-  };
-  for (const f of fixtures) {
-    const base = `T12_2026_${f.id}_DOWNPIPE`;
-    source.set(f.id, {
-      pipe: part(`${base}_VERTICAL_PIPE_WORK_TEST`, f.x, 3, f.z, 5),
-      bend: part(`${base}_TERMINAL_BEND_WORK_TEST`, f.x, 0.5, f.z, 0.2),
-      collar: part(`${base}_INLET_COLLAR_WORK_TEST`, f.x, 5.75, f.z, 0.1),
-    });
-  }
-  const zones = fixtures.map((f) => ({ x: f.targetX, z: f.targetZ, name: f.id })).reverse();
-  const moves = relocateR31Downpipes(THREE, group, zones);
-  assert.equal(moves.length, 5, 'all five distinct downpipes are accounted for');
-  assert.deepEqual(new Set(moves.map((m) => m.zone)), new Set(fixtures.map((f) => f.id)),
-    'each owner zone may be assigned only once');
-  for (const f of fixtures) {
-    const { pipe, bend, collar } = source.get(f.id);
-    const pos = (mesh) => new THREE.Vector3().setFromMatrixPosition(mesh.matrix);
-    for (const mesh of [pipe, bend]) {
-      assert.ok(Math.abs(pos(mesh).x - f.targetX) < 1e-6, `${f.id} X`);
-      assert.ok(Math.abs(pos(mesh).z - f.targetZ) < 1e-6, `${f.id} Z`);
-      assert.equal(mesh.userData.relocationBasis, 'OWNER_CORRECTED_PRESENCE_ZONE_20261115');
-      assert.equal(mesh.userData.workAssumption, true);
-    }
-    assert.ok(Math.abs(pos(collar).x - f.targetX) < 1e-6);
-    assert.ok(Math.abs(pos(collar).z - f.z) < 1e-6, 'inlet collar stays on original gutter Z');
-  }
-  // The current main source uses the owner-photo swan-neck route (#2201),
-  // not the earlier straight connector from #2200.
-  const necks = group.children.filter((m) => m.name.endsWith('_DOWNPIPE_SWAN_NECK_ROUTE_WORK_ASSUMPTION'));
-  assert.equal(necks.length, 5, 'every provisional route has a separate visible swan neck');
-  for (const neck of necks) {
-    assert.equal(neck.userData.workAssumption, true);
-    assert.equal(neck.userData.shapeBasis, 'OWNER_PHOTOS_20261122_SWAN_NECK_45DEG');
-    assert.equal(neck.userData.physicalRouteClaim, false);
-  }
-  for (const { pipe } of source.values()) assert.equal(pipe.visible, false, 'straight source pipe hidden by swan neck');
+  const west = part('T12_2026_CD_LANSI_ETELA_DOWNPIPE_VERTICAL_PIPE_WORK_TEST', -0.5, 3, 2.45, 5);
+  part('T12_2026_CD_LANSI_ETELA_DOWNPIPE_INLET_COLLAR_WORK_TEST', -0.5, 5.75, 2.45, 0.1);
+  const bend = part('T12_2026_CD_LANSI_ETELA_DOWNPIPE_TERMINAL_BEND_WORK_TEST', -0.5, 0.45, 2.55, 0.3);
+  part('T12_2026_AB_ITA_ETELA_DOWNPIPE_VERTICAL_PIPE_WORK_TEST', 25.85, 2.2, 2.45, 5);
+  part('T12_2026_AB_ITA_ETELA_DOWNPIPE_INLET_COLLAR_WORK_TEST', 25.85, 4.75, 2.45, 0.1);
+  part('T12_2026_AB_ITA_ETELA_DOWNPIPE_TERMINAL_BEND_WORK_TEST', 25.85, -0.55, 2.55, 0.3);
+  const moves = relocateR31Downpipes(THREE, group);
+  assert.equal(moves.length, 2);
+  assert.equal(west.visible, false);
+  assert.equal(bend.visible, false);
+  const routeOf = (id) => group.children.find((m) => m.name === `${id}_DOWNPIPE_SWAN_NECK_ROUTE_WORK_ASSUMPTION`);
+  const w = routeOf('T12_2026_CD_LANSI_ETELA'); w.geometry.computeBoundingBox();
+  assert.ok(Math.abs(w.geometry.boundingBox.min.y - R31_DOWNPIPE_TARGETS.T12_2026_CD_LANSI_ETELA.stopY) < 0.03,
+    'west swan neck stops on top of the existing lower pipe');
+  const e = routeOf('T12_2026_AB_ITA_ETELA'); e.geometry.computeBoundingBox();
+  assert.ok(e.geometry.boundingBox.max.x > 25.545 + 0.2, 'east outlet points away from the gable (+X)');
+  assert.ok(e.geometry.boundingBox.min.y < -0.4, 'outlet low, near the source ground');
 });

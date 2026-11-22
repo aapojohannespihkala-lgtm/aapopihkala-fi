@@ -2753,7 +2753,7 @@ const title = 'Private 3D viewer';
       // @ts-ignore - R31 review roots and inspection overlays have unit coverage.
       import { resolveC80R31TechnicalReviewRoots } from '../../scripts/privateModelC80R31TechnicalReview.mjs';
       // @ts-ignore - pure overlay builders, THREE injected.
-      import { R31_DRAINAGE_SOURCE, R31_EXTERIOR_DONORS, buildR31DrainageOverlay, buildR31InfraOverlay, buildR31ExteriorDonorOverlay, relocateR31Downpipes } from '../../scripts/privateModelR31Inspection.mjs';
+      import { R31_DRAINAGE_SOURCE, R31_EXTERIOR_DONORS, buildR31DrainageOverlay, buildR31InfraOverlay, buildR31ExteriorDonorOverlay, buildR31EastGableOverlay, relocateR31Downpipes } from '../../scripts/privateModelR31Inspection.mjs';
       import { resolveTechnicalReviewRoots, createTechnicalReviewPresentation, technicalReviewSystemOf, technicalReviewLayerSystemOf, refineTechnicalReviewSystem, filterNonTechnicalBoundObjects } from '../../scripts/privateModelTechnicalReviewPresentation.mjs';
       import { resolveConcealedTechnicalObjects, createConcealedTechnicalPresentation } from '../../scripts/privateModelConcealedTechnicalPresentation.mjs';
       import { K17_RAIL900_SOURCE_SHA256 } from '../../scripts/privateModelK17Rail900LayerSourceProfile.mjs';
@@ -15898,18 +15898,6 @@ const title = 'Private 3D viewer';
       const r31StormMaterial = new THREE.MeshStandardMaterial({
         color: 0x26c6da, emissive: 0x26c6da, emissiveIntensity: 0.4, roughness: 0.6, metalness: 0,
       });
-      const r31DownpipeZones = () => {
-        const root = modelRoot.children[0];
-        const zones: { x: number; z: number; name: string }[] = [];
-        root?.updateMatrixWorld?.(true);
-        root?.traverse?.((object: any) => {
-          if (!object.isMesh || !isDownspoutPresenceZone(object)) return;
-          const centre = new THREE.Box3().setFromObject(object).getCenter(new THREE.Vector3());
-          if (zones.some((z) => Math.hypot(z.x - centre.x, z.z - centre.z) < 0.3)) return;
-          zones.push({ x: centre.x, z: centre.z, name: object.name });
-        });
-        return zones;
-      };
       const r31SyncExteriorDonors = () => {
         const r31 = r31InspectionAvailable();
         const focus = canvas.dataset.dFocusGhost?.split('|')[0];
@@ -15964,13 +15952,16 @@ const title = 'Private 3D viewer';
         }
         if (!r31 || r31ExteriorLoading || Object.keys(r31ExteriorDonors).length) return;
         r31ExteriorLoading = (async () => {
+          // Owner 19.27: east gable as wide as the west, from R31's own scene 23.
+          r31ExteriorDonors.eastGable = buildR31EastGableOverlay(THREE, layersGltf);
+          canvas.dataset.r31EastGable = String(r31ExteriorDonors.eastGable?.children.length ?? 0);
           for (const key of Object.keys(R31_EXTERIOR_DONORS)) {
             try {
               const gltf = await new GLTFLoader().loadAsync((R31_EXTERIOR_DONORS as any)[key].path);
               const group = buildR31ExteriorDonorOverlay(THREE, key, gltf);
-              // Owner 18.08: human observation wins: downpipes onto the 15.11 zones.
+              // Owner 18.08/19.27: human observation wins (photo pipes, mirrored east gable, C/B corner).
               if (group && key === 'rainwater') {
-                canvas.dataset.r31DownpipeMoves = JSON.stringify(relocateR31Downpipes(THREE, group, r31DownpipeZones()));
+                canvas.dataset.r31DownpipeMoves = JSON.stringify(relocateR31Downpipes(THREE, group));
               }
               r31ExteriorDonors[key] = group;
             } catch (error) {
