@@ -160,24 +160,37 @@ export const NAV_CUBE_LABEL_CLEARANCE = 7;
 export const NAV_CUBE_LABEL_SPACING = 9;
 
 /**
- * Owner 22.11.2026 15.14: the letter centre lies on the same straight line as
- * its arrow, beyond the positive arrow tip. If that extension runs across the
- * cube (inward-pointing tip), the letter moves along the same line until the
- * whole letter is past the silhouette. No sideways or radial fallback.
- * No camera/model transforms are changed.
+ * Owner 22.11.2026 15.14, refined 16.13: the letter centre lies on the same
+ * straight line as its arrow and wholly outside the cube silhouette. Either
+ * extension is allowed (beyond the +tip or beyond the tail), and the letter
+ * sits past the arrow end nearest to it, so it never jumps across the cube
+ * far from its arrow. The arrowhead always marks the positive direction.
+ * No sideways or radial fallback. No camera/model transforms are changed.
  */
 const labelInView = (p) => p.x >= 8 && p.x <= 84 && p.y >= 8 && p.y <= 84;
 
-/** Clear positions along the arrow line beyond the tip, nearest first. */
-function onAxisCandidates(tip, d, hull) {
+/** Clear positions along the arrow line beyond one arrow end, nearest first. */
+function onAxisCandidates(endPoint, d, hull, end) {
   const out = [];
   for (let t = 2; t <= 80; t += 0.25) {
-    const p = { x: tip.x + d.x * t, y: tip.y + d.y * t, t };
+    const p = { x: endPoint.x + d.x * t, y: endPoint.y + d.y * t, t, end };
     if (!labelInView(p)) break;
     if (signedSilhouetteClearance(p, hull) >= NAV_CUBE_LABEL_CLEARANCE) out.push(p);
   }
-  // Degenerate (tip at the viewport edge): stay on the line, just past the tip.
-  return out.length ? out : [{ x: tip.x + d.x * 2, y: tip.y + d.y * 2, t: 2 }];
+  return out;
+}
+
+/**
+ * Both line extensions merged nearest-first; on equal travel the +tip side
+ * wins. Degenerate (both ends at the viewport edge): just past the tip.
+ */
+function bothEndCandidates(start, end, d, hull) {
+  const merged = [
+    ...onAxisCandidates(end, d, hull, 'tip'),
+    ...onAxisCandidates(start, { x: -d.x, y: -d.y }, hull, 'tail'),
+  ].sort((a, b) => a.t - b.t || (a.end === 'tip' ? -1 : 1));
+  return merged.length ? merged
+    : [{ x: end.x + d.x * 2, y: end.y + d.y * 2, t: 2, end: 'tip' }];
 }
 
 /**
@@ -238,8 +251,8 @@ export function projectNavCubeEdgeAxes(quaternion, frame = 'local') {
     const head = [end, { x: base.x + normal.x, y: base.y + normal.y },
       { x: base.x - normal.x, y: base.y - normal.y }];
     // The arrowhead stays at the +axis endpoint; the letter travels along the
-    // same line beyond the tip until it is wholly outside the silhouette.
-    candidates.push(onAxisCandidates(end, { x: ux, y: uy }, silhouette));
+    // same line beyond the nearer arrow end until it is wholly outside.
+    candidates.push(bothEndCandidates(start, end, { x: ux, y: uy }, silhouette));
     out.push({ key: axes[axis].key, start, end,
       lineEnd: { x: base.x - ux * 0.6, y: base.y - uy * 0.6 },
       head: head.map((p) => `${p.x.toFixed(2)},${p.y.toFixed(2)}`).join(' '),
@@ -247,7 +260,7 @@ export function projectNavCubeEdgeAxes(quaternion, frame = 'local') {
   }
   const labels = placeOnAxisLabels(candidates);
   return Object.freeze(out.map((axis, i) =>
-    Object.freeze({ ...axis, label: Object.freeze({ x: labels[i].x, y: labels[i].y }) })));
+    Object.freeze({ ...axis, label: Object.freeze({ x: labels[i].x, y: labels[i].y, end: labels[i].end }) })));
 }
 /** Sun on top: circle and eight short rays (face units, half an edge = 1). */
 export const NAV_CUBE_SUN = Object.freeze({ r: 0.2, rayFrom: 0.31, rayTo: 0.47, stroke: 0.057 });
@@ -407,6 +420,7 @@ export function mountNavigationCube({ svg, root }) {
       head.setAttribute('points', axis.head);
       label.setAttribute('x', axis.label.x.toFixed(2));
       label.setAttribute('y', axis.label.y.toFixed(2));
+      label.setAttribute('data-cube-edge-label-end', axis.label.end ?? 'tip');
       edgeArrows.append(line, head, label);
     }
     group.append(edgeArrows);
