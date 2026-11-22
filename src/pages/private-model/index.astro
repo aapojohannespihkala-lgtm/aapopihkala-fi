@@ -2753,7 +2753,7 @@ const title = 'Private 3D viewer';
       // @ts-ignore - R31 review roots and inspection overlays have unit coverage.
       import { resolveC80R31TechnicalReviewRoots } from '../../scripts/privateModelC80R31TechnicalReview.mjs';
       // @ts-ignore - pure overlay builders, THREE injected.
-      import { R31_DRAINAGE_SOURCE, R31_EXTERIOR_DONORS, buildR31DrainageOverlay, buildR31InfraOverlay, buildR31ExteriorDonorOverlay, buildR31EastGableOverlay, relocateR31Downpipes } from '../../scripts/privateModelR31Inspection.mjs';
+      import { R31_DRAINAGE_SOURCE, R31_EXTERIOR_DONORS, buildR31DrainageOverlay, buildR31InfraOverlay, buildR31ExteriorDonorOverlay, loadR31EastGableOverlay, relocateR31Downpipes } from '../../scripts/privateModelR31Inspection.mjs';
       import { resolveTechnicalReviewRoots, createTechnicalReviewPresentation, technicalReviewSystemOf, technicalReviewLayerSystemOf, refineTechnicalReviewSystem, filterNonTechnicalBoundObjects } from '../../scripts/privateModelTechnicalReviewPresentation.mjs';
       import { resolveConcealedTechnicalObjects, createConcealedTechnicalPresentation } from '../../scripts/privateModelConcealedTechnicalPresentation.mjs';
       import { K17_RAIL900_SOURCE_SHA256 } from '../../scripts/privateModelK17Rail900LayerSourceProfile.mjs';
@@ -15953,7 +15953,12 @@ const title = 'Private 3D viewer';
         if (!r31 || r31ExteriorLoading || Object.keys(r31ExteriorDonors).length) return;
         r31ExteriorLoading = (async () => {
           // Owner 19.27: east gable as wide as the west, from R31's own scene 23.
-          r31ExteriorDonors.eastGable = buildR31EastGableOverlay(THREE, layersGltf);
+          try {
+            r31ExteriorDonors.eastGable = await loadR31EastGableOverlay(THREE, layersGltf);
+          } catch (error) {
+            r31ExteriorDonors.eastGable = null;
+            console.warn('R31 east gable source failed', error);
+          }
           canvas.dataset.r31EastGable = String(r31ExteriorDonors.eastGable?.children.length ?? 0);
           for (const key of Object.keys(R31_EXTERIOR_DONORS)) {
             try {

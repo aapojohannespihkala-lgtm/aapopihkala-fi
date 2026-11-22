@@ -145,3 +145,20 @@ test('owner targets: west pipes end on the existing R31 lower pipes, others get 
   assert.ok(e.geometry.boundingBox.max.x > 25.545 + 0.2, 'east outlet points away from the gable (+X)');
   assert.ok(e.geometry.boundingBox.min.y < -0.4, 'outlet low, near the source ground');
 });
+
+test('east gable loads on demand with the JSON world matrix when the scene is not built', async () => {
+  const { loadR31EastGableOverlay, R31_EAST_GABLE_SOURCE } = await import('../../src/scripts/privateModelR31Inspection.mjs');
+  const nodes = Array.from({ length: 4671 }, () => ({}));
+  nodes[0] = { rotation: [-Math.SQRT1_2, 0, 0, Math.SQRT1_2], children: [3665] };
+  nodes[3665] = { name: 'K14_A_GABLE_EXTERIOR_FACE_WORK_TEST', mesh: 0, translation: [-0.22, 0, 0] };
+  const scenes = Array.from({ length: 24 }, () => ({ nodes: [] }));
+  scenes[R31_EAST_GABLE_SOURCE.sceneIndex] = { nodes: [0] };
+  const mesh = new THREE.Mesh(new THREE.BoxGeometry(), new THREE.MeshBasicMaterial());
+  const gltf = { scenes: [], parser: { json: { nodes, scenes }, associations: new Map(),
+    getDependency: async (type, i) => (type === 'mesh' && i === 0 ? mesh : null) } };
+  const group = await loadR31EastGableOverlay(THREE, gltf);
+  assert.equal(group.children.length, 1);
+  const p = new THREE.Vector3().setFromMatrixPosition(group.children[0].matrix);
+  assert.ok(Math.abs(p.x + 0.22) < 1e-9);
+  assert.ok(group.children[0].material.polygonOffset);
+});
