@@ -126,8 +126,39 @@ test('sun marker follows the visible ring and has no redundant grey horizon stro
       };
     });
 
-    expect(Math.abs(measured.markerDistance - measured.ringCenterRadius)).toBeLessThan(1.2);
+    expect(Math.abs(measured.markerDistance - measured.ringCenterRadius)).toBeLessThan(0.2);
     expect(measured.redundantHorizonContent).toBe('none');
     }
   }
+});
+
+
+test('sun stays centred when the standalone widget resizes from phone to scaled desktop', async ({ page }) => {
+  await page.clock.setFixedTime(new Date('2026-11-21T20:54:00.000Z'));
+  await mockWidget(page, '08:34', '15:38', '7H04M');
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/current/widget/');
+  await expect(page.locator('.android-solar-disk')).toBeVisible();
+
+  const radialError = () => page.locator('.android-solar-disk').evaluate((element) => {
+    const ring = element.getBoundingClientRect();
+    const dot = element.querySelector('b')!.getBoundingClientRect();
+    const css = getComputedStyle(element);
+    const centerX = ring.left + ring.width / 2;
+    const centerY = ring.top + ring.height / 2;
+    const dotX = dot.left + dot.width / 2;
+    const dotY = dot.top + dot.height / 2;
+    const borderInVisualPx = Number.parseFloat(css.borderLeftWidth) *
+      (ring.width / Number.parseFloat(css.width));
+    return Math.abs(
+      Math.hypot(dotX - centerX, dotY - centerY) -
+      (ring.width - borderInVisualPx) / 2
+    );
+  });
+
+  expect(await radialError()).toBeLessThan(0.2);
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await expect.poll(radialError).toBeLessThan(0.2);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect.poll(radialError).toBeLessThan(0.2);
 });
