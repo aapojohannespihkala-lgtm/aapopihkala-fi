@@ -16050,13 +16050,15 @@ const title = 'Private 3D viewer';
             const gable = buildR31GableBoarding(THREE, { westMeshes, eastFace } as any, boarding);
             gable.add(buildR31WestGableInfill(THREE, boarding));
             // ARK 3 (1985) brick line west 5.78: complete the existing brick wall 5.30 -> 5.78.
-            let westBrick: any = null;
+            // Continue the existing brick wall (node 6653) with its own courses.
+            const brickParts: any[] = [];
+            let brickRoot: any = null;
             modelRoot.traverse((object: any) => {
-              if (!westBrick && object.isMesh && /C80R2_WEST_BRICK_PIER_2F/.test(object.name ?? '')) westBrick = object;
+              if (!brickRoot && /C80R2_WEST_BRICK_PIER_2F/.test(object.name ?? '')) brickRoot = object;
             });
-            const brickCompletion = westBrick
-              ? buildR31WestBrickCompletion(THREE, westBrick.material, new THREE.Box3().setFromObject(westBrick))
-              : null;
+            brickRoot?.updateWorldMatrix?.(true, true);
+            brickRoot?.traverse?.((object: any) => { if (object.isMesh) brickParts.push(object); });
+            const brickCompletion = buildR31WestBrickCompletion(THREE, brickParts);
             if (brickCompletion) gable.add(brickCompletion);
             r31ExteriorDonors.gableBoarding = gable;
             canvas.dataset.r31GableBoarding = `west:${westMeshes.length}|east:${eastFace ? 1 : 0}|infill:1|westBrick:${brickCompletion ? 1 : 0}`;
