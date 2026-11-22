@@ -118,7 +118,7 @@ test('never resolve stale SHA, drain 11724, historical 7996 or fabricated activa
       try { assert.equal(check(json, v), false, String(key)); }
       finally { obj[key] = old; }
     };
-    mutate(json, 'scene', 787);
+    mutate(json, 'scene', 0);
     mutate(json.asset.extras, 'ModelStage', 'CURRENT');
     mutate(json.asset.extras, 'HUMAN_REVIEW', 'APPROVED');
     mutate(json.scenes[v.sceneIndex], 'name', 'impostor__scene' + v.sceneIndex);
