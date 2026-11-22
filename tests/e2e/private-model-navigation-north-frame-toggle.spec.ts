@@ -133,7 +133,7 @@ test('synthetic north overlay exception cannot blank the canvas or stop animatio
   // The optional north annotation must not stop the viewer's RAF loop.
   // This test does not load or attest to any protected Ylisrinne GLB.
   await page.addInitScript(() => {
-    const w = window as Window & { __ylisNorthTestFrames: number };
+    const w = window as unknown as Window & { __ylisNorthTestFrames: number };
     const original = window.requestAnimationFrame.bind(window);
     w.__ylisNorthTestFrames = 0;
     window.requestAnimationFrame = (callback) => original((time) => {
@@ -156,7 +156,7 @@ test('synthetic north overlay exception cannot blank the canvas or stop animatio
     return bitmap.width > 300 && bitmap.height > 150;
   })).toBe(true);
   const frames = () => page.evaluate(() =>
-    (window as Window & { __ylisNorthTestFrames: number }).__ylisNorthTestFrames);
+    (window as unknown as Window & { __ylisNorthTestFrames: number }).__ylisNorthTestFrames);
   const startFrames = await frames();
   await expect.poll(frames, { timeout: 10000 }).toBeGreaterThan(startFrames + 10);
   await expect(readout).toHaveAttribute('data-ready', 'true');
