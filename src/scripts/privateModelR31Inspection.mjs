@@ -284,7 +284,7 @@ export const isR31ReplacedWestDownpipe = (name) =>
 /** Roof underside of the R31 C/D roof (source: ridge y 7.5238, slope 0.25). */
 export const r31RoofUndersideY = (z) => 7.5238 - 0.25 * Math.abs(z + 4.58);
 
-/** Brick top / gable boarding start on both gables (source ALEMPI min y 5.28). */
+/** West brick top / gable boarding start (source ALEMPI min y 5.28); east see R31_EAST_BRICK_TOP_Y. */
 export const R31_GABLE_BOARDING_FROM_Y = 5.28;
 /** Owner 22.11.2026 20.46 (Street View heinä 2026): dark brown vertical boarding in both gable triangles. */
 export const R31_GABLE_BOARDING_COLOR = 0x3b2a22;
@@ -323,20 +323,33 @@ export function buildR31WestGableInfill(THREE, material) {
  * with y >= minY; triangles crossing the cut are clipped exactly.
  */
 export function clipGeometryAboveY(THREE, geometry, matrix, minY) {
+  return clipGeometryByPlanes(THREE, geometry, matrix, [{ normal: [0, 1, 0], constant: -minY }]);
+}
+
+/**
+ * World-space copy of `geometry` (placed by `matrix`) keeping the part on the
+ * positive side of every plane (normal . p + constant >= 0); exact clipping.
+ */
+export function clipGeometryByPlanes(THREE, geometry, matrix, planes) {
   const g = geometry.index ? geometry.toNonIndexed() : geometry;
   const pos = g.getAttribute('position');
   const out = [];
   const v = (k) => new THREE.Vector3().fromBufferAttribute(pos, k).applyMatrix4(matrix);
+  const ps = planes.map(({ normal, constant }) => ({ n: new THREE.Vector3(...normal), c: constant }));
   for (let t = 0; t + 2 < pos.count; t += 3) {
-    const tri = [v(t), v(t + 1), v(t + 2)];
-    const poly = [];
-    for (let a = 0; a < 3; a += 1) {
-      const p = tri[a];
-      const q = tri[(a + 1) % 3];
-      const pin = p.y >= minY;
-      const qin = q.y >= minY;
-      if (pin) poly.push(p);
-      if (pin !== qin) poly.push(p.clone().lerp(q, (minY - p.y) / (q.y - p.y)));
+    let poly = [v(t), v(t + 1), v(t + 2)];
+    for (const { n, c } of ps) {
+      const next = [];
+      for (let a = 0; a < poly.length; a += 1) {
+        const p = poly[a];
+        const q = poly[(a + 1) % poly.length];
+        const dp = n.dot(p) + c;
+        const dq = n.dot(q) + c;
+        if (dp >= 0) next.push(p);
+        if ((dp >= 0) !== (dq >= 0)) next.push(p.clone().lerp(q, dp / (dp - dq)));
+      }
+      poly = next;
+      if (poly.length < 3) break;
     }
     for (let k = 1; k + 1 < poly.length; k += 1) out.push(poly[0], poly[k], poly[k + 1]);
   }
@@ -346,11 +359,76 @@ export function clipGeometryAboveY(THREE, geometry, matrix, minY) {
 }
 
 /**
- * Brown gable boarding overlays for both gables: the west source fills
- * (ALEMPI/YLEMPI) and the east K14 face above the brick line, each copied
- * world-placed and lifted 4 mm outwards. Presentation only.
+ * East A/B roof (owner 22.11.2026 21.11: ridge 1.00 m lower than the west).
+ * Underside profile from R31 node 13361 C80_R31_AB_ALEMPI_VESIKATTO_OPTIN:
+ * ridge underside y 6.524 at z -4.58, slope 0.25 (eaves y 4.806 at z 2.291 /
+ * -11.451). East brick top 5.15 = R31 mass references 684 (wall top) and 767
+ * (gable triangle base), which meet that underside at z 0.916 / -10.076.
  */
-export function buildR31GableBoarding(THREE, { westMeshes = [], eastFace = null } = {}, material) {
+export const R31_AB_ROOF_UNDERSIDE = Object.freeze({ ridgeY: 6.524, ridgeZ: -4.58, slope: 0.25, sourceNode: 13361 });
+export const r31AbRoofUndersideY = (z) => R31_AB_ROOF_UNDERSIDE.ridgeY - R31_AB_ROOF_UNDERSIDE.slope * Math.abs(z - R31_AB_ROOF_UNDERSIDE.ridgeZ);
+export const R31_EAST_BRICK_TOP_Y = 5.15;
+/** Planes keeping y <= A/B roof underside (both slopes). */
+export const r31AbRoofUndersidePlanes = () => {
+  const { ridgeY, ridgeZ, slope } = R31_AB_ROOF_UNDERSIDE;
+  // y <= ridgeY - slope*(z - ridgeZ)  and  y <= ridgeY + slope*(z - ridgeZ)
+  return [
+    { normal: [0, -1, -slope], constant: ridgeY + slope * ridgeZ },
+    { normal: [0, -1, slope], constant: ridgeY - slope * ridgeZ },
+  ];
+};
+
+/**
+ * Owner 21.11 / T7: the K14 east face (scene 23, apex 6.904 at z -4.715)
+ * belongs to another roof and runs 0.14-0.21 m through the R31 A/B roof
+ * slab. Clip its presentation copy to the A/B roof underside, in place.
+ * Returns the removed height at the ridge for the record.
+ */
+export function clipR31EastGableFaceToRoof(THREE, group) {
+  let clipped = 0;
+  for (const mesh of group?.children ?? []) {
+    if (!/K14_A_GABLE_EXTERIOR_FACE/.test(mesh.name ?? '') || !mesh.geometry) continue;
+    const geometry = clipGeometryByPlanes(THREE, mesh.geometry, mesh.matrix, r31AbRoofUndersidePlanes());
+    mesh.geometry = geometry;
+    mesh.matrix.identity();
+    mesh.userData = { ...mesh.userData, clippedToRoof: 'R31_AB_ROOF_UNDERSIDE_13361' };
+    clipped += 1;
+  }
+  return clipped;
+}
+
+/**
+ * East gable triangle boarding from the A/B roof's own underside: brick top
+ * 5.15 up to the underside, x 25.18 .. face + lift. Not the west height.
+ */
+export function buildR31EastGableBoarding(THREE, material, outerX = 25.40 + R31_EAST_GABLE_FACE_LIFT_M + R31_GABLE_BOARDING_LIFT_M) {
+  const { ridgeY, ridgeZ, slope } = R31_AB_ROOF_UNDERSIDE;
+  const half = (ridgeY - R31_EAST_BRICK_TOP_Y) / slope;
+  const shape = new THREE.Shape();
+  shape.moveTo(ridgeZ - half, R31_EAST_BRICK_TOP_Y);
+  shape.lineTo(ridgeZ + half, R31_EAST_BRICK_TOP_Y);
+  shape.lineTo(ridgeZ, ridgeY);
+  shape.closePath();
+  const innerX = 25.18;
+  const geometry = new THREE.ExtrudeGeometry(shape, { depth: outerX - innerX, bevelEnabled: false });
+  const mesh = new THREE.Mesh(geometry, material);
+  // Shape X -> world Z, shape Y -> world Y, extrusion -> world +X from innerX.
+  mesh.matrixAutoUpdate = false;
+  mesh.matrix.makeBasis(new THREE.Vector3(0, 0, 1), new THREE.Vector3(0, 1, 0), new THREE.Vector3(1, 0, 0));
+  mesh.matrix.setPosition(innerX, 0, 0);
+  mesh.name = 'R31_EAST_GABLE_TRIANGLE_BROWN_BOARDING_AB_ROOF_WORK_TEST';
+  mesh.userData = { presentationOnly: true, ModelStage: 'WORK_TEST_VIEW',
+    basis: 'OWNER_20261122_2111_ARK3_1985_EAST_BOARDING_TO_OWN_ROOF', roofSource: 'R31_NODE_13361',
+    brickTopSource: 'R31_MASS_REF_684_767_Y5.15', currentClaim: false, asBuiltClaim: false };
+  return mesh;
+}
+
+/**
+ * Brown gable boarding overlays for both gables: the west source fills
+ * (ALEMPI/YLEMPI) above the west brick line, lifted 4 mm out, and the east
+ * triangle from the A/B roof's own underside. Presentation only.
+ */
+export function buildR31GableBoarding(THREE, { westMeshes = [], east = true } = {}, material) {
   const group = new THREE.Group();
   group.name = 'R31_GABLE_TRIANGLE_BROWN_BOARDING_WORK_TEST';
   const add = (geometry, name, dx) => {
@@ -367,12 +445,8 @@ export function buildR31GableBoarding(THREE, { westMeshes = [], eastFace = null 
     add(clipGeometryAboveY(THREE, source.geometry, source.matrixWorld, R31_GABLE_BOARDING_FROM_Y),
       `${source.name}_BROWN_BOARDING_OVERLAY`, -R31_GABLE_BOARDING_LIFT_M);
   }
-  if (eastFace) {
-    const m = eastFace.matrix.clone();
-    if (eastFace.parent?.matrixWorld) m.premultiply(eastFace.parent.matrixWorld);
-    add(clipGeometryAboveY(THREE, eastFace.geometry, m, R31_GABLE_BOARDING_FROM_Y),
-      'K14_A_GABLE_TRIANGLE_BROWN_BOARDING_OVERLAY', R31_GABLE_BOARDING_LIFT_M);
-  }
+  // Owner 21.11: east boarding follows the A/B roof (ridge 1.00 m lower), brick top 5.15.
+  if (east) group.add(buildR31EastGableBoarding(THREE, material));
   return group;
 }
 

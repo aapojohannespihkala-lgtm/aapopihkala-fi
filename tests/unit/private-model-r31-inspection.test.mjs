@@ -276,22 +276,37 @@ test('C/B south downpipe preserves its source collar plane and uses only a photo
   // No physical gutter/contact PASS: that requires the actual T12 scene66 triangle source.
 });
 
-test('gable boarding keeps only the part above the brick line, lifted outwards', async () => {
-  const { buildR31GableBoarding, R31_GABLE_BOARDING_FROM_Y } = await import('../../src/scripts/privateModelR31Inspection.mjs');
-  const face = new THREE.Mesh(new THREE.BoxGeometry(0.22, 7.9, 12.5), new THREE.MeshBasicMaterial());
-  face.matrixAutoUpdate = false; face.matrix.makeTranslation(25.29, 2.95, -4.55);
-  const parent = new THREE.Group(); parent.add(face); parent.updateMatrixWorld(true);
+test('gable boarding: west above its brick line, east from the A/B roof (ridge 1.00 m lower), brick top 5.15', async () => {
+  const { buildR31GableBoarding, R31_GABLE_BOARDING_FROM_Y, R31_EAST_BRICK_TOP_Y, r31AbRoofUndersideY, r31RoofUndersideY } = await import('../../src/scripts/privateModelR31Inspection.mjs');
   const west = new THREE.Mesh(new THREE.BoxGeometry(0.22, 2.24, 10.81), new THREE.MeshBasicMaterial());
   west.position.set(0.11, 6.4, -5.405); west.updateMatrixWorld(true);
-  const group = buildR31GableBoarding(THREE, { westMeshes: [west], eastFace: face }, new THREE.MeshBasicMaterial());
+  const group = buildR31GableBoarding(THREE, { westMeshes: [west] }, new THREE.MeshBasicMaterial());
   assert.equal(group.children.length, 2);
-  for (const mesh of group.children) {
-    mesh.geometry.computeBoundingBox();
-    const b = mesh.geometry.boundingBox.clone().applyMatrix4(mesh.matrix);
-    assert.ok(b.min.y >= R31_GABLE_BOARDING_FROM_Y - 1e-6);
-  }
-  const east = group.children[1].geometry.boundingBox.clone().applyMatrix4(group.children[1].matrix);
-  assert.ok(Math.abs(east.max.x - (25.40 + 0.004)) < 1e-5 && Math.abs(east.max.y - 6.9) < 1e-5);
+  const boxOf = (m) => { m.geometry.computeBoundingBox(); return m.geometry.boundingBox.clone().applyMatrix4(m.matrix); };
+  assert.ok(boxOf(group.children[0]).min.y >= R31_GABLE_BOARDING_FROM_Y - 1e-6);
+  const e = boxOf(group.children[1]);
+  assert.ok(Math.abs(r31RoofUndersideY(-4.58) - r31AbRoofUndersideY(-4.58) - 1.0) < 0.001, 'east ridge 1.00 m lower');
+  assert.ok(Math.abs(e.max.y - 6.524) < 1e-6 && Math.abs(e.min.y - R31_EAST_BRICK_TOP_Y) < 1e-6);
+  assert.ok(Math.abs(e.min.z - (-10.076)) < 0.001 && Math.abs(e.max.z - 0.916) < 0.001);
+  assert.ok(Math.abs(e.min.x - 25.18) < 1e-6 && Math.abs(e.max.x - 25.412) < 1e-6);
+});
+
+test('K14 east face is clipped to the A/B roof underside (no part through the roof)', async () => {
+  const { clipR31EastGableFaceToRoof, r31AbRoofUndersideY } = await import('../../src/scripts/privateModelR31Inspection.mjs');
+  // K14 outer outline (source): apex 6.904 at z -4.715, edges 5.38 / 5.298.
+  const shape = new THREE.Shape([[-10.81, -1], [-10.81, 5.38], [-4.715, 6.904], [0, 5.725], [1.709, 5.298], [1.709, -1]].map(([x, y]) => new THREE.Vector2(x, y)));
+  const face = new THREE.Mesh(new THREE.ShapeGeometry(shape), new THREE.MeshBasicMaterial());
+  face.name = 'K14_A_GABLE_EXTERIOR_FACE_WORK_TEST';
+  face.matrixAutoUpdate = false;
+  face.matrix.makeBasis(new THREE.Vector3(0, 0, 1), new THREE.Vector3(0, 1, 0), new THREE.Vector3(1, 0, 0)).setPosition(25.408, 0, 0);
+  const group = new THREE.Group(); group.add(face);
+  assert.equal(clipR31EastGableFaceToRoof(THREE, group), 1);
+  const pos = face.geometry.getAttribute('position');
+  let maxOver = -Infinity;
+  for (let k = 0; k < pos.count; k += 1) maxOver = Math.max(maxOver, pos.getY(k) - r31AbRoofUndersideY(pos.getZ(k)));
+  assert.ok(maxOver <= 1e-6, `face pokes ${maxOver} m above the underside`);
+  face.geometry.computeBoundingBox();
+  assert.ok(Math.abs(face.geometry.boundingBox.max.y - 6.524) < 0.01 && Math.abs(face.geometry.boundingBox.max.x - 25.408) < 1e-6);
 });
 
 test('fibre entry: owner box west of the D north door, link to the map north of the facade', async () => {
