@@ -47,10 +47,52 @@ export const R31_INSPECTION_COLORS = Object.freeze({
   storm: 0x26c6da, FIBER: 0xe040b8,
   // Municipal Locus stormwater sewer: darker teal, apart from the property's own gutters/downpipes.
   STORM_MUNICIPAL: 0x00838f,
+  // Locus low-voltage network: dark red, apart from every other network colour.
+  LOWVOLT: 0xc62828,
 });
 
 /** Locus fibre is a 2D map: drawn on one display level, not at a physical depth. */
 export const R31_FIBER_DISPLAY_Y = -0.9;
+
+/** Low-voltage map display level, just above the fibre level so the two never coincide. */
+export const R31_LOWVOLT_DISPLAY_Y = R31_FIBER_DISPLAY_Y + 0.15;
+
+/**
+ * Locus low-voltage network (2D map, NONCURRENT) as thin tubes on its own
+ * display level. Each line keeps its Shape record and G3 id; nothing is
+ * joined to the house or to the building's own electrical system.
+ */
+export function buildR31LowVoltageOverlay(THREE, lines, source = {}, displayY = R31_LOWVOLT_DISPLAY_Y) {
+  const group = new THREE.Group();
+  group.name = 'R31_INFRA_LOCUS_LOWVOLT_2D_MAP_WORK_TEST';
+  const color = R31_INSPECTION_COLORS.LOWVOLT;
+  const material = new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: 0.4, roughness: 0.6, metalness: 0 });
+  let count = 0;
+  let segments = 0;
+  for (const line of lines ?? []) {
+    if (!Array.isArray(line.points) || line.points.length < 2) continue;
+    const pts = line.points.map(([x, y]) => new THREE.Vector3(x, displayY, -y));
+    const path = new THREE.CurvePath();
+    for (let i = 1; i < pts.length; i += 1) {
+      if (pts[i].distanceTo(pts[i - 1]) > 1e-4) path.add(new THREE.LineCurve3(pts[i - 1], pts[i]));
+    }
+    if (!path.curves.length) continue;
+    segments += path.curves.length;
+    const mesh = new THREE.Mesh(new THREE.TubeGeometry(path, Math.max(8, path.curves.length * 4), 0.05, 6, false), material);
+    mesh.name = `R31_INFRA_${line.g3Id ?? `LOWVOLT_${line.record}`}`;
+    mesh.renderOrder = 6;
+    mesh.userData = { system: 'LOWVOLT', sourceRecord: line.record, g3Id: line.g3Id,
+      sourceVariant: `Shape line record ${line.record} (0-based), Laji=${source.laji ?? 286200032}, original label=${source.sourceLabel ?? 'peilattu pienjdnnite'}`,
+      shapeDriveId: source.shapeDriveId, g2bDriveId: source.g2bDriveId, zState: 'UNRESOLVED', currency: 'NONCURRENT',
+      representationKind: '2D_XY_MAP', presentationOnly: true, ModelStage: 'WORK_TEST_PRESENTATION',
+      physicalZClaim: false, plotConnectionClaim: false, buildingPenetrationClaim: false, sameCableClaim: false,
+      cableDiameterClaim: false, currentClaim: false, asBuiltClaim: false };
+    group.add(mesh);
+    count += 1;
+  }
+  group.userData = { counts: { LOWVOLT: count, LOWVOLT_SEGMENTS: segments }, presentationOnly: true, displayY };
+  return group;
+}
 
 /**
  * Locus municipal stormwater sewer (2D map) as tubes on the shared display
