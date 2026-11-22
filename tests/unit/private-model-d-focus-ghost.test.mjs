@@ -24,7 +24,7 @@ test('inside stays, outside turns faint and unpickable, crossing meshes split; r
   const originals = [inside, outside, across].map((m) => m.material);
   const ghost = createDFocusGhost(0.1);
   const counts = ghost.apply(root, F);
-  assert.deepEqual(counts, { inside: 1, outside: 1, split: 1 });
+  assert.deepEqual(counts, { inside: 1, outside: 1, split: 1, hidden: 0 });
   assert.equal(inside.material, originals[0]);
   assert.ok(outside.material.transparent && outside.material.opacity <= 0.1 && outside.material.depthWrite === false);
   assert.equal(outside.userData.viewerSuppressEdgeOverlay, true);
@@ -51,16 +51,20 @@ test('footprint comes from the D scope, with a fallback for missing or implausib
 test('outside meshes share one faint material; small crossing meshes are classified by their centre', () => {
   const root = new Group();
   const far1 = meshAt(20, 0), far2 = meshAt(30, 0);
+  const tiny = new Mesh(new BoxGeometry(0.3, 0.3, 0.3), new MeshStandardMaterial());
+  tiny.position.set(25, 0.2, 0);
   far2.material = new MeshStandardMaterial({ color: 0xff0000 });
   const smallEdge = meshAt(6.2, 0, 1, 1); // centre outside x1 = 6
   const smallIn = meshAt(5.8, 0, 1, 1); // centre inside
-  root.add(far1, far2, smallEdge, smallIn);
+  root.add(far1, far2, smallEdge, smallIn, tiny);
   const ghost = createDFocusGhost(0.1);
   const counts = ghost.apply(root, F);
-  assert.deepEqual(counts, { inside: 1, outside: 3, split: 0 });
+  assert.deepEqual(counts, { inside: 1, outside: 3, split: 0, hidden: 1 });
+  assert.equal(tiny.visible, false);
   assert.equal(far1.material, far2.material, 'one shared ghost material');
   assert.equal(smallEdge.material, far1.material);
   ghost.restore();
+  assert.equal(tiny.visible, true);
 });
 
 test('storey focus: 1F below the split, 2F above; a two-storey wall is split by height', () => {
@@ -74,7 +78,7 @@ test('storey focus: 1F below the split, 2F above; a two-storey wall is split by 
   root.add(wall, upper);
   const ghost = createDFocusGhost(0.1);
   const counts = ghost.apply(root, f1);
-  assert.deepEqual(counts, { inside: 0, outside: 1, split: 1 });
+  assert.deepEqual(counts, { inside: 0, outside: 1, split: 1, hidden: 0 });
   assert.equal(wall.material.clippingPlanes.length, 5);
   ghost.restore();
 });
