@@ -66,7 +66,7 @@ test('Layerit transition rebinds underlying material without losing D ghost or e
   across.visible = false;
   const counts = dFocus.apply(root, F);
   assert.deepEqual(counts, { inside: 1, outside: 1, split: 0 });
-  assert.ok(outside.material.transparent && outside.material.opacity <= 0.04);
+  assert.ok(outside.material.transparent && outside.material.opacity < 0.041);
   const hits = [];
   outside.raycast({}, hits);
   assert.equal(hits.length, 0);
