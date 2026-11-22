@@ -482,6 +482,42 @@ export async function loadR31EastGableOverlay(THREE, gltf) {
  * The map stores each mesh's original material only once per ON/OFF cycle.
  * No dependency on the renderer or on a particular glTF scene index.
  */
+/**
+ * Apply an R31 source-bound site-network visibility mode without mutating its
+ * original materials. Hidden/unavailable restores exactly the original
+ * material object references; ghost is a disposable presentation-only clone.
+ * Models and source links remain unchanged.
+ */
+export function setR31SiteNetworkLayerMode(group, mode, allowed, originals = new Map()) {
+  if (!group) return originals;
+  const effective = allowed && (mode === 'visible' || mode === 'ghost') ? mode : 'hidden';
+  group.traverse((object) => {
+    if (!object.isMesh && !object.isLine && !object.isPoints) return;
+    const captured = originals.get(object);
+    if (effective === 'ghost') {
+      if (captured) return;
+      const source = object.material;
+      if (!source) return;
+      const clones = (Array.isArray(source) ? source : [source]).map((material) => {
+        const clone = material.clone();
+        clone.transparent = true;
+        clone.opacity = Math.min(Number.isFinite(material.opacity) ? material.opacity : 1, 0.17);
+        clone.depthWrite = false;
+        if ('emissiveIntensity' in clone) clone.emissiveIntensity = 0;
+        return clone;
+      });
+      originals.set(object, { source, clones });
+      object.material = Array.isArray(source) ? clones : clones[0];
+    } else if (captured) {
+      object.material = captured.source;
+      for (const clone of captured.clones) clone.dispose();
+      originals.delete(object);
+    }
+  });
+  group.visible = effective !== 'hidden';
+  return originals;
+}
+
 export function syncR31ExteriorDonorMaterials(groups, originals, enabled, materials) {
   if (!enabled) {
     if (originals) {
