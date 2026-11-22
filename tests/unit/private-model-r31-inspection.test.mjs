@@ -155,8 +155,8 @@ test('west gable infill closes the opening above the south pier up to the roof u
   mesh.geometry.computeBoundingBox();
   const box = mesh.geometry.boundingBox.clone().applyMatrix4(mesh.matrix);
   assert.ok(Math.abs(box.min.z) < 1e-6 && Math.abs(box.max.z - 1.72) < 1e-6);
-  assert.ok(Math.abs(box.min.x + 0.02) < 1e-6 && Math.abs(box.max.x - 0.22) < 1e-6);
-  assert.ok(Math.abs(box.max.y - r31RoofUndersideY(0)) < 1e-6 && Math.abs(box.min.y - 5.30) < 1e-6);
+  assert.ok(Math.abs(box.min.x + 0.004) < 1e-6 && Math.abs(box.max.x - 0.22) < 1e-6);
+  assert.ok(Math.abs(box.max.y - r31RoofUndersideY(0)) < 1e-6 && Math.abs(box.min.y - 5.28) < 1e-6);
   assert.ok(isR31ReplacedWestDownpipe('C80R2_D1F_TERRACE_WEST_BRICK_CORNER_DARK_DOWNSPOUT_LOWER_ELBOW_MINUS220_TOP_BRACKET'));
   assert.ok(!isR31ReplacedWestDownpipe('WPA_K01_D_GABLE_SW_BLUE_DOWNSPOUT_PRESENCE_ZONE'));
 });
@@ -274,4 +274,105 @@ test('C/B south downpipe preserves its source collar plane and uses only a photo
   assert.equal(terminal.visible, false);
   assert.equal(collar.visible, true);
   // No physical gutter/contact PASS: that requires the actual T12 scene66 triangle source.
+});
+
+test('gable boarding keeps only the part above the brick line, lifted outwards', async () => {
+  const { buildR31GableBoarding, R31_GABLE_BOARDING_FROM_Y } = await import('../../src/scripts/privateModelR31Inspection.mjs');
+  const face = new THREE.Mesh(new THREE.BoxGeometry(0.22, 7.9, 12.5), new THREE.MeshBasicMaterial());
+  face.matrixAutoUpdate = false; face.matrix.makeTranslation(25.29, 2.95, -4.55);
+  const parent = new THREE.Group(); parent.add(face); parent.updateMatrixWorld(true);
+  const west = new THREE.Mesh(new THREE.BoxGeometry(0.22, 2.24, 10.81), new THREE.MeshBasicMaterial());
+  west.position.set(0.11, 6.4, -5.405); west.updateMatrixWorld(true);
+  const group = buildR31GableBoarding(THREE, { westMeshes: [west], eastFace: face }, new THREE.MeshBasicMaterial());
+  assert.equal(group.children.length, 2);
+  for (const mesh of group.children) {
+    mesh.geometry.computeBoundingBox();
+    const b = mesh.geometry.boundingBox.clone().applyMatrix4(mesh.matrix);
+    assert.ok(b.min.y >= R31_GABLE_BOARDING_FROM_Y - 1e-6);
+  }
+  const east = group.children[1].geometry.boundingBox.clone().applyMatrix4(group.children[1].matrix);
+  assert.ok(Math.abs(east.max.x - (25.40 + 0.004)) < 1e-5 && Math.abs(east.max.y - 6.9) < 1e-5);
+});
+
+test('fibre entry: owner box west of the D north door, link to the map north of the facade', async () => {
+  const { buildR31FiberEntryBox, buildR31FiberEntryLink, R31_FIBER_ENTRY } = await import('../../src/scripts/privateModelR31Inspection.mjs');
+  const { R31_LOCUS_FIBER_LINES } = await import('../../src/scripts/privateModelR31LocusFiber.mjs');
+  const box = buildR31FiberEntryBox(THREE, new THREE.MeshBasicMaterial());
+  const p = new THREE.Vector3().setFromMatrixPosition(box.matrix);
+  assert.ok(p.x < 2.43 && p.z < -9.04);
+  const link = buildR31FiberEntryLink(THREE, R31_LOCUS_FIBER_LINES);
+  assert.ok(link.userData.linkedMapLine);
+  link.children[0].geometry.computeBoundingBox();
+  assert.ok(link.children[0].geometry.boundingBox.min.z < -R31_FIBER_ENTRY.outsideMinG1Y + 1e-6);
+});
+
+test('R31 site Layerit three-state modes restore exact original mesh and line materials', async () => {
+  const { setR31SiteNetworkLayerMode } = await import('../../src/scripts/privateModelR31Inspection.mjs');
+  const group = new THREE.Group();
+  const originalMesh = new THREE.MeshBasicMaterial({ color: 0x26c6da });
+  const originalLine = new THREE.LineBasicMaterial({ color: 0xe040b8 });
+  const mesh = new THREE.Mesh(new THREE.BoxGeometry(), originalMesh);
+  const line = new THREE.Line(new THREE.BufferGeometry().setFromPoints([
+    new THREE.Vector3(0, 0, 0), new THREE.Vector3(1, 0, 0),
+  ]), originalLine);
+  group.add(mesh, line);
+  const originals = new Map();
+
+  setR31SiteNetworkLayerMode(group, 'visible', true, originals);
+  assert.equal(group.visible, true);
+  assert.equal(mesh.material, originalMesh);
+  assert.equal(line.material, originalLine);
+  assert.equal(originals.size, 0);
+
+  setR31SiteNetworkLayerMode(group, 'ghost', true, originals);
+  assert.equal(group.visible, true);
+  assert.notEqual(mesh.material, originalMesh);
+  assert.notEqual(line.material, originalLine);
+  assert.equal(mesh.material.transparent, true);
+  assert.equal(line.material.transparent, true);
+  assert.equal(mesh.material.depthWrite, false);
+  assert.ok(mesh.material.opacity <= 0.17);
+  assert.equal(originals.size, 2);
+  const ghostMesh = mesh.material;
+  setR31SiteNetworkLayerMode(group, 'ghost', true, originals);
+  assert.equal(mesh.material, ghostMesh, 'repeated ghost must not clone twice');
+  assert.equal(originals.size, 2);
+
+  setR31SiteNetworkLayerMode(group, 'hidden', true, originals);
+  assert.equal(group.visible, false);
+  assert.equal(mesh.material, originalMesh, 'hidden restores same source object');
+  assert.equal(line.material, originalLine);
+  assert.equal(originals.size, 0);
+
+  setR31SiteNetworkLayerMode(group, 'ghost', true, originals);
+  setR31SiteNetworkLayerMode(group, 'ghost', false, originals);
+  assert.equal(group.visible, false, 'unverified scope must fail closed');
+  assert.equal(mesh.material, originalMesh);
+  assert.equal(line.material, originalLine);
+  assert.equal(originals.size, 0);
+  setR31SiteNetworkLayerMode(group, 'visible', true, originals);
+  assert.equal(group.visible, true);
+  assert.equal(mesh.material, originalMesh);
+  assert.equal(originals.size, 0);
+});
+
+test('R31 site Layerit supports multi-material source meshes without source mutation', async () => {
+  const { setR31SiteNetworkLayerMode } = await import('../../src/scripts/privateModelR31Inspection.mjs');
+  const a = new THREE.MeshBasicMaterial({ color: 0x123456 });
+  const b = new THREE.MeshBasicMaterial({ color: 0xabcdef, transparent: true, opacity: 0.4 });
+  const group = new THREE.Group();
+  const mesh = new THREE.Mesh(new THREE.BoxGeometry(), [a, b]);
+  group.add(mesh);
+  const originals = new Map();
+  setR31SiteNetworkLayerMode(group, 'ghost', true, originals);
+  assert.ok(Array.isArray(mesh.material));
+  assert.notEqual(mesh.material[0], a);
+  assert.notEqual(mesh.material[1], b);
+  assert.equal(mesh.material[1].opacity, 0.17);
+  setR31SiteNetworkLayerMode(group, 'visible', true, originals);
+  assert.equal(mesh.material[0], a);
+  assert.equal(mesh.material[1], b);
+  assert.equal(a.transparent, false);
+  assert.equal(b.opacity, 0.4);
+  assert.equal(originals.size, 0);
 });

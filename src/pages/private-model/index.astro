@@ -2753,7 +2753,7 @@ const title = 'Private 3D viewer';
       // @ts-ignore - R31 review roots and inspection overlays have unit coverage.
       import { resolveC80R31TechnicalReviewRoots } from '../../scripts/privateModelC80R31TechnicalReview.mjs';
       // @ts-ignore - pure overlay builders, THREE injected.
-      import { R31_DRAINAGE_SOURCE, R31_EXTERIOR_DONORS, buildR31DrainageOverlay, buildR31InfraOverlay, buildR31FiberOverlay, buildR31ExteriorDonorOverlay, buildR31WestGableInfill, isR31ReplacedWestDownpipe, loadR31EastGableOverlay, relocateR31Downpipes, syncR31ExteriorDonorMaterials } from '../../scripts/privateModelR31Inspection.mjs';
+      import { R31_DRAINAGE_SOURCE, R31_EXTERIOR_DONORS, buildR31DrainageOverlay, buildR31InfraOverlay, buildR31FiberOverlay, buildR31ExteriorDonorOverlay, buildR31WestGableInfill, buildR31GableBoarding, buildR31FiberEntryBox, buildR31FiberEntryLink, isR31WestGableBoardingSource, R31_GABLE_BOARDING_COLOR, isR31ReplacedWestDownpipe, loadR31EastGableOverlay, relocateR31Downpipes, syncR31ExteriorDonorMaterials, setR31SiteNetworkLayerMode } from '../../scripts/privateModelR31Inspection.mjs';
       import { R31_LOCUS_FIBER_LINES } from '../../scripts/privateModelR31LocusFiber.mjs';
       import { resolveTechnicalReviewRoots, createTechnicalReviewPresentation, technicalReviewSystemOf, technicalReviewLayerSystemOf, refineTechnicalReviewSystem, filterNonTechnicalBoundObjects } from '../../scripts/privateModelTechnicalReviewPresentation.mjs';
       import { resolveConcealedTechnicalObjects, createConcealedTechnicalPresentation } from '../../scripts/privateModelConcealedTechnicalPresentation.mjs';
@@ -15110,6 +15110,50 @@ const title = 'Private 3D viewer';
       successorCutawayInput.setAttribute('aria-label','PK1-huoltoleikkaus');
       successorCutawayRow.append(successorCutawayInput);
       m6263GlazingRow.after(successorCutawayRow);
+      // R31 site networks are source-bound auxiliary donors, not native C80
+      // layer nodes. Keep independent 3-state controls in the existing Layerit
+      // panel without adding a second layer registry or changing the GLB.
+      type R31SiteKey = 'drainage' | 'infra' | 'fiber';
+      type R31SiteMode = 'visible' | 'ghost' | 'hidden';
+      const r31SiteLayerSpecs: Array<[R31SiteKey, string]> = [
+        ['drainage', 'Salaojat (WORK_TEST)'],
+        ['infra', 'Kunnallistekniikka: Locus vesi/viemäri (WORK_TEST)'],
+        ['fiber', 'Valokuitu: 2D, syvyys avoin (WORK_TEST)'],
+      ];
+      const r31SiteLayerOverrides: Partial<Record<R31SiteKey, R31SiteMode>> = {};
+      const r31SiteLayerRows = {} as Record<R31SiteKey, { row: HTMLLabelElement; select: HTMLSelectElement }>;
+      let r31SiteRowAnchor: HTMLElement = successorCutawayRow;
+      for (const [key, label] of r31SiteLayerSpecs) {
+        const row = document.createElement('label');
+        row.className = 'layers-control';
+        row.hidden = true;
+        row.style.display = 'none';
+        row.dataset.r31SiteLayer = key;
+        row.append(document.createTextNode(label + ' '));
+        const select = document.createElement('select');
+        select.setAttribute('aria-label', label + ' näkyvyys');
+        for (const [mode, title] of [['visible', 'Näkyvä'], ['ghost', 'Himmeä'], ['hidden', 'Piilossa']]) {
+          const option = document.createElement('option');
+          option.value = mode;
+          option.textContent = title;
+          select.append(option);
+        }
+        select.value = 'hidden';
+        select.addEventListener('change', () => {
+          // Fail closed outside the exact authorized R31 source/model.
+          if (layersLoadedSha !== C80_R31_9E0B_SOURCE.glbSha256 || !modelRoot.children[0] ||
+              canvas.dataset.objectVisibilityFilter === 'active') return;
+          if (select.value !== 'visible' && select.value !== 'ghost' && select.value !== 'hidden') return;
+          r31SiteLayerOverrides[key] = select.value as R31SiteMode;
+          clearSelection();
+          r31SyncExteriorDonorsHook();
+          refreshEdgeRendering(modelRoot.children[0] ?? null);
+        });
+        row.append(select);
+        r31SiteRowAnchor.after(row);
+        r31SiteRowAnchor = row;
+        r31SiteLayerRows[key] = { row, select };
+      }
       const syncM6263Glazing=()=>{
         const runtime=mainViewScope as any;
         const available=(layersLoadedSha===TATE4_MJ6263_SOURCE_SHA256 && runtime?.isM6263) ||
@@ -15891,6 +15935,7 @@ const title = 'Private 3D viewer';
       r31InspectionExitHook = exitR31Inspection;
       const r31ExteriorDonors: Record<string, any> = {};
       const r31SiteNetworks: Record<string, any> = {};
+      const r31SiteGhostOriginals = new Map<any, any>();
       let r31ExteriorLoading: Promise<void> | null = null;
       let r31SiteLoading: Promise<void> | null = null;
       let r31DonorSwap: Map<any, any> | null = null;
@@ -15922,12 +15967,23 @@ const title = 'Private 3D viewer';
           { rainwater: r31StormMaterial, grey: r31DonorGrey },
         );
         const counts: Record<string, number> = {};
-        for (const [key, group] of Object.entries(r31SiteNetworks)) {
+        const effectiveSiteModes: Record<string, R31SiteMode> = {};
+        for (const [key] of r31SiteLayerSpecs) {
+          const mode = r31SiteLayerOverrides[key] ?? (technical ? 'visible' : 'hidden');
+          effectiveSiteModes[key] = mode;
+          const control = r31SiteLayerRows[key];
+          control.row.hidden = !whole;
+          control.row.style.display = whole ? 'flex' : 'none';
+          control.select.disabled = !whole || canvas.dataset.objectVisibilityFilter === 'active';
+          control.select.value = mode;
+          const group = r31SiteNetworks[key];
           if (!group) continue;
-          if (technical && group.parent !== modelRoot.parent) modelRoot.parent?.add(group);
-          group.visible = technical;
-          if (technical) Object.assign(counts, group.userData.counts);
+          const show = whole && mode !== 'hidden';
+          if (show && group.parent !== modelRoot.parent) modelRoot.parent?.add(group);
+          setR31SiteNetworkLayerMode(group, mode, whole, r31SiteGhostOriginals);
+          if (show) Object.assign(counts, group.userData.counts);
         }
+        canvas.dataset.r31SiteLayerModes = whole ? JSON.stringify(effectiveSiteModes) : '';
         // Owner 20.12: the corner pipes replace R31's own older west lower pipes
         // (they ended mid-wall / misaligned). Hidden in the whole-building view only.
         if (whole && Object.keys(r31ExteriorDonors).length && !r31HiddenWestPipes.size) {
@@ -15943,14 +15999,16 @@ const title = 'Private 3D viewer';
         }
         canvas.dataset.r31HiddenWestPipes = String(r31HiddenWestPipes.size);
         canvas.dataset.r31ExteriorDonors = whole ? String(shown) : '0';
-        canvas.dataset.r31SiteNetworks = technical ? JSON.stringify(counts) : '';
+        canvas.dataset.r31SiteNetworks = whole && Object.keys(counts).length ? JSON.stringify(counts) : '';
         if (technical && Object.keys(counts).length) {
           status.textContent = `Talotekniikka + kunnallistekniikka (WORK_TEST): salaojat ${counts.well ?? 0} kaivoa, ` +
             `${counts.route ?? 0} reittiosaa, ${counts.open ?? 0} avointa purkua; Locus vesi ${counts.WATER ?? 0}, ` +
-            `jätevesi ${counts.WASTEWATER ?? 0}, valokuitu ${counts.FIBER ?? 0} (2D, syvyys avoin); ` +
+            `jätevesi ${counts.WASTEWATER ?? 0}, valokuitu ${counts.FIBER ?? 0} (2D, syvyys avoin; ` +
+            `liittymä D:n pohjoisovella omistajan havainnosta); ` +
             `hulevesiverkko puuttuu lähteistä`;
         }
-        if (technical && !r31SiteLoading && !Object.keys(r31SiteNetworks).length) {
+        const wantsSiteNetworks = whole && (technical || Object.values(r31SiteLayerOverrides).some(mode => mode !== 'hidden'));
+        if (wantsSiteNetworks && !r31SiteLoading && !Object.keys(r31SiteNetworks).length) {
           r31SiteLoading = (async () => {
             try {
               r31DrainageGltf ??= new GLTFLoader().loadAsync(R31_DRAINAGE_SOURCE.path);
@@ -15961,6 +16019,7 @@ const title = 'Private 3D viewer';
             }
             r31SiteNetworks.infra = buildR31InfraOverlay(THREE, p139adLocusWorkZRoutes as any, p139acVerticalReferenceM);
             r31SiteNetworks.fiber = buildR31FiberOverlay(THREE, R31_LOCUS_FIBER_LINES as any);
+            r31SiteNetworks.fiberEntry = buildR31FiberEntryLink(THREE, R31_LOCUS_FIBER_LINES as any);
           })().finally(() => { r31SiteLoading = null; r31SyncExteriorDonors(); });
         }
         if (!r31 || r31ExteriorLoading || Object.keys(r31ExteriorDonors).length) return;
@@ -15973,20 +16032,24 @@ const title = 'Private 3D viewer';
             console.warn('R31 east gable source failed', error);
           }
           canvas.dataset.r31EastGable = String(r31ExteriorDonors.eastGable?.children.length ?? 0);
-          // Owner 20.12 "reikä pitäisi korjata": west gable opening above the south brick pier.
+          // Owner 20.12 / 20.46: the west gable opening is closed, and both gable
+          // triangles carry dark brown vertical boarding (Street View heinä 2026).
           {
-            let pierMaterial: any = null;
+            const boarding = new THREE.MeshStandardMaterial({ color: R31_GABLE_BOARDING_COLOR, roughness: 0.85, metalness: 0, side: THREE.DoubleSide });
+            const westMeshes: any[] = [];
             modelRoot.traverse((object: any) => {
-              if (!pierMaterial && object.isMesh && /C80R2_WEST_BRICK_PIER_2F/.test(object.name ?? '')) pierMaterial = object.material;
+              if (object.isMesh && isR31WestGableBoardingSource(object.name)) westMeshes.push(object);
             });
-            const material = (Array.isArray(pierMaterial) ? pierMaterial[0] : pierMaterial)?.clone?.()
-              ?? new THREE.MeshStandardMaterial({ color: 0x8a4b38, roughness: 0.9 });
-            material.side = THREE.DoubleSide;
-            const infill = new THREE.Group();
-            infill.name = 'R31_WEST_GABLE_INFILL_WORK_TEST';
-            infill.add(buildR31WestGableInfill(THREE, material));
-            r31ExteriorDonors.westGableInfill = infill;
-            canvas.dataset.r31WestGableInfill = pierMaterial ? 'pier-material' : 'fallback-material';
+            const eastFace = r31ExteriorDonors.eastGable?.children.find((m: any) => /K14_A_GABLE_EXTERIOR_FACE/.test(m.name ?? '')) ?? null;
+            const gable = buildR31GableBoarding(THREE, { westMeshes, eastFace } as any, boarding);
+            gable.add(buildR31WestGableInfill(THREE, boarding));
+            r31ExteriorDonors.gableBoarding = gable;
+            canvas.dataset.r31GableBoarding = `west:${westMeshes.length}|east:${eastFace ? 1 : 0}|infill:1`;
+            // Owner 20.46 photos: fibre box right of the D north door, cable down.
+            const fiberBox = new THREE.Group();
+            fiberBox.name = 'R31_FIBER_ENTRY_BOX_WORK_TEST';
+            fiberBox.add(buildR31FiberEntryBox(THREE, new THREE.MeshStandardMaterial({ color: 0xd8d8d2, roughness: 0.7 })));
+            r31ExteriorDonors.fiberBox = fiberBox;
           }
           for (const key of Object.keys(R31_EXTERIOR_DONORS)) {
             try {
