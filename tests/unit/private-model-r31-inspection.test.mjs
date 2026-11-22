@@ -98,3 +98,19 @@ test('R31 technical review keeps R22 roots, named R31 additions and source-tagge
   nodes[13488] = { name: 'SOMETHING_ELSE' };
   assert.equal(c80R31TechnicalReviewNodeSet({ nodes }).size, 0);
 });
+
+test('exterior donors keep only their own source parts and check the scene name', async () => {
+  const { buildR31ExteriorDonorOverlay, R31_EXTERIOR_DONORS } = await import('../../src/scripts/privateModelR31Inspection.mjs');
+  const scene = new THREE.Group();
+  const gutter = new THREE.Mesh(new THREE.BoxGeometry(), new THREE.MeshBasicMaterial());
+  gutter.name = 'T12_RAYSTASKOURU_1985_ROOF_CD_ETELA_WORK_TEST';
+  const pipe = new THREE.Mesh(new THREE.BoxGeometry(), new THREE.MeshBasicMaterial());
+  pipe.name = 'T12_2026_CD_LANSI_ETELA_DOWNPIPE_VERTICAL_PIPE_WORK_TEST';
+  const host = new THREE.Mesh(new THREE.BoxGeometry(), new THREE.MeshBasicMaterial());
+  host.name = 'P134B_ARCH_BASE_CLONE__WALL';
+  scene.add(gutter, pipe, host);
+  const gltf = (name) => ({ scenes: [scene], parser: { json: { scenes: [{ name }] } } });
+  const overlay = buildR31ExteriorDonorOverlay(THREE, 'rainwater', gltf(R31_EXTERIOR_DONORS.rainwater.sceneName));
+  assert.deepEqual(overlay.children.map((c) => c.name).sort(), [pipe.name, gutter.name].sort());
+  assert.equal(buildR31ExteriorDonorOverlay(THREE, 'rainwater', gltf('other')), null);
+});

@@ -144,3 +144,44 @@ export function dimR31ModelForInspection(THREE, root, { keep = () => false, keep
   };
   return { restore, dimmed: saved.size - kept, kept };
 }
+
+/**
+ * Whole-building exterior donors (owner 22.11.2026 17.08: "autokatos ja
+ * räystäät"): earlier published WORK_TEST models in the same YLIS-G1 Y-up
+ * frame, reused as-is (no remodelling). Identity = catalog path + scene name.
+ */
+export const R31_EXTERIOR_DONORS = Object.freeze({
+  carport: Object.freeze({
+    path: '/private-model/work-test/auto-ylisrinne-p6-autokatos-omistaja-180-work-test-r2-20261025-1misjswp.glb',
+    sceneName: 'P6_OWNER_CONFIRMED_180_WORK_TEST',
+    include: (name) => /^P6_/.test(name),
+  }),
+  rainwater: Object.freeze({
+    path: '/private-model/work-test/auto-ylisrinne-t12-syoksytorvet-5-vyohyketta-work-test-20261024-1o1p2v82.glb',
+    sceneName: 'T12 + four WORK gutters + five NEW visible rainwater downpipe zones / WORK_TEST scene66',
+    include: (name) => /^T12_RAYSTASKOURU_/.test(name) || (/^T12_2026_/.test(name) && /DOWNPIPE/.test(name)),
+  }),
+});
+
+/** World-placed clones of a donor's selected meshes, or null on identity mismatch. */
+export function buildR31ExteriorDonorOverlay(THREE, key, gltf) {
+  const donor = R31_EXTERIOR_DONORS[key];
+  const scene = gltf?.scenes?.[0];
+  if (!donor || !scene || gltf?.parser?.json?.scenes?.[0]?.name !== donor.sceneName) return null;
+  scene.updateMatrixWorld(true);
+  const group = new THREE.Group();
+  group.name = `R31_EXTERIOR_DONOR_${key.toUpperCase()}`;
+  scene.traverse((object) => {
+    if (!object.isMesh || !donor.include(object.name ?? '')) return;
+    const clone = new THREE.Mesh(object.geometry, object.material);
+    clone.name = object.name;
+    clone.matrixAutoUpdate = false;
+    clone.matrix.copy(object.matrixWorld);
+    clone.userData = { ...object.userData, donorPath: donor.path, donorScene: donor.sceneName,
+      presentationOnly: true, ModelStage: 'WORK_TEST_VIEW', currentClaim: false, asBuiltClaim: false };
+    group.add(clone);
+  });
+  if (!group.children.length) return null;
+  group.userData = { donor: key, count: group.children.length, presentationOnly: true };
+  return group;
+}
