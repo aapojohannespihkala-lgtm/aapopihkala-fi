@@ -83,7 +83,22 @@ export function isK3Sw02Scene777778Source(json, authenticatedGlbSha256, sceneInd
       e?.productionWebGL !== 'NOT_RUN' || e?.humanReview !== 'NOT_RUN') return false;
 
   const node = json.nodes[s.newRoot];
-  if (!exact(node?.children, [13514, 13515]) ||
+  const x = node?.extras;
+  // The 22 Nov original ZIP fails here: its SW02 root still says D2F-SW-01.
+  // This is an intentional HOLD until a new, correctly attributed GLB SHA.
+  if (x?.stableID !== 'D2F-SW-02' ||
+      x?.floor !== 'D2F' ||
+      x?.sourceOriginalZipDriveID !== s.parentZipDriveId ||
+      x?.sourceOriginalGLBSHA256 !== s.parentGlbSha256 ||
+      x?.sourcePreviousRoot !== s.oldRoot ||
+      x?.activeHostNodeID !== s.hostNode ||
+      x?.activeHostMeshID !== s.hostMesh ||
+      !exact(x?.activeHostTriangles, [14, 15]) ||
+      x?.activeHostPlaneZ_m !== -7.225 ||
+      x?.hostHold !== true ||
+      x?.sourceLinksBoundToOutputSHA !== false ||
+      x?.current !== false || x?.asBuilt !== false ||
+      !exact(node?.children, [13514, 13515]) ||
       json.nodes[13514]?.mesh !== 5173 ||
       json.nodes[13515]?.mesh !== 5174 ||
       json.nodes[s.hostNode]?.mesh !== s.hostMesh) return false;
