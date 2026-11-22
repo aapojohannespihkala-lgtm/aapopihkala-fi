@@ -159,6 +159,6 @@ test('east gable loads on demand with the JSON world matrix when the scene is no
   const group = await loadR31EastGableOverlay(THREE, gltf);
   assert.equal(group.children.length, 1);
   const p = new THREE.Vector3().setFromMatrixPosition(group.children[0].matrix);
-  assert.ok(Math.abs(p.x + 0.22) < 1e-9);
-  assert.ok(group.children[0].material.polygonOffset);
+  // Source x -0.22 plus the 8 mm presentation lift off the coplanar mass face.
+  assert.ok(Math.abs(p.x - (-0.22 + 0.008)) < 1e-9);
 });
