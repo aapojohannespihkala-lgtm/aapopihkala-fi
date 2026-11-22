@@ -61,9 +61,13 @@ export const dStoreyFootprint = (f: DFootprint, storey: '1F' | '2F'): DFootprint
   storey === '1F' ? { ...f, y0: undefined, y1: D_STOREY_SPLIT_Y } : { ...f, y0: D_STOREY_SPLIT_Y - 0.27, y1: undefined };
 
 const span = (lo: number, hi: number, a: number | undefined, b: number | undefined) => {
-  const size = Math.max(hi - lo, 1e-3);
+  // A flat extent (single-plane wall, window glass, facade face, floor) is
+  // inside when its plane lies within the range. Owner 22.11.2026 14.46: 154
+  // planar R31 meshes (walls, windows) were measured as 0 % inside and faded.
+  if (hi - lo < 1e-3) return lo >= (a ?? -Infinity) - 1e-4 && lo <= (b ?? Infinity) + 1e-4 ? 1 : 0;
+  const size = hi - lo;
   const o = Math.max(0, Math.min(hi, b ?? Infinity) - Math.max(lo, a ?? -Infinity));
-  return Math.min(1, Math.min(o, size) / size);
+  return Math.min(1, o / size);
 };
 
 /** Fraction of a mesh's bbox that lies inside the focus box. */
