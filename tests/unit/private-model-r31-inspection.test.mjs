@@ -574,12 +574,17 @@ test('Locus municipal stormwater: 5 source lines + 5 flow marks, 2D, nothing tow
   for (const m of group.children) {
     assert.equal(m.userData.physicalZClaim, false);
     assert.equal(m.userData.plotConnectionClaim, false);
-    m.geometry.computeBoundingBox();
-    const b = m.geometry.boundingBox.clone().applyMatrix4(m.matrixAutoUpdate ? m.matrixWorld : m.matrix);
-    // House footprint x 0..25.4, z -10.81..1.72: every storm part stays > 40 m away.
-    const dx = Math.max(0 - b.max.x, 0, b.min.x - 25.4);
-    const dz = Math.max(-10.81 - b.max.z, 0, b.min.z - 1.72);
-    assert.ok(Math.hypot(dx, dz) > 40, m.name);
+    // House footprint x 0..25.4, z -10.81..1.72: every storm vertex stays > 40 m away.
+    const pos = m.geometry.getAttribute('position');
+    const mat = m.matrixAutoUpdate ? m.matrixWorld : m.matrix;
+    let dmin = Infinity;
+    for (let k = 0; k < pos.count; k += 1) {
+      const p = new THREE.Vector3().fromBufferAttribute(pos, k).applyMatrix4(mat);
+      const dx = Math.max(0 - p.x, 0, p.x - 25.4);
+      const dz = Math.max(-10.81 - p.z, 0, p.z - 1.72);
+      dmin = Math.min(dmin, Math.hypot(dx, dz));
+    }
+    assert.ok(dmin > 40, `${m.name} ${dmin}`);
   }
   assert.equal(r31SiteLayerKeyForNetwork('storm'), 'storm');
 });
