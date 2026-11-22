@@ -15118,7 +15118,7 @@ const title = 'Private 3D viewer';
       type R31SiteMode = 'visible' | 'ghost' | 'hidden';
       const r31SiteLayerSpecs: Array<[R31SiteKey, string]> = [
         ['drainage', 'Salaojat (WORK_TEST)'],
-        ['infra', 'Kunnallistekniikka: vesi ja viemäri (WORK_TEST)'],
+        ['infra', 'Kunnallistekniikka: Locus vesi/viemäri (WORK_TEST)'],
         ['fiber', 'Valokuitu: 2D, syvyys avoin (WORK_TEST)'],
       ];
       const r31SiteLayerOverrides: Partial<Record<R31SiteKey, R31SiteMode>> = {};
@@ -15142,7 +15142,8 @@ const title = 'Private 3D viewer';
         select.value = 'hidden';
         select.addEventListener('change', () => {
           // Fail closed outside the exact authorized R31 source/model.
-          if (layersLoadedSha !== C80_R31_9E0B_SOURCE.glbSha256 || !modelRoot.children[0]) return;
+          if (layersLoadedSha !== C80_R31_9E0B_SOURCE.glbSha256 || !modelRoot.children[0] ||
+              canvas.dataset.objectVisibilityFilter === 'active') return;
           if (select.value !== 'visible' && select.value !== 'ghost' && select.value !== 'hidden') return;
           r31SiteLayerOverrides[key] = select.value as R31SiteMode;
           clearSelection();
@@ -15974,7 +15975,7 @@ const title = 'Private 3D viewer';
           const control = r31SiteLayerRows[key];
           control.row.hidden = !whole;
           control.row.style.display = whole ? 'flex' : 'none';
-          control.select.disabled = !whole;
+          control.select.disabled = !whole || canvas.dataset.objectVisibilityFilter === 'active';
           control.select.value = mode;
           const group = r31SiteNetworks[key];
           if (!group) continue;
