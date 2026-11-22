@@ -88,6 +88,10 @@ test('D roof ghost changes to hidden on both storeys and restores on return', as
 
   await cycle('d-roof', 'visible', 'true');
   await cycle('d-apartment', 'ghost', 'true');
+  // The fixture has exactly three D-inside objects: the marked D footprint,
+  // an unscoped wall and an unscoped window. Losing either unscoped planar
+  // surface must fail, even when the total focus-count attribute still exists.
+  await expect(canvas).toHaveAttribute('data-d-focus-ghost', /^d-apartment\|in:3\|/);
   await cycle('d-1f', 'hidden', 'false');
   await cycle('d-2f', 'hidden', 'false');
   await cycle('d-apartment', 'ghost', 'true');
@@ -95,5 +99,8 @@ test('D roof ghost changes to hidden on both storeys and restores on return', as
   await preset('whole-building').click();
   await expect(canvas).not.toHaveAttribute('data-d-focus-ghost', /.+/);
   await cycle('d-apartment', 'ghost', 'true');
+  // A whole-building round-trip must not leave the previously dimmed D wall
+  // or window in the faint context; both remain counted fully inside D.
+  await expect(canvas).toHaveAttribute('data-d-focus-ghost', /^d-apartment\|in:3\|/);
   expect(errors).toEqual([]);
 });
