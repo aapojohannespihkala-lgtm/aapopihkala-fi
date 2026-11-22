@@ -15916,7 +15916,7 @@ const title = 'Private 3D viewer';
         r31ExteriorLoading = (async () => {
           for (const key of Object.keys(R31_EXTERIOR_DONORS)) {
             try {
-              const gltf = await new GLTFLoader().loadAsync(R31_EXTERIOR_DONORS[key].path);
+              const gltf = await new GLTFLoader().loadAsync((R31_EXTERIOR_DONORS as any)[key].path);
               r31ExteriorDonors[key] = buildR31ExteriorDonorOverlay(THREE, key, gltf);
             } catch (error) {
               r31ExteriorDonors[key] = null;
@@ -15968,7 +15968,7 @@ const title = 'Private 3D viewer';
         };
         const dim = dimR31ModelForInspection(THREE, root, {
           keep: mode === 'infra' ? isSiteSewer : () => false, keepMaterial: sewerMaterial,
-        });
+        } as any);
         const previousEdge = edgeModeSelect.value;
         if (previousEdge !== 'none') {
           edgeModeSelect.value = 'none';
