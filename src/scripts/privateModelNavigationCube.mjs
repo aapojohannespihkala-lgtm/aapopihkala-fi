@@ -99,6 +99,99 @@ export function projectNavCube(quaternion, frame = 'local') {
   return Object.freeze(out);
 }
 
+/** Project the complete cube silhouette, including faces seen edge-on. */
+export function projectNavCubeSilhouette(quaternion, frame = 'local') {
+  // Keep the same input checks as the rendered faces.
+  projectNavCube(quaternion, frame);
+  const { north, east, up } = navCubeBasis(frame);
+  const points = [];
+  for (const x of [-1, 1]) for (const y of [-1, 1]) for (const z of [-1, 1]) {
+    const world = add(scale(east, x * NAV_CUBE_HALF),
+      scale(north, y * NAV_CUBE_HALF), scale(up, z * NAV_CUBE_HALF));
+    const v = inverseRotate(world, quaternion);
+    points.push({ x: NAV_CUBE_CENTER + v.x, y: NAV_CUBE_CENTER - v.y });
+  }
+  const unique = [...new Map(points.map(p =>
+    [p.x.toFixed(7) + ',' + p.y.toFixed(7), p])).values()]
+    .sort((a, b) => a.x - b.x || a.y - b.y);
+  const cross = (o, a, b) =>
+    (a.x - o.x) * (b.y - o.y) - (a.y - o.y) * (b.x - o.x);
+  const lower = [], upper = [];
+  for (const p of unique) {
+    while (lower.length >= 2 &&
+        cross(lower[lower.length - 2], lower[lower.length - 1], p) <= 0) lower.pop();
+    lower.push(p);
+  }
+  for (let i = unique.length - 1; i >= 0; i--) {
+    const p = unique[i];
+    while (upper.length >= 2 &&
+        cross(upper[upper.length - 2], upper[upper.length - 1], p) <= 0) upper.pop();
+    upper.push(p);
+  }
+  return Object.freeze([...lower.slice(0, -1), ...upper.slice(0, -1)]
+    .map(p => Object.freeze(p)));
+}
+
+const normalized2d = (x, y) => {
+  const n = Math.hypot(x, y);
+  return n > 1e-8 ? { x: x / n, y: y / n } : null;
+};
+
+/** Positive outside value = distance from convex silhouette, negative = inside. */
+function signedSilhouetteClearance(point, hull) {
+  if (hull.length < 3) return -Infinity;
+  let inside = true;
+  let distance = Infinity;
+  for (let i = 0; i < hull.length; i++) {
+    const a = hull[i], b = hull[(i + 1) % hull.length];
+    const dx = b.x - a.x, dy = b.y - a.y;
+    if (dx * (point.y - a.y) - dy * (point.x - a.x) < -1e-7) inside = false;
+    const t = Math.max(0, Math.min(1,
+      ((point.x - a.x) * dx + (point.y - a.y) * dy) / Math.max(dx * dx + dy * dy, 1e-10)));
+    distance = Math.min(distance, Math.hypot(point.x - a.x - t * dx, point.y - a.y - t * dy));
+  }
+  return inside ? -distance : distance;
+}
+
+/**
+ * Place the entire 7px letter with its outline outside the actual projected
+ * cube, preferably beyond the positive arrow tip. The normal/radial fallback
+ * avoids putting an axis name on a face when the tip is inside the silhouette.
+ * No camera/model transforms are changed.
+ */
+function outsideAxisLabel(tip, axisDirection, hull, placed) {
+  const radial = normalized2d(tip.x - NAV_CUBE_CENTER, tip.y - NAV_CUBE_CENTER);
+  const d = axisDirection;
+  const directions = [
+    { unit: d, from: 5, to: 24 },
+    { unit: radial && normalized2d(d.x + radial.x * 0.7, d.y + radial.y * 0.7), from: 5, to: 34 },
+    { unit: radial, from: 5, to: 34 },
+    { unit: normalized2d(-d.y, d.x), from: 5, to: 36 },
+    { unit: normalized2d(d.y, -d.x), from: 5, to: 36 },
+    { unit: d, from: 25, to: 56 },
+  ];
+  const safe = point =>
+    point.x >= 8 && point.x <= 84 && point.y >= 8 && point.y <= 84 &&
+    signedSilhouetteClearance(point, hull) >= 6.25 &&
+    placed.every(p => Math.hypot(p.x - point.x, p.y - point.y) >= 11);
+  for (const { unit, from, to } of directions) {
+    if (!unit) continue;
+    for (let distance = from; distance <= to; distance += 1) {
+      const p = { x: tip.x + unit.x * distance, y: tip.y + unit.y * distance };
+      if (safe(p)) return p;
+    }
+  }
+  // A 36px ring is outside even the most oblique 30px cube silhouette.
+  // Keep fallback letters within the 92px SVG viewport and apart.
+  for (let i = 0; i < 144; i++) {
+    const theta = (i * Math.PI) / 72;
+    const p = { x: NAV_CUBE_CENTER + 36 * Math.cos(theta),
+      y: NAV_CUBE_CENTER + 36 * Math.sin(theta) };
+    if (safe(p)) return p;
+  }
+  throw new Error('YLIS_NAV_CUBE: no collision-free external axis label');
+}
+
 /**
  * Three positive coordinate-frame axes drawn along actual visible cube edges.
  * Each arrow spans a full edge: the two fixed coordinates select the camera-
@@ -118,6 +211,8 @@ export function projectNavCubeEdgeAxes(quaternion, frame = 'local') {
     return { x: NAV_CUBE_CENTER + v.x, y: NAV_CUBE_CENTER - v.y };
   };
   const out = [];
+  const silhouette = projectNavCubeSilhouette(quaternion, frame);
+  const placedLabels = [];
   for (let axis = 0; axis < axes.length; axis++) {
     const edgePoint = (sign) => screen(add(...axes.map(({ world }, i) =>
       scale(world, NAV_CUBE_HALF * (i === axis ? sign : facing[i])))));
@@ -130,14 +225,10 @@ export function projectNavCubeEdgeAxes(quaternion, frame = 'local') {
     const normal = { x: -uy * 1.8, y: ux * 1.8 };
     const head = [end, { x: base.x + normal.x, y: base.y + normal.y },
       { x: base.x - normal.x, y: base.y - normal.y }];
-    const midpoint = { x: (start.x + end.x) / 2, y: (start.y + end.y) / 2 };
-    const awayX = midpoint.x - NAV_CUBE_CENTER;
-    const awayY = midpoint.y - NAV_CUBE_CENTER;
-    const awayLength = Math.max(Math.hypot(awayX, awayY), 1);
-    const label = {
-      x: start.x + dx * 0.72 + awayX / awayLength * 4,
-      y: start.y + dy * 0.72 + awayY / awayLength * 4,
-    };
+    // The arrowhead remains at the +axis endpoint. Only the text travels
+    // beyond the silhouette (or to a nearby exterior side if necessary).
+    const label = outsideAxisLabel(end, { x: ux, y: uy }, silhouette, placedLabels);
+    placedLabels.push(label);
     out.push(Object.freeze({ key: axes[axis].key, start, end,
       lineEnd: { x: base.x - ux * 0.6, y: base.y - uy * 0.6 },
       head: head.map((p) => `${p.x.toFixed(2)},${p.y.toFixed(2)}`).join(' '),
