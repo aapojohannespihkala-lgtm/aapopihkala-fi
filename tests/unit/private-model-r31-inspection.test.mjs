@@ -564,6 +564,9 @@ test('Locus municipal stormwater: 5 source lines + 5 flow marks, 2D, nothing tow
   const { r31SiteLayerKeyForNetwork } = await import('../../src/scripts/privateModelR31SiteLayerKey.mjs');
   assert.equal(R31_LOCUS_STORM_LINES.length, 5);
   assert.equal(R31_LOCUS_STORM_SOURCE.plotConnection, 'NONE_IN_SOURCE');
+  // 11 Locus XML source segments behind the 5 Shape lines; 48 has no shared vertex with 34.
+  assert.equal(R31_LOCUS_STORM_LINES.reduce((n, l) => n + l.xmlIds.length, 0), 11);
+  assert.equal(R31_LOCUS_STORM_LINES.find((l) => l.record === 48).topology, 'ENDS_0.29M_FROM_34_NO_SHARED_VERTEX');
   for (const l of R31_LOCUS_STORM_LINES) assert.ok(l.parcelDistM >= 40, `${l.name} stays off the plot`);
   // Records 34/36/37 meet at one node.
   const end = (r, last) => { const l = R31_LOCUS_STORM_LINES.find((x) => x.record === r); return l.points[last ? l.points.length - 1 : 0]; };

@@ -78,7 +78,7 @@ export function buildR31StormOverlay(THREE, lines, flowMarks = [], displayY = R3
     mesh.name = `R31_INFRA_${line.name}`;
     mesh.renderOrder = 6;
     mesh.userData = { ...base, sourceRecord: line.record, diameterMm: line.diameterMm, buildYear: line.buildYear,
-      ownerCode: line.ownerCode, parcelDistM: line.parcelDistM };
+      ownerCode: line.ownerCode, parcelDistM: line.parcelDistM, xmlIds: line.xmlIds ?? [], topology: line.topology ?? null };
     group.add(mesh);
     count += 1;
   }
