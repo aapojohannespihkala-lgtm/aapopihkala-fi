@@ -44,6 +44,9 @@ const title = 'Private 3D viewer';
       .orientation-gizmo .nav-cube-face { fill: #2f4456; stroke: #a9bcc8; stroke-width: .55; stroke-linejoin: round; }
       .orientation-gizmo .nav-cube-face-top { fill: #3c5367; }
       .orientation-gizmo .nav-cube-face-bottom { fill: #26394a; }
+      /* Owner 22.11.2026: no separate north marker; N/S/E/W live on the cube faces. */
+      #orientation-north-label, .orientation-gizmo [data-navigation-north="map-arrow"],
+      .orientation-gizmo [data-navigation-north="map-tip"] { opacity: 0 !important; }
       /* Face letters are printed in face units (font-size from the SVG attribute). */
       .orientation-gizmo .nav-cube-label { font-family: ui-sans-serif, system-ui, sans-serif; letter-spacing: 0; pointer-events: none; }
       .desk-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
@@ -2936,7 +2939,7 @@ const title = 'Private 3D viewer';
 
       import { createC80R31ViewSwitch, r31WorkTestReview, r31ViewerLayerSceneReceipt, r31ViewerLayerBindingScope, C80_R31_9E0B_SOURCE } from '../../scripts/privateModelC80R31ReviewRuntime.mjs';
       import { mountDesktopToolbar, activeDesktopPreset, activeDesktopAngle, DESKTOP_START_CANDIDATE_ID } from '../../scripts/privateModelDesktopToolbar.mjs';
-      import { createDFocusGhost, dFootprintFromScope } from '../../scripts/privateModelDFocusGhost';
+      import { createDFocusGhost, dFootprintFromScope, dStoreyFootprint } from '../../scripts/privateModelDFocusGhost';
 
       const canvas = document.querySelector<HTMLCanvasElement>('#private-model-canvas');
       // Owner 22.11.2026: whole D at full strength, the rest of the building faint.
@@ -15427,7 +15430,11 @@ const title = 'Private 3D viewer';
           electricalLayerVisibleInput.closest('label')!.hidden = layersEnabled && layersAvailable.includes('technical-electrical');
           if (reapplyDFocus && root && root === modelRoot.children[0]) {
             const [x0, x1, z0, z1] = dFocusCoordinates;
-            const counts = deskDFocus.apply(root, { x0, x1, z0, z1 });
+            const currentFootprint = { x0, x1, z0, z1 };
+              const focusFootprint = dFocusLabel === 'd-1f' || dFocusLabel === 'd-2f'
+                ? dStoreyFootprint(currentFootprint, dFocusLabel === 'd-1f' ? '1F' : '2F')
+                : currentFootprint;
+              const counts = deskDFocus.apply(root, focusFootprint);
             canvas.dataset.dFocusGhost = `${dFocusLabel}|in:${counts.inside}|out:${counts.outside}|split:${counts.split}`;
           }
           refreshEdgeRendering(root);
@@ -15792,13 +15799,15 @@ const title = 'Private 3D viewer';
       };
       // Whole D: the full model (no per-object D scope filter, which left parts
       // floating in R31), D footprint at full strength, everything else faint.
-      const deskEnterDFocus = (roof: boolean) => {
+      const deskEnterDFocus = (roof: boolean, storey: '1F' | '2F' | null = null) => {
+        const key = storey === '1F' ? 'd-1f' : storey === '2F' ? 'd-2f' : roof ? 'd-roof' : 'd-apartment';
         applyStandardViewPreset('whole-building', true);
-        applyViewerLayerState({ roofVisible: roof }, `preset:${roof ? 'd-roof' : 'd-apartment'}`);
+        applyViewerLayerState({ roofVisible: roof && !storey }, `preset:${key}`);
         const root = modelRoot.children[0] ?? modelRoot;
-        const footprint = dFootprintFromScope(root);
+        const whole = dFootprintFromScope(root);
+        const footprint = storey ? dStoreyFootprint(whole, storey) : whole;
         const counts = deskDFocus.apply(root, footprint);
-        canvas.dataset.dFocusGhost = `${roof ? 'd-roof' : 'd-apartment'}|in:${counts.inside}|out:${counts.outside}|split:${counts.split}`;
+        canvas.dataset.dFocusGhost = `${key}|in:${counts.inside}|out:${counts.outside}|split:${counts.split}`;
         canvas.dataset.dFocusFootprint = [footprint.x0, footprint.x1, footprint.z0, footprint.z1].map((v) => v.toFixed(2)).join(',');
         refreshEdgeRendering(root);
       };
@@ -15821,6 +15830,7 @@ const title = 'Private 3D viewer';
             const angleBefore = deskCurrentAngle();
             const pose = deskCapturePose();
             if (id === 'd-roof' || id === 'd-apartment') deskEnterDFocus(id === 'd-roof');
+            else if (id === 'd-1f' || id === 'd-2f') deskEnterDFocus(false, id === 'd-1f' ? '1F' : '2F');
             else {
               applyStandardViewPreset(target, true);
               applyViewerLayerState({ roofVisible: id === 'whole-building' }, `preset:${id}`);
@@ -15864,7 +15874,7 @@ const title = 'Private 3D viewer';
         deskSync = () => {
           deskToolbar.sync({
             preset: canvas.dataset.dFocusGhost
-              ? (canvas.dataset.layerRoofVisible === 'true' ? 'd-roof' : 'd-apartment')
+              ? canvas.dataset.dFocusGhost.split('|')[0]
               : activeDesktopPreset({
                 standardViewPreset: canvas.dataset.standardViewPreset,
                 roofVisible: canvas.dataset.layerRoofVisible === 'true',
@@ -16326,6 +16336,23 @@ const title = 'Private 3D viewer';
           })
         : null;
 
+      // Owner 22.11.2026: the viewer had slowed down. A static view no longer
+      // redraws ~2500 draw calls every frame: render while the camera moves,
+      // after any input or viewer state change (canvas attributes), and for a
+      // short while after. Review/test routes (any query) keep continuous rendering.
+      const idleRenderSkipAllowed = !window.location.search && !frameProfiler;
+      let renderDirtyUntil = 0;
+      let lastRenderCameraKey = '';
+      const markRenderDirty = (ms = 700) => { renderDirtyUntil = Math.max(renderDirtyUntil, performance.now() + ms); };
+      for (const type of ['pointerdown', 'pointermove', 'pointerup', 'wheel', 'keydown', 'keyup', 'click', 'change', 'input', 'touchstart', 'touchmove']) {
+        document.addEventListener(type, () => markRenderDirty(), { capture: true, passive: true });
+      }
+      window.addEventListener('resize', () => markRenderDirty());
+      document.addEventListener('visibilitychange', () => markRenderDirty());
+      new MutationObserver((records) => {
+        if (records.some((r) => r.attributeName !== 'data-viewer-idle-render')) markRenderDirty();
+      }).observe(canvas, { attributes: true });
+      markRenderDirty(3000);
       renderer.setAnimationLoop(() => {
         frameProfiler?.begin(performance.now());
         mainViewScope?.enforce();
@@ -16362,7 +16389,17 @@ const title = 'Private 3D viewer';
         p186ePixelRuntime?.pinFrame();
         if (isP186eElectricalLabelReviewRequested()) p186eCaptionLayout?.update(activeCamera);
         frameProfiler?.mark('latePins', performance.now());
-        renderer.render(scene, activeCamera);
+        if (perspectiveMoved || planMoved || isoMoved) markRenderDirty();
+        const cameraKey = idleRenderSkipAllowed
+          ? `${activeCamera.uuid}|${activeCamera.matrixWorld.elements.join(',')}|${activeCamera.projectionMatrix.elements.join(',')}|${canvas.width}x${canvas.height}`
+          : '';
+        if (!idleRenderSkipAllowed || cameraKey !== lastRenderCameraKey || performance.now() <= renderDirtyUntil) {
+          renderer.render(scene, activeCamera);
+          lastRenderCameraKey = cameraKey;
+          if (canvas.dataset.viewerIdleRender !== 'active') canvas.dataset.viewerIdleRender = 'active';
+        } else if (canvas.dataset.viewerIdleRender !== 'idle') {
+          canvas.dataset.viewerIdleRender = 'idle';
+        }
         frameProfiler?.mark('render', performance.now());
         frameProfiler?.end(performance.now(), {
           drawCalls: renderer.info.render.calls,
