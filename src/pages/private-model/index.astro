@@ -40,12 +40,29 @@ const title = 'Private 3D viewer';
       .viewport .desk-side-tools button[disabled] { opacity: .35; }
       /* Layers panel opens to the right of the side tool column, not under it. */
       .viewport:has(> .desk-side-tools) .layers-panel { left: 66px !important; width: min(290px, calc(100% - 78px)) !important; }
+      /* Owner 22.11.2026 16.39: every left-side overlay (coordinates, point,
+         measure, selection, legends) opens to the right of the side tool
+         column, never on top of it. Narrow screens keep their own layout. */
+      @media (min-width: 761px) {
+        .viewport:has(> .desk-side-tools) :is(.coordinate-panel, .point-measure-panel, .p137e-place-panel,
+          .m5a-source-context, .height-scale, .d1-known-door-legend, .profile-panel, .selection-panel) {
+          left: 66px !important;
+          max-width: calc(100% - 78px);
+        }
+        .viewport:has(> .desk-side-tools):has(.layers-panel:not([hidden])) .selection-panel {
+          left: calc(66px + min(290px, 100% - 78px) + 12px) !important;
+          max-width: calc(100% - 66px - min(290px, 100% - 78px) - 24px);
+        }
+      }
       /* Navigation cube behind the gizmo axes (owner request 22.11.2026). */
-      .orientation-gizmo .nav-cube-face { fill: #5d6f7c; stroke: #c9d3d9; stroke-width: .7; stroke-linejoin: round; }
-      .orientation-gizmo .nav-cube-face-top { fill: #7f93a0; }
-      .orientation-gizmo .nav-cube-face-north { fill: #4f7a63; }
-      .orientation-gizmo .nav-cube-label { fill: #f1f4f6; font: 800 6.4px ui-sans-serif, system-ui, sans-serif;
-        text-anchor: middle; dominant-baseline: central; letter-spacing: .02em; pointer-events: none; }
+      .orientation-gizmo .nav-cube-face { fill: #2f4456; stroke: #a9bcc8; stroke-width: .55; stroke-linejoin: round; }
+      .orientation-gizmo .nav-cube-face-top { fill: #3c5367; }
+      .orientation-gizmo .nav-cube-face-bottom { fill: #26394a; }
+      /* Owner 22.11.2026: no separate north marker; N/S/E/W live on the cube faces. */
+      #orientation-north-label, .orientation-gizmo [data-navigation-north="map-arrow"],
+      .orientation-gizmo [data-navigation-north="map-tip"] { opacity: 0 !important; }
+      /* Face letters are printed in face units (font-size from the SVG attribute). */
+      .orientation-gizmo .nav-cube-label { font-family: ui-sans-serif, system-ui, sans-serif; letter-spacing: 0; pointer-events: none; }
       .desk-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
     </style>
     <style>
@@ -910,12 +927,15 @@ const title = 'Private 3D viewer';
         font-size: 9px;
       }
 
-      .orientation-gizmo-note {
-        margin-top: -2px;
-        color: var(--viewer-stone-light);
-        font-size: 8px;
-        line-height: 1.25;
-        text-align: center;
+      /* Only the selected coordinate frame is printed below the cube.
+         Preserve the existing button text/ARIA for keyboard and browser guards. */
+      :global(.orientation-gizmo [data-navigation-north="toggle"]::after) {
+        content: attr(data-frame-label);
+        display: inline-block;
+        font-size: 9px;
+        font-weight: 750;
+        letter-spacing: .04em;
+        line-height: 1.3;
         white-space: nowrap;
       }
 
@@ -1971,7 +1991,6 @@ const title = 'Private 3D viewer';
           data-frame="YLIS-G1-LOCAL"
           data-north-axis="+Y"
         >
-          <div class="orientation-gizmo-title">YLIS-G1-LOCAL</div>
           <svg viewBox="0 0 92 92" aria-hidden="true">
             <circle class="orientation-origin" cx="46" cy="46" r="2.4"></circle>
             <g>
@@ -1991,7 +2010,6 @@ const title = 'Private 3D viewer';
               <text id="orientation-axis-z-label" class="orientation-axis-label orientation-axis-label-z" x="24" y="68">Z</text>
             </g>
           </svg>
-          <div class="orientation-gizmo-note">X itä · Y pohjoinen · Z ylös</div>
         </aside>
         <div id="d1-known-door-label-layer" class="d1-known-door-label-layer" aria-hidden="true" hidden></div>
         <aside id="d1-known-door-legend" class="d1-known-door-legend" aria-label="D 1F -ovien tarkastusselite" hidden>
@@ -2423,6 +2441,7 @@ const title = 'Private 3D viewer';
       } from '../../scripts/privateModelArchitecturalLayersRuntime';
       import { pickSelectableObjectAtClientPoint } from '../../scripts/privateModelSelectionPicking';
       import { shouldInvalidateModelSelection } from '../../scripts/privateModelSceneSelectionInvalidation.mjs';
+      import { sourceLinksForSelectionEvidence } from '../../scripts/privateModelSourceCardLinkGuard.mjs';
       import { pickVisibleWorkTest3DPoint } from '../../scripts/privateModelWorkTest3DPoint';
       import { classifySameClickReviewEvidence } from '../../scripts/privateModelSameClickReviewEvidence.mjs';
       import { measureAlongG1Axis } from '../../scripts/privateModelMeasureGeometry.mjs';
@@ -2731,6 +2750,12 @@ const title = 'Private 3D viewer';
       import { V93_MJ40_SOURCE_SHA256 } from '../../scripts/privateModelV93MJ40BoschOpen90SourceProfile.mjs';
       import { V90_H20_SOURCE_SHA256 } from '../../scripts/privateModelC80R2V90H20LayerSourceProfile.mjs';
       import { V90_IV_P04_SOURCE_SHA256 } from '../../scripts/privateModelC80R2V90IVP04LayerSourceProfile.mjs';
+      // @ts-ignore - R31 review roots and inspection overlays have unit coverage.
+      import { resolveC80R31TechnicalReviewRoots } from '../../scripts/privateModelC80R31TechnicalReview.mjs';
+      // @ts-ignore - pure overlay builders, THREE injected.
+      import { R31_DRAINAGE_SOURCE, R31_EXTERIOR_DONORS, buildR31DrainageOverlay, buildR31InfraOverlay, buildR31FiberOverlay, buildR31ExteriorDonorOverlay, buildR31WestGableInfill, buildR31GableBoarding, buildR31WestBrickCompletion, buildR31FiberEntryBox, buildR31FiberEntryLink, isR31WestGableBoardingSource, R31_GABLE_BOARDING_COLOR, isR31ReplacedWestDownpipe, loadR31EastGableOverlay, relocateR31Downpipes, syncR31ExteriorDonorMaterials, setR31SiteNetworkLayerMode } from '../../scripts/privateModelR31Inspection.mjs';
+      import { R31_LOCUS_FIBER_LINES } from '../../scripts/privateModelR31LocusFiber.mjs';
+      import { r31SiteLayerKeyForNetwork } from '../../scripts/privateModelR31SiteLayerKey.mjs';
       import { resolveTechnicalReviewRoots, createTechnicalReviewPresentation, technicalReviewSystemOf, technicalReviewLayerSystemOf, refineTechnicalReviewSystem, filterNonTechnicalBoundObjects } from '../../scripts/privateModelTechnicalReviewPresentation.mjs';
       import { resolveConcealedTechnicalObjects, createConcealedTechnicalPresentation } from '../../scripts/privateModelConcealedTechnicalPresentation.mjs';
       import { K17_RAIL900_SOURCE_SHA256 } from '../../scripts/privateModelK17Rail900LayerSourceProfile.mjs';
@@ -2933,10 +2958,32 @@ const title = 'Private 3D viewer';
         type WorkTestLoadFailurePhase,
       } from '../../scripts/privateModelWorkTestLoadDiagnostics';
 
-      import { createC80R31ViewSwitch, r31WorkTestReview } from '../../scripts/privateModelC80R31ReviewRuntime.mjs';
+      import { createC80R31ViewSwitch, r31WorkTestReview, r31ViewerLayerSceneReceipt, r31ViewerLayerBindingScope, C80_R31_9E0B_SOURCE } from '../../scripts/privateModelC80R31ReviewRuntime.mjs';
       import { mountDesktopToolbar, activeDesktopPreset, activeDesktopAngle, DESKTOP_START_CANDIDATE_ID } from '../../scripts/privateModelDesktopToolbar.mjs';
+      import { createDFocusGhost, dFootprintFromScope, dStoreyFootprint } from '../../scripts/privateModelDFocusGhost';
 
       const canvas = document.querySelector<HTMLCanvasElement>('#private-model-canvas');
+      // Owner 22.11.2026: whole D at full strength, the rest of the building faint.
+      // Dashed lines and review aids (owner 22.11.2026 15.14: hidden by default in
+      // the D views): source roots that declare themselves schematic, assumed
+      // routes, logical diagrams or review guides. Shown with Talotekniikka.
+      // Owner 22.11.2026 16.39: the blue downspout presence reservations
+      // (M5B-R1109 work zones) are hidden unless Talotekniikka is on.
+      const isDownspoutPresenceZone = (object: any) => {
+        const d = object?.userData ?? {};
+        return d.representationKind === 'downspoutPresenceZoneWork' ||
+          d.presentationGroup === 'MEP_STORMWATER_DOWNSPOUT_PRESENCE';
+      };
+      const isDeskReviewAid = (object: any) => {
+        if (technicalReviewInput?.checked) return false;
+        const d = object?.userData ?? {};
+        const text = [d.ylisTechRole, d.classification, d.representationKind, d.stage, d.sourceRole]
+          .filter((v) => typeof v === 'string').join(' ');
+        return isDownspoutPresenceZone(object) ||
+          /SCHEMATIC|REVIEW_GUIDE|ASSUMED_ROUTE|ReviewOnly|REFERENCE_GUIDE|LOGICAL_DIAGRAM/i.test(text) ||
+          /LOGICAL_DIAGRAM|_SCHEMATIC_|ELECTRICAL_ROUTE_OPTIN|REVIEW_BENT_GUIDES|RAIN_ZONES_PRESENTATION_ONLY/.test(object?.name ?? '');
+      };
+      const deskDFocus = createDFocusGhost(0.1, { hideObject: isDeskReviewAid });
       const status = document.querySelector<HTMLElement>('#viewer-status');
       const toolbarMenus = Array.from(document.querySelectorAll<HTMLDetailsElement>('.toolbar-menu'));
       const { closeToolbarMenus } = setupPrivateModelToolbarMenus(toolbarMenus);
@@ -3288,7 +3335,12 @@ const title = 'Private 3D viewer';
         sourceEvidenceSection: document.querySelector<HTMLElement>('#selection-source-evidence'),
       });
 
-      const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+      // Owner 22.11.2026: general flicker. Near planes are as small as distance/10000,
+      // so a 24-bit depth buffer separated surfaces only ~3 cm apart at 45 m and
+      // nearby faces z-fought while moving. A reversed float depth buffer (three
+      // falls back automatically without EXT_clip_control) resolves sub-millimetre gaps.
+      const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, reversedDepthBuffer: true } as any);
+      canvas.dataset.depthBuffer = (renderer.capabilities as any).reversedDepthBuffer ? 'reversed' : 'standard';
       renderer.localClippingEnabled = true;
       renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
       renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -3406,6 +3458,8 @@ const title = 'Private 3D viewer';
       let layersLoadedSha: string | null = null;
       let refreshLayers = () => {};
       let beforeLayersSceneChange = () => {};
+      let r31InspectionExitHook = () => {};
+      let r31SyncExteriorDonorsHook = () => {};
       let onLayersModelLoaded = (_gltf: any, _session: any) => {};
       let onLayersStandardPreset = (_preset: StandardViewPreset) => {};
 
@@ -4659,6 +4713,9 @@ const title = 'Private 3D viewer';
       const isRoofLayerMember = (object: any) => {
         const data = object?.userData ?? {};
         return (
+          // R31 9e0bf34f: whole-building roof group and its parts declare
+          // extras.intendedViewerLayer = 'roof' (P186 / scene 747 source).
+          data.intendedViewerLayer === 'roof' ||
           data.presentationLayer === 'REFERENCE_ROOF' ||
           data.representationKind === 'presentationRoofStepFace' ||
           Array.isArray(data.derivedRoofReferenceEnvelopeY_M) ||
@@ -5924,6 +5981,7 @@ const title = 'Private 3D viewer';
         if (renderKind !== '-') technicalMetadata.push(['Renderöintityyppi', renderKind]);
 
         selectedObject = object;
+        const sourceEvidence = resolveSelectionSources(object);
         selectionPanelController.render({
           mesh: serviceTarget?.label ?? semantics.labelFi,
           group: semantics.classLabelFi,
@@ -5940,8 +5998,8 @@ const title = 'Private 3D viewer';
             ...resolveElectricalGroupEvidence(object, modelRoot.children[0] ?? null),
             ...collectSelectionMetadataEntries(object, modelRoot),
           ],
-          sourceLinks: collectSelectionSourceLinks(object, modelRoot),
-          sourceEvidence: resolveSelectionSources(object),
+          sourceLinks: sourceLinksForSelectionEvidence(sourceEvidence, collectSelectionSourceLinks(object, modelRoot)),
+          sourceEvidence,
         });
 
         selectionHighlightController.select(object);
@@ -6457,7 +6515,18 @@ const title = 'Private 3D viewer';
             } else if (activeElevationDirection) fitElevationCamera(activeElevationDirection);
             else if (canvas.dataset.viewPreset === 'top' || canvas.dataset.viewPreset === 'bottom') {
               fitAxisCamera(canvas.dataset.viewPreset);
-            } else fitIsometricCamera();
+            } else {
+              // Owner 22.11.2026: a layout resize (e.g. a longer status line) must
+              // not reset the user's isometric pose; keep target, direction and
+              // visible height, adapt only the width to the new aspect.
+              const halfHeight = Math.abs(isoCamera.top - isoCamera.bottom) / 2;
+              if (halfHeight > 0) {
+                const aspect = width / height;
+                isoCamera.left = -halfHeight * aspect;
+                isoCamera.right = halfHeight * aspect;
+                isoCamera.updateProjectionMatrix();
+              } else fitIsometricCamera();
+            }
           }
         }
       };
@@ -7301,6 +7370,29 @@ const title = 'Private 3D viewer';
 
       const activateMainModelScope = (floor: MainViewFloor, preserveCamera = false) => {
         if (!mainViewScope?.available) return;
+        if (layersLoadedSha === C80_R31_9E0B_SOURCE.glbSha256 && r300ViewSwitch && floor !== '1F') {
+          const active = r300ViewSwitch.activeView();
+          if (active) {
+            // Keep the source-authored R31 D/BOTH or D/2F scene and service role.
+            const service = active === 'dService' || active === 'upperService';
+            const next = floor === '2F' ? (service ? 'upperService' : 'upperNormal') :
+              (service ? 'dService' : 'dNormal');
+            try {
+              if (mainViewScope.active) mainViewScope.restore();
+              if (r300ViewSwitch.select(next)) {
+                syncR300WorkTestViews();
+                refreshLayers();
+                if (!preserveCamera) fitModel();
+                status.textContent = `${r31ReviewTitle} - WORK_TEST / HOST_HOLD`;
+              } else status.textContent = `${r31ReviewTitle} - näkymää ei voitu vaihtaa`;
+            } catch (error) {
+              console.error(error);
+              status.textContent = `${r31ReviewTitle} - näkymän vaihto keskeytettiin`;
+              syncR300WorkTestViews();
+            }
+            return;
+          }
+        }
         // Reject unsupported first floor BEFORE restoring or remounting.
         if ((mainViewScope as any).isC80Succ455Savo483 && floor === '1F') return;
         const requestedOtherFloorMode = otherFloorMode.value;
@@ -15019,6 +15111,50 @@ const title = 'Private 3D viewer';
       successorCutawayInput.setAttribute('aria-label','PK1-huoltoleikkaus');
       successorCutawayRow.append(successorCutawayInput);
       m6263GlazingRow.after(successorCutawayRow);
+      // R31 site networks are source-bound auxiliary donors, not native C80
+      // layer nodes. Keep independent 3-state controls in the existing Layerit
+      // panel without adding a second layer registry or changing the GLB.
+      type R31SiteKey = 'drainage' | 'infra' | 'fiber';
+      type R31SiteMode = 'visible' | 'ghost' | 'hidden';
+      const r31SiteLayerSpecs: Array<[R31SiteKey, string]> = [
+        ['drainage', 'Salaojat (WORK_TEST)'],
+        ['infra', 'Kunnallistekniikka: Locus vesi/viemäri (WORK_TEST)'],
+        ['fiber', 'Valokuitu: 2D, syvyys avoin (WORK_TEST)'],
+      ];
+      const r31SiteLayerOverrides: Partial<Record<R31SiteKey, R31SiteMode>> = {};
+      const r31SiteLayerRows = {} as Record<R31SiteKey, { row: HTMLLabelElement; select: HTMLSelectElement }>;
+      let r31SiteRowAnchor: HTMLElement = successorCutawayRow;
+      for (const [key, label] of r31SiteLayerSpecs) {
+        const row = document.createElement('label');
+        row.className = 'layers-control';
+        row.hidden = true;
+        row.style.display = 'none';
+        row.dataset.r31SiteLayer = key;
+        row.append(document.createTextNode(label + ' '));
+        const select = document.createElement('select');
+        select.setAttribute('aria-label', label + ' näkyvyys');
+        for (const [mode, title] of [['visible', 'Näkyvä'], ['ghost', 'Himmeä'], ['hidden', 'Piilossa']]) {
+          const option = document.createElement('option');
+          option.value = mode;
+          option.textContent = title;
+          select.append(option);
+        }
+        select.value = 'hidden';
+        select.addEventListener('change', () => {
+          // Fail closed outside the exact authorized R31 source/model.
+          if (layersLoadedSha !== C80_R31_9E0B_SOURCE.glbSha256 || !modelRoot.children[0] ||
+              canvas.dataset.objectVisibilityFilter === 'active') return;
+          if (select.value !== 'visible' && select.value !== 'ghost' && select.value !== 'hidden') return;
+          r31SiteLayerOverrides[key] = select.value as R31SiteMode;
+          clearSelection();
+          r31SyncExteriorDonorsHook();
+          refreshEdgeRendering(modelRoot.children[0] ?? null);
+        });
+        row.append(select);
+        r31SiteRowAnchor.after(row);
+        r31SiteRowAnchor = row;
+        r31SiteLayerRows[key] = { row, select };
+      }
       const syncM6263Glazing=()=>{
         const runtime=mainViewScope as any;
         const available=(layersLoadedSha===TATE4_MJ6263_SOURCE_SHA256 && runtime?.isM6263) ||
@@ -15125,6 +15261,7 @@ const title = 'Private 3D viewer';
         canvas.dataset.technicalReviewSystems = technicalReview?.applied ? JSON.stringify(technicalReview.systemCounts) : '';
         canvas.dataset.technicalReviewLightRoles = technicalReview?.applied ? String(technicalReview.lightRoleCount) : '';
         refreshEdgeRendering(modelRoot.children[0] ?? null);
+        r31SyncExteriorDonorsHook();
       });
 
       layersContextInput.addEventListener('change', () => {
@@ -15136,6 +15273,13 @@ const title = 'Private 3D viewer';
       });
 
       const disposeLayersPresentation = () => {
+        // Other preset/model paths also dispose Layerit directly. Always undo
+        // #2177's temporary ghost copies before restoring the layer baseline.
+        if (deskDFocus.active) {
+          deskDFocus.restore();
+          delete canvas.dataset.dFocusGhost;
+          delete canvas.dataset.dFocusFootprint;
+        }
         concealedTechnical?.dispose();
         concealedTechnical = null;
         delete canvas.dataset.concealedTechnicalCount;
@@ -15152,6 +15296,12 @@ const title = 'Private 3D viewer';
         layersRuntime = null;
       };
       beforeLayersSceneChange = disposeLayersPresentation;
+      // Any scene change also ends the whole-D focus presentation (restores originals).
+      beforeLayersSceneChange = () => {
+        r31InspectionExitHook();
+        if (deskDFocus.active) { deskDFocus.restore(); delete canvas.dataset.dFocusGhost; delete canvas.dataset.dFocusFootprint; }
+        disposeLayersPresentation();
+      };
 
       const commitLayerPreset = (preset: ViewerLayerPreset) => {
         if (!layersPresetChoices.includes(preset) || !layersExpectedSha) return;
@@ -15200,7 +15350,11 @@ const title = 'Private 3D viewer';
           layersSyncQueued = false;
           const root = modelRoot.children[0] ?? null;
           const sceneIndex = layersGltf?.scenes?.indexOf(root) ?? -1;
-          const verified = !!layersExpectedSha && layersExpectedSha === layersLoadedSha && sceneIndex >= 0;
+          // SHA alone does not authorize every scene inside an R31 work-test GLB.
+          const r31SceneScope = layersLoadedSha === C80_R31_9E0B_SOURCE.glbSha256
+            ? r31ViewerLayerBindingScope(layersGltf?.parser?.json, layersLoadedSha, sceneIndex) : null;
+          const verified = !!layersExpectedSha && layersExpectedSha === layersLoadedSha &&
+            sceneIndex >= 0 && (layersLoadedSha !== C80_R31_9E0B_SOURCE.glbSha256 || !!r31SceneScope);
           const filterActive = canvas.dataset.objectVisibilityFilter === 'active';
           if (filterActive) {
             technicalReviewInput.disabled = true;
@@ -15208,6 +15362,13 @@ const title = 'Private 3D viewer';
             layersPanelControls.update(layersState, layersAvailable, { boundNodeIds: layersBoundIds, disabled: true });
             return;
           }
+          // H-C: Layerit owns its material baseline. Restore #2177's temporary
+          // D-focus materials before rebinding, then reapply the focus afterward.
+          const dFocusLabel = canvas.dataset.dFocusGhost?.split('|')[0];
+          const dFocusCoordinates = (canvas.dataset.dFocusFootprint ?? '').split(',').map(Number);
+          const reapplyDFocus = !!dFocusLabel && deskDFocus.active &&
+            dFocusCoordinates.length === 4 && dFocusCoordinates.every(Number.isFinite);
+          if (reapplyDFocus) deskDFocus.restore();
           disposeLayersPresentation();
           technicalReviewInput.disabled = false;
           layersContextInput.disabled = false;
@@ -15225,8 +15386,16 @@ const title = 'Private 3D viewer';
               applyRoofLayerState(); applyLocusLayerState(); applyElectricalLayerState();
               mainViewScope?.enforce();
             }
-            const area = mainViewScope?.active ? 'D' : 'WHOLE';
-            const floor = (mainViewScope?.active ? mainViewScope.floor : 'BOTH') as MainViewFloor;
+            const area = r31SceneScope?.area ?? (mainViewScope?.active ? 'D' : 'WHOLE');
+            const floor = (r31SceneScope?.floor ??
+              (mainViewScope?.active ? mainViewScope.floor : 'BOTH')) as MainViewFloor;
+            if (r31SceneScope) {
+              mainViewArea.value = r31SceneScope.area;
+              mainViewFloor.value = r31SceneScope.floor;
+              canvas.dataset.mainViewArea = r31SceneScope.area;
+              canvas.dataset.mainViewFloor = r31SceneScope.floor;
+              canvas.dataset.mainViewSourceSceneIndex = String(sceneIndex);
+            }
             const source = sourceNodeModel(layersGltf);
             const building = resolveBuildingPartLayerBindings({
               gltf: source, expectedSourceSha256: layersExpectedSha!,
@@ -15236,7 +15405,8 @@ const title = 'Private 3D viewer';
               sceneRoot: root, sourceSceneIndex: sceneIndex,
               loadedGlbSha256: layersLoadedSha!, expectedGlbSha256: layersExpectedSha!,
               sourceJson: layersGltf.parser.json, sourceNodes: collectViewerLayerSourceNodes(source, root, sceneIndex, layersLoadedSha!),
-              viewerScope: layersState.layerPresetState!.selected,
+              viewerScope: r31SceneScope ? (floor === '2F' ? 'd-2f' : 'd-apartment') :
+                layersState.layerPresetState!.selected,
               allowSourceOnly: true, allowHistoricalPlans: false,
             });
             technicalAvailability.update(technical.summary);
@@ -15287,7 +15457,9 @@ const title = 'Private 3D viewer';
             }
             // Technical review: exact-source technical roots plus the devices
             // already bound by the technical Layers inventory keep their colors.
-            const reviewRoots = resolveTechnicalReviewRoots(source, root, sceneIndex, layersLoadedSha, layersExpectedSha);
+            // Owner 22.11.2026 17.08: R31 reuses R22's verified review roots.
+            const reviewRoots = resolveTechnicalReviewRoots(source, root, sceneIndex, layersLoadedSha, layersExpectedSha) ??
+              resolveC80R31TechnicalReviewRoots(source, root, sceneIndex, layersLoadedSha, layersExpectedSha);
             if (reviewRoots) {
               // Kept meshes without a source system take the color of the
               // exact-source Sisältö technical layer they are bound to.
@@ -15352,6 +15524,15 @@ const title = 'Private 3D viewer';
           roofLayerOpacityInput.closest<HTMLElement>('.layer-opacity')!.hidden = layersEnabled && !layersAvailable.includes('roof');
           roofLayerCount.hidden = layersEnabled && !layersAvailable.includes('roof');
           electricalLayerVisibleInput.closest('label')!.hidden = layersEnabled && layersAvailable.includes('technical-electrical');
+          if (reapplyDFocus && root && root === modelRoot.children[0]) {
+            const [x0, x1, z0, z1] = dFocusCoordinates;
+            const currentFootprint = { x0, x1, z0, z1 };
+              const focusFootprint = dFocusLabel === 'd-1f' || dFocusLabel === 'd-2f'
+                ? dStoreyFootprint(currentFootprint, dFocusLabel === 'd-1f' ? '1F' : '2F')
+                : currentFootprint;
+              const counts = deskDFocus.apply(root, focusFootprint);
+            canvas.dataset.dFocusGhost = `${dFocusLabel}|in:${counts.inside}|out:${counts.outside}|split:${counts.split}`;
+          }
           refreshEdgeRendering(root);
           if (selectedObject && !isEffectivelyVisible(selectedObject, modelRoot)) clearSelection();
         });
@@ -15444,7 +15625,10 @@ const title = 'Private 3D viewer';
           layersLoadedSha === V82_SOURCE_SHA256 ||
           layersLoadedSha === K17_RAIL900_SOURCE_SHA256
             ? layersLoadedSha : null;
-        layersExpectedSha = session?.contract?.glbSha256 ?? verifiedChainSourceSha;
+        const verifiedR31LayerSource = !!r31ViewerLayerSceneReceipt(
+          gltf?.parser?.json, layersLoadedSha, 769);
+        layersExpectedSha = session?.contract?.glbSha256 ?? verifiedChainSourceSha ??
+          (verifiedR31LayerSource ? layersLoadedSha : null);
         // Restore the owner-approved white, doorless lobby only for the exact
         // V69 GLB. This changes loaded material instances, never the source GLB.
         if (layersLoadedSha === V69_SOURCE_SHA256 && layersExpectedSha === V69_SOURCE_SHA256) {
@@ -15461,7 +15645,7 @@ const title = 'Private 3D viewer';
             canvas.dataset.v69C020UpperGlassSourceReady = 'true';
           }
         }
-        layersEnabled = verifiedChainSourceSha !== null;
+        layersEnabled = verifiedChainSourceSha !== null || verifiedR31LayerSource;
         layersContextVisible = true;
         layersState = withViewerLayerBranchVisibility(applyViewerLayerPreset(createViewerInteractionState(), 'whole-building'));
         layersAvailable = [];
@@ -15612,6 +15796,330 @@ const title = 'Private 3D viewer';
         camera.updateProjectionMatrix();
         controls.update();
       };
+      // Owner 22.11.2026: the camera is the user's. A preset change keeps the
+      // exact pose (target, direction, zoom); 3D <-> isometric keeps target,
+      // direction and visible size, only the projection changes.
+      type DeskPose = { kind: 'persp' | 'iso'; target: THREE.Vector3; offset: THREE.Vector3; halfHeight: number };
+      const deskCapturePose = (): DeskPose | null => {
+        if (activeCamera === camera) {
+          const offset = camera.position.clone().sub(controls.target);
+          const distance = offset.length();
+          if (!(distance > 1e-9)) return null;
+          return { kind: 'persp', target: controls.target.clone(), offset: offset.divideScalar(distance),
+            halfHeight: distance * Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2) };
+        }
+        if (activeCamera === isoCamera) {
+          const offset = isoCamera.position.clone().sub(isoControls.target);
+          if (!(offset.lengthSq() > 1e-18)) return null;
+          return { kind: 'iso', target: isoControls.target.clone(), offset: offset.normalize(),
+            halfHeight: Math.abs(isoCamera.top - isoCamera.bottom) / 2 / Math.max(isoCamera.zoom, 1e-6) };
+        }
+        return null;
+      };
+      const deskApplyPose = (pose: DeskPose) => {
+        const halfHeight = Math.max(pose.halfHeight, 0.05);
+        if (activeCamera === camera) {
+          const distance = halfHeight / Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2);
+          controls.target.copy(pose.target);
+          camera.position.copy(pose.target).addScaledVector(pose.offset, distance);
+          camera.near = Math.max(distance / 10000, 0.001);
+          camera.far = Math.max(distance * 50, 2000);
+          camera.updateProjectionMatrix();
+          controls.update();
+          return true;
+        }
+        if (activeCamera === isoCamera) {
+          const aspect = Math.max(canvas.clientWidth / Math.max(canvas.clientHeight, 1), 0.01);
+          const distance = Math.max(halfHeight * 6, 50);
+          isoControls.target.copy(pose.target);
+          isoCamera.position.copy(pose.target).addScaledVector(pose.offset, distance);
+          isoCamera.left = -halfHeight * aspect;
+          isoCamera.right = halfHeight * aspect;
+          isoCamera.top = halfHeight;
+          isoCamera.bottom = -halfHeight;
+          isoCamera.zoom = 1;
+          isoCamera.near = 0.01;
+          isoCamera.far = Math.max(distance * 4, 1000);
+          isoCamera.updateProjectionMatrix();
+          isoControls.update();
+          return true;
+        }
+        return false;
+      };
+      const deskCurrentAngle = () => activeDesktopAngle({
+        standardViewPreset: canvas.dataset.standardViewPreset,
+        viewPreset: canvas.dataset.viewPreset,
+      });
+      // Start framing: the building (terrain and site context left out), seen
+      // from the south-west so the D apartment at the west end is nearest.
+      const deskStartFrame = () => {
+        if (activeCamera !== camera) return;
+        modelRoot.updateMatrixWorld(true);
+        const box = new THREE.Box3(), part = new THREE.Box3();
+        const isSiteContext = (object: THREE.Object3D) => {
+          for (let o: THREE.Object3D | null = object; o && o !== modelRoot; o = o.parent) {
+            if (/TERRAIN|SOURCE_CONTEXT|MAASTO|TONTTI/i.test(o.name ?? '')) return true;
+          }
+          return false;
+        };
+        (modelRoot.children[0] ?? modelRoot).traverseVisible((object: THREE.Object3D) => {
+          const mesh = object as THREE.Mesh;
+          if (!mesh.isMesh || !mesh.geometry || isSiteContext(mesh)) return;
+          if (!mesh.geometry.boundingBox) mesh.geometry.computeBoundingBox();
+          part.copy(mesh.geometry.boundingBox!).applyMatrix4(mesh.matrixWorld);
+          box.union(part);
+        });
+        if (box.isEmpty()) return;
+        // In the whole-D focus, frame the D footprint (the faint rest stays around it).
+        const footprint = (canvas.dataset.dFocusFootprint ?? '').split(',').map(Number);
+        const focused = footprint.length === 4 && footprint.every(Number.isFinite);
+        if (focused) {
+          box.min.x = Math.max(box.min.x, footprint[0]); box.max.x = Math.min(box.max.x, footprint[1]);
+          box.min.z = Math.max(box.min.z, footprint[2]); box.max.z = Math.min(box.max.z, footprint[3]);
+          if (box.isEmpty()) return;
+        }
+        const sphere = box.getBoundingSphere(new THREE.Sphere());
+        if (!Number.isFinite(sphere.radius) || sphere.radius <= 0) return;
+        const halfFov = THREE.MathUtils.degToRad(camera.fov) / 2;
+        const aspect = Math.max(camera.aspect || 1, 0.01);
+        const radius = sphere.radius * (focused ? 1.0 : 0.82);
+        const distance = Math.max(radius / Math.tan(halfFov), radius / Math.tan(Math.atan(Math.tan(halfFov) * aspect)));
+        const offset = new THREE.Vector3(-0.622, 0.475, 0.622).normalize();
+        controls.target.copy(sphere.center);
+        camera.position.copy(sphere.center).addScaledVector(offset, distance);
+        camera.near = Math.max(distance / 10000, 0.001);
+        camera.far = Math.max(distance * 50, 2000);
+        camera.updateProjectionMatrix();
+        controls.update();
+        canvas.dataset.deskStartFrame = focused ? 'd-focus-south-west' : 'building-south-west';
+      };
+      // Whole D: the full model (no per-object D scope filter, which left parts
+      // floating in R31), D footprint at full strength, everything else faint.
+      // Layerit owns the roof when it is bound (R31 #2157): keep its Vesikatto
+      // mode in step with the desk roof presets, otherwise "katto piilossa"
+      // still showed the roof. The camera is not touched.
+      const deskSyncLayerRoof = (visible: boolean | 'ghost') => {
+        if (!layersAvailable.includes('roof' as any)) return;
+        const mode = visible === 'ghost' ? 'ghost' : visible ? 'visible' : 'hidden';
+        layersState = setViewerInteractionLayerBranchMode(layersState, 'roof' as any, mode, layersAvailable);
+        layersEnabled = true;
+        refreshLayers();
+      };
+      const deskSyncDownspoutZones = () => {
+        const root = modelRoot.children[0] ?? modelRoot;
+        const show = Boolean(technicalReviewInput?.checked);
+        let count = 0;
+        root.traverse((object: any) => {
+          if (!isDownspoutPresenceZone(object)) return;
+          if (object.userData.deskAidOriginalVisible === undefined) {
+            object.userData.deskAidOriginalVisible = object.visible;
+          }
+          object.visible = show ? object.userData.deskAidOriginalVisible : false;
+          count += 1;
+        });
+        canvas.dataset.deskDownspoutZones = `${show ? 'shown' : 'hidden'}:${count}`;
+      };
+      // Layerit refreshes in a microtask; run after it so it cannot re-show them.
+      const deskQueueDownspoutZones = () => {
+        deskSyncDownspoutZones();
+        queueMicrotask(() => { deskSyncDownspoutZones(); refreshEdgeRendering(modelRoot.children[0] ?? modelRoot); });
+      };
+      // Owner 22.11.2026 17.08 / 18.08: one "Talotekniikka korostettuna" button
+      // for everything. In the whole-building preset it also shows the site
+      // networks (drainage, Locus water/wastewater) from already published
+      // sources; D presets keep the building systems only.
+      let r31DrainageGltf: Promise<any> | null = null;
+      const r31InspectionAvailable = () =>
+        layersLoadedSha === C80_R31_9E0B_SOURCE.glbSha256 && Boolean(modelRoot.children[0]);
+      // No separate inspection mode any more (kept as a hook for old callers).
+      const exitR31Inspection = () => {};
+      r31InspectionExitHook = exitR31Inspection;
+      const r31ExteriorDonors: Record<string, any> = {};
+      const r31SiteNetworks: Record<string, any> = {};
+      const r31SiteGhostOriginals = new Map<any, any>();
+      let r31ExteriorLoading: Promise<void> | null = null;
+      let r31SiteLoading: Promise<void> | null = null;
+      let r31DonorSwap: Map<any, any> | null = null;
+      const r31HiddenWestPipes = new Set<any>();
+      const r31DonorGrey = new THREE.MeshBasicMaterial({ color: 0x9aa1a9, transparent: true, opacity: 0.08, depthWrite: false });
+      // Stormwater (hulevesi) keeps its own colour, separate from drainage/wastewater.
+      const r31StormMaterial = new THREE.MeshStandardMaterial({
+        color: 0x26c6da, emissive: 0x26c6da, emissiveIntensity: 0.4, roughness: 0.6, metalness: 0,
+      });
+      const r31SyncExteriorDonors = () => {
+        const r31 = r31InspectionAvailable();
+        const focus = canvas.dataset.dFocusGhost?.split('|')[0];
+        // Scope comes from the research preset; camera buttons (elevations, iso) only
+        // change standardViewPreset and must not drop the whole-building additions.
+        const whole = r31 && !focus &&
+          (canvas.dataset.researchPreset ?? canvas.dataset.standardViewPreset) === 'whole-building';
+        const technical = whole && canvas.dataset.technicalReview === 'on';
+        let shown = 0;
+        for (const group of Object.values(r31ExteriorDonors)) {
+          if (!group) continue;
+          if (whole && group.parent !== modelRoot.parent) modelRoot.parent?.add(group);
+          group.visible = whole;
+          if (whole) shown += group.children.length;
+        }
+        // Re-run for newly loaded donors even if Talotekniikka was already on.
+        // The originals map is retained until OFF, so every material restores exactly.
+        r31DonorSwap = syncR31ExteriorDonorMaterials(
+          r31ExteriorDonors, r31DonorSwap, technical,
+          { rainwater: r31StormMaterial, grey: r31DonorGrey },
+        );
+        const counts: Record<string, number> = {};
+        const effectiveSiteModes: Record<string, R31SiteMode> = {};
+        for (const [key] of r31SiteLayerSpecs) {
+          const mode = r31SiteLayerOverrides[key] ?? (technical ? 'visible' : 'hidden');
+          effectiveSiteModes[key] = mode;
+          const control = r31SiteLayerRows[key];
+          control.row.hidden = !whole;
+          control.row.style.display = whole ? 'flex' : 'none';
+          control.select.disabled = !whole || canvas.dataset.objectVisibilityFilter === 'active';
+          control.select.value = mode;
+        }
+        // Apply each row to every source-bound group, including the newly
+        // loaded fibre-entry drop/link. It has no fourth, separate Layerit row.
+        for (const [key, group] of Object.entries(r31SiteNetworks)) {
+          if (!group) continue;
+          const layerKey = r31SiteLayerKeyForNetwork(key);
+          const mode = layerKey ? effectiveSiteModes[layerKey] ?? 'hidden' : 'hidden';
+          const show = whole && mode !== 'hidden';
+          if (show && group.parent !== modelRoot.parent) modelRoot.parent?.add(group);
+          setR31SiteNetworkLayerMode(group, mode, whole, r31SiteGhostOriginals);
+          if (show) Object.assign(counts, group.userData.counts);
+        }
+        canvas.dataset.r31SiteLayerModes = whole ? JSON.stringify(effectiveSiteModes) : '';
+        // Owner 20.12: the corner pipes replace R31's own older west lower pipes
+        // (they ended mid-wall / misaligned). Hidden in the whole-building view only.
+        if (whole && Object.keys(r31ExteriorDonors).length && !r31HiddenWestPipes.size) {
+          modelRoot.traverse((object: any) => {
+            if (object.visible && isR31ReplacedWestDownpipe(object.name)) {
+              object.visible = false;
+              r31HiddenWestPipes.add(object);
+            }
+          });
+        } else if (!whole && r31HiddenWestPipes.size) {
+          for (const object of r31HiddenWestPipes) object.visible = true;
+          r31HiddenWestPipes.clear();
+        }
+        canvas.dataset.r31HiddenWestPipes = String(r31HiddenWestPipes.size);
+        canvas.dataset.r31ExteriorDonors = whole ? String(shown) : '0';
+        canvas.dataset.r31SiteNetworks = whole && Object.keys(counts).length ? JSON.stringify(counts) : '';
+        if (technical && Object.keys(counts).length) {
+          status.textContent = `Talotekniikka + kunnallistekniikka (WORK_TEST): salaojat ${counts.well ?? 0} kaivoa, ` +
+            `${counts.route ?? 0} reittiosaa, ${counts.open ?? 0} avointa purkua; Locus vesi ${counts.WATER ?? 0}, ` +
+            `jätevesi ${counts.WASTEWATER ?? 0}, valokuitu ${counts.FIBER ?? 0} (2D, syvyys avoin; ` +
+            `liittymä D:n pohjoisovella omistajan havainnosta); ` +
+            `hulevesiverkko puuttuu lähteistä`;
+        }
+        const wantsSiteNetworks = whole && (technical || Object.values(r31SiteLayerOverrides).some(mode => mode !== 'hidden'));
+        if (wantsSiteNetworks && !r31SiteLoading && !Object.keys(r31SiteNetworks).length) {
+          r31SiteLoading = (async () => {
+            try {
+              r31DrainageGltf ??= new GLTFLoader().loadAsync(R31_DRAINAGE_SOURCE.path);
+              r31SiteNetworks.drainage = buildR31DrainageOverlay(THREE, await r31DrainageGltf);
+            } catch (error) {
+              r31SiteNetworks.drainage = null;
+              console.warn('R31 drainage source failed', error);
+            }
+            r31SiteNetworks.infra = buildR31InfraOverlay(THREE, p139adLocusWorkZRoutes as any, p139acVerticalReferenceM);
+            r31SiteNetworks.fiber = buildR31FiberOverlay(THREE, R31_LOCUS_FIBER_LINES as any);
+            r31SiteNetworks.fiberEntry = buildR31FiberEntryLink(THREE, R31_LOCUS_FIBER_LINES as any);
+          })().finally(() => { r31SiteLoading = null; r31SyncExteriorDonors(); });
+        }
+        if (!r31 || r31ExteriorLoading || Object.keys(r31ExteriorDonors).length) return;
+        r31ExteriorLoading = (async () => {
+          // Owner 19.27: east gable as wide as the west, from R31's own scene 23.
+          try {
+            r31ExteriorDonors.eastGable = await loadR31EastGableOverlay(THREE, layersGltf);
+          } catch (error) {
+            r31ExteriorDonors.eastGable = null;
+            console.warn('R31 east gable source failed', error);
+          }
+          canvas.dataset.r31EastGable = String(r31ExteriorDonors.eastGable?.children.length ?? 0);
+          // Owner 20.12 / 20.46: the west gable opening is closed, and both gable
+          // triangles carry dark brown vertical boarding (Street View heinä 2026).
+          {
+            const boarding = new THREE.MeshStandardMaterial({ color: R31_GABLE_BOARDING_COLOR, roughness: 0.85, metalness: 0, side: THREE.DoubleSide });
+            const westMeshes: any[] = [];
+            modelRoot.traverse((object: any) => {
+              if (object.isMesh && isR31WestGableBoardingSource(object.name)) westMeshes.push(object);
+            });
+            const eastFace = r31ExteriorDonors.eastGable?.children.find((m: any) => /K14_A_GABLE_EXTERIOR_FACE/.test(m.name ?? '')) ?? null;
+            const gable = buildR31GableBoarding(THREE, { westMeshes, eastFace } as any, boarding);
+            gable.add(buildR31WestGableInfill(THREE, boarding));
+            // ARK 3 (1985) brick line west 5.78: complete the existing brick wall 5.30 -> 5.78.
+            // Continue the existing brick wall (node 6653) with its own courses.
+            const brickParts: any[] = [];
+            let brickRoot: any = null;
+            modelRoot.traverse((object: any) => {
+              if (!brickRoot && /C80R2_WEST_BRICK_PIER_2F/.test(object.name ?? '')) brickRoot = object;
+            });
+            brickRoot?.updateWorldMatrix?.(true, true);
+            brickRoot?.traverse?.((object: any) => { if (object.isMesh) brickParts.push(object); });
+            const brickCompletion = buildR31WestBrickCompletion(THREE, brickParts);
+            if (brickCompletion) gable.add(brickCompletion);
+            r31ExteriorDonors.gableBoarding = gable;
+            canvas.dataset.r31GableBoarding = `west:${westMeshes.length}|east:${eastFace ? 1 : 0}|infill:1|westBrick:${brickCompletion ? 1 : 0}`;
+            // Owner 20.46 photos: fibre box right of the D north door, cable down.
+            const fiberBox = new THREE.Group();
+            fiberBox.name = 'R31_FIBER_ENTRY_BOX_WORK_TEST';
+            fiberBox.add(buildR31FiberEntryBox(THREE, new THREE.MeshStandardMaterial({ color: 0xd8d8d2, roughness: 0.7 })));
+            r31ExteriorDonors.fiberBox = fiberBox;
+          }
+          for (const key of Object.keys(R31_EXTERIOR_DONORS)) {
+            try {
+              const gltf = await new GLTFLoader().loadAsync((R31_EXTERIOR_DONORS as any)[key].path);
+              const group = buildR31ExteriorDonorOverlay(THREE, key, gltf);
+              // Owner 18.08/19.27: human observation wins (photo pipes, mirrored east gable, C/B corner).
+              if (group && key === 'rainwater') {
+                canvas.dataset.r31DownpipeMoves = JSON.stringify(relocateR31Downpipes(THREE, group));
+              }
+              r31ExteriorDonors[key] = group;
+            } catch (error) {
+              r31ExteriorDonors[key] = null;
+              console.warn('R31 exterior donor failed', key, error);
+            }
+          }
+        })().finally(() => { r31ExteriorLoading = null; r31SyncExteriorDonors(); });
+      };
+      r31SyncExteriorDonorsHook = r31SyncExteriorDonors;
+      // The old Salaojat / Infra menu entries open the same combined view on R31.
+      for (const buttonId of ['drainage-preset-button', 'infra-preset-button']) {
+        document.getElementById(buttonId)?.addEventListener('click', (event) => {
+          if (!r31InspectionAvailable()) return;
+          event.preventDefault();
+          event.stopImmediatePropagation();
+          document.querySelector<HTMLDetailsElement>('#preset-menu')?.removeAttribute('open');
+          document.querySelector<HTMLButtonElement>('[data-desk-kind="preset"][data-desk-id="whole-building"]')?.click();
+          if (canvas.dataset.technicalReview !== 'on') {
+            document.querySelector<HTMLButtonElement>('[data-desk-kind="preset"][data-desk-id="technical"]')?.click();
+          }
+        }, true);
+      }
+      const deskEnterDFocus = (roof: boolean, storey: '1F' | '2F' | null = null) => {
+        const key = storey === '1F' ? 'd-1f' : storey === '2F' ? 'd-2f' : roof ? 'd-roof' : 'd-apartment';
+        applyStandardViewPreset('whole-building', true);
+        // Owner 22.11.2026 16.39: "Koko D, katto piilossa" shows the roof faint
+        // (Layerit "himmeä": ghost material, not raycast-selectable). Storey
+        // views keep the roof hidden.
+        const roofMode: boolean | 'ghost' = storey ? false : roof ? true : 'ghost';
+        applyViewerLayerState({ roofVisible: roofMode !== false }, `preset:${key}`);
+        deskSyncLayerRoof(roofMode);
+        canvas.dataset.deskRoofMode = roofMode === 'ghost' ? 'ghost' : roofMode ? 'visible' : 'hidden';
+        const root = modelRoot.children[0] ?? modelRoot;
+        // No padding: the C building masses start exactly at the D/C party wall
+        // (x 6.38); a padded box drew a 0.37 m opaque slice of C onto D's wall.
+        const whole = dFootprintFromScope(root, 0);
+        const footprint = storey ? dStoreyFootprint(whole, storey) : whole;
+        const counts = deskDFocus.apply(root, footprint);
+        canvas.dataset.dFocusGhost = `${key}|in:${counts.inside}|out:${counts.outside}|split:${counts.split}|hidden:${counts.hidden}|aids:${counts.aids}`;
+        canvas.dataset.dFocusFootprint = [footprint.x0, footprint.x1, footprint.z0, footprint.z1].map((v) => v.toFixed(2)).join(',');
+        deskQueueDownspoutZones();
+        r31SyncExteriorDonors();
+        refreshEdgeRendering(root);
+      };
       let deskSync = () => {};
       if (deskToolbarBar && deskPresetMenu && deskViewMenu) {
         const deskAngleButtons: Record<string, HTMLButtonElement | null> = {
@@ -15624,17 +16132,42 @@ const title = 'Private 3D viewer';
             if (id === 'technical') {
               technicalReviewInput.checked = !technicalReviewInput.checked;
               technicalReviewInput.dispatchEvent(new Event('change', { bubbles: true }));
+              // Review aids follow Talotekniikka: re-run the D focus in place.
+              const focusKey = canvas.dataset.dFocusGhost?.split('|')[0];
+              if (focusKey) {
+                const pose = deskCapturePose();
+                deskEnterDFocus(focusKey === 'd-roof', focusKey === 'd-1f' ? '1F' : focusKey === 'd-2f' ? '2F' : null);
+                if (pose) deskApplyPose(pose);
+              }
+              deskQueueDownspoutZones();
               deskSync();
               return;
             }
             const target = (id === 'd-roof' ? 'd-apartment' : id) as StandardViewPreset;
-            applyStandardViewPreset(target, true);
-            applyViewerLayerState({ roofVisible: id === 'd-roof' || id === 'whole-building' }, `preset:${id}`);
-            deskRefitKeepingDirection();
+            const angleBefore = deskCurrentAngle();
+            const pose = deskCapturePose();
+            if (id === 'd-roof' || id === 'd-apartment') deskEnterDFocus(id === 'd-roof');
+            else if (id === 'd-1f' || id === 'd-2f') deskEnterDFocus(false, id === 'd-1f' ? '1F' : '2F');
+            else {
+              applyStandardViewPreset(target, true);
+              applyViewerLayerState({ roofVisible: id === 'whole-building' }, `preset:${id}`);
+              deskSyncLayerRoof(id === 'whole-building');
+              deskQueueDownspoutZones();
+            }
+            if (angleBefore && deskCurrentAngle() !== angleBefore) deskAngleButtons[angleBefore]?.click();
+            if (pose && !deskApplyPose(pose)) deskRefitKeepingDirection();
+            canvas.dataset.deskPresetCameraKept = pose ? 'exact' : 'angle';
+            r31SyncExteriorDonors();
             deskSync();
           },
           angle(id: string) {
+            const pose = deskCapturePose();
             deskAngleButtons[id]?.click();
+            // 3D <-> isometric: same place and size, only the projection changes.
+            if (pose && ((id === 'iso' && activeCamera === isoCamera) || (id === 'orbit' && activeCamera === camera))) {
+              deskApplyPose(pose);
+              canvas.dataset.deskProjectionSwitch = `${pose.kind}->${id === 'iso' ? 'iso' : 'persp'}`;
+            }
             deskSync();
           },
           edge(id: string) {
@@ -15660,22 +16193,25 @@ const title = 'Private 3D viewer';
         deskToolbarBar.classList.add('desk-ready');
         deskSync = () => {
           deskToolbar.sync({
-            preset: activeDesktopPreset({
-              standardViewPreset: canvas.dataset.standardViewPreset,
-              roofVisible: canvas.dataset.layerRoofVisible === 'true',
-            }),
+            preset: canvas.dataset.dFocusGhost
+              ? canvas.dataset.dFocusGhost.split('|')[0]
+              : activeDesktopPreset({
+                standardViewPreset: canvas.dataset.standardViewPreset,
+                roofVisible: canvas.dataset.layerRoofVisible === 'true',
+              }),
             angle: activeDesktopAngle({
               standardViewPreset: canvas.dataset.standardViewPreset,
               viewPreset: canvas.dataset.viewPreset,
             }),
-            technical: technicalReviewInput.checked,
+            // The icon shows what the model really shows, not only the checkbox.
+            technical: canvas.dataset.technicalReview === 'on',
             layersOpen: layersButton?.getAttribute('aria-expanded') === 'true',
             edge: canvas.dataset.edgeMode ?? edgeModeSelect.value,
           });
         };
         new MutationObserver(() => deskSync()).observe(canvas, {
           attributes: true,
-          attributeFilter: ['data-standard-view-preset', 'data-view-preset', 'data-layer-roof-visible', 'data-technical-review', 'data-edge-mode'],
+          attributeFilter: ['data-standard-view-preset', 'data-view-preset', 'data-layer-roof-visible', 'data-technical-review', 'data-edge-mode', 'data-d-focus-ghost'],
         });
         if (layersButton) new MutationObserver(() => deskSync()).observe(layersButton, { attributes: true, attributeFilter: ['aria-expanded'] });
         // Interaction tools become a vertical icon column on the model's left edge.
@@ -15702,45 +16238,21 @@ const title = 'Private 3D viewer';
           tools.classList.add('desk-side-tools');
           viewport.append(tools);
         }
-        // Owner 22.11.2026: changing a preset never changes the camera angle.
-        // The menu presets (Koko rakennus, D-asunto, Tontti, Infra, Salaojat,
-        // Sähköt) keep their own logic; afterwards the previous angle and view
-        // direction are restored and the frame is refitted to the visible content.
-        const deskViewDirection = () => {
-          const cam = activeCamera === isoCamera ? isoCamera : camera;
-          const ctl = activeCamera === isoCamera ? isoControls : controls;
-          return cam.position.clone().sub(ctl.target).normalize();
-        };
+        // Owner 22.11.2026: changing a preset never changes the camera. The menu
+        // presets (Koko rakennus, D-asunto, Tontti, Infra, Salaojat, Sähköt) keep
+        // their own logic; afterwards the previous angle and exact pose return.
         for (const menuPreset of [wholeBuildingPresetButton, dOverviewPresetButton, sitePresetButton,
           infraPresetButton, drainagePresetButton, electricalPresetButton]) {
-          let before: { angle: string | null; direction: THREE.Vector3 } | null = null;
+          let before: { angle: string | null; pose: DeskPose | null } | null = null;
           menuPreset.addEventListener('click', () => {
-            before = {
-              angle: activeDesktopAngle({
-                standardViewPreset: canvas.dataset.standardViewPreset,
-                viewPreset: canvas.dataset.viewPreset,
-              }),
-              direction: deskViewDirection(),
-            };
+            before = { angle: deskCurrentAngle(), pose: deskCapturePose() };
           }, { capture: true });
           menuPreset.addEventListener('click', () => {
             const kept = before;
             before = null;
             if (!kept?.angle) return;
-            const now = activeDesktopAngle({
-              standardViewPreset: canvas.dataset.standardViewPreset,
-              viewPreset: canvas.dataset.viewPreset,
-            });
-            if (now !== kept.angle) deskAngleButtons[kept.angle]?.click();
-            if (kept.angle === 'orbit' || kept.angle === 'iso') {
-              const cam = kept.angle === 'iso' ? isoCamera : camera;
-              const ctl = kept.angle === 'iso' ? isoControls : controls;
-              if (activeCamera === cam && Number.isFinite(kept.direction.lengthSq())) {
-                cam.position.copy(ctl.target).addScaledVector(kept.direction, Math.max(cam.position.distanceTo(ctl.target), 1));
-                ctl.update();
-              }
-            }
-            deskRefitKeepingDirection();
+            if (deskCurrentAngle() !== kept.angle) deskAngleButtons[kept.angle]?.click();
+            if (kept.pose) deskApplyPose(kept.pose);
             deskSync();
           });
         }
@@ -16145,6 +16657,23 @@ const title = 'Private 3D viewer';
           })
         : null;
 
+      // Owner 22.11.2026: the viewer had slowed down. A static view no longer
+      // redraws ~2500 draw calls every frame: render while the camera moves,
+      // after any input or viewer state change (canvas attributes), and for a
+      // short while after. Review/test routes (any query) keep continuous rendering.
+      const idleRenderSkipAllowed = !window.location.search && !frameProfiler;
+      let renderDirtyUntil = 0;
+      let lastRenderCameraKey = '';
+      const markRenderDirty = (ms = 700) => { renderDirtyUntil = Math.max(renderDirtyUntil, performance.now() + ms); };
+      for (const type of ['pointerdown', 'pointermove', 'pointerup', 'wheel', 'keydown', 'keyup', 'click', 'change', 'input', 'touchstart', 'touchmove']) {
+        document.addEventListener(type, () => markRenderDirty(), { capture: true, passive: true });
+      }
+      window.addEventListener('resize', () => markRenderDirty());
+      document.addEventListener('visibilitychange', () => markRenderDirty());
+      new MutationObserver((records) => {
+        if (records.some((r) => r.attributeName !== 'data-viewer-idle-render')) markRenderDirty();
+      }).observe(canvas, { attributes: true });
+      markRenderDirty(3000);
       renderer.setAnimationLoop(() => {
         frameProfiler?.begin(performance.now());
         mainViewScope?.enforce();
@@ -16181,7 +16710,17 @@ const title = 'Private 3D viewer';
         p186ePixelRuntime?.pinFrame();
         if (isP186eElectricalLabelReviewRequested()) p186eCaptionLayout?.update(activeCamera);
         frameProfiler?.mark('latePins', performance.now());
-        renderer.render(scene, activeCamera);
+        if (perspectiveMoved || planMoved || isoMoved) markRenderDirty();
+        const cameraKey = idleRenderSkipAllowed
+          ? `${activeCamera.uuid}|${activeCamera.matrixWorld.elements.join(',')}|${activeCamera.projectionMatrix.elements.join(',')}|${canvas.width}x${canvas.height}`
+          : '';
+        if (!idleRenderSkipAllowed || cameraKey !== lastRenderCameraKey || performance.now() <= renderDirtyUntil) {
+          renderer.render(scene, activeCamera);
+          lastRenderCameraKey = cameraKey;
+          if (canvas.dataset.viewerIdleRender !== 'active') canvas.dataset.viewerIdleRender = 'active';
+        } else if (canvas.dataset.viewerIdleRender !== 'idle') {
+          canvas.dataset.viewerIdleRender = 'idle';
+        }
         frameProfiler?.mark('render', performance.now());
         frameProfiler?.end(performance.now(), {
           drawCalls: renderer.info.render.calls,
@@ -16239,11 +16778,11 @@ const title = 'Private 3D viewer';
                 workTestSelect.value = start.id;
                 workTestButton.disabled = false;
               }
-              applyStandardViewPreset('d-apartment');
-              // Owner 21.11.2026: start with the roof hidden.
-              applyViewerLayerState({ roofVisible: false }, 'preset:d-apartment');
-              deskRefitKeepingDirection();
-              canvas.dataset.deskStartView = 'start-work-test-d-apartment';
+              // Owner 22.11.2026 04.50: start in the whole D with the roof, the
+              // rest of the building as a faint reference.
+              deskEnterDFocus(true);
+              deskStartFrame();
+              canvas.dataset.deskStartView = 'start-work-test-d-roof-focus';
               deskSync();
               return;
             }

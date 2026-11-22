@@ -1128,6 +1128,17 @@ import {
 } from '../../src/scripts/privateModelC80R31Scene752SourceReceipt.mjs';
 const original771772Path=process.env.C80_R31_2F_R300_SCENE771772_GLB_PATH;
 const root768_771772=[7356,2658,6431,12440,13164,7361,7366,7367,5323,7368,5327,5629,13165,7369,5835,5836,9263,7370,6435,7371,8003,6472,6473,6474,6475,6476,6517,6518,6519,6831,6832,6564,6565,6994,7372,6653,6729,6730,12437,10795,9573,9574,9575,9576,7904,7905,7906,7907,7908,7909,7932,12136,7979,8024,8025,8026,9264,8199,8895,12106,9197,9198,9199,9200,9257,9332,9911,9912,9761,9338,9763,9764,9762,13141,10976,13505,10555,10556,10557,10558,10559,10560,10561,10562,10656,10657,10659,10763,12633,10771,10772,10773,10774,10775,10776,10777,10778,10779,10780,10781,10782,10783,10784,10785,10786,10787,12635,12636,12637,12638,12639,12144,12634,11304,11319,11339,11340,11341,11342,11343,11344,11345,11346,11347,11348,13227,13228,13229,13230,13231,12264,12265,12266,12267,12268,12269,12270,12271,11535,11536,11624,11625,11645,11648,13319,11662,11677,12157,11713,11727,11721,11722,11723,13242,13243,13244,13245,13246,12358,11858,11891,11907,11574,12622,12051,12137,12165,12166,12167,12168,12242,12244,12246,12248,12315,12312,12316,12431,12432,12433,12434,12435,12643,12623,12624,12625,12626,12466,12503,12504,12497,12505,13247,12695,13176,13252,13253,13309,13325,13499,13500,13502,13506];
+import {
+ r31ViewerLayerSceneReceipt,
+ r31ViewerLayerBindingScope,
+ C80_R31_9E0B_SOURCE,
+ C80_R31_9E0B_VIEWS,
+} from '../../src/scripts/privateModelC80R31ReviewRuntime.mjs';
+import {
+ isC80LayerSuccessorSha,
+ resolveC80437SuccessorBuildingNode,
+ resolveC80437SuccessorReceiptScene,
+} from '../../src/scripts/privateModelC80437SuccessorLayerInheritance.mjs';
 const makeSynthetic771772=()=>{
  const s=S771772,base=[...root768_771772];
  const normal=base.map(n=>n===s.oldR200?s.r300:n===s.oldP02?s.newP02:n);
@@ -1166,6 +1177,53 @@ const makeSynthetic771772=()=>{
  json.nodes[13504]={mesh:3702,extras:{m5System:'VIEMARI'}};
  return json;
 };
+test('R31 Layerit authenticates all four R300 normal/service roles with one SHA',()=>{
+ const json=makeSynthetic771772(),sha=S771772.glbSha256;
+ assert.equal(sha,C80_R31_9E0B_SOURCE.glbSha256);
+ assert.equal(isC80LayerSuccessorSha(sha),true);
+ const roles=[
+  ['dNormal',769,'BOTH'],['dService',770,'BOTH'],
+  ['upperNormal',771,'2F'],['upperService',772,'2F'],
+ ];
+ for(const [key,sceneIndex,floor] of roles){
+  const proof=r31ViewerLayerSceneReceipt(json,sha,sceneIndex);
+  assert.deepEqual(proof,{
+   sourceSha256:sha,sceneIndex,role:C80_R31_9E0B_VIEWS[key].role,floor,
+  });
+  assert.equal(Object.isFrozen(proof),true);
+  const layerScope=r31ViewerLayerBindingScope(json,sha,sceneIndex);
+  assert.deepEqual(layerScope,{area:'D',floor});
+  assert.equal(Object.isFrozen(layerScope),true);
+  assert.equal(r31ViewerLayerBindingScope(json,'0'.repeat(64),sceneIndex),null);
+  assert.equal(r31ViewerLayerSceneReceipt(json,'0'.repeat(64),sceneIndex),null);
+  assert.equal(resolveC80437SuccessorReceiptScene(json,sha,sceneIndex)?.floor,floor);
+  assert.equal(resolveC80437SuccessorReceiptScene(json,'0'.repeat(64),sceneIndex),null);
+ }
+ for(const index of [0,768,773,-1]){
+  assert.equal(r31ViewerLayerSceneReceipt(json,sha,index),null);
+  assert.equal(r31ViewerLayerBindingScope(json,sha,index),null);
+  assert.equal(resolveC80437SuccessorReceiptScene(json,sha,index),null);
+ }
+ const invalid=(object,key,value,sceneIndex)=>{
+  const old=object[key];object[key]=value;
+  try{
+   assert.equal(r31ViewerLayerSceneReceipt(json,sha,sceneIndex),null,
+    'source tamper rejected '+String(key)+' scene'+sceneIndex);
+   assert.equal(r31ViewerLayerBindingScope(json,sha,sceneIndex),null,
+    'scope tamper rejected '+String(key)+' scene'+sceneIndex);
+   assert.equal(resolveC80437SuccessorReceiptScene(json,sha,sceneIndex),null,
+    'Layerit inheritance rejects tampered '+String(key)+' scene'+sceneIndex);
+  }
+  finally{object[key]=old;}
+ };
+ invalid(json.scenes[769].nodes,0,99999,769);
+ invalid(json.scenes[770].nodes,0,11625,770);
+ invalid(json.scenes[771].extras,'sourceLinksForOutputSHA','BOUND',771);
+ invalid(json.scenes[772].extras,'plexyState','PLEX_ON',772);
+ invalid(json.asset.extras,'asBuilt',true,769);
+ invalid(json.asset.extras,'current',true,772);
+});
+
 test('R31 771/772 source identity and fail-closed synthetic negative boundaries',()=>{
  const s=S771772;
  assert.equal(s.normal.index,771);assert.equal(s.service.index,772);
@@ -1205,6 +1263,16 @@ test('R31 original private scene771/772 normal/service, SHA, root and mutation g
  const {b,json}=parse(original771772Path),s=S771772;
  const sha=createHash('sha256').update(b).digest('hex');
  assert.equal(b.length,s.glbBytes);assert.equal(sha,s.glbSha256);
+ const roofRoot=13363;
+ for(const node of json.nodes[roofRoot].children){
+  const path=[roofRoot,node];
+  for(const scene of [769,770]){
+   assert.equal(resolveC80437SuccessorBuildingNode(json,sha,scene,node,path)?.id,'roof');
+   assert.equal(resolveC80437SuccessorBuildingNode(json,sha,scene,node,[node]),null);
+  }
+  for(const scene of [771,772])
+   assert.equal(resolveC80437SuccessorBuildingNode(json,sha,scene,node,path),null);
+ }
  const normal=json.scenes[771],service=json.scenes[772],base=json.scenes[768];
  assert.deepEqual(base.nodes,root768_771772);
  assert.equal(fnv(normal.nodes),s.normal.rootFnv32);
