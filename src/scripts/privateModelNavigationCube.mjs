@@ -153,43 +153,68 @@ function signedSilhouetteClearance(point, hull) {
   return inside ? -distance : distance;
 }
 
+/** Clearance (SVG units) that keeps a whole 7px letter and its outline off the cube. */
+// Measured glyph half-diagonal + outline in Chromium is up to ~6.4; keep 7.
+export const NAV_CUBE_LABEL_CLEARANCE = 7;
+// Centre spacing that keeps two 7px letters (with outline) from overlapping.
+export const NAV_CUBE_LABEL_SPACING = 9;
+
 /**
- * Place the entire 7px letter with its outline outside the actual projected
- * cube, preferably beyond the positive arrow tip. The normal/radial fallback
- * avoids putting an axis name on a face when the tip is inside the silhouette.
- * No camera/model transforms are changed.
+ * Owner 22.11.2026 15.14, refined 16.13: the letter centre lies on the same
+ * straight line as its arrow and wholly outside the cube silhouette. Either
+ * extension is allowed (beyond the +tip or beyond the tail), and the letter
+ * sits past the arrow end nearest to it, so it never jumps across the cube
+ * far from its arrow. The arrowhead always marks the positive direction.
+ * No sideways or radial fallback. No camera/model transforms are changed.
  */
-function outsideAxisLabel(tip, axisDirection, hull, placed) {
-  const radial = normalized2d(tip.x - NAV_CUBE_CENTER, tip.y - NAV_CUBE_CENTER);
-  const d = axisDirection;
-  const directions = [
-    { unit: d, from: 5, to: 24 },
-    { unit: radial && normalized2d(d.x + radial.x * 0.7, d.y + radial.y * 0.7), from: 5, to: 34 },
-    { unit: radial, from: 5, to: 34 },
-    { unit: normalized2d(-d.y, d.x), from: 5, to: 36 },
-    { unit: normalized2d(d.y, -d.x), from: 5, to: 36 },
-    { unit: d, from: 25, to: 56 },
-  ];
-  const safe = point =>
-    point.x >= 8 && point.x <= 84 && point.y >= 8 && point.y <= 84 &&
-    signedSilhouetteClearance(point, hull) >= 6.25 &&
-    placed.every(p => Math.hypot(p.x - point.x, p.y - point.y) >= 11);
-  for (const { unit, from, to } of directions) {
-    if (!unit) continue;
-    for (let distance = from; distance <= to; distance += 1) {
-      const p = { x: tip.x + unit.x * distance, y: tip.y + unit.y * distance };
-      if (safe(p)) return p;
+const labelInView = (p) => p.x >= 8 && p.x <= 84 && p.y >= 8 && p.y <= 84;
+
+/** Clear positions along the arrow line beyond one arrow end, nearest first. */
+function onAxisCandidates(endPoint, d, hull, end) {
+  const out = [];
+  for (let t = 2; t <= 80; t += 0.25) {
+    const p = { x: endPoint.x + d.x * t, y: endPoint.y + d.y * t, t, end };
+    if (!labelInView(p)) break;
+    if (signedSilhouetteClearance(p, hull) >= NAV_CUBE_LABEL_CLEARANCE) out.push(p);
+  }
+  return out;
+}
+
+/**
+ * Both line extensions merged nearest-first; on equal travel the +tip side
+ * wins. Degenerate (both ends at the viewport edge): just past the tip.
+ */
+function bothEndCandidates(start, end, d, hull) {
+  const merged = [
+    ...onAxisCandidates(end, d, hull, 'tip'),
+    ...onAxisCandidates(start, { x: -d.x, y: -d.y }, hull, 'tail'),
+  ].sort((a, b) => a.t - b.t || (a.end === 'tip' ? -1 : 1));
+  return merged.length ? merged
+    : [{ x: end.x + d.x * 2, y: end.y + d.y * 2, t: 2, end: 'tip' }];
+}
+
+/**
+ * Place all letters on their own lines: try every placing order greedily and
+ * keep the order with the least total travel whose letters stay apart.
+ */
+function placeOnAxisLabels(candidateLists) {
+  const n = candidateLists.length;
+  const orders = n <= 1 ? [[0]] : n === 2 ? [[0, 1], [1, 0]]
+    : [[0, 1, 2], [0, 2, 1], [1, 0, 2], [1, 2, 0], [2, 0, 1], [2, 1, 0]];
+  let best = null, bestCost = Infinity;
+  for (const order of orders) {
+    const chosen = new Array(n);
+    let ok = true, cost = 0;
+    for (const i of order) {
+      const p = candidateLists[i].find((c) => chosen.every((q) => !q ||
+        Math.hypot(q.x - c.x, q.y - c.y) >= NAV_CUBE_LABEL_SPACING));
+      if (!p) { ok = false; break; }
+      chosen[i] = p;
+      cost += p.t;
     }
+    if (ok && cost < bestCost) { best = chosen; bestCost = cost; }
   }
-  // A 36px ring is outside even the most oblique 30px cube silhouette.
-  // Keep fallback letters within the 92px SVG viewport and apart.
-  for (let i = 0; i < 144; i++) {
-    const theta = (i * Math.PI) / 72;
-    const p = { x: NAV_CUBE_CENTER + 36 * Math.cos(theta),
-      y: NAV_CUBE_CENTER + 36 * Math.sin(theta) };
-    if (safe(p)) return p;
-  }
-  throw new Error('YLIS_NAV_CUBE: no collision-free external axis label');
+  return best ?? candidateLists.map((list) => list[0]);
 }
 
 /**
@@ -212,7 +237,7 @@ export function projectNavCubeEdgeAxes(quaternion, frame = 'local') {
   };
   const out = [];
   const silhouette = projectNavCubeSilhouette(quaternion, frame);
-  const placedLabels = [];
+  const candidates = [];
   for (let axis = 0; axis < axes.length; axis++) {
     const edgePoint = (sign) => screen(add(...axes.map(({ world }, i) =>
       scale(world, NAV_CUBE_HALF * (i === axis ? sign : facing[i])))));
@@ -225,16 +250,17 @@ export function projectNavCubeEdgeAxes(quaternion, frame = 'local') {
     const normal = { x: -uy * 1.8, y: ux * 1.8 };
     const head = [end, { x: base.x + normal.x, y: base.y + normal.y },
       { x: base.x - normal.x, y: base.y - normal.y }];
-    // The arrowhead remains at the +axis endpoint. Only the text travels
-    // beyond the silhouette (or to a nearby exterior side if necessary).
-    const label = outsideAxisLabel(end, { x: ux, y: uy }, silhouette, placedLabels);
-    placedLabels.push(label);
-    out.push(Object.freeze({ key: axes[axis].key, start, end,
+    // The arrowhead stays at the +axis endpoint; the letter travels along the
+    // same line beyond the nearer arrow end until it is wholly outside.
+    candidates.push(bothEndCandidates(start, end, { x: ux, y: uy }, silhouette));
+    out.push({ key: axes[axis].key, start, end,
       lineEnd: { x: base.x - ux * 0.6, y: base.y - uy * 0.6 },
       head: head.map((p) => `${p.x.toFixed(2)},${p.y.toFixed(2)}`).join(' '),
-      label, length, frame }));
+      label: null, length, frame });
   }
-  return Object.freeze(out);
+  const labels = placeOnAxisLabels(candidates);
+  return Object.freeze(out.map((axis, i) =>
+    Object.freeze({ ...axis, label: Object.freeze({ x: labels[i].x, y: labels[i].y, end: labels[i].end }) })));
 }
 /** Sun on top: circle and eight short rays (face units, half an edge = 1). */
 export const NAV_CUBE_SUN = Object.freeze({ r: 0.2, rayFrom: 0.31, rayTo: 0.47, stroke: 0.057 });
@@ -394,6 +420,7 @@ export function mountNavigationCube({ svg, root }) {
       head.setAttribute('points', axis.head);
       label.setAttribute('x', axis.label.x.toFixed(2));
       label.setAttribute('y', axis.label.y.toFixed(2));
+      label.setAttribute('data-cube-edge-label-end', axis.label.end ?? 'tip');
       edgeArrows.append(line, head, label);
     }
     group.append(edgeArrows);

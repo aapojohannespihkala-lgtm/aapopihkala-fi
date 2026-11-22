@@ -163,7 +163,9 @@ test('owner rule: every X/Y/Z glyph stays entirely outside silhouette for both n
       // 7px uppercase text + 1.25px outline fits inside 6.25px radius.
       assert.ok(exteriorClearance(axis.label, hull) >= 6.20,
         frame + '/' + i + '/' + axis.key + ' glyph must clear entire cube');
-      assert.ok(labels.every(p => Math.hypot(p.x - x, p.y - y) >= 10.9),
+      // Owner 22.11.2026 15.14: letters stay on their arrow lines; 9 units
+      // between centres still keeps two outlined 7px glyphs apart.
+      assert.ok(labels.every(p => Math.hypot(p.x - x, p.y - y) >= 8.9),
         frame + '/' + i + '/' + axis.key + ' distinct labels');
       labels.push(axis.label);
       // Preserve +axis arrow direction: the first polygon vertex is the
@@ -191,3 +193,45 @@ test('positive axis arrowhead remains on cube edge while letter is outside in a 
   assert.ok(x.label.x > x.end.x, '+X letter after the positive tip');
   assert.ok(z.label.y < z.end.y, '+Z letter after the positive tip');
 });
+
+test('owner 22.11.2026 16.13: letter on its arrow line, past the nearer arrow end (tip or tail), wholly outside the cube', () => {
+  const deg = Math.PI / 180;
+  const qFrom = (yaw, pitch) => {
+    const cy = Math.cos(yaw / 2), sy = Math.sin(yaw / 2), cp = Math.cos(pitch / 2), sp = Math.sin(pitch / 2);
+    return unit({ x: cy * sp, y: sy * cp, z: -sy * sp, w: cy * cp });
+  };
+  const poses = {
+    oblique: qFrom(-40 * deg, -30 * deg), oblique2: qFrom(30 * deg, -25 * deg),
+    side: qFrom(0, 0), side90: qFrom(90 * deg, 0), sideSlight: qFrom(10 * deg, 0),
+    upperOblique: qFrom(30 * deg, -60 * deg), upperOblique2: qFrom(120 * deg, -70 * deg),
+    lowerOblique: qFrom(-35 * deg, 50 * deg), lowerOblique2: qFrom(160 * deg, 40 * deg),
+  };
+  let tails = 0;
+  for (const [name, q] of Object.entries(poses)) for (const frame of ['local', 'map']) {
+    const hull = projectNavCubeSilhouette(q, frame);
+    const arrows = projectNavCubeEdgeAxes(q, frame);
+    assert.ok(arrows.length >= 2, `${name}/${frame} arrows`);
+    const labels = arrows.map((a) => a.label);
+    for (const a of arrows) {
+      const dx = a.end.x - a.start.x, dy = a.end.y - a.start.y, len = Math.hypot(dx, dy);
+      const off = Math.abs((a.label.x - a.end.x) * dy - (a.label.y - a.end.y) * dx) / len;
+      const s = ((a.label.x - a.start.x) * dx + (a.label.y - a.start.y) * dy) / len;
+      assert.ok(off < 1e-6, `${name}/${frame}/${a.key} on the arrow line`);
+      // Never between the arrow ends (that would put it on the cube): past the tip or past the tail.
+      assert.ok(s > len || s < 0, `${name}/${frame}/${a.key} beyond an arrow end`);
+      assert.equal(a.label.end, s > len ? 'tip' : 'tail', `${name}/${frame}/${a.key} end tag`);
+      if (a.label.end === 'tail') tails++;
+      // Nearest end: the letter is closer to the end it sits beyond than to the other end.
+      const dTip = Math.hypot(a.label.x - a.end.x, a.label.y - a.end.y);
+      const dTail = Math.hypot(a.label.x - a.start.x, a.label.y - a.start.y);
+      assert.ok(a.label.end === 'tip' ? dTip < dTail : dTail < dTip, `${name}/${frame}/${a.key} nearer end`);
+      assert.ok(exteriorClearance(a.label, hull) >= 6.2, `${name}/${frame}/${a.key} wholly outside`);
+      // Arrowhead still marks the positive end.
+      assert.equal(a.head.split(' ')[0], a.end.x.toFixed(2) + ',' + a.end.y.toFixed(2));
+    }
+    for (let i = 0; i < labels.length; i++) for (let j = i + 1; j < labels.length; j++)
+      assert.ok(Math.hypot(labels[i].x - labels[j].x, labels[i].y - labels[j].y) >= 8.9, `${name}/${frame} spacing`);
+  }
+  assert.ok(tails > 0, 'opposite (tail-side) placement is exercised');
+});
+

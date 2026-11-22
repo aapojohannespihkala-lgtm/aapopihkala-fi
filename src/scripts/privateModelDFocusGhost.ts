@@ -7,9 +7,10 @@ import { Box3, Mesh, MeshBasicMaterial, Plane, Vector3, type Material, type Obje
  * not changed; every swap is restored by `restore()`.
  *
  * The focus box is world X/Z (viewer Y up) plus an optional height band for
- * the floor views. Meshes inside stay untouched, meshes outside share ONE faint
- * material (one shader program, no per-mesh material clones: owner reported
- * the viewer had slowed down), and only large meshes that cross the box (roof,
+ * the floor views. Meshes inside stay untouched, meshes without source clipping share ONE faint
+ * material. Clipped source materials use a cached faint variant per source
+ * (not per mesh), preserving source clips without restoring shader bloat.
+ * Only large meshes that cross the box (roof,
  * terrain, two-storey walls) are split with local clipping planes.
  */
 export type DFootprint = { x0: number; x1: number; z0: number; z1: number; y0?: number; y1?: number };
@@ -94,13 +95,90 @@ type Snapshot = {
 
 const noRaycast: Mesh['raycast'] = () => {};
 
-export const createDFocusGhost = (opacity = 0.1) => {
+/**
+ * Owner 22.11.2026 15.14: dashed lines and review aids are hidden by default
+ * in the D views. `hideObject` names those source roots (schematic, assumed
+ * routes, review guides); their meshes are left out and restored on exit.
+ */
+export type DFocusGhostOptions = { hideObject?: (object: Object3D) => boolean };
+
+export const createDFocusGhost = (opacity = 0.1, options: DFocusGhostOptions = {}) => {
   const snapshots = new Map<Mesh, Snapshot>();
   const level = Math.max(0.03, Math.min(0.3, opacity));
   const ghostBase = { color: 0xa9b6bf, transparent: true, opacity: level, depthWrite: false };
   // One shared faint material for everything outside: a single shader program.
   const ghost = new MeshBasicMaterial(ghostBase);
   let ghostClipped: MeshBasicMaterial | null = null;
+  const sourceClippedGhosts = new Map<Material, MeshBasicMaterial>();
+  const sourceClippedOutside = new Map<Material, MeshBasicMaterial>();
+
+  // Preserve original source clipping while keeping unclipped objects on the
+  // shared fast path. Cache special materials by original source identity.
+  const ghostForSource = (source: Material, focusClips: Plane[] | null): MeshBasicMaterial => {
+    const originalClips = source.clippingPlanes ?? [];
+    if (!originalClips.length) return focusClips ? ghostClipped! : ghost;
+    const cache = focusClips ? sourceClippedOutside : sourceClippedGhosts;
+    let material = cache.get(source);
+    if (!material) {
+      material = new MeshBasicMaterial({
+        ...ghostBase,
+        clippingPlanes: focusClips ? [...originalClips, ...focusClips] : [...originalClips],
+        clipIntersection: focusClips ? true : source.clipIntersection,
+      });
+      if (focusClips) {
+        // A single Three.js clipIntersection=true mixes ALL supplied planes into
+        // one intersection. That leaks source-clipped fragments outside D and
+        // leaves a faint duplicate INSIDE D. Instead the discard predicate must
+        // be (original source clips) OR (inside the D focus volume).
+        // Keep one cached material per original source, never one per mesh.
+        const sourceCount = originalClips.length;
+        const focusCount = focusClips.length;
+        const localCount = sourceCount + focusCount;
+        const sourceIntersection = source.clipIntersection;
+        material.onBeforeCompile = (shader) => {
+          const include = '#include <clipping_planes_fragment>';
+          if (!shader.fragmentShader.includes(include)) {
+            throw new Error('D-focus mixed clipping: Three.js clipping shader chunk missing');
+          }
+          const sourcePredicate = sourceIntersection
+            ? 'sourceRejected = sourceRejected && rejected;'
+            : 'sourceRejected = sourceRejected || rejected;';
+          // Three.js places global renderer clips BEFORE the local material clips.
+          // Global clips are always rejected as a union; local source clips
+          // keep their own union/intersection, then the D box is intersected.
+          shader.fragmentShader = shader.fragmentShader.replace(include, `
+#if NUM_CLIPPING_PLANES > 0
+  vec4 plane;
+  for (int i = 0; i < NUM_CLIPPING_PLANES - ${localCount}; i++) {
+    plane = clippingPlanes[i];
+    if (dot(vClipPosition, plane.xyz) > plane.w) discard;
+  }
+  bool sourceRejected = ${sourceIntersection ? 'true' : 'false'};
+  for (int i = NUM_CLIPPING_PLANES - ${localCount};
+       i < NUM_CLIPPING_PLANES - ${focusCount}; i++) {
+    plane = clippingPlanes[i];
+    bool rejected = dot(vClipPosition, plane.xyz) > plane.w;
+    ${sourcePredicate}
+  }
+  if (sourceRejected) discard;
+  bool insideD = true;
+  for (int i = NUM_CLIPPING_PLANES - ${focusCount}; i < NUM_CLIPPING_PLANES; i++) {
+    plane = clippingPlanes[i];
+    insideD = insideD && (dot(vClipPosition, plane.xyz) > plane.w);
+  }
+  if (insideD) discard;
+#endif
+`);
+        };
+        // A changed source/focus plane count needs its own compiled program.
+        // Plane positions remain uniforms and do not multiply shader variants.
+        material.customProgramCacheKey = () =>
+          `d-focus-mixed-clip-v1:${sourceCount}:${focusCount}:${sourceIntersection ? 'I' : 'U'}`;
+      }
+      cache.set(source, material);
+    }
+    return material;
+  };
 
   const restore = () => {
     for (const [mesh, s] of snapshots) {
@@ -116,6 +194,10 @@ export const createDFocusGhost = (opacity = 0.1) => {
     snapshots.clear();
     ghostClipped?.dispose();
     ghostClipped = null;
+    for (const cache of [sourceClippedGhosts, sourceClippedOutside]) {
+      for (const material of cache.values()) material.dispose();
+      cache.clear();
+    }
   };
 
   /** Apply to the visible meshes under `root`. Returns counts for QA. */
@@ -147,11 +229,32 @@ export const createDFocusGhost = (opacity = 0.1) => {
     const meshes: Mesh[] = [];
     root.traverseVisible((object) => { if (renderableMesh(object)) meshes.push(object); });
     const box = new Box3(), size = new Vector3();
-    let inside = 0, outside = 0, split = 0, hidden = 0;
+    let inside = 0, outside = 0, split = 0, hidden = 0, aids = 0;
+    const aidMemo = new Map<Object3D, boolean>();
+    const isAid = (object: Object3D | null): boolean => {
+      if (!options.hideObject || !object || object === root) return false;
+      const known = aidMemo.get(object);
+      if (known !== undefined) return known;
+      const value = options.hideObject(object) || isAid(object.parent);
+      aidMemo.set(object, value);
+      return value;
+    };
     const keptBySource = new Map<Material, Material>();
     for (const mesh of meshes) {
       if (!mesh.geometry.boundingBox) mesh.geometry.computeBoundingBox();
       box.copy(mesh.geometry.boundingBox!).applyMatrix4(mesh.matrixWorld);
+      if (isAid(mesh)) {
+        snapshots.set(mesh, {
+          material: mesh.material, visible: mesh.visible, raycast: mesh.raycast,
+          ownRaycast: Object.prototype.hasOwnProperty.call(mesh, 'raycast'),
+          suppressEdges: mesh.userData.viewerSuppressEdgeOverlay,
+          hadSuppressEdges: Object.prototype.hasOwnProperty.call(mesh.userData, 'viewerSuppressEdgeOverlay'),
+          ghostChild: null, temporary: [],
+        });
+        mesh.visible = false;
+        aids += 1;
+        continue;
+      }
       const overlap = footprintOverlap(box, footprint);
       const large = Math.max(...box.getSize(size).toArray()) >= D_FOCUS_SPLIT_MIN_SIZE;
       const mode = overlap >= 0.98 ? 'inside'
@@ -177,7 +280,8 @@ export const createDFocusGhost = (opacity = 0.1) => {
         continue;
       }
       if (mode === 'outside') {
-        mesh.material = Array.isArray(mesh.material) ? mesh.material.map(() => ghost) : ghost;
+        mesh.material = Array.isArray(mesh.material)
+          ? mesh.material.map((m) => ghostForSource(m, null)) : ghostForSource(mesh.material, null);
         mesh.raycast = noRaycast;
         outside += 1;
         continue;
@@ -195,8 +299,10 @@ export const createDFocusGhost = (opacity = 0.1) => {
         }
         return c;
       };
-      mesh.material = Array.isArray(mesh.material) ? mesh.material.map(keep) : keep(mesh.material);
-      const child = new Mesh(mesh.geometry, Array.isArray(mesh.material) ? mesh.material.map(() => ghostClipped!) : ghostClipped);
+      const originalMaterial = mesh.material;
+      mesh.material = Array.isArray(originalMaterial) ? originalMaterial.map(keep) : keep(originalMaterial);
+      const child = new Mesh(mesh.geometry, Array.isArray(originalMaterial)
+        ? originalMaterial.map((m) => ghostForSource(m, clipInside)) : ghostForSource(originalMaterial, clipInside));
       child.name = `${mesh.name}__D_FOCUS_GHOST`;
       child.userData = { viewerSuppressEdgeOverlay: true, dFocusGhost: true };
       child.raycast = noRaycast;
@@ -205,7 +311,7 @@ export const createDFocusGhost = (opacity = 0.1) => {
       snapshot.ghostChild = child;
       split += 1;
     }
-    return { inside, outside, split, hidden };
+    return { inside, outside, split, hidden, aids };
   };
 
   return { apply, restore, get active() { return snapshots.size > 0; } };
