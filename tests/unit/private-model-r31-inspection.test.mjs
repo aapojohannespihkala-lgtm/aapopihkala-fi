@@ -233,3 +233,45 @@ test('Talotekniikka recolours donors loaded after ON and restores all exact mate
   syncR31ExteriorDonorMaterials(donors, nextCycle, false, styles);
   assert.equal(latePipe.material, latePipeOriginal);
 });
+
+
+test('C/B south downpipe preserves its source collar plane and uses only a photo-based work route', async () => {
+  const { relocateR31Downpipes, R31_DOWNPIPE_TARGETS } = await import('../../src/scripts/privateModelR31Inspection.mjs');
+  const id = 'T12_2026_CB_ETELAJULKISIVU';
+  const target = R31_DOWNPIPE_TARGETS[id];
+  const group = new THREE.Group();
+  const part = (role, y, height) => {
+    const mesh = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, height), new THREE.MeshBasicMaterial());
+    mesh.name = id + '_DOWNPIPE_' + role + '_WORK_TEST';
+    mesh.matrixAutoUpdate = false;
+    mesh.matrix.makeTranslation(13.4, y, 1.83); // Synthetic inlet, not the physical T12 gutter.
+    group.add(mesh);
+    return mesh;
+  };
+  const vertical = part('VERTICAL_PIPE', 2.50, 5.0);
+  const collar = part('INLET_COLLAR', 5.75, 0.1);
+  const terminal = part('TERMINAL_BEND', 0.40, 0.3);
+  const moves = relocateR31Downpipes(THREE, group);
+  assert.equal(moves.length, 1, 'C/B must be recognized as the fifth independent pipe');
+  assert.equal(moves[0].id, id);
+  assert.equal(moves[0].x, 12.7);
+  assert.equal(moves[0].z, 1.665);
+  assert.equal(moves[0].endsOnExistingPipe, false);
+  assert.equal(moves[0].basis, 'OWNER_PHOTO_20261122_BETWEEN_BALCONY_BOARDING_AND_BRICK');
+  collar.geometry.computeBoundingBox();
+  const inlet = collar.geometry.boundingBox.clone().applyMatrix4(collar.matrix).getCenter(new THREE.Vector3());
+  assert.ok(Math.abs(inlet.x - target.x) < 1e-9, 'collar is moved along gutter X');
+  assert.ok(Math.abs(inlet.z - 1.83) < 1e-9, 'unverified gutter-native Z is not silently replaced');
+  const route = group.children.find((m) => m.name === id + '_DOWNPIPE_SWAN_NECK_ROUTE_WORK_ASSUMPTION');
+  assert.ok(route);
+  route.geometry.computeBoundingBox();
+  assert.ok(route.geometry.boundingBox.min.z < target.z, 'route reaches the wall-side target');
+  assert.ok(route.geometry.boundingBox.max.z > target.z + 0.20, 'lower outlet points away from the facade');
+  assert.ok(route.geometry.boundingBox.min.y < 0.12, 'route reaches its low outlet');
+  assert.equal(route.userData.presentationOnly, true);
+  assert.equal(route.userData.physicalRouteClaim, false);
+  assert.equal(vertical.visible, false);
+  assert.equal(terminal.visible, false);
+  assert.equal(collar.visible, true);
+  // No physical gutter/contact PASS: that requires the actual T12 scene66 triangle source.
+});
