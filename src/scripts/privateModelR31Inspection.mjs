@@ -287,12 +287,19 @@ export const r31RoofUndersideY = (z) => 7.5238 - 0.25 * Math.abs(z + 4.58);
 /** Brick top / gable boarding start on both gables (source ALEMPI min y 5.28). */
 export const R31_GABLE_BOARDING_FROM_Y = 5.28;
 /**
- * East brick top, checked separately (owner 22.11.2026 21.11 / High T7):
- * R31 scene769 mass references C80_P186_RAKENNUSMASSA_VIITE_684 (wall top)
- * and _767 (gable triangle base) both give y 5.15; the triangle base meets
- * the A/B roof underside (ridge 1.00 m below the west) at z 0.916 / -10.076.
+ * Source-mass EAST wall top / triangle base, not a directly measured finish
+ * boundary: R31 scene769 refs _684 and _767 are both world y 5.15.
+ * Keep this exact mass-source reference distinct from the ARK3 design overlay.
  */
 export const R31_EAST_BRICK_TOP_Y = 5.15;
+/**
+ * ARK3 (1985) east brick/boarding line visually aligns with the +26.530
+ * lower fascia level. Original G1 datum +21.750 -> WORK_TEST y 4.780.
+ * High T7 22.11 source check (ARK3/ARK2) estimates +/- 0.02-0.03 m; this
+ * is a presentation-only DESIGN HYPOTHESIS, not a current/as-built dimension.
+ * The original mass wall-top ref y5.15 remains unchanged above.
+ */
+export const R31_EAST_ARK3_BOARDING_FROM_Y = 4.78;
 /** Owner 22.11.2026 20.46 (Street View heinä 2026): dark brown vertical boarding in both gable triangles. */
 export const R31_GABLE_BOARDING_COLOR = 0x3b2a22;
 /** Presentation lift of the boarding overlays off the source faces (reversed depth, see liftGableFace). */
@@ -448,6 +455,7 @@ export function buildR31GableBoarding(THREE, { westMeshes = [], eastFace = null 
     mesh.userData = { presentationOnly: true, ModelStage: 'WORK_TEST_VIEW', basis: 'OWNER_20261122_GABLE_TRIANGLE_BROWN_BOARDING',
       currentClaim: false, asBuiltClaim: false };
     group.add(mesh);
+    return mesh;
   };
   for (const source of westMeshes) {
     source.updateWorldMatrix?.(true, false);
@@ -457,10 +465,14 @@ export function buildR31GableBoarding(THREE, { westMeshes = [], eastFace = null 
   if (eastFace) {
     const m = eastFace.matrix.clone();
     if (eastFace.parent?.matrixWorld) m.premultiply(eastFace.parent.matrixWorld);
-    // K14 copy is already clipped to the A/B roof underside (#2215): boarding
-    // = brick top 5.15 .. own roof underside, never the west height.
-    add(clipGeometryAboveY(THREE, eastFace.geometry, m, R31_EAST_BRICK_TOP_Y),
+    // Roof clipping (#2215) and original K14 source remain untouched.
+    // ARK3 DESIGN WORK_TEST boarding reaches the lower eaves from y4.78;
+    // the distinct R31 source mass-top y5.15 is not a surveyed finish line.
+    const overlay = add(clipGeometryAboveY(THREE, eastFace.geometry, m, R31_EAST_ARK3_BOARDING_FROM_Y),
       'K14_A_GABLE_TRIANGLE_BROWN_BOARDING_OVERLAY', R31_GABLE_BOARDING_LIFT_M);
+    overlay.userData = { ...overlay.userData, workAssumption: true,
+      designReference: 'ARK3_1985_EAST_FASCIA_26_530_WORK_HYPOTHESIS',
+      sourceMassWallTopY: R31_EAST_BRICK_TOP_Y, physicalMaterialBoundaryClaim: false };
   }
   return group;
 }

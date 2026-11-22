@@ -182,6 +182,7 @@ test('source K14 east face and its brown boarding stay below R31 AB roof undersi
   const {
     R31_AB_ROOF_UNDERSIDE_WORK_TEST: s, r31ABRoofUndersideY,
     clipR31EastGableToABRoof, buildR31GableBoarding, R31_EAST_BRICK_TOP_Y,
+    R31_EAST_ARK3_BOARDING_FROM_Y,
   } = await import('../../src/scripts/privateModelR31Inspection.mjs');
   assert.deepEqual([s.sourceScene, s.sourceNode, s.sourceMesh], [769, 13361, 5112]);
   assert.ok(Math.abs(r31ABRoofUndersideY(-4.58) - 6.523845) < 1e-6);
@@ -210,11 +211,24 @@ test('source K14 east face and its brown boarding stay below R31 AB roof undersi
   face.matrixAutoUpdate = false; face.matrix.copy(matrix);
   const overlay = buildR31GableBoarding(THREE, { eastFace: face }, new THREE.MeshBasicMaterial());
   assert.equal(overlay.children.length, 1);
-  check(overlay.children[0].geometry, overlay.children[0].matrix, R31_EAST_BRICK_TOP_Y);
-  // East brick line from the R31 mass references, not the west 5.28.
+  check(overlay.children[0].geometry, overlay.children[0].matrix, R31_EAST_ARK3_BOARDING_FROM_Y);
+  // Source-mass top 5.15 is not the independently sourced ARK3 finish hypothesis.
+  assert.equal(R31_EAST_BRICK_TOP_Y, 5.15);
+  assert.equal(R31_EAST_ARK3_BOARDING_FROM_Y, 4.78);
+  for (const eaveZ of [1.709, -10.810]) {
+    const underside = r31ABRoofUndersideY(eaveZ);
+    assert.ok(underside > R31_EAST_ARK3_BOARDING_FROM_Y + 0.17,
+      'ARK3 WORK_TEST boarding reaches both eaves below the A/B underside');
+    assert.ok(underside < R31_EAST_BRICK_TOP_Y,
+      'legacy mass-top would leave an unboarded strip at the eaves');
+  }
+  assert.equal(overlay.children[0].userData.physicalMaterialBoundaryClaim, false);
+  assert.equal(overlay.children[0].userData.workAssumption, true);
+  assert.equal(overlay.children[0].userData.sourceMassWallTopY, R31_EAST_BRICK_TOP_Y);
   overlay.children[0].geometry.computeBoundingBox();
   const eb = overlay.children[0].geometry.boundingBox.clone().applyMatrix4(overlay.children[0].matrix);
-  assert.ok(Math.abs(eb.min.y - R31_EAST_BRICK_TOP_Y) < 1e-5 && Math.abs(eb.max.y - s.ridgeY) < 1e-4);
+  assert.ok(Math.abs(eb.min.y - R31_EAST_ARK3_BOARDING_FROM_Y) < 1e-5 &&
+    Math.abs(eb.max.y - s.ridgeY) < 1e-4);
 });
 
 test('K14 scene23 direct and lazy-loaded copies are clipped, source mesh and material stay exact', async () => {
@@ -364,7 +378,7 @@ test('C/B south downpipe preserves its source collar plane and uses only a photo
 });
 
 test('gable boarding keeps only the part above the brick line, lifted outwards', async () => {
-  const { buildR31GableBoarding, R31_GABLE_BOARDING_FROM_Y, R31_EAST_BRICK_TOP_Y } = await import('../../src/scripts/privateModelR31Inspection.mjs');
+  const { buildR31GableBoarding, R31_GABLE_BOARDING_FROM_Y, R31_EAST_ARK3_BOARDING_FROM_Y } = await import('../../src/scripts/privateModelR31Inspection.mjs');
   const face = new THREE.Mesh(new THREE.BoxGeometry(0.22, 7.9, 12.5), new THREE.MeshBasicMaterial());
   face.matrixAutoUpdate = false; face.matrix.makeTranslation(25.29, 2.95, -4.55);
   const parent = new THREE.Group(); parent.add(face); parent.updateMatrixWorld(true);
@@ -375,7 +389,7 @@ test('gable boarding keeps only the part above the brick line, lifted outwards',
   for (const mesh of group.children) {
     mesh.geometry.computeBoundingBox();
     const b = mesh.geometry.boundingBox.clone().applyMatrix4(mesh.matrix);
-    assert.ok(b.min.y >= Math.min(R31_GABLE_BOARDING_FROM_Y, R31_EAST_BRICK_TOP_Y) - 1e-6);
+    assert.ok(b.min.y >= Math.min(R31_GABLE_BOARDING_FROM_Y, R31_EAST_ARK3_BOARDING_FROM_Y) - 1e-6);
   }
   const east = group.children[1].geometry.boundingBox.clone().applyMatrix4(group.children[1].matrix);
   assert.ok(Math.abs(east.max.x - (25.40 + 0.004)) < 1e-5 && Math.abs(east.max.y - 6.9) < 1e-5);
