@@ -1,6 +1,7 @@
 /**
  * Navigation cube for the Ylisrinne orientation gizmo (owner request 22.11.2026).
- * The cube turns with the active camera and labels its faces YLÄ/ALA/N/S/E/W.
+ * The cube turns with the active camera. Air/Earth mark the top/bottom
+ * screen-upright; N/S/E/W stay as labels on the compass side faces.
  * In map mode (EPSG:3879, ETRS-GK25) the side faces follow map north instead of
  * the building's YLIS-G1 +Y. The cube never moves the camera or the model; a
  * click on it only switches the north frame (existing toggle button).
@@ -13,6 +14,7 @@ export const NAV_CUBE_CENTER = 46;
 export const NAV_CUBE_HALF = 12.5;
 const VISIBLE_MIN = 0.02;
 const LABEL_MIN = 0.3;
+const VERTICAL_SYMBOL_MIN = 0.38;
 
 const finite = (value) => typeof value === 'number' && Number.isFinite(value);
 
@@ -130,6 +132,30 @@ export function projectNavCubeEdgeAxes(quaternion, frame = 'local') {
   }
   return Object.freeze(out);
 }
+/**
+ * Air and Earth are upright 2D alchemical glyphs over the projected top /
+ * bottom face centers. Screen geometry is deliberately independent of the
+ * face's in-plane rotation: the apex always points up or down on the screen.
+ * Suppress near-edge-on faces rather than squeezing or flipping the glyph.
+ */
+export function projectNavCubeVerticalSymbol(face) {
+  if (!face || !['top', 'bottom'].includes(face.key) ||
+      !finite(face.center?.x) || !finite(face.center?.y) ||
+      !finite(face.facing) || face.facing < VERTICAL_SYMBOL_MIN) return null;
+  const isAir = face.key === 'top';
+  const { x, y } = face.center;
+  const fmt = (n) => n.toFixed(2);
+  const apexY = y + (isAir ? -4.5 : 4.5);
+  const baseY = y + (isAir ? 4.5 : -4.5);
+  const barY = y + (isAir ? 0.7 : -0.7);
+  const outline = `M ${fmt(x - 4.3)} ${fmt(baseY)} L ${fmt(x)} ${fmt(apexY)} L ${fmt(x + 4.3)} ${fmt(baseY)} Z`;
+  const bar = Object.freeze({ x1: x - 3.0, y1: barY, x2: x + 3.0, y2: barY });
+  return Object.freeze({
+    kind: isAir ? 'air' : 'earth', x, y, apexY, baseY, outline, bar,
+    opacity: Math.min(1, 0.3 + (face.facing - VERTICAL_SYMBOL_MIN) * 1.2),
+  });
+}
+
 /** Mount the cube behind the existing axes in the gizmo SVG. */
 export function mountNavigationCube({ svg, root }) {
   const doc = svg?.ownerDocument;
@@ -172,6 +198,26 @@ export function mountNavigationCube({ svg, root }) {
     label.textContent = key.toUpperCase();
     arrowSlots.set(key, { line, head, label });
   }
+  const symbolLayer = doc.createElementNS(SVG_NS, 'g');
+  symbolLayer.setAttribute('class', 'nav-cube-vertical-symbols');
+  symbolLayer.style.pointerEvents = 'none';
+  const symbols = new Map();
+  for (const [faceKey, kind] of [['top', 'air'], ['bottom', 'earth']]) {
+    const icon = doc.createElementNS(SVG_NS, 'g');
+    icon.setAttribute('data-cube-vertical-symbol', kind);
+    icon.setAttribute('data-cube-face', faceKey);
+    const triangle = doc.createElementNS(SVG_NS, 'path');
+    triangle.setAttribute('fill', 'none');
+    triangle.setAttribute('stroke', '#e1e7ea');
+    triangle.setAttribute('stroke-width', '1.35');
+    triangle.setAttribute('stroke-linejoin', 'round');
+    const bar = doc.createElementNS(SVG_NS, 'line');
+    bar.setAttribute('stroke', '#e1e7ea');
+    bar.setAttribute('stroke-width', '1.35');
+    bar.setAttribute('stroke-linecap', 'round');
+    icon.append(triangle, bar);
+    symbols.set(kind, { icon, triangle, bar });
+  }
   const slots = new Map();
   for (const key of ['top', 'bottom', 'north', 'south', 'east', 'west']) {
     const poly = doc.createElementNS(SVG_NS, 'polygon');
@@ -189,12 +235,26 @@ export function mountNavigationCube({ svg, root }) {
     const faces = projectNavCube(quaternion, frame);
     signature = next;
     group.replaceChildren();
+    symbolLayer.replaceChildren();
+    const visibleSymbols = [];
     for (const face of faces) {
       const { poly, text } = slots.get(face.key);
       poly.setAttribute('points', face.points);
       poly.style.fillOpacity = (0.25 + 0.55 * face.facing).toFixed(3);
       group.append(poly);
-      if (face.showLabel) {
+      if (face.key === 'top' || face.key === 'bottom') {
+        const glyph = projectNavCubeVerticalSymbol(face);
+        if (glyph) {
+          const { icon, triangle, bar } = symbols.get(glyph.kind);
+          triangle.setAttribute('d', glyph.outline);
+          for (const key of ['x1', 'y1', 'x2', 'y2']) {
+            bar.setAttribute(key, glyph.bar[key].toFixed(2));
+          }
+          icon.style.opacity = glyph.opacity.toFixed(3);
+          symbolLayer.append(icon);
+          visibleSymbols.push(glyph.kind);
+        }
+      } else if (face.showLabel) {
         text.textContent = face.label;
         text.setAttribute('x', face.center.x.toFixed(2));
         text.setAttribute('y', face.center.y.toFixed(2));
@@ -215,12 +275,14 @@ export function mountNavigationCube({ svg, root }) {
       label.setAttribute('y', axis.label.y.toFixed(2));
       edgeArrows.append(line, head, label);
     }
+    group.append(symbolLayer);
     group.append(edgeArrows);
     if (root) {
       root.dataset.navCube = 'ready';
       root.dataset.navCubeFrame = frame;
       root.dataset.navCubeFaces = faces.map((f) => f.key).join(',');
       root.dataset.navCubeAxes = axes.map((axis) => axis.key).join(',');
+      root.dataset.navCubeVerticalSymbols = visibleSymbols.join(',');
       root.dataset.navCubeAxisFrame = frame;
     }
     return true;
