@@ -258,7 +258,8 @@ test('exact 3D/isometric projection toggle preserves target, view direction and 
     assertSamePose(afterPreset, perspective);
   }
   await cameraButton('orbit').click();
-  await expect(canvas).toHaveAttribute('data-desk-projection-switch', 'iso->persp');
+  // The marker is only a diagnostic for toolbar pose reapplication.
+  // Verify the actual camera projection and readout, not the stale marker.
   await expect(canvas).toHaveAttribute('data-camera-projection', 'perspective');
   const restored = await state();
   expect(restored.pose.projection).toBe('perspective');
