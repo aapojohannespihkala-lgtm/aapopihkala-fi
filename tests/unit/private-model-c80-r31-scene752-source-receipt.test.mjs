@@ -1134,6 +1134,10 @@ import {
  C80_R31_9E0B_SOURCE,
  C80_R31_9E0B_VIEWS,
 } from '../../src/scripts/privateModelC80R31ReviewRuntime.mjs';
+import {
+ isC80LayerSuccessorSha,
+ resolveC80437SuccessorReceiptScene,
+} from '../../src/scripts/privateModelC80437SuccessorLayerInheritance.mjs';
 const makeSynthetic771772=()=>{
  const s=S771772,base=[...root768_771772];
  const normal=base.map(n=>n===s.oldR200?s.r300:n===s.oldP02?s.newP02:n);
@@ -1175,6 +1179,7 @@ const makeSynthetic771772=()=>{
 test('R31 Layerit authenticates all four R300 normal/service roles with one SHA',()=>{
  const json=makeSynthetic771772(),sha=S771772.glbSha256;
  assert.equal(sha,C80_R31_9E0B_SOURCE.glbSha256);
+ assert.equal(isC80LayerSuccessorSha(sha),true);
  const roles=[
   ['dNormal',769,'BOTH'],['dService',770,'BOTH'],
   ['upperNormal',771,'2F'],['upperService',772,'2F'],
@@ -1190,10 +1195,13 @@ test('R31 Layerit authenticates all four R300 normal/service roles with one SHA'
   assert.equal(Object.isFrozen(layerScope),true);
   assert.equal(r31ViewerLayerBindingScope(json,'0'.repeat(64),sceneIndex),null);
   assert.equal(r31ViewerLayerSceneReceipt(json,'0'.repeat(64),sceneIndex),null);
+  assert.equal(resolveC80437SuccessorReceiptScene(json,sha,sceneIndex)?.floor,floor);
+  assert.equal(resolveC80437SuccessorReceiptScene(json,'0'.repeat(64),sceneIndex),null);
  }
  for(const index of [0,768,773,-1]){
   assert.equal(r31ViewerLayerSceneReceipt(json,sha,index),null);
   assert.equal(r31ViewerLayerBindingScope(json,sha,index),null);
+  assert.equal(resolveC80437SuccessorReceiptScene(json,sha,index),null);
  }
  const invalid=(object,key,value,sceneIndex)=>{
   const old=object[key];object[key]=value;
@@ -1202,6 +1210,8 @@ test('R31 Layerit authenticates all four R300 normal/service roles with one SHA'
     'source tamper rejected '+String(key)+' scene'+sceneIndex);
    assert.equal(r31ViewerLayerBindingScope(json,sha,sceneIndex),null,
     'scope tamper rejected '+String(key)+' scene'+sceneIndex);
+   assert.equal(resolveC80437SuccessorReceiptScene(json,sha,sceneIndex),null,
+    'Layerit inheritance rejects tampered '+String(key)+' scene'+sceneIndex);
   }
   finally{object[key]=old;}
  };

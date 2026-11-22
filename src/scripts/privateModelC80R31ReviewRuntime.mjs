@@ -184,9 +184,14 @@ export async function prepareC80R31ReviewScenes(gltf,authenticatedSha,viewSet){
   throw new Error('C80_R31_REVIEW_SOURCE_MISMATCH');
  for(const view of views){
   if(!resolveC80R31ReviewScene(gltf,authenticatedSha,view.role)){
-   await rehydrateIncompleteScene(gltf,view.sceneIndex,{force:true});
+   const rebuilt=await rehydrateIncompleteScene(gltf,view.sceneIndex,{force:true});
    if(!resolveC80R31ReviewScene(gltf,authenticatedSha,view.role))
     throw new Error('C80_R31_REVIEW_GRAPH_MISMATCH');
+   // The initial loader association map predates these verified scene copies.
+   // Keep the exact node indices on the mounted copies for Layers discovery.
+   const associations=gltf.parser.associations;
+   if(rebuilt&&associations instanceof Map)for(const [object,node] of rebuilt)
+    associations.set(object,{...associations.get(object),nodes:node});
   }
  }
 }
