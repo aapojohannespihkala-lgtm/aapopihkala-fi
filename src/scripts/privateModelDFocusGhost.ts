@@ -7,9 +7,10 @@ import { Box3, Mesh, MeshBasicMaterial, Plane, Vector3, type Material, type Obje
  * not changed; every swap is restored by `restore()`.
  *
  * The focus box is world X/Z (viewer Y up) plus an optional height band for
- * the floor views. Meshes inside stay untouched, meshes outside share ONE faint
- * material (one shader program, no per-mesh material clones: owner reported
- * the viewer had slowed down), and only large meshes that cross the box (roof,
+ * the floor views. Meshes inside stay untouched, meshes without source clipping share ONE faint
+ * material. Clipped source materials use a cached faint variant per source
+ * (not per mesh), preserving source clips without restoring shader bloat.
+ * Only large meshes that cross the box (roof,
  * terrain, two-storey walls) are split with local clipping planes.
  */
 export type DFootprint = { x0: number; x1: number; z0: number; z1: number; y0?: number; y1?: number };
@@ -91,6 +92,26 @@ export const createDFocusGhost = (opacity = 0.1) => {
   // One shared faint material for everything outside: a single shader program.
   const ghost = new MeshBasicMaterial(ghostBase);
   let ghostClipped: MeshBasicMaterial | null = null;
+  const sourceClippedGhosts = new Map<Material, MeshBasicMaterial>();
+  const sourceClippedOutside = new Map<Material, MeshBasicMaterial>();
+
+  // Preserve original source clipping while keeping unclipped objects on the
+  // shared fast path. Cache special materials by original source identity.
+  const ghostForSource = (source: Material, focusClips: Plane[] | null): MeshBasicMaterial => {
+    const originalClips = source.clippingPlanes ?? [];
+    if (!originalClips.length) return focusClips ? ghostClipped! : ghost;
+    const cache = focusClips ? sourceClippedOutside : sourceClippedGhosts;
+    let material = cache.get(source);
+    if (!material) {
+      material = new MeshBasicMaterial({
+        ...ghostBase,
+        clippingPlanes: focusClips ? [...originalClips, ...focusClips] : [...originalClips],
+        clipIntersection: focusClips ? true : source.clipIntersection,
+      });
+      cache.set(source, material);
+    }
+    return material;
+  };
 
   const restore = () => {
     for (const [mesh, s] of snapshots) {
@@ -105,6 +126,10 @@ export const createDFocusGhost = (opacity = 0.1) => {
     snapshots.clear();
     ghostClipped?.dispose();
     ghostClipped = null;
+    for (const cache of [sourceClippedGhosts, sourceClippedOutside]) {
+      for (const material of cache.values()) material.dispose();
+      cache.clear();
+    }
   };
 
   /** Apply to the visible meshes under `root`. Returns counts for QA. */
@@ -160,7 +185,8 @@ export const createDFocusGhost = (opacity = 0.1) => {
       snapshots.set(mesh, snapshot);
       mesh.userData.viewerSuppressEdgeOverlay = true;
       if (mode === 'outside') {
-        mesh.material = Array.isArray(mesh.material) ? mesh.material.map(() => ghost) : ghost;
+        mesh.material = Array.isArray(mesh.material)
+          ? mesh.material.map((m) => ghostForSource(m, null)) : ghostForSource(mesh.material, null);
         mesh.raycast = noRaycast;
         outside += 1;
         continue;
@@ -178,8 +204,10 @@ export const createDFocusGhost = (opacity = 0.1) => {
         }
         return c;
       };
-      mesh.material = Array.isArray(mesh.material) ? mesh.material.map(keep) : keep(mesh.material);
-      const child = new Mesh(mesh.geometry, Array.isArray(mesh.material) ? mesh.material.map(() => ghostClipped!) : ghostClipped);
+      const originalMaterial = mesh.material;
+      mesh.material = Array.isArray(originalMaterial) ? originalMaterial.map(keep) : keep(originalMaterial);
+      const child = new Mesh(mesh.geometry, Array.isArray(originalMaterial)
+        ? originalMaterial.map((m) => ghostForSource(m, clipInside)) : ghostForSource(originalMaterial, clipInside));
       child.name = `${mesh.name}__D_FOCUS_GHOST`;
       child.userData = { viewerSuppressEdgeOverlay: true, dFocusGhost: true };
       child.raycast = noRaycast;
