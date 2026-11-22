@@ -480,10 +480,14 @@ const secureAssetResponse = (response: Response) => {
     // Preserve the protected HTML bytes: automatic CDN analytics injection
     // otherwise violates this page's self-only CSP. Keep Access/CSP intact.
     // https://developers.cloudflare.com/web-analytics/get-started/
+    // blob: (same-origin object URLs only) lets GLTFLoader decode textures
+    // embedded in the GLB: Chromium fetches them (connect-src), other
+    // browsers load them as images (img-src). Without it every embedded
+    // texture failed and rendered white (owner review item 11, ROOM3 door).
     headers.set('Cache-Control', 'private, no-store, no-transform');
     headers.set(
       'Content-Security-Policy',
-      "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'",
+      "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' blob:; object-src 'none'; base-uri 'none'; frame-ancestors 'none'",
     );
   }
 

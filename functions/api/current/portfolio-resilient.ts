@@ -515,21 +515,47 @@ const loadYahooWithFallback = async (spec: PerformanceSpec): Promise<MarketPerfo
   }
 };
 
-export const onRequestGet = async () => {
+type PortfolioLoadOptions = {
+  only?: ReadonlySet<string>;
+  publicFunds?: ReadonlyMap<string, Promise<Omit<MarketPerformanceItem, 'id'> | null>>;
+};
+
+export const onRequestGet = async ({ only, publicFunds }: PortfolioLoadOptions = {}) => {
   const tasks: Array<{ id: MarketPerformanceId; load: () => Promise<MarketPerformanceItem> }> = [
     ...YAHOO_SPECS.map((spec) => ({ id: spec.id, load: () => loadYahooWithFallback(spec) })),
     ...OP_SPECS.map((spec) => ({ id: spec.id, load: () => fetchOpFund(spec) })),
     { id: STOREBRAND_SPEC.id, load: () => fetchNordnetFund(STOREBRAND_SPEC) },
   ];
 
-  const settled = await Promise.allSettled(
-    tasks.map((task) => withTaskTimeout(task.load(), task.id))
-  );
+  const selected = only ? tasks.filter(({ id }) => only.has(id)) : tasks;
+  const settled = await Promise.allSettled(selected.map(({ id, load }) =>
+    withTaskTimeout((async () => {
+      const publicFund = publicFunds?.get(id);
+      const source = publicFund ? await publicFund : null;
+      const item = source ? { ...source, id } : null;
+      if (item && Object.values(item.changes).every(Number.isFinite)) {
+        return { item, fromPublicSource: true };
+      }
+      try {
+        const legacy = await load();
+        return {
+          item: item ? mergeMissingChanges(legacy, item) : legacy,
+          fromPublicSource: item !== null,
+        };
+      } catch (error) {
+        if (item) return { item, fromPublicSource: true };
+        throw error;
+      }
+    })(), id)
+  ));
   const items = settled.flatMap((result) =>
-    result.status === 'fulfilled' ? [result.value] : []
+    result.status === 'fulfilled' ? [result.value.item] : []
   );
   const unavailable = settled.flatMap((result, index) =>
-    result.status === 'rejected' ? [tasks[index].id] : []
+    result.status === 'rejected' ? [selected[index].id] : []
+  );
+  const usedPublicFunds = settled.some((result) =>
+    result.status === 'fulfilled' && result.value.fromPublicSource
   );
 
   return jsonResponse({
@@ -537,7 +563,9 @@ export const onRequestGet = async () => {
     expected: EXPECTED_HOLDINGS,
     liveExpected: tasks.length,
     unavailable,
-    source: 'Resilient Yahoo Finance + OP + Nordnet',
+    source: usedPublicFunds
+      ? 'Resilient Yahoo Finance + OP + Nordnet + verified public fund recovery'
+      : 'Resilient Yahoo Finance + OP + Nordnet',
     version: 9,
   });
 };

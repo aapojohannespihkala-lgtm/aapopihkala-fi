@@ -6,6 +6,22 @@ import { buildSourceNodeAssociations, createSourceNodeView } from './privateMode
 import { rehydrateHi20Unified52SourceScenes } from './privateModelHi20Unified52SourceScenes.mjs';
 import { rehydrateIncompleteScene } from './privateModelSourceSceneRehydrate.mjs';
 import { C80_530_V27_GLB_SHA256, C80_530_V27_SCENES, isC80530V27SourceScene } from './privateModelC80530V27SourceProfile.mjs';
+import { C80_602_GLB_SHA256, C80_602_SCENES, isC80602SourceScene } from './privateModelC80602SourceProfile.mjs';
+import { C80_608C_GLB_SHA256, C80_608C_SCENES, isC80608CSourceScene } from './privateModelC80608CSourceProfile.mjs';
+import { C80_614_GLB_SHA256, C80_614_SCENES, isC80614SourceScene } from './privateModelC80614SourceProfile.mjs';
+import { C80_620R10_GLB_SHA256, C80_620R10_SCENES, isC80620R10SourceScene } from './privateModelC80620R10SourceProfile.mjs';
+import { C80_620R11_GLB_SHA256, C80_620R11_SCENES, isC80620R11SourceScene } from './privateModelC80620R11SourceProfile.mjs';
+import { C80_620R12_GLB_SHA256, C80_620R12_SCENES, isC80620R12SourceScene } from './privateModelC80620R12SourceProfile.mjs';
+import { C80_620R13_GLB_SHA256, C80_620R13_SCENES, isC80620R13SourceScene } from './privateModelC80620R13SourceProfile.mjs';
+import { C80_620R14_GLB_SHA256, C80_620R14_SCENES, isC80620R14SourceScene } from './privateModelC80620R14SourceProfile.mjs';
+import { C80_620R15_GLB_SHA256, C80_620R15_SCENES, isC80620R15SourceScene } from './privateModelC80620R15SourceProfile.mjs';
+import { C80_620R16_GLB_SHA256, C80_620R16_SCENES, isC80620R16SourceScene } from './privateModelC80620R16SourceProfile.mjs';
+import { C80_620R17_GLB_SHA256, C80_620R17_SCENES, isC80620R17SourceScene } from './privateModelC80620R17SourceProfile.mjs';
+import { C80_620R18_GLB_SHA256, C80_620R18_SCENES, isC80620R18SourceScene } from './privateModelC80620R18SourceProfile.mjs';
+import { C80_620R19_GLB_SHA256, C80_620R19_SCENES, isC80620R19SourceScene } from './privateModelC80620R19SourceProfile.mjs';
+import { C80_620R20_GLB_SHA256, C80_620R20_SCENES, isC80620R20SourceScene } from './privateModelC80620R20SourceProfile.mjs';
+import { C80_620R21_GLB_SHA256, C80_620R21_SCENES, isC80620R21SourceScene } from './privateModelC80620R21SourceProfile.mjs';
+import { C80_620R22_GLB_SHA256, C80_620R22_SCENES, isC80620R22SourceScene } from './privateModelC80620R22SourceProfile.mjs';
 import { resolveC80R2ChainFloorScenes } from './privateModelC80R2ChainScenes.mjs';
 
 type RecordData = Record<string, any>;
@@ -490,16 +506,27 @@ const getBundle = () => bundleRequest ??= (async () => {
 /** Hash the same bytes passed to the existing GLTFLoader, never a catalog claim or a second fetch. */
 export const loadModelWithSourceCards = async <T extends GltfSource & object>(
   loader: { parseAsync(data: ArrayBuffer, path: string): Promise<T> }, path: string,
+  exactSource?: { glbBytes: number; glbSha256: string },
 ): Promise<T> => {
   const url = new URL(path, window.location.href);
   if (url.origin !== window.location.origin || !url.pathname.startsWith('/private-model/')) throw Error('Virheellinen mallipolku.');
-  const response = await fetch(url, { credentials: 'same-origin', signal: AbortSignal.timeout(60000) });
-  if (!response.ok) throw Error('Suojatun mallin lataus ei onnistunut.');
+  const response = await fetch(url, {
+    credentials: 'same-origin', signal: AbortSignal.timeout(60000),
+    ...(exactSource ? { mode: 'same-origin', redirect: 'error', cache: 'no-store' } : {}),
+  });
+  if (!response.ok || (exactSource &&
+      (response.status !== 200 || response.redirected || response.url !== url.href)))
+    throw Error('Suojatun mallin lataus ei onnistunut.');
   const bytes = await response.arrayBuffer();
+  if (exactSource && bytes.byteLength !== exactSource.glbBytes)
+    throw Error('WORK_TEST_SOURCE_LENGTH_MISMATCH');
+  const digestTask = crypto.subtle.digest('SHA-256', bytes)
+    .then(value => Array.from(new Uint8Array(value), byte => byte.toString(16).padStart(2, '0')).join(''))
+    .catch(() => null);
+  if (exactSource && await digestTask !== exactSource.glbSha256)
+    throw Error('WORK_TEST_SOURCE_SHA_MISMATCH');
   const [gltf, digest, cards] = await Promise.all([
-    loader.parseAsync(bytes, new URL('.', url).href),
-    crypto.subtle.digest('SHA-256', bytes).then(value => Array.from(new Uint8Array(value), byte => byte.toString(16).padStart(2, '0')).join('')).catch(() => null),
-    getBundle(),
+    loader.parseAsync(bytes, new URL('.', url).href), digestTask, getBundle(),
   ]);
   let identity: GltfSource = gltf;
   try { identity = await sourceCardIdentity(gltf); } catch { /* Cards fail closed, model loading remains available. */ }
@@ -537,9 +564,123 @@ export const loadModelWithSourceCards = async <T extends GltfSource & object>(
       throw new Error('C80_530_SOURCE_SCENE_MISMATCH');
     for (const index of indexes) rehydrate.add(index);
   }
+  // C80 602 keeps the 530 terrain root and shares nodes across its six
+  // opt-in scenes in the same way; restore them from the authentic graph.
+  if (digest === C80_602_GLB_SHA256) {
+    const indexes = Object.keys(C80_602_SCENES).map(Number);
+    if (!indexes.every(index => isC80602SourceScene(json, digest, index, C80_602_SCENES[index].floor)))
+      throw new Error('C80_602_SOURCE_SCENE_MISMATCH');
+    for (const index of indexes) rehydrate.add(index);
+  }
+  if (digest === C80_608C_GLB_SHA256) {
+    const indexes = Object.keys(C80_608C_SCENES).map(Number);
+    if (!indexes.every(index => isC80608CSourceScene(json, digest, index, C80_608C_SCENES[index].floor)))
+      throw new Error('C80_608C_SOURCE_SCENE_MISMATCH');
+    for (const index of indexes) rehydrate.add(index);
+  }
+  if (digest === C80_614_GLB_SHA256) {
+    const indexes = Object.keys(C80_614_SCENES).map(Number);
+    if (!indexes.every(index => isC80614SourceScene(json, digest, index, C80_614_SCENES[index].floor)))
+      throw new Error('C80_614_SOURCE_SCENE_MISMATCH');
+    for (const index of indexes) rehydrate.add(index);
+  }
+  if (digest === C80_620R10_GLB_SHA256) {
+    const indexes = Object.keys(C80_620R10_SCENES).map(Number);
+    if (!indexes.every(index => isC80620R10SourceScene(json, digest, index, C80_620R10_SCENES[index].floor)))
+      throw new Error('C80_620R10_SOURCE_SCENE_MISMATCH');
+    for (const index of indexes) rehydrate.add(index);
+  }
+  if (digest === C80_620R11_GLB_SHA256) {
+    const indexes = Object.keys(C80_620R11_SCENES).map(Number);
+    if (!indexes.every(index => isC80620R11SourceScene(json, digest, index, C80_620R11_SCENES[index].floor)))
+      throw new Error('C80_620R11_SOURCE_SCENE_MISMATCH');
+    for (const index of indexes) rehydrate.add(index);
+  }
+  if (digest === C80_620R12_GLB_SHA256) {
+    const indexes = Object.keys(C80_620R12_SCENES).map(Number);
+    if (!indexes.every(index => isC80620R12SourceScene(json, digest, index, C80_620R12_SCENES[index].floor)))
+      throw new Error('C80_620R12_SOURCE_SCENE_MISMATCH');
+    for (const index of indexes) rehydrate.add(index);
+  }
+  if (digest === C80_620R13_GLB_SHA256) {
+    const indexes = Object.keys(C80_620R13_SCENES).map(Number);
+    if (!indexes.every(index => isC80620R13SourceScene(json, digest, index, C80_620R13_SCENES[index].floor)))
+      throw new Error('C80_620R13_SOURCE_SCENE_MISMATCH');
+    for (const index of indexes) rehydrate.add(index);
+  }
+  if (digest === C80_620R14_GLB_SHA256) {
+    const indexes = Object.keys(C80_620R14_SCENES).map(Number);
+    if (!indexes.every(index => isC80620R14SourceScene(json, digest, index, C80_620R14_SCENES[index].floor)))
+      throw new Error('C80_620R14_SOURCE_SCENE_MISMATCH');
+    for (const index of indexes) rehydrate.add(index);
+  }
+  if (digest === C80_620R15_GLB_SHA256) {
+    const indexes = Object.keys(C80_620R15_SCENES).map(Number);
+    if (!indexes.every(index => isC80620R15SourceScene(json, digest, index, C80_620R15_SCENES[index].floor)))
+      throw new Error('C80_620R15_SOURCE_SCENE_MISMATCH');
+    for (const index of indexes) rehydrate.add(index);
+  }
+  if (digest === C80_620R16_GLB_SHA256) {
+    const indexes = Object.keys(C80_620R16_SCENES).map(Number);
+    if (!indexes.every(index => isC80620R16SourceScene(json, digest, index, C80_620R16_SCENES[index].floor)))
+      throw new Error('C80_620R16_SOURCE_SCENE_MISMATCH');
+    for (const index of indexes) rehydrate.add(index);
+  }
+  if (digest === C80_620R17_GLB_SHA256) {
+    const indexes = Object.keys(C80_620R17_SCENES).map(Number);
+    if (!indexes.every(index => isC80620R17SourceScene(json, digest, index, C80_620R17_SCENES[index].floor)))
+      throw new Error('C80_620R17_SOURCE_SCENE_MISMATCH');
+    for (const index of indexes) rehydrate.add(index);
+  }
+  if (digest === C80_620R18_GLB_SHA256) {
+    const indexes = Object.keys(C80_620R18_SCENES).map(Number);
+    if (!indexes.every(index => isC80620R18SourceScene(json, digest, index, C80_620R18_SCENES[index].floor)))
+      throw new Error('C80_620R18_SOURCE_SCENE_MISMATCH');
+    for (const index of indexes) rehydrate.add(index);
+  }
+  if (digest === C80_620R19_GLB_SHA256) {
+    const indexes = Object.keys(C80_620R19_SCENES).map(Number);
+    if (!indexes.every(index => isC80620R19SourceScene(json, digest, index, C80_620R19_SCENES[index].floor)))
+      throw new Error('C80_620R19_SOURCE_SCENE_MISMATCH');
+    for (const index of indexes) rehydrate.add(index);
+  }
+  if (digest === C80_620R20_GLB_SHA256) {
+    const indexes = Object.keys(C80_620R20_SCENES).map(Number);
+    if (!indexes.every(index => isC80620R20SourceScene(json, digest, index, C80_620R20_SCENES[index].floor)))
+      throw new Error('C80_620R20_SOURCE_SCENE_MISMATCH');
+    for (const index of indexes) rehydrate.add(index);
+  }
+  if (digest === C80_620R21_GLB_SHA256) {
+    const indexes = Object.keys(C80_620R21_SCENES).map(Number);
+    if (!indexes.every(index => isC80620R21SourceScene(json, digest, index, C80_620R21_SCENES[index].floor)))
+      throw new Error('C80_620R21_SOURCE_SCENE_MISMATCH');
+    for (const index of indexes) rehydrate.add(index);
+  }
+  if (digest === C80_620R22_GLB_SHA256) {
+    const indexes = Object.keys(C80_620R22_SCENES).map(Number);
+    if (!indexes.every(index => isC80620R22SourceScene(json, digest, index, (C80_620R22_SCENES as Record<number, { floor: string }>)[index].floor)))
+      throw new Error('C80_620R22_SOURCE_SCENE_MISMATCH');
+    for (const index of indexes) rehydrate.add(index);
+  }
   for (const sceneIndex of rehydrate) {
     try {
-      const is530Scene = digest === C80_530_V27_GLB_SHA256 && C80_530_V27_SCENES[sceneIndex] !== undefined;
+      const is530Scene = (digest === C80_530_V27_GLB_SHA256 && C80_530_V27_SCENES[sceneIndex] !== undefined) ||
+        (digest === C80_602_GLB_SHA256 && C80_602_SCENES[sceneIndex] !== undefined) ||
+        (digest === C80_608C_GLB_SHA256 && C80_608C_SCENES[sceneIndex] !== undefined) ||
+        (digest === C80_614_GLB_SHA256 && C80_614_SCENES[sceneIndex] !== undefined) ||
+        (digest === C80_620R10_GLB_SHA256 && C80_620R10_SCENES[sceneIndex] !== undefined) ||
+        (digest === C80_620R11_GLB_SHA256 && C80_620R11_SCENES[sceneIndex] !== undefined) ||
+        (digest === C80_620R12_GLB_SHA256 && C80_620R12_SCENES[sceneIndex] !== undefined) ||
+        (digest === C80_620R13_GLB_SHA256 && C80_620R13_SCENES[sceneIndex] !== undefined) ||
+        (digest === C80_620R14_GLB_SHA256 && C80_620R14_SCENES[sceneIndex] !== undefined) ||
+        (digest === C80_620R15_GLB_SHA256 && C80_620R15_SCENES[sceneIndex] !== undefined) ||
+        (digest === C80_620R16_GLB_SHA256 && C80_620R16_SCENES[sceneIndex] !== undefined) ||
+        (digest === C80_620R17_GLB_SHA256 && C80_620R17_SCENES[sceneIndex] !== undefined) ||
+        (digest === C80_620R18_GLB_SHA256 && C80_620R18_SCENES[sceneIndex] !== undefined) ||
+        (digest === C80_620R19_GLB_SHA256 && C80_620R19_SCENES[sceneIndex] !== undefined) ||
+        (digest === C80_620R20_GLB_SHA256 && C80_620R20_SCENES[sceneIndex] !== undefined) ||
+        (digest === C80_620R21_GLB_SHA256 && C80_620R21_SCENES[sceneIndex] !== undefined) ||
+        (digest === C80_620R22_GLB_SHA256 && (C80_620R22_SCENES as Record<number, unknown>)[sceneIndex] !== undefined);
       const rebuilt = await rehydrateIncompleteScene(gltf, sceneIndex, { force: is530Scene });
       const cardMap = identity !== gltf ? identity.parser?.associations : undefined;
       if (rebuilt && cardMap) for (const [object, id] of rebuilt)

@@ -52,9 +52,11 @@ export const workTestCandidateMatchesFilter = (candidate: WorkTestCandidate, fil
 };
 
 /** Model number from a "C80 530 - …" style label, or null. */
+// "C80 620R13" and "C80 614 R10" are revisions of one model number; the revision
+// counts after the base number so the newest revision sorts first (608C counts as 608).
 export const c80ModelNumber = (label: string): number | null => {
-  const match = /^C80 (\d{3,4})\b/.exec(label.trim());
-  return match ? Number(match[1]) : null;
+  const match = /^C80 (\d{3,4})(?: ?R(\d{1,3})|[A-QS-Z])?(?![\w])/.exec(label.trim());
+  return match ? Number(match[1]) * 1000 + Number(match[2] ?? 0) : null;
 };
 
 /**

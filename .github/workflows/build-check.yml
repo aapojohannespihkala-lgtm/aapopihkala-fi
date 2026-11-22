@@ -200,6 +200,8 @@ jobs:
             tests/unit/private-model-scene-selection-invalidation.test.mjs \
             tests/unit/private-model-building-part-layer-bindings.test.mjs \
             tests/unit/private-model-technical-review-presentation.test.mjs \
+            tests/unit/private-model-technical-review-role-tint.test.mjs \
+            tests/unit/private-model-electrical-checklist.test.mjs \
             tests/unit/private-model-content-visibility-panel-guard.test.mjs \
             tests/unit/private-model-c80-437-successor-layer-inheritance.test.mjs \
             tests/unit/private-model-hl4-furniture-runtime-bindings.test.mjs \
@@ -241,6 +243,32 @@ jobs:
             tests/unit/private-model-c80-530-v27-source-profile.test.mjs \
             tests/unit/private-model-c80-530-v27-floor-runtime.test.mjs \
             tests/unit/private-model-c80-530-v27-viewer-receiver-wiring.test.mjs \
+            tests/unit/private-model-c80-602-work-test-receiver.test.mjs \
+            tests/unit/private-model-c80-608c-work-test-receiver.test.mjs \
+            tests/unit/private-model-c80-614-work-test-receiver.test.mjs \
+            tests/unit/private-model-c80-620r10-work-test-receiver.test.mjs \
+            tests/unit/private-model-c80-620r11-work-test-receiver.test.mjs \
+            tests/unit/private-model-c80-620r12-work-test-receiver.test.mjs \
+            tests/unit/private-model-c80-620r13-work-test-receiver.test.mjs \
+            tests/unit/private-model-c80-620r14-work-test-receiver.test.mjs \
+            tests/unit/private-model-c80-620r15-work-test-receiver.test.mjs \
+            tests/unit/private-model-c80-620r16-work-test-receiver.test.mjs \
+            tests/unit/private-model-c80-620r17-work-test-receiver.test.mjs \
+            tests/unit/private-model-c80-620r18-work-test-receiver.test.mjs \
+            tests/unit/private-model-c80-620r19-work-test-receiver.test.mjs \
+            tests/unit/private-model-c80-620r20-work-test-receiver.test.mjs \
+            tests/unit/private-model-c80-620r21-work-test-receiver.test.mjs \
+            tests/unit/private-model-c80-620r22-work-test-receiver.test.mjs \
+            tests/unit/private-model-c80-r31-scene752-source-receipt.test.mjs \
+            tests/unit/private-model-kp011-h24-scene791792-source-receipt.test.mjs \
+            tests/unit/private-model-k3-combined-scene789790-source-receipt.test.mjs \
+            tests/unit/private-model-c80-r31-review-runtime.test.mjs \
+            tests/unit/private-model-desktop-toolbar.test.mjs \
+            tests/unit/private-model-navigation-cube.test.mjs \
+            tests/unit/private-model-d-focus-ghost.test.mjs \
+            tests/unit/private-model-technical-review-hot-water.test.mjs \
+            tests/unit/private-model-hidden-seam-edges.test.mjs \
+            tests/unit/private-model-floor-depth-bias.test.mjs \
             tests/unit/private-model-c80-succ455-room3-photodoor-source-profile.test.mjs \
             tests/unit/private-model-c80-succ455-room3-mj83-source-profile.test.mjs \
             tests/unit/private-model-c80-succ455-room3-mj83-floor-runtime.test.mjs \

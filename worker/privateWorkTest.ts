@@ -4490,6 +4490,181 @@ const C80_530_V27_NO_TRENCH_WORK_TEST_CANDIDATE = {
   expectedSha256: '1a99cc32c80e1b87bbefcf9e6f373af42aee7e72ede574eabafe375298fd9f9e',
 } as const satisfies PrivateWorkTestCandidate;
 
+// C80 614: Claude owner fixes #2 15.11.2026 on C80 608C (T-collector restored,
+// ghost hatching removed, switches/outlet moved, 2F WC exhaust rebuilt).
+// C80 620R10: High KANON-NEXT 16.11.2026 on the owner-reviewed C80 614 R10 (J1 NIBE+Savo,
+// J2 K11 bench, K10 store exhaust, K14 marker off, G2S09 Toshiba, K05 ROOM3 handles, K13 IV enclosure).
+const C80_620R10_HIGH_DONOR_WORK_TEST_CANDIDATE = {
+  id: 'c80-620r10-high-donor-j1j2-k10k14-g2s09-k05-k13-20261116',
+  label: 'C80 620R10 - 614 R10 + NIBE/Savo, saunan laude, varaston venttiili, Toshiba, ROOM3-kahvat, KPH IV-kotelo - 16.11.2026 WORK_TEST/HOST_HOLD',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/c80-620r10-high-donor-j1j2-k10k14-g2s09-k05-k13-20261116.glb`,
+  objectKey: 'work-test/c80-620r10-high-donor-j1j2-k10k14-g2s09-k05-k13-20261116.glb',
+  expectedSize: 57583012,
+  expectedSha256: '10eba5613aca712f1a7de67098c30a0d58a1291cc066bcc88bf5b921e30e12d4',
+} as const satisfies PrivateWorkTestCandidate;
+
+// C80 620R21: Claude KANON-NEXT 19.11.2026 on C80 620R20: four RELEASED High donors on 620R19 merged (Themo sensor
+// links, closed WC hatch, island AEG oven + Dometic D50, 2015 RK board +94 mm with the R20 T110 VIEMARI nodes kept).
+// R21 plus S2/VP1 and owner review K1/K2/K5/K6/K7/K9. WORK_TEST/HOST_HOLD, physical acceptance remains separate.
+const C80_620R22_OWNER_REVIEW_WORK_TEST_CANDIDATE = {
+  id: 'c80-620r22-r21-s2vp1-k1k2k5k6k7k9-20261119',
+  label: 'C80 620R22 - S2/VP1, viemärit, itäseinä, pistorasia, uuni, ILP ja kaappien jaot - 19.11.2026 WORK_TEST/HOST_HOLD',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/c80-620r22-r21-s2vp1-k1k2k5k6k7k9-20261119.glb`,
+  objectKey: 'work-test/c80-620r22-r21-s2vp1-k1k2k5k6k7k9-20261119.glb',
+  expectedSize: 61267668,
+  expectedSha256: '20beae53cd85b87beffc7afea8f22494b4c15eec8ddaf07eeca9bf5455ef8533',
+} as const satisfies PrivateWorkTestCandidate;
+
+const C80_620R21_R20_PLUS_R19_DONORS_WORK_TEST_CANDIDATE = {
+  id: 'c80-620r21-r20-plus-r19-donors-20261119',
+  label: 'C80 620R21 - 620R20 + Themo-anturilinkit, WC-huoltoluukku kiinni, saarekkeen AEG-uuni ja Dometic D50, RK-keskus +94 mm - 19.11.2026 WORK_TEST/HOST_HOLD',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/c80-620r21-r20-plus-r19-donors-20261119.glb`,
+  objectKey: 'work-test/c80-620r21-r20-plus-r19-donors-20261119.glb',
+  expectedSize: 59878620,
+  expectedSha256: '0655896b613563f893a806c8e997d199e91640dfc98c14f1fea759e7e3433d4e',
+} as const satisfies PrivateWorkTestCandidate;
+
+// C80 620R20: Claude KANON-NEXT 19.11.2026 on C80 620R19: six RELEASED High donors on 620R19 merged (T110 VIEMARI
+// names, ILP feet and refrigerant duct, AV1 casing, VM20 valves, S1 Croma/AS-9000 shower, Savo I-7603 identity).
+const C80_620R20_ALL_R19_DONORS_WORK_TEST_CANDIDATE = {
+  id: 'c80-620r20-all-r19-donors-20261119',
+  label: 'C80 620R20 - 620R19 + T110 viemäri, ILP-jalat ja kouru, ÄV1-kotelo, VM20, S1 Croma/AS-9000, Savo I-7603 - 19.11.2026 WORK_TEST/HOST_HOLD',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/c80-620r20-all-r19-donors-20261119.glb`,
+  objectKey: 'work-test/c80-620r20-all-r19-donors-20261119.glb',
+  expectedSize: 59438968,
+  expectedSha256: '55c74663cce04af482885b1ae4bf099327a282139e96a40ae24492e32767c422',
+} as const satisfies PrivateWorkTestCandidate;
+
+// C80 620R19: Claude KANON-NEXT 18.11.2026 on C80 620R18: RELEASED High donors on 620R18 merged (ILP stand with
+// four legs H1811-1; 674R18 PA2 1F hot riser in the wall and terrace L-step west wall).
+const C80_620R19_ILP4_PA2_LSTEP_DONORS_WORK_TEST_CANDIDATE = {
+  id: 'c80-620r19-ilp4-pa2-lstep-donors-20261118',
+  label: 'C80 620R19 - 620R18 + ILP-teline 4 jalkaa, PA2 lämminvesinousu seinässä, terassin L-askelman länsihaara - 18.11.2026 WORK_TEST/HOST_HOLD',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/c80-620r19-ilp4-pa2-lstep-donors-20261118.glb`,
+  objectKey: 'work-test/c80-620r19-ilp4-pa2-lstep-donors-20261118.glb',
+  expectedSize: 58622172,
+  expectedSha256: '868f873288310e66d362ca1afa34d8b54ce1096504ab34b9514c09b4a109a5b4',
+} as const satisfies PrivateWorkTestCandidate;
+
+// C80 620R18: Claude KANON-NEXT 18.11.2026 on C80 620R17 after the owner's 00.07 note: bathroom room height
+// about 2350 mm (ceiling Z2.430), lights and the measured exhaust valve with it, 2015 Helmi out.
+const C80_620R18_BATH_ROOM_HEIGHT_2350_WORK_TEST_CANDIDATE = {
+  id: 'c80-620r18-bath-room-height-2350-20261118',
+  label: 'C80 620R18 - 620R17 + kylpyhuoneen huonekorkeus 2350 mm, valaisimet ja poistoventtiili katon mukana - 18.11.2026 WORK_TEST/HOST_HOLD',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/c80-620r18-bath-room-height-2350-20261118.glb`,
+  objectKey: 'work-test/c80-620r18-bath-room-height-2350-20261118.glb',
+  expectedSize: 58529876,
+  expectedSha256: '5951c731fb8f48b9c8b03ba23f83805883463ad5e8ef91653735517fc266ba6e',
+} as const satisfies PrivateWorkTestCandidate;
+
+// C80 620R17: Claude KANON-NEXT 17.11.2026 on C80 620R16 after the owner's 23.21 note: bathroom ceiling without
+// the north-wall hole.
+const C80_620R17_BATH_CEILING_NO_HOLE_WORK_TEST_CANDIDATE = {
+  id: 'c80-620r17-bath-ceiling-no-hole-20261117',
+  label: 'C80 620R17 - 620R16 + kylpyhuoneen katto ilman reikää pohjoisseinällä - 17.11.2026 WORK_TEST/HOST_HOLD',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/c80-620r17-bath-ceiling-no-hole-20261117.glb`,
+  objectKey: 'work-test/c80-620r17-bath-ceiling-no-hole-20261117.glb',
+  expectedSize: 58446852,
+  expectedSha256: '65813c08e6bdeadad5be4b08177926ca4f96c0f955eb33a58d22bbe9734d70c6',
+} as const satisfies PrivateWorkTestCandidate;
+
+// C80 620R16: Claude KANON-NEXT 17.11.2026 on C80 620R15 after the owner's night review (bathroom ceiling always
+// visible, 2F WC exhaust one duct for the ceiling valve and the stair-hall wall valve).
+const C80_620R16_BATH_CEILING_KSO125_WORK_TEST_CANDIDATE = {
+  id: 'c80-620r16-bath-ceiling-kso125-20261117',
+  label: 'C80 620R16 - 620R15 + kylpyhuoneen katto aina näkyvissä, 2F WC-poisto yhtenä kanavana kahdelle venttiilille - 17.11.2026 WORK_TEST/HOST_HOLD',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/c80-620r16-bath-ceiling-kso125-20261117.glb`,
+  objectKey: 'work-test/c80-620r16-bath-ceiling-kso125-20261117.glb',
+  expectedSize: 58386412,
+  expectedSha256: 'adad0a40ec64d423d2abc720a467125cc5dea2eb498f69fbdfd324a89d71030a',
+} as const satisfies PrivateWorkTestCandidate;
+
+// C80 620R15: Claude KANON-NEXT 17.11.2026 on C80 620R14 after the owner's late review (paver spots = contours,
+// bathroom ceiling, simple 2F WC exhaust duct, heat-lamp cord along the floor, mirror socket right, TV in line, closet light).
+const C80_620R15_OWNER_REVIEW_LATE_WORK_TEST_CANDIDATE = {
+  id: 'c80-620r15-owner-review-late-20261117',
+  label: 'C80 620R15 - 620R14 + kylpyhuoneen katto, yksinkertainen WC-poisto, johto lattianrajaan, peilikaapin rasia oikealle, TV riviin, vaatehuoneen valaisin, korkeuskäyrät pois laatoista - 17.11.2026 WORK_TEST/HOST_HOLD',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/c80-620r15-owner-review-late-20261117.glb`,
+  objectKey: 'work-test/c80-620r15-owner-review-late-20261117.glb',
+  expectedSize: 58314340,
+  expectedSha256: 'a83959e3d859dc81a5214efe8579068166f443496b3d8455e9aef458f462e96d',
+} as const satisfies PrivateWorkTestCandidate;
+
+// C80 620R14: Claude KANON-NEXT 17.11.2026 on C80 620R13 after the owner's electrical checklist (balcony heat-lamp
+// cord to the outdoor socket, sockets in the 2F WC mirror cabinet and above the fridge-freezer, duplicate soffit light out).
+const C80_620R14_OWNER_CHECKLIST_WORK_TEST_CANDIDATE = {
+  id: 'c80-620r14-owner-checklist-electrical-20261117',
+  label: 'C80 620R14 - 620R13 + parvekkeen lämpövalaisimen johto ulkorasiaan, peilikaapin ja jääkaapin pistorasiat, räystäsvalaisin pois - 17.11.2026 WORK_TEST/HOST_HOLD',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/c80-620r14-owner-checklist-electrical-20261117.glb`,
+  objectKey: 'work-test/c80-620r14-owner-checklist-electrical-20261117.glb',
+  expectedSize: 57891940,
+  expectedSha256: '71eff60eafa7744e915d6ec0903d330ab0c8bda637635b4adc375e82d0544297',
+} as const satisfies PrivateWorkTestCandidate;
+
+// C80 620R13: Claude KANON-NEXT 17.11.2026 on C80 620R12 after the owner review in the evening (solid IV
+// enclosure, store outlet at the facade, solid sauna ceiling, visible closet IV valve, oak-coloured ROOM3 door).
+const C80_620R13_OWNER_REVIEW_WORK_TEST_CANDIDATE = {
+  id: 'c80-620r13-owner-review-evening-20261117',
+  label: 'C80 620R13 - 620R12 + kiinteä IV-kotelo, varaston poisto ulkoseinään ja säle, saunan katto, vaatehuoneen IV-venttiili, ROOM3-ovi tammi - 17.11.2026 WORK_TEST/HOST_HOLD',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/c80-620r13-owner-review-evening-20261117.glb`,
+  objectKey: 'work-test/c80-620r13-owner-review-evening-20261117.glb',
+  expectedSize: 57823964,
+  expectedSha256: '7e4a0cd2843355e3abdcd5ce37e6bdee2949763073b1b90e617b64cf781b9f23',
+} as const satisfies PrivateWorkTestCandidate;
+
+// C80 620R12: Claude KANON-NEXT 17.11.2026 on C80 620R11 after the owner review of 620R11 (store exhaust
+// duct moved to the owner valve point, duplicate valve removed, outdoor unit set on the pavers).
+const C80_620R12_OWNER_REVIEW_WORK_TEST_CANDIDATE = {
+  id: 'c80-620r12-k10-duct-ilp-grounded-20261117',
+  label: 'C80 620R12 - 620R11 + varaston poistokanava omistajan venttiilipisteeseen, tuplaventtiili pois, ilmalämpöpumpun teline laatoitukselle - 17.11.2026 WORK_TEST/HOST_HOLD',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/c80-620r12-k10-duct-ilp-grounded-20261117.glb`,
+  objectKey: 'work-test/c80-620r12-k10-duct-ilp-grounded-20261117.glb',
+  expectedSize: 57740128,
+  expectedSha256: '3ce69727f65ddfc90468c13ed4a619b03fca92b194993d10c035db1a0aa387f1',
+} as const satisfies PrivateWorkTestCandidate;
+
+// C80 620R11: Claude KANON-NEXT 17.11.2026 on C80 620R10 (K13 IV enclosure split at the partition,
+// K10 store exhaust 6 mm below the ceiling, K11 bench ends clear of the side panelling).
+const C80_620R11_CLEARANCE_WORK_TEST_CANDIDATE = {
+  id: 'c80-620r11-clearance-k13-k10-k11-20261117',
+  label: 'C80 620R11 - 620R10 + KPH IV-kotelo irti väliseinästä, varaston venttiili irti katosta, saunan laude irti paneeleista - 17.11.2026 WORK_TEST/HOST_HOLD',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/c80-620r11-clearance-k13-k10-k11-20261117.glb`,
+  objectKey: 'work-test/c80-620r11-clearance-k13-k10-k11-20261117.glb',
+  expectedSize: 57681492,
+  expectedSha256: '8632ed927f05e36edf689c44cdef0dc5fac3fc7161c8790cfcb02e2661005b4e',
+} as const satisfies PrivateWorkTestCandidate;
+
+const C80_614_OWNER_FIXES2_WORK_TEST_CANDIDATE = {
+  id: 'c80-614r10-posts-flush-walls-20261116',
+  label: 'C80 614 R10 - D-porras: pylväät käsijohteen tasoon, taustalevy pylväiden yli, yhtenäiset seinät ja katto, eteisen jalkalinjat - 16.11.2026 WORK_TEST/HOST_HOLD',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/c80-614r10-posts-flush-walls-20261116.glb`,
+  objectKey: 'work-test/c80-614r10-posts-flush-walls-20261116.glb',
+  expectedSize: 57364720,
+  expectedSha256: '20a7f19e0ee0f2f98ff1aee1ad51a6ba17049c2040c807b2c739c5f8648bd54b',
+} as const satisfies PrivateWorkTestCandidate;
+
+// C80 608C: Claude owner fixes 15.11.2026 on C80 602 (switches per drawing,
+// 2F WC LED, KSO125 duct, Toshiba outdoor unit, T-collector removed).
+const C80_608C_OWNER_FIXES_WORK_TEST_CANDIDATE = {
+  id: 'c80-608c-owner-fixes-20261115',
+  label: 'C80 608C - katkaisijat piirustuksen mukaan, WC-LED, poistokanava, ILP-ulkoyksikkö - 15.11.2026 WORK_TEST/HOST_HOLD',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/c80-608c-owner-fixes-20261115.glb`,
+  objectKey: 'work-test/c80-608c-owner-fixes-20261115.glb',
+  expectedSize: 56931072,
+  expectedSha256: 'eadb96e656174e556c2692953808ce535cf75cee649a137f6627032d3bba4006',
+} as const satisfies PrivateWorkTestCandidate;
+
+// C80 602: C80 596 ALL5 + K12 + K09/Themo + K16/K18 with owner K04 2F wall
+// switch hosts SW01..SW04. WORK_TEST/HOST_HOLD, no CURRENT/as-built promotion.
+const C80_602_ALL5_K04_WORK_TEST_CANDIDATE = {
+  id: 'c80-602-all5-k12-k09-k16-k18-k04-20261115',
+  label: 'C80 602 - omistajakatselmus K01-K04, K07-K09/Themo, K12, K16, K18 - 15.11.2026 WORK_TEST/HOST_HOLD',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/c80-602-all5-k12-k09-k16-k18-k04-20261115.glb`,
+  objectKey: 'work-test/c80-602-all5-k12-k09-k16-k18-k04-20261115.glb',
+  expectedSize: 56765356,
+  expectedSha256: '68022663faeca35955cf2822a34fc531dc6a446bdd4a13bad0169e16ec80bcfc',
+} as const satisfies PrivateWorkTestCandidate;
+
 // C80 524 opt-in: D-gable storm downspout presence zones over 518 A-C water
 // risers, 512 T110 roof vent and 505 H24. No physical as-built or CURRENT
 // promotion. Work-test SHA source only.
@@ -4502,6 +4677,26 @@ const C80_524_RAIN_ZONES_WORK_TEST_CANDIDATE = {
   expectedSha256: 'b9b04ba2f9dfc85c4519052ab0fd05e71669ea61fa37e755d85cd438da3df285',
 } as const satisfies PrivateWorkTestCandidate;
 
+// Preserve both original R300 review scenes in one immutable GLB.
+const C80_R31_R300_WORK_TEST_CANDIDATE = {
+  id: 'c80-r31-r300-sc759-sc760-work-test',
+  label: 'C80 R31 - NIBE R300, normaali ja huolto - WORK_TEST/HOST_HOLD',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/c80-r31-r300-sc759-sc760-work-test.glb`,
+  objectKey: 'work-test/c80-r31-r300-sc759-sc760-work-test.glb',
+  expectedSize: 63_630_516,
+  expectedSha256: '0ec686edc2c36b1230b81edf7e27237e2ee95b34ac2fe18768519c255ad1ec13',
+} as const satisfies PrivateWorkTestCandidate;
+
+// R31 9e0bf34f: whole D (769/770) and 2F (771/772), normal and service, in one immutable GLB.
+const C80_R31_9E0B_WORK_TEST_CANDIDATE = {
+  id: 'c80-r31-9e0bf34f-d-2f-sc769-sc772-work-test',
+  label: 'C80 R31 - koko D ja yläkerta, normaali ja huolto - WORK_TEST/HOST_HOLD',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/c80-r31-9e0bf34f-d-2f-sc769-sc772-work-test.glb`,
+  objectKey: 'work-test/c80-r31-9e0bf34f-d-2f-sc769-sc772-work-test.glb',
+  expectedSize: 63_833_692,
+  expectedSha256: '9e0bf34fd838ddc92be12007412176a8ea449f66644f8876395ac6f659804ec3',
+} as const satisfies PrivateWorkTestCandidate;
+
 const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
   C80_M6263_MJ72_KIV005_PK1_SUCCESSOR_WORK_TEST_CANDIDATE,
   C80_TATE_MJ6263_WORK_TEST_CANDIDATE,
@@ -4511,6 +4706,22 @@ const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
   C80_WW74_L150_WORK_TEST_CANDIDATE,
   C80_495_SAVO_SEWER_WORK_TEST_CANDIDATE,
   C80_500_WW1974_ABC_WORK_TEST_CANDIDATE,
+  C80_620R22_OWNER_REVIEW_WORK_TEST_CANDIDATE,
+  C80_620R21_R20_PLUS_R19_DONORS_WORK_TEST_CANDIDATE,
+  C80_620R20_ALL_R19_DONORS_WORK_TEST_CANDIDATE,
+  C80_620R19_ILP4_PA2_LSTEP_DONORS_WORK_TEST_CANDIDATE,
+  C80_620R18_BATH_ROOM_HEIGHT_2350_WORK_TEST_CANDIDATE,
+  C80_620R17_BATH_CEILING_NO_HOLE_WORK_TEST_CANDIDATE,
+  C80_620R16_BATH_CEILING_KSO125_WORK_TEST_CANDIDATE,
+  C80_620R15_OWNER_REVIEW_LATE_WORK_TEST_CANDIDATE,
+  C80_620R14_OWNER_CHECKLIST_WORK_TEST_CANDIDATE,
+  C80_620R13_OWNER_REVIEW_WORK_TEST_CANDIDATE,
+  C80_620R12_OWNER_REVIEW_WORK_TEST_CANDIDATE,
+  C80_620R11_CLEARANCE_WORK_TEST_CANDIDATE,
+  C80_620R10_HIGH_DONOR_WORK_TEST_CANDIDATE,
+  C80_614_OWNER_FIXES2_WORK_TEST_CANDIDATE,
+  C80_608C_OWNER_FIXES_WORK_TEST_CANDIDATE,
+  C80_602_ALL5_K04_WORK_TEST_CANDIDATE,
   C80_530_V27_NO_TRENCH_WORK_TEST_CANDIDATE,
   C80_524_RAIN_ZONES_WORK_TEST_CANDIDATE,
   C80_TATE_INTERIOR_WORK_TEST_CANDIDATE,
@@ -4534,6 +4745,8 @@ const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
   D_C80_HI12_WORK_TEST_CANDIDATE,
   D_C80_SOURCE_ONLY_PREVIEW_CANDIDATE,
   D_C70_SOURCE_ONLY_PREVIEW_CANDIDATE,
+  C80_R31_9E0B_WORK_TEST_CANDIDATE,
+  C80_R31_R300_WORK_TEST_CANDIDATE,
   ...PRIVATE_WORK_TEST_CANDIDATES,
   M5A_Z2D_D100_D300_DIAMETER_CANDIDATE,
   M5A_Z2D_R1090_WELL_TOP_GROUND_SURFACE_CANDIDATE,

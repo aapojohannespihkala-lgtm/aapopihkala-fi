@@ -256,25 +256,44 @@ const isPreview = mode === 'preview';
         return part('hour') * 60 + part('minute');
       };
 
-      const solarMarkerStyle = (solar) => {
+      const solarMarkerStyle = (solar, halfStrokePx = 0.5) => {
         const sunrise = clockMinutes(solar?.sunrise);
         const sunset = clockMinutes(solar?.sunset);
         if (sunrise === null || sunset === null || sunset <= sunrise) return '';
+        const dayMinutes = sunset - sunrise;
+        const dayFraction = dayMinutes / 1440;
+        // Match Android's SolarDetailVisual.kt: the 24-hour orbit crosses
+        // the moving horizontal horizon at sunrise and sunset.
+        const horizonOffset = Math.cos(Math.PI * dayFraction);
+        // Percentage of the disk's positioning box: 50% puts the marker on the ring.
+        const radius = 50;
+        const horizonY = 50 - radius * horizonOffset;
+        const solarNoon = sunrise + dayMinutes / 2;
         const now = helsinkiMinutesNow();
-        let angle;
-        let night = false;
-        if (now >= sunrise && now <= sunset) {
-          const progress = (now - sunrise) / (sunset - sunrise);
-          angle = Math.PI - progress * Math.PI;
-        } else {
-          night = true;
-          const nightLength = 1440 - sunset + sunrise;
-          const elapsed = now > sunset ? now - sunset : 1440 - sunset + now;
-          angle = -Math.min(1, elapsed / nightLength) * Math.PI;
+        const elapsed = (now - solarNoon + 1440) % 1440;
+        const angle = 2 * Math.PI * elapsed / 1440;
+        const sinAngle = Math.sin(angle);
+        const cosAngle = Math.cos(angle);
+        const x = 50 + radius * sinAngle;
+        const y = 50 - radius * cosAngle;
+        // CSS percentages use the padding box, while the orbit is the border
+        // stroke centreline. Under stage CSS zoom, computed border width changes.
+        const rimX = halfStrokePx * sinAngle;
+        const rimY = -halfStrokePx * cosAngle;
+        const night = now < sunrise || now > sunset;
+        return `--sun-x:${x.toFixed(2)}%;--sun-y:${y.toFixed(2)}%;--sun-rim-x:${rimX.toFixed(3)}px;--sun-rim-y:${rimY.toFixed(3)}px;--horizon-y:${horizonY.toFixed(2)}%;--sun-fill:${night ? 'transparent' : 'var(--foreground)'};`;
+      };
+
+      const updateSolarClock = () => {
+        if (isPreview || !payload || !widget) return;
+        const disk = widget.querySelector('.android-solar-disk');
+        const weather = payload.sections.find((section) => section.id === 'weather');
+        const solar = weather ? parseSolarDetail(weather.detail) : null;
+        if (disk && solar) {
+          const cssBorderWidth = Number.parseFloat(window.getComputedStyle(disk).borderLeftWidth);
+          const halfStrokePx = Number.isFinite(cssBorderWidth) ? cssBorderWidth / 2 : 0.5;
+          disk.style.cssText = solarMarkerStyle(solar, halfStrokePx);
         }
-        const x = 50 + Math.cos(angle) * 43;
-        const y = 50 - Math.sin(angle) * 43;
-        return `--sun-x:${x.toFixed(1)}%;--sun-y:${y.toFixed(1)}%;--sun-fill:${night ? 'transparent' : 'var(--foreground)'};`;
       };
 
       const renderAndroidHeading = (section) => `
@@ -478,6 +497,7 @@ const isPreview = mode === 'preview';
         }
         if (date) date.textContent = header.dateShort;
         if (week) week.textContent = header.week;
+        updateSolarClock();
         // The clock keeps running after the initial fetch. A previously fresh
         // payload must not remain labelled ready indefinitely on an open tab.
         if (root?.dataset.loadState === 'ready' && payload && !isFreshPayload(payload)) {
@@ -514,6 +534,7 @@ const isPreview = mode === 'preview';
         if (!isTablet) {
           stage.style.zoom = '';
           widget.style.minHeight = '';
+          updateSolarClock();
           return;
         }
 
@@ -528,6 +549,7 @@ const isPreview = mode === 'preview';
           stage.style.zoom = String(scale);
           const targetRenderedHeight = Math.max(0, viewportHeight * 0.92);
           widget.style.minHeight = `${Math.round(targetRenderedHeight / scale)}px`;
+          updateSolarClock();
           return;
         }
 
@@ -535,6 +557,7 @@ const isPreview = mode === 'preview';
         const heightScale = Math.max(1, (viewportHeight - 28) / naturalHeight);
         const scale = Math.min(1.6, Math.max(1, Math.min(widthScale, heightScale)));
         stage.style.zoom = String(scale);
+        updateSolarClock();
       };
 
       const render = () => {
@@ -949,20 +972,12 @@ const isPreview = mode === 'preview';
     height: 27px;
     border: 1px solid var(--line);
     border-radius: 50%;
-    background: linear-gradient(to bottom, var(--foreground) 0 50%, transparent 50% 100%);
-  }
-  .android-solar-disk::after {
-    content: "";
-    position: absolute;
-    left: -1px;
-    right: -1px;
-    top: 50%;
-    border-top: 1px solid var(--background);
+    background: linear-gradient(to bottom, var(--foreground) 0 var(--horizon-y, 50%), transparent var(--horizon-y, 50%) 100%);
   }
   .android-solar-disk b {
     position: absolute;
-    left: var(--sun-x, 50%);
-    top: var(--sun-y, 8%);
+    left: calc(var(--sun-x, 50%) + var(--sun-rim-x, 0px));
+    top: calc(var(--sun-y, 8%) + var(--sun-rim-y, 0px));
     width: 4px;
     height: 4px;
     translate: -50% -50%;

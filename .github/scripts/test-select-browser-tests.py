@@ -70,8 +70,15 @@ class SelectionTests(unittest.TestCase):
             'tests/e2e/private-model-main-view-scope.spec.ts',
             'tests/e2e/private-model-other-floor-batch.spec.ts',
             'tests/e2e/private-model-other-floor-reference.spec.ts',
+            'tests/e2e/private-model-p137e-scene67-browser-interaction.spec.ts',
+            'tests/e2e/private-model-p186e-visibility.spec.ts',
             'tests/e2e/private-model-p4-real-r4e.spec.ts',
             'tests/e2e/private-model-work-test-load-diagnostics.spec.ts',
+        ])
+
+    def test_p186e_caption_layout_selects_existing_chromium_pixel_guard(self):
+        self.assertEqual(selected('src/scripts/privateModelP186ECaptionLayout.mjs'), [
+            'tests/e2e/private-model-p186e-visibility.spec.ts',
         ])
 
     def test_layers_wp3_source_and_css_changes_select_existing_dom_regression(self):
@@ -166,6 +173,25 @@ class SelectionTests(unittest.TestCase):
                          [wp1, scoped, state])
         self.assertFalse(any('/current-' in spec for spec in
                              selected(runtime_path, load_path)))
+
+    def test_navigation_cube_sources_always_select_existing_chromium_edge_and_north_guards(self):
+        cube = 'tests/e2e/private-model-navigation-cube-edge-arrows.spec.ts'
+        north = 'tests/e2e/private-model-navigation-north-frame-toggle.spec.ts'
+        self.assertEqual(selected('src/scripts/privateModelNavigationCube.mjs'), [cube])
+        for source in (
+            'src/scripts/privateModelNavigationNorthFrameToggle.mjs',
+            'src/scripts/privateModelOrientationGizmo.ts',
+        ):
+            with self.subTest(source=source):
+                self.assertEqual(selected(source), [cube, north])
+        # Multiple changes select each E2E only once and do not run /current/.
+        paths = (
+            'src/scripts/privateModelNavigationCube.mjs',
+            'src/scripts/privateModelNavigationNorthFrameToggle.mjs',
+            'src/scripts/privateModelOrientationGizmo.ts',
+        )
+        self.assertEqual(selected(*paths, *paths), [cube, north])
+        self.assertEqual(selected('src/scripts/unrelated-orientation-helper.mjs'), [])
 
     def test_object_visibility_changes_select_existing_root_guard_regression(self):
         spec = 'tests/e2e/private-model-object-visibility.spec.ts'
