@@ -222,7 +222,17 @@ test('exact 3D/isometric projection toggle preserves target, view direction and 
         expect(Math.abs(actual.pose[key][i] - reference.pose[key][i])).toBeLessThan(1e-5);
       }
     }
-    expect(actual.frame).toBe(reference.frame);
+    // Human bounds are rounded to one decimal. A projection-only switch
+    // can cross the 0.1 m display rounding threshold without changing the
+    // machine-readable camera target or direction.
+    const bounds = (label: string) =>
+      (label.match(/[+-]?\\d+(?:\\.\\d+)?/g) ?? []).map(Number);
+    const a = bounds(actual.frame), b = bounds(reference.frame);
+    expect(a).toHaveLength(6);
+    expect(b).toHaveLength(6);
+    for (let i = 0; i < 6; i++) {
+      expect(Math.abs(a[i] - b[i])).toBeLessThanOrEqual(0.15);
+    }
   };
   const cameraButton = (id: 'iso' | 'orbit') =>
     page.locator(`.desk-toolbar [data-desk-kind="angle"][data-desk-id="${id}"]`);
