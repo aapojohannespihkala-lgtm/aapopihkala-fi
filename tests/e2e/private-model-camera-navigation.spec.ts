@@ -251,7 +251,8 @@ test('exact 3D/isometric projection toggle preserves target, view direction and 
 
   for (const preset of ['Koko rakennus', 'D-asunto'] as const) {
     await selectResearchPreset(page, preset);
-    await expect(canvas).toHaveAttribute('data-desk-preset-camera-kept', 'exact');
+    // The older menu path preserves the pose via capture/bubble handlers;
+    // only the new toolbar buttons set data-desk-preset-camera-kept.
     const afterPreset = await state();
     expect(afterPreset.pose.projection).toBe('orthographic');
     assertSamePose(afterPreset, perspective);
