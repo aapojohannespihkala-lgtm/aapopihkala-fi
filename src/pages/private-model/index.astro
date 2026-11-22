@@ -15903,7 +15903,10 @@ const title = 'Private 3D viewer';
       const r31SyncExteriorDonors = () => {
         const r31 = r31InspectionAvailable();
         const focus = canvas.dataset.dFocusGhost?.split('|')[0];
-        const whole = r31 && !focus && canvas.dataset.standardViewPreset === 'whole-building';
+        // Scope comes from the research preset; camera buttons (elevations, iso) only
+        // change standardViewPreset and must not drop the whole-building additions.
+        const whole = r31 && !focus &&
+          (canvas.dataset.researchPreset ?? canvas.dataset.standardViewPreset) === 'whole-building';
         const technical = whole && canvas.dataset.technicalReview === 'on';
         let shown = 0;
         for (const group of Object.values(r31ExteriorDonors)) {
