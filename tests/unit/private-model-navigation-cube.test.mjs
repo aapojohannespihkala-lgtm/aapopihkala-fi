@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { projectNavCube, projectNavCubeEdgeAxes, navCubeFacePrint, navCubeBasis, NAV_CUBE_GROUND_RINGS, NAV_CUBE_RING, NAV_CUBE_SUN, NAV_CUBE_HALF } from '../../src/scripts/privateModelNavigationCube.mjs';
+import { projectNavCube, projectNavCubeEdgeAxes, navCubeFacePrint, distanceToHull, NAV_CUBE_AXIS_LABEL_RADIUS, navCubeBasis, NAV_CUBE_GROUND_RINGS, NAV_CUBE_RING, NAV_CUBE_SUN, NAV_CUBE_HALF } from '../../src/scripts/privateModelNavigationCube.mjs';
 
 const unit = (q) => { const n = Math.hypot(q.x, q.y, q.z, q.w); return { x: q.x / n, y: q.y / n, z: q.z / n, w: q.w / n }; };
 const keys = (faces) => faces.map((f) => f.key).sort();
@@ -122,4 +122,29 @@ test('face prints hide when the face is almost edge-on', () => {
   assert.equal(navCubeFacePrint({ ...face, facing: 0.05 }), null);
   assert.equal(navCubeFacePrint({ ...face, matrix: [NaN, 0, 0, 1, 0, 0] }), null);
   assert.ok(navCubeFacePrint(face).opacity > 0.9);
+});
+
+test('X/Y/Z letters stay wholly outside the projected cube silhouette', () => {
+  const hullOf = (faces) => {
+    const pts = faces.flatMap((f) => f.points.split(' ').map((p) => { const [x, y] = p.split(',').map(Number); return { x, y }; }));
+    pts.sort((a, b) => a.x - b.x || a.y - b.y);
+    const cross = (o, a, b) => (a.x - o.x) * (b.y - o.y) - (a.y - o.y) * (b.x - o.x);
+    const lo = [], up = [];
+    for (const p of pts) { while (lo.length >= 2 && cross(lo.at(-2), lo.at(-1), p) <= 0) lo.pop(); lo.push(p); }
+    for (const p of pts.reverse()) { while (up.length >= 2 && cross(up.at(-2), up.at(-1), p) <= 0) up.pop(); up.push(p); }
+    return lo.slice(0, -1).concat(up.slice(0, -1));
+  };
+  const poses = [
+    { x: -0.2264, y: 0.371, z: 0.0938, w: 0.8957 }, { x: 0, y: 0, z: 0, w: 1 },
+    { x: -Math.SQRT1_2, y: 0, z: 0, w: Math.SQRT1_2 }, { x: Math.SQRT1_2, y: 0, z: 0, w: Math.SQRT1_2 },
+    { x: 0.25, y: 0.38, z: -0.1, w: 0.88 }, { x: 0.2, y: -0.6, z: 0.15, w: 0.76 },
+  ].map(unit);
+  for (const q of poses) for (const frame of ['local', 'map']) {
+    const hull = hullOf(projectNavCube(q, frame));
+    const axes = projectNavCubeEdgeAxes(q, frame);
+    for (const a of axes) {
+      assert.ok(distanceToHull(a.label, hull) >= NAV_CUBE_AXIS_LABEL_RADIUS - 1e-6, `${a.key} ${frame} label outside`);
+      for (const b of axes) if (b !== a) assert.ok(Math.hypot(a.label.x - b.label.x, a.label.y - b.label.y) >= 2 * NAV_CUBE_AXIS_LABEL_RADIUS - 1e-6);
+    }
+  }
 });
