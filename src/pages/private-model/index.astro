@@ -40,6 +40,20 @@ const title = 'Private 3D viewer';
       .viewport .desk-side-tools button[disabled] { opacity: .35; }
       /* Layers panel opens to the right of the side tool column, not under it. */
       .viewport:has(> .desk-side-tools) .layers-panel { left: 66px !important; width: min(290px, calc(100% - 78px)) !important; }
+      /* Owner 22.11.2026 16.39: every left-side overlay (coordinates, point,
+         measure, selection, legends) opens to the right of the side tool
+         column, never on top of it. Narrow screens keep their own layout. */
+      @media (min-width: 761px) {
+        .viewport:has(> .desk-side-tools) :is(.coordinate-panel, .point-measure-panel, .p137e-place-panel,
+          .m5a-source-context, .height-scale, .d1-known-door-legend, .profile-panel, .selection-panel) {
+          left: 66px !important;
+          max-width: calc(100% - 78px);
+        }
+        .viewport:has(> .desk-side-tools):has(.layers-panel:not([hidden])) .selection-panel {
+          left: calc(66px + min(290px, 100% - 78px) + 12px) !important;
+          max-width: calc(100% - 66px - min(290px, 100% - 78px) - 24px);
+        }
+      }
       /* Navigation cube behind the gizmo axes (owner request 22.11.2026). */
       .orientation-gizmo .nav-cube-face { fill: #2f4456; stroke: #a9bcc8; stroke-width: .55; stroke-linejoin: round; }
       .orientation-gizmo .nav-cube-face-top { fill: #3c5367; }
@@ -2947,12 +2961,20 @@ const title = 'Private 3D viewer';
       // Dashed lines and review aids (owner 22.11.2026 15.14: hidden by default in
       // the D views): source roots that declare themselves schematic, assumed
       // routes, logical diagrams or review guides. Shown with Talotekniikka.
+      // Owner 22.11.2026 16.39: the blue downspout presence reservations
+      // (M5B-R1109 work zones) are hidden unless Talotekniikka is on.
+      const isDownspoutPresenceZone = (object: any) => {
+        const d = object?.userData ?? {};
+        return d.representationKind === 'downspoutPresenceZoneWork' ||
+          d.presentationGroup === 'MEP_STORMWATER_DOWNSPOUT_PRESENCE';
+      };
       const isDeskReviewAid = (object: any) => {
         if (technicalReviewInput?.checked) return false;
         const d = object?.userData ?? {};
         const text = [d.ylisTechRole, d.classification, d.representationKind, d.stage, d.sourceRole]
           .filter((v) => typeof v === 'string').join(' ');
-        return /SCHEMATIC|REVIEW_GUIDE|ASSUMED_ROUTE|ReviewOnly|REFERENCE_GUIDE|LOGICAL_DIAGRAM/i.test(text) ||
+        return isDownspoutPresenceZone(object) ||
+          /SCHEMATIC|REVIEW_GUIDE|ASSUMED_ROUTE|ReviewOnly|REFERENCE_GUIDE|LOGICAL_DIAGRAM/i.test(text) ||
           /LOGICAL_DIAGRAM|_SCHEMATIC_|ELECTRICAL_ROUTE_OPTIN|REVIEW_BENT_GUIDES|RAIN_ZONES_PRESENTATION_ONLY/.test(object?.name ?? '');
       };
       const deskDFocus = createDFocusGhost(0.1, { hideObject: isDeskReviewAid });
@@ -15820,17 +15842,42 @@ const title = 'Private 3D viewer';
       // Layerit owns the roof when it is bound (R31 #2157): keep its Vesikatto
       // mode in step with the desk roof presets, otherwise "katto piilossa"
       // still showed the roof. The camera is not touched.
-      const deskSyncLayerRoof = (visible: boolean) => {
+      const deskSyncLayerRoof = (visible: boolean | 'ghost') => {
         if (!layersAvailable.includes('roof' as any)) return;
-        layersState = setViewerInteractionLayerBranchMode(layersState, 'roof' as any, visible ? 'visible' : 'hidden', layersAvailable);
+        const mode = visible === 'ghost' ? 'ghost' : visible ? 'visible' : 'hidden';
+        layersState = setViewerInteractionLayerBranchMode(layersState, 'roof' as any, mode, layersAvailable);
         layersEnabled = true;
         refreshLayers();
+      };
+      const deskSyncDownspoutZones = () => {
+        const root = modelRoot.children[0] ?? modelRoot;
+        const show = Boolean(technicalReviewInput?.checked);
+        let count = 0;
+        root.traverse((object: any) => {
+          if (!isDownspoutPresenceZone(object)) return;
+          if (object.userData.deskAidOriginalVisible === undefined) {
+            object.userData.deskAidOriginalVisible = object.visible;
+          }
+          object.visible = show ? object.userData.deskAidOriginalVisible : false;
+          count += 1;
+        });
+        canvas.dataset.deskDownspoutZones = `${show ? 'shown' : 'hidden'}:${count}`;
+      };
+      // Layerit refreshes in a microtask; run after it so it cannot re-show them.
+      const deskQueueDownspoutZones = () => {
+        deskSyncDownspoutZones();
+        queueMicrotask(() => { deskSyncDownspoutZones(); refreshEdgeRendering(modelRoot.children[0] ?? modelRoot); });
       };
       const deskEnterDFocus = (roof: boolean, storey: '1F' | '2F' | null = null) => {
         const key = storey === '1F' ? 'd-1f' : storey === '2F' ? 'd-2f' : roof ? 'd-roof' : 'd-apartment';
         applyStandardViewPreset('whole-building', true);
-        applyViewerLayerState({ roofVisible: roof && !storey }, `preset:${key}`);
-        deskSyncLayerRoof(roof && !storey);
+        // Owner 22.11.2026 16.39: "Koko D, katto piilossa" shows the roof faint
+        // (Layerit "himmeä": ghost material, not raycast-selectable). Storey
+        // views keep the roof hidden.
+        const roofMode: boolean | 'ghost' = storey ? false : roof ? true : 'ghost';
+        applyViewerLayerState({ roofVisible: roofMode !== false }, `preset:${key}`);
+        deskSyncLayerRoof(roofMode);
+        canvas.dataset.deskRoofMode = roofMode === 'ghost' ? 'ghost' : roofMode ? 'visible' : 'hidden';
         const root = modelRoot.children[0] ?? modelRoot;
         // No padding: the C building masses start exactly at the D/C party wall
         // (x 6.38); a padded box drew a 0.37 m opaque slice of C onto D's wall.
@@ -15839,6 +15886,7 @@ const title = 'Private 3D viewer';
         const counts = deskDFocus.apply(root, footprint);
         canvas.dataset.dFocusGhost = `${key}|in:${counts.inside}|out:${counts.outside}|split:${counts.split}|hidden:${counts.hidden}|aids:${counts.aids}`;
         canvas.dataset.dFocusFootprint = [footprint.x0, footprint.x1, footprint.z0, footprint.z1].map((v) => v.toFixed(2)).join(',');
+        deskQueueDownspoutZones();
         refreshEdgeRendering(root);
       };
       let deskSync = () => {};
@@ -15860,6 +15908,7 @@ const title = 'Private 3D viewer';
                 deskEnterDFocus(focusKey === 'd-roof', focusKey === 'd-1f' ? '1F' : focusKey === 'd-2f' ? '2F' : null);
                 if (pose) deskApplyPose(pose);
               }
+              deskQueueDownspoutZones();
               deskSync();
               return;
             }
@@ -15872,6 +15921,7 @@ const title = 'Private 3D viewer';
               applyStandardViewPreset(target, true);
               applyViewerLayerState({ roofVisible: id === 'whole-building' }, `preset:${id}`);
               deskSyncLayerRoof(id === 'whole-building');
+              deskQueueDownspoutZones();
             }
             if (angleBefore && deskCurrentAngle() !== angleBefore) deskAngleButtons[angleBefore]?.click();
             if (pose && !deskApplyPose(pose)) deskRefitKeepingDirection();

@@ -91,7 +91,9 @@ test('D roof and roof-hidden presets retain unscoped D walls, split shared meshe
 
   await preset('d-apartment').click();
   await expect(canvas).toHaveAttribute('data-d-focus-ghost', roof!.replace(/^d-roof\|/, 'd-apartment|'));
-  await expect(canvas).toHaveAttribute('data-layer-roof-visible', 'false');
+  // Owner 22.11.2026 16.39: Koko D without roof shows the roof faint (Layerit ghost).
+  await expect(canvas).toHaveAttribute('data-layer-roof-visible', 'true');
+  await expect(canvas).toHaveAttribute('data-desk-roof-mode', 'ghost');
 
   await preset('whole-building').click();
   await expect(canvas).not.toHaveAttribute('data-d-focus-ghost', /.+/);
