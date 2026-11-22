@@ -1,0 +1,146 @@
+/**
+ * R31 inspection views (owner 22.11.2026 17.08): "Salaojat" and "Infra" on the
+ * same authenticated R31 model, built only from already published sources.
+ *
+ * - Salaojat: the M5A-R3 Z1C drain topology WORK_TEST (CURRENT model.glb,
+ *   scene 59 "... CURRENT CANDIDATE R845", source scene 58). Wells, reference
+ *   routes and the open (unresolved) discharge/boundary markers keep their
+ *   source geometry and world placement; R31 shares the same YLIS-G1 Y-up frame.
+ * - Infra: the Locus site water/wastewater work-Z routes already used by the
+ *   P139AD/P143D reviews, plus R31's own site-sewer branches.
+ *
+ * Drainage, stormwater and wastewater stay separate; no connection or
+ * discharge route is invented. Everything is WORK_TEST, presentation only.
+ * THREE is injected so the pure parts stay testable without a renderer.
+ */
+
+export const R31_DRAINAGE_SOURCE = Object.freeze({
+  path: '/private-model/model.glb',
+  sceneIndex: 59,
+  sceneName: 'M5A-R3 Z1C WHOLE BUILDING CURRENT CANDIDATE R845 - BABYLON Y-UP',
+  pass: 'M5A-R3-Z1C-CURRENT-CANDIDATE-R845',
+});
+
+/** Drain object kinds by source metadata (never by guessing from geometry). */
+export function r31DrainageKind(userData = {}) {
+  const kind = String(userData.representationKind ?? '').toUpperCase();
+  if (kind === 'WELLMARKERWORK') return 'well';
+  if (kind === 'REFERENCEROUTEWORK') return 'route';
+  if (kind === 'UNRESOLVEDBOUNDARYMARKER') return 'open';
+  return null;
+}
+
+/** Site-sewer branches that R31 itself carries (source names, exact prefix). */
+export const R31_SITE_SEWER_ROOT_NAMES = Object.freeze([
+  'M5_INTEGRATION_CLAUDE_WW_D1F_TO_SITE_SEWER_L150',
+  'M5_WW74_C80_542_WITH_A_C_CONCEPTUAL_L100_BRANCHES',
+]);
+export const isR31SiteSewerName = (name) =>
+  typeof name === 'string' && R31_SITE_SEWER_ROOT_NAMES.some((prefix) => name.startsWith(prefix));
+
+export const R31_INSPECTION_COLORS = Object.freeze({
+  well: 0x00b3a4, route: 0x2bbf5a, open: 0xff8a00,
+  WATER: 0x1e88e5, WASTEWATER: 0xb2672d, sewer: 0x8e44ad,
+});
+
+/**
+ * Collect drain objects of the verified source scene as world-placed clones.
+ * Returns null on any identity mismatch (wrong scene name/pass).
+ */
+export function buildR31DrainageOverlay(THREE, gltf) {
+  const json = gltf?.parser?.json;
+  const scene = gltf?.scenes?.[R31_DRAINAGE_SOURCE.sceneIndex];
+  if (!scene || json?.scenes?.[R31_DRAINAGE_SOURCE.sceneIndex]?.name !== R31_DRAINAGE_SOURCE.sceneName ||
+      scene.userData?.Pass !== R31_DRAINAGE_SOURCE.pass) return null;
+  scene.updateMatrixWorld(true);
+  const group = new THREE.Group();
+  group.name = 'R31_INSPECTION_DRAINAGE_M5A_R3_Z1C';
+  const materials = {};
+  const material = (kind) => materials[kind] ??= new THREE.MeshStandardMaterial({
+    color: R31_INSPECTION_COLORS[kind], emissive: R31_INSPECTION_COLORS[kind], emissiveIntensity: 0.45,
+    roughness: 0.6, metalness: 0, depthTest: true,
+  });
+  const counts = { well: 0, route: 0, open: 0 };
+  scene.traverse((object) => {
+    if (!object.isMesh) return;
+    let kind = null;
+    for (let node = object; node && node !== scene && !kind; node = node.parent) kind = r31DrainageKind(node.userData);
+    if (!kind) return;
+    const clone = new THREE.Mesh(object.geometry, material(kind));
+    clone.name = object.name;
+    clone.matrixAutoUpdate = false;
+    clone.matrix.copy(object.matrixWorld);
+    clone.renderOrder = 6;
+    clone.userData = { ...object.userData, r31InspectionKind: kind, presentationOnly: true,
+      ModelStage: 'WORK_TEST_VIEW', currentClaim: false, asBuiltClaim: false };
+    group.add(clone);
+    counts[kind] += 1;
+  });
+  if (!group.children.length) return null;
+  group.userData = { source: R31_DRAINAGE_SOURCE, counts, presentationOnly: true };
+  return group;
+}
+
+/**
+ * Locus site routes as tubes. `routes` = the viewer's P139AD work-Z routes
+ * (G1 XY, absolute work elevation); y = elevation - verticalReference.
+ */
+export function buildR31InfraOverlay(THREE, routes, verticalReferenceM) {
+  const group = new THREE.Group();
+  group.name = 'R31_INSPECTION_INFRA_LOCUS_WORK_Z';
+  const counts = { WATER: 0, WASTEWATER: 0 };
+  for (const route of routes ?? []) {
+    if (!['WATER', 'WASTEWATER'].includes(route.system) || !Array.isArray(route.points) || route.points.length < 2) continue;
+    const pts = route.points.map(([x, y, z]) => new THREE.Vector3(x, z - verticalReferenceM, -y));
+    const path = new THREE.CurvePath();
+    for (let i = 1; i < pts.length; i += 1) path.add(new THREE.LineCurve3(pts[i - 1], pts[i]));
+    // Parcel branches are uncertain in the source: drawn thinner and lighter.
+    const uncertain = /PARCEL/.test(route.name);
+    const geometry = new THREE.TubeGeometry(path, Math.max(8, pts.length * 12), uncertain ? 0.06 : 0.1, 8, false);
+    const color = R31_INSPECTION_COLORS[route.system];
+    const mesh = new THREE.Mesh(geometry, new THREE.MeshStandardMaterial({
+      color, emissive: color, emissiveIntensity: 0.4, roughness: 0.6, metalness: 0,
+      transparent: uncertain, opacity: uncertain ? 0.6 : 1,
+    }));
+    mesh.name = `R31_INFRA_${route.name}`;
+    mesh.renderOrder = 6;
+    mesh.userData = { label: route.label, sourceObject: route.sourceObject, system: route.system,
+      workZBasis: route.workZBasis, uncertain, verticalDatumStatus: 'OPEN_UNVERIFIED',
+      presentationOnly: true, ModelStage: 'WORK_TEST_VIEW', physicalZClaim: false,
+      currentClaim: false, asBuiltClaim: false };
+    group.add(mesh);
+    counts[route.system] += 1;
+  }
+  group.userData = { counts, presentationOnly: true, verticalReferenceM };
+  return group;
+}
+
+/**
+ * Dim the whole model (building and terrain) to a translucent grey so that
+ * underground routes read through it. `keep(object)` objects get `keepMaterial`.
+ * Returns a restore function.
+ */
+export function dimR31ModelForInspection(THREE, root, { keep = () => false, keepMaterial = null, opacity = 0.06 } = {}) {
+  const grey = new THREE.MeshBasicMaterial({ color: 0x9aa1a9, transparent: true, opacity, depthWrite: false });
+  const saved = new Map();
+  const hidden = new Map();
+  let kept = 0;
+  root?.traverse?.((object) => {
+    if (object.isMesh) {
+      const isKept = keep(object);
+      saved.set(object, object.material);
+      object.material = isKept && keepMaterial ? keepMaterial : grey;
+      if (isKept) kept += 1;
+    } else if (object.isLine || object.isLineSegments || object.isPoints) {
+      hidden.set(object, object.visible);
+      object.visible = false;
+    }
+  });
+  const restore = () => {
+    for (const [object, material] of saved) object.material = material;
+    for (const [object, visible] of hidden) object.visible = visible;
+    saved.clear(); hidden.clear();
+    grey.dispose();
+  };
+  return { restore, dimmed: saved.size - kept, kept };
+}

@@ -2750,6 +2750,10 @@ const title = 'Private 3D viewer';
       import { V93_MJ40_SOURCE_SHA256 } from '../../scripts/privateModelV93MJ40BoschOpen90SourceProfile.mjs';
       import { V90_H20_SOURCE_SHA256 } from '../../scripts/privateModelC80R2V90H20LayerSourceProfile.mjs';
       import { V90_IV_P04_SOURCE_SHA256 } from '../../scripts/privateModelC80R2V90IVP04LayerSourceProfile.mjs';
+      // @ts-ignore - R31 review roots and inspection overlays have unit coverage.
+      import { resolveC80R31TechnicalReviewRoots } from '../../scripts/privateModelC80R31TechnicalReview.mjs';
+      // @ts-ignore - pure overlay builders, THREE injected.
+      import { R31_DRAINAGE_SOURCE, R31_INSPECTION_COLORS, buildR31DrainageOverlay, buildR31InfraOverlay, dimR31ModelForInspection, isR31SiteSewerName } from '../../scripts/privateModelR31Inspection.mjs';
       import { resolveTechnicalReviewRoots, createTechnicalReviewPresentation, technicalReviewSystemOf, technicalReviewLayerSystemOf, refineTechnicalReviewSystem, filterNonTechnicalBoundObjects } from '../../scripts/privateModelTechnicalReviewPresentation.mjs';
       import { resolveConcealedTechnicalObjects, createConcealedTechnicalPresentation } from '../../scripts/privateModelConcealedTechnicalPresentation.mjs';
       import { K17_RAIL900_SOURCE_SHA256 } from '../../scripts/privateModelK17Rail900LayerSourceProfile.mjs';
@@ -3452,6 +3456,7 @@ const title = 'Private 3D viewer';
       let layersLoadedSha: string | null = null;
       let refreshLayers = () => {};
       let beforeLayersSceneChange = () => {};
+      let r31InspectionExitHook = () => {};
       let onLayersModelLoaded = (_gltf: any, _session: any) => {};
       let onLayersStandardPreset = (_preset: StandardViewPreset) => {};
 
@@ -15245,6 +15250,7 @@ const title = 'Private 3D viewer';
       beforeLayersSceneChange = disposeLayersPresentation;
       // Any scene change also ends the whole-D focus presentation (restores originals).
       beforeLayersSceneChange = () => {
+        r31InspectionExitHook();
         if (deskDFocus.active) { deskDFocus.restore(); delete canvas.dataset.dFocusGhost; delete canvas.dataset.dFocusFootprint; }
         disposeLayersPresentation();
       };
@@ -15403,7 +15409,9 @@ const title = 'Private 3D viewer';
             }
             // Technical review: exact-source technical roots plus the devices
             // already bound by the technical Layers inventory keep their colors.
-            const reviewRoots = resolveTechnicalReviewRoots(source, root, sceneIndex, layersLoadedSha, layersExpectedSha);
+            // Owner 22.11.2026 17.08: R31 reuses R22's verified review roots.
+            const reviewRoots = resolveTechnicalReviewRoots(source, root, sceneIndex, layersLoadedSha, layersExpectedSha) ??
+              resolveC80R31TechnicalReviewRoots(source, root, sceneIndex, layersLoadedSha, layersExpectedSha);
             if (reviewRoots) {
               // Kept meshes without a source system take the color of the
               // exact-source Sisältö technical layer they are bound to.
@@ -15868,6 +15876,107 @@ const title = 'Private 3D viewer';
         deskSyncDownspoutZones();
         queueMicrotask(() => { deskSyncDownspoutZones(); refreshEdgeRendering(modelRoot.children[0] ?? modelRoot); });
       };
+      // Owner 22.11.2026 17.08: Salaojat and Infra on the same R31 model,
+      // from already published sources only (see privateModelR31Inspection).
+      let r31Inspection: { mode: 'drainage' | 'infra'; overlay: any; restore: () => void } | null = null;
+      let r31DrainageGltf: Promise<any> | null = null;
+      const r31InspectionAvailable = () =>
+        layersLoadedSha === C80_R31_9E0B_SOURCE.glbSha256 && Boolean(modelRoot.children[0]);
+      const exitR31Inspection = () => {
+        if (!r31Inspection) return;
+        const active = r31Inspection;
+        r31Inspection = null;
+        active.overlay.removeFromParent();
+        active.restore();
+        delete canvas.dataset.r31Inspection;
+        delete canvas.dataset.r31InspectionCounts;
+        refreshEdgeRendering(modelRoot.children[0] ?? null);
+      };
+      r31InspectionExitHook = exitR31Inspection;
+      const enterR31Inspection = async (mode: 'drainage' | 'infra') => {
+        if (!r31InspectionAvailable()) return false;
+        const pose = deskCapturePose();
+        exitR31Inspection();
+        if (technicalReviewInput.checked) {
+          technicalReviewInput.checked = false;
+          technicalReviewInput.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+        applyStandardViewPreset('whole-building', true);
+        applyViewerLayerState({ roofVisible: true }, `preset:r31-${mode}`);
+        deskSyncLayerRoof(true);
+        let overlay: any = null;
+        try {
+          if (mode === 'drainage') {
+            r31DrainageGltf ??= new GLTFLoader().loadAsync(R31_DRAINAGE_SOURCE.path);
+            overlay = buildR31DrainageOverlay(THREE, await r31DrainageGltf);
+          } else {
+            overlay = buildR31InfraOverlay(THREE, p139adLocusWorkZRoutes as any, p139acVerticalReferenceM);
+          }
+        } catch (error) {
+          r31DrainageGltf = null;
+          console.warn('R31 inspection source failed', error);
+        }
+        // Let Layerit finish its microtask refresh before the grey presentation.
+        await new Promise((resolve) => setTimeout(resolve, 0));
+        const root = modelRoot.children[0];
+        if (!overlay || !root || !r31InspectionAvailable()) {
+          status.textContent = mode === 'drainage' ? 'Salaojat: lähde ei saatavilla' : 'Infra: lähde ei saatavilla';
+          if (pose) deskApplyPose(pose);
+          deskSync();
+          return false;
+        }
+        const sewerMaterial = mode === 'infra' ? new THREE.MeshStandardMaterial({
+          color: R31_INSPECTION_COLORS.sewer, emissive: R31_INSPECTION_COLORS.sewer, emissiveIntensity: 0.4,
+          roughness: 0.6, metalness: 0,
+        }) : null;
+        const isSiteSewer = (object: any) => {
+          for (let node = object; node && node !== root; node = node.parent) if (isR31SiteSewerName(node.name)) return true;
+          return false;
+        };
+        const dim = dimR31ModelForInspection(THREE, root, {
+          keep: mode === 'infra' ? isSiteSewer : () => false, keepMaterial: sewerMaterial,
+        });
+        const previousEdge = edgeModeSelect.value;
+        if (previousEdge !== 'none') {
+          edgeModeSelect.value = 'none';
+          edgeModeSelect.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+        modelRoot.parent?.add(overlay);
+        r31Inspection = {
+          mode, overlay,
+          restore: () => {
+            dim.restore();
+            sewerMaterial?.dispose();
+            if (previousEdge !== 'none' && edgeModeSelect.value === 'none') {
+              edgeModeSelect.value = previousEdge;
+              edgeModeSelect.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+          },
+        };
+        const counts = { ...overlay.userData.counts, ...(mode === 'infra' ? { siteSewer: dim.kept } : {}) };
+        canvas.dataset.r31Inspection = mode;
+        canvas.dataset.r31InspectionCounts = JSON.stringify(counts);
+        status.textContent = mode === 'drainage'
+          ? `Salaojat (WORK_TEST, M5A-R3): ${counts.well} kaivoa, ${counts.route} reittiosaa, ${counts.open} avointa purkua/rajaa`
+          : `Infra (WORK_TEST, Locus work-Z): ${counts.WATER} vesijohto-, ${counts.WASTEWATER} jätevesireittiä, tonttiviemäri ${counts.siteSewer} osaa; hulevesiverkko puuttuu lähteistä`;
+        if (pose) deskApplyPose(pose);
+        deskSync();
+        return true;
+      };
+      for (const [buttonId, mode] of [['drainage-preset-button', 'drainage'], ['infra-preset-button', 'infra']] as const) {
+        document.getElementById(buttonId)?.addEventListener('click', (event) => {
+          if (!r31InspectionAvailable()) return;
+          event.preventDefault();
+          event.stopImmediatePropagation();
+          document.querySelector<HTMLDetailsElement>('#preset-menu')?.removeAttribute('open');
+          void enterR31Inspection(mode);
+        }, true);
+      }
+      // Any other preset-menu choice ends the inspection first.
+      document.querySelector('#preset-menu')?.addEventListener('click', (event) => {
+        const id = (event.target as HTMLElement | null)?.closest?.('button')?.id;
+        if (id && id !== 'drainage-preset-button' && id !== 'infra-preset-button') exitR31Inspection();
+      }, true);
       const deskEnterDFocus = (roof: boolean, storey: '1F' | '2F' | null = null) => {
         const key = storey === '1F' ? 'd-1f' : storey === '2F' ? 'd-2f' : roof ? 'd-roof' : 'd-apartment';
         applyStandardViewPreset('whole-building', true);
@@ -15898,6 +16007,7 @@ const title = 'Private 3D viewer';
         };
         const deskToolbar = mountDesktopToolbar(document, {
           preset(id: string) {
+            exitR31Inspection();
             if (id === 'technical') {
               technicalReviewInput.checked = !technicalReviewInput.checked;
               technicalReviewInput.dispatchEvent(new Event('change', { bubbles: true }));
@@ -15961,7 +16071,7 @@ const title = 'Private 3D viewer';
         deskToolbarBar.classList.add('desk-ready');
         deskSync = () => {
           deskToolbar.sync({
-            preset: canvas.dataset.dFocusGhost
+            preset: canvas.dataset.r31Inspection ? null : canvas.dataset.dFocusGhost
               ? canvas.dataset.dFocusGhost.split('|')[0]
               : activeDesktopPreset({
                 standardViewPreset: canvas.dataset.standardViewPreset,
@@ -15971,7 +16081,8 @@ const title = 'Private 3D viewer';
               standardViewPreset: canvas.dataset.standardViewPreset,
               viewPreset: canvas.dataset.viewPreset,
             }),
-            technical: technicalReviewInput.checked,
+            // The icon shows what the model really shows, not only the checkbox.
+            technical: canvas.dataset.technicalReview === 'on',
             layersOpen: layersButton?.getAttribute('aria-expanded') === 'true',
             edge: canvas.dataset.edgeMode ?? edgeModeSelect.value,
           });
