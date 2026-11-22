@@ -260,10 +260,25 @@ jobs:
             tests/unit/private-model-c80-620r21-work-test-receiver.test.mjs \
             tests/unit/private-model-c80-620r22-work-test-receiver.test.mjs \
             tests/unit/private-model-c80-r31-scene752-source-receipt.test.mjs \
+            tests/unit/private-model-k3-d1f-sw05-visual-source-association.test.mjs \
+            tests/unit/private-model-k3-sw03-scene779780-source-receipt.test.mjs \
+            tests/unit/private-model-k3-d2f-sw05-scene785786-source-receipt.test.mjs \
+            tests/unit/private-model-kp011-h24-scene791792-source-receipt.test.mjs \
+            tests/unit/private-model-k3-sw06-h24-scene793794-source-receipt.test.mjs \
+            tests/unit/private-model-h1811-6-scene773774-source-receipt.test.mjs \
+            tests/unit/private-model-r31-jamb-scene773775-source-receipt.test.mjs \
+            tests/unit/private-model-r31-2f-scene798799-source-receipt.test.mjs \
+            tests/unit/private-model-r31-t110-scene800801-source-receipt.test.mjs \
+            tests/unit/private-model-r31-three-cards-source-receipt.test.mjs \
+            tests/unit/private-model-r31-unified-3donor-source-receipt.test.mjs \
+            tests/unit/private-model-k3-combined-scene787788-source-receipt.test.mjs \
+            tests/unit/private-model-k3-combined-scene789790-source-receipt.test.mjs \
             tests/unit/private-model-c80-r31-review-runtime.test.mjs \
             tests/unit/private-model-desktop-toolbar.test.mjs \
             tests/unit/private-model-navigation-cube.test.mjs \
-            tests/unit/private-model-k3-sw03-scene779780-source-receipt.test.mjs \
+            tests/unit/private-model-r31-inspection.test.mjs \
+            tests/unit/private-model-r31-site-layer-controls.test.mjs \
+            tests/unit/private-model-d-focus-ghost.test.mjs \
             tests/unit/private-model-technical-review-hot-water.test.mjs \
             tests/unit/private-model-hidden-seam-edges.test.mjs \
             tests/unit/private-model-floor-depth-bias.test.mjs \

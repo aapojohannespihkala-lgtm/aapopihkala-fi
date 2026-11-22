@@ -174,6 +174,25 @@ class SelectionTests(unittest.TestCase):
         self.assertFalse(any('/current-' in spec for spec in
                              selected(runtime_path, load_path)))
 
+    def test_navigation_cube_sources_always_select_existing_chromium_edge_and_north_guards(self):
+        cube = 'tests/e2e/private-model-navigation-cube-edge-arrows.spec.ts'
+        north = 'tests/e2e/private-model-navigation-north-frame-toggle.spec.ts'
+        self.assertEqual(selected('src/scripts/privateModelNavigationCube.mjs'), [cube])
+        for source in (
+            'src/scripts/privateModelNavigationNorthFrameToggle.mjs',
+            'src/scripts/privateModelOrientationGizmo.ts',
+        ):
+            with self.subTest(source=source):
+                self.assertEqual(selected(source), [cube, north])
+        # Multiple changes select each E2E only once and do not run /current/.
+        paths = (
+            'src/scripts/privateModelNavigationCube.mjs',
+            'src/scripts/privateModelNavigationNorthFrameToggle.mjs',
+            'src/scripts/privateModelOrientationGizmo.ts',
+        )
+        self.assertEqual(selected(*paths, *paths), [cube, north])
+        self.assertEqual(selected('src/scripts/unrelated-orientation-helper.mjs'), [])
+
     def test_object_visibility_changes_select_existing_root_guard_regression(self):
         spec = 'tests/e2e/private-model-object-visibility.spec.ts'
         source = 'src/scripts/privateModelObjectVisibility.ts'
