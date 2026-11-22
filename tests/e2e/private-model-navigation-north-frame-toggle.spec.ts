@@ -145,7 +145,8 @@ test('synthetic north overlay exception cannot blank the canvas or freeze orbit 
   const readout = page.locator('#ai-navigator-readout');
   const canvas = page.locator('#private-model-canvas');
 
-  await expect(gizmo).toHaveAttribute('data-north-frame-error', 'SYNTHETIC_NORTH_OVERLAY_FAULT');
+  // Startup can record a transient camera-initialization warning first.
+  // Rotate the active camera below to exercise the fault-injected overlay.
   await expect(readout).toHaveAttribute('data-ready', 'true');
   await expect.poll(() => canvas.evaluate((element) => {
     const bitmap = element as HTMLCanvasElement;
@@ -159,11 +160,12 @@ test('synthetic north overlay exception cannot blank the canvas or freeze orbit 
   const rect = await canvas.boundingBox();
   expect(rect).not.toBeNull();
   await page.mouse.move(rect!.x + rect!.width * .45, rect!.y + rect!.height * .45);
-  await page.mouse.down({ button: 'middle' });
+  await page.mouse.down({ button: 'left' });
   await page.mouse.move(rect!.x + rect!.width * .45 + 80, rect!.y + rect!.height * .45 - 24,
     { steps: 10 });
-  await page.mouse.up({ button: 'middle' });
+  await page.mouse.up({ button: 'left' });
   await expect.poll(async () => readout.getAttribute('data-world-pose')).not.toBe(originalPose);
+  await expect(gizmo).toHaveAttribute('data-north-frame-error', 'SYNTHETIC_NORTH_OVERLAY_FAULT');
   await expect(readout).toHaveAttribute('data-ready', 'true');
   await expect.poll(() => canvas.evaluate((element) => {
     const bitmap = element as HTMLCanvasElement;
