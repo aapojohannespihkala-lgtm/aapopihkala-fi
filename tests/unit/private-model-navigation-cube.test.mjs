@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { projectNavCube, projectNavCubeEdgeAxes, navCubeBasis } from '../../src/scripts/privateModelNavigationCube.mjs';
+import { projectNavCube, projectNavCubeEdgeAxes, projectNavCubeVerticalSymbol, navCubeBasis } from '../../src/scripts/privateModelNavigationCube.mjs';
 
 const unit = (q) => { const n = Math.hypot(q.x, q.y, q.z, q.w); return { x: q.x / n, y: q.y / n, z: q.z / n, w: q.w / n }; };
 const keys = (faces) => faces.map((f) => f.key).sort();
@@ -71,4 +71,40 @@ test('axis arrows reject unknown north frame and non-finite pose, without camera
   assert.throws(() => projectNavCubeEdgeAxes(q, 'unknown'), /YLIS_NORTH_FRAME/);
   assert.throws(() => projectNavCubeEdgeAxes({ ...q, x: NaN }), /YLIS_NAV_CUBE/);
   assert.deepEqual(q, prior);
+});
+test('Air/Earth glyphs stay upright and centered on top/bottom faces', () => {
+  const half = Math.SQRT1_2;
+  const topFace = projectNavCube({ x: -half, y: 0, z: 0, w: half }).find(f => f.key === 'top');
+  const bottomFace = projectNavCube({ x: half, y: 0, z: 0, w: half }).find(f => f.key === 'bottom');
+  assert.ok(topFace && bottomFace);
+  const air = projectNavCubeVerticalSymbol(topFace);
+  const earth = projectNavCubeVerticalSymbol(bottomFace);
+  assert.equal(air.kind, 'air');
+  assert.equal(earth.kind, 'earth');
+  for (const [face, glyph] of [[topFace, air], [bottomFace, earth]]) {
+    assert.equal(glyph.x, face.center.x);
+    assert.equal(glyph.y, face.center.y);
+    assert.equal(glyph.bar.y1, glyph.bar.y2, 'crossbar stays screen-horizontal');
+    assert.equal(glyph.bar.x1 + glyph.bar.x2, 2 * glyph.x);
+    assert.ok(glyph.opacity > 0 && glyph.opacity <= 1);
+  }
+  assert.ok(air.apexY < air.y && air.baseY > air.y, 'Air tip faces screen up');
+  assert.ok(earth.apexY > earth.y && earth.baseY < earth.y, 'Earth tip faces screen down');
+  assert.match(air.outline, /^M [-0-9.]+ [-0-9.]+ L [-0-9.]+ [-0-9.]+ L [-0-9.]+ [-0-9.]+ Z$/);
+});
+
+test('vertical face symbols hide when almost edge-on and never replace side labels', () => {
+  const nearEdge = { key: 'top', center: { x: 46, y: 46 }, facing: 0.37 };
+  assert.equal(projectNavCubeVerticalSymbol(nearEdge), null);
+  assert.equal(projectNavCubeVerticalSymbol({ ...nearEdge, key: 'north', facing: 1 }), null);
+  assert.equal(projectNavCubeVerticalSymbol({ ...nearEdge, key: 'bottom', center: { x: NaN, y: 46 }, facing: 1 }), null);
+  const barelyShown = projectNavCubeVerticalSymbol({ ...nearEdge, facing: 0.4 });
+  assert.equal(barelyShown.kind, 'air');
+  assert.ok(barelyShown.opacity < 0.5);
+  const mapTilted = projectNavCube({ x: -0.2264, y: 0.371, z: 0.0938, w: 0.8957 }, 'map')
+    .find(f => f.key === 'top');
+  const tiltedAir = projectNavCubeVerticalSymbol(mapTilted);
+  assert.ok(tiltedAir, 'oblique map frame retains upright Air');
+  assert.ok(tiltedAir.apexY < tiltedAir.y);
+  assert.equal(tiltedAir.bar.y1, tiltedAir.bar.y2);
 });
