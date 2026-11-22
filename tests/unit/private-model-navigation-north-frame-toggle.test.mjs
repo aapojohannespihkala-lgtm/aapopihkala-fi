@@ -186,3 +186,13 @@ test('real orientation HUD integrates the opt-in north frame without making the 
   assert.match(page, /\.orientation-gizmo \{[\s\S]*?pointer-events: none;/);
   assert.match(page, /id="orientation-north-label"/);
 });
+
+test('orientation gizmo never lets the optional north annotation stop the render loop', async () => {
+  const { readFileSync } = await import('node:fs');
+  const src = readFileSync(new URL('../../src/scripts/privateModelOrientationGizmo.ts', import.meta.url), 'utf8');
+  const call = src.indexOf('northFrameController?.render({ quaternion })');
+  assert.ok(call > 0);
+  const before = src.slice(Math.max(0, call - 200), call);
+  assert.match(before, /try \{\s*$/);
+  assert.match(src.slice(call, call + 200), /catch \(error\)/);
+});

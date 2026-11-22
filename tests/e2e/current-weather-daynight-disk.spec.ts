@@ -42,7 +42,6 @@ const getDisk = (page: Page) => page.locator('[data-weather-daynight-disk]').eva
     x: pct('--sun-x'),
     y: pct('--sun-y'),
     horizon: pct('--horizon-y'),
-    horizonLeft: pct('--horizon-left'),
     sunFill: style.getPropertyValue('--sun-fill'),
     above: (element as HTMLElement).dataset.sunAboveHorizon,
   };
@@ -61,9 +60,7 @@ for (const { sunrise, sunset, daylightMinutes } of [
     await expect(page.locator('[data-weather-daynight-disk]')).toBeVisible();
     await expect(page.locator('[data-weather-solar-arc]')).toBeHidden();
     const disk = await getDisk(page);
-    expect(disk.horizon).toBeCloseTo(50 - 43 * Math.cos(Math.PI * daylightMinutes / 1440), 1);
-    expect(disk.horizonLeft).toBeGreaterThanOrEqual(0);
-    expect(disk.horizonLeft).toBeLessThanOrEqual(50);
+    expect(disk.horizon).toBeCloseTo(50 - 50 * Math.cos(Math.PI * daylightMinutes / 1440), 1);
   });
 }
 
@@ -83,7 +80,8 @@ test('daylight crossing, noon and nighttime positions follow uniform 24h orbit',
   expect(rise.sunX).toBeLessThan(50);
   expect(set.sunX).toBeGreaterThan(50);
   expect(noon.sunX).toBeCloseTo(50, 8);
-  expect(noon.sunY).toBeCloseTo(7, 8);
+  expect(noon.sunY).toBeCloseTo(0, 8);
+  expect(noon.sunRimY).toBeCloseTo(-0.5, 8);
   expect(rise.aboveHorizon).toBe(true);
   expect(set.aboveHorizon).toBe(true);
   expect(night.aboveHorizon).toBe(false);
@@ -119,4 +117,37 @@ test('mobile homepage gets same disk, separate Weather page keeps its astronomic
   await expect(page.locator('[data-weather-temperature]')).toHaveText('1.5');
   await expect(page.locator('[data-weather-solar-arc]')).toBeVisible();
   await expect(page.locator('[data-weather-daynight-disk]')).toBeHidden();
+});
+
+test('homepage sun is exactly centred on the 1px ring without a duplicate horizon stroke', async ({ page }) => {
+  await mockWeather(page);
+  for (const time of ['2026-11-21T10:06:00.000Z', '2026-11-21T20:54:00.000Z']) {
+    await page.clock.setFixedTime(new Date(time));
+    for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 }]) {
+      await page.setViewportSize(viewport);
+      await page.goto('/current/', { waitUntil: 'domcontentloaded' });
+      await expect(page.locator('[data-weather-daynight-disk]')).toBeVisible();
+      const result = await page.locator('[data-weather-daynight-disk]').evaluate((el) => {
+        const disk = el as HTMLElement;
+        const marker = disk.querySelector('i') as HTMLElement;
+        const ring = disk.getBoundingClientRect();
+        const point = marker.getBoundingClientRect();
+        const style = getComputedStyle(disk);
+        const scale = ring.width / Number.parseFloat(style.width);
+        const radius = ring.width / 2 - Number.parseFloat(style.borderLeftWidth) * scale / 2;
+        const dx = (point.left + point.width / 2) - (ring.left + ring.width / 2);
+        const dy = (point.top + point.height / 2) - (ring.top + ring.height / 2);
+        return {
+          radialError: Math.abs(Math.hypot(dx, dy) - radius),
+          horizonPseudo: getComputedStyle(disk, '::after').content,
+          daylight: disk.dataset.sunAboveHorizon,
+          rimOffset: disk.style.getPropertyValue('--sun-rim-y'),
+        };
+      });
+      expect(result.radialError).toBeLessThan(0.2);
+      expect(result.horizonPseudo).toBe('none');
+      expect(result.daylight).toBe(time.includes('10:06') ? 'true' : 'false');
+      expect(result.rimOffset).toMatch(/px$/);
+    }
+  }
 });
