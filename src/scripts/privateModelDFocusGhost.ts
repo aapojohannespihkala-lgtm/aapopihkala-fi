@@ -108,6 +108,56 @@ export const createDFocusGhost = (opacity = 0.1) => {
         clippingPlanes: focusClips ? [...originalClips, ...focusClips] : [...originalClips],
         clipIntersection: focusClips ? true : source.clipIntersection,
       });
+      if (focusClips) {
+        // A single Three.js clipIntersection=true mixes ALL supplied planes into
+        // one intersection. That leaks source-clipped fragments outside D and
+        // leaves a faint duplicate INSIDE D. Instead the discard predicate must
+        // be (original source clips) OR (inside the D focus volume).
+        // Keep one cached material per original source, never one per mesh.
+        const sourceCount = originalClips.length;
+        const focusCount = focusClips.length;
+        const localCount = sourceCount + focusCount;
+        const sourceIntersection = source.clipIntersection;
+        material.onBeforeCompile = (shader) => {
+          const include = '#include <clipping_planes_fragment>';
+          if (!shader.fragmentShader.includes(include)) {
+            throw new Error('D-focus mixed clipping: Three.js clipping shader chunk missing');
+          }
+          const sourcePredicate = sourceIntersection
+            ? 'sourceRejected = sourceRejected && rejected;'
+            : 'sourceRejected = sourceRejected || rejected;';
+          // Three.js places global renderer clips BEFORE the local material clips.
+          // Global clips are always rejected as a union; local source clips
+          // keep their own union/intersection, then the D box is intersected.
+          shader.fragmentShader = shader.fragmentShader.replace(include, `
+#if NUM_CLIPPING_PLANES > 0
+  vec4 plane;
+  for (int i = 0; i < NUM_CLIPPING_PLANES - ${localCount}; i++) {
+    plane = clippingPlanes[i];
+    if (dot(vClipPosition, plane.xyz) > plane.w) discard;
+  }
+  bool sourceRejected = ${sourceIntersection ? 'true' : 'false'};
+  for (int i = NUM_CLIPPING_PLANES - ${localCount};
+       i < NUM_CLIPPING_PLANES - ${focusCount}; i++) {
+    plane = clippingPlanes[i];
+    bool rejected = dot(vClipPosition, plane.xyz) > plane.w;
+    ${sourcePredicate}
+  }
+  if (sourceRejected) discard;
+  bool insideD = true;
+  for (int i = NUM_CLIPPING_PLANES - ${focusCount}; i < NUM_CLIPPING_PLANES; i++) {
+    plane = clippingPlanes[i];
+    insideD = insideD && (dot(vClipPosition, plane.xyz) > plane.w);
+  }
+  if (insideD) discard;
+#endif
+`);
+        };
+        // A changed source/focus plane count needs its own compiled program.
+        // Plane positions remain uniforms and do not multiply shader variants.
+        material.customProgramCacheKey = () =>
+          `d-focus-mixed-clip-v1:${sourceCount}:${focusCount}:${sourceIntersection ? 'I' : 'U'}`;
+      }
       cache.set(source, material);
     }
     return material;
