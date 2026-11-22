@@ -187,3 +187,69 @@ test('owner menu presets keep the active isometric or elevation camera direction
     }
   }
 });
+
+test('exact 3D/isometric projection toggle preserves target, view direction and visible frame', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 800 });
+  const model = makeTriangleGlb();
+  await page.route('**/private-model/model.glb', route =>
+    route.fulfill({ status: 200, contentType: 'model/gltf-binary', body: model }));
+  await page.goto('/private-model/');
+  await expect(page.getByRole('status')).toHaveText('Malli ladattu');
+  const canvas = page.locator('#private-model-canvas');
+  const readout = page.locator('#ai-navigator-readout');
+  await expect(readout).toHaveAttribute('data-ready', 'true');
+
+  const state = () => page.evaluate(() => {
+    const canvasEl = document.querySelector<HTMLCanvasElement>('#private-model-canvas')!;
+    const readoutEl = document.querySelector<HTMLElement>('#ai-navigator-readout')!;
+    const pose = JSON.parse(readoutEl.dataset.worldPose || 'null');
+    return {
+      pose,
+      frame: readoutEl.dataset.visibleBounds ?? '',
+      model: canvasEl.dataset.modelSource ?? '',
+      kept: canvasEl.dataset.deskPresetCameraKept ?? null,
+      projectionSwitch: canvasEl.dataset.deskProjectionSwitch ?? null,
+    };
+  });
+  const assertSamePose = (
+    actual: Awaited<ReturnType<typeof state>>,
+    reference: Awaited<ReturnType<typeof state>>,
+  ) => {
+    expect(actual.pose?.frame).toBe('THREE_WORLD_Y_UP');
+    expect(actual.pose.target).toHaveLength(3);
+    for (const key of ['target', 'direction'] as const) {
+      for (let i = 0; i < 3; i++) {
+        expect(Math.abs(actual.pose[key][i] - reference.pose[key][i])).toBeLessThan(1e-5);
+      }
+    }
+    expect(actual.frame).toBe(reference.frame);
+  };
+  const cameraButton = (id: 'iso' | 'orbit') =>
+    page.locator(`.desk-toolbar [data-desk-kind="angle"][data-desk-id="${id}"]`);
+  await expect(cameraButton('iso')).toBeVisible();
+
+  const perspective = await state();
+  expect(perspective.pose.projection).toBe('perspective');
+  expect(perspective.frame).toBeTruthy();
+
+  await cameraButton('iso').click();
+  await expect(canvas).toHaveAttribute('data-desk-projection-switch', 'persp->iso');
+  await expect(canvas).toHaveAttribute('data-camera-projection', 'orthographic');
+  const iso = await state();
+  expect(iso.pose.projection).toBe('orthographic');
+  assertSamePose(iso, perspective);
+
+  for (const preset of ['Koko rakennus', 'D-asunto'] as const) {
+    await selectResearchPreset(page, preset);
+    await expect(canvas).toHaveAttribute('data-desk-preset-camera-kept', 'exact');
+    const afterPreset = await state();
+    expect(afterPreset.pose.projection).toBe('orthographic');
+    assertSamePose(afterPreset, perspective);
+  }
+  await cameraButton('orbit').click();
+  await expect(canvas).toHaveAttribute('data-desk-projection-switch', 'iso->persp');
+  await expect(canvas).toHaveAttribute('data-camera-projection', 'perspective');
+  const restored = await state();
+  expect(restored.pose.projection).toBe('perspective');
+  assertSamePose(restored, perspective);
+});

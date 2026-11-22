@@ -6457,7 +6457,18 @@ const title = 'Private 3D viewer';
             } else if (activeElevationDirection) fitElevationCamera(activeElevationDirection);
             else if (canvas.dataset.viewPreset === 'top' || canvas.dataset.viewPreset === 'bottom') {
               fitAxisCamera(canvas.dataset.viewPreset);
-            } else fitIsometricCamera();
+            } else {
+              // Owner 22.11.2026: a layout resize (e.g. a longer status line) must
+              // not reset the user's isometric pose; keep target, direction and
+              // visible height, adapt only the width to the new aspect.
+              const halfHeight = Math.abs(isoCamera.top - isoCamera.bottom) / 2;
+              if (halfHeight > 0) {
+                const aspect = width / height;
+                isoCamera.left = -halfHeight * aspect;
+                isoCamera.right = halfHeight * aspect;
+                isoCamera.updateProjectionMatrix();
+              } else fitIsometricCamera();
+            }
           }
         }
       };
@@ -15612,6 +15623,95 @@ const title = 'Private 3D viewer';
         camera.updateProjectionMatrix();
         controls.update();
       };
+      // Owner 22.11.2026: the camera is the user's. A preset change keeps the
+      // exact pose (target, direction, zoom); 3D <-> isometric keeps target,
+      // direction and visible size, only the projection changes.
+      type DeskPose = { kind: 'persp' | 'iso'; target: THREE.Vector3; offset: THREE.Vector3; halfHeight: number };
+      const deskCapturePose = (): DeskPose | null => {
+        if (activeCamera === camera) {
+          const offset = camera.position.clone().sub(controls.target);
+          const distance = offset.length();
+          if (!(distance > 1e-9)) return null;
+          return { kind: 'persp', target: controls.target.clone(), offset: offset.divideScalar(distance),
+            halfHeight: distance * Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2) };
+        }
+        if (activeCamera === isoCamera) {
+          const offset = isoCamera.position.clone().sub(isoControls.target);
+          if (!(offset.lengthSq() > 1e-18)) return null;
+          return { kind: 'iso', target: isoControls.target.clone(), offset: offset.normalize(),
+            halfHeight: Math.abs(isoCamera.top - isoCamera.bottom) / 2 / Math.max(isoCamera.zoom, 1e-6) };
+        }
+        return null;
+      };
+      const deskApplyPose = (pose: DeskPose) => {
+        const halfHeight = Math.max(pose.halfHeight, 0.05);
+        if (activeCamera === camera) {
+          const distance = halfHeight / Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2);
+          controls.target.copy(pose.target);
+          camera.position.copy(pose.target).addScaledVector(pose.offset, distance);
+          camera.near = Math.max(distance / 10000, 0.001);
+          camera.far = Math.max(distance * 50, 2000);
+          camera.updateProjectionMatrix();
+          controls.update();
+          return true;
+        }
+        if (activeCamera === isoCamera) {
+          const aspect = Math.max(canvas.clientWidth / Math.max(canvas.clientHeight, 1), 0.01);
+          const distance = Math.max(halfHeight * 6, 50);
+          isoControls.target.copy(pose.target);
+          isoCamera.position.copy(pose.target).addScaledVector(pose.offset, distance);
+          isoCamera.left = -halfHeight * aspect;
+          isoCamera.right = halfHeight * aspect;
+          isoCamera.top = halfHeight;
+          isoCamera.bottom = -halfHeight;
+          isoCamera.zoom = 1;
+          isoCamera.near = 0.01;
+          isoCamera.far = Math.max(distance * 4, 1000);
+          isoCamera.updateProjectionMatrix();
+          isoControls.update();
+          return true;
+        }
+        return false;
+      };
+      const deskCurrentAngle = () => activeDesktopAngle({
+        standardViewPreset: canvas.dataset.standardViewPreset,
+        viewPreset: canvas.dataset.viewPreset,
+      });
+      // Start framing: the building (terrain and site context left out), seen
+      // from the south-west so the D apartment at the west end is nearest.
+      const deskStartFrame = () => {
+        if (activeCamera !== camera) return;
+        modelRoot.updateMatrixWorld(true);
+        const box = new THREE.Box3(), part = new THREE.Box3();
+        const isSiteContext = (object: THREE.Object3D) => {
+          for (let o: THREE.Object3D | null = object; o && o !== modelRoot; o = o.parent) {
+            if (/TERRAIN|SOURCE_CONTEXT|MAASTO|TONTTI/i.test(o.name ?? '')) return true;
+          }
+          return false;
+        };
+        (modelRoot.children[0] ?? modelRoot).traverseVisible((object: THREE.Object3D) => {
+          const mesh = object as THREE.Mesh;
+          if (!mesh.isMesh || !mesh.geometry || isSiteContext(mesh)) return;
+          if (!mesh.geometry.boundingBox) mesh.geometry.computeBoundingBox();
+          part.copy(mesh.geometry.boundingBox!).applyMatrix4(mesh.matrixWorld);
+          box.union(part);
+        });
+        if (box.isEmpty()) return;
+        const sphere = box.getBoundingSphere(new THREE.Sphere());
+        if (!Number.isFinite(sphere.radius) || sphere.radius <= 0) return;
+        const halfFov = THREE.MathUtils.degToRad(camera.fov) / 2;
+        const aspect = Math.max(camera.aspect || 1, 0.01);
+        const radius = sphere.radius * 0.82;
+        const distance = Math.max(radius / Math.tan(halfFov), radius / Math.tan(Math.atan(Math.tan(halfFov) * aspect)));
+        const offset = new THREE.Vector3(-0.622, 0.475, 0.622).normalize();
+        controls.target.copy(sphere.center);
+        camera.position.copy(sphere.center).addScaledVector(offset, distance);
+        camera.near = Math.max(distance / 10000, 0.001);
+        camera.far = Math.max(distance * 50, 2000);
+        camera.updateProjectionMatrix();
+        controls.update();
+        canvas.dataset.deskStartFrame = 'building-south-west';
+      };
       let deskSync = () => {};
       if (deskToolbarBar && deskPresetMenu && deskViewMenu) {
         const deskAngleButtons: Record<string, HTMLButtonElement | null> = {
@@ -15628,13 +15728,23 @@ const title = 'Private 3D viewer';
               return;
             }
             const target = (id === 'd-roof' ? 'd-apartment' : id) as StandardViewPreset;
+            const angleBefore = deskCurrentAngle();
+            const pose = deskCapturePose();
             applyStandardViewPreset(target, true);
             applyViewerLayerState({ roofVisible: id === 'd-roof' || id === 'whole-building' }, `preset:${id}`);
-            deskRefitKeepingDirection();
+            if (angleBefore && deskCurrentAngle() !== angleBefore) deskAngleButtons[angleBefore]?.click();
+            if (pose && !deskApplyPose(pose)) deskRefitKeepingDirection();
+            canvas.dataset.deskPresetCameraKept = pose ? 'exact' : 'angle';
             deskSync();
           },
           angle(id: string) {
+            const pose = deskCapturePose();
             deskAngleButtons[id]?.click();
+            // 3D <-> isometric: same place and size, only the projection changes.
+            if (pose && ((id === 'iso' && activeCamera === isoCamera) || (id === 'orbit' && activeCamera === camera))) {
+              deskApplyPose(pose);
+              canvas.dataset.deskProjectionSwitch = `${pose.kind}->${id === 'iso' ? 'iso' : 'persp'}`;
+            }
             deskSync();
           },
           edge(id: string) {
@@ -15702,45 +15812,21 @@ const title = 'Private 3D viewer';
           tools.classList.add('desk-side-tools');
           viewport.append(tools);
         }
-        // Owner 22.11.2026: changing a preset never changes the camera angle.
-        // The menu presets (Koko rakennus, D-asunto, Tontti, Infra, Salaojat,
-        // Sähköt) keep their own logic; afterwards the previous angle and view
-        // direction are restored and the frame is refitted to the visible content.
-        const deskViewDirection = () => {
-          const cam = activeCamera === isoCamera ? isoCamera : camera;
-          const ctl = activeCamera === isoCamera ? isoControls : controls;
-          return cam.position.clone().sub(ctl.target).normalize();
-        };
+        // Owner 22.11.2026: changing a preset never changes the camera. The menu
+        // presets (Koko rakennus, D-asunto, Tontti, Infra, Salaojat, Sähköt) keep
+        // their own logic; afterwards the previous angle and exact pose return.
         for (const menuPreset of [wholeBuildingPresetButton, dOverviewPresetButton, sitePresetButton,
           infraPresetButton, drainagePresetButton, electricalPresetButton]) {
-          let before: { angle: string | null; direction: THREE.Vector3 } | null = null;
+          let before: { angle: string | null; pose: DeskPose | null } | null = null;
           menuPreset.addEventListener('click', () => {
-            before = {
-              angle: activeDesktopAngle({
-                standardViewPreset: canvas.dataset.standardViewPreset,
-                viewPreset: canvas.dataset.viewPreset,
-              }),
-              direction: deskViewDirection(),
-            };
+            before = { angle: deskCurrentAngle(), pose: deskCapturePose() };
           }, { capture: true });
           menuPreset.addEventListener('click', () => {
             const kept = before;
             before = null;
             if (!kept?.angle) return;
-            const now = activeDesktopAngle({
-              standardViewPreset: canvas.dataset.standardViewPreset,
-              viewPreset: canvas.dataset.viewPreset,
-            });
-            if (now !== kept.angle) deskAngleButtons[kept.angle]?.click();
-            if (kept.angle === 'orbit' || kept.angle === 'iso') {
-              const cam = kept.angle === 'iso' ? isoCamera : camera;
-              const ctl = kept.angle === 'iso' ? isoControls : controls;
-              if (activeCamera === cam && Number.isFinite(kept.direction.lengthSq())) {
-                cam.position.copy(ctl.target).addScaledVector(kept.direction, Math.max(cam.position.distanceTo(ctl.target), 1));
-                ctl.update();
-              }
-            }
-            deskRefitKeepingDirection();
+            if (deskCurrentAngle() !== kept.angle) deskAngleButtons[kept.angle]?.click();
+            if (kept.pose) deskApplyPose(kept.pose);
             deskSync();
           });
         }
@@ -16242,7 +16328,7 @@ const title = 'Private 3D viewer';
               applyStandardViewPreset('d-apartment');
               // Owner 21.11.2026: start with the roof hidden.
               applyViewerLayerState({ roofVisible: false }, 'preset:d-apartment');
-              deskRefitKeepingDirection();
+              deskStartFrame();
               canvas.dataset.deskStartView = 'start-work-test-d-apartment';
               deskSync();
               return;
