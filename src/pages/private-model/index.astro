@@ -6457,7 +6457,18 @@ const title = 'Private 3D viewer';
             } else if (activeElevationDirection) fitElevationCamera(activeElevationDirection);
             else if (canvas.dataset.viewPreset === 'top' || canvas.dataset.viewPreset === 'bottom') {
               fitAxisCamera(canvas.dataset.viewPreset);
-            } else fitIsometricCamera();
+            } else {
+              // Owner 22.11.2026: a layout resize (e.g. a longer status line) must
+              // not reset the user's isometric pose; keep target, direction and
+              // visible height, adapt only the width to the new aspect.
+              const halfHeight = Math.abs(isoCamera.top - isoCamera.bottom) / 2;
+              if (halfHeight > 0) {
+                const aspect = width / height;
+                isoCamera.left = -halfHeight * aspect;
+                isoCamera.right = halfHeight * aspect;
+                isoCamera.updateProjectionMatrix();
+              } else fitIsometricCamera();
+            }
           }
         }
       };
