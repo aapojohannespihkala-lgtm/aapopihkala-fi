@@ -53,8 +53,8 @@ test('scene swaps, stale glTF object and unreviewed mounted root fail closed',()
 test('actual viewer forwards only post-review source proof to R31 Layers owner',()=>{
   const s=readFileSync('src/pages/private-model/index.astro','utf8');
   assert.match(s,/isAuthenticatedC80R31LayerSession\(gltf, layersLoadedSha, session\)/);
-  assert.match(s,/r31LayersVerified\s*\?\s*layersLoadedSha/);
+  assert.match(s,/r31LayerSourceSha = r31LayersVerified\s*\?\s*layersLoadedSha/);
   assert.match(s,/r31ViewsVerified:\s*true/);
   assert.match(s,/applyLoadedModel\(gltf, 'work-test', `WORK_TEST: \$\{candidate\.label\}`, null, null, r31LayersProof\)/);
-  assert.match(s,/layersEnabled = verifiedChainSourceSha !== null/);
+  assert.match(s,/layersEnabled = r31LayerSourceSha !== null/);
 });
