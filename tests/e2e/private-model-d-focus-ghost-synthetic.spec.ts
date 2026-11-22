@@ -216,3 +216,83 @@ test('Chromium material, clipping and hit-testing restore exactly through D focu
   expect(report.firstCounts.split).toBeGreaterThanOrEqual(2);
   expect(report.noPrivateGLB).toBe(true);
 });
+
+test('Chromium raster pixels reject source-clipped ghost fragments outside D and all ghost fragments inside D', async ({ page }) => {
+  test.setTimeout(90_000);
+  const { build } = await import('esbuild');
+  const browserSource = `
+    import { DoubleSide, Group, Mesh, MeshBasicMaterial, OrthographicCamera, Plane,
+      PlaneGeometry, Scene, Vector3, WebGLRenderer, WebGLRenderTarget } from 'three';
+    import { createDFocusGhost } from './src/scripts/privateModelDFocusGhost.ts';
+    window.__runDFocusSourceClipPixelQA = () => {
+      const renderer = new WebGLRenderer({ antialias: false });
+      renderer.setSize(128, 128, false);
+      renderer.setPixelRatio(1);
+      renderer.localClippingEnabled = true;
+      renderer.setClearColor(0x000000, 1);
+      const target = new WebGLRenderTarget(128, 128);
+      renderer.setRenderTarget(target);
+      const scene = new Scene();
+      const root = new Group(); scene.add(root);
+      const clip = new Plane(new Vector3(0, 1, 0), -0.75);
+      const original = new MeshBasicMaterial({
+        color: 0xff0000, side: DoubleSide, clippingPlanes: [clip], clipIntersection: false,
+      });
+      const roof = new Mesh(new PlaneGeometry(12, 8), original);
+      roof.rotation.x = -Math.PI / 2;
+      roof.position.set(5, 1, -2); root.add(roof);
+      const camera = new OrthographicCamera(-15, 15, 15, -15, 0.1, 100);
+      camera.up.set(0, 0, -1);
+      camera.position.set(5, 20, -2); camera.lookAt(5, 0, -2);
+      camera.updateProjectionMatrix(); camera.updateMatrixWorld(true);
+      const footprint = { x0: 0, x1: 6, z0: -10, z1: 5 };
+      const ghost = createDFocusGhost(0.1);
+      const read = (x, y, z) => {
+        const n = new Vector3(x, y, z).project(camera);
+        const ix = Math.max(0, Math.min(127, Math.round((n.x + 1) * 63.5)));
+        const iy = Math.max(0, Math.min(127, Math.round((n.y + 1) * 63.5)));
+        const pixel = new Uint8Array(4);
+        renderer.readRenderTargetPixels(target, ix, iy, 1, 1, pixel);
+        return [...pixel];
+      };
+      const paint = () => { renderer.render(scene, camera); };
+      const assertPixel = (ok, label, pixel) => {
+        if (!ok) throw new Error('D-focus clipping raster FAIL: ' + label + ' pixel=' + pixel);
+      };
+      const counts = ghost.apply(root, footprint);
+      if (counts.split !== 1 || roof.children.length !== 1) throw new Error('Missing clipped ghost roof');
+      paint();
+      const inD = read(2, 1, -2);
+      const outside = read(8, 1, -2);
+      assertPixel(inD[0] > 150 && inD[1] < 75 && inD[2] < 75,
+        'source-visible inside D must be pure red, not ghost-tinted', inD);
+      assertPixel(outside[0] > 5 && outside[0] < 145 && outside[1] > 5 && outside[2] > 5,
+        'source-visible outside D must be faint, not hidden', outside);
+      // Move the identical roof into the original source clip rejection zone.
+      // The outside ghost must now be completely absent rather than leaked.
+      ghost.restore(); roof.position.y = 0;
+      ghost.apply(root, footprint); paint();
+      const rejectedInside = read(2, 0, -2);
+      const rejectedOutside = read(8, 0, -2);
+      assertPixel(rejectedInside.slice(0, 3).every(v => v <= 3),
+        'source-rejected inside D is transparent', rejectedInside);
+      assertPixel(rejectedOutside.slice(0, 3).every(v => v <= 3),
+        'source-rejected outside D must not leak as ghost', rejectedOutside);
+      ghost.restore();
+      if (roof.material !== original || roof.children.length !== 0 || ghost.active)
+        throw new Error('Pixel fixture must restore exact source material and mesh graph');
+      target.dispose(); renderer.dispose();
+      return { inD, outside, rejectedInside, rejectedOutside, checked: 4 };
+    };
+  `;
+  const bundle = await build({
+    stdin: { contents: browserSource, resolveDir: process.cwd(),
+      sourcefile: 'd-focus-source-clipping-pixels.ts', loader: 'ts' },
+    bundle: true, platform: 'browser', format: 'iife', target: 'es2022',
+    logLevel: 'silent', write: false,
+  });
+  await page.goto('/private-model/');
+  await page.addScriptTag({ content: bundle.outputFiles[0].text });
+  const report = await page.evaluate(() => (window as any).__runDFocusSourceClipPixelQA());
+  expect(report.checked).toBe(4);
+});
