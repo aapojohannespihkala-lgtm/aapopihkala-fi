@@ -102,3 +102,117 @@ test('D roof and roof-hidden presets retain unscoped D walls, split shared meshe
   await expect(preset('d-roof')).toHaveAttribute('aria-pressed', 'true');
   expect(errors).toEqual([]);
 });
+
+
+test('Chromium material, clipping and hit-testing restore exactly through D focus cycles and model swap', async ({ page }) => {
+  const { build } = await import('esbuild');
+  const browserSource = `
+    import { BoxGeometry, Group, Mesh, MeshBasicMaterial, Plane, Vector3 } from 'three';
+    import { createDFocusGhost } from './src/scripts/privateModelDFocusGhost.ts';
+
+    const box = (name, x, z, sx = 1, sz = 1, material = new MeshBasicMaterial()) => {
+      const mesh = new Mesh(new BoxGeometry(sx, 1, sz), material);
+      mesh.position.set(x, 0, z);
+      mesh.name = name;
+      return mesh;
+    };
+    const check = (ok, label, passed) => {
+      if (!ok) throw new Error('D-focus restore regression: ' + label);
+      passed.push(label);
+    };
+
+    window.__runDFocusGhostCycleQA = () => {
+      const passed = [];
+      const footprint = { x0: 0, x1: 6, z0: -10, z1: 5 };
+      const first = new Group();
+      const insideWall = box('D_WALL_NO_SCOPE', 2, 0);
+      const insideWindow = box('D_WINDOW_NO_SCOPE', 3, 0, 1.5, 0.1);
+      const outside = box('OUTSIDE_D', 12, 0);
+      const sourceClip = new Plane(new Vector3(0, 1, 0), -0.75);
+      const roofMaterial = new MeshBasicMaterial();
+      roofMaterial.clippingPlanes = [sourceClip];
+      const roof = box('CROSSING_ROOF', 5, -2, 12, 8, roofMaterial);
+      const ground = box('CROSSING_TERRAIN', 5, -2, 14, 18);
+      first.add(insideWall, insideWindow, outside, roof, ground);
+      const originals = [insideWall, insideWindow, outside, roof, ground].map(mesh => mesh.material);
+      const oldRaycast = outside.raycast;
+      const roofRaycast = roof.raycast;
+      const oldChildren = roof.children.length;
+      const ghost = createDFocusGhost(0.1);
+
+      const counts = ghost.apply(first, footprint);
+      check(counts.inside >= 2, 'scope-less D wall and window stay full-strength', passed);
+      check(counts.outside >= 1, 'outside building is ghosted', passed);
+      check(counts.split >= 2, 'crossing roof and ground split', passed);
+      check(insideWall.material === originals[0] && insideWindow.material === originals[1],
+        'scope-less wall/window keep their exact original material', passed);
+      check(outside.material !== originals[2] && outside.material.transparent &&
+        Math.abs(outside.material.opacity - 0.1) < 1e-6 && !outside.material.depthWrite,
+        'outside clone has 0.1 opacity and no depth write', passed);
+      check(outside.userData.viewerSuppressEdgeOverlay === true,
+        'outside ghost suppresses edges', passed);
+      const outsideHits = []; outside.raycast({}, outsideHits);
+      check(outsideHits.length === 0, 'outside ghost cannot be selected', passed);
+      check(roof.material !== roofMaterial && roof.material.clippingPlanes.length === 5 &&
+        roof.material.clippingPlanes.includes(sourceClip) && roof.material.clipIntersection === false,
+        'roof D half keeps original clipping plus four local planes', passed);
+      check(roof.children.length === oldChildren + 1 &&
+        roof.children[0].userData.dFocusGhost === true &&
+        roof.children[0].material.clippingPlanes.length === 5 &&
+        roof.children[0].material.clipIntersection === true,
+        'roof outside half exists as local clipped ghost', passed);
+      const childHits = []; roof.children[0].raycast({}, childHits);
+      check(childHits.length === 0, 'crossing ghost child is not selectable', passed);
+      check(roofMaterial.clippingPlanes.length === 1 && roofMaterial.clippingPlanes[0] === sourceClip,
+        'original roof clipping array was not mutated', passed);
+
+      ghost.restore();
+      check([insideWall, insideWindow, outside, roof, ground].every((mesh, i) => mesh.material === originals[i]),
+        'whole-building preset restores exact source material references', passed);
+      check(roof.children.length === oldChildren && ground.children.length === 0,
+        'all temporary ghost children removed', passed);
+      check(outside.raycast === oldRaycast && roof.raycast === roofRaycast &&
+        !Object.prototype.hasOwnProperty.call(outside, 'raycast'),
+        'selection and raycast behavior restored, no own override', passed);
+      check(!Object.prototype.hasOwnProperty.call(outside.userData, 'viewerSuppressEdgeOverlay'),
+        'temporary edge suppression removed', passed);
+      check(roofMaterial.clippingPlanes[0] === sourceClip && !ghost.active,
+        'original clipping and inactive state restored', passed);
+
+      ghost.apply(first, footprint);
+      check(roof.children.length === oldChildren + 1, 'repeat D-roof adds one child only', passed);
+      ghost.apply(first, footprint);
+      check(roof.children.length === oldChildren + 1,
+        'same preset twice does not accumulate clipping children', passed);
+
+      const second = new Group();
+      const secondOutside = box('OTHER_MODEL_OUTSIDE_D', 11, 0, 1, 1, roofMaterial);
+      second.add(secondOutside);
+      ghost.apply(second, footprint);
+      check([insideWall, insideWindow, outside, roof, ground].every((mesh, i) => mesh.material === originals[i]) &&
+        roof.children.length === oldChildren,
+        'scene/model switch restores first model before mutating second', passed);
+      check(secondOutside.material !== roofMaterial && secondOutside.material.transparent,
+        'new model receives its own faint cloned presentation', passed);
+      ghost.restore();
+      check(secondOutside.material === roofMaterial &&
+        roofMaterial.clippingPlanes.length === 1 &&
+        roofMaterial.clippingPlanes[0] === sourceClip && !ghost.active,
+        'new model restored without mutating shared source material', passed);
+      return { checked: passed.length, firstCounts: counts, noPrivateGLB: true };
+    };
+  `;
+  const bundle = await build({
+    stdin: { contents: browserSource, resolveDir: process.cwd(), sourcefile: 'd-focus-ghost-chromium-fixture.ts', loader: 'ts' },
+    bundle: true, platform: 'browser', format: 'iife', target: 'es2022',
+    logLevel: 'silent', write: false,
+  });
+  await page.goto('/private-model/');
+  await page.addScriptTag({ content: bundle.outputFiles[0].text });
+  const report = await page.evaluate(() => (window as any).__runDFocusGhostCycleQA());
+  expect(report.checked).toBeGreaterThanOrEqual(20);
+  expect(report.firstCounts.inside).toBeGreaterThanOrEqual(2);
+  expect(report.firstCounts.outside).toBeGreaterThanOrEqual(1);
+  expect(report.firstCounts.split).toBeGreaterThanOrEqual(2);
+  expect(report.noPrivateGLB).toBe(true);
+});
