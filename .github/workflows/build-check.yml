@@ -263,6 +263,7 @@ jobs:
             tests/unit/private-model-c80-r31-review-runtime.test.mjs \
             tests/unit/private-model-desktop-toolbar.test.mjs \
             tests/unit/private-model-navigation-cube.test.mjs \
+            tests/unit/private-model-k3-d1f-sw02-scene781782-source-receipt.test.mjs \
             tests/unit/private-model-technical-review-hot-water.test.mjs \
             tests/unit/private-model-hidden-seam-edges.test.mjs \
             tests/unit/private-model-floor-depth-bias.test.mjs \
