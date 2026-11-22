@@ -99,74 +99,97 @@ export function projectNavCube(quaternion, frame = 'local') {
   return Object.freeze(out);
 }
 
-
-/** Radius (SVG units) of the area an axis letter needs, incl. its outline. */
-export const NAV_CUBE_AXIS_LABEL_RADIUS = 3.3;
-const LABEL_GAP = 1.0;
-
-function convexHull(points) {
-  const pts = points.slice().sort((a, b) => a.x - b.x || a.y - b.y);
-  const cross = (o, a, b) => (a.x - o.x) * (b.y - o.y) - (a.y - o.y) * (b.x - o.x);
+/** Project the complete cube silhouette, including faces seen edge-on. */
+export function projectNavCubeSilhouette(quaternion, frame = 'local') {
+  // Keep the same input checks as the rendered faces.
+  projectNavCube(quaternion, frame);
+  const { north, east, up } = navCubeBasis(frame);
+  const points = [];
+  for (const x of [-1, 1]) for (const y of [-1, 1]) for (const z of [-1, 1]) {
+    const world = add(scale(east, x * NAV_CUBE_HALF),
+      scale(north, y * NAV_CUBE_HALF), scale(up, z * NAV_CUBE_HALF));
+    const v = inverseRotate(world, quaternion);
+    points.push({ x: NAV_CUBE_CENTER + v.x, y: NAV_CUBE_CENTER - v.y });
+  }
+  const unique = [...new Map(points.map(p =>
+    [p.x.toFixed(7) + ',' + p.y.toFixed(7), p])).values()]
+    .sort((a, b) => a.x - b.x || a.y - b.y);
+  const cross = (o, a, b) =>
+    (a.x - o.x) * (b.y - o.y) - (a.y - o.y) * (b.x - o.x);
   const lower = [], upper = [];
-  for (const p of pts) {
-    while (lower.length >= 2 && cross(lower[lower.length - 2], lower[lower.length - 1], p) <= 0) lower.pop();
+  for (const p of unique) {
+    while (lower.length >= 2 &&
+        cross(lower[lower.length - 2], lower[lower.length - 1], p) <= 0) lower.pop();
     lower.push(p);
   }
-  for (const p of pts.slice().reverse()) {
-    while (upper.length >= 2 && cross(upper[upper.length - 2], upper[upper.length - 1], p) <= 0) upper.pop();
+  for (let i = unique.length - 1; i >= 0; i--) {
+    const p = unique[i];
+    while (upper.length >= 2 &&
+        cross(upper[upper.length - 2], upper[upper.length - 1], p) <= 0) upper.pop();
     upper.push(p);
   }
-  return lower.slice(0, -1).concat(upper.slice(0, -1));
+  return Object.freeze([...lower.slice(0, -1), ...upper.slice(0, -1)]
+    .map(p => Object.freeze(p)));
 }
 
-/** Signed distance from a point to a convex polygon (negative inside). */
-export function distanceToHull(point, hull) {
-  let inside = true, best = Infinity;
+const normalized2d = (x, y) => {
+  const n = Math.hypot(x, y);
+  return n > 1e-8 ? { x: x / n, y: y / n } : null;
+};
+
+/** Positive outside value = distance from convex silhouette, negative = inside. */
+function signedSilhouetteClearance(point, hull) {
+  if (hull.length < 3) return -Infinity;
+  let inside = true;
+  let distance = Infinity;
   for (let i = 0; i < hull.length; i++) {
     const a = hull[i], b = hull[(i + 1) % hull.length];
-    const ex = b.x - a.x, ey = b.y - a.y;
-    const t = Math.max(0, Math.min(1, ((point.x - a.x) * ex + (point.y - a.y) * ey) / (ex * ex + ey * ey || 1)));
-    best = Math.min(best, Math.hypot(point.x - (a.x + ex * t), point.y - (a.y + ey * t)));
-    if (ex * (point.y - a.y) - ey * (point.x - a.x) < 0) inside = false;
+    const dx = b.x - a.x, dy = b.y - a.y;
+    if (dx * (point.y - a.y) - dy * (point.x - a.x) < -1e-7) inside = false;
+    const t = Math.max(0, Math.min(1,
+      ((point.x - a.x) * dx + (point.y - a.y) * dy) / Math.max(dx * dx + dy * dy, 1e-10)));
+    distance = Math.min(distance, Math.hypot(point.x - a.x - t * dx, point.y - a.y - t * dy));
   }
-  // Hull is counter-clockwise in SVG coordinates when every cross >= 0 inside.
-  return inside ? -best : best;
+  return inside ? -distance : distance;
 }
 
-function placeAxisLabel(tip, dir, hull, placed) {
-  const r = NAV_CUBE_AXIS_LABEL_RADIUS;
-  const ok = (p) => distanceToHull(p, hull) >= r + 0.3 &&
-    placed.every((q) => Math.hypot(p.x - q.x, p.y - q.y) >= 2 * r);
-  const at = (angleDeg, k) => {
-    const a = (angleDeg * Math.PI) / 180;
-    const vx = dir.x * Math.cos(a) - dir.y * Math.sin(a);
-    const vy = dir.x * Math.sin(a) + dir.y * Math.cos(a);
-    return { x: tip.x + vx * (LABEL_GAP + r) * k, y: tip.y + vy * (LABEL_GAP + r) * k };
-  };
-  // 1) On the extension of the arrow tip (small sideways tolerance).
-  for (const k of [1, 1.3, 1.7]) {
-    for (const angle of [0, 20, -20, 40, -40]) {
-      const p = at(angle, k);
-      if (ok(p)) return { x: p.x, y: p.y };
+/**
+ * Place the entire 7px letter with its outline outside the actual projected
+ * cube, preferably beyond the positive arrow tip. The normal/radial fallback
+ * avoids putting an axis name on a face when the tip is inside the silhouette.
+ * No camera/model transforms are changed.
+ */
+function outsideAxisLabel(tip, axisDirection, hull, placed) {
+  const radial = normalized2d(tip.x - NAV_CUBE_CENTER, tip.y - NAV_CUBE_CENTER);
+  const d = axisDirection;
+  const directions = [
+    { unit: d, from: 5, to: 24 },
+    { unit: radial && normalized2d(d.x + radial.x * 0.7, d.y + radial.y * 0.7), from: 5, to: 34 },
+    { unit: radial, from: 5, to: 34 },
+    { unit: normalized2d(-d.y, d.x), from: 5, to: 36 },
+    { unit: normalized2d(d.y, -d.x), from: 5, to: 36 },
+    { unit: d, from: 25, to: 56 },
+  ];
+  const safe = point =>
+    point.x >= 8 && point.x <= 84 && point.y >= 8 && point.y <= 84 &&
+    signedSilhouetteClearance(point, hull) >= 6.25 &&
+    placed.every(p => Math.hypot(p.x - point.x, p.y - point.y) >= 11);
+  for (const { unit, from, to } of directions) {
+    if (!unit) continue;
+    for (let distance = from; distance <= to; distance += 1) {
+      const p = { x: tip.x + unit.x * distance, y: tip.y + unit.y * distance };
+      if (safe(p)) return p;
     }
   }
-  // 2) Nearest clear spot just outside the silhouette (inward-pointing tips).
-  const preferred = at(0, 1);
-  let best = null, bestD = Infinity;
-  for (let i = 0; i < hull.length; i++) {
-    const p0 = hull[i], p1 = hull[(i + 1) % hull.length];
-    const ex = p1.x - p0.x, ey = p1.y - p0.y, len = Math.hypot(ex, ey) || 1;
-    const nx = ey / len, ny = -ex / len;
-    const steps = Math.max(1, Math.ceil(len));
-    for (let j = 0; j <= steps; j++) {
-      const t = j / steps;
-      const p = { x: p0.x + ex * t + nx * (r + 0.6), y: p0.y + ey * t + ny * (r + 0.6) };
-      if (!ok(p)) continue;
-      const d = Math.hypot(p.x - preferred.x, p.y - preferred.y) + Math.hypot(p.x - tip.x, p.y - tip.y) * 0.5;
-      if (d < bestD) { bestD = d; best = p; }
-    }
+  // A 36px ring is outside even the most oblique 30px cube silhouette.
+  // Keep fallback letters within the 92px SVG viewport and apart.
+  for (let i = 0; i < 144; i++) {
+    const theta = (i * Math.PI) / 72;
+    const p = { x: NAV_CUBE_CENTER + 36 * Math.cos(theta),
+      y: NAV_CUBE_CENTER + 36 * Math.sin(theta) };
+    if (safe(p)) return p;
   }
-  return best ?? preferred;
+  throw new Error('YLIS_NAV_CUBE: no collision-free external axis label');
 }
 
 /**
@@ -187,15 +210,9 @@ export function projectNavCubeEdgeAxes(quaternion, frame = 'local') {
     const v = inverseRotate(point, quaternion);
     return { x: NAV_CUBE_CENTER + v.x, y: NAV_CUBE_CENTER - v.y };
   };
-  // Owner 22.11.2026: every X/Y/Z letter lies wholly outside the projected
-  // cube silhouette, preferably on the extension of its arrow tip.
-  const corners = [];
-  for (const sx of [-1, 1]) for (const sy of [-1, 1]) for (const sz of [-1, 1]) {
-    corners.push(screen(add(scale(east, NAV_CUBE_HALF * sx), scale(north, NAV_CUBE_HALF * sy), scale(up, NAV_CUBE_HALF * sz))));
-  }
-  const hull = convexHull(corners);
-  const placed = [];
   const out = [];
+  const silhouette = projectNavCubeSilhouette(quaternion, frame);
+  const placedLabels = [];
   for (let axis = 0; axis < axes.length; axis++) {
     const edgePoint = (sign) => screen(add(...axes.map(({ world }, i) =>
       scale(world, NAV_CUBE_HALF * (i === axis ? sign : facing[i])))));
@@ -208,8 +225,10 @@ export function projectNavCubeEdgeAxes(quaternion, frame = 'local') {
     const normal = { x: -uy * 1.8, y: ux * 1.8 };
     const head = [end, { x: base.x + normal.x, y: base.y + normal.y },
       { x: base.x - normal.x, y: base.y - normal.y }];
-    const label = placeAxisLabel(end, { x: ux, y: uy }, hull, placed);
-    placed.push(label);
+    // The arrowhead remains at the +axis endpoint. Only the text travels
+    // beyond the silhouette (or to a nearby exterior side if necessary).
+    const label = outsideAxisLabel(end, { x: ux, y: uy }, silhouette, placedLabels);
+    placedLabels.push(label);
     out.push(Object.freeze({ key: axes[axis].key, start, end,
       lineEnd: { x: base.x - ux * 0.6, y: base.y - uy * 0.6 },
       head: head.map((p) => `${p.x.toFixed(2)},${p.y.toFixed(2)}`).join(' '),
