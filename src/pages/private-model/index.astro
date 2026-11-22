@@ -3764,7 +3764,6 @@ const title = 'Private 3D viewer';
       let clearPointMeasureOnSceneChange: (() => void) | null = null;
 
       const setModelScene = (root: any) => {
-        if (deskDFocus.active) { deskDFocus.restore(); delete canvas!.dataset.dFocusGhost; }
         beforeLayersSceneChange();
         if (root !== fullModelScene && mainViewScope?.active && root !== modelRoot.children[0]) {
           mainViewScope.restore();
@@ -15171,6 +15170,11 @@ const title = 'Private 3D viewer';
         layersRuntime = null;
       };
       beforeLayersSceneChange = disposeLayersPresentation;
+      // Any scene change also ends the whole-D focus presentation (restores originals).
+      beforeLayersSceneChange = () => {
+        if (deskDFocus.active) { deskDFocus.restore(); delete canvas.dataset.dFocusGhost; delete canvas.dataset.dFocusFootprint; }
+        disposeLayersPresentation();
+      };
 
       const commitLayerPreset = (preset: ViewerLayerPreset) => {
         if (!layersPresetChoices.includes(preset) || !layersExpectedSha) return;
