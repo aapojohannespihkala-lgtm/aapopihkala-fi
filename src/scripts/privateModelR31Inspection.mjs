@@ -620,7 +620,7 @@ export function buildR31EastGableOverlay(THREE, gltf) {
     clone.matrixAutoUpdate = false;
     clone.matrix.copy(object.matrixWorld);
     liftGableFace(THREE, clone);
-    clone.userData = { ...object.userData, sourceNode: index, sourceScene: R31_EAST_GABLE_SOURCE.sceneIndex,
+    clone.userData = { ...clone.userData, ...object.userData, sourceNode: index, sourceScene: R31_EAST_GABLE_SOURCE.sceneIndex,
       presentationOnly: true, ModelStage: 'WORK_TEST_VIEW', basis: 'OWNER_20261122_EAST_GABLE_AS_WIDE_AS_WEST' };
     group.add(clone);
   });
@@ -674,7 +674,7 @@ export async function loadR31EastGableOverlay(THREE, gltf) {
       clone.matrixAutoUpdate = false;
       clone.matrix.copy(world);
       liftGableFace(THREE, clone);
-      clone.userData = { ...(node.extras ?? {}), sourceNode: index, sourceScene: R31_EAST_GABLE_SOURCE.sceneIndex,
+      clone.userData = { ...clone.userData, ...(node.extras ?? {}), sourceNode: index, sourceScene: R31_EAST_GABLE_SOURCE.sceneIndex,
         presentationOnly: true, ModelStage: 'WORK_TEST_VIEW', basis: 'OWNER_20261122_EAST_GABLE_AS_WIDE_AS_WEST' };
       group.add(clone);
     }
