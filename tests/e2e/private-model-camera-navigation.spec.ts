@@ -25,7 +25,7 @@ const openPresetMenu = async (page: Page) => {
 
 const selectResearchPreset = async (page: Page, name: 'Koko rakennus' | 'D-asunto') => {
   await openPresetMenu(page);
-  await menu.getByRole('button', { name, exact: true }).click();
+  await page.locator('#preset-menu').getByRole('button', { name, exact: true }).click();
 };
 
 const expectPerspectiveFreeOrbit = async (page: Page) => {
