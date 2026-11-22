@@ -420,7 +420,7 @@ export function mountNavigationCube({ svg, root }) {
       head.setAttribute('points', axis.head);
       label.setAttribute('x', axis.label.x.toFixed(2));
       label.setAttribute('y', axis.label.y.toFixed(2));
-      label.setAttribute('data-cube-edge-label-end', axis.label.end ?? 'tip');
+      label.setAttribute('data-cube-edge-label-end', axis.label.end);
       edgeArrows.append(line, head, label);
     }
     group.append(edgeArrows);
