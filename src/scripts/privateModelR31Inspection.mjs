@@ -339,3 +339,61 @@ export function buildR31EastGableOverlay(THREE, gltf) {
   group.userData = { count: group.children.length, presentationOnly: true };
   return group;
 }
+
+/** World matrix of a JSON node through its parent chain (glTF TRS / matrix). */
+function jsonWorldMatrix(THREE, json, index, parentOf) {
+  const chain = [];
+  for (let n = index; n !== undefined && n >= 0; n = parentOf.get(n)) chain.unshift(n);
+  const world = new THREE.Matrix4();
+  for (const n of chain) {
+    const node = json.nodes[n];
+    const local = new THREE.Matrix4();
+    if (Array.isArray(node.matrix)) local.fromArray(node.matrix);
+    else local.compose(new THREE.Vector3(...(node.translation ?? [0, 0, 0])),
+      new THREE.Quaternion(...(node.rotation ?? [0, 0, 0, 1])), new THREE.Vector3(...(node.scale ?? [1, 1, 1])));
+    world.multiply(local);
+  }
+  return world;
+}
+
+/**
+ * Same east gable, for loaders that build only the viewed scenes: each source
+ * node is loaded on demand from the authenticated GLB parser and placed with
+ * its JSON world matrix (source scene 23 chain).
+ */
+export async function loadR31EastGableOverlay(THREE, gltf) {
+  const ready = buildR31EastGableOverlay(THREE, gltf);
+  if (ready) return ready;
+  const json = gltf?.parser?.json;
+  if (!json || typeof gltf?.parser?.getDependency !== 'function') return null;
+  const parentOf = new Map();
+  json.nodes.forEach((node, i) => (node.children ?? []).forEach((c) => parentOf.set(c, i)));
+  const inScene = new Set();
+  const walk = (n) => { inScene.add(n); (json.nodes[n].children ?? []).forEach(walk); };
+  (json.scenes?.[R31_EAST_GABLE_SOURCE.sceneIndex]?.nodes ?? []).forEach(walk);
+  const group = new THREE.Group();
+  group.name = 'R31_EAST_GABLE_K14_SOURCE_SCENE23';
+  for (const index of R31_EAST_GABLE_SOURCE.nodes) {
+    const node = json.nodes[index];
+    if (!inScene.has(index) || node?.mesh === undefined || !R31_EAST_GABLE_SOURCE.namePattern.test(node.name ?? '')) continue;
+    const meshes = await gltf.parser.getDependency('mesh', node.mesh);
+    const world = jsonWorldMatrix(THREE, json, index, parentOf);
+    const list = meshes?.isMesh ? [meshes] : (meshes?.children ?? []).filter((m) => m.isMesh);
+    for (const mesh of list) {
+      const material = mesh.material?.clone?.() ?? mesh.material;
+      if (material && !Array.isArray(material)) {
+        material.polygonOffset = true; material.polygonOffsetFactor = -1; material.polygonOffsetUnits = -1;
+      }
+      const clone = new THREE.Mesh(mesh.geometry, material);
+      clone.name = node.name;
+      clone.matrixAutoUpdate = false;
+      clone.matrix.copy(world);
+      clone.userData = { ...(node.extras ?? {}), sourceNode: index, sourceScene: R31_EAST_GABLE_SOURCE.sceneIndex,
+        presentationOnly: true, ModelStage: 'WORK_TEST_VIEW', basis: 'OWNER_20261122_EAST_GABLE_AS_WIDE_AS_WEST' };
+      group.add(clone);
+    }
+  }
+  if (!group.children.length) return null;
+  group.userData = { count: group.children.length, presentationOnly: true };
+  return group;
+}
