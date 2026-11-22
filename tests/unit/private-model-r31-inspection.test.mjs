@@ -119,3 +119,21 @@ test('exterior donors keep only their own source parts and check the scene name'
   assert.deepEqual(overlay.children.map((c) => c.name).sort(), [pipe.name, gutter.name].sort());
   assert.equal(buildR31ExteriorDonorOverlay(THREE, 'rainwater', gltf('other')), null);
 });
+
+test('owner-corrected zones win: downpipes move to the nearest zone, collar stays on the gutter', async () => {
+  const { relocateR31Downpipes } = await import('../../src/scripts/privateModelR31Inspection.mjs');
+  const group = new THREE.Group();
+  const part = (name, x, y, z, h) => {
+    const m = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, h), new THREE.MeshBasicMaterial());
+    m.name = name; m.matrixAutoUpdate = false; m.matrix.makeTranslation(x, y, z); group.add(m); return m;
+  };
+  const pipe = part('T12_2026_CD_LANSI_ETELA_DOWNPIPE_VERTICAL_PIPE_WORK_TEST', -0.5, 3, 2.45, 5);
+  const collar = part('T12_2026_CD_LANSI_ETELA_DOWNPIPE_INLET_COLLAR_WORK_TEST', -0.5, 5.75, 2.45, 0.1);
+  const moves = relocateR31Downpipes(THREE, group, [{ x: -0.14, z: 1.56, name: 'SW' }, { x: 25.5, z: -10.6, name: 'NE' }]);
+  assert.equal(moves[0].zone, 'SW');
+  const p = new THREE.Vector3().setFromMatrixPosition(pipe.matrix);
+  assert.ok(Math.abs(p.x + 0.14) < 1e-6 && Math.abs(p.z - 1.56) < 1e-6);
+  const c = new THREE.Vector3().setFromMatrixPosition(collar.matrix);
+  assert.ok(Math.abs(c.x + 0.14) < 1e-6 && Math.abs(c.z - 2.45) < 1e-6, 'collar only along the gutter');
+  assert.ok(group.children.some((m) => /CONNECTOR_TO_OWNER_ZONE/.test(m.name)));
+});

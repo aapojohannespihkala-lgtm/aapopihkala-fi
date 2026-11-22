@@ -2753,7 +2753,7 @@ const title = 'Private 3D viewer';
       // @ts-ignore - R31 review roots and inspection overlays have unit coverage.
       import { resolveC80R31TechnicalReviewRoots } from '../../scripts/privateModelC80R31TechnicalReview.mjs';
       // @ts-ignore - pure overlay builders, THREE injected.
-      import { R31_DRAINAGE_SOURCE, R31_INSPECTION_COLORS, R31_EXTERIOR_DONORS, buildR31DrainageOverlay, buildR31InfraOverlay, buildR31ExteriorDonorOverlay, dimR31ModelForInspection, isR31SiteSewerName } from '../../scripts/privateModelR31Inspection.mjs';
+      import { R31_DRAINAGE_SOURCE, R31_EXTERIOR_DONORS, buildR31DrainageOverlay, buildR31InfraOverlay, buildR31ExteriorDonorOverlay, relocateR31Downpipes } from '../../scripts/privateModelR31Inspection.mjs';
       import { resolveTechnicalReviewRoots, createTechnicalReviewPresentation, technicalReviewSystemOf, technicalReviewLayerSystemOf, refineTechnicalReviewSystem, filterNonTechnicalBoundObjects } from '../../scripts/privateModelTechnicalReviewPresentation.mjs';
       import { resolveConcealedTechnicalObjects, createConcealedTechnicalPresentation } from '../../scripts/privateModelConcealedTechnicalPresentation.mjs';
       import { K17_RAIL900_SOURCE_SHA256 } from '../../scripts/privateModelK17Rail900LayerSourceProfile.mjs';
@@ -15215,6 +15215,7 @@ const title = 'Private 3D viewer';
         canvas.dataset.technicalReviewSystems = technicalReview?.applied ? JSON.stringify(technicalReview.systemCounts) : '';
         canvas.dataset.technicalReviewLightRoles = technicalReview?.applied ? String(technicalReview.lightRoleCount) : '';
         refreshEdgeRendering(modelRoot.children[0] ?? null);
+        r31SyncExteriorDonorsHook();
       });
 
       layersContextInput.addEventListener('change', () => {
@@ -15877,37 +15878,43 @@ const title = 'Private 3D viewer';
         deskSyncDownspoutZones();
         queueMicrotask(() => { deskSyncDownspoutZones(); refreshEdgeRendering(modelRoot.children[0] ?? modelRoot); });
       };
-      // Owner 22.11.2026 17.08: Salaojat and Infra on the same R31 model,
-      // from already published sources only (see privateModelR31Inspection).
-      let r31Inspection: { mode: 'drainage' | 'infra'; overlay: any; restore: () => void } | null = null;
+      // Owner 22.11.2026 17.08 / 18.08: one "Talotekniikka korostettuna" button
+      // for everything. In the whole-building preset it also shows the site
+      // networks (drainage, Locus water/wastewater) from already published
+      // sources; D presets keep the building systems only.
       let r31DrainageGltf: Promise<any> | null = null;
       const r31InspectionAvailable = () =>
         layersLoadedSha === C80_R31_9E0B_SOURCE.glbSha256 && Boolean(modelRoot.children[0]);
-      const exitR31Inspection = () => {
-        if (!r31Inspection) return;
-        const active = r31Inspection;
-        r31Inspection = null;
-        active.overlay.removeFromParent();
-        // Layerit may have snapshotted the grey presentation as its baseline
-        // while the inspection was on: drop it, put the originals back, rebind.
-        disposeLayersPresentation();
-        active.restore();
-        refreshLayers();
-        delete canvas.dataset.r31Inspection;
-        delete canvas.dataset.r31InspectionCounts;
-        refreshEdgeRendering(modelRoot.children[0] ?? null);
-        r31SyncExteriorDonorsHook();
-      };
+      // No separate inspection mode any more (kept as a hook for old callers).
+      const exitR31Inspection = () => {};
       r31InspectionExitHook = exitR31Inspection;
-      // Owner 22.11.2026 17.08: carport and eave gutters/downpipes back into the
-      // whole-building view from the earlier published WORK_TEST donors.
       const r31ExteriorDonors: Record<string, any> = {};
+      const r31SiteNetworks: Record<string, any> = {};
       let r31ExteriorLoading: Promise<void> | null = null;
+      let r31SiteLoading: Promise<void> | null = null;
+      let r31DonorSwap: Map<any, any> | null = null;
+      const r31DonorGrey = new THREE.MeshBasicMaterial({ color: 0x9aa1a9, transparent: true, opacity: 0.08, depthWrite: false });
+      // Stormwater (hulevesi) keeps its own colour, separate from drainage/wastewater.
+      const r31StormMaterial = new THREE.MeshStandardMaterial({
+        color: 0x26c6da, emissive: 0x26c6da, emissiveIntensity: 0.4, roughness: 0.6, metalness: 0,
+      });
+      const r31DownpipeZones = () => {
+        const root = modelRoot.children[0];
+        const zones: { x: number; z: number; name: string }[] = [];
+        root?.updateMatrixWorld?.(true);
+        root?.traverse?.((object: any) => {
+          if (!object.isMesh || !isDownspoutPresenceZone(object)) return;
+          const centre = new THREE.Box3().setFromObject(object).getCenter(new THREE.Vector3());
+          if (zones.some((z) => Math.hypot(z.x - centre.x, z.z - centre.z) < 0.3)) return;
+          zones.push({ x: centre.x, z: centre.z, name: object.name });
+        });
+        return zones;
+      };
       const r31SyncExteriorDonors = () => {
         const r31 = r31InspectionAvailable();
         const focus = canvas.dataset.dFocusGhost?.split('|')[0];
-        const whole = r31 && !focus && !canvas.dataset.r31Inspection &&
-          canvas.dataset.standardViewPreset === 'whole-building';
+        const whole = r31 && !focus && canvas.dataset.standardViewPreset === 'whole-building';
+        const technical = whole && canvas.dataset.technicalReview === 'on';
         let shown = 0;
         for (const group of Object.values(r31ExteriorDonors)) {
           if (!group) continue;
@@ -15915,13 +15922,57 @@ const title = 'Private 3D viewer';
           group.visible = whole;
           if (whole) shown += group.children.length;
         }
+        // Talotekniikka: carport greys with the building, gutters/downpipes = stormwater.
+        if (technical && !r31DonorSwap) {
+          r31DonorSwap = new Map();
+          for (const [key, group] of Object.entries(r31ExteriorDonors)) {
+            group?.traverse?.((mesh: any) => {
+              if (!mesh.isMesh) return;
+              r31DonorSwap!.set(mesh, mesh.material);
+              mesh.material = key === 'rainwater' ? r31StormMaterial : r31DonorGrey;
+            });
+          }
+        } else if (!technical && r31DonorSwap) {
+          for (const [mesh, material] of r31DonorSwap) mesh.material = material;
+          r31DonorSwap = null;
+        }
+        const counts: Record<string, number> = {};
+        for (const [key, group] of Object.entries(r31SiteNetworks)) {
+          if (!group) continue;
+          if (technical && group.parent !== modelRoot.parent) modelRoot.parent?.add(group);
+          group.visible = technical;
+          if (technical) Object.assign(counts, group.userData.counts);
+        }
         canvas.dataset.r31ExteriorDonors = whole ? String(shown) : '0';
+        canvas.dataset.r31SiteNetworks = technical ? JSON.stringify(counts) : '';
+        if (technical && Object.keys(counts).length) {
+          status.textContent = `Talotekniikka + kunnallistekniikka (WORK_TEST): salaojat ${counts.well ?? 0} kaivoa, ` +
+            `${counts.route ?? 0} reittiosaa, ${counts.open ?? 0} avointa purkua; Locus vesi ${counts.WATER ?? 0}, ` +
+            `jätevesi ${counts.WASTEWATER ?? 0}; hulevesiverkko puuttuu lähteistä`;
+        }
+        if (technical && !r31SiteLoading && !Object.keys(r31SiteNetworks).length) {
+          r31SiteLoading = (async () => {
+            try {
+              r31DrainageGltf ??= new GLTFLoader().loadAsync(R31_DRAINAGE_SOURCE.path);
+              r31SiteNetworks.drainage = buildR31DrainageOverlay(THREE, await r31DrainageGltf);
+            } catch (error) {
+              r31SiteNetworks.drainage = null;
+              console.warn('R31 drainage source failed', error);
+            }
+            r31SiteNetworks.infra = buildR31InfraOverlay(THREE, p139adLocusWorkZRoutes as any, p139acVerticalReferenceM);
+          })().finally(() => { r31SiteLoading = null; r31SyncExteriorDonors(); });
+        }
         if (!r31 || r31ExteriorLoading || Object.keys(r31ExteriorDonors).length) return;
         r31ExteriorLoading = (async () => {
           for (const key of Object.keys(R31_EXTERIOR_DONORS)) {
             try {
               const gltf = await new GLTFLoader().loadAsync((R31_EXTERIOR_DONORS as any)[key].path);
-              r31ExteriorDonors[key] = buildR31ExteriorDonorOverlay(THREE, key, gltf);
+              const group = buildR31ExteriorDonorOverlay(THREE, key, gltf);
+              // Owner 18.08: human observation wins: downpipes onto the 15.11 zones.
+              if (group && key === 'rainwater') {
+                canvas.dataset.r31DownpipeMoves = JSON.stringify(relocateR31Downpipes(THREE, group, r31DownpipeZones()));
+              }
+              r31ExteriorDonors[key] = group;
             } catch (error) {
               r31ExteriorDonors[key] = null;
               console.warn('R31 exterior donor failed', key, error);
@@ -15930,96 +15981,19 @@ const title = 'Private 3D viewer';
         })().finally(() => { r31ExteriorLoading = null; r31SyncExteriorDonors(); });
       };
       r31SyncExteriorDonorsHook = r31SyncExteriorDonors;
-      const enterR31Inspection = async (mode: 'drainage' | 'infra') => {
-        if (!r31InspectionAvailable()) return false;
-        const pose = deskCapturePose();
-        exitR31Inspection();
-        if (technicalReviewInput.checked) {
-          technicalReviewInput.checked = false;
-          technicalReviewInput.dispatchEvent(new Event('change', { bubbles: true }));
-        }
-        applyStandardViewPreset('whole-building', true);
-        applyViewerLayerState({ roofVisible: true }, `preset:r31-${mode}`);
-        deskSyncLayerRoof(true);
-        let overlay: any = null;
-        try {
-          if (mode === 'drainage') {
-            r31DrainageGltf ??= new GLTFLoader().loadAsync(R31_DRAINAGE_SOURCE.path);
-            overlay = buildR31DrainageOverlay(THREE, await r31DrainageGltf);
-          } else {
-            overlay = buildR31InfraOverlay(THREE, p139adLocusWorkZRoutes as any, p139acVerticalReferenceM);
-          }
-        } catch (error) {
-          r31DrainageGltf = null;
-          console.warn('R31 inspection source failed', error);
-        }
-        // Edges off first; then let Layerit finish its microtask refresh before
-        // the grey presentation so it never snapshots the grey as a baseline.
-        const previousEdge = edgeModeSelect.value;
-        if (previousEdge !== 'none') {
-          edgeModeSelect.value = 'none';
-          edgeModeSelect.dispatchEvent(new Event('change', { bubbles: true }));
-        }
-        await new Promise((resolve) => setTimeout(resolve, 0));
-        const root = modelRoot.children[0];
-        if (!overlay || !root || !r31InspectionAvailable()) {
-          status.textContent = mode === 'drainage' ? 'Salaojat: lähde ei saatavilla' : 'Infra: lähde ei saatavilla';
-          if (previousEdge !== 'none') {
-            edgeModeSelect.value = previousEdge;
-            edgeModeSelect.dispatchEvent(new Event('change', { bubbles: true }));
-          }
-          if (pose) deskApplyPose(pose);
-          deskSync();
-          return false;
-        }
-        const sewerMaterial = mode === 'infra' ? new THREE.MeshStandardMaterial({
-          color: R31_INSPECTION_COLORS.sewer, emissive: R31_INSPECTION_COLORS.sewer, emissiveIntensity: 0.4,
-          roughness: 0.6, metalness: 0,
-        }) : null;
-        const isSiteSewer = (object: any) => {
-          for (let node = object; node && node !== root; node = node.parent) if (isR31SiteSewerName(node.name)) return true;
-          return false;
-        };
-        const dim = dimR31ModelForInspection(THREE, root, {
-          keep: mode === 'infra' ? isSiteSewer : () => false, keepMaterial: sewerMaterial,
-        } as any);
-        modelRoot.parent?.add(overlay);
-        r31Inspection = {
-          mode, overlay,
-          restore: () => {
-            dim.restore();
-            sewerMaterial?.dispose();
-            if (previousEdge !== 'none' && edgeModeSelect.value === 'none') {
-              edgeModeSelect.value = previousEdge;
-              edgeModeSelect.dispatchEvent(new Event('change', { bubbles: true }));
-            }
-          },
-        };
-        const counts = { ...overlay.userData.counts, ...(mode === 'infra' ? { siteSewer: dim.kept } : {}) };
-        canvas.dataset.r31Inspection = mode;
-        r31SyncExteriorDonorsHook();
-        canvas.dataset.r31InspectionCounts = JSON.stringify(counts);
-        status.textContent = mode === 'drainage'
-          ? `Salaojat (WORK_TEST, M5A-R3): ${counts.well} kaivoa, ${counts.route} reittiosaa, ${counts.open} avointa purkua/rajaa`
-          : `Infra (WORK_TEST, Locus work-Z): ${counts.WATER} vesijohto-, ${counts.WASTEWATER} jätevesireittiä, tonttiviemäri ${counts.siteSewer} osaa; hulevesiverkko puuttuu lähteistä`;
-        if (pose) deskApplyPose(pose);
-        deskSync();
-        return true;
-      };
-      for (const [buttonId, mode] of [['drainage-preset-button', 'drainage'], ['infra-preset-button', 'infra']] as const) {
+      // The old Salaojat / Infra menu entries open the same combined view on R31.
+      for (const buttonId of ['drainage-preset-button', 'infra-preset-button']) {
         document.getElementById(buttonId)?.addEventListener('click', (event) => {
           if (!r31InspectionAvailable()) return;
           event.preventDefault();
           event.stopImmediatePropagation();
           document.querySelector<HTMLDetailsElement>('#preset-menu')?.removeAttribute('open');
-          void enterR31Inspection(mode);
+          document.querySelector<HTMLButtonElement>('[data-desk-kind="preset"][data-desk-id="whole-building"]')?.click();
+          if (canvas.dataset.technicalReview !== 'on') {
+            document.querySelector<HTMLButtonElement>('[data-desk-kind="preset"][data-desk-id="technical"]')?.click();
+          }
         }, true);
       }
-      // Any other preset-menu choice ends the inspection first.
-      document.querySelector('#preset-menu')?.addEventListener('click', (event) => {
-        const id = (event.target as HTMLElement | null)?.closest?.('button')?.id;
-        if (id && id !== 'drainage-preset-button' && id !== 'infra-preset-button') exitR31Inspection();
-      }, true);
       const deskEnterDFocus = (roof: boolean, storey: '1F' | '2F' | null = null) => {
         const key = storey === '1F' ? 'd-1f' : storey === '2F' ? 'd-2f' : roof ? 'd-roof' : 'd-apartment';
         applyStandardViewPreset('whole-building', true);
@@ -16051,7 +16025,6 @@ const title = 'Private 3D viewer';
         };
         const deskToolbar = mountDesktopToolbar(document, {
           preset(id: string) {
-            exitR31Inspection();
             if (id === 'technical') {
               technicalReviewInput.checked = !technicalReviewInput.checked;
               technicalReviewInput.dispatchEvent(new Event('change', { bubbles: true }));
@@ -16116,7 +16089,7 @@ const title = 'Private 3D viewer';
         deskToolbarBar.classList.add('desk-ready');
         deskSync = () => {
           deskToolbar.sync({
-            preset: canvas.dataset.r31Inspection ? null : canvas.dataset.dFocusGhost
+            preset: canvas.dataset.dFocusGhost
               ? canvas.dataset.dFocusGhost.split('|')[0]
               : activeDesktopPreset({
                 standardViewPreset: canvas.dataset.standardViewPreset,

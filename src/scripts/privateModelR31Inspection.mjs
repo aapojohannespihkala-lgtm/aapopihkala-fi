@@ -217,3 +217,67 @@ export function buildR31ExteriorDonorOverlay(THREE, key, gltf) {
   group.userData = { donor: key, count: group.children.length, presentationOnly: true };
   return group;
 }
+
+/**
+ * Owner 22.11.2026 18.08: human observation wins. The T12 (24.10) downpipes
+ * move onto the owner-corrected M5B-R1109 presence zones (15.11). Each
+ * downpipe (vertical pipe + terminal bend) moves to its nearest zone; the
+ * inlet collar stays on its gutter (moved only along the gutter, X) and a
+ * straight connector joins collar and pipe top (WORK_TEST assumption).
+ * `zones` = [{ x, z }] world centres. Returns the moves for the record.
+ */
+export function relocateR31Downpipes(THREE, group, zones) {
+  const parts = new Map();
+  for (const mesh of group?.children ?? []) {
+    const m = /^(T12_2026_.+?)_DOWNPIPE_(INLET_COLLAR|VERTICAL_PIPE|TERMINAL_BEND)/.exec(mesh.name ?? '');
+    if (!m) continue;
+    if (!parts.has(m[1])) parts.set(m[1], {});
+    parts.get(m[1])[m[2]] = mesh;
+  }
+  const boxOf = (mesh) => {
+    mesh.geometry.computeBoundingBox();
+    return mesh.geometry.boundingBox.clone().applyMatrix4(mesh.matrix);
+  };
+  const free = [...(zones ?? [])];
+  const moves = [];
+  for (const [id, p] of parts) {
+    if (!p.VERTICAL_PIPE || !free.length) continue;
+    const pipeBox = boxOf(p.VERTICAL_PIPE);
+    const c = pipeBox.getCenter(new THREE.Vector3());
+    let best = 0;
+    free.forEach((z, i) => {
+      if (Math.hypot(z.x - c.x, z.z - c.z) < Math.hypot(free[best].x - c.x, free[best].z - c.z)) best = i;
+    });
+    const zone = free.splice(best, 1)[0];
+    const dx = zone.x - c.x, dz = zone.z - c.z;
+    const shift = (mesh, x, z) => {
+      if (!mesh) return;
+      mesh.matrix.premultiply(new THREE.Matrix4().makeTranslation(x, 0, z));
+      mesh.userData = { ...mesh.userData, relocatedTo: zone.name ?? 'M5B-R1109 zone',
+        relocationBasis: 'OWNER_CORRECTED_PRESENCE_ZONE_20261115', workAssumption: true };
+    };
+    shift(p.VERTICAL_PIPE, dx, dz);
+    shift(p.TERMINAL_BEND, dx, dz);
+    shift(p.INLET_COLLAR, dx, 0);
+    if (p.INLET_COLLAR && Math.hypot(dz, 0) > 0.05) {
+      const top = boxOf(p.VERTICAL_PIPE);
+      const collar = boxOf(p.INLET_COLLAR);
+      const a = new THREE.Vector3(zone.x, collar.min.y, collar.getCenter(new THREE.Vector3()).z);
+      const b = new THREE.Vector3(zone.x, top.max.y, zone.z);
+      const radius = Math.max(0.02, (top.max.x - top.min.x) / 2);
+      const length = a.distanceTo(b);
+      const connector = new THREE.Mesh(new THREE.CylinderGeometry(radius, radius, length, 12), p.VERTICAL_PIPE.material);
+      const mid = a.clone().add(b).multiplyScalar(0.5);
+      const q = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), b.clone().sub(a).normalize());
+      connector.matrixAutoUpdate = false;
+      connector.matrix.compose(mid, q, new THREE.Vector3(1, 1, 1));
+      connector.name = `${id}_DOWNPIPE_CONNECTOR_TO_OWNER_ZONE_WORK_ASSUMPTION`;
+      connector.userData = { presentationOnly: true, workAssumption: true, ModelStage: 'WORK_TEST_VIEW',
+        relocationBasis: 'OWNER_CORRECTED_PRESENCE_ZONE_20261115', physicalRouteClaim: false };
+      group.add(connector);
+    }
+    moves.push({ id, dx: +dx.toFixed(3), dz: +dz.toFixed(3), zone: zone.name ?? null });
+  }
+  group.userData = { ...group.userData, downpipeMoves: moves };
+  return moves;
+}
