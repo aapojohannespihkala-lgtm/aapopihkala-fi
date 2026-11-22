@@ -39,9 +39,48 @@ export const isR31SiteSewerName = (name) =>
   typeof name === 'string' && R31_SITE_SEWER_ROOT_NAMES.some((prefix) => name.startsWith(prefix));
 
 export const R31_INSPECTION_COLORS = Object.freeze({
-  well: 0x00b3a4, route: 0x2bbf5a, open: 0xff8a00,
+  // Owner 22.11.2026 20.12: drainage must not read as ventilation (green)
+  // nor as stormwater (turquoise): yellow family, open ends red-orange.
+  well: 0xd39b00, route: 0xf2c230, open: 0xff5a36,
   WATER: 0x1e88e5, WASTEWATER: 0xb2672d, sewer: 0x8e44ad,
+  // Stormwater (gutters/downpipes) is drawn 0x26c6da in the viewer; fibre magenta.
+  storm: 0x26c6da, FIBER: 0xe040b8,
 });
+
+/** Locus fibre is a 2D map: drawn on one display level, not at a physical depth. */
+export const R31_FIBER_DISPLAY_Y = -0.9;
+
+/**
+ * Locus Valokuitunen fibre map lines (G1 local X/Y) as thin tubes in the
+ * Y-up frame (x, y, -Y). Z is unresolved in the source, so every line sits
+ * on R31_FIBER_DISPLAY_Y and is marked physicalZClaim false.
+ */
+export function buildR31FiberOverlay(THREE, lines, displayY = R31_FIBER_DISPLAY_Y) {
+  const group = new THREE.Group();
+  group.name = 'R31_INFRA_LOCUS_FIBER_2D_MAP_WORK_TEST';
+  const material = new THREE.MeshStandardMaterial({ color: R31_INSPECTION_COLORS.FIBER,
+    emissive: R31_INSPECTION_COLORS.FIBER, emissiveIntensity: 0.4, roughness: 0.6, metalness: 0 });
+  let count = 0;
+  for (const line of lines ?? []) {
+    if (!Array.isArray(line.points) || line.points.length < 2) continue;
+    const pts = line.points.map(([x, y]) => new THREE.Vector3(x, displayY, -y));
+    const path = new THREE.CurvePath();
+    for (let i = 1; i < pts.length; i += 1) {
+      if (pts[i].distanceTo(pts[i - 1]) > 1e-4) path.add(new THREE.LineCurve3(pts[i - 1], pts[i]));
+    }
+    if (!path.curves.length) continue;
+    const mesh = new THREE.Mesh(new THREE.TubeGeometry(path, Math.max(8, pts.length * 6), 0.05, 6, false), material);
+    mesh.name = `R31_INFRA_${line.name}`;
+    mesh.renderOrder = 6;
+    mesh.userData = { system: 'FIBER', sourceRecord: line.record, component: line.component,
+      zState: 'UNRESOLVED', representationKind: '2D_XY_MAP', presentationOnly: true,
+      ModelStage: 'WORK_TEST_VIEW', physicalZClaim: false, currentClaim: false, asBuiltClaim: false };
+    group.add(mesh);
+    count += 1;
+  }
+  group.userData = { counts: { FIBER: count }, presentationOnly: true, displayY };
+  return group;
+}
 
 /** World-space points of a mesh/line geometry (source order kept). */
 function worldPoints(THREE, object) {
@@ -219,20 +258,56 @@ export function buildR31ExteriorDonorOverlay(THREE, key, gltf) {
 }
 
 /**
- * Downpipe targets from human observation (owner 22.11.2026 18.08-19.27).
- * West gable: R31 already carries the photo-based lower pipes (nodes 8756
- * SW / 8832 NW, top y 2.62); the gutter swan neck ends on top of them, no
- * second pipe. East gable: mirror of the west (east facade as wide as the
- * west, owner 19.27). C/B: between the balcony boarding and the brick wall
- * (owner photo 19.27). `outlet` = direction the bottom outlet points.
+ * Downpipe targets from human observation (owner 22.11.2026 18.08-20.12).
+ * All four building corners alike: on the gable face, 10-15 cm in from the
+ * facade edge (owner point X 25.400 / Y 10.683 on the east gable). West
+ * gable face (brick) x = -0.02, east gable face x = 25.408; facade edges
+ * z = +1.72 / -10.81. The C/B pipe is its own case (owner photo 19.27):
+ * between the balcony boarding and the brick wall. `outlet` = direction the
+ * low bottom outlet points (away from the wall). West `groundY` = bottom of
+ * the replaced R31 lower pipe (node 8756, y -0.36).
  */
+export const R31_CORNER_PIPE_INSET_M = 0.125;
 export const R31_DOWNPIPE_TARGETS = Object.freeze({
-  T12_2026_CD_LANSI_ETELA: Object.freeze({ x: -0.145, z: 1.665, stopY: 2.62, basis: 'R31_NODE_8756_PHOTO_LOWER_PIPE' }),
-  T12_2026_CD_LANSI_POHJOINEN: Object.freeze({ x: -0.145, z: -10.875, stopY: 2.62, basis: 'R31_NODE_8832_PHOTO_LOWER_PIPE' }),
-  T12_2026_AB_ITA_ETELA: Object.freeze({ x: 25.545, z: 1.665, outlet: [1, 0], basis: 'OWNER_20261122_EAST_GABLE_AS_WIDE_AS_WEST_MIRROR_SW' }),
-  T12_2026_AB_ITA_POHJOINEN: Object.freeze({ x: 25.545, z: -10.875, outlet: [1, 0], basis: 'OWNER_20261122_EAST_GABLE_MIRROR_NW' }),
+  T12_2026_CD_LANSI_ETELA: Object.freeze({ x: -0.09, z: 1.72 - 0.125, groundY: -0.36, outlet: [-1, 0], basis: 'OWNER_20261122_CORNER_ON_GABLE_125MM_IN' }),
+  T12_2026_CD_LANSI_POHJOINEN: Object.freeze({ x: -0.09, z: -10.81 + 0.125, groundY: -0.36, outlet: [-1, 0], basis: 'OWNER_20261122_CORNER_ON_GABLE_125MM_IN' }),
+  T12_2026_AB_ITA_ETELA: Object.freeze({ x: 25.478, z: 1.71 - 0.125, outlet: [1, 0], basis: 'OWNER_20261122_CORNER_ON_GABLE_125MM_IN' }),
+  T12_2026_AB_ITA_POHJOINEN: Object.freeze({ x: 25.478, z: -10.81 + 0.125, outlet: [1, 0], basis: 'OWNER_POINT_20261122_X25400_Y10683' }),
   T12_2026_CB_ETELAJULKISIVU: Object.freeze({ x: 12.7, z: 1.665, outlet: [0, 1], basis: 'OWNER_PHOTO_20261122_BETWEEN_BALCONY_BOARDING_AND_BRICK' }),
 });
+
+/** R31's own older west lower pipes, replaced by the corner pipes in the whole-building view. */
+export const isR31ReplacedWestDownpipe = (name) =>
+  typeof name === 'string' && /DOWNSPO/.test(name) && !/PRESENCE/.test(name) &&
+  /(WEST_BRICK_CORNER|NW_CORNER)/.test(name);
+
+/** Roof underside of the R31 C/D roof (source: ridge y 7.5238, slope 0.25). */
+export const r31RoofUndersideY = (z) => 7.5238 - 0.25 * Math.abs(z + 4.58);
+
+/**
+ * West gable infill (owner 22.11.2026 20.12 "reikä pitäisi korjata"): the
+ * source gable fills stop at z = 0 while the brick pier runs to z = 1.72, so
+ * above the pier (y 5.30) up to the roof underside there is an opening.
+ * Brick-faced solid x -0.02..0.22, z 0..1.72; WORK_TEST presentation.
+ */
+export function buildR31WestGableInfill(THREE, material) {
+  const shape = new THREE.Shape();
+  shape.moveTo(0, 5.30);
+  shape.lineTo(1.72, 5.30);
+  shape.lineTo(1.72, r31RoofUndersideY(1.72));
+  shape.lineTo(0, r31RoofUndersideY(0));
+  shape.closePath();
+  const geometry = new THREE.ExtrudeGeometry(shape, { depth: 0.24, bevelEnabled: false });
+  const mesh = new THREE.Mesh(geometry, material);
+  // Shape X -> world +Z, shape Y -> world +Y, extrusion -> world -X (from x 0.22).
+  mesh.matrixAutoUpdate = false;
+  mesh.matrix.makeBasis(new THREE.Vector3(0, 0, 1), new THREE.Vector3(0, 1, 0), new THREE.Vector3(-1, 0, 0));
+  mesh.matrix.setPosition(0.22, 0, 0);
+  mesh.name = 'R31_WEST_GABLE_INFILL_ABOVE_SOUTH_PIER_WORK_TEST';
+  mesh.userData = { presentationOnly: true, workAssumption: true, ModelStage: 'WORK_TEST_VIEW',
+    basis: 'OWNER_20261122_HOLE_FIX', currentClaim: false, asBuiltClaim: false };
+  return mesh;
+}
 
 /**
  * Re-route each T12 downpipe to its target: collar slides along its gutter,
@@ -260,7 +335,7 @@ export function relocateR31Downpipes(THREE, group, targets = R31_DOWNPIPE_TARGET
     const pipe = boxOf(p.VERTICAL_PIPE);
     const collar = boxOf(p.INLET_COLLAR);
     const bend = p.TERMINAL_BEND ? boxOf(p.TERMINAL_BEND) : pipe;
-    const groundY = Math.min(bend.min.y, pipe.min.y);
+    const groundY = Number.isFinite(target.groundY) ? target.groundY : Math.min(bend.min.y, pipe.min.y);
     const c = collar.getCenter(new THREE.Vector3());
     const dx = target.x - c.x;
     p.INLET_COLLAR.matrix.premultiply(new THREE.Matrix4().makeTranslation(dx, 0, 0));

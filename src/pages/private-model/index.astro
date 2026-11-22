@@ -2753,7 +2753,8 @@ const title = 'Private 3D viewer';
       // @ts-ignore - R31 review roots and inspection overlays have unit coverage.
       import { resolveC80R31TechnicalReviewRoots } from '../../scripts/privateModelC80R31TechnicalReview.mjs';
       // @ts-ignore - pure overlay builders, THREE injected.
-      import { R31_DRAINAGE_SOURCE, R31_EXTERIOR_DONORS, buildR31DrainageOverlay, buildR31InfraOverlay, buildR31ExteriorDonorOverlay, loadR31EastGableOverlay, relocateR31Downpipes } from '../../scripts/privateModelR31Inspection.mjs';
+      import { R31_DRAINAGE_SOURCE, R31_EXTERIOR_DONORS, buildR31DrainageOverlay, buildR31InfraOverlay, buildR31FiberOverlay, buildR31ExteriorDonorOverlay, buildR31WestGableInfill, isR31ReplacedWestDownpipe, loadR31EastGableOverlay, relocateR31Downpipes } from '../../scripts/privateModelR31Inspection.mjs';
+      import { R31_LOCUS_FIBER_LINES } from '../../scripts/privateModelR31LocusFiber.mjs';
       import { resolveTechnicalReviewRoots, createTechnicalReviewPresentation, technicalReviewSystemOf, technicalReviewLayerSystemOf, refineTechnicalReviewSystem, filterNonTechnicalBoundObjects } from '../../scripts/privateModelTechnicalReviewPresentation.mjs';
       import { resolveConcealedTechnicalObjects, createConcealedTechnicalPresentation } from '../../scripts/privateModelConcealedTechnicalPresentation.mjs';
       import { K17_RAIL900_SOURCE_SHA256 } from '../../scripts/privateModelK17Rail900LayerSourceProfile.mjs';
@@ -15893,6 +15894,7 @@ const title = 'Private 3D viewer';
       let r31ExteriorLoading: Promise<void> | null = null;
       let r31SiteLoading: Promise<void> | null = null;
       let r31DonorSwap: Map<any, any> | null = null;
+      const r31HiddenWestPipes = new Set<any>();
       const r31DonorGrey = new THREE.MeshBasicMaterial({ color: 0x9aa1a9, transparent: true, opacity: 0.08, depthWrite: false });
       // Stormwater (hulevesi) keeps its own colour, separate from drainage/wastewater.
       const r31StormMaterial = new THREE.MeshStandardMaterial({
@@ -15931,12 +15933,27 @@ const title = 'Private 3D viewer';
           group.visible = technical;
           if (technical) Object.assign(counts, group.userData.counts);
         }
+        // Owner 20.12: the corner pipes replace R31's own older west lower pipes
+        // (they ended mid-wall / misaligned). Hidden in the whole-building view only.
+        if (whole && Object.keys(r31ExteriorDonors).length && !r31HiddenWestPipes.size) {
+          modelRoot.traverse((object: any) => {
+            if (object.visible && isR31ReplacedWestDownpipe(object.name)) {
+              object.visible = false;
+              r31HiddenWestPipes.add(object);
+            }
+          });
+        } else if (!whole && r31HiddenWestPipes.size) {
+          for (const object of r31HiddenWestPipes) object.visible = true;
+          r31HiddenWestPipes.clear();
+        }
+        canvas.dataset.r31HiddenWestPipes = String(r31HiddenWestPipes.size);
         canvas.dataset.r31ExteriorDonors = whole ? String(shown) : '0';
         canvas.dataset.r31SiteNetworks = technical ? JSON.stringify(counts) : '';
         if (technical && Object.keys(counts).length) {
           status.textContent = `Talotekniikka + kunnallistekniikka (WORK_TEST): salaojat ${counts.well ?? 0} kaivoa, ` +
             `${counts.route ?? 0} reittiosaa, ${counts.open ?? 0} avointa purkua; Locus vesi ${counts.WATER ?? 0}, ` +
-            `jätevesi ${counts.WASTEWATER ?? 0}; hulevesiverkko puuttuu lähteistä`;
+            `jätevesi ${counts.WASTEWATER ?? 0}, valokuitu ${counts.FIBER ?? 0} (2D, syvyys avoin); ` +
+            `hulevesiverkko puuttuu lähteistä`;
         }
         if (technical && !r31SiteLoading && !Object.keys(r31SiteNetworks).length) {
           r31SiteLoading = (async () => {
@@ -15948,6 +15965,7 @@ const title = 'Private 3D viewer';
               console.warn('R31 drainage source failed', error);
             }
             r31SiteNetworks.infra = buildR31InfraOverlay(THREE, p139adLocusWorkZRoutes as any, p139acVerticalReferenceM);
+            r31SiteNetworks.fiber = buildR31FiberOverlay(THREE, R31_LOCUS_FIBER_LINES as any);
           })().finally(() => { r31SiteLoading = null; r31SyncExteriorDonors(); });
         }
         if (!r31 || r31ExteriorLoading || Object.keys(r31ExteriorDonors).length) return;
@@ -15960,6 +15978,21 @@ const title = 'Private 3D viewer';
             console.warn('R31 east gable source failed', error);
           }
           canvas.dataset.r31EastGable = String(r31ExteriorDonors.eastGable?.children.length ?? 0);
+          // Owner 20.12 "reikä pitäisi korjata": west gable opening above the south brick pier.
+          {
+            let pierMaterial: any = null;
+            modelRoot.traverse((object: any) => {
+              if (!pierMaterial && object.isMesh && /C80R2_WEST_BRICK_PIER_2F/.test(object.name ?? '')) pierMaterial = object.material;
+            });
+            const material = (Array.isArray(pierMaterial) ? pierMaterial[0] : pierMaterial)?.clone?.()
+              ?? new THREE.MeshStandardMaterial({ color: 0x8a4b38, roughness: 0.9 });
+            material.side = THREE.DoubleSide;
+            const infill = new THREE.Group();
+            infill.name = 'R31_WEST_GABLE_INFILL_WORK_TEST';
+            infill.add(buildR31WestGableInfill(THREE, material));
+            r31ExteriorDonors.westGableInfill = infill;
+            canvas.dataset.r31WestGableInfill = pierMaterial ? 'pier-material' : 'fallback-material';
+          }
           for (const key of Object.keys(R31_EXTERIOR_DONORS)) {
             try {
               const gltf = await new GLTFLoader().loadAsync((R31_EXTERIOR_DONORS as any)[key].path);

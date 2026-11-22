@@ -120,8 +120,8 @@ test('exterior donors keep only their own source parts and check the scene name'
   assert.equal(buildR31ExteriorDonorOverlay(THREE, 'rainwater', gltf('other')), null);
 });
 
-test('owner targets: west pipes end on the existing R31 lower pipes, others get a low outward outlet', async () => {
-  const { relocateR31Downpipes, R31_DOWNPIPE_TARGETS } = await import('../../src/scripts/privateModelR31Inspection.mjs');
+test('owner 20.12: corner pipes alike on the gable faces, 125 mm in, low outward outlet', async () => {
+  const { relocateR31Downpipes, R31_DOWNPIPE_TARGETS: T, R31_CORNER_PIPE_INSET_M } = await import('../../src/scripts/privateModelR31Inspection.mjs');
   const group = new THREE.Group();
   const part = (name, x, y, z, h) => {
     const m = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, h), new THREE.MeshBasicMaterial());
@@ -129,21 +129,36 @@ test('owner targets: west pipes end on the existing R31 lower pipes, others get 
   };
   const west = part('T12_2026_CD_LANSI_ETELA_DOWNPIPE_VERTICAL_PIPE_WORK_TEST', -0.5, 3, 2.45, 5);
   part('T12_2026_CD_LANSI_ETELA_DOWNPIPE_INLET_COLLAR_WORK_TEST', -0.5, 5.75, 2.45, 0.1);
-  const bend = part('T12_2026_CD_LANSI_ETELA_DOWNPIPE_TERMINAL_BEND_WORK_TEST', -0.5, 0.45, 2.55, 0.3);
-  part('T12_2026_AB_ITA_ETELA_DOWNPIPE_VERTICAL_PIPE_WORK_TEST', 25.85, 2.2, 2.45, 5);
-  part('T12_2026_AB_ITA_ETELA_DOWNPIPE_INLET_COLLAR_WORK_TEST', 25.85, 4.75, 2.45, 0.1);
-  part('T12_2026_AB_ITA_ETELA_DOWNPIPE_TERMINAL_BEND_WORK_TEST', 25.85, -0.55, 2.55, 0.3);
+  part('T12_2026_CD_LANSI_ETELA_DOWNPIPE_TERMINAL_BEND_WORK_TEST', -0.5, 0.45, 2.55, 0.3);
+  part('T12_2026_AB_ITA_POHJOINEN_DOWNPIPE_VERTICAL_PIPE_WORK_TEST', 25.85, 2.2, -11.55, 5);
+  part('T12_2026_AB_ITA_POHJOINEN_DOWNPIPE_INLET_COLLAR_WORK_TEST', 25.85, 4.75, -11.55, 0.1);
+  part('T12_2026_AB_ITA_POHJOINEN_DOWNPIPE_TERMINAL_BEND_WORK_TEST', 25.85, -0.55, -11.65, 0.3);
   const moves = relocateR31Downpipes(THREE, group);
   assert.equal(moves.length, 2);
   assert.equal(west.visible, false);
-  assert.equal(bend.visible, false);
   const routeOf = (id) => group.children.find((m) => m.name === `${id}_DOWNPIPE_SWAN_NECK_ROUTE_WORK_ASSUMPTION`);
   const w = routeOf('T12_2026_CD_LANSI_ETELA'); w.geometry.computeBoundingBox();
-  assert.ok(Math.abs(w.geometry.boundingBox.min.y - R31_DOWNPIPE_TARGETS.T12_2026_CD_LANSI_ETELA.stopY) < 0.03,
-    'west swan neck stops on top of the existing lower pipe');
-  const e = routeOf('T12_2026_AB_ITA_ETELA'); e.geometry.computeBoundingBox();
-  assert.ok(e.geometry.boundingBox.max.x > 25.545 + 0.2, 'east outlet points away from the gable (+X)');
-  assert.ok(e.geometry.boundingBox.min.y < -0.4, 'outlet low, near the source ground');
+  assert.ok(w.geometry.boundingBox.min.x < T.T12_2026_CD_LANSI_ETELA.x - 0.2, 'west outlet points west');
+  assert.ok(w.geometry.boundingBox.min.y < -0.2, 'west pipe runs down to the old lower-pipe bottom');
+  const e = routeOf('T12_2026_AB_ITA_POHJOINEN'); e.geometry.computeBoundingBox();
+  assert.ok(e.geometry.boundingBox.max.x > T.T12_2026_AB_ITA_POHJOINEN.x + 0.2, 'east outlet points east');
+  assert.ok(Math.abs(T.T12_2026_AB_ITA_POHJOINEN.z - (-10.685)) < 1e-9, 'owner point Y 10.683');
+  // Same inset at every corner.
+  assert.ok(Math.abs((1.72 - T.T12_2026_CD_LANSI_ETELA.z) - R31_CORNER_PIPE_INSET_M) < 1e-9);
+  assert.ok(Math.abs((T.T12_2026_CD_LANSI_POHJOINEN.z + 10.81) - R31_CORNER_PIPE_INSET_M) < 1e-9);
+  for (const t of Object.values(T)) assert.equal(t.stopY, undefined);
+});
+
+test('west gable infill closes the opening above the south pier up to the roof underside', async () => {
+  const { buildR31WestGableInfill, r31RoofUndersideY, isR31ReplacedWestDownpipe } = await import('../../src/scripts/privateModelR31Inspection.mjs');
+  const mesh = buildR31WestGableInfill(THREE, new THREE.MeshBasicMaterial());
+  mesh.geometry.computeBoundingBox();
+  const box = mesh.geometry.boundingBox.clone().applyMatrix4(mesh.matrix);
+  assert.ok(Math.abs(box.min.z) < 1e-6 && Math.abs(box.max.z - 1.72) < 1e-6);
+  assert.ok(Math.abs(box.min.x + 0.02) < 1e-6 && Math.abs(box.max.x - 0.22) < 1e-6);
+  assert.ok(Math.abs(box.max.y - r31RoofUndersideY(0)) < 1e-6 && Math.abs(box.min.y - 5.30) < 1e-6);
+  assert.ok(isR31ReplacedWestDownpipe('C80R2_D1F_TERRACE_WEST_BRICK_CORNER_DARK_DOWNSPOUT_LOWER_ELBOW_MINUS220_TOP_BRACKET'));
+  assert.ok(!isR31ReplacedWestDownpipe('WPA_K01_D_GABLE_SW_BLUE_DOWNSPOUT_PRESENCE_ZONE'));
 });
 
 test('east gable loads on demand with the JSON world matrix when the scene is not built', async () => {
@@ -161,4 +176,18 @@ test('east gable loads on demand with the JSON world matrix when the scene is no
   const p = new THREE.Vector3().setFromMatrixPosition(group.children[0].matrix);
   // Source x -0.22 plus the 8 mm presentation lift off the coplanar mass face.
   assert.ok(Math.abs(p.x - (-0.22 + 0.008)) < 1e-9);
+});
+
+test('Locus fibre map: 22 source lines on one display level, Z unresolved', async () => {
+  const { buildR31FiberOverlay, R31_FIBER_DISPLAY_Y } = await import('../../src/scripts/privateModelR31Inspection.mjs');
+  const { R31_LOCUS_FIBER_LINES } = await import('../../src/scripts/privateModelR31LocusFiber.mjs');
+  const group = buildR31FiberOverlay(THREE, R31_LOCUS_FIBER_LINES);
+  assert.equal(group.userData.counts.FIBER, 22);
+  const m = group.children.find((c) => c.name === 'R31_INFRA_FIBER_SHAPE_LINE_085_C2');
+  m.geometry.computeBoundingBox();
+  const b = m.geometry.boundingBox;
+  assert.ok(Math.abs((b.min.y + b.max.y) / 2 - R31_FIBER_DISPLAY_Y) < 0.01);
+  // Source end at the house map reference: G1 (8.625, 3.442) -> three (8.625, y, -3.442).
+  assert.ok(b.min.x < 8.7 && b.max.z > -3.5);
+  assert.equal(m.userData.physicalZClaim, false);
 });
