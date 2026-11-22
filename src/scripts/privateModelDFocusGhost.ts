@@ -24,6 +24,11 @@ export const D_FOOTPRINT_FALLBACK: DFootprint = Object.freeze({ x0: -0.4, x1: 6.
 export const D_STOREY_SPLIT_Y = 2.77;
 /** Meshes at least this long (m) are split at the focus box instead of classified whole. */
 export const D_FOCUS_SPLIT_MIN_SIZE = 2.5;
+/**
+ * Outside small parts (fixtures, pipes, screws of the faint context) are left
+ * out instead of drawn at 10 %: they add draw calls but no readable context.
+ */
+export const D_FOCUS_HIDE_MAX_SIZE = 0.8;
 
 const renderableMesh = (object: Object3D): object is Mesh =>
   (object as Mesh).isMesh === true && !!(object as Mesh).geometry;
@@ -57,9 +62,13 @@ export const dStoreyFootprint = (f: DFootprint, storey: '1F' | '2F'): DFootprint
   storey === '1F' ? { ...f, y0: undefined, y1: D_STOREY_SPLIT_Y } : { ...f, y0: D_STOREY_SPLIT_Y - 0.27, y1: undefined };
 
 const span = (lo: number, hi: number, a: number | undefined, b: number | undefined) => {
-  const size = Math.max(hi - lo, 1e-3);
+  // A flat extent (single-plane wall, window glass, facade face, floor) is
+  // inside when its plane lies within the range. Owner 22.11.2026 14.46: 154
+  // planar R31 meshes (walls, windows) were measured as 0 % inside and faded.
+  if (hi - lo < 1e-3) return lo >= (a ?? -Infinity) - 1e-4 && lo <= (b ?? Infinity) + 1e-4 ? 1 : 0;
+  const size = hi - lo;
   const o = Math.max(0, Math.min(hi, b ?? Infinity) - Math.max(lo, a ?? -Infinity));
-  return Math.min(1, Math.min(o, size) / size);
+  return Math.min(1, o / size);
 };
 
 /** Fraction of a mesh's bbox that lies inside the focus box. */
@@ -75,6 +84,7 @@ const insideCenter = (box: Box3, f: DFootprint) => {
 
 type Snapshot = {
   material: Material | Material[];
+  visible: boolean;
   raycast: Mesh['raycast'];
   ownRaycast: boolean;
   suppressEdges: unknown;
@@ -166,6 +176,7 @@ export const createDFocusGhost = (opacity = 0.1) => {
   const restore = () => {
     for (const [mesh, s] of snapshots) {
       mesh.material = s.material;
+      mesh.visible = s.visible;
       if (s.ownRaycast) mesh.raycast = s.raycast;
       else delete (mesh as any).raycast;
       if (s.hadSuppressEdges) mesh.userData.viewerSuppressEdgeOverlay = s.suppressEdges;
@@ -211,7 +222,7 @@ export const createDFocusGhost = (opacity = 0.1) => {
     const meshes: Mesh[] = [];
     root.traverseVisible((object) => { if (renderableMesh(object)) meshes.push(object); });
     const box = new Box3(), size = new Vector3();
-    let inside = 0, outside = 0, split = 0;
+    let inside = 0, outside = 0, split = 0, hidden = 0;
     const keptBySource = new Map<Material, Material>();
     for (const mesh of meshes) {
       if (!mesh.geometry.boundingBox) mesh.geometry.computeBoundingBox();
@@ -225,6 +236,7 @@ export const createDFocusGhost = (opacity = 0.1) => {
       if (mode === 'inside') { inside += 1; continue; }
       const snapshot: Snapshot = {
         material: mesh.material,
+        visible: mesh.visible,
         raycast: mesh.raycast,
         ownRaycast: Object.prototype.hasOwnProperty.call(mesh, 'raycast'),
         suppressEdges: mesh.userData.viewerSuppressEdgeOverlay,
@@ -234,6 +246,11 @@ export const createDFocusGhost = (opacity = 0.1) => {
       };
       snapshots.set(mesh, snapshot);
       mesh.userData.viewerSuppressEdgeOverlay = true;
+      if (mode === 'outside' && Math.max(...box.getSize(size).toArray()) < D_FOCUS_HIDE_MAX_SIZE) {
+        mesh.visible = false;
+        hidden += 1;
+        continue;
+      }
       if (mode === 'outside') {
         mesh.material = Array.isArray(mesh.material)
           ? mesh.material.map((m) => ghostForSource(m, null)) : ghostForSource(mesh.material, null);
@@ -266,7 +283,7 @@ export const createDFocusGhost = (opacity = 0.1) => {
       snapshot.ghostChild = child;
       split += 1;
     }
-    return { inside, outside, split };
+    return { inside, outside, split, hidden };
   };
 
   return { apply, restore, get active() { return snapshots.size > 0; } };

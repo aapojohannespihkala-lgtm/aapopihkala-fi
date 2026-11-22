@@ -2937,7 +2937,7 @@ const title = 'Private 3D viewer';
         type WorkTestLoadFailurePhase,
       } from '../../scripts/privateModelWorkTestLoadDiagnostics';
 
-      import { createC80R31ViewSwitch, r31WorkTestReview } from '../../scripts/privateModelC80R31ReviewRuntime.mjs';
+      import { createC80R31ViewSwitch, r31WorkTestReview, r31ViewerLayerSceneReceipt, r31ViewerLayerBindingScope, C80_R31_9E0B_SOURCE } from '../../scripts/privateModelC80R31ReviewRuntime.mjs';
       import { mountDesktopToolbar, activeDesktopPreset, activeDesktopAngle, DESKTOP_START_CANDIDATE_ID } from '../../scripts/privateModelDesktopToolbar.mjs';
       import { createDFocusGhost, dFootprintFromScope, dStoreyFootprint } from '../../scripts/privateModelDFocusGhost';
 
@@ -3295,7 +3295,12 @@ const title = 'Private 3D viewer';
         sourceEvidenceSection: document.querySelector<HTMLElement>('#selection-source-evidence'),
       });
 
-      const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+      // Owner 22.11.2026: general flicker. Near planes are as small as distance/10000,
+      // so a 24-bit depth buffer separated surfaces only ~3 cm apart at 45 m and
+      // nearby faces z-fought while moving. A reversed float depth buffer (three
+      // falls back automatically without EXT_clip_control) resolves sub-millimetre gaps.
+      const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, reversedDepthBuffer: true } as any);
+      canvas.dataset.depthBuffer = (renderer.capabilities as any).reversedDepthBuffer ? 'reversed' : 'standard';
       renderer.localClippingEnabled = true;
       renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
       renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -7322,6 +7327,29 @@ const title = 'Private 3D viewer';
 
       const activateMainModelScope = (floor: MainViewFloor, preserveCamera = false) => {
         if (!mainViewScope?.available) return;
+        if (layersLoadedSha === C80_R31_9E0B_SOURCE.glbSha256 && r300ViewSwitch && floor !== '1F') {
+          const active = r300ViewSwitch.activeView();
+          if (active) {
+            // Keep the source-authored R31 D/BOTH or D/2F scene and service role.
+            const service = active === 'dService' || active === 'upperService';
+            const next = floor === '2F' ? (service ? 'upperService' : 'upperNormal') :
+              (service ? 'dService' : 'dNormal');
+            try {
+              if (mainViewScope.active) mainViewScope.restore();
+              if (r300ViewSwitch.select(next)) {
+                syncR300WorkTestViews();
+                refreshLayers();
+                if (!preserveCamera) fitModel();
+                status.textContent = `${r31ReviewTitle} - WORK_TEST / HOST_HOLD`;
+              } else status.textContent = `${r31ReviewTitle} - näkymää ei voitu vaihtaa`;
+            } catch (error) {
+              console.error(error);
+              status.textContent = `${r31ReviewTitle} - näkymän vaihto keskeytettiin`;
+              syncR300WorkTestViews();
+            }
+            return;
+          }
+        }
         // Reject unsupported first floor BEFORE restoring or remounting.
         if ((mainViewScope as any).isC80Succ455Savo483 && floor === '1F') return;
         const requestedOtherFloorMode = otherFloorMode.value;
@@ -15157,6 +15185,13 @@ const title = 'Private 3D viewer';
       });
 
       const disposeLayersPresentation = () => {
+        // Other preset/model paths also dispose Layerit directly. Always undo
+        // #2177's temporary ghost copies before restoring the layer baseline.
+        if (deskDFocus.active) {
+          deskDFocus.restore();
+          delete canvas.dataset.dFocusGhost;
+          delete canvas.dataset.dFocusFootprint;
+        }
         concealedTechnical?.dispose();
         concealedTechnical = null;
         delete canvas.dataset.concealedTechnicalCount;
@@ -15226,7 +15261,11 @@ const title = 'Private 3D viewer';
           layersSyncQueued = false;
           const root = modelRoot.children[0] ?? null;
           const sceneIndex = layersGltf?.scenes?.indexOf(root) ?? -1;
-          const verified = !!layersExpectedSha && layersExpectedSha === layersLoadedSha && sceneIndex >= 0;
+          // SHA alone does not authorize every scene inside an R31 work-test GLB.
+          const r31SceneScope = layersLoadedSha === C80_R31_9E0B_SOURCE.glbSha256
+            ? r31ViewerLayerBindingScope(layersGltf?.parser?.json, layersLoadedSha, sceneIndex) : null;
+          const verified = !!layersExpectedSha && layersExpectedSha === layersLoadedSha &&
+            sceneIndex >= 0 && (layersLoadedSha !== C80_R31_9E0B_SOURCE.glbSha256 || !!r31SceneScope);
           const filterActive = canvas.dataset.objectVisibilityFilter === 'active';
           if (filterActive) {
             technicalReviewInput.disabled = true;
@@ -15234,6 +15273,13 @@ const title = 'Private 3D viewer';
             layersPanelControls.update(layersState, layersAvailable, { boundNodeIds: layersBoundIds, disabled: true });
             return;
           }
+          // H-C: Layerit owns its material baseline. Restore #2177's temporary
+          // D-focus materials before rebinding, then reapply the focus afterward.
+          const dFocusLabel = canvas.dataset.dFocusGhost?.split('|')[0];
+          const dFocusCoordinates = (canvas.dataset.dFocusFootprint ?? '').split(',').map(Number);
+          const reapplyDFocus = !!dFocusLabel && deskDFocus.active &&
+            dFocusCoordinates.length === 4 && dFocusCoordinates.every(Number.isFinite);
+          if (reapplyDFocus) deskDFocus.restore();
           disposeLayersPresentation();
           technicalReviewInput.disabled = false;
           layersContextInput.disabled = false;
@@ -15251,8 +15297,16 @@ const title = 'Private 3D viewer';
               applyRoofLayerState(); applyLocusLayerState(); applyElectricalLayerState();
               mainViewScope?.enforce();
             }
-            const area = mainViewScope?.active ? 'D' : 'WHOLE';
-            const floor = (mainViewScope?.active ? mainViewScope.floor : 'BOTH') as MainViewFloor;
+            const area = r31SceneScope?.area ?? (mainViewScope?.active ? 'D' : 'WHOLE');
+            const floor = (r31SceneScope?.floor ??
+              (mainViewScope?.active ? mainViewScope.floor : 'BOTH')) as MainViewFloor;
+            if (r31SceneScope) {
+              mainViewArea.value = r31SceneScope.area;
+              mainViewFloor.value = r31SceneScope.floor;
+              canvas.dataset.mainViewArea = r31SceneScope.area;
+              canvas.dataset.mainViewFloor = r31SceneScope.floor;
+              canvas.dataset.mainViewSourceSceneIndex = String(sceneIndex);
+            }
             const source = sourceNodeModel(layersGltf);
             const building = resolveBuildingPartLayerBindings({
               gltf: source, expectedSourceSha256: layersExpectedSha!,
@@ -15262,7 +15316,8 @@ const title = 'Private 3D viewer';
               sceneRoot: root, sourceSceneIndex: sceneIndex,
               loadedGlbSha256: layersLoadedSha!, expectedGlbSha256: layersExpectedSha!,
               sourceJson: layersGltf.parser.json, sourceNodes: collectViewerLayerSourceNodes(source, root, sceneIndex, layersLoadedSha!),
-              viewerScope: layersState.layerPresetState!.selected,
+              viewerScope: r31SceneScope ? (floor === '2F' ? 'd-2f' : 'd-apartment') :
+                layersState.layerPresetState!.selected,
               allowSourceOnly: true, allowHistoricalPlans: false,
             });
             technicalAvailability.update(technical.summary);
@@ -15378,6 +15433,15 @@ const title = 'Private 3D viewer';
           roofLayerOpacityInput.closest<HTMLElement>('.layer-opacity')!.hidden = layersEnabled && !layersAvailable.includes('roof');
           roofLayerCount.hidden = layersEnabled && !layersAvailable.includes('roof');
           electricalLayerVisibleInput.closest('label')!.hidden = layersEnabled && layersAvailable.includes('technical-electrical');
+          if (reapplyDFocus && root && root === modelRoot.children[0]) {
+            const [x0, x1, z0, z1] = dFocusCoordinates;
+            const currentFootprint = { x0, x1, z0, z1 };
+              const focusFootprint = dFocusLabel === 'd-1f' || dFocusLabel === 'd-2f'
+                ? dStoreyFootprint(currentFootprint, dFocusLabel === 'd-1f' ? '1F' : '2F')
+                : currentFootprint;
+              const counts = deskDFocus.apply(root, focusFootprint);
+            canvas.dataset.dFocusGhost = `${dFocusLabel}|in:${counts.inside}|out:${counts.outside}|split:${counts.split}`;
+          }
           refreshEdgeRendering(root);
           if (selectedObject && !isEffectivelyVisible(selectedObject, modelRoot)) clearSelection();
         });
@@ -15470,7 +15534,10 @@ const title = 'Private 3D viewer';
           layersLoadedSha === V82_SOURCE_SHA256 ||
           layersLoadedSha === K17_RAIL900_SOURCE_SHA256
             ? layersLoadedSha : null;
-        layersExpectedSha = session?.contract?.glbSha256 ?? verifiedChainSourceSha;
+        const verifiedR31LayerSource = !!r31ViewerLayerSceneReceipt(
+          gltf?.parser?.json, layersLoadedSha, 769);
+        layersExpectedSha = session?.contract?.glbSha256 ?? verifiedChainSourceSha ??
+          (verifiedR31LayerSource ? layersLoadedSha : null);
         // Restore the owner-approved white, doorless lobby only for the exact
         // V69 GLB. This changes loaded material instances, never the source GLB.
         if (layersLoadedSha === V69_SOURCE_SHA256 && layersExpectedSha === V69_SOURCE_SHA256) {
@@ -15487,7 +15554,7 @@ const title = 'Private 3D viewer';
             canvas.dataset.v69C020UpperGlassSourceReady = 'true';
           }
         }
-        layersEnabled = verifiedChainSourceSha !== null;
+        layersEnabled = verifiedChainSourceSha !== null || verifiedR31LayerSource;
         layersContextVisible = true;
         layersState = withViewerLayerBranchVisibility(applyViewerLayerPreset(createViewerInteractionState(), 'whole-building'));
         layersAvailable = [];
@@ -15742,10 +15809,12 @@ const title = 'Private 3D viewer';
         applyStandardViewPreset('whole-building', true);
         applyViewerLayerState({ roofVisible: roof && !storey }, `preset:${key}`);
         const root = modelRoot.children[0] ?? modelRoot;
-        const whole = dFootprintFromScope(root);
+        // No padding: the C building masses start exactly at the D/C party wall
+        // (x 6.38); a padded box drew a 0.37 m opaque slice of C onto D's wall.
+        const whole = dFootprintFromScope(root, 0);
         const footprint = storey ? dStoreyFootprint(whole, storey) : whole;
         const counts = deskDFocus.apply(root, footprint);
-        canvas.dataset.dFocusGhost = `${key}|in:${counts.inside}|out:${counts.outside}|split:${counts.split}`;
+        canvas.dataset.dFocusGhost = `${key}|in:${counts.inside}|out:${counts.outside}|split:${counts.split}|hidden:${counts.hidden}`;
         canvas.dataset.dFocusFootprint = [footprint.x0, footprint.x1, footprint.z0, footprint.z1].map((v) => v.toFixed(2)).join(',');
         refreshEdgeRendering(root);
       };
