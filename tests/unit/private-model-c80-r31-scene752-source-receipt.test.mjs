@@ -1136,6 +1136,7 @@ import {
 } from '../../src/scripts/privateModelC80R31ReviewRuntime.mjs';
 import {
  isC80LayerSuccessorSha,
+ resolveC80437SuccessorBuildingNode,
  resolveC80437SuccessorReceiptScene,
 } from '../../src/scripts/privateModelC80437SuccessorLayerInheritance.mjs';
 const makeSynthetic771772=()=>{
@@ -1262,6 +1263,16 @@ test('R31 original private scene771/772 normal/service, SHA, root and mutation g
  const {b,json}=parse(original771772Path),s=S771772;
  const sha=createHash('sha256').update(b).digest('hex');
  assert.equal(b.length,s.glbBytes);assert.equal(sha,s.glbSha256);
+ const roofRoot=13363;
+ for(const node of json.nodes[roofRoot].children){
+  const path=[roofRoot,node];
+  for(const scene of [769,770]){
+   assert.equal(resolveC80437SuccessorBuildingNode(json,sha,scene,node,path)?.id,'roof');
+   assert.equal(resolveC80437SuccessorBuildingNode(json,sha,scene,node,[node]),null);
+  }
+  for(const scene of [771,772])
+   assert.equal(resolveC80437SuccessorBuildingNode(json,sha,scene,node,path),null);
+ }
  const normal=json.scenes[771],service=json.scenes[772],base=json.scenes[768];
  assert.deepEqual(base.nodes,root768_771772);
  assert.equal(fnv(normal.nodes),s.normal.rootFnv32);

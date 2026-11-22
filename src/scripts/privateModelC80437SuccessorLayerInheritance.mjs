@@ -246,6 +246,13 @@ const V620R22 = Object.freeze({
 const R31_SHA = C80_R31_9E0B_SOURCE.glbSha256;
 const R31 = Object.freeze(Object.fromEntries(Object.values(C80_R31_9E0B_VIEWS).map(view =>
   [view.sceneIndex, {floor:view.floor,glazing:'CLOSED',cutaway:false}])));
+// The authored R31 roof is present only on the two whole-D review scenes.
+const R31_ROOF_ROOT = 13363;
+const R31_ROOF_ROOT_FNV = 'b9e1f9aa';
+const R31_ROOF_PARTS = Object.freeze({
+  13333: '04909ef6', 13334: '641b7365', 13335: '0b353e0b', 13336: 'bede8ae5',
+  13360: '98d31910', 13361: 'b4316ba7', 13362: '4c703065',
+});
 // SHA-locked copy-on-write aliases: a COW node keeps the receipt identity of
 // its original node only when its own JSON fingerprint matches exactly.
 const COW_ALIASES = Object.freeze({
@@ -421,6 +428,14 @@ function exactInheritedPath(json,sceneIndex,path,sha=null) {
 export function resolveC80437SuccessorBuildingNode(json,sha,sceneIndex,node,path){
   const receiptScene=resolveC80437SuccessorReceiptScene(json,sha,sceneIndex);
   if (!receiptScene || !Number.isInteger(node)) return null;
+  if (sha===R31_SHA && Object.hasOwn(R31_ROOF_PARTS,node)) {
+    const root=json.nodes[R31_ROOF_ROOT], part=json.nodes[node];
+    if (receiptScene.floor!=='BOTH' || !equalPath(path,[R31_ROOF_ROOT,node]) ||
+        !json.scenes[sceneIndex].nodes.includes(R31_ROOF_ROOT) ||
+        nodeFingerprint(root)!==R31_ROOF_ROOT_FNV ||
+        nodeFingerprint(part)!==R31_ROOF_PARTS[node]) return null;
+    return {id:'roof',name:part.name,mesh:part.mesh};
+  }
   const src=toOrig(sha,node);
   const entry=receiptScene.building?.[src];
   if (!entry || !Array.isArray(path)||path.at(-1)!==node ||

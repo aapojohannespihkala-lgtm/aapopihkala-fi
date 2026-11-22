@@ -4660,6 +4660,9 @@ const title = 'Private 3D viewer';
       const isRoofLayerMember = (object: any) => {
         const data = object?.userData ?? {};
         return (
+          // R31 9e0bf34f: whole-building roof group and its parts declare
+          // extras.intendedViewerLayer = 'roof' (P186 / scene 747 source).
+          data.intendedViewerLayer === 'roof' ||
           data.presentationLayer === 'REFERENCE_ROOF' ||
           data.representationKind === 'presentationRoofStepFace' ||
           Array.isArray(data.derivedRoofReferenceEnvelopeY_M) ||
@@ -7313,6 +7316,30 @@ const title = 'Private 3D viewer';
 
       const activateMainModelScope = (floor: MainViewFloor, preserveCamera = false) => {
         if (!mainViewScope?.available) return;
+        if (layersLoadedSha === C80_R31_9E0B_SOURCE.glbSha256 && r300ViewSwitch && floor !== '1F') {
+          const active = r300ViewSwitch.activeView();
+          if (active) {
+            // R31 already contains authored D/BOTH and D/2F roots. Keep its
+            // current normal/service role instead of filtering the first view.
+            const service = active === 'dService' || active === 'upperService';
+            const next = floor === '2F' ? (service ? 'upperService' : 'upperNormal') :
+              (service ? 'dService' : 'dNormal');
+            try {
+              if (mainViewScope.active) mainViewScope.restore();
+              if (r300ViewSwitch.select(next)) {
+                syncR300WorkTestViews();
+                refreshLayers();
+                if (!preserveCamera) fitModel();
+                status.textContent = `${r31ReviewTitle} - WORK_TEST / HOST_HOLD`;
+              } else status.textContent = `${r31ReviewTitle} - näkymää ei voitu vaihtaa`;
+            } catch (error) {
+              console.error(error);
+              status.textContent = `${r31ReviewTitle} - näkymän vaihto keskeytettiin`;
+              syncR300WorkTestViews();
+            }
+            return;
+          }
+        }
         // Reject unsupported first floor BEFORE restoring or remounting.
         if ((mainViewScope as any).isC80Succ455Savo483 && floor === '1F') return;
         const requestedOtherFloorMode = otherFloorMode.value;
@@ -16347,11 +16374,12 @@ const title = 'Private 3D viewer';
                 workTestSelect.value = start.id;
                 workTestButton.disabled = false;
               }
-              applyStandardViewPreset('d-apartment');
-              // Owner 21.11.2026: start with the roof hidden.
-              applyViewerLayerState({ roofVisible: false }, 'preset:d-apartment');
+              // Owner 22.11.2026: roof in the model and the whole-building view
+              // forward: start in the whole building with the roof shown.
+              applyStandardViewPreset('whole-building');
+              applyViewerLayerState({ roofVisible: true }, 'preset:whole-building');
               deskStartFrame();
-              canvas.dataset.deskStartView = 'start-work-test-d-apartment';
+              canvas.dataset.deskStartView = 'start-work-test-whole-building-roof';
               deskSync();
               return;
             }
