@@ -2936,8 +2936,11 @@ const title = 'Private 3D viewer';
 
       import { createC80R31ViewSwitch, r31WorkTestReview } from '../../scripts/privateModelC80R31ReviewRuntime.mjs';
       import { mountDesktopToolbar, activeDesktopPreset, activeDesktopAngle, DESKTOP_START_CANDIDATE_ID } from '../../scripts/privateModelDesktopToolbar.mjs';
+      import { createDFocusGhost, dFootprintFromScope } from '../../scripts/privateModelDFocusGhost';
 
       const canvas = document.querySelector<HTMLCanvasElement>('#private-model-canvas');
+      // Owner 22.11.2026: whole D at full strength, the rest of the building faint.
+      const deskDFocus = createDFocusGhost(0.1);
       const status = document.querySelector<HTMLElement>('#viewer-status');
       const toolbarMenus = Array.from(document.querySelectorAll<HTMLDetailsElement>('.toolbar-menu'));
       const { closeToolbarMenus } = setupPrivateModelToolbarMenus(toolbarMenus);
@@ -15167,6 +15170,11 @@ const title = 'Private 3D viewer';
         layersRuntime = null;
       };
       beforeLayersSceneChange = disposeLayersPresentation;
+      // Any scene change also ends the whole-D focus presentation (restores originals).
+      beforeLayersSceneChange = () => {
+        if (deskDFocus.active) { deskDFocus.restore(); delete canvas.dataset.dFocusGhost; delete canvas.dataset.dFocusFootprint; }
+        disposeLayersPresentation();
+      };
 
       const commitLayerPreset = (preset: ViewerLayerPreset) => {
         if (!layersPresetChoices.includes(preset) || !layersExpectedSha) return;
@@ -15701,11 +15709,19 @@ const title = 'Private 3D viewer';
           box.union(part);
         });
         if (box.isEmpty()) return;
+        // In the whole-D focus, frame the D footprint (the faint rest stays around it).
+        const footprint = (canvas.dataset.dFocusFootprint ?? '').split(',').map(Number);
+        const focused = footprint.length === 4 && footprint.every(Number.isFinite);
+        if (focused) {
+          box.min.x = Math.max(box.min.x, footprint[0]); box.max.x = Math.min(box.max.x, footprint[1]);
+          box.min.z = Math.max(box.min.z, footprint[2]); box.max.z = Math.min(box.max.z, footprint[3]);
+          if (box.isEmpty()) return;
+        }
         const sphere = box.getBoundingSphere(new THREE.Sphere());
         if (!Number.isFinite(sphere.radius) || sphere.radius <= 0) return;
         const halfFov = THREE.MathUtils.degToRad(camera.fov) / 2;
         const aspect = Math.max(camera.aspect || 1, 0.01);
-        const radius = sphere.radius * 0.82;
+        const radius = sphere.radius * (focused ? 1.0 : 0.82);
         const distance = Math.max(radius / Math.tan(halfFov), radius / Math.tan(Math.atan(Math.tan(halfFov) * aspect)));
         const offset = new THREE.Vector3(-0.622, 0.475, 0.622).normalize();
         controls.target.copy(sphere.center);
@@ -15714,7 +15730,19 @@ const title = 'Private 3D viewer';
         camera.far = Math.max(distance * 50, 2000);
         camera.updateProjectionMatrix();
         controls.update();
-        canvas.dataset.deskStartFrame = 'building-south-west';
+        canvas.dataset.deskStartFrame = focused ? 'd-focus-south-west' : 'building-south-west';
+      };
+      // Whole D: the full model (no per-object D scope filter, which left parts
+      // floating in R31), D footprint at full strength, everything else faint.
+      const deskEnterDFocus = (roof: boolean) => {
+        applyStandardViewPreset('whole-building', true);
+        applyViewerLayerState({ roofVisible: roof }, `preset:${roof ? 'd-roof' : 'd-apartment'}`);
+        const root = modelRoot.children[0] ?? modelRoot;
+        const footprint = dFootprintFromScope(root);
+        const counts = deskDFocus.apply(root, footprint);
+        canvas.dataset.dFocusGhost = `${roof ? 'd-roof' : 'd-apartment'}|in:${counts.inside}|out:${counts.outside}|split:${counts.split}`;
+        canvas.dataset.dFocusFootprint = [footprint.x0, footprint.x1, footprint.z0, footprint.z1].map((v) => v.toFixed(2)).join(',');
+        refreshEdgeRendering(root);
       };
       let deskSync = () => {};
       if (deskToolbarBar && deskPresetMenu && deskViewMenu) {
@@ -15734,8 +15762,11 @@ const title = 'Private 3D viewer';
             const target = (id === 'd-roof' ? 'd-apartment' : id) as StandardViewPreset;
             const angleBefore = deskCurrentAngle();
             const pose = deskCapturePose();
-            applyStandardViewPreset(target, true);
-            applyViewerLayerState({ roofVisible: id === 'd-roof' || id === 'whole-building' }, `preset:${id}`);
+            if (id === 'd-roof' || id === 'd-apartment') deskEnterDFocus(id === 'd-roof');
+            else {
+              applyStandardViewPreset(target, true);
+              applyViewerLayerState({ roofVisible: id === 'whole-building' }, `preset:${id}`);
+            }
             if (angleBefore && deskCurrentAngle() !== angleBefore) deskAngleButtons[angleBefore]?.click();
             if (pose && !deskApplyPose(pose)) deskRefitKeepingDirection();
             canvas.dataset.deskPresetCameraKept = pose ? 'exact' : 'angle';
@@ -15774,10 +15805,12 @@ const title = 'Private 3D viewer';
         deskToolbarBar.classList.add('desk-ready');
         deskSync = () => {
           deskToolbar.sync({
-            preset: activeDesktopPreset({
-              standardViewPreset: canvas.dataset.standardViewPreset,
-              roofVisible: canvas.dataset.layerRoofVisible === 'true',
-            }),
+            preset: canvas.dataset.dFocusGhost
+              ? (canvas.dataset.layerRoofVisible === 'true' ? 'd-roof' : 'd-apartment')
+              : activeDesktopPreset({
+                standardViewPreset: canvas.dataset.standardViewPreset,
+                roofVisible: canvas.dataset.layerRoofVisible === 'true',
+              }),
             angle: activeDesktopAngle({
               standardViewPreset: canvas.dataset.standardViewPreset,
               viewPreset: canvas.dataset.viewPreset,
@@ -15789,7 +15822,7 @@ const title = 'Private 3D viewer';
         };
         new MutationObserver(() => deskSync()).observe(canvas, {
           attributes: true,
-          attributeFilter: ['data-standard-view-preset', 'data-view-preset', 'data-layer-roof-visible', 'data-technical-review', 'data-edge-mode'],
+          attributeFilter: ['data-standard-view-preset', 'data-view-preset', 'data-layer-roof-visible', 'data-technical-review', 'data-edge-mode', 'data-d-focus-ghost'],
         });
         if (layersButton) new MutationObserver(() => deskSync()).observe(layersButton, { attributes: true, attributeFilter: ['aria-expanded'] });
         // Interaction tools become a vertical icon column on the model's left edge.
@@ -16329,12 +16362,11 @@ const title = 'Private 3D viewer';
                 workTestSelect.value = start.id;
                 workTestButton.disabled = false;
               }
-              // Owner 22.11.2026: roof in the model and the whole-building view
-              // forward: start in the whole building with the roof shown.
-              applyStandardViewPreset('whole-building');
-              applyViewerLayerState({ roofVisible: true }, 'preset:whole-building');
+              // Owner 22.11.2026 04.50: start in the whole D with the roof, the
+              // rest of the building as a faint reference.
+              deskEnterDFocus(true);
               deskStartFrame();
-              canvas.dataset.deskStartView = 'start-work-test-whole-building-roof';
+              canvas.dataset.deskStartView = 'start-work-test-d-roof-focus';
               deskSync();
               return;
             }
