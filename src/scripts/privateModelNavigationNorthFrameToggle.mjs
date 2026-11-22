@@ -125,6 +125,8 @@ export function createNorthFrameToggleController({
     if (disposed) return;
     root.dataset.northFrame = frame;
     root.dataset.northReference = frame === 'local' ? 'YLIS-G1-LOCAL' : 'EPSG:3879';
+    // UI name only. Keep EPSG:3879 in machine-readable metadata.
+    button.dataset.frameLabel = frame === 'local' ? 'YLIS-G1-LOCAL' : 'ETRS-GK25';
     button.textContent = frame === 'local' ? 'Pohjoinen: rakennus' : 'Pohjoinen: kartta';
     button.setAttribute('aria-pressed', String(frame === 'map'));
     northLabel.textContent = frame === 'local' ? 'N' : 'N kartta';
