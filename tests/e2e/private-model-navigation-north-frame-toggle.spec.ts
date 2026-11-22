@@ -147,8 +147,10 @@ test('synthetic north overlay exception cannot blank the canvas or freeze orbit 
 
   await expect(gizmo).toHaveAttribute('data-north-frame-error', 'SYNTHETIC_NORTH_OVERLAY_FAULT');
   await expect(readout).toHaveAttribute('data-ready', 'true');
-  await expect.poll(() => canvas.evaluate((element) =>
-    element.width > 300 && element.height > 150)).toBe(true);
+  await expect.poll(() => canvas.evaluate((element) => {
+    const bitmap = element as HTMLCanvasElement;
+    return bitmap.width > 300 && bitmap.height > 150;
+  })).toBe(true);
   const originalPose = await readout.getAttribute('data-world-pose');
   expect(originalPose).toBeTruthy();
 
@@ -163,6 +165,8 @@ test('synthetic north overlay exception cannot blank the canvas or freeze orbit 
   await page.mouse.up({ button: 'middle' });
   await expect.poll(async () => readout.getAttribute('data-world-pose')).not.toBe(originalPose);
   await expect(readout).toHaveAttribute('data-ready', 'true');
-  await expect.poll(() => canvas.evaluate((element) =>
-    element.width > 300 && element.height > 150)).toBe(true);
+  await expect.poll(() => canvas.evaluate((element) => {
+    const bitmap = element as HTMLCanvasElement;
+    return bitmap.width > 300 && bitmap.height > 150;
+  })).toBe(true);
 });
