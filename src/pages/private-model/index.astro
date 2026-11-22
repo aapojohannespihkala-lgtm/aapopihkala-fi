@@ -41,11 +41,11 @@ const title = 'Private 3D viewer';
       /* Layers panel opens to the right of the side tool column, not under it. */
       .viewport:has(> .desk-side-tools) .layers-panel { left: 66px !important; width: min(290px, calc(100% - 78px)) !important; }
       /* Navigation cube behind the gizmo axes (owner request 22.11.2026). */
-      .orientation-gizmo .nav-cube-face { fill: #5d6f7c; stroke: #c9d3d9; stroke-width: .7; stroke-linejoin: round; }
-      .orientation-gizmo .nav-cube-face-top { fill: #7f93a0; }
-      .orientation-gizmo .nav-cube-face-north { fill: #4f7a63; }
-      .orientation-gizmo .nav-cube-label { fill: #f1f4f6; font: 800 6.4px ui-sans-serif, system-ui, sans-serif;
-        text-anchor: middle; dominant-baseline: central; letter-spacing: .02em; pointer-events: none; }
+      .orientation-gizmo .nav-cube-face { fill: #2f4456; stroke: #a9bcc8; stroke-width: .55; stroke-linejoin: round; }
+      .orientation-gizmo .nav-cube-face-top { fill: #3c5367; }
+      .orientation-gizmo .nav-cube-face-bottom { fill: #26394a; }
+      /* Face letters are printed in face units (font-size from the SVG attribute). */
+      .orientation-gizmo .nav-cube-label { font-family: ui-sans-serif, system-ui, sans-serif; letter-spacing: 0; pointer-events: none; }
       .desk-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
     </style>
     <style>
@@ -910,12 +910,15 @@ const title = 'Private 3D viewer';
         font-size: 9px;
       }
 
-      .orientation-gizmo-note {
-        margin-top: -2px;
-        color: var(--viewer-stone-light);
-        font-size: 8px;
-        line-height: 1.25;
-        text-align: center;
+      /* Only the selected coordinate frame is printed below the cube.
+         Preserve the existing button text/ARIA for keyboard and browser guards. */
+      :global(.orientation-gizmo [data-navigation-north="toggle"]::after) {
+        content: attr(data-frame-label);
+        display: inline-block;
+        font-size: 9px;
+        font-weight: 750;
+        letter-spacing: .04em;
+        line-height: 1.3;
         white-space: nowrap;
       }
 
@@ -1971,7 +1974,6 @@ const title = 'Private 3D viewer';
           data-frame="YLIS-G1-LOCAL"
           data-north-axis="+Y"
         >
-          <div class="orientation-gizmo-title">YLIS-G1-LOCAL</div>
           <svg viewBox="0 0 92 92" aria-hidden="true">
             <circle class="orientation-origin" cx="46" cy="46" r="2.4"></circle>
             <g>
@@ -1991,7 +1993,6 @@ const title = 'Private 3D viewer';
               <text id="orientation-axis-z-label" class="orientation-axis-label orientation-axis-label-z" x="24" y="68">Z</text>
             </g>
           </svg>
-          <div class="orientation-gizmo-note">X itä · Y pohjoinen · Z ylös</div>
         </aside>
         <div id="d1-known-door-label-layer" class="d1-known-door-label-layer" aria-hidden="true" hidden></div>
         <aside id="d1-known-door-legend" class="d1-known-door-legend" aria-label="D 1F -ovien tarkastusselite" hidden>
