@@ -51,12 +51,15 @@ const readCube = (page: Page) => page.evaluate(() => {
         '.nav-cube-edge-axes polygon[data-cube-edge-head="' + key + '"]')!;
       const label = svg.querySelector<SVGTextElement>(
         '.nav-cube-edge-axes text[data-cube-edge-label="' + key + '"]')!;
+      const bb = label.getBBox();
       return {
         key,
         start: [Number(line.getAttribute('x1')), Number(line.getAttribute('y1'))],
         tip: (head.getAttribute('points') || '').split(' ')[0].split(',').map(Number),
         head: head.getAttribute('points') || '',
         label: label.textContent,
+        labelPoint: [Number(label.getAttribute('x')), Number(label.getAttribute('y'))],
+        labelBox: { x: bb.x, y: bb.y, width: bb.width, height: bb.height },
       };
     });
   const oldAxesHidden = Array.from(svg.querySelectorAll<SVGElement>(
@@ -76,6 +79,35 @@ const readCube = (page: Page) => page.evaluate(() => {
   };
 });
 
+// Independent convex hull of all face polygons returned by Chromium SVG.
+const signedSilhouetteDistance = (point: number[], corners: number[][]) => {
+  const sorted = corners.map(([x, y]) => ({ x, y }))
+    .sort((a, b) => a.x - b.x || a.y - b.y);
+  const cross = (a: typeof sorted[number], b: typeof sorted[number], c: typeof sorted[number]) =>
+    (b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x);
+  const lower: typeof sorted = [], upper: typeof sorted = [];
+  for (const p of sorted) {
+    while (lower.length >= 2 && cross(lower[lower.length - 2], lower[lower.length - 1], p) <= 0) lower.pop();
+    lower.push(p);
+  }
+  for (let i = sorted.length - 1; i >= 0; i--) {
+    const p = sorted[i];
+    while (upper.length >= 2 && cross(upper[upper.length - 2], upper[upper.length - 1], p) <= 0) upper.pop();
+    upper.push(p);
+  }
+  const hull = [...lower.slice(0, -1), ...upper.slice(0, -1)];
+  let inside = true, closest = Infinity;
+  for (let i = 0; i < hull.length; i++) {
+    const a = hull[i], b = hull[(i + 1) % hull.length];
+    const dx = b.x - a.x, dy = b.y - a.y;
+    if (dx * (point[1] - a.y) - dy * (point[0] - a.x) < -1e-7) inside = false;
+    const t = Math.max(0, Math.min(1,
+      ((point[0] - a.x) * dx + (point[1] - a.y) * dy) / Math.max(dx * dx + dy * dy, 1e-9)));
+    closest = Math.min(closest, Math.hypot(point[0] - a.x - t * dx, point[1] - a.y - t * dy));
+  }
+  return inside ? -closest : closest;
+};
+
 const verifyProjectedEdges = (state: Awaited<ReturnType<typeof readCube>>) => {
   expect(state.cubeReady).toBe('ready');
   expect(state.error).toBeNull();
@@ -86,6 +118,11 @@ const verifyProjectedEdges = (state: Awaited<ReturnType<typeof readCube>>) => {
     expect(['x', 'y', 'z']).toContain(arrow.key);
     expect(arrow.label).toBe(arrow.key.toUpperCase());
     expect(arrow.head.split(' ').length).toBe(3);
+    const labelClearance = signedSilhouetteDistance(arrow.labelPoint, state.corners);
+    const glyphRadius = Math.hypot(arrow.labelBox.width / 2, arrow.labelBox.height / 2) + 0.85;
+    expect(labelClearance).toBeGreaterThan(glyphRadius);
+    expect(arrow.labelPoint.every(Number.isFinite)).toBe(true);
+    expect(arrow.labelPoint.every(n => n >= 8 && n <= 84)).toBe(true);
     for (const endpoint of [arrow.start, arrow.tip]) {
       expect(endpoint.every(Number.isFinite)).toBe(true);
       expect(state.corners.some(([x, y]) =>
