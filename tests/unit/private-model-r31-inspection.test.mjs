@@ -26,7 +26,9 @@ const drainSource = (sceneName = R31_DRAINAGE_SOURCE.sceneName, pass = R31_DRAIN
   well.position.set(26, -1, 0.7);
   const route = new THREE.Group();
   route.userData = { representationKind: 'referenceRouteWork' };
-  route.add(new THREE.Mesh(new THREE.BoxGeometry(1, 0.1, 0.1), new THREE.MeshBasicMaterial()));
+  // Source routes are line strips.
+  route.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([
+    new THREE.Vector3(0, -1, 0), new THREE.Vector3(5, -1, 0), new THREE.Vector3(5, -1.2, -3)]), new THREE.LineBasicMaterial()));
   const open = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.01, 0.3), new THREE.MeshBasicMaterial());
   open.userData = { representationKind: 'unresolvedBoundaryMarker' };
   const wall = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshBasicMaterial());
@@ -40,7 +42,10 @@ test('drainage overlay keeps source placement, counts kinds and fails closed on 
   assert.deepEqual(overlay.userData.counts, { well: 1, route: 1, open: 1 });
   const well = overlay.children.find((c) => c.userData.r31InspectionKind === 'well');
   const p = new THREE.Vector3().setFromMatrixPosition(well.matrix);
-  assert.deepEqual([p.x, p.y, p.z], [26, -1, 0.7]);
+  assert.ok(Math.abs(p.x - 26) < 1e-6 && Math.abs(p.y + 1) < 1e-6 && Math.abs(p.z - 0.7) < 1e-6);
+  const route = overlay.children.find((c) => c.userData.r31InspectionKind === 'route');
+  route.geometry.computeBoundingBox();
+  assert.ok(route.geometry.boundingBox.max.x > 4.9 && route.geometry.boundingBox.min.z < -2.9, 'tube follows the source strip');
   assert.equal(buildR31DrainageOverlay(THREE, drainSource('other')), null);
   assert.equal(buildR31DrainageOverlay(THREE, drainSource(undefined, 'M5A-R2')), null);
 });

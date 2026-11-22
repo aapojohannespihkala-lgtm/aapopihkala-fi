@@ -15888,7 +15888,11 @@ const title = 'Private 3D viewer';
         const active = r31Inspection;
         r31Inspection = null;
         active.overlay.removeFromParent();
+        // Layerit may have snapshotted the grey presentation as its baseline
+        // while the inspection was on: drop it, put the originals back, rebind.
+        disposeLayersPresentation();
         active.restore();
+        refreshLayers();
         delete canvas.dataset.r31Inspection;
         delete canvas.dataset.r31InspectionCounts;
         refreshEdgeRendering(modelRoot.children[0] ?? null);
@@ -15949,11 +15953,21 @@ const title = 'Private 3D viewer';
           r31DrainageGltf = null;
           console.warn('R31 inspection source failed', error);
         }
-        // Let Layerit finish its microtask refresh before the grey presentation.
+        // Edges off first; then let Layerit finish its microtask refresh before
+        // the grey presentation so it never snapshots the grey as a baseline.
+        const previousEdge = edgeModeSelect.value;
+        if (previousEdge !== 'none') {
+          edgeModeSelect.value = 'none';
+          edgeModeSelect.dispatchEvent(new Event('change', { bubbles: true }));
+        }
         await new Promise((resolve) => setTimeout(resolve, 0));
         const root = modelRoot.children[0];
         if (!overlay || !root || !r31InspectionAvailable()) {
           status.textContent = mode === 'drainage' ? 'Salaojat: lähde ei saatavilla' : 'Infra: lähde ei saatavilla';
+          if (previousEdge !== 'none') {
+            edgeModeSelect.value = previousEdge;
+            edgeModeSelect.dispatchEvent(new Event('change', { bubbles: true }));
+          }
           if (pose) deskApplyPose(pose);
           deskSync();
           return false;
@@ -15969,11 +15983,6 @@ const title = 'Private 3D viewer';
         const dim = dimR31ModelForInspection(THREE, root, {
           keep: mode === 'infra' ? isSiteSewer : () => false, keepMaterial: sewerMaterial,
         } as any);
-        const previousEdge = edgeModeSelect.value;
-        if (previousEdge !== 'none') {
-          edgeModeSelect.value = 'none';
-          edgeModeSelect.dispatchEvent(new Event('change', { bubbles: true }));
-        }
         modelRoot.parent?.add(overlay);
         r31Inspection = {
           mode, overlay,
