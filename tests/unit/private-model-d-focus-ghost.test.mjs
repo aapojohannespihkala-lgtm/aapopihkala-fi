@@ -28,7 +28,7 @@ test('inside stays, outside turns faint and unpickable, crossing meshes split; r
   const originals = [inside, outside, across].map((m) => m.material);
   const ghost = createDFocusGhost(0.1);
   const counts = ghost.apply(root, F);
-  assert.deepEqual(counts, { inside: 1, outside: 1, split: 1, hidden: 0 });
+  assert.deepEqual(counts, { inside: 1, outside: 1, split: 1, hidden: 0, aids: 0 });
   assert.equal(inside.material, originals[0]);
   assert.ok(outside.material.transparent && outside.material.opacity <= 0.1 && outside.material.depthWrite === false);
   assert.equal(outside.userData.viewerSuppressEdgeOverlay, true);
@@ -63,7 +63,7 @@ test('outside meshes share one faint material; small crossing meshes are classif
   root.add(far1, far2, smallEdge, smallIn, tiny);
   const ghost = createDFocusGhost(0.1);
   const counts = ghost.apply(root, F);
-  assert.deepEqual(counts, { inside: 1, outside: 3, split: 0, hidden: 1 });
+  assert.deepEqual(counts, { inside: 1, outside: 3, split: 0, hidden: 1, aids: 0 });
   assert.equal(tiny.visible, false);
   assert.equal(far1.material, far2.material, 'one shared ghost material');
   assert.equal(smallEdge.material, far1.material);
@@ -82,7 +82,7 @@ test('storey focus: 1F below the split, 2F above; a two-storey wall is split by 
   root.add(wall, upper);
   const ghost = createDFocusGhost(0.1);
   const counts = ghost.apply(root, f1);
-  assert.deepEqual(counts, { inside: 0, outside: 1, split: 1, hidden: 0 });
+  assert.deepEqual(counts, { inside: 0, outside: 1, split: 1, hidden: 0, aids: 0 });
   assert.equal(wall.material.clippingPlanes.length, 5);
   ghost.restore();
 });
@@ -104,7 +104,7 @@ test('Layerit transition rebinds underlying material without losing D ghost or e
   outside.material = dimLayerMaterial;
   across.visible = false;
   const counts = dFocus.apply(root, F);
-  assert.deepEqual(counts, { inside: 1, outside: 1, split: 0, hidden: 0 });
+  assert.deepEqual(counts, { inside: 1, outside: 1, split: 0, hidden: 0, aids: 0 });
   assert.ok(outside.material.transparent && Math.abs(outside.material.opacity - 0.1) < 1e-9 && outside.material.depthWrite === false);
   const hits = [];
   outside.raycast({}, hits);
@@ -114,4 +114,21 @@ test('Layerit transition rebinds underlying material without losing D ghost or e
   assert.equal(outside.material, dimLayerMaterial);
   assert.equal(across.visible, false);
   dimLayerMaterial.dispose();
+});
+
+test('review aids (schematic, assumed routes, review guides) are left out and restored', () => {
+  const root = new Group();
+  const aidRoot = new Group();
+  aidRoot.userData = { ylisTechRole: 'HISTORICAL_SCHEMATIC_REVIEW_GUIDE' };
+  const aidMesh = meshAt(3, 0);
+  aidRoot.add(aidMesh);
+  const wall = meshAt(2, -2);
+  root.add(aidRoot, wall);
+  const ghost = createDFocusGhost(0.1, { hideObject: (o) => /SCHEMATIC/.test(o.userData?.ylisTechRole ?? '') });
+  const counts = ghost.apply(root, F);
+  assert.equal(counts.aids, 1);
+  assert.equal(aidMesh.visible, false);
+  assert.equal(wall.visible, true);
+  ghost.restore();
+  assert.equal(aidMesh.visible, true);
 });
