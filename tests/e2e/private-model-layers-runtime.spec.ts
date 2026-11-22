@@ -3,10 +3,71 @@ import { createHash } from 'node:crypto';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { BoxGeometry, Group, Mesh, MeshBasicMaterial, Scene, PerspectiveCamera, Vector3 } from 'three';
 import { collectViewerLayerSourceNodes, createViewerLayersRuntime } from '../../src/scripts/privateModelLayersRuntime';
+import { C80_R31_9E0B_SOURCE, C80_R31_9E0B_VIEWS } from '../../src/scripts/privateModelC80R31ReviewRuntime.mjs';
 import { buildViewerLayerPanelModel } from '../../src/scripts/privateModelLayersPresetControls';
-import { applyViewerLayerPreset, createViewerInteractionState, setViewerInteractionLayerMode } from '../../src/scripts/privateModelViewerState';
+import { applyViewerLayerPreset, createViewerInteractionState, setViewerInteractionLayerMode, setViewerInteractionLayerBranchMode, withViewerLayerBranchVisibility } from '../../src/scripts/privateModelViewerState';
 
 const sha = 'cff2dbead53b7836747e10ef359637114ff723690ec380e313cec817e4f71d31';
+
+test('R31 H3 D/BOTH roof visible-hidden-visible cycle keeps source, preset and camera', () => {
+  const digest = C80_R31_9E0B_SOURCE.glbSha256;
+  // Synthetic Three viewer objects, not a claim of authenticated production WebGL.
+  for (const key of ['dNormal', 'dService'] as const) {
+    const view = C80_R31_9E0B_VIEWS[key];
+    expect(view.floor).toBe('BOTH');
+    expect([769, 770]).toContain(view.sceneIndex);
+    const scene = new Scene();
+    const roofRoot = new Group();
+    const originalMaterial = new MeshBasicMaterial();
+    const roof = new Mesh(new BoxGeometry(1, 1, 1), originalMaterial);
+    roofRoot.add(roof);
+    const wall = new Mesh(new BoxGeometry(1, 1, 1), new MeshBasicMaterial());
+    scene.add(roofRoot, wall);
+    const camera = new PerspectiveCamera();
+    camera.position.set(7, 9, 11);
+    camera.lookAt(new Vector3(0, 0, 0));
+    const cameraBefore = [...camera.position.toArray(), ...camera.quaternion.toArray()];
+    const runtime = createViewerLayersRuntime({
+      sceneRoot: scene, sourceSha256: digest, bindings: [{ id: 'roof', root: roofRoot }],
+    });
+    const available = runtime.availableNodeIds;
+    const frame = {
+      activeSceneRoot: scene, availableNodeIds: available,
+      gates: new Map([[roofRoot, {
+        sourceAllowed: true, scopeAllowed: true, floorAllowed: true,
+      }]]),
+    };
+    const preset = 'd-apartment' as const;
+    let state = withViewerLayerBranchVisibility(
+      applyViewerLayerPreset(createViewerInteractionState(), preset),
+    );
+    state = setViewerInteractionLayerBranchMode(state, 'architecture', 'visible', available);
+    state = setViewerInteractionLayerBranchMode(state, 'roof', 'visible', available);
+    expect(runtime.apply(state, frame)[0].mode).toBe('visible');
+    expect(roofRoot.visible).toBe(true);
+    expect(roof.material).toBe(originalMaterial);
+    expect(wall.visible).toBe(true);
+
+    state = setViewerInteractionLayerBranchMode(state, 'roof', 'hidden', available);
+    expect(runtime.apply(state, frame)[0].mode).toBe('hidden');
+    expect(roofRoot.visible).toBe(false);
+    roofRoot.visible = true; // Old controller may attempt to show everything.
+    runtime.enforce(scene, digest);
+    expect(roofRoot.visible).toBe(false);
+    expect(wall.visible).toBe(true);
+
+    state = setViewerInteractionLayerBranchMode(state, 'roof', 'visible', available);
+    expect(runtime.apply(state, frame)[0].mode).toBe('visible');
+    expect(roofRoot.visible).toBe(true);
+    expect(roof.material).toBe(originalMaterial);
+    expect(state.layerPresetState?.selected).toBe(preset);
+    expect([...camera.position.toArray(), ...camera.quaternion.toArray()]).toEqual(cameraBefore);
+    expect(scene.children).toEqual([roofRoot, wall]);
+    runtime.dispose();
+    expect(roof.material).toBe(originalMaterial);
+    expect(roofRoot.visible).toBe(true);
+  }
+});
 
 test('fixture visibility describes source-bound parts rather than complete cabinets', () => {
   const state = applyViewerLayerPreset(createViewerInteractionState(), 'd-2f');
