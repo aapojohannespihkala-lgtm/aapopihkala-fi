@@ -2933,7 +2933,7 @@ const title = 'Private 3D viewer';
         type WorkTestLoadFailurePhase,
       } from '../../scripts/privateModelWorkTestLoadDiagnostics';
 
-      import { createC80R31ViewSwitch, r31WorkTestReview, r31ViewerLayerSceneReceipt, C80_R31_9E0B_SOURCE } from '../../scripts/privateModelC80R31ReviewRuntime.mjs';
+      import { createC80R31ViewSwitch, r31WorkTestReview, r31ViewerLayerSceneReceipt, r31ViewerLayerBindingScope, C80_R31_9E0B_SOURCE } from '../../scripts/privateModelC80R31ReviewRuntime.mjs';
       import { mountDesktopToolbar, activeDesktopPreset, activeDesktopAngle, DESKTOP_START_CANDIDATE_ID } from '../../scripts/privateModelDesktopToolbar.mjs';
 
       const canvas = document.querySelector<HTMLCanvasElement>('#private-model-canvas');
@@ -15201,10 +15201,10 @@ const title = 'Private 3D viewer';
           const root = modelRoot.children[0] ?? null;
           const sceneIndex = layersGltf?.scenes?.indexOf(root) ?? -1;
           // A matching digest alone cannot bind other glTF scenes in an R31 GLB.
-          const r31SceneProof = layersLoadedSha === C80_R31_9E0B_SOURCE.glbSha256
-            ? r31ViewerLayerSceneReceipt(layersGltf?.parser?.json, layersLoadedSha, sceneIndex) : true;
+          const r31SceneScope = layersLoadedSha === C80_R31_9E0B_SOURCE.glbSha256
+            ? r31ViewerLayerBindingScope(layersGltf?.parser?.json, layersLoadedSha, sceneIndex) : null;
           const verified = !!layersExpectedSha && layersExpectedSha === layersLoadedSha &&
-            sceneIndex >= 0 && !!r31SceneProof;
+            sceneIndex >= 0 && (layersLoadedSha !== C80_R31_9E0B_SOURCE.glbSha256 || !!r31SceneScope);
           const filterActive = canvas.dataset.objectVisibilityFilter === 'active';
           if (filterActive) {
             technicalReviewInput.disabled = true;
@@ -15229,8 +15229,11 @@ const title = 'Private 3D viewer';
               applyRoofLayerState(); applyLocusLayerState(); applyElectricalLayerState();
               mainViewScope?.enforce();
             }
-            const area = mainViewScope?.active ? 'D' : 'WHOLE';
-            const floor = (mainViewScope?.active ? mainViewScope.floor : 'BOTH') as MainViewFloor;
+            // R31's four authenticated D/2F source roles override the generic
+            // inactive D-selector fallback; legacy sources keep their old scope.
+            const area = r31SceneScope?.area ?? (mainViewScope?.active ? 'D' : 'WHOLE');
+            const floor = (r31SceneScope?.floor ??
+              (mainViewScope?.active ? mainViewScope.floor : 'BOTH')) as MainViewFloor;
             const source = sourceNodeModel(layersGltf);
             const building = resolveBuildingPartLayerBindings({
               gltf: source, expectedSourceSha256: layersExpectedSha!,

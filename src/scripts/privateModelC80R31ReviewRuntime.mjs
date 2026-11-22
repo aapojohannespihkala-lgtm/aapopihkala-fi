@@ -104,6 +104,14 @@ export function r31ViewerLayerSceneReceipt(json, loadedSha, sceneIndex) {
  return proven ? Object.freeze({sourceSha256: loadedSha, sceneIndex, role: view.role, floor: view.floor}) : null;
 }
 
+/** Layer binding scope derives exclusively from an authenticated R31 scene receipt.
+ * R31 2F views must not inherit a WHOLE/BOTH fallback from the inactive D UI.
+ */
+export function r31ViewerLayerBindingScope(json, loadedSha, sceneIndex) {
+  const proof = r31ViewerLayerSceneReceipt(json, loadedSha, sceneIndex);
+  return proof ? Object.freeze({area: 'D', floor: proof.floor}) : null;
+}
+
 /** Candidate id -> exact source + named views. Unknown ids are not R31 reviews. */
 export function r31WorkTestReview(candidate){
  const table={
