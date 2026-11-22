@@ -3295,7 +3295,12 @@ const title = 'Private 3D viewer';
         sourceEvidenceSection: document.querySelector<HTMLElement>('#selection-source-evidence'),
       });
 
-      const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+      // Owner 22.11.2026: general flicker. Near planes are as small as distance/10000,
+      // so a 24-bit depth buffer separated surfaces only ~3 cm apart at 45 m and
+      // nearby faces z-fought while moving. A reversed float depth buffer (three
+      // falls back automatically without EXT_clip_control) resolves sub-millimetre gaps.
+      const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, reversedDepthBuffer: true } as any);
+      canvas.dataset.depthBuffer = (renderer.capabilities as any).reversedDepthBuffer ? 'reversed' : 'standard';
       renderer.localClippingEnabled = true;
       renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
       renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -15804,7 +15809,9 @@ const title = 'Private 3D viewer';
         applyStandardViewPreset('whole-building', true);
         applyViewerLayerState({ roofVisible: roof && !storey }, `preset:${key}`);
         const root = modelRoot.children[0] ?? modelRoot;
-        const whole = dFootprintFromScope(root);
+        // No padding: the C building masses start exactly at the D/C party wall
+        // (x 6.38); a padded box drew a 0.37 m opaque slice of C onto D's wall.
+        const whole = dFootprintFromScope(root, 0);
         const footprint = storey ? dStoreyFootprint(whole, storey) : whole;
         const counts = deskDFocus.apply(root, footprint);
         canvas.dataset.dFocusGhost = `${key}|in:${counts.inside}|out:${counts.outside}|split:${counts.split}|hidden:${counts.hidden}`;

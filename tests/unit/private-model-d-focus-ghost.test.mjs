@@ -15,6 +15,10 @@ test('overlap fraction of a horizontal box against the D footprint', () => {
   assert.equal(footprintOverlap(new Box3(new Vector3(1, 0, -1), new Vector3(2, 1, 0)), F), 1);
   assert.equal(footprintOverlap(new Box3(new Vector3(10, 0, -1), new Vector3(12, 1, 0)), F), 0);
   assert.ok(Math.abs(footprintOverlap(new Box3(new Vector3(-6, 0, -1), new Vector3(6, 1, 0)), F) - 0.5) < 1e-9);
+  // Planar meshes (zero thickness) inside the footprint are fully inside.
+  assert.equal(footprintOverlap(new Box3(new Vector3(1, 0, -10), new Vector3(3, 2, -10)), F), 1);
+  assert.equal(footprintOverlap(new Box3(new Vector3(0, 0, -5), new Vector3(0, 2, 0)), F), 1);
+  assert.equal(footprintOverlap(new Box3(new Vector3(1, 0, -11), new Vector3(3, 2, -11)), F), 0);
 });
 
 test('inside stays, outside turns faint and unpickable, crossing meshes split; restore is exact', () => {
