@@ -178,6 +178,89 @@ test('east gable loads on demand with the JSON world matrix when the scene is no
   assert.ok(Math.abs(p.x - (-0.22 + 0.008)) < 1e-9);
 });
 
+test('source K14 east face and its brown boarding stay below R31 AB roof underside', async () => {
+  const {
+    R31_AB_ROOF_UNDERSIDE_WORK_TEST: s, r31ABRoofUndersideY,
+    clipR31EastGableToABRoof, buildR31GableBoarding, R31_GABLE_BOARDING_FROM_Y,
+  } = await import('../../src/scripts/privateModelR31Inspection.mjs');
+  assert.deepEqual([s.sourceScene, s.sourceNode, s.sourceMesh], [769, 13361, 5112]);
+  assert.ok(Math.abs(r31ABRoofUndersideY(-4.58) - 6.523845) < 1e-6);
+  const source = new THREE.BoxGeometry(0.22, 3, 12.52);
+  const original = Array.from(source.getAttribute('position').array);
+  const matrix = new THREE.Matrix4().makeTranslation(25.29, 5.5, -4.55);
+  const clipped = clipR31EastGableToABRoof(THREE, source, matrix);
+  assert.ok(clipped.getAttribute('position').count > 12, 'clipped triangles retained');
+  assert.deepEqual(Array.from(source.getAttribute('position').array), original,
+    'the original source POSITION bytes are never changed');
+  const check = (geometry, transform, minY = -Infinity) => {
+    const a = geometry.getAttribute('position');
+    assert.ok(a.count > 0);
+    let ridgeVertices = 0;
+    for (let i = 0; i < a.count; i += 1) {
+      const p = new THREE.Vector3().fromBufferAttribute(a, i).applyMatrix4(transform);
+      assert.ok(p.y <= r31ABRoofUndersideY(p.z) + 2e-5,
+        `east K14 overlay protrudes over underside at ${p.z}: ${p.y}`);
+      assert.ok(p.y >= minY - 2e-5, 'brown boarding stays above the brick line');
+      if (Math.abs(p.z - s.ridgeZ) < 1e-5) ridgeVertices += 1;
+    }
+    return ridgeVertices;
+  };
+  assert.ok(check(clipped, matrix) > 0, 'ridge must be split into two roof slopes');
+  const face = new THREE.Mesh(clipped, new THREE.MeshBasicMaterial());
+  face.matrixAutoUpdate = false; face.matrix.copy(matrix);
+  const overlay = buildR31GableBoarding(THREE, { eastFace: face }, new THREE.MeshBasicMaterial());
+  assert.equal(overlay.children.length, 1);
+  check(overlay.children[0].geometry, overlay.children[0].matrix, R31_GABLE_BOARDING_FROM_Y);
+});
+
+test('K14 scene23 direct and lazy-loaded copies are clipped, source mesh and material stay exact', async () => {
+  const { buildR31EastGableOverlay, loadR31EastGableOverlay, r31ABRoofUndersideY,
+    hasR31ABRoofClipSource } = await import('../../src/scripts/privateModelR31Inspection.mjs');
+  const nodes = Array.from({ length: 13362 }, () => ({}));
+  nodes[3665] = { name: 'K14_A_GABLE_EXTERIOR_FACE_WORK_TEST', mesh: 0,
+    translation: [25.29, 5.5, -4.55] };
+  nodes[13361] = { name: 'C80_R31_AB_ALEMPI_VESIKATTO_OPTIN', mesh: 5112 };
+  const jsonScenes = Array.from({ length: 770 }, (_, i) => ({ name: `scene${i}`, nodes: [] }));
+  jsonScenes[23] = { name: 'K14 scene23', nodes: [3665] };
+  jsonScenes[769] = { name: 'R31_SOURCE_ROOF__scene769', nodes: [13361] };
+  const json = { nodes, scenes: jsonScenes };
+  assert.equal(hasR31ABRoofClipSource(json), true);
+  const material = new THREE.MeshBasicMaterial();
+  const geometry = new THREE.BoxGeometry(0.22, 3, 12.52);
+  const source = new THREE.Mesh(geometry, material);
+  source.name = nodes[3665].name;
+  source.position.set(25.29, 5.5, -4.55);
+  const s23 = new THREE.Group(); s23.add(source);
+  const scenes = Array.from({ length: 770 }, () => new THREE.Group());
+  scenes[23] = s23;
+  const associations = new Map([[source, { nodes: 3665 }]]);
+  const direct = buildR31EastGableOverlay(THREE, { scenes, parser: { json, associations } });
+  const lazy = await loadR31EastGableOverlay(THREE, { scenes: [], parser: { json,
+    associations: new Map(), getDependency: async (type, i) =>
+      (type === 'mesh' && i === 0 ? new THREE.Mesh(geometry, material) : null) } });
+  assert.ok(direct && lazy);
+  for (const group of [direct, lazy]) {
+    assert.equal(group.children.length, 1);
+    const clone = group.children[0];
+    assert.equal(clone.userData.roofClipStatus, 'R31_AB_UNDERSIDE_WORK_TEST');
+    assert.equal(clone.userData.physicalRoofClaim, false);
+    assert.equal(clone.userData.sourceNode, 3665);
+    assert.equal(clone.material, material, 'source material identity preserved');
+    assert.notEqual(clone.geometry, geometry, 'source geometry is not mutated');
+    const a = clone.geometry.getAttribute('position');
+    assert.ok(a.count > 0);
+    for (let i = 0; i < a.count; i += 1) {
+      const p = new THREE.Vector3().fromBufferAttribute(a, i).applyMatrix4(clone.matrix);
+      assert.ok(p.y <= r31ABRoofUndersideY(p.z) + 2e-5);
+    }
+  }
+  assert.equal(source.geometry, geometry);
+  assert.equal(source.material, material);
+  const unresolved = structuredClone(json);
+  unresolved.nodes[13361].mesh = -1;
+  assert.equal(hasR31ABRoofClipSource(unresolved), false, 'no clip claim for another model');
+});
+
 test('Locus fibre map: 22 source lines on one display level, Z unresolved', async () => {
   const { buildR31FiberOverlay, R31_FIBER_DISPLAY_Y } = await import('../../src/scripts/privateModelR31Inspection.mjs');
   const { R31_LOCUS_FIBER_LINES } = await import('../../src/scripts/privateModelR31LocusFiber.mjs');
