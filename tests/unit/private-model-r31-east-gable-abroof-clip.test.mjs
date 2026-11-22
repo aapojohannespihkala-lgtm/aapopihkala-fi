@@ -17,8 +17,8 @@ const vertices = (geo) => {
   const p = geo.getAttribute('position');
   return Array.from({ length: p.count }, (_, i) => new THREE.Vector3().fromBufferAttribute(p, i));
 };
-const assertBelowRoof = (geo) => {
-  const verts = vertices(geo);
+const assertBelowRoof = (geo, transform = new THREE.Matrix4()) => {
+  const verts = vertices(geo).map((p) => p.applyMatrix4(transform));
   assert.ok(verts.length > 0, 'roof clip must not erase the whole east facade');
   for (const p of verts) assert.ok(p.y <= underside(p.z) + EPS, `point above A/B roof: ${p.y} @ z=${p.z}`);
 };
@@ -69,9 +69,9 @@ test('normal scene23 loading clips K14 source and downstream brown boarding to A
   const face = output.children[0];
   assert.strictEqual(face.material, source.material);
   assert.notStrictEqual(face.geometry, source.geometry);
-  assertBelowRoof(face.geometry);
+  assertBelowRoof(face.geometry, face.matrix);
   assert.equal(face.userData.clippedToRoofSourceNode, 13361);
-  assert.ok(Math.abs(face.matrix.elements[12] - R31_EAST_GABLE_FACE_LIFT_M) < 1e-9);
+  assert.ok(Math.abs(face.matrix.elements[12] - (source.position.x + R31_EAST_GABLE_FACE_LIFT_M)) < 1e-9);
   assert.ok(source.geometry.getAttribute('position').count > 0);
   const brown = buildR31GableBoarding(THREE, { eastFace: face }, new THREE.MeshBasicMaterial({ color: 0x3b2a22 }));
   assert.equal(brown.children.length, 1);
@@ -97,7 +97,7 @@ test('JSON on-demand scene23 path uses same clipping and leaves source dependenc
   const before = Float32Array.from(source.geometry.getAttribute('position').array);
   const output = await loadR31EastGableOverlay(THREE, data);
   assert.equal(output?.children.length, 1);
-  assertBelowRoof(output.children[0].geometry);
+  assertBelowRoof(output.children[0].geometry, output.children[0].matrix);
   assert.equal(output.children[0].userData.sourceNode, 3665);
   assert.equal(output.children[0].userData.currentClaim, false);
   assert.deepEqual(Array.from(source.geometry.getAttribute('position').array), Array.from(before));
