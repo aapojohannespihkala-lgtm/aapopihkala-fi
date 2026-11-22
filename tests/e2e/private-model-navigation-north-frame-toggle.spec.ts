@@ -126,3 +126,42 @@ test('same north-reference switch is keyboard accessible in the compact viewport
   await expect(button).toHaveAttribute('aria-pressed', 'false');
   expect(await activeCameraState(page)).toEqual(before);
 });
+
+test('synthetic north overlay exception cannot blank the canvas or stop animation frames', async ({ page }) => {
+  // PR2139 -> PR2149 regression: with an empty synthetic source, the
+  // first orientation-gizmo render can receive an invalid camera quaternion.
+  // The optional north annotation must not stop the viewer's RAF loop.
+  // This test does not load or attest to any protected Ylisrinne GLB.
+  await page.addInitScript(() => {
+    const w = window as unknown as Window & { __ylisNorthTestFrames: number };
+    const original = window.requestAnimationFrame.bind(window);
+    w.__ylisNorthTestFrames = 0;
+    window.requestAnimationFrame = (callback) => original((time) => {
+      w.__ylisNorthTestFrames += 1;
+      callback(time);
+    });
+  });
+  await loadSyntheticViewer(page);
+  const gizmo = page.locator('#orientation-gizmo');
+  const readout = page.locator('#ai-navigator-readout');
+  const canvas = page.locator('#private-model-canvas');
+
+  // The synthetic zero-pose source exercises the real failure path without
+  // patching a source module, camera or protected artifact.
+  await expect(gizmo).toHaveAttribute('data-north-frame-error',
+    /YLIS_NORTH_FRAME: finite camera quaternion required/);
+  await expect(readout).toHaveAttribute('data-ready', 'true');
+  await expect.poll(() => canvas.evaluate((element) => {
+    const bitmap = element as HTMLCanvasElement;
+    return bitmap.width > 300 && bitmap.height > 150;
+  })).toBe(true);
+  const frames = () => page.evaluate(() =>
+    (window as unknown as Window & { __ylisNorthTestFrames: number }).__ylisNorthTestFrames);
+  const startFrames = await frames();
+  await expect.poll(frames, { timeout: 10000 }).toBeGreaterThan(startFrames + 10);
+  await expect(readout).toHaveAttribute('data-ready', 'true');
+  await expect.poll(() => canvas.evaluate((element) => {
+    const bitmap = element as HTMLCanvasElement;
+    return bitmap.width > 300 && bitmap.height > 150;
+  })).toBe(true);
+});

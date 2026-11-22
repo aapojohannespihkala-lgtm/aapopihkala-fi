@@ -16,6 +16,7 @@ import {
  C80_R31_9E0B_VIEWS,
  isC80R31Scene769770Source,
  r31WorkTestReview,
+ r31ViewerLayerSceneReceipt,
  prepareC80R31ReviewScenes,
 } from '../../src/scripts/privateModelC80R31ReviewRuntime.mjs';
 
@@ -363,6 +364,33 @@ function json9e0b(){
  json.scenes[770]={name:'D service',nodes:DONOR769.filter(n=>n!==11625),extras:{stage:'WORK_TEST_HOST_HOLD'}};
  return json;
 }
+
+test('R31 Layerit opt-in is source-locked to four authentic WORK_TEST view roles',()=>{
+ const sha=C80_R31_9E0B_SOURCE.glbSha256,json=json9e0b();
+ for(const [index,key] of [[769,'dNormal'],[770,'dService']]) {
+  const proof=r31ViewerLayerSceneReceipt(json,sha,index);
+  assert.ok(proof);
+  assert.equal(proof.sourceSha256,sha);
+  assert.equal(proof.sceneIndex,index);
+  assert.equal(proof.role,C80_R31_9E0B_VIEWS[key].role);
+  assert.equal(proof.floor,'BOTH');
+  assert.equal(Object.isFrozen(proof),true);
+ }
+ // This standalone fixture does not authenticate the 2F node roots.
+ assert.equal(r31ViewerLayerSceneReceipt(json,sha,771),null);
+ assert.equal(r31ViewerLayerSceneReceipt(json,sha,772),null);
+ for(const index of [-1,0,758,768,773,774,292])
+  assert.equal(r31ViewerLayerSceneReceipt(json,sha,index),null);
+ assert.equal(r31ViewerLayerSceneReceipt(json,'0'.repeat(64),769),null);
+ assert.equal(r31ViewerLayerSceneReceipt(json,null,769),null);
+ assert.equal(r31ViewerLayerSceneReceipt({},sha,769),null);
+ const badStage=json9e0b();badStage.asset.extras.ModelStage='CURRENT';
+ assert.equal(r31ViewerLayerSceneReceipt(badStage,sha,769),null);
+ const reenabledPlexi=json9e0b();reenabledPlexi.scenes[770].nodes.push(11625);
+ assert.equal(r31ViewerLayerSceneReceipt(reenabledPlexi,sha,770),null);
+ const tampered=json9e0b();tampered.scenes[769].nodes.reverse();
+ assert.equal(r31ViewerLayerSceneReceipt(tampered,sha,769),null);
+});
 
 test('9e0bf34f catalog entry maps to one exact source and four named views',()=>{
  const id=C80_R31_9E0B_WORK_TEST_ID,path=`/private-model/work-test/${id}.glb`;
