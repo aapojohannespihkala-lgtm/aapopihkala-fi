@@ -94,7 +94,14 @@ type Snapshot = {
 
 const noRaycast: Mesh['raycast'] = () => {};
 
-export const createDFocusGhost = (opacity = 0.1) => {
+/**
+ * Owner 22.11.2026 15.14: dashed lines and review aids are hidden by default
+ * in the D views. `hideObject` names those source roots (schematic, assumed
+ * routes, review guides); their meshes are left out and restored on exit.
+ */
+export type DFocusGhostOptions = { hideObject?: (object: Object3D) => boolean };
+
+export const createDFocusGhost = (opacity = 0.1, options: DFocusGhostOptions = {}) => {
   const snapshots = new Map<Mesh, Snapshot>();
   const level = Math.max(0.03, Math.min(0.3, opacity));
   const ghostBase = { color: 0xa9b6bf, transparent: true, opacity: level, depthWrite: false };
@@ -147,11 +154,32 @@ export const createDFocusGhost = (opacity = 0.1) => {
     const meshes: Mesh[] = [];
     root.traverseVisible((object) => { if (renderableMesh(object)) meshes.push(object); });
     const box = new Box3(), size = new Vector3();
-    let inside = 0, outside = 0, split = 0, hidden = 0;
+    let inside = 0, outside = 0, split = 0, hidden = 0, aids = 0;
+    const aidMemo = new Map<Object3D, boolean>();
+    const isAid = (object: Object3D | null): boolean => {
+      if (!options.hideObject || !object || object === root) return false;
+      const known = aidMemo.get(object);
+      if (known !== undefined) return known;
+      const value = options.hideObject(object) || isAid(object.parent);
+      aidMemo.set(object, value);
+      return value;
+    };
     const keptBySource = new Map<Material, Material>();
     for (const mesh of meshes) {
       if (!mesh.geometry.boundingBox) mesh.geometry.computeBoundingBox();
       box.copy(mesh.geometry.boundingBox!).applyMatrix4(mesh.matrixWorld);
+      if (isAid(mesh)) {
+        snapshots.set(mesh, {
+          material: mesh.material, visible: mesh.visible, raycast: mesh.raycast,
+          ownRaycast: Object.prototype.hasOwnProperty.call(mesh, 'raycast'),
+          suppressEdges: mesh.userData.viewerSuppressEdgeOverlay,
+          hadSuppressEdges: Object.prototype.hasOwnProperty.call(mesh.userData, 'viewerSuppressEdgeOverlay'),
+          ghostChild: null, temporary: [],
+        });
+        mesh.visible = false;
+        aids += 1;
+        continue;
+      }
       const overlap = footprintOverlap(box, footprint);
       const large = Math.max(...box.getSize(size).toArray()) >= D_FOCUS_SPLIT_MIN_SIZE;
       const mode = overlap >= 0.98 ? 'inside'
@@ -205,7 +233,7 @@ export const createDFocusGhost = (opacity = 0.1) => {
       snapshot.ghostChild = child;
       split += 1;
     }
-    return { inside, outside, split, hidden };
+    return { inside, outside, split, hidden, aids };
   };
 
   return { apply, restore, get active() { return snapshots.size > 0; } };
