@@ -592,6 +592,26 @@ test('Locus municipal stormwater: 5 source lines + 5 flow marks, 2D, nothing tow
   assert.equal(r31SiteLayerKeyForNetwork('storm'), 'storm');
 });
 
+test('Locus low voltage: the 32 selected G2b lines / 410 segments, own level, no house link', async () => {
+  const { buildR31LowVoltageOverlay, R31_LOWVOLT_DISPLAY_Y, R31_FIBER_DISPLAY_Y } = await import('../../src/scripts/privateModelR31Inspection.mjs');
+  const { R31_LOCUS_LOWVOLT_LINES, R31_LOCUS_LOWVOLT_SOURCE } = await import('../../src/scripts/privateModelR31LocusLowVoltage.mjs');
+  const { r31SiteLayerKeyForNetwork } = await import('../../src/scripts/privateModelR31SiteLayerKey.mjs');
+  assert.equal(R31_LOCUS_LOWVOLT_LINES.length, 32);
+  assert.equal(R31_LOCUS_LOWVOLT_LINES.reduce((n, l) => n + l.points.length - 1, 0), 410);
+  assert.equal(new Set(R31_LOCUS_LOWVOLT_LINES.map((l) => l.record)).size, 32);
+  assert.equal(R31_LOCUS_LOWVOLT_SOURCE.mirrorCheck, 'T3_RELEASED_DET_PLUS1_NO_EXTRA_MIRROR');
+  const group = buildR31LowVoltageOverlay(THREE, R31_LOCUS_LOWVOLT_LINES, R31_LOCUS_LOWVOLT_SOURCE);
+  assert.equal(group.userData.counts.LOWVOLT, 32);
+  assert.ok(R31_LOWVOLT_DISPLAY_Y !== R31_FIBER_DISPLAY_Y, 'never on the fibre level');
+  for (const m of group.children) {
+    assert.match(m.userData.sourceVariant, /^Shape line record \d+ \(0-based\), Laji=286200032/);
+    assert.equal(m.userData.currency, 'NONCURRENT');
+    assert.equal(m.userData.physicalZClaim, false);
+    assert.equal(m.userData.buildingPenetrationClaim, false);
+  }
+  assert.equal(r31SiteLayerKeyForNetwork('lowvolt'), 'lowvolt');
+});
+
 test('R31 municipal storm and flow marks restore exact source materials through Layerit modes', async () => {
   const { buildR31StormOverlay, setR31SiteNetworkLayerMode } =
     await import('../../src/scripts/privateModelR31Inspection.mjs');
