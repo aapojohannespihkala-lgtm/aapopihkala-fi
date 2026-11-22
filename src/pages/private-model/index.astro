@@ -2755,6 +2755,7 @@ const title = 'Private 3D viewer';
       // @ts-ignore - pure overlay builders, THREE injected.
       import { R31_DRAINAGE_SOURCE, R31_EXTERIOR_DONORS, buildR31DrainageOverlay, buildR31InfraOverlay, buildR31FiberOverlay, buildR31ExteriorDonorOverlay, buildR31WestGableInfill, buildR31GableBoarding, buildR31FiberEntryBox, buildR31FiberEntryLink, isR31WestGableBoardingSource, R31_GABLE_BOARDING_COLOR, isR31ReplacedWestDownpipe, loadR31EastGableOverlay, relocateR31Downpipes, syncR31ExteriorDonorMaterials, setR31SiteNetworkLayerMode } from '../../scripts/privateModelR31Inspection.mjs';
       import { R31_LOCUS_FIBER_LINES } from '../../scripts/privateModelR31LocusFiber.mjs';
+      import { r31SiteLayerKeyForNetwork } from '../../scripts/privateModelR31SiteLayerKey.mjs';
       import { resolveTechnicalReviewRoots, createTechnicalReviewPresentation, technicalReviewSystemOf, technicalReviewLayerSystemOf, refineTechnicalReviewSystem, filterNonTechnicalBoundObjects } from '../../scripts/privateModelTechnicalReviewPresentation.mjs';
       import { resolveConcealedTechnicalObjects, createConcealedTechnicalPresentation } from '../../scripts/privateModelConcealedTechnicalPresentation.mjs';
       import { K17_RAIL900_SOURCE_SHA256 } from '../../scripts/privateModelK17Rail900LayerSourceProfile.mjs';
@@ -15976,8 +15977,13 @@ const title = 'Private 3D viewer';
           control.row.style.display = whole ? 'flex' : 'none';
           control.select.disabled = !whole || canvas.dataset.objectVisibilityFilter === 'active';
           control.select.value = mode;
-          const group = r31SiteNetworks[key];
+        }
+        // Apply each row to every source-bound group, including the newly
+        // loaded fibre-entry drop/link. It has no fourth, separate Layerit row.
+        for (const [key, group] of Object.entries(r31SiteNetworks)) {
           if (!group) continue;
+          const layerKey = r31SiteLayerKeyForNetwork(key);
+          const mode = layerKey ? effectiveSiteModes[layerKey] ?? 'hidden' : 'hidden';
           const show = whole && mode !== 'hidden';
           if (show && group.parent !== modelRoot.parent) modelRoot.parent?.add(group);
           setR31SiteNetworkLayerMode(group, mode, whole, r31SiteGhostOriginals);
