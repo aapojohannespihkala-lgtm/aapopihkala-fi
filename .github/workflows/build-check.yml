@@ -277,6 +277,7 @@ jobs:
             tests/unit/private-model-navigation-cube.test.mjs \
             tests/unit/private-model-r31-inspection.test.mjs \
             tests/unit/private-model-r31-site-layer-controls.test.mjs \
+            tests/unit/private-model-r31-storm-builder-layer.test.mjs \
             tests/unit/private-model-d-focus-ghost.test.mjs \
             tests/unit/private-model-technical-review-hot-water.test.mjs \
             tests/unit/private-model-hidden-seam-edges.test.mjs \
