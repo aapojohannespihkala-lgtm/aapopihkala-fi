@@ -26,10 +26,12 @@ const ISO_HIDDEN_EDGES = '<path d="M12 3.5 V12 M4.5 16.2 L12 12 M19.5 16.2 L12 1
 
 /**
  * WORK_TEST opened by a plain /private-model/. Owner 21.11.2026: latest WORK_TEST.
- * Owner 22.11.2026: R31 9e0bf34f is a D-only review scene set (769-772) and looks
- * incomplete as a start; open the latest complete whole-building WORK_TEST (R22 s688).
+ * Owner 22.11.2026 (04.11): roof in the model and the whole building forward.
+ * R31 9e0bf34f scene 769 = R22 scene 688 (468/480 roots shared) + whole-building
+ * roof group (intendedViewerLayer 'roof') + ABC building masses. Its D-scope
+ * presets looked odd; the start therefore opens the whole building with the roof.
  */
-export const DESKTOP_START_CANDIDATE_ID = 'c80-620r22-r21-s2vp1-k1k2k5k6k7k9-20261119';
+export const DESKTOP_START_CANDIDATE_ID = 'c80-r31-9e0bf34f-d-2f-sc769-sc772-work-test';
 
 export const DESKTOP_PRESETS = Object.freeze([
   Object.freeze({ id: 'd-1f', label: 'D alakerta', icon: svg(house(true, false, false)) }),
