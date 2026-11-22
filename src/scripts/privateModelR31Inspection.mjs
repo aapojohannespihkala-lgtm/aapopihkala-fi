@@ -593,9 +593,14 @@ export function clipR31EastGableAtABRoofUnderside(THREE, geometry, worldMatrix) 
 function liftGableFace(THREE, mesh) {
   if (!/^K14_A_GABLE_EXTERIOR_FACE/.test(mesh.name ?? '')) return;
   // Both normal glTF-loader and on-demand JSON-loader supply a WORLD matrix.
-  // Bake it into the copied vertices before the display-only +X lift.
-  mesh.geometry = clipR31EastGableAtABRoofUnderside(THREE, mesh.geometry, mesh.matrix);
-  mesh.matrix.makeTranslation(R31_EAST_GABLE_FACE_LIFT_M, 0, 0);
+  // Perform the polygon cut in world space, then restore the LOCAL buffer:
+  // preserve the source scene/world placement contract and downstream loader tests.
+  const sourceWorld = mesh.matrix.clone();
+  const clipped = clipR31EastGableAtABRoofUnderside(THREE, mesh.geometry, sourceWorld);
+  clipped.applyMatrix4(sourceWorld.clone().invert());
+  clipped.computeBoundingBox();
+  mesh.geometry = clipped;
+  mesh.matrix.premultiply(new THREE.Matrix4().makeTranslation(R31_EAST_GABLE_FACE_LIFT_M, 0, 0));
   mesh.userData = {
     ...mesh.userData, presentationLiftXM: R31_EAST_GABLE_FACE_LIFT_M,
     clippedToRoofSourceNode: 13361, clippedToRoofProfile: 'R31_AB_ROOF_UNDERSIDE_WORK_TEST',
