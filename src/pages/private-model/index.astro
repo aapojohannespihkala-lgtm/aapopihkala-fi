@@ -15177,6 +15177,13 @@ const title = 'Private 3D viewer';
       });
 
       const disposeLayersPresentation = () => {
+        // Other preset/model paths also dispose Layerit directly. Always undo
+        // #2177's temporary ghost copies before restoring the layer baseline.
+        if (deskDFocus.active) {
+          deskDFocus.restore();
+          delete canvas.dataset.dFocusGhost;
+          delete canvas.dataset.dFocusFootprint;
+        }
         concealedTechnical?.dispose();
         concealedTechnical = null;
         delete canvas.dataset.concealedTechnicalCount;
