@@ -376,3 +376,45 @@ test('R31 site Layerit supports multi-material source meshes without source muta
   assert.equal(b.opacity, 0.4);
   assert.equal(originals.size, 0);
 });
+
+test('R31 owner fibre entry and Locus 2D map remain distinct WORK_ASSUMPTION sources', async () => {
+  const { R31_LOCUS_FIBER_LINES, R31_LOCUS_FIBER_SOURCE } =
+    await import('../../src/scripts/privateModelR31LocusFiber.mjs');
+  const { R31_FIBER_ENTRY, R31_FIBER_DISPLAY_Y, buildR31FiberEntryLink } =
+    await import('../../src/scripts/privateModelR31Inspection.mjs');
+  assert.equal(R31_LOCUS_FIBER_SOURCE.zState, 'UNRESOLVED');
+  assert.equal(R31_LOCUS_FIBER_LINES.length, 22);
+
+  // The cartographic records include points inside the approximate plan bounds.
+  // This is not proof of the house entry position or any buried physical route.
+  const withinPlan = R31_LOCUS_FIBER_LINES.flatMap((line) =>
+    line.points.filter(([x, y]) => x >= 0 && x <= 25.4 && y >= 0 && y <= 10.81));
+  assert.equal(withinPlan.length, 8);
+  const locus080 = R31_LOCUS_FIBER_LINES.find((line) => line.name === 'FIBER_SHAPE_LINE_080_C2');
+  assert.ok(locus080);
+  assert.deepEqual(locus080.points.at(-1), [3.324, 3.522]);
+
+  // Existing display routing chooses the nearest eligible source VERTEX, not a
+  // surveyed connection. Keep that selection tied to the source record.
+  const cx = R31_FIBER_ENTRY.conduitX;
+  const cy = -R31_FIBER_ENTRY.conduitZ;
+  const vertices = R31_LOCUS_FIBER_LINES.flatMap((line) =>
+    line.points.filter(([, y]) => y >= R31_FIBER_ENTRY.outsideMinG1Y)
+      .map(([x, y]) => ({ name: line.name, x, y, d: Math.hypot(x - cx, y - cy) })));
+  const closest = vertices.reduce((a, b) => b.d < a.d ? b : a);
+  assert.equal(closest.name, locus080.name);
+  assert.ok(Math.abs(closest.x - 3.137) < 1e-9);
+  assert.ok(Math.abs(closest.y - 10.665) < 1e-9);
+  assert.ok(Math.abs(closest.d - 1.760816287975551) < 1e-6);
+
+  const link = buildR31FiberEntryLink(THREE, R31_LOCUS_FIBER_LINES);
+  const route = link.children[0];
+  assert.equal(link.userData.linkedMapLine, locus080.name);
+  assert.equal(route.userData.linkedMapLine, locus080.name);
+  assert.equal(route.userData.workAssumption, true);
+  assert.equal(route.userData.physicalRouteClaim, false);
+  assert.equal(route.userData.presentationOnly, true);
+  assert.equal(route.userData.ModelStage, 'WORK_TEST_VIEW');
+  const lastCurve = route.geometry.parameters.path.curves.at(-1);
+  assert.ok(lastCurve.v2.distanceTo(new THREE.Vector3(closest.x, R31_FIBER_DISPLAY_Y, -closest.y)) < 1e-6);
+});
