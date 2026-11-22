@@ -557,3 +557,57 @@ test('ARK 3 gable material lines: east 4.78, west 5.78, 1.00 m apart, each to it
   assert.ok(m.r31RoofUndersideY(1.724) - 5.78 > 0.16 && m.r31ABRoofUndersideY(1.709) - 4.78 > 0.16);
   assert.equal(m.buildR31WestBrickCompletion(THREE, []), null);
 });
+
+test('Locus municipal stormwater: 5 source lines + 5 flow marks, 2D, nothing towards the plot', async () => {
+  const { buildR31StormOverlay } = await import('../../src/scripts/privateModelR31Inspection.mjs');
+  const { R31_LOCUS_STORM_LINES, R31_LOCUS_STORM_FLOW_MARKS, R31_LOCUS_STORM_SOURCE } = await import('../../src/scripts/privateModelR31LocusStorm.mjs');
+  const { r31SiteLayerKeyForNetwork } = await import('../../src/scripts/privateModelR31SiteLayerKey.mjs');
+  assert.equal(R31_LOCUS_STORM_LINES.length, 5);
+  assert.equal(R31_LOCUS_STORM_SOURCE.plotConnection, 'NONE_IN_SOURCE');
+  // 11 Locus XML source segments behind the 5 Shape lines; 48 has no shared vertex with 34.
+  assert.equal(R31_LOCUS_STORM_LINES.reduce((n, l) => n + l.xmlIds.length, 0), 11);
+  assert.equal(R31_LOCUS_STORM_LINES.find((l) => l.record === 48).topology, 'ENDS_0.29M_FROM_34_NO_SHARED_VERTEX');
+  for (const l of R31_LOCUS_STORM_LINES) assert.ok(l.parcelDistM >= 40, `${l.name} stays off the plot`);
+  // Records 34/36/37 meet at one node.
+  const end = (r, last) => { const l = R31_LOCUS_STORM_LINES.find((x) => x.record === r); return l.points[last ? l.points.length - 1 : 0]; };
+  assert.deepEqual(end(34, true), end(36, true));
+  assert.deepEqual(end(34, true), end(37, true));
+  const group = buildR31StormOverlay(THREE, R31_LOCUS_STORM_LINES, R31_LOCUS_STORM_FLOW_MARKS);
+  assert.deepEqual(group.userData.counts, { STORM: 5, STORM_FLOW: 5 });
+  for (const m of group.children) {
+    assert.equal(m.userData.physicalZClaim, false);
+    assert.equal(m.userData.plotConnectionClaim, false);
+    // House footprint x 0..25.4, z -10.81..1.72: every storm vertex stays > 40 m away.
+    const pos = m.geometry.getAttribute('position');
+    const mat = m.matrixAutoUpdate ? m.matrixWorld : m.matrix;
+    let dmin = Infinity;
+    for (let k = 0; k < pos.count; k += 1) {
+      const p = new THREE.Vector3().fromBufferAttribute(pos, k).applyMatrix4(mat);
+      const dx = Math.max(0 - p.x, 0, p.x - 25.4);
+      const dz = Math.max(-10.81 - p.z, 0, p.z - 1.72);
+      dmin = Math.min(dmin, Math.hypot(dx, dz));
+    }
+    assert.ok(dmin > 40, `${m.name} ${dmin}`);
+  }
+  assert.equal(r31SiteLayerKeyForNetwork('storm'), 'storm');
+});
+
+test('Locus low voltage: the 32 selected G2b lines / 410 segments, own level, no house link', async () => {
+  const { buildR31LowVoltageOverlay, R31_LOWVOLT_DISPLAY_Y, R31_FIBER_DISPLAY_Y } = await import('../../src/scripts/privateModelR31Inspection.mjs');
+  const { R31_LOCUS_LOWVOLT_LINES, R31_LOCUS_LOWVOLT_SOURCE } = await import('../../src/scripts/privateModelR31LocusLowVoltage.mjs');
+  const { r31SiteLayerKeyForNetwork } = await import('../../src/scripts/privateModelR31SiteLayerKey.mjs');
+  assert.equal(R31_LOCUS_LOWVOLT_LINES.length, 32);
+  assert.equal(R31_LOCUS_LOWVOLT_LINES.reduce((n, l) => n + l.points.length - 1, 0), 410);
+  assert.equal(new Set(R31_LOCUS_LOWVOLT_LINES.map((l) => l.record)).size, 32);
+  assert.equal(R31_LOCUS_LOWVOLT_SOURCE.mirrorCheck, 'T3_RELEASED_DET_PLUS1_NO_EXTRA_MIRROR');
+  const group = buildR31LowVoltageOverlay(THREE, R31_LOCUS_LOWVOLT_LINES, R31_LOCUS_LOWVOLT_SOURCE);
+  assert.equal(group.userData.counts.LOWVOLT, 32);
+  assert.ok(R31_LOWVOLT_DISPLAY_Y !== R31_FIBER_DISPLAY_Y, 'never on the fibre level');
+  for (const m of group.children) {
+    assert.match(m.userData.sourceVariant, /^Shape line record \d+ \(0-based\), Laji=286200032/);
+    assert.equal(m.userData.currency, 'NONCURRENT');
+    assert.equal(m.userData.physicalZClaim, false);
+    assert.equal(m.userData.buildingPenetrationClaim, false);
+  }
+  assert.equal(r31SiteLayerKeyForNetwork('lowvolt'), 'lowvolt');
+});

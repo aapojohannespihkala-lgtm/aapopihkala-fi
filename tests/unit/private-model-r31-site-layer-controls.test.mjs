@@ -22,8 +22,10 @@ test('R31 site visibility also syncs the late fibre entry donor with exact sourc
   assert.match(source, /const layerKey = r31SiteLayerKeyForNetwork\(key\)/);
   assert.match(source, /const mode = layerKey \? effectiveSiteModes\[layerKey\] \?\? 'hidden' : 'hidden'/);
   assert.match(source, /if \(show && group\.parent !== modelRoot\.parent\) modelRoot\.parent\?\.add\(group\)/);
-  assert.match(source, /setR31SiteNetworkLayerMode\(group, mode, whole, r31SiteGhostOriginals\)/);
-  assert.match(source, /const wantsSiteNetworks = whole && /);
+  assert.match(source, /setR31SiteNetworkLayerMode\(group, mode, siteOk, r31SiteGhostOriginals\)/);
+  // siteOk = whole-building view on an exactly accepted model with site networks.
+  assert.match(source, /const siteOk = whole && Boolean\(r31Capabilities\(\)\?\.siteNetworks\)/);
+  assert.match(source, /const wantsSiteNetworks = siteOk && /);
   // A source-only WORK_ASSUMPTION line remains a display aid, not a physical route.
   assert.doesNotMatch(source, /r31SiteNetworks\.fiberEntry\s*=\s*buildR31FiberEntryBox/);
 });
