@@ -1,3 +1,4 @@
+// R31 inspection overlays: unit coverage (three needed; runs in CI).
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
