@@ -226,7 +226,7 @@ test('exact 3D/isometric projection toggle preserves target, view direction and 
     // can cross the 0.1 m display rounding threshold without changing the
     // machine-readable camera target or direction.
     const bounds = (label: string) =>
-      (label.match(/[+-]?\\d+(?:\\.\\d+)?/g) ?? []).map(Number);
+      (label.match(/[+-]?\d+(?:\.\d+)?/g) ?? []).map(Number);
     const a = bounds(actual.frame), b = bounds(reference.frame);
     expect(a).toHaveLength(6);
     expect(b).toHaveLength(6);
