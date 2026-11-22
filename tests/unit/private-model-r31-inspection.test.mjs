@@ -305,3 +305,74 @@ test('fibre entry: owner box west of the D north door, link to the map north of 
   link.children[0].geometry.computeBoundingBox();
   assert.ok(link.children[0].geometry.boundingBox.min.z < -R31_FIBER_ENTRY.outsideMinG1Y + 1e-6);
 });
+
+test('R31 site Layerit three-state modes restore exact original mesh and line materials', async () => {
+  const { setR31SiteNetworkLayerMode } = await import('../../src/scripts/privateModelR31Inspection.mjs');
+  const group = new THREE.Group();
+  const originalMesh = new THREE.MeshBasicMaterial({ color: 0x26c6da });
+  const originalLine = new THREE.LineBasicMaterial({ color: 0xe040b8 });
+  const mesh = new THREE.Mesh(new THREE.BoxGeometry(), originalMesh);
+  const line = new THREE.Line(new THREE.BufferGeometry().setFromPoints([
+    new THREE.Vector3(0, 0, 0), new THREE.Vector3(1, 0, 0),
+  ]), originalLine);
+  group.add(mesh, line);
+  const originals = new Map();
+
+  setR31SiteNetworkLayerMode(group, 'visible', true, originals);
+  assert.equal(group.visible, true);
+  assert.equal(mesh.material, originalMesh);
+  assert.equal(line.material, originalLine);
+  assert.equal(originals.size, 0);
+
+  setR31SiteNetworkLayerMode(group, 'ghost', true, originals);
+  assert.equal(group.visible, true);
+  assert.notEqual(mesh.material, originalMesh);
+  assert.notEqual(line.material, originalLine);
+  assert.equal(mesh.material.transparent, true);
+  assert.equal(line.material.transparent, true);
+  assert.equal(mesh.material.depthWrite, false);
+  assert.ok(mesh.material.opacity <= 0.17);
+  assert.equal(originals.size, 2);
+  const ghostMesh = mesh.material;
+  setR31SiteNetworkLayerMode(group, 'ghost', true, originals);
+  assert.equal(mesh.material, ghostMesh, 'repeated ghost must not clone twice');
+  assert.equal(originals.size, 2);
+
+  setR31SiteNetworkLayerMode(group, 'hidden', true, originals);
+  assert.equal(group.visible, false);
+  assert.equal(mesh.material, originalMesh, 'hidden restores same source object');
+  assert.equal(line.material, originalLine);
+  assert.equal(originals.size, 0);
+
+  setR31SiteNetworkLayerMode(group, 'ghost', true, originals);
+  setR31SiteNetworkLayerMode(group, 'ghost', false, originals);
+  assert.equal(group.visible, false, 'unverified scope must fail closed');
+  assert.equal(mesh.material, originalMesh);
+  assert.equal(line.material, originalLine);
+  assert.equal(originals.size, 0);
+  setR31SiteNetworkLayerMode(group, 'visible', true, originals);
+  assert.equal(group.visible, true);
+  assert.equal(mesh.material, originalMesh);
+  assert.equal(originals.size, 0);
+});
+
+test('R31 site Layerit supports multi-material source meshes without source mutation', async () => {
+  const { setR31SiteNetworkLayerMode } = await import('../../src/scripts/privateModelR31Inspection.mjs');
+  const a = new THREE.MeshBasicMaterial({ color: 0x123456 });
+  const b = new THREE.MeshBasicMaterial({ color: 0xabcdef, transparent: true, opacity: 0.4 });
+  const group = new THREE.Group();
+  const mesh = new THREE.Mesh(new THREE.BoxGeometry(), [a, b]);
+  group.add(mesh);
+  const originals = new Map();
+  setR31SiteNetworkLayerMode(group, 'ghost', true, originals);
+  assert.ok(Array.isArray(mesh.material));
+  assert.notEqual(mesh.material[0], a);
+  assert.notEqual(mesh.material[1], b);
+  assert.equal(mesh.material[1].opacity, 0.17);
+  setR31SiteNetworkLayerMode(group, 'visible', true, originals);
+  assert.equal(mesh.material[0], a);
+  assert.equal(mesh.material[1], b);
+  assert.equal(a.transparent, false);
+  assert.equal(b.opacity, 0.4);
+  assert.equal(originals.size, 0);
+});
