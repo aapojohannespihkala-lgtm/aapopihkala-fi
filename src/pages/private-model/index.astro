@@ -15562,6 +15562,36 @@ const title = 'Private 3D viewer';
         return box;
       };
       const deskRefitKeepingDirection = () => {
+        if (activeCamera === isoCamera) {
+          // Isometric/elevation: keep the view direction, refit the orthographic
+          // frame to the visible content (owner feedback 22.11.2026: a preset change
+          // in isometric left an 11.7 x 3.2 m close-up).
+          modelRoot.updateMatrixWorld(true);
+          const box = deskVisibleBox();
+          if (box.isEmpty()) return;
+          const sphere = box.getBoundingSphere(new THREE.Sphere());
+          if (!Number.isFinite(sphere.radius) || sphere.radius <= 0) return;
+          const radius = Math.max(sphere.radius, 0.25);
+          const direction = isoCamera.position.clone().sub(isoControls.target);
+          if (direction.lengthSq() < 1e-12) return;
+          direction.normalize();
+          const aspect = Math.max(canvas.clientWidth / Math.max(canvas.clientHeight, 1), 0.01);
+          let halfHeight = radius * 1.08;
+          if (halfHeight * aspect < radius * 1.08) halfHeight = (radius * 1.08) / aspect;
+          const distance = Math.max(radius * 3.2, 4);
+          isoControls.target.copy(sphere.center);
+          isoCamera.position.copy(sphere.center).addScaledVector(direction, distance);
+          isoCamera.left = -halfHeight * aspect;
+          isoCamera.right = halfHeight * aspect;
+          isoCamera.top = halfHeight;
+          isoCamera.bottom = -halfHeight;
+          isoCamera.near = Math.max(distance / 10000, 0.001);
+          isoCamera.far = Math.max(distance * 4 + radius * 2, 1000);
+          isoCamera.zoom = 1;
+          isoCamera.updateProjectionMatrix();
+          isoControls.update();
+          return;
+        }
         if (activeCamera !== camera) return;
         modelRoot.updateMatrixWorld(true);
         const box = deskVisibleBox();
@@ -16168,6 +16198,9 @@ const title = 'Private 3D viewer';
                 workTestButton.disabled = false;
               }
               applyStandardViewPreset('d-apartment');
+              // Owner 21.11.2026: start with the roof hidden.
+              applyViewerLayerState({ roofVisible: false }, 'preset:d-apartment');
+              deskRefitKeepingDirection();
               canvas.dataset.deskStartView = 'start-work-test-d-apartment';
               deskSync();
               return;
