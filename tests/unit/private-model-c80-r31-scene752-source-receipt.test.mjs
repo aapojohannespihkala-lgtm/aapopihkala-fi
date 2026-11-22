@@ -1195,7 +1195,7 @@ test('R31 Layerit authenticates all four R300 normal/service roles with one SHA'
   finally{object[key]=old;}
  };
  invalid(json.scenes[769].nodes,0,99999,769);
- invalid(json.scenes[770].nodes,json.scenes[770].nodes.length,11625,770);
+ invalid(json.scenes[770].nodes,0,11625,770);
  invalid(json.scenes[771].extras,'sourceLinksForOutputSHA','BOUND',771);
  invalid(json.scenes[772].extras,'plexyState','PLEX_ON',772);
  invalid(json.asset.extras,'asBuilt',true,769);
