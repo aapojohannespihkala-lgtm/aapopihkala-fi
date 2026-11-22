@@ -2753,8 +2753,9 @@ const title = 'Private 3D viewer';
       // @ts-ignore - R31 review roots and inspection overlays have unit coverage.
       import { resolveC80R31TechnicalReviewRoots } from '../../scripts/privateModelC80R31TechnicalReview.mjs';
       // @ts-ignore - pure overlay builders, THREE injected.
-      import { R31_DRAINAGE_SOURCE, R31_EXTERIOR_DONORS, buildR31DrainageOverlay, buildR31InfraOverlay, buildR31FiberOverlay, buildR31ExteriorDonorOverlay, buildR31WestGableInfill, buildR31GableBoarding, buildR31WestBrickCompletion, buildR31FiberEntryBox, buildR31FiberEntryLink, isR31WestGableBoardingSource, R31_GABLE_BOARDING_COLOR, isR31ReplacedWestDownpipe, loadR31EastGableOverlay, relocateR31Downpipes, syncR31ExteriorDonorMaterials, setR31SiteNetworkLayerMode } from '../../scripts/privateModelR31Inspection.mjs';
+      import { R31_DRAINAGE_SOURCE, R31_EXTERIOR_DONORS, buildR31DrainageOverlay, buildR31InfraOverlay, buildR31FiberOverlay, buildR31StormOverlay, buildR31ExteriorDonorOverlay, buildR31WestGableInfill, buildR31GableBoarding, buildR31WestBrickCompletion, buildR31FiberEntryBox, buildR31FiberEntryLink, isR31WestGableBoardingSource, R31_GABLE_BOARDING_COLOR, isR31ReplacedWestDownpipe, loadR31EastGableOverlay, relocateR31Downpipes, syncR31ExteriorDonorMaterials, setR31SiteNetworkLayerMode } from '../../scripts/privateModelR31Inspection.mjs';
       import { R31_LOCUS_FIBER_LINES } from '../../scripts/privateModelR31LocusFiber.mjs';
+      import { R31_LOCUS_STORM_LINES, R31_LOCUS_STORM_FLOW_MARKS } from '../../scripts/privateModelR31LocusStorm.mjs';
       import { r31SiteLayerKeyForNetwork } from '../../scripts/privateModelR31SiteLayerKey.mjs';
       import { resolveTechnicalReviewRoots, createTechnicalReviewPresentation, technicalReviewSystemOf, technicalReviewLayerSystemOf, refineTechnicalReviewSystem, filterNonTechnicalBoundObjects } from '../../scripts/privateModelTechnicalReviewPresentation.mjs';
       import { resolveConcealedTechnicalObjects, createConcealedTechnicalPresentation } from '../../scripts/privateModelConcealedTechnicalPresentation.mjs';
@@ -15114,12 +15115,13 @@ const title = 'Private 3D viewer';
       // R31 site networks are source-bound auxiliary donors, not native C80
       // layer nodes. Keep independent 3-state controls in the existing Layerit
       // panel without adding a second layer registry or changing the GLB.
-      type R31SiteKey = 'drainage' | 'infra' | 'fiber';
+      type R31SiteKey = 'drainage' | 'infra' | 'fiber' | 'storm';
       type R31SiteMode = 'visible' | 'ghost' | 'hidden';
       const r31SiteLayerSpecs: Array<[R31SiteKey, string]> = [
         ['drainage', 'Salaojat (WORK_TEST)'],
         ['infra', 'Kunnallistekniikka: Locus vesi/viemäri (WORK_TEST)'],
         ['fiber', 'Valokuitu: 2D, syvyys avoin (WORK_TEST)'],
+        ['storm', 'Sadevesiviemäri: Locus 2D, kunnallinen, ei tonttiliittymää (WORK_TEST)'],
       ];
       const r31SiteLayerOverrides: Partial<Record<R31SiteKey, R31SiteMode>> = {};
       const r31SiteLayerRows = {} as Record<R31SiteKey, { row: HTMLLabelElement; select: HTMLSelectElement }>;
@@ -16011,7 +16013,7 @@ const title = 'Private 3D viewer';
             `${counts.route ?? 0} reittiosaa, ${counts.open ?? 0} avointa purkua; Locus vesi ${counts.WATER ?? 0}, ` +
             `jätevesi ${counts.WASTEWATER ?? 0}, valokuitu ${counts.FIBER ?? 0} (2D, syvyys avoin; ` +
             `liittymä D:n pohjoisovella omistajan havainnosta); ` +
-            `hulevesiverkko puuttuu lähteistä`;
+            `Locus sadevesiviemäri ${counts.STORM ?? 0} linjaa 2D, ei tonttiliittymää (lähin 42 m)`;
         }
         const wantsSiteNetworks = whole && (technical || Object.values(r31SiteLayerOverrides).some(mode => mode !== 'hidden'));
         if (wantsSiteNetworks && !r31SiteLoading && !Object.keys(r31SiteNetworks).length) {
@@ -16026,6 +16028,8 @@ const title = 'Private 3D viewer';
             r31SiteNetworks.infra = buildR31InfraOverlay(THREE, p139adLocusWorkZRoutes as any, p139acVerticalReferenceM);
             r31SiteNetworks.fiber = buildR31FiberOverlay(THREE, R31_LOCUS_FIBER_LINES as any);
             r31SiteNetworks.fiberEntry = buildR31FiberEntryLink(THREE, R31_LOCUS_FIBER_LINES as any);
+            // Owner 23.11: Locus municipal stormwater sewer as its own 2D system (no Z, no plot link).
+            r31SiteNetworks.storm = buildR31StormOverlay(THREE, R31_LOCUS_STORM_LINES as any, R31_LOCUS_STORM_FLOW_MARKS as any);
           })().finally(() => { r31SiteLoading = null; r31SyncExteriorDonors(); });
         }
         if (!r31 || r31ExteriorLoading || Object.keys(r31ExteriorDonors).length) return;

@@ -557,3 +557,29 @@ test('ARK 3 gable material lines: east 4.78, west 5.78, 1.00 m apart, each to it
   assert.ok(m.r31RoofUndersideY(1.724) - 5.78 > 0.16 && m.r31ABRoofUndersideY(1.709) - 4.78 > 0.16);
   assert.equal(m.buildR31WestBrickCompletion(THREE, []), null);
 });
+
+test('Locus municipal stormwater: 5 source lines + 5 flow marks, 2D, nothing towards the plot', async () => {
+  const { buildR31StormOverlay } = await import('../../src/scripts/privateModelR31Inspection.mjs');
+  const { R31_LOCUS_STORM_LINES, R31_LOCUS_STORM_FLOW_MARKS, R31_LOCUS_STORM_SOURCE } = await import('../../src/scripts/privateModelR31LocusStorm.mjs');
+  const { r31SiteLayerKeyForNetwork } = await import('../../src/scripts/privateModelR31SiteLayerKey.mjs');
+  assert.equal(R31_LOCUS_STORM_LINES.length, 5);
+  assert.equal(R31_LOCUS_STORM_SOURCE.plotConnection, 'NONE_IN_SOURCE');
+  for (const l of R31_LOCUS_STORM_LINES) assert.ok(l.parcelDistM >= 40, `${l.name} stays off the plot`);
+  // Records 34/36/37 meet at one node.
+  const end = (r, last) => { const l = R31_LOCUS_STORM_LINES.find((x) => x.record === r); return l.points[last ? l.points.length - 1 : 0]; };
+  assert.deepEqual(end(34, true), end(36, true));
+  assert.deepEqual(end(34, true), end(37, true));
+  const group = buildR31StormOverlay(THREE, R31_LOCUS_STORM_LINES, R31_LOCUS_STORM_FLOW_MARKS);
+  assert.deepEqual(group.userData.counts, { STORM: 5, STORM_FLOW: 5 });
+  for (const m of group.children) {
+    assert.equal(m.userData.physicalZClaim, false);
+    assert.equal(m.userData.plotConnectionClaim, false);
+    m.geometry.computeBoundingBox();
+    const b = m.geometry.boundingBox.clone().applyMatrix4(m.matrixAutoUpdate ? m.matrixWorld : m.matrix);
+    // House footprint x 0..25.4, z -10.81..1.72: every storm part stays > 40 m away.
+    const dx = Math.max(0 - b.max.x, 0, b.min.x - 25.4);
+    const dz = Math.max(-10.81 - b.max.z, 0, b.min.z - 1.72);
+    assert.ok(Math.hypot(dx, dz) > 40, m.name);
+  }
+  assert.equal(r31SiteLayerKeyForNetwork('storm'), 'storm');
+});
