@@ -189,10 +189,14 @@ test('five downpipes use five distinct owner zones without claiming real undergr
     assert.ok(Math.abs(pos(collar).x - f.targetX) < 1e-6);
     assert.ok(Math.abs(pos(collar).z - f.z) < 1e-6, 'inlet collar stays on original gutter Z');
   }
-  const connectors = group.children.filter((m) => m.name.endsWith('_CONNECTOR_TO_OWNER_ZONE_WORK_ASSUMPTION'));
-  assert.equal(connectors.length, 5, 'connector display geometry is explicitly provisional');
-  for (const connector of connectors) {
-    assert.equal(connector.userData.workAssumption, true);
-    assert.equal(connector.userData.physicalRouteClaim, false);
+  // The current main source uses the owner-photo swan-neck route (#2201),
+  // not the earlier straight connector from #2200.
+  const necks = group.children.filter((m) => m.name.endsWith('_DOWNPIPE_SWAN_NECK_ROUTE_WORK_ASSUMPTION'));
+  assert.equal(necks.length, 5, 'every provisional route has a separate visible swan neck');
+  for (const neck of necks) {
+    assert.equal(neck.userData.workAssumption, true);
+    assert.equal(neck.userData.shapeBasis, 'OWNER_PHOTOS_20261122_SWAN_NECK_45DEG');
+    assert.equal(neck.userData.physicalRouteClaim, false);
   }
+  for (const { pipe } of source.values()) assert.equal(pipe.visible, false, 'straight source pipe hidden by swan neck');
 });
