@@ -130,7 +130,7 @@ test('R31 H4 layer ghost restores selection, source materials and camera on D pr
     expect((peer.material as MeshBasicMaterial).opacity).toBeCloseTo(0.18);
     expect(peer.raycast).not.toBe(peerRaycast);
 
-    expect(dFocus.apply(scene, footprint)).toEqual({ inside: 2, outside: 1, split: 0 });
+    expect(dFocus.apply(scene, footprint)).toEqual({ inside: 2, outside: 1, split: 0, hidden: 0 });
     expect(outside.material).not.toBe(outsideMaterial);
     expect((outside.material as MeshBasicMaterial).opacity).toBeCloseTo(0.1);
     expect(outside.raycast).not.toBe(outsideRaycast);

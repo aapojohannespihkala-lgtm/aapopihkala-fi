@@ -15807,7 +15807,7 @@ const title = 'Private 3D viewer';
         const whole = dFootprintFromScope(root);
         const footprint = storey ? dStoreyFootprint(whole, storey) : whole;
         const counts = deskDFocus.apply(root, footprint);
-        canvas.dataset.dFocusGhost = `${key}|in:${counts.inside}|out:${counts.outside}|split:${counts.split}`;
+        canvas.dataset.dFocusGhost = `${key}|in:${counts.inside}|out:${counts.outside}|split:${counts.split}|hidden:${counts.hidden}`;
         canvas.dataset.dFocusFootprint = [footprint.x0, footprint.x1, footprint.z0, footprint.z1].map((v) => v.toFixed(2)).join(',');
         refreshEdgeRendering(root);
       };
