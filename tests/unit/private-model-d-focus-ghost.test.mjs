@@ -86,3 +86,32 @@ test('storey focus: 1F below the split, 2F above; a two-storey wall is split by 
   assert.equal(wall.material.clippingPlanes.length, 5);
   ghost.restore();
 });
+
+test('Layerit transition rebinds underlying material without losing D ghost or exposing hidden meshes', () => {
+  const root = new Group();
+  const inside = meshAt(3, 0), outside = meshAt(20, 0), across = meshAt(6, 0, 10, 1);
+  root.add(inside, outside, across);
+  const original = outside.material;
+  const dFocus = createDFocusGhost(0.1);
+  dFocus.apply(root, F);
+  assert.notEqual(outside.material, original);
+  // The H-C integration restores the #2177 presentation before a Layers change.
+  dFocus.restore();
+  assert.equal(outside.material, original);
+  const dimLayerMaterial = original.clone();
+  dimLayerMaterial.transparent = true;
+  dimLayerMaterial.opacity = 0.4;
+  outside.material = dimLayerMaterial;
+  across.visible = false;
+  const counts = dFocus.apply(root, F);
+  assert.deepEqual(counts, { inside: 1, outside: 1, split: 0, hidden: 0 });
+  assert.ok(outside.material.transparent && Math.abs(outside.material.opacity - 0.1) < 1e-9 && outside.material.depthWrite === false);
+  const hits = [];
+  outside.raycast({}, hits);
+  assert.equal(hits.length, 0);
+  assert.equal(across.visible, false);
+  dFocus.restore();
+  assert.equal(outside.material, dimLayerMaterial);
+  assert.equal(across.visible, false);
+  dimLayerMaterial.dispose();
+});
