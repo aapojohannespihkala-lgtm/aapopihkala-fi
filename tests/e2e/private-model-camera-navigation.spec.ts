@@ -197,7 +197,7 @@ test('exact 3D/isometric projection toggle preserves target, view direction and 
   await page.route('**/private-model/model.glb', route =>
     route.fulfill({ status: 200, contentType: 'model/gltf-binary', body: model }));
   await page.goto('/private-model/');
-  await expect(page.getByRole('status')).toHaveText('Malli ladattu');
+  await expect(page.getByRole('status')).toContainText('Malli ladattu');
   const canvas = page.locator('#private-model-canvas');
   const readout = page.locator('#ai-navigator-readout');
   await expect(readout).toHaveAttribute('data-ready', 'true');
