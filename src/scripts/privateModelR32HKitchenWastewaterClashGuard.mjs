@@ -103,11 +103,11 @@ function missingAssociationSourceNode(json, sceneIndex, scene, associations, sel
  * in the actually mounted original R32H scene. Any stale selection or mismatched
  * source/SHA/scene/node/mesh fails closed. No geometry or sourceLinks mutation.
  */
-export function r32hKitchenWastewaterClashSelectionEntries(sourceModel, sha, sceneIndex, selected) {
+export function kitchenWastewaterClashEntriesForExactSource(sourceModel, sha, sceneIndex, selected, spec) {
   const json = sourceModel?.parser?.json;
-  const view = Object.values(C80_R32H_VIEWS).find((v) => v.sceneIndex === sceneIndex);
-  if (sha !== C80_R32H_SOURCE.glbSha256 || !view ||
-      !json || json.nodes?.length !== C80_R32H_SOURCE.nodeCount ||
+  const view = spec?.views?.find((v) => v.sceneIndex === sceneIndex);
+  if (sha !== spec?.glbSha256 || !view ||
+      !json || json.nodes?.length !== spec?.nodeCount ||
       json.scenes?.[sceneIndex]?.name !== view.name ||
       json.nodes?.[R32H_KITCHEN_WASTEWATER_CLASH.original2015Node]?.mesh !==
         R32H_KITCHEN_WASTEWATER_CLASH.original2015Mesh) return [];
@@ -128,7 +128,7 @@ export function r32hKitchenWastewaterClashSelectionEntries(sourceModel, sha, sce
       if (!selectsClashingPipe) return [];
       return [
         ['2F-keittiön viemäriristiriita',
-         'LÄHDERISTIRIITA: 2015 n13310 leikkaa 2026 viemäripintoja n13314-13317 R32H-lähdemallissa.'],
+         `LÄHDERISTIRIITA: 2015 n13310 leikkaa 2026 viemäripintoja n13314-13317 ${spec.modelName}-lähdemallissa.`],
         ['Putkiliitoksen tila',
          'Geometrinen leikkaus EI todista putkien yhteyttä. Lattianalainen muhviliitos ei näy 2026 lähdekuvassa. WORK_TEST/HOST_HOLD.'],
       ];
@@ -148,4 +148,17 @@ export function r32hKitchenWastewaterClashSelectionEntries(sourceModel, sha, sce
     node = node.parent;
   }
   return [];
+}
+
+const R32H_EXACT_KITCHEN_SOURCE = Object.freeze({
+  glbSha256: C80_R32H_SOURCE.glbSha256,
+  nodeCount: C80_R32H_SOURCE.nodeCount,
+  views: Object.freeze(Object.values(C80_R32H_VIEWS)),
+  modelName: 'R32H',
+});
+
+/** Keep the original R32H public source guard API and behavior unchanged. */
+export function r32hKitchenWastewaterClashSelectionEntries(sourceModel, sha, sceneIndex, selected) {
+  return kitchenWastewaterClashEntriesForExactSource(
+    sourceModel, sha, sceneIndex, selected, R32H_EXACT_KITCHEN_SOURCE);
 }
