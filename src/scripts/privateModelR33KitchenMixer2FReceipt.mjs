@@ -89,7 +89,7 @@ export function r33Mixer2FSceneReceipt({ json, loadedGlbSha256, sceneIndex } = {
   if (!unique(connector?.children) || connector.children.length !== 2 ||
       connector.children[0] !== 13470 || connector.children[1] !== 13471 ||
       cold?.mesh !== 5160 || hot?.mesh !== 5161 ||
-      next.nodes.some(n => n === 13470 || n === 13471)) return null;
+      json.scenes[view.added].nodes.some(n => n === 13470 || n === 13471)) return null;
 
   return Object.freeze({
     status: 'SOURCE_ONLY',
