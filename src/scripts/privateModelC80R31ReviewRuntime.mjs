@@ -60,6 +60,55 @@ export const C80_R31_9E0B_VIEWS=Object.freeze({
  upperService:Object.freeze({role:S9.service.role,sceneIndex:S9.service.index,
   rootCount:S9.service.rootCount,rootFnv32:S9.service.rootFnv32,floor:'2F',plexi:false,label:'Yläkerta huolto'}),
 });
+/**
+ * R32H c26d99c1 (CLAUDE-R32-KAYTTOON-20261123): R32 envelope (gable boarding/brick,
+ * T12 gutters + 5 downpipes) + P6 V8 carport with 2022 gutters + K3 D2F hallface
+ * SW04/SW05, append-only on the R31 chain (same node indices below 13761).
+ * Whole-D normal/service 814/815 and 2F normal/service 816/817. WORK_TEST/HOST_HOLD.
+ */
+export const C80_R32H_WORK_TEST_ID='c80-r32h-c26d99c1-d-2f-sc814-sc817-work-test';
+export const C80_R32H_SOURCE=Object.freeze({
+ glbSha256:'c26d99c11ffef90859ff17cad5edecf7ab22d811baddfa0506794ecdbef6294c',glbBytes:64668060,
+ zipDriveId:'1UM0piMfbS-XwdfbByCWJ0oL2e9molOq1',
+ zipSha256:'406c60bc39ecc24f72b08f5c60f7eb4019cf6a610e5255f3d619ff8d7b9f583a',
+ baseGlbSha256:'29114e10fe7de711fba1465b8b1fb310b9433893f02f189b477f7d3536dbc97d',
+ sceneCount:818,nodeCount:13840,meshCount:5237,materialCount:824,
+ accessorCount:11427,bufferViewCount:11433,defaultScene:292,
+ envelopeRoot:13809,p6Root:7583,p6GutterRoot:13812,sw04:13813,sw05:13839,
+ replacedHallRoots:Object.freeze([13507,13531]),plexi:11625,
+});
+export const C80_R32H_VIEWS=Object.freeze({
+ dNormal:Object.freeze({role:'R32H_D_NORMAL_PLEXI_ON',sceneIndex:814,rootCount:500,rootFnv32:'4c071047',
+  floor:'BOTH',plexi:true,label:'D normaali',name:'Ylisrinne_R32_HALLFACE_SW04SW05_BOTH_NORMAL_HALLFACE_WORK_TEST_HOST_HOLD__scene814'}),
+ dService:Object.freeze({role:'R32H_D_SERVICE_PLEXI_OFF',sceneIndex:815,rootCount:499,rootFnv32:'b837574d',
+  floor:'BOTH',plexi:false,label:'D huolto',name:'Ylisrinne_R32_HALLFACE_SW04SW05_BOTH_SERVICE_HALLFACE_PLEXI_OFF_WORK_TEST_HOST_HOLD__scene815'}),
+ upperNormal:Object.freeze({role:'R32H_2F_NORMAL_PLEXI_ON',sceneIndex:816,rootCount:204,rootFnv32:'ce2f48cc',
+  floor:'2F',plexi:true,label:'Yläkerta normaali',name:'Ylisrinne_R32_HALLFACE_SW04SW05_2F_NORMAL_HALLFACE_WORK_TEST_HOST_HOLD__scene816'}),
+ upperService:Object.freeze({role:'R32H_2F_SERVICE_PLEXI_OFF',sceneIndex:817,rootCount:203,rootFnv32:'8076a96f',
+  floor:'2F',plexi:false,label:'Yläkerta huolto',name:'Ylisrinne_R32_HALLFACE_SW04SW05_2F_SERVICE_HALLFACE_PLEXI_OFF_WORK_TEST_HOST_HOLD__scene817'}),
+});
+/** Exact R32H view gate: SHA, array counts, stage, scene name, root count/FNV and the required roots. */
+export function isC80R32HSceneSource(json,sha,index,role,floor){
+ const v=Object.values(C80_R32H_VIEWS).find(x=>x.role===role&&x.sceneIndex===index);
+ const a=json?.asset?.extras,s=C80_R32H_SOURCE;
+ if(!v||sha!==s.glbSha256||(floor!==undefined&&floor!==v.floor)||
+  json?.scene!==s.defaultScene||json?.scenes?.length!==s.sceneCount||
+  json?.nodes?.length!==s.nodeCount||json?.meshes?.length!==s.meshCount||
+  json?.materials?.length!==s.materialCount||json?.accessors?.length!==s.accessorCount||
+  json?.bufferViews?.length!==s.bufferViewCount||
+  a?.ModelStage!=='WORK_TEST'||a?.current!==false||a?.asBuilt!==false||
+  a?.HUMAN_REVIEW!=='NOT_RUN')return false;
+ const scene=json.scenes[index],r=scene?.nodes;
+ if(scene?.name!==v.name||!Array.isArray(r)||r.length!==v.rootCount||new Set(r).size!==r.length||
+  c80R31Scene752RootsFnv32(r)!==v.rootFnv32)return false;
+ const must=v.floor==='BOTH'?[s.envelopeRoot,s.p6Root,s.p6GutterRoot,s.sw04,s.sw05]:[s.sw04,s.sw05];
+ if(!must.every(x=>r.includes(x))||s.replacedHallRoots.some(x=>r.includes(x))||
+  r.includes(s.plexi)!==v.plexi)return false;
+ const e=scene.extras??{};
+ return e.current!==true&&e.asBuilt!==true&&e.CURRENT!==true;
+}
+/** R31-family viewer models (same R31 node indices, D/2F view pairs, R31 viewer runtime). */
+export const isR31FamilyViewerSha=sha=>sha===C80_R31_9E0B_SOURCE.glbSha256||sha===C80_R32H_SOURCE.glbSha256;
 const sameList=(a,b)=>Array.isArray(a)&&Array.isArray(b)&&a.length===b.length&&a.every((v,i)=>v===b[i]);
 /** Exact whole-D pair gate: SHA, counts, stage, root counts/FNV and the plexi-only difference. */
 export function isC80R31Scene769770Source(json,sha,index,role,floor){
@@ -90,11 +139,22 @@ const r31View=view=>Object.freeze({
  exactRootCount:true,
 });
 
+const r32hView=view=>Object.freeze({
+ spec:Object.freeze({...C80_R32H_SOURCE,...view}),
+ verify:(json,sha,i)=>isC80R32HSceneSource(json,sha,i,view.role,view.floor),
+ exactRootCount:true,
+});
+
 /**
  * Source-lock Layerit to original authenticated R31 review scene receipts.
  * Never infer current/as-built identity or layer classes from scene names.
  */
 export function r31ViewerLayerSceneReceipt(json, loadedSha, sceneIndex) {
+ if (loadedSha === C80_R32H_SOURCE.glbSha256) {
+  const r32 = Object.values(C80_R32H_VIEWS).find(v => v.sceneIndex === sceneIndex);
+  return r32 && isC80R32HSceneSource(json, loadedSha, sceneIndex, r32.role, r32.floor)
+   ? Object.freeze({sourceSha256: loadedSha, sceneIndex, role: r32.role, floor: r32.floor}) : null;
+ }
  if (loadedSha !== C80_R31_9E0B_SOURCE.glbSha256) return null;
  const view = Object.values(C80_R31_9E0B_VIEWS).find(v => v.sceneIndex === sceneIndex);
  if (!view) return null;
@@ -119,6 +179,8 @@ export function r31WorkTestReview(candidate){
    labels:{normal:'Normaali',service:'Huolto'},title:'NIBE R300'},
   [C80_R31_9E0B_WORK_TEST_ID]:{source:C80_R31_9E0B_SOURCE,views:C80_R31_9E0B_VIEWS,
    labels:Object.fromEntries(Object.entries(C80_R31_9E0B_VIEWS).map(([k,v])=>[k,v.label])),title:'C80 R31 D'},
+  [C80_R32H_WORK_TEST_ID]:{source:C80_R32H_SOURCE,views:C80_R32H_VIEWS,
+   labels:Object.fromEntries(Object.entries(C80_R32H_VIEWS).map(([k,v])=>[k,v.label])),title:'C80 R32 D'},
  };
  const r=Object.hasOwn(table,candidate?.id)?table[candidate.id]:undefined;
  if(!r)return undefined;
@@ -160,6 +222,7 @@ export const C80_R31_REVIEW_ROLES=Object.freeze({
  [C80_R31_R300_VIEWS.normal.role]:r300Role(C80_R31_R300_VIEWS.normal),
  [C80_R31_R300_VIEWS.service.role]:r300Role(C80_R31_R300_VIEWS.service),
  ...Object.fromEntries(Object.values(C80_R31_9E0B_VIEWS).map(v=>[v.role,r31View(v)])),
+ ...Object.fromEntries(Object.values(C80_R32H_VIEWS).map(v=>[v.role,r32hView(v)])),
 });
 
 const matchesRenderedScene=(gltf,scene,i,cfg)=>{
