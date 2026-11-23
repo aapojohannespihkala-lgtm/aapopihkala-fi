@@ -1,7 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import {
-  R300_OWNER_GLB_SHA256, R300_OWNER_R31_772_GLB_SHA256, R300_OWNER_R31_774_GLB_SHA256, R300_OWNER_CARD_REF,
+  R300_OWNER_GLB_SHA256, R300_OWNER_R31_772_GLB_SHA256, R300_OWNER_R31_774_GLB_SHA256, R300_OWNER_R33_GLB_SHA256, R300_OWNER_CARD_REF,
   isR300OwnerCardNode, resolveR300OwnerCardSelection,
 } from '../../src/scripts/privateModelR300OwnerCardAdapter.mjs';
 
@@ -194,4 +195,23 @@ test('SW04 card rejects swapped plexi state, other version SHA, wrong parent and
   assert.equal(isR300OwnerCardNode(sw04Selected(json, 773, 13429)), false);
   assert.equal(isR300OwnerCardNode(sw04Selected(json, 773, 11625)), false);
   assert.equal(resolveR300OwnerCardSelection(sw04Selected(json, 774), () => null).state, 'unavailable');
+});
+
+test('original R33 scene-root source fixture retains the R300 casing but refuses stale scene and fabricated door roots',()=>{
+ const source=JSON.parse(readFileSync(new URL('../fixtures/private-model-r33-scene-roots.json', import.meta.url), 'utf8'));
+ const {scenes:countS,nodes:countN,meshes:countM}=source.counts;
+ assert.deepEqual([countS,countN,countM],[822,13846,5237]);
+ const j=mockJson();
+ j.scenes=Array.from({length:countS},()=>({name:'other',nodes:[]}));
+ j.nodes.length=countN;
+ j.meshes.length=countM;
+ for(const [n,def] of Object.entries(source.scenes)) j.scenes[Number(n)]={name:def.name,nodes:[...def.nodes]};
+ for(const sceneIndex of [818,819,820,821]){
+  const context33={...context(j,sceneIndex),loadedGlbSha256:R300_OWNER_R33_GLB_SHA256};
+  assert.equal(isR300OwnerCardNode(context33),true,`R33 source scene ${sceneIndex}`);
+  assert.equal(isR300OwnerCardNode({...context33,loadedGlbSha256:R300_OWNER_R31_772_GLB_SHA256}),false);
+  const oldDoor=structuredClone(j);
+  oldDoor.scenes[sceneIndex].nodes[oldDoor.scenes[sceneIndex].nodes.indexOf(13843)]=12643;
+  assert.equal(isR300OwnerCardNode({...context33,json:oldDoor}),false);
+ }
 });
