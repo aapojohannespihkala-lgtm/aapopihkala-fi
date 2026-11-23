@@ -2442,6 +2442,7 @@ const title = 'Private 3D viewer';
       import { pickSelectableObjectAtClientPoint } from '../../scripts/privateModelSelectionPicking';
       import { shouldInvalidateModelSelection } from '../../scripts/privateModelSceneSelectionInvalidation.mjs';
       import { sourceLinksForSelectionEvidence } from '../../scripts/privateModelSourceCardLinkGuard.mjs';
+      import { r32hLK75SelectionMetadataEntries } from '../../scripts/privateModelR32HLK75CoverSourceGuard.mjs';
       import { pickVisibleWorkTest3DPoint } from '../../scripts/privateModelWorkTest3DPoint';
       import { classifySameClickReviewEvidence } from '../../scripts/privateModelSameClickReviewEvidence.mjs';
       import { measureAlongG1Axis } from '../../scripts/privateModelMeasureGeometry.mjs';
@@ -5985,6 +5986,16 @@ const title = 'Private 3D viewer';
 
         selectedObject = object;
         const sourceEvidence = resolveSelectionSources(object);
+        // Exact original R32H source-link warning only for the clicked LK75 subtree.
+        // The source GLB, cover link, sourceLinks and its rendering remain unchanged.
+        const lk75SourceMetadata = layersGltf && layersLoadedSha === C80_R32H_SOURCE.glbSha256
+          ? r32hLK75SelectionMetadataEntries(
+              sourceNodeModel(layersGltf),
+              layersLoadedSha,
+              layersGltf.scenes?.indexOf(mainViewScope?.selectedScene ?? fullModelScene) ?? -1,
+              object,
+            )
+          : [];
         selectionPanelController.render({
           mesh: serviceTarget?.label ?? semantics.labelFi,
           group: semantics.classLabelFi,
@@ -6000,6 +6011,7 @@ const title = 'Private 3D viewer';
             ...technicalMetadata,
             ...resolveElectricalGroupEvidence(object, modelRoot.children[0] ?? null),
             ...collectSelectionMetadataEntries(object, modelRoot),
+            ...lk75SourceMetadata,
           ],
           sourceLinks: sourceLinksForSelectionEvidence(sourceEvidence, collectSelectionSourceLinks(object, modelRoot)),
           sourceEvidence,
