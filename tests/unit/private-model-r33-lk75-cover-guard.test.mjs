@@ -118,7 +118,7 @@ test('wrong parent, wrong source-root name and stale selection cannot leak R33 w
   drain.name = 'wrong source replica';
   assert.deepEqual(r33LK75SelectionMetadataEntries(sourceModel, SHA, 818, body), []);
   drain.name = sourceModel.parser.json.nodes[13253].name;
-  scene.nodes = scene.nodes.filter(id => id !== 13254);
+  scene.nodes = scene.nodes.filter(id => id !== 13253);
   assert.deepEqual(r33LK75SelectionMetadataEntries(sourceModel, SHA, 818, body), []);
 });
 
