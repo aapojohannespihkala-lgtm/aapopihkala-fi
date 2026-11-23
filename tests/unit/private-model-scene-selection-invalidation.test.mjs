@@ -66,7 +66,8 @@ test('viewer uses one source-card outcome for both link suppression and card ren
   assert.ok(start > 0 && end > start);
   const select = source.slice(start, end);
   assert.match(select, /const sourceEvidence = resolveSelectionSources\(object\);/);
-  assert.match(select, /sourceLinks: sourceLinksForSelectionEvidence\(sourceEvidence, collectSelectionSourceLinks\(object, modelRoot\)\),/);
-  assert.match(select, /sourceEvidence,/);
+  assert.match(select, /const effectiveSourceEvidence = r300OwnerEvidence \?\? sourceEvidence;/);
+  assert.match(select, /sourceLinks: sourceLinksForSelectionEvidence\(effectiveSourceEvidence, collectSelectionSourceLinks\(object, modelRoot\)\),/);
+  assert.match(select, /sourceEvidence: effectiveSourceEvidence,/);
   assert.ok(select.indexOf('const sourceEvidence =') < select.indexOf('selectionPanelController.render('));
 });
