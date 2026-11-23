@@ -272,6 +272,7 @@ export function buildR31DrainageOverlay(THREE, gltf) {
   });
   const counts = { well: 0, route: 0, open: 0 };
   const profiled = { route: 0, well: 0 };
+  let unprofiledRoutesOmitted = 0;
   scene.traverse((object) => {
     if (!object.isMesh && !object.isLine && !object.isLineSegments) return;
     let kind = null, owner = null;
@@ -296,13 +297,12 @@ export function buildR31DrainageOverlay(THREE, gltf) {
         card = r31DrainageRouteCard(data.sourceConnection, profile);
         profiled.route += 1;
       } else {
-        // Line strips in source order; LINES pairs are joined the same way.
-        const path = new THREE.CurvePath();
-        for (let i = 1; i < points.length; i += 1) {
-          if (points[i].distanceTo(points[i - 1]) > 1e-6) path.add(new THREE.LineCurve3(points[i - 1], points[i]));
-        }
-        if (!path.curves.length) return;
-        mesh = new THREE.Mesh(new THREE.TubeGeometry(path, Math.max(4, path.curves.length * 6), 0.07, 8, false), material(kind));
+        // Source REFERENCE lines have no verified physical elevation. Never turn
+        // a changed or unidentified source route into a solid surface pipe.
+        // Owner 23.11: the model shows a best-knowledge underground profile,
+        // not a speculative visible fallback to the old reference geometry.
+        unprofiledRoutesOmitted += 1;
+        return;
       }
     } else {
       const box = new THREE.Box3().setFromPoints(points);
@@ -336,8 +336,8 @@ export function buildR31DrainageOverlay(THREE, gltf) {
     counts[kind] += 1;
   });
   if (!group.children.length) return null;
-  group.userData = { source: R31_DRAINAGE_SOURCE, counts, profiled, presentationOnly: true,
-    depthBasis: R31_DRAINAGE_PROFILE.basis };
+  group.userData = { source: R31_DRAINAGE_SOURCE, counts, profiled,
+    unprofiledRoutesOmitted, presentationOnly: true, depthBasis: R31_DRAINAGE_PROFILE.basis };
   return group;
 }
 
