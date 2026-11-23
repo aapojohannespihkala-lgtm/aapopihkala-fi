@@ -15,7 +15,7 @@ test('desktop toolbar shows the agreed one-click presets and camera angles', () 
     assert.ok(item.label.length > 2);
   }
   // Owner 22.11.2026 04.11: roof in the model -> R31 9e0bf34f (R22 scene 688 + whole-building roof group).
-  assert.equal(DESKTOP_START_CANDIDATE_ID, 'c80-r31-9e0bf34f-d-2f-sc769-sc772-work-test');
+  assert.equal(DESKTOP_START_CANDIDATE_ID, 'c80-r32h-c26d99c1-d-2f-sc814-sc817-work-test');
 });
 
 test('edge presentation is a one-click icon group with the four existing modes', () => {
