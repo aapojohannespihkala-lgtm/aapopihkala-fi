@@ -2424,6 +2424,7 @@ const title = 'Private 3D viewer';
         sourceCardResolverForModel,
         type SelectionSourceEvidence,
       } from '../../scripts/privateModelSourceCards';
+      import { resolveR300ViewerOwnerCardEvidence } from '../../scripts/privateModelR300ViewerOwnerCardEvidence.mjs';
       import { createSelectionHighlightController } from '../../scripts/privateModelSelectionHighlight';
       import {
         nearestNamedAncestor,
@@ -5985,6 +5986,15 @@ const title = 'Private 3D viewer';
 
         selectedObject = object;
         const sourceEvidence = resolveSelectionSources(object);
+        // R300 may replace only its own exact source identity, not other source cards.
+        const r300OwnerEvidence = resolveR300ViewerOwnerCardEvidence({
+          gltf: layersGltf ? sourceNodeModel(layersGltf) : null,
+          loadedGlbSha256: layersLoadedSha,
+          mountedScene: modelRoot.children[0] ?? null,
+          selectedObject: object,
+          protectedEvidence: sourceEvidence,
+        });
+        const effectiveSourceEvidence = r300OwnerEvidence ?? sourceEvidence;
         selectionPanelController.render({
           mesh: serviceTarget?.label ?? semantics.labelFi,
           group: semantics.classLabelFi,
@@ -6001,8 +6011,8 @@ const title = 'Private 3D viewer';
             ...resolveElectricalGroupEvidence(object, modelRoot.children[0] ?? null),
             ...collectSelectionMetadataEntries(object, modelRoot),
           ],
-          sourceLinks: sourceLinksForSelectionEvidence(sourceEvidence, collectSelectionSourceLinks(object, modelRoot)),
-          sourceEvidence,
+          sourceLinks: sourceLinksForSelectionEvidence(effectiveSourceEvidence, collectSelectionSourceLinks(object, modelRoot)),
+          sourceEvidence: effectiveSourceEvidence,
         });
 
         selectionHighlightController.select(object);
