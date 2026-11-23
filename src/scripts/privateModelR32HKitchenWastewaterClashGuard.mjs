@@ -40,6 +40,65 @@ const isActiveNode = (json, sceneIndex, targetId) => {
 };
 
 /**
+ * Real GLTFLoader may clone a glTF node shared between scenes and omit its
+ * parser.associations entry. For an ABSENT binding only, recover the original
+ * source node from the authenticated JSON, direct source parent, unique actual
+ * scene mesh, and the exact source POSITION accessor bounds. A present but
+ * contradictory binding never uses this fallback. This never changes geometry.
+ */
+function missingAssociationSourceNode(json, sceneIndex, scene, associations, selected) {
+  if (!selected?.isMesh || !selected?.parent || typeof scene?.traverse !== 'function' ||
+      associations.get(selected) != null) return null;
+  const matches = [...warningNodeIds].filter((id) => json.nodes?.[id]?.name === selected.name);
+  if (matches.length !== 1) return null;
+  const id = matches[0];
+  const sourceNode = json.nodes[id];
+  const roots = json.scenes?.[sceneIndex]?.nodes;
+  if (!Array.isArray(roots)) return null;
+
+  // Find direct parents *in this source scene*, not parents in stale other views.
+  const parentIds = [];
+  for (let p = 0; p < json.nodes.length; p++) {
+    if (json.nodes[p]?.children?.includes(id) && isActiveNode(json, sceneIndex, p) &&
+        json.nodes[p].name === selected.parent.name) parentIds.push(p);
+  }
+  if (parentIds.length !== 1) return null;
+  const parentBinding = associations.get(selected.parent);
+  if (parentBinding?.nodes !== undefined && parentBinding.nodes !== parentIds[0]) return null;
+
+  const primitives = json.meshes?.[sourceNode.mesh]?.primitives;
+  if (!Array.isArray(primitives) || primitives.length !== 1) return null;
+  const accessor = json.accessors?.[primitives[0]?.attributes?.POSITION];
+  const attr = selected.geometry?.getAttribute?.('position');
+  if (!accessor || accessor.componentType !== 5126 || accessor.type !== 'VEC3' ||
+      !Array.isArray(accessor.min) || !Array.isArray(accessor.max) ||
+      attr?.itemSize !== 3 || attr.count !== accessor.count ||
+      typeof attr.getX !== 'function' || typeof attr.getY !== 'function' ||
+      typeof attr.getZ !== 'function') return null;
+  const min = [Infinity, Infinity, Infinity];
+  const max = [-Infinity, -Infinity, -Infinity];
+  for (let i = 0; i < attr.count; i++) {
+    const pos = [attr.getX(i), attr.getY(i), attr.getZ(i)];
+    for (let k = 0; k < 3; k++) {
+      if (!Number.isFinite(pos[k])) return null;
+      min[k] = Math.min(min[k], pos[k]);
+      max[k] = Math.max(max[k], pos[k]);
+    }
+  }
+  const close = (a, b) => Math.abs(a - b) <= 0.0002;
+  if (![0, 1, 2].every((k) => close(min[k], accessor.min[k]) &&
+      close(max[k], accessor.max[k]))) return null;
+
+  // Clone-name ambiguity is a hard stop, even if one candidate was clicked.
+  let identicalSceneMeshes = 0;
+  scene.traverse((object) => {
+    if (object?.isMesh && object.name === selected.name &&
+        object.parent?.name === selected.parent.name) identicalSceneMeshes++;
+  });
+  return identicalSceneMeshes === 1 ? id : null;
+}
+
+/**
  * Only show the documented source clash for an associated selected glTF node
  * in the actually mounted original R32H scene. Any stale selection or mismatched
  * source/SHA/scene/node/mesh fails closed. No geometry or sourceLinks mutation.
@@ -75,7 +134,11 @@ export function r32hKitchenWastewaterClashSelectionEntries(sourceModel, sha, sce
       ];
     }
     visited.add(node);
-    const nodeId = associations.get(node)?.nodes;
+    const association = associations.get(node);
+    const nodeId = association?.nodes ??
+      (node === selected && association == null
+        ? missingAssociationSourceNode(json, sceneIndex, mountedScene, associations, selected)
+        : null);
     if (Number.isInteger(nodeId)) {
       if (!isActiveNode(json, sceneIndex, nodeId)) return [];
       const sourceName = json.nodes?.[nodeId]?.name;
