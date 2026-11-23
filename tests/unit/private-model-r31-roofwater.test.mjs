@@ -119,3 +119,28 @@ test('NW original owner photos support perforated Merika Avantgarde candidate bu
   assert.match(model.getObjectByName('R31_ROOFWATER_RK_NW').userData.roofwaterSourcePhotoIds, /1Hbw4Ir3c7WHg2PDU58KcN6v1W_uunuS8/);
   assert.equal(model.getObjectByName('R31_ROOFWATER_RK_NE').userData.roofwaterSourcePhotoIds, '');
 });
+
+test('Merika collector remains open below the perforated grate and NW host gap is explicit', () => {
+  const model = buildR31RoofWaterOverlay(THREE);
+  for (const id of ['RK_NW', 'RK_NE', 'RK_SE']) {
+    const collector = model.getObjectByName('R31_ROOFWATER_' + id);
+    const grate = model.getObjectByName('R31_ROOFWATER_' + id + '_GRATE');
+    assert.equal(collector.geometry.parameters.openEnded, true, id + ': buried collector has no false sealed lid');
+    assert.equal(collector.material.side, THREE.DoubleSide, id + ': visible internal collector wall');
+    assert.ok(grate.geometry.parameters.shapes.holes.length >= 20, id + ': actual openings in the grate');
+    assert.equal(collector.userData.asBuiltClaim, false);
+    assert.equal(collector.userData.physicalZClaim, false);
+  }
+  const nw = P.wells.RK_NW;
+  const sourceOutletY = DOWNPIPE_ENDS.T12_2026_CD_LANSI_POHJOINEN[1];
+  const groundGapM = nw.groundY - sourceOutletY;
+  const grateGapM = nw.grateY - sourceOutletY;
+  assert.ok(groundGapM > 0.32 && groundGapM < 0.33, 'R32H T12 NW outlet currently ~324 mm under model ground');
+  assert.ok(grateGapM > 0.39 && grateGapM < 0.41, 'T12 NW outlet currently ~399 mm under assumed grate');
+  const nwCard = model.getObjectByName('R31_ROOFWATER_RK_NW').userData;
+  assert.equal(nwCard.roofwaterHostStatus, 'SOURCE_HOST_HOLD');
+  assert.match(nwCard.roofwaterUncertainty, /SOURCE_HOST_HOLD/);
+  assert.match(nwCard.roofwaterUncertainty, /0,32 m/);
+  assert.match(nwCard.roofwaterUncertainty, /0,40 m/);
+  assert.equal(model.getObjectByName('R31_ROOFWATER_RK_NE').userData.roofwaterHostStatus, 'NO_PHOTO_VERIFIED_HOST');
+});
