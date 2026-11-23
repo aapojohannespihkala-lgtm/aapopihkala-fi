@@ -284,6 +284,7 @@ jobs:
             tests/unit/private-model-r32h-t12-northwest-receiver.test.mjs \
             tests/unit/private-model-r32h-merika-elegance-1790rs-fit-guard.test.mjs \
             tests/unit/private-model-r32h-merika-elegance-1790rs-receiver.test.mjs \
+            tests/unit/private-model-r32h-merika-nw-photo-spout-receiver.test.mjs \
             tests/unit/private-model-r32h-receipt.test.mjs \
             tests/unit/private-model-d-focus-ghost.test.mjs \
             tests/unit/private-model-technical-review-hot-water.test.mjs \
