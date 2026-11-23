@@ -115,10 +115,41 @@ export const C80_R33_VIEWS=Object.freeze({
  upperService:Object.freeze({role:'R33_2F_SERVICE_PLEXI_OFF',sceneIndex:821,rootCount:203,rootFnv32:'60e85063',
   floor:'2F',plexi:false,label:'Yläkerta huolto',name:'Ylisrinne_R33_D2F_WC_DOOR_CLEAR_2F_SERVICE_PLEXI_OFF_WORK_TEST_HOST_HOLD__scene821'}),
 });
+/**
+ * R34 99210ea5 (CLAUDE-R34-JULKISIVUT-20261123, owner review 23.11.2026 20.45): R33 + D/C party
+ * wall attic gable (13846), V8 south frieze above the balcony glazing (13847 -> mesh 2156),
+ * unified west gable boarding (13848 in COW 13849/13850 replacing envelope 13809), north
+ * facade boarding/ribbed panels/floor band (13851) and storage boarding (13852), east gable
+ * pale brick (13853). Whole-D 822/823, 2F 824/825. WORK_TEST/HOST_HOLD.
+ */
+export const C80_R34_WORK_TEST_ID='c80-r34-99210ea5-d-2f-sc822-sc825-work-test';
+export const C80_R34_SOURCE=Object.freeze({
+ glbSha256:'99210ea517c18cf24fa5f9702abe12ed2a8058a0c606d38b863e19802a270725',glbBytes:65219168,
+ zipDriveId:'1ZK19RQwH4OGVTbheOctRnWnj0Xk2Q2Tf',
+ zipSha256:'d7d174c7d36fdda70bb8544b76207e85540ae4ed7477564d1d9f1737b58f5564',
+ baseGlbSha256:C80_R33_SOURCE.glbSha256,
+ sceneCount:826,nodeCount:13854,meshCount:5242,materialCount:826,
+ accessorCount:11449,bufferViewCount:11455,defaultScene:292,
+ envelopeRoot:13850,p6Root:7583,p6GutterRoot:13812,sw04:13813,sw05:13839,
+ replacedHallRoots:Object.freeze([13507,13531,12643,9199,9200,13809]),plexi:11625,
+ extraRoots:Object.freeze([13843,13844,13845,13846,13847,13851]),
+ extraRootsBoth:Object.freeze([13852,13853]),wcDoorLeaf:13840,
+});
+export const C80_R34_VIEWS=Object.freeze({
+ dNormal:Object.freeze({role:'R34_D_NORMAL_PLEXI_ON',sceneIndex:822,rootCount:505,rootFnv32:'673ba191',
+  floor:'BOTH',plexi:true,label:'D normaali',name:'Ylisrinne_R34_FACADES_PARTYWALL_FRIEZE_BOTH_NORMAL_PLEXI_ON_WORK_TEST_HOST_HOLD__scene822'}),
+ dService:Object.freeze({role:'R34_D_SERVICE_PLEXI_OFF',sceneIndex:823,rootCount:504,rootFnv32:'f9009603',
+  floor:'BOTH',plexi:false,label:'D huolto',name:'Ylisrinne_R34_FACADES_PARTYWALL_FRIEZE_BOTH_SERVICE_PLEXI_OFF_WORK_TEST_HOST_HOLD__scene823'}),
+ upperNormal:Object.freeze({role:'R34_2F_NORMAL_PLEXI_ON',sceneIndex:824,rootCount:207,rootFnv32:'abdbe8d4',
+  floor:'2F',plexi:true,label:'Yläkerta normaali',name:'Ylisrinne_R34_FACADES_PARTYWALL_FRIEZE_2F_NORMAL_PLEXI_ON_WORK_TEST_HOST_HOLD__scene824'}),
+ upperService:Object.freeze({role:'R34_2F_SERVICE_PLEXI_OFF',sceneIndex:825,rootCount:206,rootFnv32:'241f1e49',
+  floor:'2F',plexi:false,label:'Yläkerta huolto',name:'Ylisrinne_R34_FACADES_PARTYWALL_FRIEZE_2F_SERVICE_PLEXI_OFF_WORK_TEST_HOST_HOLD__scene825'}),
+});
 /** R32H-family models (R32H and its append-only successors): exact source + views. */
 export const C80_R32H_FAMILY=Object.freeze([
  Object.freeze({source:C80_R32H_SOURCE,views:C80_R32H_VIEWS}),
  Object.freeze({source:C80_R33_SOURCE,views:C80_R33_VIEWS}),
+ Object.freeze({source:C80_R34_SOURCE,views:C80_R34_VIEWS}),
 ]);
 export const r32hFamilyOf=sha=>C80_R32H_FAMILY.find(m=>m.source.glbSha256===sha)??null;
 export const isR32HFamilySha=sha=>!!r32hFamilyOf(sha);
@@ -139,7 +170,8 @@ export function isC80R32HSceneSource(json,sha,index,role,floor){
   c80R31Scene752RootsFnv32(r)!==v.rootFnv32)return false;
  const must=v.floor==='BOTH'?[s.envelopeRoot,s.p6Root,s.p6GutterRoot,s.sw04,s.sw05]:[s.sw04,s.sw05];
  if(!must.every(x=>r.includes(x))||s.replacedHallRoots.some(x=>r.includes(x))||
-  r.includes(s.plexi)!==v.plexi||!(s.extraRoots??[]).every(x=>r.includes(x)))return false;
+  r.includes(s.plexi)!==v.plexi||!(s.extraRoots??[]).every(x=>r.includes(x))||
+  (v.floor==='BOTH'&&!(s.extraRootsBoth??[]).every(x=>r.includes(x))))return false;
  const e=scene.extras??{};
  return e.current!==true&&e.asBuilt!==true&&e.CURRENT!==true;
 }
@@ -220,6 +252,8 @@ export function r31WorkTestReview(candidate){
    labels:Object.fromEntries(Object.entries(C80_R32H_VIEWS).map(([k,v])=>[k,v.label])),title:'C80 R32 D'},
   [C80_R33_WORK_TEST_ID]:{source:C80_R33_SOURCE,views:C80_R33_VIEWS,
    labels:Object.fromEntries(Object.entries(C80_R33_VIEWS).map(([k,v])=>[k,v.label])),title:'C80 R33 D'},
+  [C80_R34_WORK_TEST_ID]:{source:C80_R34_SOURCE,views:C80_R34_VIEWS,
+   labels:Object.fromEntries(Object.entries(C80_R34_VIEWS).map(([k,v])=>[k,v.label])),title:'C80 R34 D'},
  };
  const r=Object.hasOwn(table,candidate?.id)?table[candidate.id]:undefined;
  if(!r)return undefined;
@@ -263,6 +297,7 @@ export const C80_R31_REVIEW_ROLES=Object.freeze({
  ...Object.fromEntries(Object.values(C80_R31_9E0B_VIEWS).map(v=>[v.role,r31View(v)])),
  ...Object.fromEntries(Object.values(C80_R32H_VIEWS).map(v=>[v.role,r32hView(v)])),
  ...Object.fromEntries(Object.values(C80_R33_VIEWS).map(v=>[v.role,r32hView(v,C80_R33_SOURCE)])),
+ ...Object.fromEntries(Object.values(C80_R34_VIEWS).map(v=>[v.role,r32hView(v,C80_R34_SOURCE)])),
 });
 
 const matchesRenderedScene=(gltf,scene,i,cfg)=>{
