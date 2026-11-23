@@ -74,3 +74,41 @@ export function assessR32HLK75CoverSource(json, authenticatedSha, sceneIndex) {
   }
   return result('UNVERIFIED_COVER_LINK', linkedNode, candidatesActive);
 }
+
+/**
+ * Add an LK75 selection-panel source warning only for a verified R32H node
+ * beneath drain root 13253 in the exact live glTF scene. This supplements
+ * the existing evidence card and never rewires sourceLinks or changes a mesh.
+ * Unassociated/stale/reparented objects fail closed.
+ */
+export function r32hLK75SelectionMetadataEntries(sourceModel, authenticatedSha, sceneIndex, selected) {
+  const json = sourceModel?.parser?.json;
+  const receipt = assessR32HLK75CoverSource(json, authenticatedSha, sceneIndex);
+  if (receipt.status !== 'WRONG_SIDEWALL_POINTER') return [];
+  const scene = sourceModel?.scenes?.[sceneIndex];
+  const associations = sourceModel?.parser?.associations;
+  if (!scene || !associations || typeof associations.get !== 'function' || !selected) return [];
+  const visited = new Set();
+  let object = selected;
+  let drainOnPath = false;
+  while (object && !visited.has(object) && visited.size < 128) {
+    if (object === scene) {
+      if (!drainOnPath) return [];
+      return [
+        ['LK75 kansiviite', 'LÄHDERISTIRIITA: n11624 (mesh4418) on seinälaatta, ei kaivon kansi.'],
+        ['LK75 kannen ehdokkaat', 'n11643 ja n11644 (mesh894/895), root n11645. Tuote, liittymä ja asennus vahvistamatta.'],
+      ];
+    }
+    visited.add(object);
+    const nodeIndex = associations.get(object)?.nodes;
+    if (Number.isInteger(nodeIndex)) {
+      if (!isActiveJsonNode(json, sceneIndex, nodeIndex)) return [];
+      if (nodeIndex === R32H_LK75_COVER_CONTRACT.drainRoot) {
+        if (object.name !== json.nodes[nodeIndex]?.name) return [];
+        drainOnPath = true;
+      }
+    }
+    object = object.parent;
+  }
+  return [];
+}
