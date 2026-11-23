@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import * as THREE from 'three';
-import { buildR31InfraOverlay } from '../../src/scripts/privateModelR31Inspection.mjs';
+import { buildR31InfraOverlay, buildR31DrainageOverlay, R31_DRAINAGE_SOURCE } from '../../src/scripts/privateModelR31Inspection.mjs';
 import { selectionMetadataEntries, formatSelectionMetadataKey, scalarSelectionMetadataValue } from '../../src/scripts/privateModelSelectionMetadata.ts';
 
 test('R31 P139AD work-Z water/wastewater overlays preserve uncertainty and source Z caveats', () => {
@@ -172,4 +172,45 @@ test('P139AD original work-Z source notes fit the 180-character viewer metadata 
   }
   assert.equal(scalarSelectionMetadataValue('X'.repeat(181)), null,
     'document the metadata filter failure mode if source caveats grow beyond 180 characters');
+});
+
+test('R31 drainage well and unresolved-end selection pins nonphysical warning before 12-row cutoff', () => {
+  const scenes = Array.from({ length: 60 }, () => new THREE.Group());
+  const sourceScene = scenes[R31_DRAINAGE_SOURCE.sceneIndex];
+  sourceScene.userData = { Pass: R31_DRAINAGE_SOURCE.pass };
+  for (const [kind, x] of [['wellMarkerWork', 26], ['unresolvedBoundaryMarker', 27]]) {
+    const marker = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.01, 0.4), new THREE.MeshBasicMaterial());
+    marker.position.set(x, -1, 0.7);
+    marker.userData = { representationKind: kind };
+    sourceScene.add(marker);
+  }
+  const gltf = {
+    scenes,
+    parser: { json: { scenes: scenes.map((_, i) => ({
+      name: i === R31_DRAINAGE_SOURCE.sceneIndex ? R31_DRAINAGE_SOURCE.sceneName : 'other',
+    })) } },
+  };
+  const overlay = buildR31DrainageOverlay(THREE, gltf);
+  assert.deepEqual(overlay.userData.counts, { well: 1, route: 0, open: 1 });
+  for (const marker of overlay.children) {
+    Object.assign(marker.userData, Object.fromEntries(
+      Array.from({ length: 18 }, (_, i) => ['decorativeField' + i, 'source-only']),
+    ));
+    const entries = selectionMetadataEntries(marker, null);
+    assert.equal(entries.length, 12, 'same 12-row cap as actual selection UI');
+    assert.equal(entries[0][0], 'sourceDisplayNote', 'nonphysical caveat must always be first');
+    assert.equal(entries[1][0], 'markerDisplayKind');
+    const info = Object.fromEntries(entries);
+    assert.equal(info.physicalWellGeometryClaim, 'false');
+    assert.equal(info.physicalZClaim, 'false');
+    assert.equal(info.installationDepthClaim, 'false');
+    assert.equal(info.currentClaim, 'false');
+    assert.equal(info.asBuiltClaim, 'false');
+    assert.ok(info.sourceDisplayNote.includes('ei '));
+    assert.equal(info.ModelStage, 'WORK_TEST_VIEW');
+    assert.equal(formatSelectionMetadataKey('sourceDisplayNote'),
+      'Viitesymbolin tulkinta (ei mitoitettu rakenne)');
+  }
+  assert.match(overlay.children[0].userData.sourceDisplayNote, /kaivomerkki/);
+  assert.match(overlay.children[1].userData.sourceDisplayNote, /päätepisteen viitemerkki/);
 });
