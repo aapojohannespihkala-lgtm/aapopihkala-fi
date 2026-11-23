@@ -4,6 +4,7 @@ import {
   R300_OWNER_GLB_SHA256,
   R300_OWNER_R31_772_GLB_SHA256,
   R300_OWNER_R31_774_GLB_SHA256,
+  R300_OWNER_R32H_GLB_SHA256,
   R300_OWNER_CARD_REF,
 } from '../../src/scripts/privateModelR300OwnerCardAdapter.mjs';
 import { resolveR300ViewerOwnerCardEvidence as resolve } from '../../src/scripts/privateModelR300ViewerOwnerCardEvidence.mjs';
@@ -22,7 +23,13 @@ const latestSceneNames = {
   773:'Ylisrinne_C80_R31_2F_R300_K3_SW04_EXXACT_REFERENCE_NORMAL_PLEX_ON_WORK_TEST_HOST_HOLD__scene773',
   774:'Ylisrinne_C80_R31_2F_R300_K3_SW04_EXXACT_REFERENCE_SERVICE_PLEX_OFF_WORK_TEST_HOST_HOLD__scene774',
 };
-const rootCounts = {759:495,760:494,769:499,770:498,771:204,772:203,773:204,774:203};
+const r32hSceneNames = {
+  814:'Ylisrinne_R32_HALLFACE_SW04SW05_BOTH_NORMAL_HALLFACE_WORK_TEST_HOST_HOLD__scene814',
+  815:'Ylisrinne_R32_HALLFACE_SW04SW05_BOTH_SERVICE_HALLFACE_PLEXI_OFF_WORK_TEST_HOST_HOLD__scene815',
+  816:'Ylisrinne_R32_HALLFACE_SW04SW05_2F_NORMAL_HALLFACE_WORK_TEST_HOST_HOLD__scene816',
+  817:'Ylisrinne_R32_HALLFACE_SW04SW05_2F_SERVICE_HALLFACE_PLEXI_OFF_WORK_TEST_HOST_HOLD__scene817',
+};
+const rootCounts = {759:495,760:494,769:499,770:498,771:204,772:203,773:204,774:203,814:500,815:499,816:204,817:203};
 const normalScenes = new Set([759,769,771,773]);
 const card = Object.freeze({
  id:R300_OWNER_CARD_REF,title:'Suojattu R300-kohdekortti',
@@ -33,15 +40,17 @@ const card = Object.freeze({
 const protectedEvidence={state:'matched',cards:[card]};
 
 function fixture(sha=R300_OWNER_GLB_SHA256,sceneIndex=759){
+ const r32h=sha===R300_OWNER_R32H_GLB_SHA256;
  const latest=sha===R300_OWNER_R31_774_GLB_SHA256;
  const newer=latest || sha===R300_OWNER_R31_772_GLB_SHA256;
- const scenes=Array.from({length:latest?775:newer?773:761},()=>({name:'unrelated',nodes:[]}));
- const nodes=Array.from({length:latest?13510:newer?13507:13495},()=>({}));
- const meshes=Array.from({length:latest?5171:newer?5169:5165},()=>({}));
- const name=latest
+ const scenes=Array.from({length:r32h?818:latest?775:newer?773:761},()=>({name:'unrelated',nodes:[]}));
+ const nodes=Array.from({length:r32h?13840:latest?13510:newer?13507:13495},()=>({}));
+ const meshes=Array.from({length:r32h?5237:latest?5171:newer?5169:5165},()=>({}));
+ const name=r32h ? r32hSceneNames[sceneIndex] : latest
   ? (latestSceneNames[sceneIndex] ?? newSceneNames[sceneIndex] ?? oldSceneNames[sceneIndex])
   : (newer?newSceneNames:oldSceneNames)[sceneIndex];
- const plexi=latest && normalScenes.has(sceneIndex);
+ const plexi=(r32h && (sceneIndex===814 || sceneIndex===816)) ||
+   (latest && normalScenes.has(sceneIndex));
  scenes[sceneIndex]={name,nodes:[13488,...(plexi?[11625]:[]),
   ...Array.from({length:rootCounts[sceneIndex] - 1 - Number(plexi)},(_,i)=>i)]};
  nodes[13488]={name:'NIBE_COMPACT_R300_FRONT_NORTH_WC_WORK_TEST_HOST_HOLD',children:[13487,13429,13430]};
@@ -116,4 +125,45 @@ test('latest 773/774 require the precise source profile, plexi role and selected
   else roots[1]=11625;
   assert.equal(resolve(f).state,'unbound','plexi root cannot change normal/service role');
  }
+});
+
+test('canonical R32H original SHA accepts only ten R300 casing leaves across BOTH and 2F normal/service scenes',()=>{
+ for (const sceneIndex of [814,815,816,817]) {
+  for (let leaf=13415;leaf<=13424;leaf++) {
+   const f=fixture(R300_OWNER_R32H_GLB_SHA256,sceneIndex);
+   const associations=f.gltf.parser.associations;
+   const oldLeaf=f.selectedObject;
+   const newLeaf={isMesh:true,name:`R300_OWNER_OPTION__H32_NIBE_R300_LEAF_${leaf-13415}_WORK_TEST`,parent:oldLeaf.parent};
+   associations.delete(oldLeaf);
+   associations.set(newLeaf,{nodes:leaf,meshes:4368+leaf-13415});
+   f.gltf.parser.json.nodes[leaf]={name:newLeaf.name,mesh:4368+leaf-13415};
+   assert.equal(resolve({...f,selectedObject:newLeaf}).state,'matched',
+    `R32H scene ${sceneIndex} source node ${leaf}`);
+  }
+ }
+});
+
+test('R32H must fail closed on wrong SHA, scene/root/plexi or GLTFLoader parent/mesh',()=>{
+ const f=fixture(R300_OWNER_R32H_GLB_SHA256,814);
+ assert.equal(resolve(f).state,'matched');
+ assert.equal(resolve({...f,loadedGlbSha256:R300_OWNER_R31_774_GLB_SHA256}),null);
+ assert.equal(resolve({...f,mountedScene:{name:f.mountedScene.name}}),null);
+ const wrongSource=fixture(R300_OWNER_R32H_GLB_SHA256,814);
+ wrongSource.gltf.parser.json.scenes[814].name+='-UNVERIFIED';
+ assert.equal(resolve(wrongSource).state,'unbound');
+ const wrongPlexi=fixture(R300_OWNER_R32H_GLB_SHA256,815);
+ wrongPlexi.gltf.parser.json.scenes[815].nodes[1]=11625;
+ assert.equal(resolve(wrongPlexi).state,'unbound');
+ const wrongRoots=fixture(R300_OWNER_R32H_GLB_SHA256,816);
+ wrongRoots.gltf.parser.json.scenes[816].nodes.shift();
+ assert.equal(resolve(wrongRoots).state,'unbound');
+ const wrongParent=fixture(R300_OWNER_R32H_GLB_SHA256,817);
+ wrongParent.gltf.parser.associations.set(wrongParent.selectedObject.parent,{nodes:13429});
+ assert.equal(resolve(wrongParent).state,'unbound');
+ const wrongMesh=fixture(R300_OWNER_R32H_GLB_SHA256,814);
+ wrongMesh.gltf.parser.associations.set(wrongMesh.selectedObject,{nodes:13415,meshes:4424});
+ assert.equal(resolve(wrongMesh).state,'unbound');
+ const wrongEvidence=fixture(R300_OWNER_R32H_GLB_SHA256,815);
+ wrongEvidence.protectedEvidence={state:'matched',cards:[{...card,id:'OTHER_CARD'}]};
+ assert.equal(resolve(wrongEvidence).state,'unavailable');
 });
