@@ -4,7 +4,28 @@ import { readFileSync } from 'node:fs';
 import * as THREE from 'three';
 import { buildR31InfraOverlay } from '../../src/scripts/privateModelR31Inspection.mjs';
 import { selectionMetadataEntries, formatSelectionMetadataKey, scalarSelectionMetadataValue } from '../../src/scripts/privateModelSelectionMetadata.ts';
-import { createSelectionPanelController } from '../../src/scripts/privateModelSelectionPanel.ts';
+import { registerHooks } from 'node:module';
+
+// Native Node 24 strips TypeScript, but does not resolve extensionless TS imports.
+// Keep the real selection-panel receiver under test without modifying production imports.
+registerHooks({
+  resolve(specifier, context, nextResolve) {
+    const fromPanel = context.parentURL?.endsWith('/privateModelSelectionPanel.ts');
+    const fromEvidence = context.parentURL?.endsWith('/privateModelSourceEvidencePanel.ts');
+    const panelImports = new Set([
+      './privateModelSelectionMetadata',
+      './privateModelAiNavigator',
+      './privateModelSourceCards',
+      './privateModelSourceEvidencePanel',
+    ]);
+    if ((fromPanel && panelImports.has(specifier)) ||
+        (fromEvidence && specifier === './privateModelSourceCards')) {
+      return nextResolve(`${specifier}.ts`, context);
+    }
+    return nextResolve(specifier, context);
+  },
+});
+const { createSelectionPanelController } = await import('../../src/scripts/privateModelSelectionPanel.ts');
 
 test('R31 P139AD work-Z water/wastewater overlays preserve uncertainty and source Z caveats', () => {
   const routes = [
