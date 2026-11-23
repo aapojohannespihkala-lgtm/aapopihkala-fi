@@ -12,6 +12,8 @@ export const R300_OWNER_CARD_REF = 'HIGH-UX-D-KOHDEKORTTI-R300';
 export const R300_OWNER_R31_772_GLB_SHA256 = '9e0bf34fd838ddc92be12007412176a8ea449f66644f8876395ac6f659804ec3';
 /** Source-exact successor: the unrelated D2F-SW04 proxy must not change NIBE identity. */
 export const R300_OWNER_R31_774_GLB_SHA256 = 'aa56361ce355fdf31f0fbe301364156a6548eebd0ac1eb57bc25475acdca77c0';
+/** Current canonical 23.11 R32H, exact source bytes, not an inherited R31 allowance. */
+export const R300_OWNER_R32H_GLB_SHA256 = 'c26d99c11ffef90859ff17cad5edecf7ab22d811baddfa0506794ecdbef6294c';
 
 const PROFILES_BY_SHA = Object.freeze({
   [R300_OWNER_GLB_SHA256]: {
@@ -41,6 +43,16 @@ const PROFILES_BY_SHA = Object.freeze({
       772: { name: 'Ylisrinne_C80_R31_2F_R300_COPPER_RK141_RK142_RK143_L12_MJ83_SERVICE_WORK_TEST_HOST_HOLD__scene772', roots: 203, plexiRootPresent: false },
       773: { name: 'Ylisrinne_C80_R31_2F_R300_K3_SW04_EXXACT_REFERENCE_NORMAL_PLEX_ON_WORK_TEST_HOST_HOLD__scene773', roots: 204, plexiRootPresent: true },
       774: { name: 'Ylisrinne_C80_R31_2F_R300_K3_SW04_EXXACT_REFERENCE_SERVICE_PLEX_OFF_WORK_TEST_HOST_HOLD__scene774', roots: 203, plexiRootPresent: false },
+    },
+  },
+
+  [R300_OWNER_R32H_GLB_SHA256]: {
+    sceneCount: 818, nodeCount: 13840, meshCount: 5237,
+    scenes: {
+      814: { name: 'Ylisrinne_R32_HALLFACE_SW04SW05_BOTH_NORMAL_HALLFACE_WORK_TEST_HOST_HOLD__scene814', roots: 500, plexiRootPresent: true },
+      815: { name: 'Ylisrinne_R32_HALLFACE_SW04SW05_BOTH_SERVICE_HALLFACE_PLEXI_OFF_WORK_TEST_HOST_HOLD__scene815', roots: 499, plexiRootPresent: false },
+      816: { name: 'Ylisrinne_R32_HALLFACE_SW04SW05_2F_NORMAL_HALLFACE_WORK_TEST_HOST_HOLD__scene816', roots: 204, plexiRootPresent: true },
+      817: { name: 'Ylisrinne_R32_HALLFACE_SW04SW05_2F_SERVICE_HALLFACE_PLEXI_OFF_WORK_TEST_HOST_HOLD__scene817', roots: 203, plexiRootPresent: false },
     },
   },
 });
