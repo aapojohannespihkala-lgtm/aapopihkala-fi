@@ -150,4 +150,14 @@ test('viewer mounts only authenticated R32H BOTH, and tears down the geometry ow
   assert.match(view, /r31SceneScope\?\.floor === 'BOTH'/);
   assert.match(view, /r32hNwT12WorkTestPreview\.dispose\(\)/);
   assert.match(view, /receiver\.setApplied\(true\)/);
+  const checkboxTag = view.match(/<input id="r32h-nw-t12-preview-optin"[^>]*>/)?.[0];
+  assert.ok(checkboxTag, 'R32H preview is discoverable in Layers');
+  assert.doesNotMatch(checkboxTag, /\schecked(?:\s|\/|>)/, 'WORK_TEST opt-in must default OFF');
+  assert.match(view, /nwT12PreviewInput\.addEventListener\('change', \(\) => refreshLayers\(\)\)/);
+  assert.match(view, /const nwT12PreviewRequested = nwT12SourceAllowed && nwT12PreviewInput\.checked;/);
+  assert.match(view, /if \(!nwT12SourceAllowed\) nwT12PreviewInput\.checked = false;/);
+  assert.match(view, /if \(nwT12PreviewRequested && root && !r32hNwT12WorkTestPreview\)/);
+  assert.match(view, /sceneIndex === 814 \|\| sceneIndex === 815/);
+  assert.doesNotMatch(view, /if \(nwT12SourceAllowed && root && !r32hNwT12WorkTestPreview\)/,
+    'authenticated source alone is not permission to alter visible geometry');
 });
