@@ -2443,6 +2443,7 @@ const title = 'Private 3D viewer';
       import { shouldInvalidateModelSelection } from '../../scripts/privateModelSceneSelectionInvalidation.mjs';
       import { sourceLinksForSelectionEvidence } from '../../scripts/privateModelSourceCardLinkGuard.mjs';
       import { r32hLK75SelectionMetadataEntries } from '../../scripts/privateModelR32HLK75CoverSourceGuard.mjs';
+      import { r33LK75SelectionMetadataEntries, R33_LK75_COVER_SOURCE } from '../../scripts/privateModelR33LK75CoverSourceGuard.mjs';
       import { pickVisibleWorkTest3DPoint } from '../../scripts/privateModelWorkTest3DPoint';
       import { classifySameClickReviewEvidence } from '../../scripts/privateModelSameClickReviewEvidence.mjs';
       import { measureAlongG1Axis } from '../../scripts/privateModelMeasureGeometry.mjs';
@@ -5997,7 +5998,14 @@ const title = 'Private 3D viewer';
               layersGltf.scenes?.indexOf(lk75ActiveScene) ?? -1,
               object,
             ).map(([label, value]): readonly [string, string] => [label, value])
-          : [];
+          : layersGltf && layersLoadedSha === R33_LK75_COVER_SOURCE.glbSha256
+            ? r33LK75SelectionMetadataEntries(
+                sourceNodeModel(layersGltf),
+                layersLoadedSha,
+                layersGltf.scenes?.indexOf(lk75ActiveScene) ?? -1,
+                object,
+              ).map(([label, value]): readonly [string, string] => [label, value])
+            : [];
         selectionPanelController.render({
           mesh: serviceTarget?.label ?? semantics.labelFi,
           group: semantics.classLabelFi,
