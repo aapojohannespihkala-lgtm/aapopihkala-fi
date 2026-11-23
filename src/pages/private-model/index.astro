@@ -15269,7 +15269,7 @@ const title = 'Private 3D viewer';
         if (!file || r32hNwP7Loading) return;
         const version = modelLoadVersion;
         const selectedScene = layersGltf?.scenes?.indexOf(modelRoot.children[0]) ?? -1;
-        if (layersLoadedSha !== C80_R32H_SOURCE.glbSha256 ||
+        if (layersLoadedSha !== R32H_NW_PHOTO_SPOUT_SOURCE.originalSha256 ||
             ![814, 815].includes(selectedScene)) {
           nwP7FileInput.value = '';
           return;
@@ -15293,7 +15293,7 @@ const title = 'Private 3D viewer';
               throw new Error('P7_SOURCE_SHA_MISMATCH');
             const parsed = await new GLTFLoader().parseAsync(bytes, '/private-model/');
             if (version !== modelLoadVersion ||
-                layersLoadedSha !== C80_R32H_SOURCE.glbSha256 ||
+                layersLoadedSha !== R32H_NW_PHOTO_SPOUT_SOURCE.originalSha256 ||
                 (layersGltf?.scenes?.indexOf(modelRoot.children[0]) ?? -1) !== selectedScene)
               throw new Error('P7_SOURCE_MODEL_CHANGED');
             r32hNwP7Gltf = parsed;
@@ -15458,6 +15458,7 @@ const title = 'Private 3D viewer';
           // The unmeasured NW T12 20 mm WORK_TEST gap must never appear by
           // default. Offer a reversible opt-in only in exact R32H BOTH scenes.
           const nwT12SourceAllowed = verified && !!root &&
+            // @ts-ignore - source SHA is an exact JS runtime export; old R32H opt-in semantics unchanged.
             layersLoadedSha === C80_R32H_SOURCE.glbSha256 &&
             r31SceneScope?.floor === 'BOTH' && (sceneIndex === 814 || sceneIndex === 815);
           nwT12PreviewRow.hidden = !nwT12SourceAllowed;
@@ -15496,7 +15497,7 @@ const title = 'Private 3D viewer';
           }
           if (!nwP7PreviewRequested) delete canvas.dataset.r32hNwP7Cow;
           if (nwP7PreviewRequested && root && !r32hNwP7Preview) {
-            const receiver = createR32HMerikaNWPhotoSpoutReceiver({
+            const receiver = (createR32HMerikaNWPhotoSpoutReceiver as any)({
               gltf: layersGltf,
               originalSha256: layersLoadedSha,
               sceneIndex,
