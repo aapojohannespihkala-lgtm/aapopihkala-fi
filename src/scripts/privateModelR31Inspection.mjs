@@ -1064,24 +1064,24 @@ export function syncR31ExteriorDonorMaterials(groups, originals, enabled, materi
 
 const ROOFWATER_TEXT = Object.freeze({
   RK_NW_OUTLET: Object.freeze({
-    route: 'Luoteisnurkan syöksy → rännikaivo → putki → purku viheralueelle noin 3 m etelään lounaisnurkan purusta',
-    certainty: 'Varmaa (omistajan maastohavainto 23.11.2026): luoteisnurkan syöksy johtaa rännikaivon kautta putkessa purkuun muutaman metrin päähän etelään toisesta purkupaikasta.',
+    route: 'Luoteisnurkan syöksy → oma rännikaivo → oma putki → purku viheralueelle noin 3 m etelään lounaisnurkan rännin purusta',
+    certainty: 'Varmaa (omistajan maastohavainto 23.11.2026): luoteisnurkalla oma rännikaivo ja siinä kiinni oma putki, joka purkaa muutaman metrin päähän etelään lounaisnurkan purkupaikasta.',
   }),
-  RK_NE_TO_RK_SE: Object.freeze({
-    route: 'Koillisnurkan syöksy → rännikaivo → putki itäpäädyn vierellä → kaakkoisnurkan rännikaivo',
-    certainty: 'Varmaa (omistajan maastohavainto 23.11.2026): itäpäädyn molemmat syöksyt johtavat rännikaivojen ja putkien kautta kaakkoisnurkalle viheralueelle; koillisnurkan purku on vielä hieman epäselvä.',
+  RK_NE_OUTLET: Object.freeze({
+    route: 'Koillisnurkan syöksy → oma rännikaivo → oma putki itäpäädyn vierellä → purku kaakkoisnurkan viheralueelle',
+    certainty: 'Varmaa (omistajan maastohavainto 23.11.2026): koillisnurkalla oma rännikaivo ja siinä kiinni oma putki kaakkoisnurkan viheralueelle; purun tarkka kohta on vielä hieman epäselvä.',
   }),
   RK_SE_OUTLET: Object.freeze({
-    route: 'Kaakkoisnurkan rännikaivo → putki → purku viheralueelle kaakkoisnurkalla',
-    certainty: 'Varmaa (omistajan maastohavainto 23.11.2026): itäpäädyn syöksyjen vedet purkautuvat kaakkoisnurkan viheralueelle.',
+    route: 'Kaakkoisnurkan syöksy → oma rännikaivo → oma putki → purku kaakkoisnurkan viheralueelle',
+    certainty: 'Varmaa (omistajan maastohavainto 23.11.2026): kaakkoisnurkalla oma rännikaivo ja siinä kiinni oma putki kaakkoisnurkan viheralueelle.',
   }),
   SW_TEMP_GUTTER: Object.freeze({
-    route: 'Lounaisnurkan syöksy → tilapäinen ränni terassin reunaa pitkin → viheralue',
-    certainty: 'Varmaa (omistajan maastohavainto 23.11.2026): lounaisnurkan syöksy johtaa tällä hetkellä tilapäisessä rännissä terassin reunaa pitkin viheralueelle.',
+    route: 'Lounaisnurkan syöksy → tilapäinen ränni terassin portaassa → viheralue',
+    certainty: 'Varmaa (omistajan maastohavainto 23.11.2026): lounaisnurkalla on toistaiseksi vain tilapäinen ränni terassin portaassa; ei rännikaivoa eikä putkea.',
   }),
 });
 const ROOFWATER_ASSUMED_PIPE = 'Oletus: putken reitti, Ø110, yläpinta vähintään 0,15 m maanpinnasta, kaato virtaussuuntaan ja purkupaikan tarkka kohta; ei mitattu.';
-const ROOFWATER_ASSUMED_WELL = 'Oletus: rännikaivo Ø315, kansi maanpinnassa, syvyys putken oletetusta korosta; ei mitattu.';
+const ROOFWATER_ASSUMED_WELL = 'Oletus: mallin mitat (Ø315-runko noin 0,8 m maan alle, huppu Ø300 0,20 m maan yläpuolella, helma Ø460, 110 mm lähtö) yleisestä Merika 110/315 -rännikaivosta; omistajan "Melika" tulkittu Merikaksi, ei mitattu.';
 const rwFmt = (v) => (Math.round(v * 100) / 100).toFixed(2).replace('.', ',');
 
 function roofwaterPipeCard(id, pipe) {
@@ -1118,21 +1118,28 @@ export function buildR31RoofWaterOverlay(THREE, profile = R31_ROOFWATER_PROFILE)
     return new THREE.Mesh(new THREE.TubeGeometry(path, Math.max(8, p.length * 8), radius, 10, false), material);
   };
   for (const [id, w] of Object.entries(profile.wells)) {
-    const h = w.topY - w.bottomY;
-    const mesh = new THREE.Mesh(new THREE.CylinderGeometry(w.diameterM / 2, w.diameterM / 2, h, 24), wellMat);
-    mesh.position.set(w.x, w.bottomY + h / 2, w.z);
-    mesh.updateMatrix();
-    mesh.name = `R31_ROOFWATER_${id}`;
-    mesh.userData = { ...common, roofwaterWell: `Rännikaivo ${id.replace('RK_', '')}`, roofwaterDownpipe: w.downpipe,
-      roofwaterWellDepthM: `${rwFmt(w.topY - w.bottomY)} m`, roofwaterUncertainty: ROOFWATER_ASSUMED_WELL,
+    const card = { ...common, roofwaterWell: `Rännikaivo ${id.replace('RK_', '')} (${R31_ROOFWATER_SOURCE.wellProduct})`,
+      roofwaterDownpipe: w.downpipe, roofwaterCertainty: 'Varmaa (omistajan maastohavainto 23.11.2026): oma rännikaivo tämän syöksyn alla, mallia Melika.',
+      roofwaterWellDepthM: `${rwFmt(w.groundY - w.bottomY)} m maan alle`, roofwaterUncertainty: ROOFWATER_ASSUMED_WELL,
       roofwaterBasis: R31_ROOFWATER_SOURCE.basis, physicalZClaim: false };
-    group.add(mesh); counts.ROOFWATER_WELL += 1;
+    const part = (name, rTop, rBottom, y0, y1, segments = 24) => {
+      const mesh = new THREE.Mesh(new THREE.CylinderGeometry(rTop, rBottom, y1 - y0, segments), wellMat);
+      mesh.position.set(w.x, (y0 + y1) / 2, w.z);
+      mesh.updateMatrix();
+      mesh.name = `R31_ROOFWATER_${id}${name}`;
+      mesh.userData = card;
+      group.add(mesh);
+    };
+    part('', w.diameterM / 2, w.diameterM / 2, w.bottomY, w.groundY);
+    part('_SKIRT', w.skirtDiameterM / 2, w.skirtDiameterM / 2, w.groundY, w.groundY + 0.02, 32);
+    part('_HOOD', w.hoodDiameterM / 2 * 0.8, w.hoodDiameterM / 2, w.groundY + 0.02, w.hoodTopY);
+    counts.ROOFWATER_WELL += 1;
   }
   for (const [id, c] of Object.entries(profile.connectors ?? {})) {
     const mesh = tube(c.points, c.radiusM, pipeMat);
     mesh.name = `R31_ROOFWATER_CONNECTOR_${id}`;
     mesh.userData = { ...common, roofwaterRoute: `Syöksyn ${c.downpipe} jatko rännikaivoon`,
-      roofwaterUncertainty: 'Oletus: pystyjatke syöksyn ulostulosta rännikaivon kanteen; ei mitattu.', physicalZClaim: false };
+      roofwaterUncertainty: 'Oletus: pystyjatke syöksyn ulostulosta rännikaivon huppuun; ei mitattu.', physicalZClaim: false };
     group.add(mesh); counts.ROOFWATER_CONNECTOR += 1;
   }
   for (const [id, pipe] of Object.entries(profile.pipes)) {
@@ -1171,7 +1178,7 @@ export function buildR31RoofWaterOverlay(THREE, profile = R31_ROOFWATER_PROFILE)
     mesh.name = `R31_ROOFWATER_${id}`;
     const t = ROOFWATER_TEXT[id];
     mesh.userData = { ...common, roofwaterRoute: t.route, roofwaterCertainty: t.certainty,
-      roofwaterUncertainty: 'Oletus: avoin puolipyöreä ränni 150 mm maanpinnalla terassin portaiden länsipuolella; tarkka linjaus ja pituus arvio.',
+      roofwaterUncertainty: 'Oletus: avoin puolipyöreä ränni 150 mm maanpinnalla terassin portaan ulkosivulla ja portaan päästä viheralueelle; tarkka linjaus ja pituus arvio.',
       roofwaterBasis: R31_ROOFWATER_SOURCE.basis, physicalZClaim: false };
     group.add(mesh); counts.ROOFWATER_GUTTER += 1;
   }
