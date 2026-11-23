@@ -19,7 +19,7 @@ function selectedFixture(sceneIndex = 814, selectedId = 13314) {
   const scenes = Object.fromEntries(Object.entries(fixture.scenes).map(([i, scene]) =>
     [i, { name: scene.name, nodes: [...scene.nodes] }]));
   const rootId = scenes[sceneIndex].nodes[0];
-  nodes[rootId] = { name: 'TEST_SCENE_ROOT', children: ids };
+  nodes[rootId] = { name: 'TEST_SCENE_ROOT', children: [...ids] };
   for (const id of ids) nodes[id] = { name: `TEST_KITCHEN_WASTEWATER_${id}`, mesh: id === 13310 ? 3709 : id - 9000 };
   const json = { scenes, nodes, asset: { extras: { ModelStage: 'WORK_TEST', current: false, asBuilt: false } } };
   const scene = { name: scenes[sceneIndex].name };
