@@ -15585,6 +15585,8 @@ const title = 'Private 3D viewer';
         });
       };
       onLayersModelLoaded = (gltf, session) => {
+        // Each GLB load is a fresh opt-in boundary, even when its SHA matches.
+        nwT12PreviewInput.checked = false;
         if (r32hNwT12WorkTestPreview) {
           r32hNwT12WorkTestPreview.dispose();
           r32hNwT12WorkTestPreview = null;

@@ -160,4 +160,7 @@ test('viewer mounts only authenticated R32H BOTH, and tears down the geometry ow
   assert.match(view, /sceneIndex === 814 \|\| sceneIndex === 815/);
   assert.doesNotMatch(view, /if \(nwT12SourceAllowed && root && !r32hNwT12WorkTestPreview\)/,
     'authenticated source alone is not permission to alter visible geometry');
+  const reloadHandler = view.slice(view.indexOf('onLayersModelLoaded = (gltf, session) => {'));
+  assert.match(reloadHandler.slice(0, 400), /nwT12PreviewInput\.checked = false;/,
+    'a new GLB load must revoke the old explicit preview choice even at the same SHA');
 });
