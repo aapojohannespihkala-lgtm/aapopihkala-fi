@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import * as THREE from 'three';
 import { buildR31InfraOverlay } from '../../src/scripts/privateModelR31Inspection.mjs';
+import { selectionMetadataEntries, formatSelectionMetadataKey } from '../../src/scripts/privateModelSelectionMetadata.ts';
 
 test('R31 P139AD work-Z water/wastewater overlays preserve uncertainty and source Z caveats', () => {
   const routes = [
@@ -81,4 +82,74 @@ test('P139AD source retains its four original route notes and non-physical work-
   assert.match(page, /workZAssumption: true/);
   assert.match(page, /samePipeClaim: false/);
   assert.match(page, /topologyLinkClaim: false/);
+});
+
+test('P139AD selected water and sewer work-Z tubes show source caveats before the 12-entry cutoff', () => {
+  const notes = [
+    'Malformed XML Z stays provenance; street route elevation is interpolated, not measured.',
+    '1974 parallel profile is not proof of the same pipe; this is a review-height assumption.',
+  ];
+  const routes = [
+    {
+      name: 'P139AD_LOCUS_WATER_MAIN_WORK_Z',
+      label: 'Vesijohto - katu',
+      sourceObject: 'G3_LOCUS_SITE_WATER_MAIN_REF_001',
+      system: 'WATER',
+      workZBasis: 'SOURCE_Z_CHAIN_WITH_INTERPOLATION_AND_EXTRAPOLATION',
+      sourceZNote: notes[0],
+      points: [[0, 0, 18], [2, 2, 17.9]],
+    },
+    {
+      name: 'P139AD_LOCUS_WASTEWATER_PARCEL_WORK_Z',
+      label: 'Jätevesi - tonttihaara',
+      sourceObject: 'G3_LOCUS_SITE_WASTEWATER_PARCEL_UNCERTAIN_001',
+      system: 'WASTEWATER',
+      workZBasis: '1974_PARALLEL_ROUTE_PROFILE_TRANSFER',
+      sourceZNote: notes[1],
+      points: [[0, 0, 18.15], [4, 5, 17.9]],
+    },
+  ];
+  const group = buildR31InfraOverlay(THREE, routes, 21.75);
+  const expectedKeys = [
+    'sourceZNote', 'workZBasis', 'workZAssumption',
+    'physicalZClaim', 'samePipeClaim', 'topologyLinkClaim',
+    'verticalDatumStatus', 'sourceObject', 'sourceXYState',
+    'sourceZPreservedAsProvenance', 'refinable', 'ModelStage',
+  ];
+  for (const [i, mesh] of group.children.entries()) {
+    const entries = selectionMetadataEntries(mesh, null);
+    assert.equal(entries.length, 12, 'all displayed entries fit the actual viewer limit');
+    assert.deepEqual(entries.map(([key]) => key), expectedKeys,
+      'the review/source warnings must be visible, not alphabetically truncated');
+    const values = Object.fromEntries(entries);
+    assert.equal(values.sourceZNote, notes[i]);
+    assert.equal(values.workZBasis, routes[i].workZBasis);
+    assert.equal(values.workZAssumption, 'true');
+    assert.equal(values.physicalZClaim, 'false');
+    assert.equal(values.samePipeClaim, 'false');
+    assert.equal(values.topologyLinkClaim, 'false');
+    assert.equal(values.ModelStage, 'WORK_TEST_VIEW');
+    assert.equal(formatSelectionMetadataKey('sourceZNote'),
+      'Lähteen Z-huomautus (ei fyysinen putkikorko)');
+    assert.equal(formatSelectionMetadataKey('workZBasis'), 'Työ-Z:n laskentaperuste');
+  }
+});
+
+test('P139AD work-Z metadata sorting is not applied to unrelated objects', () => {
+  const unrelated = {
+    name: 'UNRELATED_SOURCE',
+    userData: {
+      sourceObject: 'OTHER_SOURCE',
+      system: 'WATER',
+      ModelStage: 'WORK_TEST_VIEW',
+      workZAssumption: true,
+      physicalZClaim: false,
+      sourceZNote: 'Not a P139AD route',
+      presentationOnly: true,
+    },
+    parent: null,
+  };
+  const entries = selectionMetadataEntries(unrelated, null);
+  assert.equal(entries[0][0], 'ModelStage', 'existing generic priority is unchanged');
+  assert.equal(entries.find(([key]) => key === 'sourceZNote')?.[1], 'Not a P139AD route');
 });
