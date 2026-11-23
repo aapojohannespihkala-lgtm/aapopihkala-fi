@@ -88,6 +88,31 @@ test('roof-water overlay: plain solids, card carries certainty and assumption', 
   assert.equal(r31SiteLayerKeyForNetwork('roofwater'), 'roofwater');
 });
 
+test('photo-based visible NW cup is open and perforated; 1780RS dimensions remain a product hypothesis', () => {
+  assert.deepEqual(R31_ROOFWATER_SOURCE.nwPhotoIds, [
+    '1IK-vUnNR5uUM8yP-rugOXylhGb5wdlcE',
+    '1pQYoJa1484neVH5nkN5QXL7uxQUWTI2s',
+    '1Hbw4Ir3c7WHg2PDU58KcN6v1W_uunuS8',
+  ]);
+  assert.match(R31_ROOFWATER_SOURCE.wellProduct, /SKU vahvistamatta/);
+  assert.match(R31_ROOFWATER_SOURCE.manufacturerDrawing, /M1780RS/);
+  const group = buildR31RoofWaterOverlay(THREE);
+  for (const id of ['RK_NW', 'RK_NE', 'RK_SE']) {
+    const hood = group.getObjectByName(`R31_ROOFWATER_${id}_HOOD`);
+    const plate = group.getObjectByName(`R31_ROOFWATER_${id}_SPLASH_PLATE`);
+    assert.equal(P.wells[id].hoodDiameterM, 0.31, id);
+    assert.equal(P.wells[id].skirtDiameterM, 0.34, id);
+    assert.equal(hood.geometry.parameters.openEnded, true, id);
+    assert.equal(hood.geometry.parameters.radiusTop, 0.155, id);
+    assert.ok(plate.geometry.parameters.shapes.holes.length >= 30, id);
+    assert.match(plate.userData.roofwaterUncertainty, /^Oletus:/);
+    assert.equal(plate.userData.physicalZClaim, false);
+    assert.equal(plate.userData.asBuiltClaim, false);
+    assert.equal(plate.userData.roofwaterPhotoSource === 'EI_KOHTEEN_OMAA_KUVALAHDETTA', id !== 'RK_NW');
+  }
+  assert.equal(group.userData.counts.ROOFWATER_WELL, 3, 'one well per observed downpipe');
+});
+
 test('viewer loads roof water as its own Layerit row behind the site-network gate', () => {
   const source = readFileSync(fileURLToPath(new URL('../../src/pages/private-model/index.astro', import.meta.url)), 'utf8');
   assert.match(source, /\['roofwater', 'Kattovedet: syöksyjen jatkot ja purut \(WORK_TEST\)'\]/);
