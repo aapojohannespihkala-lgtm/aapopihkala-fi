@@ -50,12 +50,21 @@ function findSourceMesh(scene, associations) {
   scene.traverse((object) => {
     if (!object?.isMesh || !object.geometry || !object.parent) return;
     const entry = associations.get(object);
-    if (entry?.meshes !== SOURCE.meshIndex) return;
+    // GLTFLoader can strip parser associations when cloning a node shared by
+    // multiple source scenes. An absent mesh binding is not a contradiction:
+    // use the exact source node name + parent, then the SHA/scene/node/mesh JSON,
+    // one-mesh, identity matrix and 360-vertex bounds guards below.
+    const hasMeshBinding = entry?.meshes !== undefined;
+    const namedLoaderClone = !hasMeshBinding &&
+      object.name === SOURCE.nodeName &&
+      object.parent?.name === 'T12_GUTTERS_AND_DOWNSPOUTS';
+    if (hasMeshBinding ? entry.meshes !== SOURCE.meshIndex : !namedLoaderClone) return;
     let current = object;
     let correctNode = false;
     while (current && current !== scene.parent) {
       const association = associations.get(current);
-      if (association?.nodes === SOURCE.nodeIndex) correctNode = true;
+      if (association?.nodes === SOURCE.nodeIndex ||
+          (namedLoaderClone && current === object)) correctNode = true;
       if (current === scene) break;
       current = current.parent;
     }

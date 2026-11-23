@@ -35,6 +35,7 @@ const makeSource = (sceneIndex = 814) => {
   mesh.name = S.nodeName;
   mesh.userData = { sourceRole: 'T12', ModelStage: 'WORK_TEST_SOURCE', physicalZClaim: false };
   const group = new THREE.Group();
+  group.name = 'T12_GUTTERS_AND_DOWNSPOUTS';
   group.add(mesh);
   const scene = new THREE.Group();
   scene.add(group);
@@ -122,6 +123,39 @@ test('requires glTF scene roots, exact node name+mesh and unique parser associat
   f.scene.remove(duplicate);
   f.mesh.position.y = 1;
   assert.equal(f.receive().status, 'MESH_BINDING_OR_WORLD_MISMATCH', 'non-identity world transform');
+});
+
+test('real GLTFLoader missing associations use only unique exact node/parent fallback', () => {
+  const f = makeSource();
+  const source = f.mesh.geometry;
+  const originalData = { ...f.mesh.userData };
+  // Real THREE.GLTFLoader with a node reused by two scenes can omit these
+  // parser associations, unlike our canonical source-index unit fixture.
+  f.associations.delete(f.mesh);
+  f.associations.delete(f.scene.children[0]);
+  const preview = f.receive();
+  assert.equal(preview.available, true);
+  assert.equal(preview.setApplied(true), true);
+  preview.dispose();
+  assert.equal(f.mesh.geometry, source);
+  assert.deepEqual(f.mesh.userData, originalData);
+
+  const copy = f.mesh.clone();
+  f.scene.children[0].add(copy);
+  assert.equal(f.receive().status, 'MESH_BINDING_OR_WORLD_MISMATCH',
+    'two exact-name meshes under the source parent must never receive COW');
+  f.scene.children[0].remove(copy);
+  f.mesh.name = 'UNRELATED_CLONE';
+  assert.equal(f.receive().status, 'MESH_BINDING_OR_WORLD_MISMATCH',
+    'missing association cannot bypass source name');
+  f.mesh.name = S.nodeName;
+  f.scene.children[0].name = 'WRONG_SOURCE_PARENT';
+  assert.equal(f.receive().status, 'MESH_BINDING_OR_WORLD_MISMATCH',
+    'missing association cannot bypass parent name');
+  f.scene.children[0].name = 'T12_GUTTERS_AND_DOWNSPOUTS';
+  f.associations.set(f.mesh, { meshes: S.meshIndex + 1 });
+  assert.equal(f.receive().status, 'MESH_BINDING_OR_WORLD_MISMATCH',
+    'a contradictory parser mesh binding must fail closed, never use fallback');
 });
 
 test('source COW rejects geometry mismatch, and never replaces another renderer owner', () => {
