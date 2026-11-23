@@ -79,7 +79,7 @@ test('roof-water overlay: plain solids, card carries certainty and assumption', 
     const m = group.getObjectByName(`R31_ROOFWATER_${id}`);
     assert.match(m.userData.roofwaterCertainty, /^Varmaa \(omistajan maastohavainto 23\.11\.2026\)/);
   }
-  assert.match(group.getObjectByName('R31_ROOFWATER_RK_NE_OUTLET').userData.roofwaterCertainty, /koillisnurkan purku on vielä hieman epäselvä/);
+  assert.match(group.getObjectByName('R31_ROOFWATER_RK_NE_OUTLET').userData.roofwaterCertainty, /purun tarkka kohta on vielä hieman epäselvä/);
   for (const id of ['RK_NW', 'RK_NE', 'RK_SE']) {
     for (const part of ['', '_SKIRT', '_HOOD']) assert.ok(group.getObjectByName(`R31_ROOFWATER_${id}${part}`), `${id}${part}`);
     assert.match(group.getObjectByName(`R31_ROOFWATER_${id}`).userData.roofwaterWell, /Melika/);
