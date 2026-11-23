@@ -270,6 +270,12 @@ export function buildR31DrainageOverlay(THREE, gltf) {
     color: R31_INSPECTION_COLORS[kind], emissive: R31_INSPECTION_COLORS[kind], emissiveIntensity: 0.45,
     roughness: 0.6, metalness: 0,
   });
+  // Reuse the already reviewed flat reference glyphs from PR #2239 only
+  // when a source well/open end has no accepted physical-depth profile.
+  const markerMaterials = {};
+  const markerMaterial = (kind) => markerMaterials[kind] ??= new THREE.LineBasicMaterial({
+    color: R31_INSPECTION_COLORS[kind], depthTest: false, transparent: true, opacity: 0.95,
+  });
   const counts = { well: 0, route: 0, open: 0 };
   const profiled = { route: 0, well: 0 };
   let unprofiledRoutesOmitted = 0;
@@ -321,10 +327,31 @@ export function buildR31DrainageOverlay(THREE, gltf) {
         counts.open += 1;
         return;
       } else {
-        mesh = kind === 'well'
-          ? new THREE.Mesh(new THREE.CylinderGeometry(radius, radius, 0.3, 20), material(kind))
-          : new THREE.Mesh(new THREE.OctahedronGeometry(Math.max(0.18, radius)), material(kind));
+        // Only *unprofiled* source symbols become zero-height glyphs. The four
+        // source-locked profiled wells above stay full-depth best-knowledge
+        // cylinders; profiled discharge markers stay suppressed.
+        if (kind === 'well') {
+          const ring = Array.from({ length: 24 }, (_, i) => {
+            const angle = (2 * Math.PI * i) / 24;
+            return new THREE.Vector3(Math.cos(angle) * radius, 0, Math.sin(angle) * radius);
+          });
+          mesh = new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints(ring), markerMaterial(kind));
+        } else {
+          const arm = Math.max(0.18, radius);
+          mesh = new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints([
+            new THREE.Vector3(-arm, 0, -arm), new THREE.Vector3(arm, 0, arm),
+            new THREE.Vector3(-arm, 0, arm), new THREE.Vector3(arm, 0, -arm),
+          ]), markerMaterial(kind));
+        }
         mesh.position.copy(centre);
+        card = {
+          markerDisplayKind: kind === 'well' ? 'FLAT_REFERENCE_WELL_RING' : 'FLAT_UNRESOLVED_END_CROSS',
+          sourceDisplayNote: kind === 'well'
+            ? 'Viitteellinen kaivomerkki, ei mitoitettu kaivo. Asennuskorkeus ja syvyys ovat varmistamatta.'
+            : 'Avoimen päätepisteen viitemerkki, ei varmennettu liitos tai rakenne.',
+          physicalWellGeometryClaim: false, physicalPipeClaim: false,
+          physicalZClaim: false, installationDepthClaim: false,
+        };
       }
       mesh.updateMatrix();
     }
