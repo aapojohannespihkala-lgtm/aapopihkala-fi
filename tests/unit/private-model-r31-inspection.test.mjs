@@ -55,6 +55,10 @@ test('drainage overlay keeps source placement, counts kinds and fails closed on 
   assert.equal(open.userData.physicalWellGeometryClaim, false);
   assert.match(open.userData.sourceDisplayNote, /ei varmennettu liitos/);
   for (const marker of [well, open]) {
+    const positions = marker.geometry.getAttribute('position');
+    for (let i = 0; i < positions.count; i += 1) {
+      assert.equal(positions.getY(i), 0, 'source symbol must have zero local vertical extent');
+    }
     assert.equal(marker.userData.physicalZClaim, false);
     assert.equal(marker.userData.installationDepthClaim, false);
     assert.equal(marker.userData.currentClaim, false);
