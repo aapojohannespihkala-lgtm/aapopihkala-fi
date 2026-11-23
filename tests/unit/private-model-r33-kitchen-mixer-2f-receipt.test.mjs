@@ -82,7 +82,7 @@ test('2F-only delta rejects missing, duplicated, moved or overwritten source mix
     f=>{f.json.scenes[822].nodes.pop();},
     f=>{f.json.scenes[822].nodes.unshift(13472);},
     f=>{f.json.scenes[822].nodes[0]=13472;},
-    f=>{f.json.scenes[822].nodes.at(-1)=13470;},
+    f=>{f.json.scenes[822].nodes[f.json.scenes[822].nodes.length - 1]=13470;},
     f=>{f.json.scenes[822].name='wrong__scene822';},
     f=>{f.json.scenes[822].name='WORK_TEST_HOST_HOLD__scene821';},
     f=>{f.json.scenes[822].nodes[f.json.scenes[822].nodes.indexOf(11625)]=9998;},
