@@ -281,6 +281,7 @@ jobs:
             tests/unit/private-model-r31-drainage-profile.test.mjs \
             tests/unit/private-model-r31-roofwater.test.mjs \
             tests/unit/private-model-r32h-receipt.test.mjs \
+            tests/unit/private-model-r32h-kitchen-wastewater-clash-guard.test.mjs \
             tests/unit/private-model-d-focus-ghost.test.mjs \
             tests/unit/private-model-technical-review-hot-water.test.mjs \
             tests/unit/private-model-hidden-seam-edges.test.mjs \
