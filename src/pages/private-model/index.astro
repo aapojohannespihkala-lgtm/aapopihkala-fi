@@ -2156,6 +2156,13 @@ const title = 'Private 3D viewer';
             </label>
             <div id="layers-technical-review-note" class="layer-note">Sähkö, vesi, viemäri ja IV omilla väreillään; rakennus ja kalusteet läpikuultavan harmaina. WORK_TEST, ei toteumatieto.</div>
           </div>
+          <div id="r32h-nw-t12-preview-layer" class="layer-section" hidden>
+            <label class="layer-row">
+              <input id="r32h-nw-t12-preview-optin" type="checkbox" aria-describedby="r32h-nw-t12-preview-note" />
+              <span>R32H luoteissyöksyn 20 mm työoletus (esikatselu)</span>
+            </label>
+            <div id="r32h-nw-t12-preview-note" class="layer-note">Oletuksellinen purku Merika-ehdokkaan sihdin yläpuolelle, ei mitattu korko, varmistettu tuote eikä toteumatieto. Ilman valintaa näkyy alkuperäinen R32H-geometria.</div>
+          </div>
           <div id="c80-shell-focus-layer" hidden>
             <label class="layer-row">
               <input id="c80-shell-focus" type="checkbox" checked />
@@ -15222,6 +15229,9 @@ const title = 'Private 3D viewer';
 
       const technicalReviewRow = document.querySelector<HTMLElement>('#layers-technical-review')!;
       const technicalReviewInput = document.querySelector<HTMLInputElement>('#layers-technical-review-on')!;
+      const nwT12PreviewRow = document.querySelector<HTMLElement>('#r32h-nw-t12-preview-layer')!;
+      const nwT12PreviewInput = document.querySelector<HTMLInputElement>('#r32h-nw-t12-preview-optin')!;
+      nwT12PreviewInput.addEventListener('change', () => refreshLayers());
       let technicalReviewOn = false;
       let concealedTechnical: ReturnType<typeof createConcealedTechnicalPresentation> | null = null;
       let technicalReview: ReturnType<typeof createTechnicalReviewPresentation> | null = null;
@@ -15365,19 +15375,24 @@ const title = 'Private 3D viewer';
             ? r31ViewerLayerBindingScope(layersGltf?.parser?.json, layersLoadedSha, sceneIndex) : null;
           const verified = !!layersExpectedSha && layersExpectedSha === layersLoadedSha &&
             sceneIndex >= 0 && (!isR31FamilyViewerSha(layersLoadedSha) || !!r31SceneScope);
-          // Only the authenticated original R32H BOTH scene may show the NW 3D
-          // WORK_TEST improvement. The model retains its source GLB; the receiver
-          // owns a reversible copy of exactly one verified mesh geometry.
+          // The unmeasured NW T12 20 mm WORK_TEST gap must never appear by
+          // default. Offer a reversible opt-in only in exact R32H BOTH scenes.
           const nwT12SourceAllowed = verified && !!root &&
             layersLoadedSha === C80_R32H_SOURCE.glbSha256 &&
-            r31SceneScope?.floor === 'BOTH';
+            r31SceneScope?.floor === 'BOTH' && (sceneIndex === 814 || sceneIndex === 815);
+          nwT12PreviewRow.hidden = !nwT12SourceAllowed;
+          nwT12PreviewInput.disabled = !nwT12SourceAllowed;
+          // Switching to another model/floor revokes the earlier user choice.
+          if (!nwT12SourceAllowed) nwT12PreviewInput.checked = false;
+          const nwT12PreviewRequested = nwT12SourceAllowed && nwT12PreviewInput.checked;
           if (r32hNwT12WorkTestPreview &&
-              (!nwT12SourceAllowed || r32hNwT12WorkTestPreview.root !== root)) {
+              (!nwT12PreviewRequested || r32hNwT12WorkTestPreview.root !== root)) {
             r32hNwT12WorkTestPreview.dispose();
             r32hNwT12WorkTestPreview = null;
             delete canvas.dataset.r32hNwT12Cow;
           }
-          if (nwT12SourceAllowed && root && !r32hNwT12WorkTestPreview) {
+          if (!nwT12PreviewRequested) delete canvas.dataset.r32hNwT12Cow;
+          if (nwT12PreviewRequested && root && !r32hNwT12WorkTestPreview) {
             const receiver = createR32HT12NorthwestWorkTestReceiver({
               gltf: layersGltf, sourceSha256: layersLoadedSha, sceneIndex,
             });
