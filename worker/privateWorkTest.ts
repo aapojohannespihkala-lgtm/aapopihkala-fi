@@ -4697,6 +4697,16 @@ const C80_R31_9E0B_WORK_TEST_CANDIDATE = {
   expectedSha256: '9e0bf34fd838ddc92be12007412176a8ea449f66644f8876395ac6f659804ec3',
 } as const satisfies PrivateWorkTestCandidate;
 
+// R32H c26d99c1: R32 envelope + P6 V8 + K3 hallface; whole D (814/815) and 2F (816/817), normal and service.
+const C80_R32H_C26D_WORK_TEST_CANDIDATE = {
+  id: 'c80-r32h-c26d99c1-d-2f-sc814-sc817-work-test',
+  label: 'C80 R32 - koko D (päädyt, kourut, autokatos) ja yläkerta, normaali ja huolto - WORK_TEST/HOST_HOLD',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/c80-r32h-c26d99c1-d-2f-sc814-sc817-work-test.glb`,
+  objectKey: 'work-test/c80-r32h-c26d99c1-d-2f-sc814-sc817-work-test.glb',
+  expectedSize: 64_668_060,
+  expectedSha256: 'c26d99c11ffef90859ff17cad5edecf7ab22d811baddfa0506794ecdbef6294c',
+} as const satisfies PrivateWorkTestCandidate;
+
 const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
   C80_M6263_MJ72_KIV005_PK1_SUCCESSOR_WORK_TEST_CANDIDATE,
   C80_TATE_MJ6263_WORK_TEST_CANDIDATE,
@@ -4745,6 +4755,7 @@ const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
   D_C80_HI12_WORK_TEST_CANDIDATE,
   D_C80_SOURCE_ONLY_PREVIEW_CANDIDATE,
   D_C70_SOURCE_ONLY_PREVIEW_CANDIDATE,
+  C80_R32H_C26D_WORK_TEST_CANDIDATE,
   C80_R31_9E0B_WORK_TEST_CANDIDATE,
   C80_R31_R300_WORK_TEST_CANDIDATE,
   ...PRIVATE_WORK_TEST_CANDIDATES,

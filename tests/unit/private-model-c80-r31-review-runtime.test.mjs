@@ -14,6 +14,7 @@ import {
  C80_R31_9E0B_WORK_TEST_ID,
  C80_R31_9E0B_SOURCE,
  C80_R31_9E0B_VIEWS,
+ C80_R32H_VIEWS,
  isC80R31Scene769770Source,
  r31WorkTestReview,
  r31ViewerLayerSceneReceipt,
@@ -23,12 +24,13 @@ import {
 const NORMAL_R300='R300_VISIBLE_COPPER_NORMAL_SCREEN_ON';
 const SERVICE_R300='R300_VISIBLE_COPPER_SERVICE_SCREEN_OFF';
 
-test('R31 opt-in runtime binds seven roles to six immutable sources',()=>{
+test('R31 opt-in runtime binds the R31 roles plus the R32H family views',()=>{
  assert.deepEqual(Object.keys(ROLES),[
   'K5_PINK_OFF','RAIN5','RAIN5_K5_OFF',
   'RAIN5_K5_OFF_H18116_VISUAL','L16_CURVE_KIV_CASE_COMBINED',
   NORMAL_R300,SERVICE_R300,
   ...Object.values(C80_R31_9E0B_VIEWS).map(v=>v.role),
+  ...Object.values(C80_R32H_VIEWS).map(v=>v.role),
  ]);
  assert.equal(ROLES.K5_PINK_OFF.spec.sceneIndex,752);
  assert.equal(ROLES.RAIN5.spec.sceneIndex,752);
@@ -39,7 +41,7 @@ test('R31 opt-in runtime binds seven roles to six immutable sources',()=>{
  assert.notEqual(ROLES.L16_CURVE_KIV_CASE_COMBINED.spec.curveDonorGlbSha256,
   ROLES.L16_CURVE_KIV_CASE_COMBINED.spec.caseDonorGlbSha256);
  const hashes=Object.values(ROLES).map(r=>r.spec.glbSha256);
- assert.equal(new Set(hashes).size,7);
+ assert.equal(new Set(hashes).size,8);
  assert.equal(ROLES[NORMAL_R300].spec.glbSha256,ROLES[SERVICE_R300].spec.glbSha256);
  assert.equal(ROLES[NORMAL_R300].spec.sceneIndex,759);
  assert.equal(ROLES[SERVICE_R300].spec.sceneIndex,760);

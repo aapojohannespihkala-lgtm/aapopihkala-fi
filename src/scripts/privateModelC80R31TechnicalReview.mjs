@@ -11,7 +11,7 @@
  * WORK_TEST/HOST_HOLD only: no CURRENT, as-built or installation claim.
  */
 import { C80_620R22_REVIEW_MEP_NODES } from './privateModelC80620R22FloorRuntime.mjs';
-import { C80_R31_9E0B_SOURCE, r31ViewerLayerSceneReceipt } from './privateModelC80R31ReviewRuntime.mjs';
+import { isR31FamilyViewerSha, r31ViewerLayerSceneReceipt } from './privateModelC80R31ReviewRuntime.mjs';
 
 /** R31 COW successors of R22 review roots and R31-only technical roots. */
 export const C80_R31_TECHNICAL_REVIEW_ADDITIONS = Object.freeze([
@@ -83,7 +83,7 @@ export function c80R31TechnicalReviewNodeSet(json) {
 export function resolveC80R31TechnicalReviewRoots(gltf, scene, sceneIndex, loadedSha, expectedSha) {
   const json = gltf?.parser?.json;
   const associations = gltf?.parser?.associations;
-  if (loadedSha !== C80_R31_9E0B_SOURCE.glbSha256 || expectedSha !== loadedSha) return null;
+  if (!isR31FamilyViewerSha(loadedSha) || expectedSha !== loadedSha) return null;
   if (!r31ViewerLayerSceneReceipt(json, loadedSha, sceneIndex)) return null;
   if (gltf?.scenes?.[sceneIndex] !== scene || typeof associations?.get !== 'function' ||
       typeof scene?.traverse !== 'function') return null;
