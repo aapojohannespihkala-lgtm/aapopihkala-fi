@@ -5,6 +5,6 @@
  */
 export function r31SiteLayerKeyForNetwork(key) {
   if (key === 'fiberEntry') return 'fiber';
-  if (key === 'fiber' || key === 'infra' || key === 'drainage' || key === 'storm' || key === 'lowvolt') return key;
+  if (key === 'fiber' || key === 'infra' || key === 'drainage' || key === 'storm' || key === 'lowvolt' || key === 'roofwater') return key;
   return null;
 }
