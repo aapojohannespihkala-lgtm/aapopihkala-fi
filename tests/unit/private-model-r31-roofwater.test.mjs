@@ -81,10 +81,27 @@ test('roof-water overlay: plain solids, card carries certainty and assumption', 
   }
   assert.match(group.getObjectByName('R31_ROOFWATER_RK_NE_OUTLET').userData.roofwaterCertainty, /purun tarkka kohta on vielä hieman epäselvä/);
   for (const id of ['RK_NW', 'RK_NE', 'RK_SE']) {
-    for (const part of ['', '_SKIRT', '_HOOD']) assert.ok(group.getObjectByName(`R31_ROOFWATER_${id}${part}`), `${id}${part}`);
-    assert.match(group.getObjectByName(`R31_ROOFWATER_${id}`).userData.roofwaterWell, /Melika/);
+    for (const part of ['', '_SKIRT', '_HOOD', '_STRAINER']) assert.ok(group.getObjectByName(`R31_ROOFWATER_${id}${part}`), `${id}${part}`);
+    const well = group.getObjectByName(`R31_ROOFWATER_${id}`);
+    const openBowl = group.getObjectByName(`R31_ROOFWATER_${id}_HOOD`);
+    const strainer = group.getObjectByName(`R31_ROOFWATER_${id}_STRAINER`);
+    assert.match(well.userData.roofwaterWell, /Melika/);
+    assert.equal(openBowl.geometry.parameters.openEnded, true, `${id}: no falsely sealed hood`);
+    assert.equal(strainer.geometry.type, 'ShapeGeometry', `${id}: flat removable perforated grate`);
+    assert.ok(strainer.geometry.parameters.shapes.holes.length >= 20, `${id}: actual perforations, not painted dots`);
+    assert.ok(Math.abs(P.wells[id].strainerDiameterM - 0.31) < 1e-9, `${id}: manufacturer D310 reference`);
   }
-  assert.match(group.getObjectByName('R31_ROOFWATER_SW_TEMP_GUTTER').userData.roofwaterCertainty, /terassin portaassa/);
+  const nw = group.getObjectByName('R31_ROOFWATER_RK_NW').userData;
+  const east = group.getObjectByName('R31_ROOFWATER_RK_NE').userData;
+  assert.match(R31_ROOFWATER_SOURCE.wellProduct, /AvantGarde 1780RS/);
+  assert.match(nw.roofwaterPhotoEvidence, /1Hbw4Ir3c7WHg2PDU58KcN6v1W_uunuS8/);
+  assert.match(nw.roofwaterCertainty, /valokuva 25\.4\.2026/);
+  assert.match(nw.roofwaterHostWarning, /^SOURCE_HOST_HOLD:/);
+  assert.match(east.roofwaterPhotoEvidence, /Ei yksilöllistä/);
+  assert.match(nw.roofwaterUncertainty, /^Oletus:/);
+  // Current T12 NW outlet is 324 mm BELOW modelled terrain; protect photo's true free discharge.
+  assert.ok(P.wells.RK_NW.groundY - DOWNPIPE_ENDS.T12_2026_CD_LANSI_POHJOINEN[1] > 0.32);
+    assert.match(group.getObjectByName('R31_ROOFWATER_SW_TEMP_GUTTER').userData.roofwaterCertainty, /terassin portaassa/);
   assert.equal(r31SiteLayerKeyForNetwork('roofwater'), 'roofwater');
 });
 
