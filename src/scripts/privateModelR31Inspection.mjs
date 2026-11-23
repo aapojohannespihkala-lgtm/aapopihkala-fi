@@ -1,3 +1,5 @@
+import { R31_DRAINAGE_PROFILE } from './privateModelR31DrainageProfile.mjs';
+
 /**
  * R31 inspection views (owner 22.11.2026 17.08): "Salaojat" and "Infra" on the
  * same authenticated R31 model, built only from already published sources.
@@ -190,6 +192,62 @@ function worldPoints(THREE, object) {
   return out;
 }
 
+const DRAIN_XZ_TOL = 0.02;
+const nearXZ = (a, b) => Math.hypot(a[0] - b[0], a[2] - b[2]) <= DRAIN_XZ_TOL;
+
+/** Profiled route for a source connection; null unless both source endpoints match (XZ). */
+export function r31DrainageRouteProfile(connection, sourcePoints) {
+  const routes = R31_DRAINAGE_PROFILE.routes;
+  const profile = typeof connection === 'string' && Object.hasOwn(routes, connection) ? routes[connection] : null;
+  if (!profile || !sourcePoints?.length) return null;
+  const a = sourcePoints[0], b = sourcePoints[sourcePoints.length - 1];
+  const s = [[a.x, a.y, a.z], [b.x, b.y, b.z]];
+  const e = [profile.points[0], profile.points[profile.points.length - 1]];
+  return (nearXZ(s[0], e[0]) && nearXZ(s[1], e[1])) || (nearXZ(s[0], e[1]) && nearXZ(s[1], e[0])) ? profile : null;
+}
+
+/** Profiled well for a source well id; null unless the source centre matches (XZ). */
+export function r31DrainageWellProfile(wellId, centre) {
+  const wells = R31_DRAINAGE_PROFILE.wells;
+  const well = typeof wellId === 'string' && Object.hasOwn(wells, wellId) ? wells[wellId] : null;
+  return well && centre && nearXZ([centre.x, 0, centre.z], [well.x, 0, well.z]) ? well : null;
+}
+
+/** Open-end marker whose pipe is profiled (e.g. G2_DRAIN_LINK_PVK_DISCHARGE_001). */
+export function r31DrainageOpenEndProfiled(linkId) {
+  const m = /^G2_DRAIN_LINK_(.+)_\d{3}$/.exec(String(linkId ?? ''));
+  return !!m && Object.hasOwn(R31_DRAINAGE_PROFILE.routes, m[1]);
+}
+
+const drainFmt = (v) => (Math.round(v * 100) / 100).toFixed(2).replace('.', ',');
+const DRAIN_NAMES = Object.freeze({ SOK1: 'SOK1', SOK2: 'SOK2', SOK3: 'SOK3', PVK: 'PVK', NW_CORNER: 'luoteisnurkka',
+  DISCHARGE_END: 'purkupää', PARKING_END: 'pysäköinnin suunta' });
+
+/** Info card: what the sources say and what the depth assumption is. */
+export function r31DrainageRouteCard(connection, profile) {
+  return {
+    sourceConnection: connection,
+    drainFlow: `${DRAIN_NAMES[profile.from] ?? profile.from} → ${DRAIN_NAMES[profile.to] ?? profile.to}`,
+    drainCoverM: `${drainFmt(profile.coverM[0])}–${drainFmt(profile.coverM[1])} m maanpinnasta (putken yläpinta)`,
+    drainSlopePct: `${drainFmt(profile.slope * 100)} %${profile.slope > profile.sourceSlope ? ' (vähimmäiskaato)' : ' (lähteen kaato)'}`,
+    drainCertainty: 'Varmaa: kaivot, yhteydet, pituudet, kuntoluokat, materiaali ja Ø (Drainman 2015/2021/2026).',
+    drainUncertainty: 'Oletus: syvyys vähintään 1,0 m maanpinnasta ja kaato virtaussuuntaan; syvyyksiä ei ole mitattu.',
+    drainDepthBasis: R31_DRAINAGE_PROFILE.basis,
+    physicalZClaim: false,
+  };
+}
+
+export function r31DrainageWellCard(wellId, well) {
+  return {
+    drainWell: wellId,
+    drainWellDepthM: `${drainFmt(well.groundY - well.bottomY)} m (kansi maanpinnassa, pohja ${drainFmt(well.sumpM)} m alimman putken alla)`,
+    drainCertainty: 'Varmaa: kaivon tunnus, paikka ja tyyppi, Ø 300–315 mm (Drainman 2026).',
+    drainUncertainty: 'Oletus: kaivon syvyys putkien oletetusta korosta; kansikorkoa ei ole mitattu.',
+    drainDepthBasis: R31_DRAINAGE_PROFILE.basis,
+    physicalZClaim: false,
+  };
+}
+
 /**
  * Drain objects of the verified source scene as visible solids. The source
  * draws them as 1-px lines (routes: line strips, wells and open ends: rings),
@@ -210,42 +268,73 @@ export function buildR31DrainageOverlay(THREE, gltf) {
     roughness: 0.6, metalness: 0,
   });
   const counts = { well: 0, route: 0, open: 0 };
+  const profiled = { route: 0, well: 0 };
   scene.traverse((object) => {
     if (!object.isMesh && !object.isLine && !object.isLineSegments) return;
-    let kind = null;
-    for (let node = object; node && node !== scene && !kind; node = node.parent) kind = r31DrainageKind(node.userData);
+    let kind = null, owner = null;
+    for (let node = object; node && node !== scene && !kind; node = node.parent) {
+      kind = r31DrainageKind(node.userData);
+      if (kind) owner = node;
+    }
     if (!kind) return;
     const points = worldPoints(THREE, object);
     if (points.length < 2) return;
+    const data = owner.userData ?? {};
     let mesh;
+    let card = {};
     if (kind === 'route') {
-      // Line strips in source order; LINES pairs are joined the same way.
-      const path = new THREE.CurvePath();
-      for (let i = 1; i < points.length; i += 1) {
-        if (points[i].distanceTo(points[i - 1]) > 1e-6) path.add(new THREE.LineCurve3(points[i - 1], points[i]));
+      const profile = r31DrainageRouteProfile(data.sourceConnection, points);
+      if (profile) {
+        // Owner 23.11.2026: best-knowledge depth, drawn as a real pipe (Ø from the source).
+        const path = new THREE.CurvePath();
+        const p = profile.points.map(([x, y, z]) => new THREE.Vector3(x, y, z));
+        for (let i = 1; i < p.length; i += 1) path.add(new THREE.LineCurve3(p[i - 1], p[i]));
+        mesh = new THREE.Mesh(new THREE.TubeGeometry(path, Math.max(8, p.length * 8), R31_DRAINAGE_PROFILE.pipeRadiusM, 10, false), material(kind));
+        card = r31DrainageRouteCard(data.sourceConnection, profile);
+        profiled.route += 1;
+      } else {
+        // Line strips in source order; LINES pairs are joined the same way.
+        const path = new THREE.CurvePath();
+        for (let i = 1; i < points.length; i += 1) {
+          if (points[i].distanceTo(points[i - 1]) > 1e-6) path.add(new THREE.LineCurve3(points[i - 1], points[i]));
+        }
+        if (!path.curves.length) return;
+        mesh = new THREE.Mesh(new THREE.TubeGeometry(path, Math.max(4, path.curves.length * 6), 0.07, 8, false), material(kind));
       }
-      if (!path.curves.length) return;
-      mesh = new THREE.Mesh(new THREE.TubeGeometry(path, Math.max(4, path.curves.length * 6), 0.07, 8, false), material(kind));
     } else {
       const box = new THREE.Box3().setFromPoints(points);
       const centre = box.getCenter(new THREE.Vector3());
       const size = box.getSize(new THREE.Vector3());
       const radius = Math.max(0.12, Math.max(size.x, size.z) / 2);
-      mesh = kind === 'well'
-        ? new THREE.Mesh(new THREE.CylinderGeometry(radius, radius, 0.3, 20), material(kind))
-        : new THREE.Mesh(new THREE.OctahedronGeometry(Math.max(0.18, radius)), material(kind));
-      mesh.position.copy(centre);
+      const well = kind === 'well' ? r31DrainageWellProfile(data.sourceNodeId, centre) : null;
+      if (well) {
+        const height = well.groundY - well.bottomY;
+        mesh = new THREE.Mesh(new THREE.CylinderGeometry(well.diameterM / 2, well.diameterM / 2, height, 24), material(kind));
+        mesh.position.set(well.x, well.bottomY + height / 2, well.z);
+        card = r31DrainageWellCard(data.sourceNodeId, well);
+        profiled.well += 1;
+      } else if (kind === 'open' && r31DrainageOpenEndProfiled(data.sourceLinkG2IdCandidate)) {
+        // The profiled pipe simply ends there; the open end is told in the card, not drawn.
+        counts.open += 1;
+        return;
+      } else {
+        mesh = kind === 'well'
+          ? new THREE.Mesh(new THREE.CylinderGeometry(radius, radius, 0.3, 20), material(kind))
+          : new THREE.Mesh(new THREE.OctahedronGeometry(Math.max(0.18, radius)), material(kind));
+        mesh.position.copy(centre);
+      }
       mesh.updateMatrix();
     }
     mesh.name = object.name;
     mesh.renderOrder = 6;
-    mesh.userData = { ...object.userData, r31InspectionKind: kind, presentationOnly: true,
+    mesh.userData = { ...object.userData, ...card, r31InspectionKind: kind, presentationOnly: true,
       ModelStage: 'WORK_TEST_VIEW', currentClaim: false, asBuiltClaim: false };
     group.add(mesh);
     counts[kind] += 1;
   });
   if (!group.children.length) return null;
-  group.userData = { source: R31_DRAINAGE_SOURCE, counts, presentationOnly: true };
+  group.userData = { source: R31_DRAINAGE_SOURCE, counts, profiled, presentationOnly: true,
+    depthBasis: R31_DRAINAGE_PROFILE.basis };
   return group;
 }
 
