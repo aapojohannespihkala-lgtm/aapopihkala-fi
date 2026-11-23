@@ -3836,7 +3836,8 @@ const title = 'Private 3D viewer';
         if (root) modelRoot.add(root);
         // The SHA is set by onLayersModelLoaded before the new scene is mounted.
         // Never keep the previous source-capability label until a preset click.
-        r31SourceCapabilityMountHook();
+        // Some legacy fixture tests invoke setModelScene without the surrounding viewer scope.
+        if (typeof r31SourceCapabilityMountHook === 'function') r31SourceCapabilityMountHook();
         // Owner 15.11.2026: 2F plank floor z-fought the 1F wall tops at the
         // same height; bias only those floor materials toward the camera.
         // typeof: unit tests evaluate this function body without module imports.
