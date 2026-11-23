@@ -1081,7 +1081,7 @@ const ROOFWATER_TEXT = Object.freeze({
   }),
 });
 const ROOFWATER_ASSUMED_PIPE = 'Oletus: putken reitti, Ø110, yläpinta vähintään 0,15 m maanpinnasta, kaato virtaussuuntaan ja purkupaikan tarkka kohta; ei mitattu.';
-const ROOFWATER_ASSUMED_WELL = 'Oletus: mallin mitat (Ø315-runko noin 0,8 m maan alle, huppu Ø300 0,20 m maan yläpuolella, helma Ø460, 110 mm lähtö) yleisestä Merika 110/315 -rännikaivosta; omistajan "Melika" tulkittu Merikaksi, ei mitattu.';
+const ROOFWATER_ASSUMED_WELL = 'Oletus: Merika Avantgarde 1780RS (Ø340 alaosa, Ø310 roiskekansi, H249 mm, 110/315-liitäntä) vastaa NW-kuvia, mutta SKU-merkintää ei ole luettu. NE/SE samalla mallilla vain oletus. Ø315 maanalaisen rungon noin 0,8 m syvyys, tarkka korkeusasema ja putkiliitokset eivät ole mitattuja.';
 const rwFmt = (v) => (Math.round(v * 100) / 100).toFixed(2).replace('.', ',');
 
 function roofwaterPipeCard(id, pipe) {
@@ -1106,7 +1106,7 @@ export function buildR31RoofWaterOverlay(THREE, profile = R31_ROOFWATER_PROFILE)
   const mat = (hex, side) => new THREE.MeshStandardMaterial({ color: hex, emissive: hex, emissiveIntensity: 0.35,
     roughness: 0.6, metalness: 0, side: side ?? THREE.FrontSide });
   const pipeMat = mat(R31_INSPECTION_COLORS.ROOFWATER);
-  const wellMat = mat(R31_INSPECTION_COLORS.ROOFWATER_WELL);
+  const wellMat = mat(R31_INSPECTION_COLORS.ROOFWATER_WELL, THREE.DoubleSide);
   const gutterMat = mat(R31_INSPECTION_COLORS.ROOFWATER, THREE.DoubleSide);
   const counts = { ROOFWATER_WELL: 0, ROOFWATER_PIPE: 0, ROOFWATER_GUTTER: 0, ROOFWATER_CONNECTOR: 0 };
   const common = { presentationOnly: true, ModelStage: 'WORK_TEST_VIEW', currentClaim: false, asBuiltClaim: false,
@@ -1118,21 +1118,77 @@ export function buildR31RoofWaterOverlay(THREE, profile = R31_ROOFWATER_PROFILE)
     return new THREE.Mesh(new THREE.TubeGeometry(path, Math.max(8, p.length * 8), radius, 10, false), material);
   };
   for (const [id, w] of Object.entries(profile.wells)) {
-    const card = { ...common, roofwaterWell: `Rännikaivo ${id.replace('RK_', '')} (${R31_ROOFWATER_SOURCE.wellProduct})`,
-      roofwaterDownpipe: w.downpipe, roofwaterCertainty: 'Varmaa (omistajan maastohavainto 23.11.2026): oma rännikaivo tämän syöksyn alla, mallia Melika.',
-      roofwaterWellDepthM: `${rwFmt(w.groundY - w.bottomY)} m maan alle`, roofwaterUncertainty: ROOFWATER_ASSUMED_WELL,
+    const isNW = id === 'RK_NW';
+    // R32H c26d99c1 baked T12 NW outlet world-Y = -0.290.
+    // Do not pretend its current below-grade endpoint connects to the 2026 photo's
+    // free discharge ABOVE the horizontal splash grate. Keep height uncertainty in the card.
+    const nwT12SourceOutletY = -0.290;
+    const nwHostGapM = isNW ? w.groundY - nwT12SourceOutletY : null;
+    const nwHostHold = isNW && nwHostGapM > 0
+      ? ' SOURCE_HOST_HOLD: R32H T12 -luoteissyöksyn lähdepää jää mallin maanpinnan alle '
+        + rwFmt(nwHostGapM) + ' m ja roiskesihdin alle '
+        + rwFmt(w.grateY - nwT12SourceOutletY)
+        + ' m; 2026 kuvassa vapaa ulostulo on sihdin yläpuolella. T12 Y/host tulee tarkistaa, eikä liittymä ole fyysisesti varmennettu.'
+      : '';
+    const card = { ...common,
+      roofwaterHostStatus: isNW ? 'SOURCE_HOST_HOLD' : 'NO_PHOTO_VERIFIED_HOST',
+      roofwaterWell: 'Rännikaivo ' + id.replace('RK_', '') + ' (' + R31_ROOFWATER_SOURCE.wellProduct + ')',
+      roofwaterDownpipe: w.downpipe,
+      roofwaterCertainty: isNW
+        ? 'Varmaa: luoteissivun syöksy ja sama rännikaivo omistajan alkuperäiskuvissa 2024, 2025 ja 2026; näkyvissä korkea takareuna, rei’itetty irrotettava roiskekansi ja kaksiosainen pyöreä runko.'
+        : 'Varmaa (omistajan maastohavainto 23.11.2026): tämän syöksyn alla oma Melika-rännikaivo; täsmällistä tuotevarianttia ei ole vahvistettu.',
+      roofwaterWellDepthM: rwFmt(w.groundY - w.bottomY) + ' m maan alle',
+      roofwaterProductCandidate: R31_ROOFWATER_SOURCE.manufacturerCandidate,
+      roofwaterManufacturerUrl: R31_ROOFWATER_SOURCE.manufacturerUrl,
+      roofwaterSourcePhotoIds: isNW ? R31_ROOFWATER_SOURCE.northwestOriginalPhotoIds.join(',') : '',
+      roofwaterUncertainty: ROOFWATER_ASSUMED_WELL + nwHostHold,
       roofwaterBasis: R31_ROOFWATER_SOURCE.basis, physicalZClaim: false };
-    const part = (name, rTop, rBottom, y0, y1, segments = 24) => {
-      const mesh = new THREE.Mesh(new THREE.CylinderGeometry(rTop, rBottom, y1 - y0, segments), wellMat);
-      mesh.position.set(w.x, (y0 + y1) / 2, w.z);
-      mesh.updateMatrix();
-      mesh.name = `R31_ROOFWATER_${id}${name}`;
+    const place = (suffix, geometry, centerY) => {
+      const mesh = new THREE.Mesh(geometry, wellMat);
+      mesh.position.set(w.x, centerY, w.z);
+      mesh.name = 'R31_ROOFWATER_' + id + suffix;
       mesh.userData = card;
       group.add(mesh);
     };
-    part('', w.diameterM / 2, w.diameterM / 2, w.bottomY, w.groundY);
-    part('_SKIRT', w.skirtDiameterM / 2, w.skirtDiameterM / 2, w.groundY, w.groundY + 0.02, 32);
-    part('_HOOD', w.hoodDiameterM / 2 * 0.8, w.hoodDiameterM / 2, w.groundY + 0.02, w.hoodTopY);
+    // Buried collector dimensions and depth remain WORK_TEST assumptions.
+    // OpenEnded is crucial: a default closed top beneath the perforated plate falsely
+    // seals the collector and blocks the actual drainage path.
+    place('', new THREE.CylinderGeometry(w.diameterM / 2, w.diameterM / 2,
+      w.groundY - w.bottomY, 32, 1, true), (w.bottomY + w.groundY) / 2);
+    // A collector sump still needs a bottom. The bottom is an ASSUMED depth,
+    // unlike the forbidden solid top cap that covered all of the grate's holes.
+    place('_BOTTOM', new THREE.CircleGeometry(w.diameterM / 2, 32), w.bottomY);
+    const collectorBottom = group.getObjectByName('R31_ROOFWATER_' + id + '_BOTTOM');
+    collectorBottom.rotation.x = -Math.PI / 2;
+    // Merika Avantgarde 1780RS candidate: 340 mm outer base, 310 mm cover, 249 mm height.
+    // Hollow walls and a perforated plate replace the capped 460 mm cone.
+    place('_SKIRT', new THREE.CylinderGeometry(w.skirtDiameterM / 2, w.skirtDiameterM / 2,
+      0.07, 32, 1, true), w.groundY + 0.035);
+    place('_BASIN', new THREE.CylinderGeometry(w.hoodDiameterM / 2, w.hoodDiameterM / 2,
+      0.13, 32, 1, true), w.groundY + 0.065);
+    // High rear splash wall. Its angular orientation is inferred, not surveyed.
+    const rearArc = isNW ? 0 : Math.PI;
+    place('_HOOD', new THREE.CylinderGeometry(w.hoodDiameterM / 2, w.hoodDiameterM / 2,
+      w.hoodTopY - w.groundY - 0.13, 32, 1, true, rearArc, Math.PI),
+      (w.hoodTopY + w.groundY + 0.13) / 2);
+    const radius = w.grateDiameterM / 2 - 0.005;
+    const shape = new THREE.Shape();
+    shape.absarc(0, 0, radius, 0, Math.PI * 2, false);
+    for (let ix = -4; ix <= 4; ix += 1) {
+      for (let iz = -4; iz <= 4; iz += 1) {
+        const x = ix * 0.028, z = iz * 0.028;
+        if (Math.hypot(x, z) >= radius - 0.014) continue;
+        const hole = new THREE.Path();
+        hole.absarc(x, z, 0.007, 0, Math.PI * 2, true);
+        shape.holes.push(hole);
+      }
+    }
+    const grate = new THREE.Mesh(new THREE.ShapeGeometry(shape, 8), wellMat);
+    grate.rotation.x = -Math.PI / 2;
+    grate.position.set(w.x, w.grateY, w.z);
+    grate.name = 'R31_ROOFWATER_' + id + '_GRATE';
+    grate.userData = card;
+    group.add(grate);
     counts.ROOFWATER_WELL += 1;
   }
   for (const [id, c] of Object.entries(profile.connectors ?? {})) {

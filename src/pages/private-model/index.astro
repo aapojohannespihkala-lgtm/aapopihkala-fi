@@ -2752,6 +2752,8 @@ const title = 'Private 3D viewer';
       import { V90_IV_P04_SOURCE_SHA256 } from '../../scripts/privateModelC80R2V90IVP04LayerSourceProfile.mjs';
       // @ts-ignore - R31 review roots and inspection overlays have unit coverage.
       import { resolveC80R31TechnicalReviewRoots, c80R31RoofWaterSystemOf } from '../../scripts/privateModelC80R31TechnicalReview.mjs';
+      // @ts-ignore - source-exact reversible runtime COW has dedicated unit regressions.
+      import { createR32HT12NorthwestWorkTestReceiver } from '../../scripts/privateModelR32HT12NorthwestReceiver.mjs';
       // @ts-ignore - pure overlay builders, THREE injected.
       import { R31_DRAINAGE_SOURCE, R31_EXTERIOR_DONORS, buildR31DrainageOverlay, buildR31RoofWaterOverlay, buildR31InfraOverlay, buildR31FiberOverlay, buildR31StormOverlay, buildR31LowVoltageOverlay, buildR31ExteriorDonorOverlay, buildR31WestGableInfill, buildR31GableBoarding, buildR31WestBrickCompletion, buildR31FiberEntryBox, buildR31FiberEntryLink, isR31WestGableBoardingSource, R31_GABLE_BOARDING_COLOR, isR31ReplacedWestDownpipe, loadR31EastGableOverlay, relocateR31Downpipes, syncR31ExteriorDonorMaterials, setR31SiteNetworkLayerMode } from '../../scripts/privateModelR31Inspection.mjs';
       import { R31_LOCUS_FIBER_LINES } from '../../scripts/privateModelR31LocusFiber.mjs';
@@ -15083,6 +15085,7 @@ const title = 'Private 3D viewer';
       // scene change. Legacy camera/view actions keep their existing behavior.
       const v26LayersSourceSha = 'cff2dbead53b7836747e10ef359637114ff723690ec380e313cec817e4f71d31';
       let layersGltf: any = null;
+      let r32hNwT12WorkTestPreview: { root: THREE.Object3D; dispose: () => void } | null = null;
       let v69C035LobbyPresentation: ReturnType<typeof createV69C035WhiteLobbyPresentation> | null = null;
       let v69C020UpperGlassPresentation: ReturnType<typeof createV69C020UpperGlassPresentation> | null = null;
       let layersExpectedSha: string | null = null;
@@ -15362,6 +15365,27 @@ const title = 'Private 3D viewer';
             ? r31ViewerLayerBindingScope(layersGltf?.parser?.json, layersLoadedSha, sceneIndex) : null;
           const verified = !!layersExpectedSha && layersExpectedSha === layersLoadedSha &&
             sceneIndex >= 0 && (!isR31FamilyViewerSha(layersLoadedSha) || !!r31SceneScope);
+          // Only the authenticated original R32H BOTH scene may show the NW 3D
+          // WORK_TEST improvement. The model retains its source GLB; the receiver
+          // owns a reversible copy of exactly one verified mesh geometry.
+          const nwT12SourceAllowed = verified && !!root &&
+            layersLoadedSha === C80_R32H_SOURCE.glbSha256 &&
+            r31SceneScope?.floor === 'BOTH';
+          if (r32hNwT12WorkTestPreview &&
+              (!nwT12SourceAllowed || r32hNwT12WorkTestPreview.root !== root)) {
+            r32hNwT12WorkTestPreview.dispose();
+            r32hNwT12WorkTestPreview = null;
+            delete canvas.dataset.r32hNwT12Cow;
+          }
+          if (nwT12SourceAllowed && root && !r32hNwT12WorkTestPreview) {
+            const receiver = createR32HT12NorthwestWorkTestReceiver({
+              gltf: layersGltf, sourceSha256: layersLoadedSha, sceneIndex,
+            });
+            const applied = receiver.available && receiver.setApplied(true);
+            canvas.dataset.r32hNwT12Cow = applied ? 'WORK_TEST_COW_APPLIED' : receiver.status;
+            if (applied) r32hNwT12WorkTestPreview = { root, dispose: receiver.dispose };
+            else receiver.dispose();
+          }
           const filterActive = canvas.dataset.objectVisibilityFilter === 'active';
           if (filterActive) {
             technicalReviewInput.disabled = true;
@@ -15546,6 +15570,11 @@ const title = 'Private 3D viewer';
         });
       };
       onLayersModelLoaded = (gltf, session) => {
+        if (r32hNwT12WorkTestPreview) {
+          r32hNwT12WorkTestPreview.dispose();
+          r32hNwT12WorkTestPreview = null;
+        }
+        delete canvas.dataset.r32hNwT12Cow;
         disposeLayersPresentation();
         v69C035LobbyPresentation?.dispose();
         v69C035LobbyPresentation = null;

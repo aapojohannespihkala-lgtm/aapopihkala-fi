@@ -72,6 +72,9 @@ test('source-exact R32H NW COW preview replaces only geometry and restores origi
   assert.notEqual(f.mesh.geometry, f.geometry, 'replace geometry reference, never source vertices');
   assert.equal(f.scene.children.length, baselineChildren, 'no second visible downpipe');
   assert.equal(f.mesh.userData.r32hNorthwestHostStatus, 'SOURCE_HOST_HOLD');
+  assert.match(f.mesh.userData.roofwaterCertainty, /^Varmaa:/);
+  assert.match(f.mesh.userData.roofwaterUncertainty, /^Oletus:/);
+  assert.equal(f.mesh.userData.roofwaterRoute.includes('Luoteissyöksy'), true);
   assert.equal(f.mesh.userData.currentClaim, false);
   assert.equal(f.mesh.userData.asBuiltClaim, false);
   assert.equal(f.mesh.userData.physicalZClaim, false);
@@ -137,4 +140,14 @@ test('source COW rejects geometry mismatch, and never replaces another renderer 
   assert.equal(receiver.setApplied(true), true);
   receiver.dispose();
   assert.equal(f.mesh.geometry, f.geometry);
+});
+
+test('viewer mounts only authenticated R32H BOTH, and tears down the geometry owner on model switch', async () => {
+  const { readFileSync } = await import('node:fs');
+  const view = readFileSync(new URL('../../src/pages/private-model/index.astro', import.meta.url), 'utf8');
+  assert.match(view, /createR32HT12NorthwestWorkTestReceiver/);
+  assert.match(view, /layersLoadedSha === C80_R32H_SOURCE\.glbSha256/);
+  assert.match(view, /r31SceneScope\?\.floor === 'BOTH'/);
+  assert.match(view, /r32hNwT12WorkTestPreview\.dispose\(\)/);
+  assert.match(view, /receiver\.setApplied\(true\)/);
 });

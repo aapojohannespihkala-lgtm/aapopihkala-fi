@@ -128,6 +128,10 @@ export function createR32HT12NorthwestWorkTestReceiver({
     r32hNorthwestSourceGlbSha256: SOURCE.glbSha256,
     r32hNorthwestPhysicalConnection: false,
     r32hNorthwestZAssumption: plan.assumption,
+    // Ordinary selected-object card fields, not a visual uncertainty marker.
+    roofwaterRoute: 'Luoteissyöksy ja sen Merika-ehdokkaan rännikaivo',
+    roofwaterCertainty: 'Varmaa: NW:n T12-mallin alkuperäinen SW-korko on ristiriidassa SCALGO:n ja 2026 kuvan kanssa.',
+    roofwaterUncertainty: 'Oletus: alareuna noin 20 mm roiskesihdin yllä. Korkeutta ja todellista tuotemallia ei ole mitattu.',
     currentClaim: false, asBuiltClaim: false, physicalZClaim: false,
   };
   const originalValues = new Map();
