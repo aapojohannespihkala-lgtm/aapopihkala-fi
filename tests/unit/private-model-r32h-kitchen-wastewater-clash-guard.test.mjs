@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import * as THREE from 'three';
 import { readFileSync } from 'node:fs';
 import { C80_R32H_SOURCE, C80_R32H_VIEWS } from '../../src/scripts/privateModelC80R31ReviewRuntime.mjs';
 import {
@@ -86,4 +87,76 @@ test('viewer selection connects guard to mounted R32H scene without mutating GLB
   assert.ok(page.includes('modelRoot.children[0] ?? null'));
   assert.ok(page.includes('layersGltf.scenes?.indexOf(kitchenWastewaterMountedScene)'));
   assert.doesNotMatch(page, /nodes\[13310\]\.mesh\s*=/);
+});
+
+/**
+ * A Three.js scene with source-exact JSON identity but no parser associations
+ * on the visible GLTFLoader clone. This is not the original 64 MB source GLB.
+ */
+function missingLoaderAssociationFixture(sceneIndex = 814, selectedId = 13314) {
+  const f = selectedFixture(sceneIndex, selectedId);
+  const rootId = f.json.scenes[sceneIndex].nodes[0];
+  const scene = new THREE.Group();
+  scene.name = f.json.scenes[sceneIndex].name;
+  const parent = new THREE.Group();
+  parent.name = f.json.nodes[rootId].name;
+  const mesh = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshBasicMaterial());
+  mesh.name = f.json.nodes[selectedId].name;
+  scene.add(parent);
+  parent.add(mesh);
+  const associations = new Map();
+  f.sourceModel.scenes[sceneIndex] = scene;
+  f.sourceModel.parser.associations = associations;
+  return { ...f, scene, parent, mesh, associations, rootId };
+}
+
+test('uniquely named GLTFLoader mesh without association receives source-only warning in all 4 scenes', () => {
+  for (const { sceneIndex } of Object.values(C80_R32H_VIEWS)) {
+    for (const id of ids) {
+      const f = missingLoaderAssociationFixture(sceneIndex, id);
+      const beforeGeometry = f.mesh.geometry;
+      const beforeData = { ...f.mesh.userData };
+      const entries = r32hKitchenWastewaterClashSelectionEntries(
+        f.sourceModel, sha, sceneIndex, f.mesh);
+      assert.equal(entries.length, 2, `scene ${sceneIndex}, node ${id}`);
+      assert.match(entries[0][1], /LÄHDERISTIRIITA/);
+      assert.match(entries[1][1], /EI todista/);
+      assert.equal(f.mesh.geometry, beforeGeometry, 'source geometry must not change');
+      assert.deepEqual(f.mesh.userData, beforeData, 'selection must not assert as-built');
+      f.mesh.geometry.dispose();
+      f.mesh.material.dispose();
+    }
+  }
+});
+
+test('unassociated loader fallback rejects ambiguity, wrong parent, conflicting binding and stale selection', () => {
+  const f = missingLoaderAssociationFixture(816);
+  const read = () => r32hKitchenWastewaterClashSelectionEntries(f.sourceModel, sha, 816, f.mesh);
+  assert.equal(read().length, 2);
+  const twin = f.mesh.clone();
+  f.parent.add(twin);
+  assert.deepEqual(read(), [], 'same-name sibling must fail closed');
+  f.parent.remove(twin);
+  f.mesh.name = 'WRONG_SOURCE_NODE';
+  assert.deepEqual(read(), [], 'source node name is mandatory');
+  f.mesh.name = f.json.nodes[13314].name;
+  f.parent.name = 'WRONG_SOURCE_PARENT';
+  assert.deepEqual(read(), [], 'source parent chain is mandatory');
+  f.parent.name = f.json.nodes[f.rootId].name;
+  f.associations.set(f.parent, { nodes: f.rootId + 1 });
+  assert.deepEqual(read(), [], 'contradictory source parent association must fail closed');
+  f.associations.delete(f.parent);
+  f.associations.set(f.mesh, { meshes: 99999 });
+  assert.deepEqual(read(), [], 'contradictory mesh association must never use fallback');
+  f.associations.delete(f.mesh);
+  const stale = new THREE.Mesh(new THREE.BoxGeometry(), new THREE.MeshBasicMaterial());
+  stale.name = f.mesh.name;
+  assert.deepEqual(r32hKitchenWastewaterClashSelectionEntries(
+    f.sourceModel, sha, 816, stale), [], 'detached stale mesh must fail closed');
+  f.json.nodes[13314].name = 'SOURCE_NAME_CHANGED';
+  assert.deepEqual(read(), [], 'source JSON identity change must fail closed');
+  f.mesh.geometry.dispose();
+  f.mesh.material.dispose();
+  stale.geometry.dispose();
+  stale.material.dispose();
 });
