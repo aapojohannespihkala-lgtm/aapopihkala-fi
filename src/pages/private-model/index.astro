@@ -5988,8 +5988,9 @@ const title = 'Private 3D viewer';
         const sourceEvidence = resolveSelectionSources(object);
         // Exact original R32H source-link warning only for the clicked LK75 subtree.
         // The source GLB, cover link, sourceLinks and its rendering remain unchanged.
-        const lk75ActiveScene = mainViewScope && 'isSourceScene' in mainViewScope
-          ? mainViewScope.selectedScene : fullModelScene;
+        // Bind the LK75 source warning to the actual mounted scene, as Layers does.
+        // A cached selectedScene or WHOLE fallback may be stale after a scene switch.
+        const lk75ActiveScene = modelRoot.children[0] ?? null;
         const lk75SourceMetadata = layersGltf && layersLoadedSha === C80_R32H_SOURCE.glbSha256
           ? r32hLK75SelectionMetadataEntries(
               sourceNodeModel(layersGltf),
