@@ -39,17 +39,27 @@ const drainSource = (sceneName = R31_DRAINAGE_SOURCE.sceneName, pass = R31_DRAIN
   return { scenes, parser: { json } };
 };
 
-test('drainage overlay keeps source placement, counts kinds and fails closed on identity', () => {
+test('unprofiled source reference lines cannot reappear as physical surface pipes', () => {
   const overlay = buildR31DrainageOverlay(THREE, drainSource());
-  assert.deepEqual(overlay.userData.counts, { well: 1, route: 1, open: 1 });
+  assert.deepEqual(overlay.userData.counts, { well: 1, route: 0, open: 1 });
+  assert.equal(overlay.userData.unprofiledRoutesOmitted, 1);
+  assert.equal(overlay.userData.profiled.route, 0);
+  assert.equal(overlay.children.some((c) => c.userData.r31InspectionKind === 'route'), false);
   const well = overlay.children.find((c) => c.userData.r31InspectionKind === 'well');
   const p = new THREE.Vector3().setFromMatrixPosition(well.matrix);
   assert.ok(Math.abs(p.x - 26) < 1e-6 && Math.abs(p.y + 1) < 1e-6 && Math.abs(p.z - 0.7) < 1e-6);
-  const route = overlay.children.find((c) => c.userData.r31InspectionKind === 'route');
-  route.geometry.computeBoundingBox();
-  assert.ok(route.geometry.boundingBox.max.x > 4.9 && route.geometry.boundingBox.min.z < -2.9, 'tube follows the source strip');
   assert.equal(buildR31DrainageOverlay(THREE, drainSource('other')), null);
   assert.equal(buildR31DrainageOverlay(THREE, drainSource(undefined, 'M5A-R2')), null);
+});
+
+test('a route whose source ID is known but endpoints changed must not use old surface-line fallback', () => {
+  const gltf = drainSource();
+  const route = gltf.scenes[59].children.find((c) => c.userData.representationKind === 'referenceRouteWork');
+  route.userData.sourceConnection = 'PVK_DISCHARGE';
+  const overlay = buildR31DrainageOverlay(THREE, gltf);
+  assert.equal(overlay.userData.unprofiledRoutesOmitted, 1);
+  assert.equal(overlay.userData.counts.route, 0);
+  assert.ok(overlay.children.every((c) => c.userData.r31InspectionKind !== 'route'));
 });
 
 test('owner 23.11: profiled drains are real pipes 1 m+ below ground, wells reach the ground, open ends not drawn', () => {
@@ -71,6 +81,7 @@ test('owner 23.11: profiled drains are real pipes 1 m+ below ground, wells reach
   const overlay = buildR31DrainageOverlay(THREE, { scenes, parser: { json } });
   assert.deepEqual(overlay.userData.counts, { well: 1, route: 1, open: 1 });
   assert.deepEqual(overlay.userData.profiled, { route: 1, well: 1 });
+  assert.equal(overlay.userData.unprofiledRoutesOmitted, 0, 'valid underground profiles stay visible');
   assert.equal(overlay.children.length, 2, 'open end is told in the card, not drawn');
   const pipe = overlay.children.find((c) => c.userData.r31InspectionKind === 'route');
   pipe.geometry.computeBoundingBox();
