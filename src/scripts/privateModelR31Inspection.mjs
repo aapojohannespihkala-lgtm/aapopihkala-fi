@@ -1081,7 +1081,7 @@ const ROOFWATER_TEXT = Object.freeze({
   }),
 });
 const ROOFWATER_ASSUMED_PIPE = 'Oletus: putken reitti, Ø110, yläpinta vähintään 0,15 m maanpinnasta, kaato virtaussuuntaan ja purkupaikan tarkka kohta; ei mitattu.';
-const ROOFWATER_ASSUMED_WELL = 'Oletus: mallin mitat (Ø315-runko noin 0,8 m maan alle, huppu Ø300 0,20 m maan yläpuolella, helma Ø460, 110 mm lähtö) yleisestä Merika 110/315 -rännikaivosta; omistajan "Melika" tulkittu Merikaksi, ei mitattu.';
+const ROOFWATER_ASSUMED_WELL = 'Oletus: luoteissivun 2024–2026 omistajakuvissa näkyvä avoin rei’itetty roiskekuppi vastaa muodoltaan Merika AvantGarde 1780RS -tyyppiä, jonka valmistajapiirros ilmoittaa Ø310 yläosan, Ø340 alareunan, 249 mm tuotekorkeuden ja 110/315-liitännät. Täsmä-SKU, kahden muun kaivon kuvallinen vastaavuus, näkyvä 0,20 m asennuskorkeus, noin 0,8 m maanalainen runko ja lähtöreitti ovat vahvistamattomia mallioletuksia.';
 const rwFmt = (v) => (Math.round(v * 100) / 100).toFixed(2).replace('.', ',');
 
 function roofwaterPipeCard(id, pipe) {
@@ -1107,6 +1107,7 @@ export function buildR31RoofWaterOverlay(THREE, profile = R31_ROOFWATER_PROFILE)
     roughness: 0.6, metalness: 0, side: side ?? THREE.FrontSide });
   const pipeMat = mat(R31_INSPECTION_COLORS.ROOFWATER);
   const wellMat = mat(R31_INSPECTION_COLORS.ROOFWATER_WELL);
+  const openCupMat = mat(R31_INSPECTION_COLORS.ROOFWATER_WELL, THREE.DoubleSide);
   const gutterMat = mat(R31_INSPECTION_COLORS.ROOFWATER, THREE.DoubleSide);
   const counts = { ROOFWATER_WELL: 0, ROOFWATER_PIPE: 0, ROOFWATER_GUTTER: 0, ROOFWATER_CONNECTOR: 0 };
   const common = { presentationOnly: true, ModelStage: 'WORK_TEST_VIEW', currentClaim: false, asBuiltClaim: false,
@@ -1121,9 +1122,13 @@ export function buildR31RoofWaterOverlay(THREE, profile = R31_ROOFWATER_PROFILE)
     const card = { ...common, roofwaterWell: `Rännikaivo ${id.replace('RK_', '')} (${R31_ROOFWATER_SOURCE.wellProduct})`,
       roofwaterDownpipe: w.downpipe, roofwaterCertainty: 'Varmaa (omistajan maastohavainto 23.11.2026): oma rännikaivo tämän syöksyn alla, mallia Melika.',
       roofwaterWellDepthM: `${rwFmt(w.groundY - w.bottomY)} m maan alle`, roofwaterUncertainty: ROOFWATER_ASSUMED_WELL,
+      roofwaterPhotoSource: id === 'RK_NW' ? R31_ROOFWATER_SOURCE.nwPhotoIds.join(',') : 'EI_KOHTEEN_OMAA_KUVALAHDETTA',
+      roofwaterProductStatus: R31_ROOFWATER_SOURCE.productGeometryStatus,
+      roofwaterManufacturerDrawing: R31_ROOFWATER_SOURCE.manufacturerDrawing,
       roofwaterBasis: R31_ROOFWATER_SOURCE.basis, physicalZClaim: false };
-    const part = (name, rTop, rBottom, y0, y1, segments = 24) => {
-      const mesh = new THREE.Mesh(new THREE.CylinderGeometry(rTop, rBottom, y1 - y0, segments), wellMat);
+    const part = (name, rTop, rBottom, y0, y1, segments = 24, openEnded = false) => {
+      const mesh = new THREE.Mesh(new THREE.CylinderGeometry(rTop, rBottom, y1 - y0, segments, 1, openEnded),
+        openEnded ? openCupMat : wellMat);
       mesh.position.set(w.x, (y0 + y1) / 2, w.z);
       mesh.updateMatrix();
       mesh.name = `R31_ROOFWATER_${id}${name}`;
@@ -1132,7 +1137,26 @@ export function buildR31RoofWaterOverlay(THREE, profile = R31_ROOFWATER_PROFILE)
     };
     part('', w.diameterM / 2, w.diameterM / 2, w.bottomY, w.groundY);
     part('_SKIRT', w.skirtDiameterM / 2, w.skirtDiameterM / 2, w.groundY, w.groundY + 0.02, 32);
-    part('_HOOD', w.hoodDiameterM / 2 * 0.8, w.hoodDiameterM / 2, w.groundY + 0.02, w.hoodTopY);
+    // Photographic NW source (2026-04-25): an OPEN straight-sided cup, not a capped cone.
+    // Apply the same best-knowledge profile to NE/SE, which lack equivalent close-up photos.
+    part('_HOOD', w.hoodDiameterM / 2, w.hoodDiameterM / 2, w.groundY + 0.02, w.hoodTopY, 32, true);
+    // Simplified perforated splash plate. Exact hole count/diameters cannot be measured from
+    // the owner photo. Visual model only, not an as-built hydraulic or product identity claim.
+    const splash = new THREE.Shape();
+    splash.absarc(0, 0, w.hoodDiameterM * 0.45, 0, Math.PI * 2, false);
+    for (let i = -4; i <= 4; i += 1) for (let j = -4; j <= 4; j += 1) {
+      const hx = i * 0.027, hz = j * 0.027;
+      if (Math.hypot(hx, hz) > w.hoodDiameterM * 0.39) continue;
+      const hole = new THREE.Path();
+      hole.absarc(hx, hz, 0.006, 0, Math.PI * 2, true);
+      splash.holes.push(hole);
+    }
+    const splashPlate = new THREE.Mesh(new THREE.ShapeGeometry(splash, 12), openCupMat);
+    splashPlate.rotation.x = -Math.PI / 2;
+    splashPlate.position.set(w.x, w.groundY + 0.032, w.z);
+    splashPlate.name = `R31_ROOFWATER_${id}_SPLASH_PLATE`;
+    splashPlate.userData = { ...card, roofwaterPlateHoles: 'APPROXIMATION_FROM_VISIBLE_NW_PHOTO' };
+    group.add(splashPlate);
     counts.ROOFWATER_WELL += 1;
   }
   for (const [id, c] of Object.entries(profile.connectors ?? {})) {
