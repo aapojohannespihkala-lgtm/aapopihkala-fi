@@ -5989,14 +5989,14 @@ const title = 'Private 3D viewer';
         const sourceEvidence = resolveSelectionSources(object);
         // Source warnings follow only the currently mounted, SHA-verified glTF scene.
         // These do not validate a physical connection or alter pipe geometry.
-        const wastewaterMountedScene = modelRoot.children[0] ?? null;
-        const wastewaterSceneIndex = layersGltf
-          ? layersGltf.scenes?.indexOf(wastewaterMountedScene) ?? -1 : -1;
+        const kitchenWastewaterMountedScene = modelRoot.children[0] ?? null;
+        const kitchenWastewaterSceneIndex = layersGltf
+          ? layersGltf.scenes?.indexOf(kitchenWastewaterMountedScene) ?? -1 : -1;
         const kitchenWastewaterSourceEntries = [
           ...r32hKitchenWastewaterClashSelectionEntries(
-            layersGltf, layersLoadedSha, wastewaterSceneIndex, object),
+            layersGltf, layersLoadedSha, kitchenWastewaterSceneIndex, object),
           ...r33KitchenWastewaterClashSelectionEntries(
-            layersGltf, layersLoadedSha, wastewaterSceneIndex, object),
+            layersGltf, layersLoadedSha, kitchenWastewaterSceneIndex, object),
         ].map(([key, value]): readonly [string, string] => [key, value]);
         selectionPanelController.render({
           mesh: serviceTarget?.label ?? semantics.labelFi,
