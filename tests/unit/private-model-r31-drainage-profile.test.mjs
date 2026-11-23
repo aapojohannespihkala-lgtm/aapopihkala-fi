@@ -68,3 +68,44 @@ test('info cards tell the source facts and the depth assumption apart', () => {
   assert.match(well.drainWellDepthM, /kansi maanpinnassa/);
   assert.match(well.drainUncertainty, /^Oletus:/);
 });
+
+test('all 3D drain segments keep their local fall and source route lengths', () => {
+  // Prior coverage checked the end-to-end slope and monotonic Y; a local flat
+  // or reversed segment could still pass. Coordinate rounding: 0.2 mm/m.
+  const roundingTolerance = 0.0002;
+  for (const [name, route] of Object.entries(P.routes)) {
+    let measuredLengthM = 0;
+    for (let i = 1; i < route.points.length; i++) {
+      const a = route.points[i - 1];
+      const b = route.points[i];
+      const planLengthM = Math.hypot(b[0] - a[0], b[2] - a[2]);
+      assert.ok(Number.isFinite(planLengthM) && planLengthM > 0, `${name} segment ${i} zero/invalid length`);
+      assert.ok(Number.isFinite(a[1]) && Number.isFinite(b[1]), `${name} non-finite height`);
+      const localFall = (a[1] - b[1]) / planLengthM;
+      assert.ok(localFall >= route.slope - roundingTolerance,
+        `${name} segment ${i} local fall ${localFall} < ${route.slope} (rounding tolerance)`);
+      measuredLengthM += planLengthM;
+    }
+    assert.ok(Math.abs(measuredLengthM - route.lengthM) < 0.02,
+      `${name} rendered XY path length ${measuredLengthM} differs from source length ${route.lengthM}`);
+  }
+});
+
+test('3D drain routes join well pipes exactly and PVK outlets remain 50 mm below inlets', () => {
+  // A route merely being lower than the previous one (previous test) does not
+  // prove a geometrically continuous 3D pipe at a well.
+  const atStart = (key) => P.routes[key].points[0][1];
+  const atEnd = (key) => P.routes[key].points.at(-1)[1];
+  const sameY = (a, b, msg) => assert.ok(Math.abs(a - b) < 0.001, `${msg}: ${a} vs ${b}`);
+  sameY(atStart('SOK2_BUILDING_END'), P.wells.SOK2.lowestPipeCentreY, 'SOK2 north branch');
+  sameY(atStart('SOK1_SOK2'), P.wells.SOK2.lowestPipeCentreY, 'SOK2 east branch');
+  sameY(atEnd('SOK2_BUILDING_END'), atStart('SOK3_BUILDING_END'), 'NW corner continuation');
+  sameY(atEnd('SOK3_BUILDING_END'), P.wells.SOK3.lowestPipeCentreY, 'SOK3 inlet');
+  sameY(atEnd('SOK1_SOK2'), P.wells.SOK1.lowestPipeCentreY, 'SOK1 inlet');
+  sameY(atStart('PVK_SOK1'), P.wells.SOK1.lowestPipeCentreY, 'SOK1 outlet');
+  sameY(atStart('PVK_SOK3'), P.wells.SOK3.lowestPipeCentreY, 'SOK3 outlet');
+  const pvkLowestInlet = Math.min(atEnd('PVK_SOK1'), atEnd('PVK_SOK3'));
+  sameY(atStart('PVK_DISCHARGE'), pvkLowestInlet - 0.05, 'PVK discharge outlet');
+  sameY(atStart('PVK_PARKING'), pvkLowestInlet - 0.05, 'PVK parking outlet');
+  sameY(atStart('PVK_DISCHARGE'), P.wells.PVK.lowestPipeCentreY, 'PVK source well');
+});
