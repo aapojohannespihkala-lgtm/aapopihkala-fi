@@ -5077,6 +5077,7 @@ const title = 'Private 3D viewer';
           Boolean(layersGltf?.parser?.json);
         bathroomCInput.disabled = !bathScope;
         if (!bathScope) bathroomCInput.checked = false;
+        // @ts-ignore - runtime source and Three.js bindings are validated by the JS guard.
         bathroomCOverlay = createR22BathroomCEmphasis({
           glbSha256: layersLoadedSha,
           sceneIndex: bathIndex,
