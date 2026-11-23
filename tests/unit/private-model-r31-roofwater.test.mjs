@@ -124,7 +124,10 @@ test('Merika collector remains open below the perforated grate and NW host gap i
   const model = buildR31RoofWaterOverlay(THREE);
   for (const id of ['RK_NW', 'RK_NE', 'RK_SE']) {
     const collector = model.getObjectByName('R31_ROOFWATER_' + id);
+    const bottom = model.getObjectByName('R31_ROOFWATER_' + id + '_BOTTOM');
     const grate = model.getObjectByName('R31_ROOFWATER_' + id + '_GRATE');
+    assert.equal(bottom.geometry.type, 'CircleGeometry', id + ': assumed collector sump bottom exists');
+    assert.ok(Math.abs(bottom.position.y - P.wells[id].bottomY) < 1e-8, id + ': bottom lies at assumed depth');
     assert.equal(collector.geometry.parameters.openEnded, true, id + ': buried collector has no false sealed lid');
     assert.equal(collector.material.side, THREE.DoubleSide, id + ': visible internal collector wall');
     assert.ok(grate.geometry.parameters.shapes.holes.length >= 20, id + ': actual openings in the grate');
