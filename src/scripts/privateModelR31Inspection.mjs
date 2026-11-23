@@ -1126,6 +1126,7 @@ export function buildR31RoofWaterOverlay(THREE, profile = R31_ROOFWATER_PROFILE)
       roofwaterDownpipe: w.downpipe, roofwaterCertainty: note,
       roofwaterPhotoEvidence: northWestPhoto ? R31_ROOFWATER_SOURCE.wellPhotoNw : 'Ei yksilöllistä valokuvanäyttöä tästä kaivosta',
       roofwaterProductReference: R31_ROOFWATER_SOURCE.wellCatalog,
+      roofwaterHostWarning: northWestPhoto ? 'SOURCE_HOST_HOLD: nykyisen T12-lähteen luoteisputken ulostulo Y=-0,29 on 0,324 m mallin maapinnan Y=+0,034 alapuolella; 2026 valokuvassa ulostulo on sihdin yläpuolella. Ei fyysisen liittymän hyväksyntää.' : 'Tarkka toteumakorkeus ja syöksyn liittymä varmistamatta',
       roofwaterWellDepthM: `${rwFmt(w.groundY - w.bottomY)} m maan alle (OLETUS)`,
       roofwaterUncertainty: ROOFWATER_ASSUMED_WELL,
       roofwaterBasis: R31_ROOFWATER_SOURCE.basis, physicalZClaim: false };
