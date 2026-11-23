@@ -2240,9 +2240,9 @@ const title = 'Private 3D viewer';
             <div class="layer-note">Johdetaan näkymässä mallipinnoista - ei erillistä reunageometriaa malliin.</div>
             <label class="layer-row">
               <input id="r22-bathroom-c-on" type="checkbox" disabled aria-describedby="r22-bathroom-c-note" />
-              <span>Pesuhuone C - keskeiset reunat (R22 1F, WORK_TEST)</span>
+              <span>Pesuhuone C - keskeiset reunat (R22/R33 1F, WORK_TEST)</span>
             </label>
-            <div id="r22-bathroom-c-note" class="layer-note">Vain varmennetun alkuperäisen R22 1F -näkymän lattian ulkoreuna, saunan oviaukko, peili ja allaskaappi. Ei muuta mallin tai layerien tilaa.</div>
+            <div id="r22-bathroom-c-note" class="layer-note">Vain lähdevarmennetun R22 1F scene686:n tai R33 1F scene818:n lattian ulkoreuna, saunan oviaukko, peili ja allaskaappi. R33 scene819 ei sisällä kaikkia neljää. Ei muuta mallin tai layerien tilaa.</div>
           </div>
           <div id="locus-layer-group" class="layer-section">
             <div class="layer-tree-parent">
@@ -2766,7 +2766,7 @@ const title = 'Private 3D viewer';
       import { r31ViewerSourceCapabilities, r31RuntimeExteriorAllowed } from '../../scripts/privateModelR31SourceCapabilities.mjs';
       import { resolveTechnicalReviewRoots, createTechnicalReviewPresentation, technicalReviewSystemOf, technicalReviewLayerSystemOf, refineTechnicalReviewSystem, filterNonTechnicalBoundObjects } from '../../scripts/privateModelTechnicalReviewPresentation.mjs';
       // @ts-ignore - exact-source independent R22 1F bathroom WORK_TEST presentation.
-      import { R22_BATH_C_SOURCE, createR22BathroomCEmphasis } from '../../scripts/privateModelR22BathroomCEmphasis.mjs';
+      import { R22_BATH_C_SOURCE, R33_BATH_C_SOURCE, createR22BathroomCEmphasis, createR33BathroomCEmphasis } from '../../scripts/privateModelR22BathroomCEmphasis.mjs';
       import { resolveConcealedTechnicalObjects, createConcealedTechnicalPresentation } from '../../scripts/privateModelConcealedTechnicalPresentation.mjs';
       import { K17_RAIL900_SOURCE_SHA256 } from '../../scripts/privateModelK17Rail900LayerSourceProfile.mjs';
       import { createV69C035WhiteLobbyPresentation } from '../../scripts/privateModelV69C035WhiteLobbyPresentation.mjs';
@@ -5071,10 +5071,12 @@ const title = 'Private 3D viewer';
         const bathRoot: any = mainViewScope && 'selectedScene' in mainViewScope
           ? (mainViewScope.selectedScene ?? root) : root;
         const bathIndex = layersGltf?.scenes?.indexOf?.(bathRoot) ?? -1;
-        const bathScope = layersLoadedSha === R22_BATH_C_SOURCE.sha256 &&
-          layersExpectedSha === layersLoadedSha &&
-          bathIndex === R22_BATH_C_SOURCE.sceneIndex &&
-          Boolean(layersGltf?.parser?.json);
+        const bathIsR22 = layersLoadedSha === R22_BATH_C_SOURCE.sha256 &&
+          bathIndex === R22_BATH_C_SOURCE.sceneIndex;
+        const bathIsR33 = layersLoadedSha === R33_BATH_C_SOURCE.sha256 &&
+          bathIndex === R33_BATH_C_SOURCE.sceneIndex;
+        const bathScope = layersExpectedSha === layersLoadedSha &&
+          (bathIsR22 || bathIsR33) && Boolean(layersGltf?.parser?.json);
         bathroomCInput.disabled = !bathScope;
         if (!bathScope) bathroomCInput.checked = false;
         // Runtime inputs are checked by the JS exact-source receiver.
@@ -5087,7 +5089,7 @@ const title = 'Private 3D viewer';
           THREE,
           enabled: bathScope && bathroomCInput.checked,
         };
-        bathroomCOverlay = createR22BathroomCEmphasis(r22BathroomCArgs);
+        bathroomCOverlay = bathIsR33 ? createR33BathroomCEmphasis(r22BathroomCArgs) : createR22BathroomCEmphasis(r22BathroomCArgs);
         canvas.dataset.r22BathroomC = bathroomCOverlay.status;
         canvas.dataset.r22BathroomCCount = String(bathroomCOverlay.count);
 
