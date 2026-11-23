@@ -147,7 +147,7 @@ test('already moved mesh cannot be shifted twice', () => {
 });
 test('mutated source bounds and non-finite positions fail closed', () => {
   const modified = originalSourcePositions();
-  modified[0] += 0.02;
+  for (let i = 0; i < modified.length; i += 3) modified[i] += 0.05;
   assert.equal(planR32HMerikaElegance1790RSNWWorkTest(args({
     positions: modified,
   })).status, 'LEGACY_COW_SOURCE_GUARD_FAILED');
