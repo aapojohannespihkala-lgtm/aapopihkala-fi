@@ -15255,8 +15255,8 @@ const title = 'Private 3D viewer';
       const nwP7OptInInput = document.querySelector<HTMLInputElement>('#r32h-nw-p7-source-optin')!;
       nwT12PreviewInput.addEventListener('change', () => {
         if (nwT12PreviewInput.checked) nwP7OptInInput.checked = false;
-        refreshLayers();
       });
+      nwT12PreviewInput.addEventListener('change', () => refreshLayers());
       nwP7OptInInput.addEventListener('change', () => {
         if (nwP7OptInInput.checked) nwT12PreviewInput.checked = false;
         refreshLayers();
