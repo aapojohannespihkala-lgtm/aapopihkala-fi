@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import * as THREE from 'three';
 import { buildR31InfraOverlay } from '../../src/scripts/privateModelR31Inspection.mjs';
-import { selectionMetadataEntries, formatSelectionMetadataKey } from '../../src/scripts/privateModelSelectionMetadata.ts';
+import { selectionMetadataEntries, formatSelectionMetadataKey, scalarSelectionMetadataValue } from '../../src/scripts/privateModelSelectionMetadata.ts';
 
 test('R31 P139AD work-Z water/wastewater overlays preserve uncertainty and source Z caveats', () => {
   const routes = [
@@ -152,4 +152,24 @@ test('P139AD work-Z metadata sorting is not applied to unrelated objects', () =>
   const entries = selectionMetadataEntries(unrelated, null);
   assert.equal(entries[0][0], 'ModelStage', 'existing generic priority is unchanged');
   assert.equal(entries.find(([key]) => key === 'sourceZNote')?.[1], 'Not a P139AD route');
+});
+
+test('P139AD original work-Z source notes fit the 180-character viewer metadata limit', () => {
+  const page = readFileSync(new URL('../../src/pages/private-model/index.astro', import.meta.url), 'utf8');
+  const start = page.indexOf('const p139adLocusWorkZRoutes = [');
+  const end = page.indexOf('] as const;', start);
+  assert.ok(start >= 0 && end > start, 'original P139AD route literals must exist');
+  const block = page.slice(start, end);
+  const notes = [...block.matchAll(/sourceZNote:\\s*'([^']+)'/g)].map((match) => match[1]);
+  assert.equal(notes.length, 4, 'all four water and sewer work-Z routes need source caveats');
+  for (const [index, sourceZNote] of notes.entries()) {
+    assert.ok(sourceZNote.trim().length > 0, 'empty source-Z warning ' + index);
+    assert.ok(
+      sourceZNote.trim().length <= 180,
+      'source-Z caveat ' + index + ' exceeds the 180-character selection cutoff and would disappear silently',
+    );
+    assert.equal(scalarSelectionMetadataValue(sourceZNote), sourceZNote.trim());
+  }
+  assert.equal(scalarSelectionMetadataValue('X'.repeat(181)), null,
+    'document the metadata filter failure mode if source caveats grow beyond 180 characters');
 });
