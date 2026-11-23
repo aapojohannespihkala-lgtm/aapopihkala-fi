@@ -69,17 +69,22 @@ export function r33Mixer2FSceneReceipt({ json, loadedGlbSha256, sceneIndex } = {
       asset?.asBuilt !== false || asset?.HUMAN_REVIEW !== 'NOT_RUN' ||
       !canonicalViews.every(v => validOriginal(json, v))) return null;
 
-  const prev = json.scenes[view.inherited.sceneIndex];
-  const next = json.scenes[view.added];
-  if (typeof next?.name !== 'string' ||
-      !next.name.endsWith('__scene' + view.added) ||
-      !next.name.includes('WORK_TEST_HOST_HOLD') ||
-      !next.name.includes('2F') || !unique(next?.nodes) ||
-      next.nodes.length !== prev.nodes.length + 1 ||
-      next.nodes.at(-1) !== R33_MIXER_2F_COW_SOURCE.mixerConnectorRoot ||
-      !prev.nodes.every((id, i) => next.nodes[i] === id) ||
-      next.nodes.includes(11625) !== view.plexi ||
-      next.extras?.current === true || next.extras?.asBuilt === true) return null;
+  // Validate BOTH the normal and service deltas even when only one is viewed.
+  // A forged/mismatched sibling cannot be hidden by switching scenes.
+  const bothDeltasValid = views.every(candidate => {
+    const prev = json.scenes[candidate.inherited.sceneIndex];
+    const next = json.scenes[candidate.added];
+    return typeof next?.name === 'string' &&
+      next.name.endsWith('__scene' + candidate.added) &&
+      next.name.includes('WORK_TEST_HOST_HOLD') &&
+      next.name.includes('2F') && unique(next?.nodes) &&
+      next.nodes.length === prev.nodes.length + 1 &&
+      next.nodes.at(-1) === R33_MIXER_2F_COW_SOURCE.mixerConnectorRoot &&
+      prev.nodes.every((id, i) => next.nodes[i] === id) &&
+      next.nodes.includes(11625) === candidate.plexi &&
+      next.extras?.current !== true && next.extras?.asBuilt !== true;
+  });
+  if (!bothDeltasValid) return null;
   const connector = json.nodes[13472], cold = json.nodes[13470], hot = json.nodes[13471];
   if (!unique(connector?.children) || connector.children.length !== 2 ||
       connector.children[0] !== 13470 || connector.children[1] !== 13471 ||
