@@ -15,8 +15,8 @@ const R31 = '9e0bf34fd838ddc92be12007412176a8ea449f66644f8876395ac6f659804ec3';
 // RELEASED KANON-NEXT base of the R32 claim (Drive 12ZoBF9O…): not an accepted viewer model.
 const R32_BASE = '29114e10fe7de711fba1465b8b1fb310b9433893f02f189b477f7d3536dbc97d';
 
-test('only R31 and R32H are accepted models', () => {
-  assert.deepEqual(Object.keys(R31_VIEWER_SOURCE_CAPABILITY_TABLE).sort(), [R31, 'c26d99c11ffef90859ff17cad5edecf7ab22d811baddfa0506794ecdbef6294c'].sort());
+test('only R31, R32H and R33 are accepted models', () => {
+  assert.deepEqual(Object.keys(R31_VIEWER_SOURCE_CAPABILITY_TABLE).sort(), [R31, 'c26d99c11ffef90859ff17cad5edecf7ab22d811baddfa0506794ecdbef6294c', '3a226f987d5605eff523029d580b760167ae4a32f13ddd51248fe933d913c54c'].sort());
 });
 
 test('R31 keeps every site network and runtime exterior part (no behaviour change)', () => {
@@ -38,7 +38,7 @@ test('fails closed for unknown, malformed and not-yet-received models', () => {
     assert.equal(r31ViewerSourceCapabilities(sha), null, String(sha));
     assert.equal(r31RuntimeExteriorAllowed(r31ViewerSourceCapabilities(sha), 'rainwater'), false);
   }
-  assert.equal(Object.keys(R31_VIEWER_SOURCE_CAPABILITY_TABLE).length, 2);
+  assert.equal(Object.keys(R31_VIEWER_SOURCE_CAPABILITY_TABLE).length, 3);
 });
 
 test('a successor with baked parts keeps networks but never doubles baked geometry', () => {

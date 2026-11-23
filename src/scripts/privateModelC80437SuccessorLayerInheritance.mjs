@@ -83,7 +83,7 @@ import {
   isC80620R21SourceScene,
 } from './privateModelC80620R21SourceProfile.mjs';
 import {C80_620R22_GLB_SHA256,C80_620R22_SCENES,C80_620R22_COW_ALIASES,isC80620R22SourceScene} from './privateModelC80620R22SourceProfile.mjs';
-import {C80_R31_9E0B_SOURCE,C80_R31_9E0B_VIEWS,C80_R32H_SOURCE,C80_R32H_VIEWS,r31ViewerLayerSceneReceipt} from './privateModelC80R31ReviewRuntime.mjs';
+import {C80_R31_9E0B_SOURCE,C80_R31_9E0B_VIEWS,C80_R32H_SOURCE,C80_R32H_VIEWS,C80_R33_SOURCE,C80_R33_VIEWS,r31ViewerLayerSceneReceipt} from './privateModelC80R31ReviewRuntime.mjs';
 
 // Work-test identity only. The outer loader MUST authenticate the entire GLB
 // bytes before supplying sha. This never approves a new physical/as-built part.
@@ -250,6 +250,21 @@ const R31 = Object.freeze(Object.fromEntries(Object.values(C80_R31_9E0B_VIEWS).m
 const R32H_SHA = C80_R32H_SOURCE.glbSha256;
 const R32H = Object.freeze(Object.fromEntries(Object.values(C80_R32H_VIEWS).map(view =>
   [view.sceneIndex, {floor:view.floor,glazing:'CLOSED',cutaway:false}])));
+// R33 = R32H + COW D2F WC door path (same node indices below 13840).
+const R33_SHA = C80_R33_SOURCE.glbSha256;
+const R33 = Object.freeze(Object.fromEntries(Object.values(C80_R33_VIEWS).map(view =>
+  [view.sceneIndex, {floor:view.floor,glazing:'CLOSED',cutaway:false}])));
+// R33 COW successors keep the receipt identity of the original (R22 alias chain) node.
+const R33_COW_ALIASES = Object.freeze({
+  ...C80_620R22_COW_ALIASES,
+  13840: Object.freeze({orig:8031,fnv:'6adbf12d',name:'D2F_WC_DOOR_LEAF_OPEN_JAMB_CLEAR_R33_COW_WORK_TEST'}),
+  13841: Object.freeze({orig:12220,fnv:'d84a9216',name:'D2F_OWNERPHOTO20261114_ROOM3_ONLY_COW__R33_WCDOOR_COW'}),
+  13842: Object.freeze({orig:12221,fnv:'d48d3914',name:'H1911_4_OPTIN_12493_ROOM3_OWNERPHOTO20261114_COW_SCONCE_LAYER__R33_WCDOOR_COW'}),
+  13843: Object.freeze({orig:12222,fnv:'3c698bad',name:'H1911_4_OPTIN_12494_ROOM3_OWNERPHOTO20261114_COW_2F_ROOT__R33_WCDOOR_COW'}),
+  13844: Object.freeze({orig:9199,fnv:'24ef311e',name:'D2F_WC_LEVER_SIDE_M__R33_WCDOOR_COW'}),
+  13845: Object.freeze({orig:9200,fnv:'31f21521',name:'D2F_WC_LEVER_SIDE_P__R33_WCDOOR_COW'}),
+});
+const R32H_FAMILY_SHA = sha => sha===R32H_SHA || sha===R33_SHA;
 // The authored R31 roof is present only on the two whole-D review scenes.
 const R31_ROOF_ROOT = 13363;
 const R31_ROOF_ROOT_FNV = 'b9e1f9aa';
@@ -277,6 +292,7 @@ const COW_ALIASES = Object.freeze({
   [C80_620R22_GLB_SHA256]: C80_620R22_COW_ALIASES,
   [R31_SHA]: C80_620R22_COW_ALIASES,
   [R32H_SHA]: C80_620R22_COW_ALIASES,
+  [R33_SHA]: R33_COW_ALIASES,
 });
 const aliasOf = (sha,node) => COW_ALIASES[sha]?.[node] ?? null;
 const toOrig = (sha,node) => aliasOf(sha,node)?.orig ?? node;
@@ -292,7 +308,7 @@ export const isC80LayerSuccessorSha = sha => [
   C80_620R15_GLB_SHA256, C80_620R16_GLB_SHA256, C80_620R17_GLB_SHA256,
   C80_620R18_GLB_SHA256, C80_620R19_GLB_SHA256,
   C80_620R20_GLB_SHA256, C80_620R21_GLB_SHA256, C80_620R22_GLB_SHA256,
-  R31_SHA, R32H_SHA,
+  R31_SHA, R32H_SHA, R33_SHA,
 ].includes(sha);
 const specFor = (sha,index) => {
   if (sha===C80_SUCC455_SAVO483_GLB_SHA256) return V483[index];
@@ -318,6 +334,7 @@ const specFor = (sha,index) => {
   if (sha===C80_620R22_GLB_SHA256) return V620R22[index];
   if (sha===R31_SHA) return R31[index];
   if (sha===R32H_SHA) return R32H[index];
+  if (sha===R33_SHA) return R33[index];
   if (sha===C80_524_RAIN_GLB_SHA256) return V524[index];
   return null;
 };
@@ -357,7 +374,7 @@ const acceptedScene = (json,sha,index) => {
     isC80620R21SourceScene(json,sha,index,C80_620R21_SCENES[index].floor);
   if (sha===C80_620R22_GLB_SHA256) return !!C80_620R22_SCENES[index] &&
     isC80620R22SourceScene(json,sha,index,C80_620R22_SCENES[index].floor);
-  if (sha===R31_SHA || sha===R32H_SHA) return !!r31ViewerLayerSceneReceipt(json,sha,index);
+  if (sha===R31_SHA || R32H_FAMILY_SHA(sha)) return !!r31ViewerLayerSceneReceipt(json,sha,index);
   if (sha===C80_614_GLB_SHA256) return !!C80_614_SCENES[index] &&
     isC80614SourceScene(json,sha,index,C80_614_SCENES[index].floor);
   if (sha===C80_608C_GLB_SHA256) return !!C80_608C_SCENES[index] &&
@@ -434,7 +451,7 @@ function exactInheritedPath(json,sceneIndex,path,sha=null) {
 export function resolveC80437SuccessorBuildingNode(json,sha,sceneIndex,node,path){
   const receiptScene=resolveC80437SuccessorReceiptScene(json,sha,sceneIndex);
   if (!receiptScene || !Number.isInteger(node)) return null;
-  if ((sha===R31_SHA || sha===R32H_SHA) && Object.hasOwn(R31_ROOF_PARTS,node)) {
+  if ((sha===R31_SHA || R32H_FAMILY_SHA(sha)) && Object.hasOwn(R31_ROOF_PARTS,node)) {
     const root=json.nodes[R31_ROOF_ROOT], part=json.nodes[node];
     if (receiptScene.floor!=='BOTH' || !equalPath(path,[R31_ROOF_ROOT,node]) ||
         !json.scenes[sceneIndex].nodes.includes(R31_ROOF_ROOT) ||
@@ -502,7 +519,7 @@ const modelNumber = sha => sha===C80_SUCC455_SAVO483_GLB_SHA256 ? 483
   : sha===C80_620R19_GLB_SHA256 ? 628
   : sha===C80_620R20_GLB_SHA256 ? 629
   : sha===C80_620R21_GLB_SHA256 ? 630
-  : sha===C80_620R22_GLB_SHA256 || sha===R31_SHA || sha===R32H_SHA ? 631 : -1;
+  : sha===C80_620R22_GLB_SHA256 || sha===R31_SHA || R32H_FAMILY_SHA(sha) ? 631 : -1;
 function withinRoot(json,root,node) {
   const seen=new Set(),queue=[root];
   while (queue.length) {

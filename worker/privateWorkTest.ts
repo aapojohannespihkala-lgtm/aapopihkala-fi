@@ -4707,6 +4707,16 @@ const C80_R32H_C26D_WORK_TEST_CANDIDATE = {
   expectedSha256: 'c26d99c11ffef90859ff17cad5edecf7ab22d811baddfa0506794ecdbef6294c',
 } as const satisfies PrivateWorkTestCandidate;
 
+// R33 3a226f98: R32H + D2F WC open door leaf out of the wall end and floor (COW); whole D (818/819) and 2F (820/821).
+const C80_R33_3A22_WORK_TEST_CANDIDATE = {
+  id: 'c80-r33-3a226f98-d-2f-sc818-sc821-work-test',
+  label: 'C80 R33 - koko D ja yläkerta, WC-oven korjaus, normaali ja huolto - WORK_TEST/HOST_HOLD',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/c80-r33-3a226f98-d-2f-sc818-sc821-work-test.glb`,
+  objectKey: 'work-test/c80-r33-3a226f98-d-2f-sc818-sc821-work-test.glb',
+  expectedSize: 64_697_168,
+  expectedSha256: '3a226f987d5605eff523029d580b760167ae4a32f13ddd51248fe933d913c54c',
+} as const satisfies PrivateWorkTestCandidate;
+
 const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
   C80_M6263_MJ72_KIV005_PK1_SUCCESSOR_WORK_TEST_CANDIDATE,
   C80_TATE_MJ6263_WORK_TEST_CANDIDATE,
@@ -4755,6 +4765,7 @@ const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
   D_C80_HI12_WORK_TEST_CANDIDATE,
   D_C80_SOURCE_ONLY_PREVIEW_CANDIDATE,
   D_C70_SOURCE_ONLY_PREVIEW_CANDIDATE,
+  C80_R33_3A22_WORK_TEST_CANDIDATE,
   C80_R32H_C26D_WORK_TEST_CANDIDATE,
   C80_R31_9E0B_WORK_TEST_CANDIDATE,
   C80_R31_R300_WORK_TEST_CANDIDATE,
