@@ -5993,7 +5993,8 @@ const title = 'Private 3D viewer';
           ? layersGltf.scenes?.indexOf(kitchenWastewaterMountedScene) ?? -1
           : -1;
         const kitchenWastewaterSourceEntries = r32hKitchenWastewaterClashSelectionEntries(
-          layersGltf, layersLoadedSha, kitchenWastewaterSceneIndex, object);
+          layersGltf, layersLoadedSha, kitchenWastewaterSceneIndex, object)
+          .map(([key, value]): readonly [string, string] => [key, value]);
         selectionPanelController.render({
           mesh: serviceTarget?.label ?? semantics.labelFi,
           group: semantics.classLabelFi,
