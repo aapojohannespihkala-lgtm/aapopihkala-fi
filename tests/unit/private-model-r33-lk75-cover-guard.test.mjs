@@ -77,6 +77,15 @@ test('wrong host, missing active root and changed pointer never auto-correct a c
   assert.equal(assessR33LK75CoverSource(a, SHA, 818).status, 'SOURCE_NODE_OR_HOST_MISMATCH');
 });
 
+test('sourceLinks-bound or claimed physical host cannot inherit the unverified R33 pointer', () => {
+  const a = r33Fixture();
+  a.nodes[13253].extras.sourceLinksBoundToViewer = true;
+  assert.equal(assessR33LK75CoverSource(a, SHA, 818).status, 'SOURCE_NODE_OR_HOST_MISMATCH');
+  a.nodes[13253].extras.sourceLinksBoundToViewer = false;
+  a.nodes[13253].extras.physicalHostVerified = true;
+  assert.equal(assessR33LK75CoverSource(a, SHA, 818).status, 'SOURCE_NODE_OR_HOST_MISMATCH');
+});
+
 test('candidate cover missing never becomes a physical cover claim', () => {
   const a = r33Fixture();
   a.nodes[11644].mesh = 999;
