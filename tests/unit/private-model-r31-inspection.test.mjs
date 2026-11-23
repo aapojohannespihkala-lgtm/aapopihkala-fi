@@ -611,3 +611,80 @@ test('Locus low voltage: the 32 selected G2b lines / 410 segments, own level, no
   }
   assert.equal(r31SiteLayerKeyForNetwork('lowvolt'), 'lowvolt');
 });
+
+test('R31 municipal storm and flow marks restore exact source materials through Layerit modes', async () => {
+  const { buildR31StormOverlay, setR31SiteNetworkLayerMode } =
+    await import('../../src/scripts/privateModelR31Inspection.mjs');
+  const { R31_LOCUS_STORM_LINES, R31_LOCUS_STORM_FLOW_MARKS } =
+    await import('../../src/scripts/privateModelR31LocusStorm.mjs');
+  const { r31SiteLayerKeyForNetwork } =
+    await import('../../src/scripts/privateModelR31SiteLayerKey.mjs');
+  const group = buildR31StormOverlay(THREE, R31_LOCUS_STORM_LINES, R31_LOCUS_STORM_FLOW_MARKS);
+  const objects = group.children;
+  assert.equal(r31SiteLayerKeyForNetwork('storm'), 'storm');
+  assert.deepEqual(group.userData.counts, { STORM: 5, STORM_FLOW: 5 });
+  assert.equal(objects.length, 10, 'both five municipal pipes and five flow arrows must obey Layerit');
+  const originals = objects.map((object) => object.material);
+  const originalGeometries = objects.map((object) => object.geometry);
+  const saved = new Map();
+  let disposed = 0;
+  const expectRestored = () => {
+    objects.forEach((object, i) => {
+      assert.equal(object.material, originals[i], 'original material identity must survive');
+      assert.equal(object.geometry, originalGeometries[i], 'source geometry must never be changed');
+      assert.equal(object.userData.presentationOnly, true);
+      assert.equal(object.userData.physicalZClaim, false);
+      assert.equal(object.userData.plotConnectionClaim, false);
+      assert.equal(object.userData.currentClaim, false);
+      assert.equal(object.userData.asBuiltClaim, false);
+    });
+    assert.equal(saved.size, 0, 'no stale ghost material remains cached');
+  };
+
+  setR31SiteNetworkLayerMode(group, 'visible', true, saved);
+  assert.equal(group.visible, true);
+  expectRestored();
+
+  setR31SiteNetworkLayerMode(group, 'ghost', true, saved);
+  const ghostMaterials = objects.map((object, i) => {
+    assert.notEqual(object.material, originals[i]);
+    assert.equal(object.material.transparent, true);
+    assert.equal(object.material.depthWrite, false);
+    assert.ok(object.material.opacity <= 0.17);
+    object.material.addEventListener('dispose', () => { disposed += 1; });
+    return object.material;
+  });
+  assert.equal(group.visible, true);
+  assert.equal(saved.size, 10, 'all five pipes and all five flow marks are ghosted');
+
+  setR31SiteNetworkLayerMode(group, 'ghost', true, saved);
+  objects.forEach((object, i) => assert.equal(object.material, ghostMaterials[i],
+    'repeated ghost mode must not allocate a second clone'));
+  assert.equal(disposed, 0);
+
+  setR31SiteNetworkLayerMode(group, 'visible', true, saved);
+  assert.equal(group.visible, true);
+  expectRestored();
+  assert.equal(disposed, 10, 'each temporary ghost material was disposed exactly once');
+
+  setR31SiteNetworkLayerMode(group, 'ghost', true, saved);
+  const secondGhostMaterials = objects.map((object) => {
+    object.material.addEventListener('dispose', () => { disposed += 1; });
+    return object.material;
+  });
+  objects.forEach((object, i) => assert.notEqual(object.material, ghostMaterials[i],
+    'new ghost cycle must clone the restored original, not a disposed clone'));
+  setR31SiteNetworkLayerMode(group, 'ghost', false, saved);
+  assert.equal(group.visible, false, 'unavailable system must fail closed to hidden');
+  expectRestored();
+  assert.equal(disposed, 20);
+  secondGhostMaterials.forEach((material) =>
+    assert.ok(!objects.some((object) => object.material === material), 'disposed clone is detached'));
+
+  setR31SiteNetworkLayerMode(group, 'visible', true, saved);
+  assert.equal(group.visible, true);
+  expectRestored();
+  setR31SiteNetworkLayerMode(group, 'hidden', true, saved);
+  assert.equal(group.visible, false);
+  expectRestored();
+});
