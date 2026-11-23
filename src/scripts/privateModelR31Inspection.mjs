@@ -191,10 +191,10 @@ function worldPoints(THREE, object) {
 }
 
 /**
- * Drain objects of the verified source scene as visible solids. The source
- * draws them as 1-px lines (routes: line strips, wells and open ends: rings),
- * so routes become tubes along the exact source vertices and wells/open ends
- * become markers at the exact source centre. Null on identity mismatch.
+ * Source-bound drainage presentation. Routes are dashed reference lines, never
+ * physical pipes: their world vertices are retained, but installation Z and
+ * cover are unresolved. Wells/open ends remain symbolic markers.
+ * Null on source-scene identity mismatch.
  */
 export function buildR31DrainageOverlay(THREE, gltf) {
   const json = gltf?.parser?.json;
@@ -204,10 +204,10 @@ export function buildR31DrainageOverlay(THREE, gltf) {
   scene.updateMatrixWorld(true);
   const group = new THREE.Group();
   group.name = 'R31_INSPECTION_DRAINAGE_M5A_R3_Z1C';
-  const materials = {};
-  const material = (kind) => materials[kind] ??= new THREE.MeshStandardMaterial({
-    color: R31_INSPECTION_COLORS[kind], emissive: R31_INSPECTION_COLORS[kind], emissiveIntensity: 0.45,
-    roughness: 0.6, metalness: 0,
+  // Outlined XY reference glyphs must never resemble a surveyed 3D well body.
+  const markerMaterials = {};
+  const markerMaterial = (kind) => markerMaterials[kind] ??= new THREE.LineBasicMaterial({
+    color: R31_INSPECTION_COLORS[kind], depthTest: false, transparent: true, opacity: 0.95,
   });
   const counts = { well: 0, route: 0, open: 0 };
   scene.traverse((object) => {
@@ -219,33 +219,54 @@ export function buildR31DrainageOverlay(THREE, gltf) {
     if (points.length < 2) return;
     let mesh;
     if (kind === 'route') {
-      // Line strips in source order; LINES pairs are joined the same way.
-      const path = new THREE.CurvePath();
-      for (let i = 1; i < points.length; i += 1) {
-        if (points[i].distanceTo(points[i - 1]) > 1e-6) path.add(new THREE.LineCurve3(points[i - 1], points[i]));
-      }
-      if (!path.curves.length) return;
-      mesh = new THREE.Mesh(new THREE.TubeGeometry(path, Math.max(4, path.curves.length * 6), 0.07, 8, false), material(kind));
+      // The source provides a reference route, not a surveyed or installed pipe.
+      // Do not create a physical-radius tube or invent terrain cover or Z.
+      if (!points.some((point, i) => i > 0 && point.distanceTo(points[i - 1]) > 1e-6)) return;
+      mesh = new THREE.Line(
+        new THREE.BufferGeometry().setFromPoints(points),
+        new THREE.LineDashedMaterial({ color: R31_INSPECTION_COLORS.route, dashSize: 0.24, gapSize: 0.14, depthTest: false, transparent: true, opacity: 0.9 }),
+      );
+      mesh.computeLineDistances();
     } else {
       const box = new THREE.Box3().setFromPoints(points);
       const centre = box.getCenter(new THREE.Vector3());
       const size = box.getSize(new THREE.Vector3());
       const radius = Math.max(0.12, Math.max(size.x, size.z) / 2);
-      mesh = kind === 'well'
-        ? new THREE.Mesh(new THREE.CylinderGeometry(radius, radius, 0.3, 20), material(kind))
-        : new THREE.Mesh(new THREE.OctahedronGeometry(Math.max(0.18, radius)), material(kind));
+      if (kind === 'well') {
+        // Flat circular outline, not a cylinder with invented height/depth.
+        const ring = Array.from({ length: 24 }, (_, i) => {
+          const angle = (2 * Math.PI * i) / 24;
+          return new THREE.Vector3(Math.cos(angle) * radius, 0, Math.sin(angle) * radius);
+        });
+        mesh = new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints(ring), markerMaterial(kind));
+      } else {
+        // Flat cross shows an unresolved end, not a physical plug or connection.
+        const arm = Math.max(0.18, radius);
+        mesh = new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints([
+          new THREE.Vector3(-arm, 0, -arm), new THREE.Vector3(arm, 0, arm),
+          new THREE.Vector3(-arm, 0, arm), new THREE.Vector3(arm, 0, -arm),
+        ]), markerMaterial(kind));
+      }
       mesh.position.copy(centre);
       mesh.updateMatrix();
     }
     mesh.name = object.name;
     mesh.renderOrder = 6;
     mesh.userData = { ...object.userData, r31InspectionKind: kind, presentationOnly: true,
+      routeDisplayKind: kind === 'route' ? 'DASHED_SOURCE_REFERENCE_LINE' : undefined,
+      markerDisplayKind: kind === 'well' ? 'FLAT_REFERENCE_WELL_RING' : kind === 'open' ? 'FLAT_UNRESOLVED_END_CROSS' : undefined,
+      sourceDisplayNote: kind === 'well'
+        ? 'Viitteellinen kaivomerkki, ei mitoitettu kaivo. Asennuskorkeus ja syvyys ovat varmistamatta.'
+        : kind === 'open' ? 'Avoimen päätepisteen viitemerkki, ei varmennettu liitos tai rakenne.' : undefined,
+      physicalWellGeometryClaim: false,
+      physicalPipeClaim: false, physicalZClaim: false, installationDepthClaim: false,
       ModelStage: 'WORK_TEST_VIEW', currentClaim: false, asBuiltClaim: false };
     group.add(mesh);
     counts[kind] += 1;
   });
   if (!group.children.length) return null;
-  group.userData = { source: R31_DRAINAGE_SOURCE, counts, presentationOnly: true };
+  group.userData = { source: R31_DRAINAGE_SOURCE, counts, presentationOnly: true,
+    referenceRoutesAreNotPipes: true, physicalZClaim: false };
   return group;
 }
 
@@ -272,10 +293,16 @@ export function buildR31InfraOverlay(THREE, routes, verticalReferenceM) {
     }));
     mesh.name = `R31_INFRA_${route.name}`;
     mesh.renderOrder = 6;
+    // Preserve P139AD's source/work-Z caveats on the selectable 3D review tube.
+    // The tube is presentation geometry, never evidence for a physical pipe
+    // elevation, a same-pipe identity or an actual network connection.
     mesh.userData = { label: route.label, sourceObject: route.sourceObject, system: route.system,
-      workZBasis: route.workZBasis, uncertain, verticalDatumStatus: 'OPEN_UNVERIFIED',
+      sourceXYState: 'PRESERVED_EXACT_FROM_G3_LOCUS_SITE_P02',
+      sourceZPreservedAsProvenance: true, sourceZNote: route.sourceZNote,
+      workZBasis: route.workZBasis, workZAssumption: true, refinable: true,
+      uncertain, verticalDatumStatus: 'OPEN_UNVERIFIED', Canonical: false,
       presentationOnly: true, ModelStage: 'WORK_TEST_VIEW', physicalZClaim: false,
-      currentClaim: false, asBuiltClaim: false };
+      samePipeClaim: false, topologyLinkClaim: false, currentClaim: false, asBuiltClaim: false };
     group.add(mesh);
     counts[route.system] += 1;
   }
