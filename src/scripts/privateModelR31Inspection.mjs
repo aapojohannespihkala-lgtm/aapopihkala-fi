@@ -1155,6 +1155,11 @@ export function buildR31RoofWaterOverlay(THREE, profile = R31_ROOFWATER_PROFILE)
     // seals the collector and blocks the actual drainage path.
     place('', new THREE.CylinderGeometry(w.diameterM / 2, w.diameterM / 2,
       w.groundY - w.bottomY, 32, 1, true), (w.bottomY + w.groundY) / 2);
+    // A collector sump still needs a bottom. The bottom is an ASSUMED depth,
+    // unlike the forbidden solid top cap that covered all of the grate's holes.
+    place('_BOTTOM', new THREE.CircleGeometry(w.diameterM / 2, 32), w.bottomY);
+    const collectorBottom = group.getObjectByName('R31_ROOFWATER_' + id + '_BOTTOM');
+    collectorBottom.rotation.x = -Math.PI / 2;
     // Merika Avantgarde 1780RS candidate: 340 mm outer base, 310 mm cover, 249 mm height.
     // Hollow walls and a perforated plate replace the capped 460 mm cone.
     place('_SKIRT', new THREE.CylinderGeometry(w.skirtDiameterM / 2, w.skirtDiameterM / 2,
