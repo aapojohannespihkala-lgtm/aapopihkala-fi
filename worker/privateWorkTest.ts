@@ -4707,6 +4707,16 @@ const C80_R32H_C26D_WORK_TEST_CANDIDATE = {
   expectedSha256: 'c26d99c11ffef90859ff17cad5edecf7ab22d811baddfa0506794ecdbef6294c',
 } as const satisfies PrivateWorkTestCandidate;
 
+// R34 99210ea5: R33 + facades (party wall attic gable, balcony frieze, west gable, north boarding, east brick); whole D (822/823) and 2F (824/825).
+const C80_R34_9921_WORK_TEST_CANDIDATE = {
+  id: 'c80-r34-99210ea5-d-2f-sc822-sc825-work-test',
+  label: 'C80 R34 - koko D ja yläkerta, julkisivut ja palomuuri, normaali ja huolto - WORK_TEST/HOST_HOLD',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/c80-r34-99210ea5-d-2f-sc822-sc825-work-test.glb`,
+  objectKey: 'work-test/c80-r34-99210ea5-d-2f-sc822-sc825-work-test.glb',
+  expectedSize: 65_219_168,
+  expectedSha256: '99210ea517c18cf24fa5f9702abe12ed2a8058a0c606d38b863e19802a270725',
+} as const satisfies PrivateWorkTestCandidate;
+
 // R33 3a226f98: R32H + D2F WC open door leaf out of the wall end and floor (COW); whole D (818/819) and 2F (820/821).
 const C80_R33_3A22_WORK_TEST_CANDIDATE = {
   id: 'c80-r33-3a226f98-d-2f-sc818-sc821-work-test',
@@ -4765,6 +4775,7 @@ const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
   D_C80_HI12_WORK_TEST_CANDIDATE,
   D_C80_SOURCE_ONLY_PREVIEW_CANDIDATE,
   D_C70_SOURCE_ONLY_PREVIEW_CANDIDATE,
+  C80_R34_9921_WORK_TEST_CANDIDATE,
   C80_R33_3A22_WORK_TEST_CANDIDATE,
   C80_R32H_C26D_WORK_TEST_CANDIDATE,
   C80_R31_9E0B_WORK_TEST_CANDIDATE,
