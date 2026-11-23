@@ -12,7 +12,7 @@
 //
 // A new model (e.g. R32) is added only after its RELEASED receipt: exact SHA,
 // scene/node checks and an explicit runtimeExterior list. Never by pattern.
-import { C80_R31_9E0B_SOURCE } from './privateModelC80R31ReviewRuntime.mjs';
+import { C80_R31_9E0B_SOURCE, C80_R32H_SOURCE } from './privateModelC80R31ReviewRuntime.mjs';
 
 export const R31_RUNTIME_EXTERIOR_KEYS = Object.freeze([
   'eastGable', 'gableBoarding', 'rainwater', 'carport', 'fiberBox',
@@ -53,6 +53,16 @@ export const R31_VIEWER_SOURCE_CAPABILITY_TABLE = Object.freeze({
     siteNetworks: true,
     runtimeExterior: Object.freeze({
       eastGable: true, gableBoarding: true, rainwater: true, carport: true, fiberBox: true,
+    }),
+  }),
+  // R32H c26d99c1 scenes 814-817: east K14 gable, gable boarding/infill/brick,
+  // T12 gutters + 5 downpipes (old west pipes removed) and P6 V8 with its 2022
+  // gutters are baked in (QA 30/30 + 23/23). The fibre box is not in the GLB.
+  [C80_R32H_SOURCE.glbSha256]: Object.freeze({
+    label: 'R32H c26d99c1 (scene814)',
+    siteNetworks: true,
+    runtimeExterior: Object.freeze({
+      eastGable: false, gableBoarding: false, rainwater: false, carport: false, fiberBox: true,
     }),
   }),
 });
