@@ -106,11 +106,28 @@ test('R32H viewer selection panel uses exact-source LK75 warning without GLB sou
   assert.doesNotMatch(page, /sourceVisibleCoverNode\s*=\s*11643/);
 });
 
-test('LK75 warning follows the mounted scene across BOTH 814 to 815, not a stale cached scene', () => {
-  const { sourceModel, outlet } = selectedLK75Fixture(815);
-  assert.equal(r32hLK75SelectionMetadataEntries(sourceModel, SHA, 815, outlet).length, 2);
-  // The same selected object is not part of scene 814 and must fail closed.
-  assert.deepEqual(r32hLK75SelectionMetadataEntries(sourceModel, SHA, 814, outlet), []);
+test('LK75 warning tracks mounted 814 -> 815 -> 816 -> 817 -> 814 and rejects stale scene identities', () => {
+  const sequence = [814, 815, 816, 817, 814];
+  const allScenes = [814, 815, 816, 817];
+  let previous = null;
+  for (const sceneIndex of sequence) {
+    const current = selectedLK75Fixture(sceneIndex);
+    for (const selected of [current.drain, current.outlet]) {
+      const entries = r32hLK75SelectionMetadataEntries(current.sourceModel, SHA, sceneIndex, selected);
+      assert.equal(entries.length, 2, `LK75 missing from mounted scene ${sceneIndex}`);
+      for (const otherSceneIndex of allScenes.filter((index) => index !== sceneIndex)) {
+        assert.deepEqual(r32hLK75SelectionMetadataEntries(current.sourceModel, SHA, otherSceneIndex, selected), [],
+          `LK75 leaked from ${sceneIndex} into stale scene ${otherSceneIndex}`);
+      }
+    }
+    assert.deepEqual(r32hLK75SelectionMetadataEntries(current.sourceModel, SHA, sceneIndex, current.tile), []);
+    if (previous) {
+      // A selected object from the previous model session is not a descendant
+      // of the newly mounted scene, even when its scene index repeats at 814.
+      assert.deepEqual(r32hLK75SelectionMetadataEntries(current.sourceModel, SHA, sceneIndex, previous.outlet), []);
+    }
+    previous = current;
+  }
   const page = readFileSync(new URL('../../src/pages/private-model/index.astro', import.meta.url), 'utf8');
   assert.ok(page.includes('const lk75ActiveScene = modelRoot.children[0] ?? null;'));
   assert.ok(page.includes('layersGltf.scenes?.indexOf(lk75ActiveScene)'));
