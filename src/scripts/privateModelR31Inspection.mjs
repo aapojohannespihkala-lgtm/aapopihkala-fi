@@ -191,10 +191,10 @@ function worldPoints(THREE, object) {
 }
 
 /**
- * Drain objects of the verified source scene as visible solids. The source
- * draws them as 1-px lines (routes: line strips, wells and open ends: rings),
- * so routes become tubes along the exact source vertices and wells/open ends
- * become markers at the exact source centre. Null on identity mismatch.
+ * Source-bound drainage presentation. Routes are dashed reference lines, never
+ * physical pipes: their world vertices are retained, but installation Z and
+ * cover are unresolved. Wells/open ends remain symbolic markers.
+ * Null on source-scene identity mismatch.
  */
 export function buildR31DrainageOverlay(THREE, gltf) {
   const json = gltf?.parser?.json;
@@ -219,13 +219,14 @@ export function buildR31DrainageOverlay(THREE, gltf) {
     if (points.length < 2) return;
     let mesh;
     if (kind === 'route') {
-      // Line strips in source order; LINES pairs are joined the same way.
-      const path = new THREE.CurvePath();
-      for (let i = 1; i < points.length; i += 1) {
-        if (points[i].distanceTo(points[i - 1]) > 1e-6) path.add(new THREE.LineCurve3(points[i - 1], points[i]));
-      }
-      if (!path.curves.length) return;
-      mesh = new THREE.Mesh(new THREE.TubeGeometry(path, Math.max(4, path.curves.length * 6), 0.07, 8, false), material(kind));
+      // The source provides a reference route, not a surveyed or installed pipe.
+      // Do not create a physical-radius tube or invent terrain cover or Z.
+      if (!points.some((point, i) => i > 0 && point.distanceTo(points[i - 1]) > 1e-6)) return;
+      mesh = new THREE.Line(
+        new THREE.BufferGeometry().setFromPoints(points),
+        new THREE.LineDashedMaterial({ color: R31_INSPECTION_COLORS.route, dashSize: 0.24, gapSize: 0.14, depthTest: false, transparent: true, opacity: 0.9 }),
+      );
+      mesh.computeLineDistances();
     } else {
       const box = new THREE.Box3().setFromPoints(points);
       const centre = box.getCenter(new THREE.Vector3());
@@ -240,12 +241,15 @@ export function buildR31DrainageOverlay(THREE, gltf) {
     mesh.name = object.name;
     mesh.renderOrder = 6;
     mesh.userData = { ...object.userData, r31InspectionKind: kind, presentationOnly: true,
+      routeDisplayKind: kind === 'route' ? 'DASHED_SOURCE_REFERENCE_LINE' : undefined,
+      physicalPipeClaim: false, physicalZClaim: false, installationDepthClaim: false,
       ModelStage: 'WORK_TEST_VIEW', currentClaim: false, asBuiltClaim: false };
     group.add(mesh);
     counts[kind] += 1;
   });
   if (!group.children.length) return null;
-  group.userData = { source: R31_DRAINAGE_SOURCE, counts, presentationOnly: true };
+  group.userData = { source: R31_DRAINAGE_SOURCE, counts, presentationOnly: true,
+    referenceRoutesAreNotPipes: true, physicalZClaim: false };
   return group;
 }
 
