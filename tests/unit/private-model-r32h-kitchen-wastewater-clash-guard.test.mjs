@@ -87,3 +87,60 @@ test('viewer selection connects guard to mounted R32H scene without mutating GLB
   assert.ok(page.includes('layersGltf.scenes?.indexOf(kitchenWastewaterMountedScene)'));
   assert.doesNotMatch(page, /nodes\[13310\]\.mesh\s*=/);
 });
+
+function unboundLoaderSelection(sceneIndex = 814, selectedId = 13314) {
+  const f = selectedFixture(sceneIndex, selectedId);
+  const positions = [[0, 0, 0], [1, 1, 1], [0.5, 0.2, 0.1], [0.6, 0.8, 0.7]];
+  const attr = { itemSize: 3, count: positions.length,
+    getX: (i) => positions[i][0], getY: (i) => positions[i][1],
+    getZ: (i) => positions[i][2] };
+  const meshIndex = f.json.nodes[selectedId].mesh;
+  f.json.meshes = [];
+  f.json.meshes[meshIndex] = { primitives: [{ attributes: { POSITION: 0 } }] };
+  f.json.accessors = [{ componentType: 5126, type: 'VEC3',
+    count: positions.length, min: [0, 0, 0], max: [1, 1, 1] }];
+  f.selected.isMesh = true;
+  f.selected.geometry = { getAttribute: (key) => key === 'position' ? attr : null };
+  f.scene.traverse = (visit) => visit(f.selected);
+  f.sourceModel.parser.associations.delete(f.selected);
+  return { ...f, positions, attr, meshIndex };
+}
+
+test('missing real GLTFLoader mesh association recovers only exact original source node', () => {
+  for (const { sceneIndex } of Object.values(C80_R32H_VIEWS)) {
+    for (const id of ids) {
+      const f = unboundLoaderSelection(sceneIndex, id);
+      const entries = r32hKitchenWastewaterClashSelectionEntries(f.sourceModel, sha, sceneIndex, f.selected);
+      assert.equal(entries.length, 2, 'scene ' + sceneIndex + ' original node ' + id);
+    }
+  }
+});
+
+test('unbound fallback fails closed for conflicting binding, wrong parent, mesh and geometry', () => {
+  const f = unboundLoaderSelection();
+  const run = () => r32hKitchenWastewaterClashSelectionEntries(f.sourceModel, sha, 814, f.selected);
+  assert.equal(run().length, 2);
+  f.sourceModel.parser.associations.set(f.selected, { nodes: 999 });
+  assert.deepEqual(run(), [], 'never override an explicit contradictory association');
+  f.sourceModel.parser.associations.delete(f.selected);
+  f.sourceModel.parser.associations.set(f.selected, { meshes: 999 });
+  assert.deepEqual(run(), [], 'never override an explicit contradictory mesh binding');
+  f.sourceModel.parser.associations.delete(f.selected);
+  f.selected.parent.name = 'UNRELATED_2F_HOST';
+  assert.deepEqual(run(), [], 'never infer a source from node name without exact parent');
+  f.selected.parent.name = f.json.nodes[f.json.scenes[814].nodes[0]].name;
+  f.positions[1][0] += 0.005;
+  assert.deepEqual(run(), [], 'vertex bounds mismatch');
+  f.positions[1][0] -= 0.005;
+  f.json.meshes[f.meshIndex].primitives[0].attributes.POSITION = 999;
+  assert.deepEqual(run(), [], 'wrong source accessor');
+  f.json.meshes[f.meshIndex].primitives[0].attributes.POSITION = 0;
+  const duplicate = { ...f.selected, parent: f.parent };
+  f.scene.traverse = (visit) => { visit(f.selected); visit(duplicate); };
+  assert.deepEqual(run(), [], 'two indistinguishable loader clones must not be attributed');
+  f.scene.traverse = (visit) => visit(f.selected);
+  f.sourceModel.parser.associations.set(f.parent, { nodes: 999 });
+  assert.deepEqual(run(), [], 'contradictory parent source binding');
+  f.sourceModel.parser.associations.set(f.parent, { nodes: f.json.scenes[814].nodes[0] });
+  assert.equal(run().length, 2, 'restored source identity remains accepted');
+});
