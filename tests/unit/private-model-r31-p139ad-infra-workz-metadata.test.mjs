@@ -160,7 +160,7 @@ test('P139AD original work-Z source notes fit the 180-character viewer metadata 
   const end = page.indexOf('] as const;', start);
   assert.ok(start >= 0 && end > start, 'original P139AD route literals must exist');
   const block = page.slice(start, end);
-  const notes = [...block.matchAll(/sourceZNote:\\s*'([^']+)'/g)].map((match) => match[1]);
+  const notes = [...block.matchAll(/sourceZNote:\s*'([^']+)'/g)].map((match) => match[1]);
   assert.equal(notes.length, 4, 'all four water and sewer work-Z routes need source caveats');
   for (const [index, sourceZNote] of notes.entries()) {
     assert.ok(sourceZNote.trim().length > 0, 'empty source-Z warning ' + index);
