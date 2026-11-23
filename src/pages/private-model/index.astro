@@ -2163,6 +2163,17 @@ const title = 'Private 3D viewer';
             </label>
             <div id="r32h-nw-t12-preview-note" class="layer-note">Oletuksellinen purku Merika-ehdokkaan sihdin yläpuolelle, ei mitattu korko, varmistettu tuote eikä toteumatieto. Ilman valintaa näkyy alkuperäinen R32H-geometria.</div>
           </div>
+          <div id="r32h-nw-p7-source-preview-layer" class="layer-section" hidden>
+            <label class="layer-row">
+              <span>Luoteissyöksy + seinänpuoleinen Elegance-kaivo (P7 WORK_TEST)</span>
+            </label>
+            <input id="r32h-nw-p7-local-glb" type="file" accept=".glb,model/gltf-binary" aria-describedby="r32h-nw-p7-source-note" disabled />
+            <label class="layer-row">
+              <input id="r32h-nw-p7-source-optin" type="checkbox" aria-describedby="r32h-nw-p7-source-note" disabled />
+              <span>Näytä P7-kuvasovitus. Palauta alkuperäinen poistamalla valinta.</span>
+            </label>
+            <div id="r32h-nw-p7-source-note" class="layer-note">Valitse P7-työpaketista paikallinen GLB (191 100 tavua). Tiedosto tarkistetaan SHA-256:lla ja käsitellään vain selaimessa. Vain R32H scene 814/815, käyttäjän erillisellä valinnalla. 55 mm sivusiirto ja 20 mm välys ovat WORK_TEST-oletuksia, eivät mitattuja asennuksia.</div>
+          </div>
           <div id="c80-shell-focus-layer" hidden>
             <label class="layer-row">
               <input id="c80-shell-focus" type="checkbox" checked />
@@ -2761,6 +2772,10 @@ const title = 'Private 3D viewer';
       import { resolveC80R31TechnicalReviewRoots, c80R31RoofWaterSystemOf } from '../../scripts/privateModelC80R31TechnicalReview.mjs';
       // @ts-ignore - source-exact reversible runtime COW has dedicated unit regressions.
       import { createR32HT12NorthwestWorkTestReceiver } from '../../scripts/privateModelR32HT12NorthwestReceiver.mjs';
+      // @ts-ignore - new opt-in P7 GLB source-exact adapter has focused Node regressions.
+      import { R32H_NW_PHOTO_SPOUT_SOURCE, createR32HMerikaNWPhotoSpoutReceiver } from '../../scripts/privateModelR32HMerikaNWPhotoSpoutReceiver.mjs';
+      // @ts-ignore - reversible source-bound P7 well overlay has 27-mesh parity tests.
+      import { createR32HMerikaP7WellOverlay } from '../../scripts/privateModelR32HMerikaP7WellOverlay.mjs';
       // @ts-ignore - pure overlay builders, THREE injected.
       import { R31_DRAINAGE_SOURCE, R31_EXTERIOR_DONORS, buildR31DrainageOverlay, buildR31RoofWaterOverlay, buildR31InfraOverlay, buildR31FiberOverlay, buildR31StormOverlay, buildR31LowVoltageOverlay, buildR31ExteriorDonorOverlay, buildR31WestGableInfill, buildR31GableBoarding, buildR31WestBrickCompletion, buildR31FiberEntryBox, buildR31FiberEntryLink, isR31WestGableBoardingSource, R31_GABLE_BOARDING_COLOR, isR31ReplacedWestDownpipe, loadR31EastGableOverlay, relocateR31Downpipes, syncR31ExteriorDonorMaterials, setR31SiteNetworkLayerMode } from '../../scripts/privateModelR31Inspection.mjs';
       import { R31_LOCUS_FIBER_LINES } from '../../scripts/privateModelR31LocusFiber.mjs';
@@ -15093,6 +15108,10 @@ const title = 'Private 3D viewer';
       const v26LayersSourceSha = 'cff2dbead53b7836747e10ef359637114ff723690ec380e313cec817e4f71d31';
       let layersGltf: any = null;
       let r32hNwT12WorkTestPreview: { root: THREE.Object3D; dispose: () => void } | null = null;
+      let r32hNwP7Preview: { root: THREE.Object3D; dispose: () => void } | null = null;
+      let r32hNwP7Gltf: any = null;
+      let r32hNwP7Sha: string | null = null;
+      let r32hNwP7Loading = false;
       let v69C035LobbyPresentation: ReturnType<typeof createV69C035WhiteLobbyPresentation> | null = null;
       let v69C020UpperGlassPresentation: ReturnType<typeof createV69C020UpperGlassPresentation> | null = null;
       let layersExpectedSha: string | null = null;
@@ -15231,7 +15250,68 @@ const title = 'Private 3D viewer';
       const technicalReviewInput = document.querySelector<HTMLInputElement>('#layers-technical-review-on')!;
       const nwT12PreviewRow = document.querySelector<HTMLElement>('#r32h-nw-t12-preview-layer')!;
       const nwT12PreviewInput = document.querySelector<HTMLInputElement>('#r32h-nw-t12-preview-optin')!;
-      nwT12PreviewInput.addEventListener('change', () => refreshLayers());
+      const nwP7Row = document.querySelector<HTMLElement>('#r32h-nw-p7-source-preview-layer')!;
+      const nwP7FileInput = document.querySelector<HTMLInputElement>('#r32h-nw-p7-local-glb')!;
+      const nwP7OptInInput = document.querySelector<HTMLInputElement>('#r32h-nw-p7-source-optin')!;
+      nwT12PreviewInput.addEventListener('change', () => {
+        if (nwT12PreviewInput.checked) nwP7OptInInput.checked = false;
+        refreshLayers();
+      });
+      nwP7OptInInput.addEventListener('change', () => {
+        if (nwP7OptInInput.checked) nwT12PreviewInput.checked = false;
+        refreshLayers();
+      });
+      // Raw local GLB only, never uploaded or fetched from an untrusted URL.
+      // This file handler authenticates the actual bytes, not a file name or
+      // the separately documented outer ZIP reference SHA.
+      nwP7FileInput.addEventListener('change', () => {
+        const file = nwP7FileInput.files?.[0];
+        if (!file || r32hNwP7Loading) return;
+        const version = modelLoadVersion;
+        const selectedScene = layersGltf?.scenes?.indexOf(modelRoot.children[0]) ?? -1;
+        if (layersLoadedSha !== C80_R32H_SOURCE.glbSha256 ||
+            ![814, 815].includes(selectedScene)) {
+          nwP7FileInput.value = '';
+          return;
+        }
+        nwP7OptInInput.checked = false;
+        r32hNwP7Preview?.dispose();
+        r32hNwP7Preview = null;
+        r32hNwP7Gltf = null;
+        r32hNwP7Sha = null;
+        nwP7OptInInput.disabled = true;
+        r32hNwP7Loading = true;
+        nwP7FileInput.disabled = true;
+        canvas.dataset.r32hNwP7Source = 'loading';
+        void (async () => {
+          try {
+            if (file.size !== 191100) throw new Error('P7_SOURCE_LENGTH_MISMATCH');
+            const bytes = await file.arrayBuffer();
+            const digest = await crypto.subtle.digest('SHA-256', bytes);
+            const sha = [...new Uint8Array(digest)].map(v => v.toString(16).padStart(2, '0')).join('');
+            if (sha !== R32H_NW_PHOTO_SPOUT_SOURCE.donorPreviewSha256)
+              throw new Error('P7_SOURCE_SHA_MISMATCH');
+            const parsed = await new GLTFLoader().parseAsync(bytes, '/private-model/');
+            if (version !== modelLoadVersion ||
+                layersLoadedSha !== C80_R32H_SOURCE.glbSha256 ||
+                (layersGltf?.scenes?.indexOf(modelRoot.children[0]) ?? -1) !== selectedScene)
+              throw new Error('P7_SOURCE_MODEL_CHANGED');
+            r32hNwP7Gltf = parsed;
+            r32hNwP7Sha = sha;
+            canvas.dataset.r32hNwP7Source = 'EXACT_LOCAL_GLB_VERIFIED';
+            status.textContent = 'P7-lähde varmennettu. Aktivoi erillinen WORK_TEST-esikatselu halutessasi.';
+          } catch {
+            r32hNwP7Gltf = null;
+            r32hNwP7Sha = null;
+            canvas.dataset.r32hNwP7Source = 'REJECTED';
+            status.textContent = 'P7-GLB:tä ei hyväksytty. Valitse täsmälleen oikea paikallinen työmallitiedosto.';
+          } finally {
+            r32hNwP7Loading = false;
+            nwP7FileInput.value = '';
+            refreshLayers();
+          }
+        })();
+      });
       let technicalReviewOn = false;
       let concealedTechnical: ReturnType<typeof createConcealedTechnicalPresentation> | null = null;
       let technicalReview: ReturnType<typeof createTechnicalReviewPresentation> | null = null;
@@ -15384,6 +15464,13 @@ const title = 'Private 3D viewer';
           nwT12PreviewInput.disabled = !nwT12SourceAllowed;
           // Switching to another model/floor revokes the earlier user choice.
           if (!nwT12SourceAllowed) nwT12PreviewInput.checked = false;
+          nwP7Row.hidden = !nwT12SourceAllowed;
+          nwP7FileInput.disabled = !nwT12SourceAllowed || r32hNwP7Loading;
+          nwP7OptInInput.disabled = !nwT12SourceAllowed || !r32hNwP7Gltf;
+          if (!nwT12SourceAllowed) nwP7OptInInput.checked = false;
+          if (nwP7OptInInput.checked) nwT12PreviewInput.checked = false;
+          const nwP7PreviewRequested = nwT12SourceAllowed &&
+            !!r32hNwP7Gltf && !!r32hNwP7Sha && nwP7OptInInput.checked;
           const nwT12PreviewRequested = nwT12SourceAllowed && nwT12PreviewInput.checked;
           if (r32hNwT12WorkTestPreview &&
               (!nwT12PreviewRequested || r32hNwT12WorkTestPreview.root !== root)) {
@@ -15400,6 +15487,37 @@ const title = 'Private 3D viewer';
             canvas.dataset.r32hNwT12Cow = applied ? 'WORK_TEST_COW_APPLIED' : receiver.status;
             if (applied) r32hNwT12WorkTestPreview = { root, dispose: receiver.dispose };
             else receiver.dispose();
+          }
+          if (r32hNwP7Preview &&
+              (!nwP7PreviewRequested || r32hNwP7Preview.root !== root)) {
+            r32hNwP7Preview.dispose();
+            r32hNwP7Preview = null;
+            delete canvas.dataset.r32hNwP7Cow;
+          }
+          if (!nwP7PreviewRequested) delete canvas.dataset.r32hNwP7Cow;
+          if (nwP7PreviewRequested && root && !r32hNwP7Preview) {
+            const receiver = createR32HMerikaNWPhotoSpoutReceiver({
+              gltf: layersGltf,
+              originalSha256: layersLoadedSha,
+              sceneIndex,
+              previewGltf: r32hNwP7Gltf,
+              previewSha256: r32hNwP7Sha,
+              // ZIP is NOT downloaded here: this is a source-policy reference,
+              // while the raw P7 GLB itself is cryptographically verified above.
+              previewZipSha256: R32H_NW_PHOTO_SPOUT_SOURCE.donorZipSha256,
+              explicitPreviewOptIn: true,
+            });
+            const overlay = createR32HMerikaP7WellOverlay({
+              siteGltf: r32hNwP7Gltf,
+              siteSha256: r32hNwP7Sha,
+              targetScene: root,
+              sourceReceiver: receiver,
+            });
+            const applied = overlay.available && overlay.setApplied(true);
+            canvas.dataset.r32hNwP7Cow =
+              applied ? 'WORK_TEST_P7_SOURCE_EXACT_APPLIED' : overlay.status;
+            if (applied) r32hNwP7Preview = {root, dispose: overlay.dispose};
+            else { overlay.dispose(); receiver.dispose(); }
           }
           const filterActive = canvas.dataset.objectVisibilityFilter === 'active';
           if (filterActive) {
@@ -15587,6 +15705,16 @@ const title = 'Private 3D viewer';
       onLayersModelLoaded = (gltf, session) => {
         // Each GLB load is a fresh opt-in boundary, even when its SHA matches.
         nwT12PreviewInput.checked = false;
+        nwP7OptInInput.checked = false;
+        if (r32hNwP7Preview) {
+          r32hNwP7Preview.dispose();
+          r32hNwP7Preview = null;
+        }
+        r32hNwP7Gltf = null;
+        r32hNwP7Sha = null;
+        nwP7FileInput.value = '';
+        delete canvas.dataset.r32hNwP7Cow;
+        delete canvas.dataset.r32hNwP7Source;
         if (r32hNwT12WorkTestPreview) {
           r32hNwT12WorkTestPreview.dispose();
           r32hNwT12WorkTestPreview = null;
