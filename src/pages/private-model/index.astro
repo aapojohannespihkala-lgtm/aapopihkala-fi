@@ -5077,15 +5077,17 @@ const title = 'Private 3D viewer';
           Boolean(layersGltf?.parser?.json);
         bathroomCInput.disabled = !bathScope;
         if (!bathScope) bathroomCInput.checked = false;
-        // @ts-ignore - runtime source and Three.js bindings are validated by the JS guard.
-        bathroomCOverlay = createR22BathroomCEmphasis({
+        // Runtime inputs are checked by the JS exact-source receiver.
+        // Keep the payload separate from the .mjs JSDoc-inferred signature.
+        const r22BathroomCArgs: any = {
           glbSha256: layersLoadedSha,
           sceneIndex: bathIndex,
           json: layersGltf?.parser?.json,
           sceneRoot: bathRoot,
           THREE,
           enabled: bathScope && bathroomCInput.checked,
-        });
+        };
+        bathroomCOverlay = createR22BathroomCEmphasis(r22BathroomCArgs);
         canvas.dataset.r22BathroomC = bathroomCOverlay.status;
         canvas.dataset.r22BathroomCCount = String(bathroomCOverlay.count);
 
