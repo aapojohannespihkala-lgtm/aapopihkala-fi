@@ -9,6 +9,7 @@ import {
   C80_R31_TECHNICAL_REVIEW_ADDITIONS, c80R31TechnicalReviewNodeSet,
 } from '../../src/scripts/privateModelC80R31TechnicalReview.mjs';
 import { C80_620R22_REVIEW_MEP_NODES } from '../../src/scripts/privateModelC80620R22FloorRuntime.mjs';
+import { R31_DRAINAGE_PROFILE } from '../../src/scripts/privateModelR31DrainageProfile.mjs';
 
 test('drain kinds come only from source representationKind', () => {
   assert.equal(r31DrainageKind({ representationKind: 'wellMarkerWork' }), 'well');
@@ -48,6 +49,41 @@ test('drainage overlay keeps source placement, counts kinds and fails closed on 
   assert.ok(route.geometry.boundingBox.max.x > 4.9 && route.geometry.boundingBox.min.z < -2.9, 'tube follows the source strip');
   assert.equal(buildR31DrainageOverlay(THREE, drainSource('other')), null);
   assert.equal(buildR31DrainageOverlay(THREE, drainSource(undefined, 'M5A-R2')), null);
+});
+
+test('owner 23.11: profiled drains are real pipes 1 m+ below ground, wells reach the ground, open ends not drawn', () => {
+  const scenes = Array.from({ length: 60 }, () => new THREE.Group());
+  const scene = scenes[59];
+  scene.userData = { Pass: R31_DRAINAGE_SOURCE.pass };
+  const route = new THREE.Group();
+  route.userData = { representationKind: 'referenceRouteWork', sourceConnection: 'PVK_DISCHARGE' };
+  route.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([
+    new THREE.Vector3(26.15, -1.277, -5.405), new THREE.Vector3(28.65, -1.277, -2.8)]), new THREE.LineBasicMaterial()));
+  const well = new THREE.Mesh(new THREE.BoxGeometry(0.44, 0.01, 0.44), new THREE.MeshBasicMaterial());
+  well.userData = { representationKind: 'wellMarkerWork', sourceNodeId: 'PVK' };
+  well.position.set(26.15, -0.87, -5.405);
+  const open = new THREE.Mesh(new THREE.BoxGeometry(0.36, 0.01, 0.36), new THREE.MeshBasicMaterial());
+  open.userData = { representationKind: 'unresolvedBoundaryMarker', sourceLinkG2IdCandidate: 'G2_DRAIN_LINK_PVK_DISCHARGE_001' };
+  open.position.set(28.65, -1.277, -2.8);
+  scene.add(route, well, open);
+  const json = { scenes: scenes.map((_, i) => ({ name: i === 59 ? R31_DRAINAGE_SOURCE.sceneName : `s${i}` })) };
+  const overlay = buildR31DrainageOverlay(THREE, { scenes, parser: { json } });
+  assert.deepEqual(overlay.userData.counts, { well: 1, route: 1, open: 1 });
+  assert.deepEqual(overlay.userData.profiled, { route: 1, well: 1 });
+  assert.equal(overlay.children.length, 2, 'open end is told in the card, not drawn');
+  const pipe = overlay.children.find((c) => c.userData.r31InspectionKind === 'route');
+  pipe.geometry.computeBoundingBox();
+  const r = R31_DRAINAGE_PROFILE.routes.PVK_DISCHARGE;
+  assert.ok(pipe.geometry.boundingBox.max.y <= r.points[0][1] + R31_DRAINAGE_PROFILE.pipeRadiusM + 1e-6);
+  assert.ok(pipe.geometry.boundingBox.max.y < -1.277 - 1.0, 'well below the old source line');
+  assert.equal(pipe.userData.drainFlow, 'PVK → purkupää');
+  assert.match(pipe.userData.drainUncertainty, /^Oletus:/);
+  const w = overlay.children.find((c) => c.userData.r31InspectionKind === 'well');
+  w.geometry.computeBoundingBox();
+  const wp = R31_DRAINAGE_PROFILE.wells.PVK;
+  const box = w.geometry.boundingBox.clone().applyMatrix4(w.matrix);
+  assert.ok(Math.abs(box.max.y - wp.groundY) < 1e-6 && Math.abs(box.min.y - wp.bottomY) < 1e-6);
+  assert.equal(w.userData.drainWell, 'PVK');
 });
 
 test('infra overlay maps G1 XY + work elevation into the Y-up frame and marks parcels uncertain', () => {
