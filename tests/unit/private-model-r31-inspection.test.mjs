@@ -7,6 +7,7 @@ import {
 } from '../../src/scripts/privateModelR31Inspection.mjs';
 import {
   C80_R31_TECHNICAL_REVIEW_ADDITIONS, c80R31TechnicalReviewNodeSet,
+  C80_R32H_ROOFWATER_REVIEW_ROOTS, c80R31RoofWaterSystemOf,
 } from '../../src/scripts/privateModelC80R31TechnicalReview.mjs';
 import { C80_620R22_REVIEW_MEP_NODES } from '../../src/scripts/privateModelC80620R22FloorRuntime.mjs';
 import { R31_DRAINAGE_PROFILE } from '../../src/scripts/privateModelR31DrainageProfile.mjs';
@@ -138,6 +139,29 @@ test('R31 technical review keeps R22 roots, named R31 additions and source-tagge
   // A renamed addition is not the same source: fail closed.
   nodes[13488] = { name: 'SOMETHING_ELSE' };
   assert.equal(c80R31TechnicalReviewNodeSet({ nodes }).size, 0);
+});
+
+test('R32H technical review keeps its baked gutters and downpipes as roof water (owner 23.11 10.50)', async () => {
+  const { C80_R32H_SOURCE } = await import('../../src/scripts/privateModelC80R31ReviewRuntime.mjs');
+  const nodes = Array.from({ length: 13813 }, (_, i) => ({ name: `N${i}` }));
+  for (const { node, name } of C80_R31_TECHNICAL_REVIEW_ADDITIONS) nodes[node] = { name };
+  for (const { node, name } of C80_R32H_ROOFWATER_REVIEW_ROOTS) nodes[node] = { name };
+  const r32h = c80R31TechnicalReviewNodeSet({ nodes }, C80_R32H_SOURCE.glbSha256);
+  for (const { node } of C80_R32H_ROOFWATER_REVIEW_ROOTS) assert.ok(r32h.has(node), `R32H keeps ${node}`);
+  // R31 (other SHA) never gains R32H-only nodes; a renamed root drops only the roof water.
+  const r31 = c80R31TechnicalReviewNodeSet({ nodes }, 'other');
+  for (const { node } of C80_R32H_ROOFWATER_REVIEW_ROOTS) assert.ok(!r31.has(node));
+  nodes[13808] = { name: 'SOMETHING_ELSE' };
+  const renamed = c80R31TechnicalReviewNodeSet({ nodes }, C80_R32H_SOURCE.glbSha256);
+  assert.ok(renamed.size > 0 && !renamed.has(13808) && !renamed.has(13812));
+  // Classification: a downpipe mesh under the exact root is SADEVESI, anything else null.
+  const root = new THREE.Group();
+  const carrier = new THREE.Group(); carrier.name = 'R32_T12_GUTTERS_AND_5_DOWNPIPES_OWNER_POINTS';
+  const pipe = new THREE.Mesh(); pipe.name = 'T12_2026_AB_ITA_ETELA_DOWNPIPE_SWAN_NECK_ROUTE_R32';
+  carrier.add(pipe); root.add(carrier);
+  const wall = new THREE.Mesh(); wall.name = 'K14_A_GABLE_EXTERIOR_FACE_R32_CLIPPED'; root.add(wall);
+  assert.equal(c80R31RoofWaterSystemOf(pipe, root), 'SADEVESI');
+  assert.equal(c80R31RoofWaterSystemOf(wall, root), null);
 });
 
 test('exterior donors keep only their own source parts and check the scene name', async () => {
