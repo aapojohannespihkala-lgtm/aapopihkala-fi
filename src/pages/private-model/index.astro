@@ -2751,7 +2751,7 @@ const title = 'Private 3D viewer';
       import { V90_H20_SOURCE_SHA256 } from '../../scripts/privateModelC80R2V90H20LayerSourceProfile.mjs';
       import { V90_IV_P04_SOURCE_SHA256 } from '../../scripts/privateModelC80R2V90IVP04LayerSourceProfile.mjs';
       // @ts-ignore - R31 review roots and inspection overlays have unit coverage.
-      import { resolveC80R31TechnicalReviewRoots } from '../../scripts/privateModelC80R31TechnicalReview.mjs';
+      import { resolveC80R31TechnicalReviewRoots, c80R31RoofWaterSystemOf } from '../../scripts/privateModelC80R31TechnicalReview.mjs';
       // @ts-ignore - pure overlay builders, THREE injected.
       import { R31_DRAINAGE_SOURCE, R31_EXTERIOR_DONORS, buildR31DrainageOverlay, buildR31RoofWaterOverlay, buildR31InfraOverlay, buildR31FiberOverlay, buildR31StormOverlay, buildR31LowVoltageOverlay, buildR31ExteriorDonorOverlay, buildR31WestGableInfill, buildR31GableBoarding, buildR31WestBrickCompletion, buildR31FiberEntryBox, buildR31FiberEntryLink, isR31WestGableBoardingSource, R31_GABLE_BOARDING_COLOR, isR31ReplacedWestDownpipe, loadR31EastGableOverlay, relocateR31Downpipes, syncR31ExteriorDonorMaterials, setR31SiteNetworkLayerMode } from '../../scripts/privateModelR31Inspection.mjs';
       import { R31_LOCUS_FIBER_LINES } from '../../scripts/privateModelR31LocusFiber.mjs';
@@ -15235,7 +15235,8 @@ const title = 'Private 3D viewer';
         }),
         line: new THREE.LineBasicMaterial({ color: 0x9aa1a9, transparent: true, opacity: 0.14, depthWrite: false }),
         // Opaque-looking but in the transparent pass so they draw after the grey shell.
-        systems: Object.fromEntries(([['SAHKO', 0xff7a1a], ['VESI', 0x1e88e5], ['VESI_LV', 0xe53935], ['IV', 0x2fa84f], ['VIEMARI', 0x8e44ad]] as const)
+        // SADEVESI = roof water (gutters, downpipes), the cyan of the Kattovedet layer.
+        systems: Object.fromEntries(([['SAHKO', 0xff7a1a], ['VESI', 0x1e88e5], ['VESI_LV', 0xe53935], ['IV', 0x2fa84f], ['SADEVESI', 0x26c6da], ['VIEMARI', 0x8e44ad]] as const)
           // Self-lit share keeps large solids (NIBE heater, H20 manifold) in
           // their system color on faces turned away from the lights.
           .map(([key, color]) => [key, new THREE.MeshStandardMaterial({
@@ -15472,7 +15473,8 @@ const title = 'Private 3D viewer';
               const layerIdByRoot = new Map<THREE.Object3D, string>(bindings.map(binding => [binding.root, binding.id]));
               technicalReview = createTechnicalReviewPresentation(root,
                 [...reviewRoots, ...filterNonTechnicalBoundObjects(technical.boundObjects, layersLoadedSha).map((item: { object: THREE.Object3D }) => item.object)], createTechnicalReviewMaterials,
-                (object: THREE.Object3D) => refineTechnicalReviewSystem(technicalReviewSystemOf(object, root) ?? technicalReviewLayerSystemOf(object, root, layerIdByRoot), object, root));
+                (object: THREE.Object3D) => c80R31RoofWaterSystemOf(object, root) ??
+                  refineTechnicalReviewSystem(technicalReviewSystemOf(object, root) ?? technicalReviewLayerSystemOf(object, root, layerIdByRoot), object, root));
               technicalReviewInput.checked = technicalReviewOn;
               technicalReview.apply(technicalReviewOn);
               canvas.dataset.technicalReview = technicalReviewOn && technicalReview.applied ? 'on' : 'off';
