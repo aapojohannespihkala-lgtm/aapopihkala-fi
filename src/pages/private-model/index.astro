@@ -2759,6 +2759,7 @@ const title = 'Private 3D viewer';
       import { R31_LOCUS_LOWVOLT_LINES, R31_LOCUS_LOWVOLT_SOURCE } from '../../scripts/privateModelR31LocusLowVoltage.mjs';
       import { r31SiteLayerKeyForNetwork } from '../../scripts/privateModelR31SiteLayerKey.mjs';
       import { r31ViewerSourceCapabilities, r31RuntimeExteriorAllowed } from '../../scripts/privateModelR31SourceCapabilities.mjs';
+       import { syncR31SourceCapabilityMountDataset } from '../../scripts/privateModelR31SourceCapabilityMountDataset.mjs';
       import { resolveTechnicalReviewRoots, createTechnicalReviewPresentation, technicalReviewSystemOf, technicalReviewLayerSystemOf, refineTechnicalReviewSystem, filterNonTechnicalBoundObjects } from '../../scripts/privateModelTechnicalReviewPresentation.mjs';
       import { resolveConcealedTechnicalObjects, createConcealedTechnicalPresentation } from '../../scripts/privateModelConcealedTechnicalPresentation.mjs';
       import { K17_RAIL900_SOURCE_SHA256 } from '../../scripts/privateModelK17Rail900LayerSourceProfile.mjs';
@@ -3463,6 +3464,7 @@ const title = 'Private 3D viewer';
       let beforeLayersSceneChange = () => {};
       let r31InspectionExitHook = () => {};
       let r31SyncExteriorDonorsHook = () => {};
+       let r31SourceCapabilityMountHook = () => {};
       let onLayersModelLoaded = (_gltf: any, _session: any) => {};
       let onLayersStandardPreset = (_preset: StandardViewPreset) => {};
 
@@ -3832,6 +3834,9 @@ const title = 'Private 3D viewer';
         clearPointMeasureOnSceneChange?.();
         modelRoot.clear();
         if (root) modelRoot.add(root);
+        // The SHA is set by onLayersModelLoaded before the new scene is mounted.
+        // Never keep the previous source-capability label until a preset click.
+        r31SourceCapabilityMountHook();
         // Owner 15.11.2026: 2F plank floor z-fought the 1F wall tops at the
         // same height; bias only those floor materials toward the camera.
         // typeof: unit tests evaluate this function body without module imports.
@@ -15943,6 +15948,9 @@ const title = 'Private 3D viewer';
       // every runtime exterior part; an accepted successor that bakes a part in
       // turns that part off so it is never shown twice.
       const r31Capabilities = () => modelRoot.children[0] ? r31ViewerSourceCapabilities(layersLoadedSha) : null;
+       r31SourceCapabilityMountHook = () => syncR31SourceCapabilityMountDataset(
+         canvas, modelRoot.children[0] ?? null, layersLoadedSha, r31ViewerSourceCapabilities,
+       );
       const r31InspectionAvailable = () => Boolean(r31Capabilities());
       const r31ExteriorAllowed = (key: string) => r31RuntimeExteriorAllowed(r31Capabilities(), key);
       // No separate inspection mode any more (kept as a hook for old callers).
@@ -16006,7 +16014,7 @@ const title = 'Private 3D viewer';
           if (show) Object.assign(counts, group.userData.counts);
         }
         canvas.dataset.r31SiteLayerModes = siteOk ? JSON.stringify(effectiveSiteModes) : '';
-        canvas.dataset.r31SourceCapabilities = r31Capabilities()?.label ?? '';
+        r31SourceCapabilityMountHook();
         // Owner 20.12: the corner pipes replace R31's own older west lower pipes
         // (they ended mid-wall / misaligned). Hidden in the whole-building view only.
         if (whole && r31ExteriorDonors.rainwater && r31ExteriorAllowed('rainwater') && !r31HiddenWestPipes.size) {
