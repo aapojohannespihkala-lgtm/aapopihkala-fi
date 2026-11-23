@@ -44,8 +44,23 @@ test('drainage overlay keeps source placement, counts kinds and fails closed on 
   const p = new THREE.Vector3().setFromMatrixPosition(well.matrix);
   assert.ok(Math.abs(p.x - 26) < 1e-6 && Math.abs(p.y + 1) < 1e-6 && Math.abs(p.z - 0.7) < 1e-6);
   const route = overlay.children.find((c) => c.userData.r31InspectionKind === 'route');
-  route.geometry.computeBoundingBox();
-  assert.ok(route.geometry.boundingBox.max.x > 4.9 && route.geometry.boundingBox.min.z < -2.9, 'tube follows the source strip');
+  assert.equal(route.isLine, true, 'reference route is a line, not a physical pipe mesh');
+  assert.equal(route.isMesh, undefined);
+  assert.equal(route.material.isLineDashedMaterial, true);
+  assert.equal(route.userData.routeDisplayKind, 'DASHED_SOURCE_REFERENCE_LINE');
+  assert.equal(route.userData.physicalPipeClaim, false);
+  assert.equal(route.userData.physicalZClaim, false);
+  assert.equal(route.userData.installationDepthClaim, false);
+  assert.equal(overlay.userData.referenceRoutesAreNotPipes, true);
+  assert.ok(route.geometry.getAttribute('lineDistance'), 'dash spacing uses world-space line distances');
+  const sourcePoints = [[0, -1, 0], [5, -1, 0], [5, -1.2, -3]];
+  const pos = route.geometry.getAttribute('position');
+  assert.equal(pos.count, sourcePoints.length, 'no interpolation or invented pipe radius');
+  for (let i = 0; i < pos.count; i += 1) {
+    for (let axis = 0; axis < 3; axis += 1) {
+      assert.ok(Math.abs(pos.getComponent(i, axis) - sourcePoints[i][axis]) < 1e-6, 'source world coordinate unchanged');
+    }
+  }
   assert.equal(buildR31DrainageOverlay(THREE, drainSource('other')), null);
   assert.equal(buildR31DrainageOverlay(THREE, drainSource(undefined, 'M5A-R2')), null);
 });
