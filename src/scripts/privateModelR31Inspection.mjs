@@ -204,10 +204,10 @@ export function buildR31DrainageOverlay(THREE, gltf) {
   scene.updateMatrixWorld(true);
   const group = new THREE.Group();
   group.name = 'R31_INSPECTION_DRAINAGE_M5A_R3_Z1C';
-  const materials = {};
-  const material = (kind) => materials[kind] ??= new THREE.MeshStandardMaterial({
-    color: R31_INSPECTION_COLORS[kind], emissive: R31_INSPECTION_COLORS[kind], emissiveIntensity: 0.45,
-    roughness: 0.6, metalness: 0,
+  // Outlined XY reference glyphs must never resemble a surveyed 3D well body.
+  const markerMaterials = {};
+  const markerMaterial = (kind) => markerMaterials[kind] ??= new THREE.LineBasicMaterial({
+    color: R31_INSPECTION_COLORS[kind], depthTest: false, transparent: true, opacity: 0.95,
   });
   const counts = { well: 0, route: 0, open: 0 };
   scene.traverse((object) => {
@@ -232,9 +232,21 @@ export function buildR31DrainageOverlay(THREE, gltf) {
       const centre = box.getCenter(new THREE.Vector3());
       const size = box.getSize(new THREE.Vector3());
       const radius = Math.max(0.12, Math.max(size.x, size.z) / 2);
-      mesh = kind === 'well'
-        ? new THREE.Mesh(new THREE.CylinderGeometry(radius, radius, 0.3, 20), material(kind))
-        : new THREE.Mesh(new THREE.OctahedronGeometry(Math.max(0.18, radius)), material(kind));
+      if (kind === 'well') {
+        // Flat circular outline, not a cylinder with invented height/depth.
+        const ring = Array.from({ length: 24 }, (_, i) => {
+          const angle = (2 * Math.PI * i) / 24;
+          return new THREE.Vector3(Math.cos(angle) * radius, 0, Math.sin(angle) * radius);
+        });
+        mesh = new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints(ring), markerMaterial(kind));
+      } else {
+        // Flat cross shows an unresolved end, not a physical plug or connection.
+        const arm = Math.max(0.18, radius);
+        mesh = new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints([
+          new THREE.Vector3(-arm, 0, -arm), new THREE.Vector3(arm, 0, arm),
+          new THREE.Vector3(-arm, 0, arm), new THREE.Vector3(arm, 0, -arm),
+        ]), markerMaterial(kind));
+      }
       mesh.position.copy(centre);
       mesh.updateMatrix();
     }
@@ -242,6 +254,11 @@ export function buildR31DrainageOverlay(THREE, gltf) {
     mesh.renderOrder = 6;
     mesh.userData = { ...object.userData, r31InspectionKind: kind, presentationOnly: true,
       routeDisplayKind: kind === 'route' ? 'DASHED_SOURCE_REFERENCE_LINE' : undefined,
+      markerDisplayKind: kind === 'well' ? 'FLAT_REFERENCE_WELL_RING' : kind === 'open' ? 'FLAT_UNRESOLVED_END_CROSS' : undefined,
+      sourceDisplayNote: kind === 'well'
+        ? 'Viitteellinen kaivomerkki, ei mitoitettu kaivo. Asennuskorkeus ja syvyys ovat varmistamatta.'
+        : kind === 'open' ? 'Avoimen päätepisteen viitemerkki, ei varmennettu liitos tai rakenne.' : undefined,
+      physicalWellGeometryClaim: false,
       physicalPipeClaim: false, physicalZClaim: false, installationDepthClaim: false,
       ModelStage: 'WORK_TEST_VIEW', currentClaim: false, asBuiltClaim: false };
     group.add(mesh);

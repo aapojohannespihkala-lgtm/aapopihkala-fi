@@ -43,6 +43,27 @@ test('drainage overlay keeps source placement, counts kinds and fails closed on 
   const well = overlay.children.find((c) => c.userData.r31InspectionKind === 'well');
   const p = new THREE.Vector3().setFromMatrixPosition(well.matrix);
   assert.ok(Math.abs(p.x - 26) < 1e-6 && Math.abs(p.y + 1) < 1e-6 && Math.abs(p.z - 0.7) < 1e-6);
+  assert.equal(well.isLineLoop, true, 'well is a flat ring, never a physical cylinder');
+  assert.notEqual(well.isMesh, true);
+  assert.equal(well.userData.markerDisplayKind, 'FLAT_REFERENCE_WELL_RING');
+  assert.equal(well.userData.physicalWellGeometryClaim, false);
+  assert.match(well.userData.sourceDisplayNote, /ei mitoitettu kaivo/);
+  assert.equal(well.geometry.getAttribute('position').count, 24);
+  const open = overlay.children.find((c) => c.userData.r31InspectionKind === 'open');
+  assert.equal(open.isLineSegments, true, 'unresolved end is a flat cross, not a physical plug');
+  assert.equal(open.userData.markerDisplayKind, 'FLAT_UNRESOLVED_END_CROSS');
+  assert.equal(open.userData.physicalWellGeometryClaim, false);
+  assert.match(open.userData.sourceDisplayNote, /ei varmennettu liitos/);
+  for (const marker of [well, open]) {
+    const positions = marker.geometry.getAttribute('position');
+    for (let i = 0; i < positions.count; i += 1) {
+      assert.equal(positions.getY(i), 0, 'source symbol must have zero local vertical extent');
+    }
+    assert.equal(marker.userData.physicalZClaim, false);
+    assert.equal(marker.userData.installationDepthClaim, false);
+    assert.equal(marker.userData.currentClaim, false);
+    assert.equal(marker.userData.asBuiltClaim, false);
+  }
   const route = overlay.children.find((c) => c.userData.r31InspectionKind === 'route');
   assert.equal(route.isLine, true, 'reference route is a line, not a physical pipe mesh');
   assert.equal(route.isMesh, undefined);
