@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs';
 import * as THREE from 'three';
 import { buildR31InfraOverlay } from '../../src/scripts/privateModelR31Inspection.mjs';
 import { selectionMetadataEntries, formatSelectionMetadataKey, scalarSelectionMetadataValue } from '../../src/scripts/privateModelSelectionMetadata.ts';
+import { createSelectionPanelController } from '../../src/scripts/privateModelSelectionPanel.ts';
 
 test('R31 P139AD work-Z water/wastewater overlays preserve uncertainty and source Z caveats', () => {
   const routes = [
@@ -172,4 +173,90 @@ test('P139AD original work-Z source notes fit the 180-character viewer metadata 
   }
   assert.equal(scalarSelectionMetadataValue('X'.repeat(181)), null,
     'document the metadata filter failure mode if source caveats grow beyond 180 characters');
+});
+
+test('P139AD work-Z warnings survive the actual selection panel DOM receiver after technical fields', () => {
+  // Small DOM contract double: exercises the real panel controller and
+  // metadata production, not a browser/WebGL or physical as-built acceptance.
+  const originalDocument = globalThis.document;
+  globalThis.document = {
+    querySelector: () => null,
+    createElement: (tag) => ({ tagName: tag.toUpperCase(), textContent: '' }),
+  };
+  try {
+    const list = {
+      children: [],
+      replaceChildren() { this.children = []; },
+      append(...nodes) { this.children.push(...nodes); },
+    };
+    const field = () => ({ textContent: '-', hidden: false });
+    const canvas = { dataset: {} };
+    const controller = createSelectionPanelController({
+      canvas, panel: field(), mesh: field(), group: field(),
+      scene: field(), floor: field(), kind: field(),
+      physicalClaim: field(), dimensions: field(),
+      metadataList: list, metadataEmpty: field(),
+    });
+    const routes = [
+      {
+        name: 'P139AD_LOCUS_WATER_MAIN_WORK_Z',
+        label: 'Vesijohto - katu',
+        sourceObject: 'G3_LOCUS_SITE_WATER_MAIN_REF_001',
+        system: 'WATER',
+        workZBasis: 'SOURCE_Z_CHAIN_WITH_INTERPOLATION_AND_EXTRAPOLATION',
+        sourceZNote: 'Malformed XML Z is source provenance, not a measured physical pipe elevation.',
+        points: [[0, 0, 18], [2, 0, 17.9]],
+      },
+      {
+        name: 'P139AD_LOCUS_WASTEWATER_PARCEL_WORK_Z',
+        label: 'Jätevesi - tonttihaara',
+        sourceObject: 'G3_LOCUS_SITE_WASTEWATER_PARCEL_UNCERTAIN_001',
+        system: 'WASTEWATER',
+        workZBasis: '1974_PARALLEL_ROUTE_PROFILE_TRANSFER',
+        sourceZNote: '1974 parallel route is not evidence of the same pipe or an as-built connection.',
+        points: [[0, 0, 18], [2, 0, 17.9]],
+      },
+    ];
+    for (const route of routes) {
+      const [selected] = buildR31InfraOverlay(THREE, [route], 21.75).children;
+      const technical = [
+        ['Tekninen kohde', selected.name],
+        ['Tekninen ryhmä', 'Kunnallistekniikka'],
+        ['Tekninen scene', 'R31 WORK_TEST'],
+        ['Renderöintityyppi', 'Mesh'],
+      ];
+      const sourceRows = selectionMetadataEntries(selected, null);
+      assert.equal(sourceRows.length, 12);
+      controller.render({
+        mesh: route.label, group: 'Kunnallistekniikka',
+        scene: 'WORK_TEST', floor: 'Kohde', kind: 'SOURCE_ONLY',
+        physicalClaim: 'Ei varmennettu', metadataEntries: [...technical, ...sourceRows],
+        sourceLinks: [],
+      });
+      assert.equal(canvas.dataset.selectionMetadataCount, '16');
+      assert.equal(list.children.length, 32, 'the panel must not truncate after 12 combined rows');
+      const rendered = [];
+      for (let i = 0; i < list.children.length; i += 2) {
+        assert.equal(list.children[i].tagName, 'DT');
+        assert.equal(list.children[i + 1].tagName, 'DD');
+        rendered.push([list.children[i].textContent, list.children[i + 1].textContent]);
+      }
+      assert.deepEqual(rendered.slice(0, 4).map(([label]) => label), technical.map(([key]) => formatSelectionMetadataKey(key)));
+      const byLabel = new Map(rendered);
+      for (const [key, expected] of [
+        ['sourceZNote', route.sourceZNote],
+        ['workZBasis', route.workZBasis],
+        ['workZAssumption', 'true'],
+        ['physicalZClaim', 'false'],
+        ['samePipeClaim', 'false'],
+        ['topologyLinkClaim', 'false'],
+        ['ModelStage', 'WORK_TEST_VIEW'],
+      ]) {
+        assert.equal(byLabel.get(formatSelectionMetadataKey(key)), expected, key + ' must remain visible');
+      }
+    }
+  } finally {
+    if (originalDocument === undefined) delete globalThis.document;
+    else globalThis.document = originalDocument;
+  }
 });
