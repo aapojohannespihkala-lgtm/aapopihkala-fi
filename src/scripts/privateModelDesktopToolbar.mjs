@@ -33,8 +33,10 @@ const ISO_HIDDEN_EDGES = '<path d="M12 3.5 V12 M4.5 16.2 L12 12 M19.5 16.2 L12 1
  * 23.11.2026: R32H c26d99c1 (R31 + baked gables/gutters/downpipes, P6 V8 carport,
  * hallface SW04/SW05) replaces R31 as the latest WORK_TEST after its production
  * WebGL check (scenes 814-817, Layerit/technical/site networks, no runtime doubles).
+ * 23.11.2026 20.30: R33 3a226f98 (R32H + D2F WC open door leaf out of the wall end and
+ * floor) after its production check (818/820 receipts, Layerit, technical review, networks).
  */
-export const DESKTOP_START_CANDIDATE_ID = 'c80-r32h-c26d99c1-d-2f-sc814-sc817-work-test';
+export const DESKTOP_START_CANDIDATE_ID = 'c80-r33-3a226f98-d-2f-sc818-sc821-work-test';
 
 export const DESKTOP_PRESETS = Object.freeze([
   Object.freeze({ id: 'd-1f', label: 'D alakerta', icon: svg(house(true, false, false)) }),
