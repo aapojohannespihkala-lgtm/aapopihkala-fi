@@ -78,3 +78,15 @@ test('worker allowlist pins the R32H GLB bytes and the viewer uses the family ga
   assert.match(page, /if \(r31ExteriorAllowed\('gableBoarding'\)\) \{/);
   assert.match(page, /if \(r31ExteriorAllowed\('fiberBox'\)\) \{/);
 });
+
+test('Layerit source receipt uses the loaded model own whole-D scene (R32H 814, not R31 769)', () => {
+  const j = json();
+  // R31's 769 is not an R32H view: a hardcoded 769 left R32H Layerit/technical review unavailable in production.
+  assert.equal(r31ViewerLayerSceneReceipt(j, SHA, 769), null);
+  assert.equal(C80_R32H_VIEWS.dNormal.sceneIndex, 814);
+  assert.ok(r31ViewerLayerSceneReceipt(j, SHA, C80_R32H_VIEWS.dNormal.sceneIndex));
+  const page = readFileSync(new URL('../../src/pages/private-model/index.astro', import.meta.url), 'utf8');
+  assert.match(page, /const r31LayerReceiptScene = layersLoadedSha === C80_R32H_SOURCE\.glbSha256\s*\? C80_R32H_VIEWS\.dNormal\.sceneIndex : 769;/);
+  assert.match(page, /r31ViewerLayerSceneReceipt\(\s*gltf\?\.parser\?\.json, layersLoadedSha, r31LayerReceiptScene\)/);
+  assert.doesNotMatch(page, /r31ViewerLayerSceneReceipt\(\s*gltf\?\.parser\?\.json, layersLoadedSha, 769\)/);
+});
