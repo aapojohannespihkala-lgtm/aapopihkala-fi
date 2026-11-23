@@ -112,7 +112,7 @@ test('LK75 warning follows the mounted scene across BOTH 814 to 815, not a stale
   // The same selected object is not part of scene 814 and must fail closed.
   assert.deepEqual(r32hLK75SelectionMetadataEntries(sourceModel, SHA, 814, outlet), []);
   const page = readFileSync(new URL('../../src/pages/private-model/index.astro', import.meta.url), 'utf8');
-  assert.match(page, /const lk75ActiveScene = modelRoot\\.children\\[0\\] \\?\\? null;/);
-  assert.match(page, /layersGltf\\.scenes\\?\\.indexOf\\(lk75ActiveScene\\)/);
-  assert.doesNotMatch(page, /const lk75ActiveScene = mainViewScope/);
+  assert.ok(page.includes('const lk75ActiveScene = modelRoot.children[0] ?? null;'));
+  assert.ok(page.includes('layersGltf.scenes?.indexOf(lk75ActiveScene)'));
+  assert.ok(!page.includes('const lk75ActiveScene = mainViewScope'));
 });
