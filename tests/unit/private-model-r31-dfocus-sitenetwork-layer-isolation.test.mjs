@@ -2,7 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { setR31SiteNetworkLayerMode } from '../../src/scripts/privateModelR31Inspection.mjs';
+import * as THREE from 'three';
+import { buildR31RoofWaterOverlay, setR31SiteNetworkLayerMode } from '../../src/scripts/privateModelR31Inspection.mjs';
 import { r31SiteLayerKeyForNetwork } from '../../src/scripts/privateModelR31SiteLayerKey.mjs';
 
 const viewerSource = readFileSync(
@@ -26,6 +27,9 @@ test('R31 D focus hides source-only site networks and whole-building return rebi
   // network should remain visible or selectable just because Layerit was on.
   assert.match(sync, /const whole = r31 && !focus &&/);
   assert.match(sync, /const siteOk = whole && Boolean\(r31Capabilities\(\)\?\.siteNetworks\)/);
+  assert.equal(r31SiteLayerKeyForNetwork('roofwater'), 'roofwater');
+  assert.match(viewerSource, /\['roofwater', 'Kattovedet:/);
+  assert.match(sync, /r31SiteNetworks\.roofwater = buildR31RoofWaterOverlay\(THREE\)/);
   assert.match(sync, /control\.row\.hidden = !siteOk/);
   assert.match(sync, /const show = siteOk && mode !== 'hidden'/);
   assert.match(sync, /setR31SiteNetworkLayerMode\(group, mode, siteOk, r31SiteGhostOriginals\)/);
@@ -41,7 +45,7 @@ test('R31 D focus hides source-only site networks and whole-building return rebi
 });
 
 test('R31 source materials round-trip ghost -> D focus off -> ghost -> visible on every network row', () => {
-  for (const key of ['drainage', 'infra', 'fiber', 'fiberEntry', 'storm', 'lowvolt']) {
+  for (const key of ['drainage', 'roofwater', 'infra', 'fiber', 'fiberEntry', 'storm', 'lowvolt']) {
     assert.ok(r31SiteLayerKeyForNetwork(key), key);
     let disposed = 0;
     let created = 0;
@@ -80,5 +84,59 @@ test('R31 source materials round-trip ghost -> D focus off -> ghost -> visible o
     assert.equal(disposed, 4, key);
     assert.equal(source[0].opacity, 0.8, key);
     assert.equal(source[1].opacity, 1, key);
+  }
+});
+
+test('R31 roofwater real Three.js materials return to source identity after D-focus hide and Layerit restore', () => {
+  const group = buildR31RoofWaterOverlay(THREE);
+  assert.ok(group, 'roofwater overlay must build from its bound source');
+  assert.equal(group.userData.presentationOnly, true);
+  assert.ok(group.userData.counts.ROOFWATER_WELL > 0);
+  assert.ok(group.userData.counts.ROOFWATER_PIPE > 0);
+  const meshes = group.children.filter((object) => object.isMesh);
+  assert.ok(meshes.length >= 5, 'wells, pipes and trough must be in the real overlay');
+  const baseline = meshes.map((mesh) => ({
+    mesh, material: mesh.material, userData: mesh.userData,
+    opacity: mesh.material.opacity, depthWrite: mesh.material.depthWrite,
+  }));
+  const originals = new Map();
+
+  // Whole-building technical Layerit 'Himmeä'.
+  setR31SiteNetworkLayerMode(group, 'ghost', true, originals);
+  assert.equal(group.visible, true);
+  assert.equal(originals.size, meshes.length);
+  for (const { mesh, material, userData } of baseline) {
+    assert.notStrictEqual(mesh.material, material);
+    assert.equal(mesh.material.transparent, true);
+    assert.ok(mesh.material.opacity <= 0.17);
+    assert.equal(mesh.material.depthWrite, false);
+    assert.strictEqual(mesh.userData, userData, 'certainty and physical-Z claims untouched');
+    assert.equal(mesh.userData.physicalZClaim, false);
+  }
+
+  // D-focus excludes all site networks and disposes ghost clones.
+  const priorGhosts = meshes.map((mesh) => mesh.material);
+  setR31SiteNetworkLayerMode(group, 'ghost', false, originals);
+  assert.equal(group.visible, false);
+  assert.equal(originals.size, 0);
+  for (let i = 0; i < meshes.length; i += 1) {
+    const { mesh, material, userData, opacity, depthWrite } = baseline[i];
+    assert.strictEqual(mesh.material, material, 'restore exact shared source material');
+    assert.strictEqual(mesh.userData, userData, 'source/uncertainty metadata unchanged');
+    assert.equal(material.opacity, opacity);
+    assert.equal(material.depthWrite, depthWrite);
+    assert.notStrictEqual(priorGhosts[i], material);
+  }
+
+  // Returning to building with the chosen Layerit 'Himmeä', then 'Näkyvä'.
+  setR31SiteNetworkLayerMode(group, 'ghost', true, originals);
+  assert.equal(group.visible, true);
+  assert.equal(originals.size, meshes.length);
+  setR31SiteNetworkLayerMode(group, 'visible', true, originals);
+  assert.equal(group.visible, true);
+  assert.equal(originals.size, 0);
+  for (const { mesh, material, userData } of baseline) {
+    assert.strictEqual(mesh.material, material);
+    assert.strictEqual(mesh.userData, userData);
   }
 });
