@@ -187,5 +187,5 @@ test('a second geometry owner cannot be overwritten and source mismatch fails cl
   r.dispose();
   assert.equal(o.mesh.geometry, o.geometry);
   o.mesh.geometry.getAttribute('position').array[0] += .05;
-  assert.equal(create(params(o, d)).status, 'SOURCE_MESH_BOUNDS_MISMATCH');
+  assert.equal(create(params(o, d)).status, 'LEGACY_COW_SOURCE_GUARD_FAILED');
 });
