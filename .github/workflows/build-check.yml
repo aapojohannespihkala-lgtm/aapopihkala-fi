@@ -280,6 +280,7 @@ jobs:
             tests/unit/private-model-r31-dfocus-sitenetwork-layer-isolation.test.mjs \
             tests/unit/private-model-r31-lowvolt-layer-lifecycle.test.mjs \
             tests/unit/private-model-r31-lowvolt-projection-410.test.mjs \
+            tests/unit/private-model-r31-fiber-entry-builder.test.mjs \
             tests/unit/private-model-r31-source-capabilities.test.mjs \
             tests/unit/private-model-r32h-receipt.test.mjs \
             tests/unit/private-model-d-focus-ghost.test.mjs \
