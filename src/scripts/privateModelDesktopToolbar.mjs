@@ -30,8 +30,11 @@ const ISO_HIDDEN_EDGES = '<path d="M12 3.5 V12 M4.5 16.2 L12 12 M19.5 16.2 L12 1
  * R31 9e0bf34f scene 769 = R22 scene 688 (468/480 roots shared) + whole-building
  * roof group (intendedViewerLayer 'roof') + ABC building masses. Its D-scope
  * presets looked odd; the start therefore opens the whole building with the roof.
+ * 23.11.2026: R32H c26d99c1 (R31 + baked gables/gutters/downpipes, P6 V8 carport,
+ * hallface SW04/SW05) replaces R31 as the latest WORK_TEST after its production
+ * WebGL check (scenes 814-817, Layerit/technical/site networks, no runtime doubles).
  */
-export const DESKTOP_START_CANDIDATE_ID = 'c80-r31-9e0bf34f-d-2f-sc769-sc772-work-test';
+export const DESKTOP_START_CANDIDATE_ID = 'c80-r32h-c26d99c1-d-2f-sc814-sc817-work-test';
 
 export const DESKTOP_PRESETS = Object.freeze([
   Object.freeze({ id: 'd-1f', label: 'D alakerta', icon: svg(house(true, false, false)) }),

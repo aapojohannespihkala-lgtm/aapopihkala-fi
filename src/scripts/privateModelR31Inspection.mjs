@@ -1,3 +1,6 @@
+import { R31_DRAINAGE_PROFILE } from './privateModelR31DrainageProfile.mjs';
+import { R31_ROOFWATER_PROFILE, R31_ROOFWATER_SOURCE } from './privateModelR31RoofWater.mjs';
+
 /**
  * R31 inspection views (owner 22.11.2026 17.08): "Salaojat" and "Infra" on the
  * same authenticated R31 model, built only from already published sources.
@@ -47,6 +50,8 @@ export const R31_INSPECTION_COLORS = Object.freeze({
   storm: 0x26c6da, FIBER: 0xe040b8,
   // Municipal Locus stormwater sewer: darker teal, apart from the property's own gutters/downpipes.
   STORM_MUNICIPAL: 0x00838f,
+  // Property roof-water continuations (gutter wells, pipes, temporary gutter): storm family.
+  ROOFWATER: 0x26c6da, ROOFWATER_WELL: 0x0097a7,
   // Locus low-voltage network: dark red, apart from every other network colour.
   LOWVOLT: 0xc62828,
 });
@@ -190,6 +195,62 @@ function worldPoints(THREE, object) {
   return out;
 }
 
+const DRAIN_XZ_TOL = 0.02;
+const nearXZ = (a, b) => Math.hypot(a[0] - b[0], a[2] - b[2]) <= DRAIN_XZ_TOL;
+
+/** Profiled route for a source connection; null unless both source endpoints match (XZ). */
+export function r31DrainageRouteProfile(connection, sourcePoints) {
+  const routes = R31_DRAINAGE_PROFILE.routes;
+  const profile = typeof connection === 'string' && Object.hasOwn(routes, connection) ? routes[connection] : null;
+  if (!profile || !sourcePoints?.length) return null;
+  const a = sourcePoints[0], b = sourcePoints[sourcePoints.length - 1];
+  const s = [[a.x, a.y, a.z], [b.x, b.y, b.z]];
+  const e = [profile.points[0], profile.points[profile.points.length - 1]];
+  return (nearXZ(s[0], e[0]) && nearXZ(s[1], e[1])) || (nearXZ(s[0], e[1]) && nearXZ(s[1], e[0])) ? profile : null;
+}
+
+/** Profiled well for a source well id; null unless the source centre matches (XZ). */
+export function r31DrainageWellProfile(wellId, centre) {
+  const wells = R31_DRAINAGE_PROFILE.wells;
+  const well = typeof wellId === 'string' && Object.hasOwn(wells, wellId) ? wells[wellId] : null;
+  return well && centre && nearXZ([centre.x, 0, centre.z], [well.x, 0, well.z]) ? well : null;
+}
+
+/** Open-end marker whose pipe is profiled (e.g. G2_DRAIN_LINK_PVK_DISCHARGE_001). */
+export function r31DrainageOpenEndProfiled(linkId) {
+  const m = /^G2_DRAIN_LINK_(.+)_\d{3}$/.exec(String(linkId ?? ''));
+  return !!m && Object.hasOwn(R31_DRAINAGE_PROFILE.routes, m[1]);
+}
+
+const drainFmt = (v) => (Math.round(v * 100) / 100).toFixed(2).replace('.', ',');
+const DRAIN_NAMES = Object.freeze({ SOK1: 'SOK1', SOK2: 'SOK2', SOK3: 'SOK3', PVK: 'PVK', NW_CORNER: 'luoteisnurkka',
+  DISCHARGE_END: 'purkupää', PARKING_END: 'pysäköinnin suunta' });
+
+/** Info card: what the sources say and what the depth assumption is. */
+export function r31DrainageRouteCard(connection, profile) {
+  return {
+    sourceConnection: connection,
+    drainFlow: `${DRAIN_NAMES[profile.from] ?? profile.from} → ${DRAIN_NAMES[profile.to] ?? profile.to}`,
+    drainCoverM: `${drainFmt(profile.coverM[0])}–${drainFmt(profile.coverM[1])} m maanpinnasta (putken yläpinta)`,
+    drainSlopePct: `${drainFmt(profile.slope * 100)} %${profile.slope > profile.sourceSlope ? ' (vähimmäiskaato)' : ' (lähteen kaato)'}`,
+    drainCertainty: 'Varmaa: kaivot, yhteydet, pituudet, kuntoluokat, materiaali ja Ø (Drainman 2015/2021/2026).',
+    drainUncertainty: 'Oletus: syvyys vähintään 1,0 m maanpinnasta ja kaato virtaussuuntaan; syvyyksiä ei ole mitattu.',
+    drainDepthBasis: R31_DRAINAGE_PROFILE.basis,
+    physicalZClaim: false,
+  };
+}
+
+export function r31DrainageWellCard(wellId, well) {
+  return {
+    drainWell: wellId,
+    drainWellDepthM: `${drainFmt(well.groundY - well.bottomY)} m (kansi maanpinnassa, pohja ${drainFmt(well.sumpM)} m alimman putken alla)`,
+    drainCertainty: 'Varmaa: kaivon tunnus, paikka ja tyyppi, Ø 300–315 mm (Drainman 2026).',
+    drainUncertainty: 'Oletus: kaivon syvyys putkien oletetusta korosta; kansikorkoa ei ole mitattu.',
+    drainDepthBasis: R31_DRAINAGE_PROFILE.basis,
+    physicalZClaim: false,
+  };
+}
+
 /**
  * Drain objects of the verified source scene as visible solids. The source
  * draws them as 1-px lines (routes: line strips, wells and open ends: rings),
@@ -210,42 +271,73 @@ export function buildR31DrainageOverlay(THREE, gltf) {
     roughness: 0.6, metalness: 0,
   });
   const counts = { well: 0, route: 0, open: 0 };
+  const profiled = { route: 0, well: 0 };
   scene.traverse((object) => {
     if (!object.isMesh && !object.isLine && !object.isLineSegments) return;
-    let kind = null;
-    for (let node = object; node && node !== scene && !kind; node = node.parent) kind = r31DrainageKind(node.userData);
+    let kind = null, owner = null;
+    for (let node = object; node && node !== scene && !kind; node = node.parent) {
+      kind = r31DrainageKind(node.userData);
+      if (kind) owner = node;
+    }
     if (!kind) return;
     const points = worldPoints(THREE, object);
     if (points.length < 2) return;
+    const data = owner.userData ?? {};
     let mesh;
+    let card = {};
     if (kind === 'route') {
-      // Line strips in source order; LINES pairs are joined the same way.
-      const path = new THREE.CurvePath();
-      for (let i = 1; i < points.length; i += 1) {
-        if (points[i].distanceTo(points[i - 1]) > 1e-6) path.add(new THREE.LineCurve3(points[i - 1], points[i]));
+      const profile = r31DrainageRouteProfile(data.sourceConnection, points);
+      if (profile) {
+        // Owner 23.11.2026: best-knowledge depth, drawn as a real pipe (Ø from the source).
+        const path = new THREE.CurvePath();
+        const p = profile.points.map(([x, y, z]) => new THREE.Vector3(x, y, z));
+        for (let i = 1; i < p.length; i += 1) path.add(new THREE.LineCurve3(p[i - 1], p[i]));
+        mesh = new THREE.Mesh(new THREE.TubeGeometry(path, Math.max(8, p.length * 8), R31_DRAINAGE_PROFILE.pipeRadiusM, 10, false), material(kind));
+        card = r31DrainageRouteCard(data.sourceConnection, profile);
+        profiled.route += 1;
+      } else {
+        // Line strips in source order; LINES pairs are joined the same way.
+        const path = new THREE.CurvePath();
+        for (let i = 1; i < points.length; i += 1) {
+          if (points[i].distanceTo(points[i - 1]) > 1e-6) path.add(new THREE.LineCurve3(points[i - 1], points[i]));
+        }
+        if (!path.curves.length) return;
+        mesh = new THREE.Mesh(new THREE.TubeGeometry(path, Math.max(4, path.curves.length * 6), 0.07, 8, false), material(kind));
       }
-      if (!path.curves.length) return;
-      mesh = new THREE.Mesh(new THREE.TubeGeometry(path, Math.max(4, path.curves.length * 6), 0.07, 8, false), material(kind));
     } else {
       const box = new THREE.Box3().setFromPoints(points);
       const centre = box.getCenter(new THREE.Vector3());
       const size = box.getSize(new THREE.Vector3());
       const radius = Math.max(0.12, Math.max(size.x, size.z) / 2);
-      mesh = kind === 'well'
-        ? new THREE.Mesh(new THREE.CylinderGeometry(radius, radius, 0.3, 20), material(kind))
-        : new THREE.Mesh(new THREE.OctahedronGeometry(Math.max(0.18, radius)), material(kind));
-      mesh.position.copy(centre);
+      const well = kind === 'well' ? r31DrainageWellProfile(data.sourceNodeId, centre) : null;
+      if (well) {
+        const height = well.groundY - well.bottomY;
+        mesh = new THREE.Mesh(new THREE.CylinderGeometry(well.diameterM / 2, well.diameterM / 2, height, 24), material(kind));
+        mesh.position.set(well.x, well.bottomY + height / 2, well.z);
+        card = r31DrainageWellCard(data.sourceNodeId, well);
+        profiled.well += 1;
+      } else if (kind === 'open' && r31DrainageOpenEndProfiled(data.sourceLinkG2IdCandidate)) {
+        // The profiled pipe simply ends there; the open end is told in the card, not drawn.
+        counts.open += 1;
+        return;
+      } else {
+        mesh = kind === 'well'
+          ? new THREE.Mesh(new THREE.CylinderGeometry(radius, radius, 0.3, 20), material(kind))
+          : new THREE.Mesh(new THREE.OctahedronGeometry(Math.max(0.18, radius)), material(kind));
+        mesh.position.copy(centre);
+      }
       mesh.updateMatrix();
     }
     mesh.name = object.name;
     mesh.renderOrder = 6;
-    mesh.userData = { ...object.userData, r31InspectionKind: kind, presentationOnly: true,
+    mesh.userData = { ...object.userData, ...card, r31InspectionKind: kind, presentationOnly: true,
       ModelStage: 'WORK_TEST_VIEW', currentClaim: false, asBuiltClaim: false };
     group.add(mesh);
     counts[kind] += 1;
   });
   if (!group.children.length) return null;
-  group.userData = { source: R31_DRAINAGE_SOURCE, counts, presentationOnly: true };
+  group.userData = { source: R31_DRAINAGE_SOURCE, counts, profiled, presentationOnly: true,
+    depthBasis: R31_DRAINAGE_PROFILE.basis };
   return group;
 }
 
@@ -272,9 +364,8 @@ export function buildR31InfraOverlay(THREE, routes, verticalReferenceM) {
     }));
     mesh.name = `R31_INFRA_${route.name}`;
     mesh.renderOrder = 6;
-    // Preserve P139AD's source/work-Z caveats on the selectable 3D review tube.
-    // The tube is presentation geometry, never evidence for a physical pipe
-    // elevation, a same-pipe identity or an actual network connection.
+    // Preserve the source/work-Z caveats on each selectable P139AD review tube.
+    // Visual geometry never proves a measured elevation or physical connection.
     mesh.userData = { label: route.label, sourceObject: route.sourceObject, system: route.system,
       sourceXYState: 'PRESERVED_EXACT_FROM_G3_LOCUS_SITE_P02',
       sourceZPreservedAsProvenance: true, sourceZNote: route.sourceZNote,
@@ -974,4 +1065,128 @@ export function syncR31ExteriorDonorMaterials(groups, originals, enabled, materi
     });
   }
   return saved;
+}
+
+const ROOFWATER_TEXT = Object.freeze({
+  RK_NW_OUTLET: Object.freeze({
+    route: 'Luoteisnurkan syöksy → oma rännikaivo → oma putki → purku viheralueelle noin 3 m etelään lounaisnurkan rännin purusta',
+    certainty: 'Varmaa (omistajan maastohavainto 23.11.2026): luoteisnurkalla oma rännikaivo ja siinä kiinni oma putki, joka purkaa muutaman metrin päähän etelään lounaisnurkan purkupaikasta.',
+  }),
+  RK_NE_OUTLET: Object.freeze({
+    route: 'Koillisnurkan syöksy → oma rännikaivo → oma putki itäpäädyn vierellä → purku kaakkoisnurkan viheralueelle',
+    certainty: 'Varmaa (omistajan maastohavainto 23.11.2026): koillisnurkalla oma rännikaivo ja siinä kiinni oma putki kaakkoisnurkan viheralueelle; purun tarkka kohta on vielä hieman epäselvä.',
+  }),
+  RK_SE_OUTLET: Object.freeze({
+    route: 'Kaakkoisnurkan syöksy → oma rännikaivo → oma putki → purku kaakkoisnurkan viheralueelle',
+    certainty: 'Varmaa (omistajan maastohavainto 23.11.2026): kaakkoisnurkalla oma rännikaivo ja siinä kiinni oma putki kaakkoisnurkan viheralueelle.',
+  }),
+  SW_TEMP_GUTTER: Object.freeze({
+    route: 'Lounaisnurkan syöksy → tilapäinen ränni terassin portaassa → viheralue',
+    certainty: 'Varmaa (omistajan maastohavainto 23.11.2026): lounaisnurkalla on toistaiseksi vain tilapäinen ränni terassin portaassa; ei rännikaivoa eikä putkea.',
+  }),
+});
+const ROOFWATER_ASSUMED_PIPE = 'Oletus: putken reitti, Ø110, yläpinta vähintään 0,15 m maanpinnasta, kaato virtaussuuntaan ja purkupaikan tarkka kohta; ei mitattu.';
+const ROOFWATER_ASSUMED_WELL = 'Oletus: mallin mitat (Ø315-runko noin 0,8 m maan alle, huppu Ø300 0,20 m maan yläpuolella, helma Ø460, 110 mm lähtö) yleisestä Merika 110/315 -rännikaivosta; omistajan "Melika" tulkittu Merikaksi, ei mitattu.';
+const rwFmt = (v) => (Math.round(v * 100) / 100).toFixed(2).replace('.', ',');
+
+function roofwaterPipeCard(id, pipe) {
+  const t = ROOFWATER_TEXT[id];
+  return {
+    roofwaterRoute: t.route, roofwaterCertainty: t.certainty, roofwaterUncertainty: ROOFWATER_ASSUMED_PIPE,
+    roofwaterCoverM: `${rwFmt(pipe.coverM[0])}–${rwFmt(pipe.coverM[1])} m maanpinnasta (putken yläpinta)`,
+    roofwaterSlopePct: `${rwFmt(pipe.slope * 100)} %`,
+    roofwaterBasis: R31_ROOFWATER_SOURCE.basis, physicalZClaim: false,
+  };
+}
+
+/**
+ * Property roof-water continuations as ordinary solids (owner 23.11.2026): gutter wells,
+ * connectors from the east downpipe outlets, buried pipes and the SW temporary open gutter.
+ * Exact data module only; the card carries what is observed and what is assumed.
+ */
+export function buildR31RoofWaterOverlay(THREE, profile = R31_ROOFWATER_PROFILE) {
+  if (!profile?.wells || !profile?.pipes) return null;
+  const group = new THREE.Group();
+  group.name = 'R31_ROOFWATER_CONTINUATIONS_OWNER_20261123';
+  const mat = (hex, side) => new THREE.MeshStandardMaterial({ color: hex, emissive: hex, emissiveIntensity: 0.35,
+    roughness: 0.6, metalness: 0, side: side ?? THREE.FrontSide });
+  const pipeMat = mat(R31_INSPECTION_COLORS.ROOFWATER);
+  const wellMat = mat(R31_INSPECTION_COLORS.ROOFWATER_WELL);
+  const gutterMat = mat(R31_INSPECTION_COLORS.ROOFWATER, THREE.DoubleSide);
+  const counts = { ROOFWATER_WELL: 0, ROOFWATER_PIPE: 0, ROOFWATER_GUTTER: 0, ROOFWATER_CONNECTOR: 0 };
+  const common = { presentationOnly: true, ModelStage: 'WORK_TEST_VIEW', currentClaim: false, asBuiltClaim: false,
+    sourceObservation: R31_ROOFWATER_SOURCE.observation };
+  const tube = (points, radius, material) => {
+    const path = new THREE.CurvePath();
+    const p = points.map(([x, y, z]) => new THREE.Vector3(x, y, z));
+    for (let i = 1; i < p.length; i += 1) path.add(new THREE.LineCurve3(p[i - 1], p[i]));
+    return new THREE.Mesh(new THREE.TubeGeometry(path, Math.max(8, p.length * 8), radius, 10, false), material);
+  };
+  for (const [id, w] of Object.entries(profile.wells)) {
+    const card = { ...common, roofwaterWell: `Rännikaivo ${id.replace('RK_', '')} (${R31_ROOFWATER_SOURCE.wellProduct})`,
+      roofwaterDownpipe: w.downpipe, roofwaterCertainty: 'Varmaa (omistajan maastohavainto 23.11.2026): oma rännikaivo tämän syöksyn alla, mallia Melika.',
+      roofwaterWellDepthM: `${rwFmt(w.groundY - w.bottomY)} m maan alle`, roofwaterUncertainty: ROOFWATER_ASSUMED_WELL,
+      roofwaterBasis: R31_ROOFWATER_SOURCE.basis, physicalZClaim: false };
+    const part = (name, rTop, rBottom, y0, y1, segments = 24) => {
+      const mesh = new THREE.Mesh(new THREE.CylinderGeometry(rTop, rBottom, y1 - y0, segments), wellMat);
+      mesh.position.set(w.x, (y0 + y1) / 2, w.z);
+      mesh.updateMatrix();
+      mesh.name = `R31_ROOFWATER_${id}${name}`;
+      mesh.userData = card;
+      group.add(mesh);
+    };
+    part('', w.diameterM / 2, w.diameterM / 2, w.bottomY, w.groundY);
+    part('_SKIRT', w.skirtDiameterM / 2, w.skirtDiameterM / 2, w.groundY, w.groundY + 0.02, 32);
+    part('_HOOD', w.hoodDiameterM / 2 * 0.8, w.hoodDiameterM / 2, w.groundY + 0.02, w.hoodTopY);
+    counts.ROOFWATER_WELL += 1;
+  }
+  for (const [id, c] of Object.entries(profile.connectors ?? {})) {
+    const mesh = tube(c.points, c.radiusM, pipeMat);
+    mesh.name = `R31_ROOFWATER_CONNECTOR_${id}`;
+    mesh.userData = { ...common, roofwaterRoute: `Syöksyn ${c.downpipe} jatko rännikaivoon`,
+      roofwaterUncertainty: 'Oletus: pystyjatke syöksyn ulostulosta rännikaivon huppuun; ei mitattu.', physicalZClaim: false };
+    group.add(mesh); counts.ROOFWATER_CONNECTOR += 1;
+  }
+  for (const [id, pipe] of Object.entries(profile.pipes)) {
+    if (!ROOFWATER_TEXT[id]) continue;
+    const mesh = tube(pipe.points, 0.055, pipeMat);
+    mesh.name = `R31_ROOFWATER_${id}`;
+    mesh.userData = { ...common, ...roofwaterPipeCard(id, pipe) };
+    group.add(mesh); counts.ROOFWATER_PIPE += 1;
+  }
+  for (const [id, g] of Object.entries(profile.gutters ?? {})) {
+    if (!ROOFWATER_TEXT[id] || g.points.length < 2) continue;
+    // Open half-round trough, bottom on the given points, opening up.
+    const r = g.widthM / 2, seg = 8, pos = [], idx = [];
+    const P = g.points.map(([x, y, z]) => new THREE.Vector3(x, y + r, z));
+    const up = new THREE.Vector3(0, 1, 0);
+    P.forEach((p, i) => {
+      const t = (i < P.length - 1 ? P[i + 1].clone().sub(p) : p.clone().sub(P[i - 1])).setY(0).normalize();
+      const side = new THREE.Vector3().crossVectors(t, up).normalize();
+      for (let k = 0; k <= seg; k += 1) {
+        const a = Math.PI + (Math.PI * k) / seg;
+        const v = p.clone().addScaledVector(side, Math.cos(a) * r).addScaledVector(up, Math.sin(a) * r);
+        pos.push(v.x, v.y, v.z);
+      }
+    });
+    for (let i = 0; i < P.length - 1; i += 1) {
+      for (let k = 0; k < seg; k += 1) {
+        const a = i * (seg + 1) + k, b = a + 1, c = a + seg + 1, d = c + 1;
+        idx.push(a, c, b, b, c, d);
+      }
+    }
+    const geometry = new THREE.BufferGeometry();
+    geometry.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+    geometry.setIndex(idx);
+    geometry.computeVertexNormals();
+    const mesh = new THREE.Mesh(geometry, gutterMat);
+    mesh.name = `R31_ROOFWATER_${id}`;
+    const t = ROOFWATER_TEXT[id];
+    mesh.userData = { ...common, roofwaterRoute: t.route, roofwaterCertainty: t.certainty,
+      roofwaterUncertainty: 'Oletus: avoin puolipyöreä ränni 150 mm maanpinnalla terassin portaan ulkosivulla ja portaan päästä viheralueelle; tarkka linjaus ja pituus arvio.',
+      roofwaterBasis: R31_ROOFWATER_SOURCE.basis, physicalZClaim: false };
+    group.add(mesh); counts.ROOFWATER_GUTTER += 1;
+  }
+  group.userData = { source: R31_ROOFWATER_SOURCE, counts, presentationOnly: true };
+  return group;
 }

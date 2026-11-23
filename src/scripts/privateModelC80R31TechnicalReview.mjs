@@ -11,7 +11,7 @@
  * WORK_TEST/HOST_HOLD only: no CURRENT, as-built or installation claim.
  */
 import { C80_620R22_REVIEW_MEP_NODES } from './privateModelC80620R22FloorRuntime.mjs';
-import { C80_R31_9E0B_SOURCE, r31ViewerLayerSceneReceipt } from './privateModelC80R31ReviewRuntime.mjs';
+import { isR31FamilyViewerSha, r31ViewerLayerSceneReceipt, C80_R32H_SOURCE } from './privateModelC80R31ReviewRuntime.mjs';
 
 /** R31 COW successors of R22 review roots and R31-only technical roots. */
 export const C80_R31_TECHNICAL_REVIEW_ADDITIONS = Object.freeze([
@@ -52,6 +52,30 @@ export const C80_R31_TECHNICAL_REVIEW_ADDITIONS = Object.freeze([
   [13506, 'K8_RK14_1_2F_LIVING_2015_GROUP_VISUAL_WORK_ASSUMPTION_NOT_CABLE_2026__REBASED_SCENE768'],
 ].map(([node, name]) => Object.freeze({ node, name })));
 
+/**
+ * R32H c26d99c1 only: roof-water parts baked into the model (T12 eaves gutters + five
+ * downpipes at the owner points, P6 carport gutters). Owner 23.11.2026 10.50: the
+ * downpipes must stay visible in "Talotekniikka korostettuna" next to the roof-water
+ * continuations. Exact name per node index; any mismatch keeps none of them.
+ */
+export const C80_R32H_ROOFWATER_REVIEW_ROOTS = Object.freeze([
+  [13808, 'R32_T12_GUTTERS_AND_5_DOWNPIPES_OWNER_POINTS'],
+  [13812, 'P6_2022_GUTTERS_CARRIER_G1_ZUP_TO_GLTF_YUP_R32'],
+].map(([node, name]) => Object.freeze({ node, name })));
+
+/** Review system key of the roof-water parts (gutters, downpipes). */
+export const C80_R31_ROOFWATER_SYSTEM = 'SADEVESI';
+const ROOFWATER_ROOT_NAMES = new Set(C80_R32H_ROOFWATER_REVIEW_ROOTS.map(({ name }) => name));
+
+/** SADEVESI for a mesh inside an exact roof-water review root, otherwise null. */
+export function c80R31RoofWaterSystemOf(object, root) {
+  for (let node = object; node && node !== root; node = node.parent) {
+    const name = typeof node.name === 'string' ? node.name : '';
+    if (ROOFWATER_ROOT_NAMES.has(name) && node.userData?.presentationOnly !== true) return C80_R31_ROOFWATER_SYSTEM;
+  }
+  return null;
+}
+
 /** Source m5System tags that mark a technical node (ILMANVAIHTO = IV). */
 export const C80_R31_TECHNICAL_SYSTEMS = Object.freeze(['SAHKO', 'VESI', 'IV', 'VIEMARI', 'ILMANVAIHTO']);
 
@@ -60,7 +84,7 @@ const ADDED = new Map(C80_R31_TECHNICAL_REVIEW_ADDITIONS.map(({ node, name }) =>
 const SYSTEMS = new Set(C80_R31_TECHNICAL_SYSTEMS);
 
 /** Which source nodes of the R31 JSON are review roots (pure, for tests). */
-export function c80R31TechnicalReviewNodeSet(json) {
+export function c80R31TechnicalReviewNodeSet(json, loadedSha = null) {
   const keep = new Set();
   const nodes = json?.nodes;
   if (!Array.isArray(nodes)) return keep;
@@ -73,6 +97,11 @@ export function c80R31TechnicalReviewNodeSet(json) {
   nodes.forEach((node, index) => {
     if (SYSTEMS.has(node?.extras?.m5System) && node?.extras?.presentationOnly !== true) keep.add(index);
   });
+  if (loadedSha === C80_R32H_SOURCE.glbSha256) {
+    // Optional on top: a mismatch drops only the roof-water roots, not the review.
+    const roof = C80_R32H_ROOFWATER_REVIEW_ROOTS;
+    if (roof.every(({ node, name }) => nodes[node]?.name === name)) for (const { node } of roof) keep.add(node);
+  }
   return keep;
 }
 
@@ -83,11 +112,11 @@ export function c80R31TechnicalReviewNodeSet(json) {
 export function resolveC80R31TechnicalReviewRoots(gltf, scene, sceneIndex, loadedSha, expectedSha) {
   const json = gltf?.parser?.json;
   const associations = gltf?.parser?.associations;
-  if (loadedSha !== C80_R31_9E0B_SOURCE.glbSha256 || expectedSha !== loadedSha) return null;
+  if (!isR31FamilyViewerSha(loadedSha) || expectedSha !== loadedSha) return null;
   if (!r31ViewerLayerSceneReceipt(json, loadedSha, sceneIndex)) return null;
   if (gltf?.scenes?.[sceneIndex] !== scene || typeof associations?.get !== 'function' ||
       typeof scene?.traverse !== 'function') return null;
-  const keep = c80R31TechnicalReviewNodeSet(json);
+  const keep = c80R31TechnicalReviewNodeSet(json, loadedSha);
   if (!keep.size) return null;
   const roots = [];
   scene.traverse((object) => {

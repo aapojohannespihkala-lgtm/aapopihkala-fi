@@ -2751,9 +2751,9 @@ const title = 'Private 3D viewer';
       import { V90_H20_SOURCE_SHA256 } from '../../scripts/privateModelC80R2V90H20LayerSourceProfile.mjs';
       import { V90_IV_P04_SOURCE_SHA256 } from '../../scripts/privateModelC80R2V90IVP04LayerSourceProfile.mjs';
       // @ts-ignore - R31 review roots and inspection overlays have unit coverage.
-      import { resolveC80R31TechnicalReviewRoots } from '../../scripts/privateModelC80R31TechnicalReview.mjs';
+      import { resolveC80R31TechnicalReviewRoots, c80R31RoofWaterSystemOf } from '../../scripts/privateModelC80R31TechnicalReview.mjs';
       // @ts-ignore - pure overlay builders, THREE injected.
-      import { R31_DRAINAGE_SOURCE, R31_EXTERIOR_DONORS, buildR31DrainageOverlay, buildR31InfraOverlay, buildR31FiberOverlay, buildR31StormOverlay, buildR31LowVoltageOverlay, buildR31ExteriorDonorOverlay, buildR31WestGableInfill, buildR31GableBoarding, buildR31WestBrickCompletion, buildR31FiberEntryBox, buildR31FiberEntryLink, isR31WestGableBoardingSource, R31_GABLE_BOARDING_COLOR, isR31ReplacedWestDownpipe, loadR31EastGableOverlay, relocateR31Downpipes, syncR31ExteriorDonorMaterials, setR31SiteNetworkLayerMode } from '../../scripts/privateModelR31Inspection.mjs';
+      import { R31_DRAINAGE_SOURCE, R31_EXTERIOR_DONORS, buildR31DrainageOverlay, buildR31RoofWaterOverlay, buildR31InfraOverlay, buildR31FiberOverlay, buildR31StormOverlay, buildR31LowVoltageOverlay, buildR31ExteriorDonorOverlay, buildR31WestGableInfill, buildR31GableBoarding, buildR31WestBrickCompletion, buildR31FiberEntryBox, buildR31FiberEntryLink, isR31WestGableBoardingSource, R31_GABLE_BOARDING_COLOR, isR31ReplacedWestDownpipe, loadR31EastGableOverlay, relocateR31Downpipes, syncR31ExteriorDonorMaterials, setR31SiteNetworkLayerMode } from '../../scripts/privateModelR31Inspection.mjs';
       import { R31_LOCUS_FIBER_LINES } from '../../scripts/privateModelR31LocusFiber.mjs';
       import { R31_LOCUS_STORM_LINES, R31_LOCUS_STORM_FLOW_MARKS } from '../../scripts/privateModelR31LocusStorm.mjs';
       import { R31_LOCUS_LOWVOLT_LINES, R31_LOCUS_LOWVOLT_SOURCE } from '../../scripts/privateModelR31LocusLowVoltage.mjs';
@@ -2961,7 +2961,7 @@ const title = 'Private 3D viewer';
         type WorkTestLoadFailurePhase,
       } from '../../scripts/privateModelWorkTestLoadDiagnostics';
 
-      import { createC80R31ViewSwitch, r31WorkTestReview, r31ViewerLayerSceneReceipt, r31ViewerLayerBindingScope, C80_R31_9E0B_SOURCE } from '../../scripts/privateModelC80R31ReviewRuntime.mjs';
+      import { createC80R31ViewSwitch, r31WorkTestReview, r31ViewerLayerSceneReceipt, r31ViewerLayerBindingScope, C80_R31_9E0B_SOURCE, isR31FamilyViewerSha, C80_R32H_SOURCE, C80_R32H_VIEWS } from '../../scripts/privateModelC80R31ReviewRuntime.mjs';
       import { mountDesktopToolbar, activeDesktopPreset, activeDesktopAngle, DESKTOP_START_CANDIDATE_ID } from '../../scripts/privateModelDesktopToolbar.mjs';
       import { createDFocusGhost, dFootprintFromScope, dStoreyFootprint } from '../../scripts/privateModelDFocusGhost';
 
@@ -7373,7 +7373,7 @@ const title = 'Private 3D viewer';
 
       const activateMainModelScope = (floor: MainViewFloor, preserveCamera = false) => {
         if (!mainViewScope?.available) return;
-        if (layersLoadedSha === C80_R31_9E0B_SOURCE.glbSha256 && r300ViewSwitch && floor !== '1F') {
+        if (isR31FamilyViewerSha(layersLoadedSha) && r300ViewSwitch && floor !== '1F') {
           const active = r300ViewSwitch.activeView();
           if (active) {
             // Keep the source-authored R31 D/BOTH or D/2F scene and service role.
@@ -15117,10 +15117,11 @@ const title = 'Private 3D viewer';
       // R31 site networks are source-bound auxiliary donors, not native C80
       // layer nodes. Keep independent 3-state controls in the existing Layerit
       // panel without adding a second layer registry or changing the GLB.
-      type R31SiteKey = 'drainage' | 'infra' | 'fiber' | 'storm' | 'lowvolt';
+      type R31SiteKey = 'drainage' | 'roofwater' | 'infra' | 'fiber' | 'storm' | 'lowvolt';
       type R31SiteMode = 'visible' | 'ghost' | 'hidden';
       const r31SiteLayerSpecs: Array<[R31SiteKey, string]> = [
         ['drainage', 'Salaojat (WORK_TEST)'],
+        ['roofwater', 'Kattovedet: syöksyjen jatkot ja purut (WORK_TEST)'],
         ['infra', 'Kunnallistekniikka: Locus vesi/viemäri (WORK_TEST)'],
         ['fiber', 'Valokuitu: 2D, syvyys avoin (WORK_TEST)'],
         ['storm', 'Sadevesiviemäri: Locus 2D, kunnallinen, ei tonttiliittymää (WORK_TEST)'],
@@ -15234,7 +15235,8 @@ const title = 'Private 3D viewer';
         }),
         line: new THREE.LineBasicMaterial({ color: 0x9aa1a9, transparent: true, opacity: 0.14, depthWrite: false }),
         // Opaque-looking but in the transparent pass so they draw after the grey shell.
-        systems: Object.fromEntries(([['SAHKO', 0xff7a1a], ['VESI', 0x1e88e5], ['VESI_LV', 0xe53935], ['IV', 0x2fa84f], ['VIEMARI', 0x8e44ad]] as const)
+        // SADEVESI = roof water (gutters, downpipes), the cyan of the Kattovedet layer.
+        systems: Object.fromEntries(([['SAHKO', 0xff7a1a], ['VESI', 0x1e88e5], ['VESI_LV', 0xe53935], ['IV', 0x2fa84f], ['SADEVESI', 0x26c6da], ['VIEMARI', 0x8e44ad]] as const)
           // Self-lit share keeps large solids (NIBE heater, H20 manifold) in
           // their system color on faces turned away from the lights.
           .map(([key, color]) => [key, new THREE.MeshStandardMaterial({
@@ -15356,10 +15358,10 @@ const title = 'Private 3D viewer';
           const root = modelRoot.children[0] ?? null;
           const sceneIndex = layersGltf?.scenes?.indexOf(root) ?? -1;
           // SHA alone does not authorize every scene inside an R31 work-test GLB.
-          const r31SceneScope = layersLoadedSha === C80_R31_9E0B_SOURCE.glbSha256
+          const r31SceneScope = isR31FamilyViewerSha(layersLoadedSha)
             ? r31ViewerLayerBindingScope(layersGltf?.parser?.json, layersLoadedSha, sceneIndex) : null;
           const verified = !!layersExpectedSha && layersExpectedSha === layersLoadedSha &&
-            sceneIndex >= 0 && (layersLoadedSha !== C80_R31_9E0B_SOURCE.glbSha256 || !!r31SceneScope);
+            sceneIndex >= 0 && (!isR31FamilyViewerSha(layersLoadedSha) || !!r31SceneScope);
           const filterActive = canvas.dataset.objectVisibilityFilter === 'active';
           if (filterActive) {
             technicalReviewInput.disabled = true;
@@ -15471,7 +15473,8 @@ const title = 'Private 3D viewer';
               const layerIdByRoot = new Map<THREE.Object3D, string>(bindings.map(binding => [binding.root, binding.id]));
               technicalReview = createTechnicalReviewPresentation(root,
                 [...reviewRoots, ...filterNonTechnicalBoundObjects(technical.boundObjects, layersLoadedSha).map((item: { object: THREE.Object3D }) => item.object)], createTechnicalReviewMaterials,
-                (object: THREE.Object3D) => refineTechnicalReviewSystem(technicalReviewSystemOf(object, root) ?? technicalReviewLayerSystemOf(object, root, layerIdByRoot), object, root));
+                (object: THREE.Object3D) => c80R31RoofWaterSystemOf(object, root) ??
+                  refineTechnicalReviewSystem(technicalReviewSystemOf(object, root) ?? technicalReviewLayerSystemOf(object, root, layerIdByRoot), object, root));
               technicalReviewInput.checked = technicalReviewOn;
               technicalReview.apply(technicalReviewOn);
               canvas.dataset.technicalReview = technicalReviewOn && technicalReview.applied ? 'on' : 'off';
@@ -15630,8 +15633,11 @@ const title = 'Private 3D viewer';
           layersLoadedSha === V82_SOURCE_SHA256 ||
           layersLoadedSha === K17_RAIL900_SOURCE_SHA256
             ? layersLoadedSha : null;
+        // Source receipt on the model's own whole-D normal scene (R31 769, R32H 814).
+        const r31LayerReceiptScene = layersLoadedSha === C80_R32H_SOURCE.glbSha256
+          ? C80_R32H_VIEWS.dNormal.sceneIndex : 769;
         const verifiedR31LayerSource = !!r31ViewerLayerSceneReceipt(
-          gltf?.parser?.json, layersLoadedSha, 769);
+          gltf?.parser?.json, layersLoadedSha, r31LayerReceiptScene);
         layersExpectedSha = session?.contract?.glbSha256 ?? verifiedChainSourceSha ??
           (verifiedR31LayerSource ? layersLoadedSha : null);
         // Restore the owner-approved white, doorless lobby only for the exact
@@ -16020,7 +16026,8 @@ const title = 'Private 3D viewer';
         canvas.dataset.r31SiteNetworks = whole && Object.keys(counts).length ? JSON.stringify(counts) : '';
         if (technical && Object.keys(counts).length) {
           status.textContent = `Talotekniikka + kunnallistekniikka (WORK_TEST): salaojat ${counts.well ?? 0} kaivoa, ` +
-            `${counts.route ?? 0} reittiosaa, ${counts.open ?? 0} avointa purkua; Locus vesi ${counts.WATER ?? 0}, ` +
+            `${counts.route ?? 0} reittiosaa, ${counts.open ?? 0} avointa purkua; kattovedet ${counts.ROOFWATER_WELL ?? 0} rännikaivoa, ` +
+            `${counts.ROOFWATER_PIPE ?? 0} putkea, ${counts.ROOFWATER_GUTTER ?? 0} tilapäinen ränni; Locus vesi ${counts.WATER ?? 0}, ` +
             `jätevesi ${counts.WASTEWATER ?? 0}, valokuitu ${counts.FIBER ?? 0} (2D, syvyys avoin; ` +
             `liittymä D:n pohjoisovella omistajan havainnosta); ` +
             `Locus sadevesiviemäri ${counts.STORM ?? 0} linjaa 2D, ei tonttiliittymää (lähin 42 m); ` +
@@ -16036,6 +16043,8 @@ const title = 'Private 3D viewer';
               r31SiteNetworks.drainage = null;
               console.warn('R31 drainage source failed', error);
             }
+            // Owner 23.11.2026 07.27: roof-water continuations from field observations.
+            r31SiteNetworks.roofwater = buildR31RoofWaterOverlay(THREE);
             r31SiteNetworks.infra = buildR31InfraOverlay(THREE, p139adLocusWorkZRoutes as any, p139acVerticalReferenceM);
             r31SiteNetworks.fiber = buildR31FiberOverlay(THREE, R31_LOCUS_FIBER_LINES as any);
             r31SiteNetworks.fiberEntry = buildR31FiberEntryLink(THREE, R31_LOCUS_FIBER_LINES as any);
@@ -16049,7 +16058,8 @@ const title = 'Private 3D viewer';
         r31ExteriorLoading = (async () => {
           // Owner 19.27: east gable as wide as the west, from R31's own scene 23.
           try {
-            r31ExteriorDonors.eastGable = await loadR31EastGableOverlay(THREE, layersGltf);
+            r31ExteriorDonors.eastGable = r31ExteriorAllowed('eastGable') || r31ExteriorAllowed('gableBoarding')
+              ? await loadR31EastGableOverlay(THREE, layersGltf) : null;
           } catch (error) {
             r31ExteriorDonors.eastGable = null;
             console.warn('R31 east gable source failed', error);
@@ -16057,7 +16067,7 @@ const title = 'Private 3D viewer';
           canvas.dataset.r31EastGable = String(r31ExteriorDonors.eastGable?.children.length ?? 0);
           // Owner 20.12 / 20.46: the west gable opening is closed, and both gable
           // triangles carry dark brown vertical boarding (Street View heinä 2026).
-          {
+          if (r31ExteriorAllowed('gableBoarding')) {
             const boarding = new THREE.MeshStandardMaterial({ color: R31_GABLE_BOARDING_COLOR, roughness: 0.85, metalness: 0, side: THREE.DoubleSide });
             const westMeshes: any[] = [];
             modelRoot.traverse((object: any) => {
@@ -16079,6 +16089,8 @@ const title = 'Private 3D viewer';
             if (brickCompletion) gable.add(brickCompletion);
             r31ExteriorDonors.gableBoarding = gable;
             canvas.dataset.r31GableBoarding = `west:${westMeshes.length}|east:${eastFace ? 1 : 0}|infill:1|westBrick:${brickCompletion ? 1 : 0}`;
+          } else canvas.dataset.r31GableBoarding = 'baked-in-model';
+          if (r31ExteriorAllowed('fiberBox')) {
             // Owner 20.46 photos: fibre box right of the D north door, cable down.
             const fiberBox = new THREE.Group();
             fiberBox.name = 'R31_FIBER_ENTRY_BOX_WORK_TEST';
