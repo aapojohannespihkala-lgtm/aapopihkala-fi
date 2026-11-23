@@ -11,6 +11,7 @@ import {
 } from '../../src/scripts/privateModelC80R31TechnicalReview.mjs';
 import { C80_620R22_REVIEW_MEP_NODES } from '../../src/scripts/privateModelC80620R22FloorRuntime.mjs';
 import { R31_DRAINAGE_PROFILE } from '../../src/scripts/privateModelR31DrainageProfile.mjs';
+import { selectionMetadataEntries } from '../../src/scripts/privateModelSelectionMetadata.ts';
 
 test('drain kinds come only from source representationKind', () => {
   assert.equal(r31DrainageKind({ representationKind: 'wellMarkerWork' }), 'well');
@@ -48,6 +49,34 @@ test('unprofiled source reference lines cannot reappear as physical surface pipe
   const well = overlay.children.find((c) => c.userData.r31InspectionKind === 'well');
   const p = new THREE.Vector3().setFromMatrixPosition(well.matrix);
   assert.ok(Math.abs(p.x - 26) < 1e-6 && Math.abs(p.y + 1) < 1e-6 && Math.abs(p.z - 0.7) < 1e-6);
+  const open = overlay.children.find((c) => c.userData.r31InspectionKind === 'open');
+  assert.equal(well.isLineLoop, true, 'unknown source well is a flat ring, not a 300mm-high cylinder');
+  assert.equal(open.isLineSegments, true, 'unknown outlet is a flat cross, not a solid plug');
+  assert.equal(well.userData.markerDisplayKind, 'FLAT_REFERENCE_WELL_RING');
+  assert.equal(open.userData.markerDisplayKind, 'FLAT_UNRESOLVED_END_CROSS');
+  for (const symbol of [well, open]) {
+    const vertices = symbol.geometry.getAttribute('position');
+    for (let i = 0; i < vertices.count; i += 1) {
+      assert.equal(vertices.getY(i), 0, 'source-symbol local height remains exactly zero');
+    }
+    assert.equal(symbol.userData.physicalWellGeometryClaim, false);
+    assert.equal(symbol.userData.physicalPipeClaim, false);
+    assert.equal(symbol.userData.physicalZClaim, false);
+    assert.equal(symbol.userData.installationDepthClaim, false);
+    assert.equal(symbol.userData.currentClaim, false);
+    assert.equal(symbol.userData.asBuiltClaim, false);
+    const card = selectionMetadataEntries({
+      name: symbol.name,
+      userData: { ...symbol.userData, ...Object.fromEntries(Array.from({ length: 15 }, (_, i) => ['extra' + i, 'review value'])) },
+    }, null);
+    assert.equal(card.length, 12, 'real-world selection card has a 12-row cutoff');
+    assert.equal(card[0][0], 'sourceDisplayNote', 'unverified glyph meaning must be visible first');
+    for (const key of ['markerDisplayKind', 'physicalWellGeometryClaim', 'physicalZClaim', 'installationDepthClaim']) {
+      assert.ok(card.some(([k]) => k === key), key + ' must survive the cutoff');
+    }
+  }
+  assert.match(well.userData.sourceDisplayNote, /ei mitoitettu kaivo/);
+  assert.match(open.userData.sourceDisplayNote, /ei varmennettu liitos/);
   assert.equal(buildR31DrainageOverlay(THREE, drainSource('other')), null);
   assert.equal(buildR31DrainageOverlay(THREE, drainSource(undefined, 'M5A-R2')), null);
 });
@@ -96,6 +125,10 @@ test('owner 23.11: profiled drains are real pipes 1 m+ below ground, wells reach
   const box = w.geometry.boundingBox.clone().applyMatrix4(w.matrix);
   assert.ok(Math.abs(box.max.y - wp.groundY) < 1e-6 && Math.abs(box.min.y - wp.bottomY) < 1e-6);
   assert.equal(w.userData.drainWell, 'PVK');
+  assert.equal(w.isMesh, true, 'verified best-knowledge well retains its solid underground cylinder');
+  assert.equal(w.geometry.type, 'CylinderGeometry');
+  assert.equal(w.userData.markerDisplayKind, undefined, 'verified well is never downgraded to a reference glyph');
+  assert.match(w.userData.drainUncertainty, /^Oletus:/);
 });
 
 test('infra overlay maps G1 XY + work elevation into the Y-up frame and marks parcels uncertain', () => {
