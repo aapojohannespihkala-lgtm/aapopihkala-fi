@@ -15656,6 +15656,11 @@ const title = 'Private 3D viewer';
           }
         }
         layersEnabled = verifiedChainSourceSha !== null || verifiedR31LayerSource;
+        // Refresh the SHA-scoped capability label at source receipt, not only on a preset click.
+        // Unknown or non-receipted models must clear any previous model's metadata.
+        canvas.dataset.r31SourceCapabilities = verifiedR31LayerSource
+          ? (r31ViewerSourceCapabilities(layersLoadedSha)?.label ?? '')
+          : '';
         layersContextVisible = true;
         layersState = withViewerLayerBranchVisibility(applyViewerLayerPreset(createViewerInteractionState(), 'whole-building'));
         layersAvailable = [];
