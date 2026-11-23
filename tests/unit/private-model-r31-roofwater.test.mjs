@@ -94,3 +94,28 @@ test('viewer loads roof water as its own Layerit row behind the site-network gat
   assert.match(source, /r31SiteNetworks\.roofwater = buildR31RoofWaterOverlay\(THREE\)/);
   assert.match(source, /const siteOk = whole && Boolean\(r31Capabilities\(\)\?\.siteNetworks\)/);
 });
+
+test('NW original owner photos support perforated Merika Avantgarde candidate but not a verified SKU', () => {
+  assert.match(R31_ROOFWATER_SOURCE.wellProduct, /Merika Avantgarde 1780RS/);
+  assert.equal(R31_ROOFWATER_SOURCE.northwestOriginalPhotoIds.length, 4);
+  assert.match(R31_ROOFWATER_SOURCE.manufacturerUrl, /meltex\.fi/);
+  for (const [id, w] of Object.entries(P.wells)) {
+    assert.equal(w.skirtDiameterM, 0.34, id + ' D340');
+    assert.equal(w.hoodDiameterM, 0.31, id + ' D310');
+    assert.ok(Math.abs(w.hoodTopY - w.groundY - 0.249) < 1e-8, id + ' H249');
+    assert.equal(w.productCandidate, id === 'RK_NW' ? 'PHOTO_MATCH_NEEDS_SKU' : 'MODEL_ASSUMPTION_NO_OWN_PHOTO');
+  }
+  const model = buildR31RoofWaterOverlay(THREE);
+  for (const id of ['RK_NW', 'RK_NE', 'RK_SE']) {
+    for (const part of ['_SKIRT', '_BASIN', '_HOOD', '_GRATE']) {
+      const mesh = model.getObjectByName('R31_ROOFWATER_' + id + part);
+      assert.ok(mesh?.isMesh, id + part + ' is mesh');
+      assert.equal(mesh.userData.asBuiltClaim, false);
+    }
+    const grate = model.getObjectByName('R31_ROOFWATER_' + id + '_GRATE');
+    assert.ok(grate.geometry.getAttribute('position').count > 200, id + ' perforated');
+    assert.match(grate.userData.roofwaterUncertainty, /NE\/SE samalla mallilla vain oletus/);
+  }
+  assert.match(model.getObjectByName('R31_ROOFWATER_RK_NW').userData.roofwaterSourcePhotoIds, /1Hbw4Ir3c7WHg2PDU58KcN6v1W_uunuS8/);
+  assert.equal(model.getObjectByName('R31_ROOFWATER_RK_NE').userData.roofwaterSourcePhotoIds, '');
+});
