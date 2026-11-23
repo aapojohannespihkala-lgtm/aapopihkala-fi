@@ -19,6 +19,14 @@ export const R22_BATH_C_SOURCE = Object.freeze({
   ]),
 });
 
+/** Native R33 source GLB 3a226f98, 1F BOTH scene818 only. Scene819 lacks floor and mirror. */
+export const R33_BATH_C_SOURCE = Object.freeze({
+  sha256: '3a226f987d5605eff523029d580b760167ae4a32f13ddd51248fe933d913c54c',
+  sceneIndex: 818,
+  // R33 source-exact: same four node indices, meshes, POSITIONS, bounds and unique names.
+  parts: R22_BATH_C_SOURCE.parts,
+});
+
 const reject = (reason) => ({ status: reason, applied: false, count: 0, dispose() {} });
 const near = (a, b) => Number.isFinite(a) && Math.abs(a - b) <= 0.002;
 
@@ -44,11 +52,10 @@ function reachableSceneNodes(json, sceneIndex) {
  * source scene are active. THREE is injected to keep tests/render independent.
  * The returned handle removes every derived edge without altering the source.
  */
-export function createR22BathroomCEmphasis({
+function createBathroomCEmphasis({
   glbSha256, sceneIndex, json, sceneRoot, THREE, enabled = false,
-} = {}) {
+} = {}, src) {
   if (!enabled) return reject('DISABLED');
-  const src = R22_BATH_C_SOURCE;
   if (glbSha256 !== src.sha256 || sceneIndex !== src.sceneIndex)
     return reject('SOURCE_SCOPE_HOLD');
   if (!sceneRoot?.traverse || !THREE?.LineSegments || !THREE?.BufferGeometry ||
@@ -114,7 +121,7 @@ export function createR22BathroomCEmphasis({
         depthTest: true, depthWrite: false,
       });
       const line = new THREE.LineSegments(geometry, material);
-      line.name = 'R22_BATHROOM_C_' + part.role.toUpperCase();
+      line.name = (src === R33_BATH_C_SOURCE ? 'R33_BATHROOM_C_' : 'R22_BATHROOM_C_') + part.role.toUpperCase();
       line.userData = { PresentationOnly: true, Canonical: false,
         WorkTest: true, sourceNodeIndex: part.node, sourceMeshIndex: part.mesh };
       line.renderOrder = 35;
@@ -145,4 +152,13 @@ export function createR22BathroomCEmphasis({
       }
     },
   };
+}
+
+/** Existing R22 public API and WORK_TEST semantics are unchanged. */
+export function createR22BathroomCEmphasis(options = {}) {
+  return createBathroomCEmphasis(options, R22_BATH_C_SOURCE);
+}
+/** Verified R33 1F BOTH scene818 only, never scene819 or 2F. */
+export function createR33BathroomCEmphasis(options = {}) {
+  return createBathroomCEmphasis(options, R33_BATH_C_SOURCE);
 }
