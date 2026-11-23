@@ -2961,7 +2961,7 @@ const title = 'Private 3D viewer';
         type WorkTestLoadFailurePhase,
       } from '../../scripts/privateModelWorkTestLoadDiagnostics';
 
-      import { createC80R31ViewSwitch, r31WorkTestReview, r31ViewerLayerSceneReceipt, r31ViewerLayerBindingScope, C80_R31_9E0B_SOURCE, isR31FamilyViewerSha, C80_R32H_SOURCE, C80_R32H_VIEWS } from '../../scripts/privateModelC80R31ReviewRuntime.mjs';
+      import { createC80R31ViewSwitch, r31WorkTestReview, r31ViewerLayerSceneReceipt, r31ViewerLayerBindingScope, C80_R31_9E0B_SOURCE, isR31FamilyViewerSha, r32hFamilyOf } from '../../scripts/privateModelC80R31ReviewRuntime.mjs';
       import { mountDesktopToolbar, activeDesktopPreset, activeDesktopAngle, DESKTOP_START_CANDIDATE_ID } from '../../scripts/privateModelDesktopToolbar.mjs';
       import { createDFocusGhost, dFootprintFromScope, dStoreyFootprint } from '../../scripts/privateModelDFocusGhost';
 
@@ -15633,9 +15633,8 @@ const title = 'Private 3D viewer';
           layersLoadedSha === V82_SOURCE_SHA256 ||
           layersLoadedSha === K17_RAIL900_SOURCE_SHA256
             ? layersLoadedSha : null;
-        // Source receipt on the model's own whole-D normal scene (R31 769, R32H 814).
-        const r31LayerReceiptScene = layersLoadedSha === C80_R32H_SOURCE.glbSha256
-          ? C80_R32H_VIEWS.dNormal.sceneIndex : 769;
+        // Source receipt on the model's own whole-D normal scene (R31 769, R32H 814, R33 818).
+        const r31LayerReceiptScene = r32hFamilyOf(layersLoadedSha)?.views.dNormal.sceneIndex ?? 769;
         const verifiedR31LayerSource = !!r31ViewerLayerSceneReceipt(
           gltf?.parser?.json, layersLoadedSha, r31LayerReceiptScene);
         layersExpectedSha = session?.contract?.glbSha256 ?? verifiedChainSourceSha ??

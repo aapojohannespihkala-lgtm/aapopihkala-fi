@@ -87,10 +87,46 @@ export const C80_R32H_VIEWS=Object.freeze({
  upperService:Object.freeze({role:'R32H_2F_SERVICE_PLEXI_OFF',sceneIndex:817,rootCount:203,rootFnv32:'8076a96f',
   floor:'2F',plexi:false,label:'Yläkerta huolto',name:'Ylisrinne_R32_HALLFACE_SW04SW05_2F_SERVICE_HALLFACE_PLEXI_OFF_WORK_TEST_HOST_HOLD__scene817'}),
 });
-/** Exact R32H view gate: SHA, array counts, stage, scene name, root count/FNV and the required roots. */
+/**
+ * R33 3a226f98 (CLAUDE-D2FWC-DOOR-CLASH-R33-20261123): R32H + D2F WC open door leaf out of
+ * the wall end and floor (COW 8031->13840, levers 9199/9200->13844/13845, path
+ * 12643/12642/12492->13843/13842/13841). Append-only: R32H nodes/scenes/BIN identical.
+ * Whole-D normal/service 818/819 and 2F normal/service 820/821. WORK_TEST/HOST_HOLD.
+ */
+export const C80_R33_WORK_TEST_ID='c80-r33-3a226f98-d-2f-sc818-sc821-work-test';
+export const C80_R33_SOURCE=Object.freeze({
+ glbSha256:'3a226f987d5605eff523029d580b760167ae4a32f13ddd51248fe933d913c54c',glbBytes:64697168,
+ zipDriveId:'13Wb5Og60oBFl_gWoEcAqXL22gy7MZZFg',
+ zipSha256:'1317cb338978ad921e2bd7c443947e2d68e09c8992fe0f934df2bf892a954a74',
+ baseGlbSha256:C80_R32H_SOURCE.glbSha256,
+ sceneCount:822,nodeCount:13846,meshCount:5237,materialCount:824,
+ accessorCount:11427,bufferViewCount:11433,defaultScene:292,
+ envelopeRoot:13809,p6Root:7583,p6GutterRoot:13812,sw04:13813,sw05:13839,
+ replacedHallRoots:Object.freeze([13507,13531,12643,9199,9200]),plexi:11625,
+ extraRoots:Object.freeze([13843,13844,13845]),wcDoorLeaf:13840,
+});
+export const C80_R33_VIEWS=Object.freeze({
+ dNormal:Object.freeze({role:'R33_D_NORMAL_PLEXI_ON',sceneIndex:818,rootCount:500,rootFnv32:'b77b9ae3',
+  floor:'BOTH',plexi:true,label:'D normaali',name:'Ylisrinne_R33_D2F_WC_DOOR_CLEAR_BOTH_NORMAL_PLEXI_ON_WORK_TEST_HOST_HOLD__scene818'}),
+ dService:Object.freeze({role:'R33_D_SERVICE_PLEXI_OFF',sceneIndex:819,rootCount:499,rootFnv32:'a8f7cd19',
+  floor:'BOTH',plexi:false,label:'D huolto',name:'Ylisrinne_R33_D2F_WC_DOOR_CLEAR_BOTH_SERVICE_PLEXI_OFF_WORK_TEST_HOST_HOLD__scene819'}),
+ upperNormal:Object.freeze({role:'R33_2F_NORMAL_PLEXI_ON',sceneIndex:820,rootCount:204,rootFnv32:'fa8341b8',
+  floor:'2F',plexi:true,label:'Yläkerta normaali',name:'Ylisrinne_R33_D2F_WC_DOOR_CLEAR_2F_NORMAL_PLEXI_ON_WORK_TEST_HOST_HOLD__scene820'}),
+ upperService:Object.freeze({role:'R33_2F_SERVICE_PLEXI_OFF',sceneIndex:821,rootCount:203,rootFnv32:'60e85063',
+  floor:'2F',plexi:false,label:'Yläkerta huolto',name:'Ylisrinne_R33_D2F_WC_DOOR_CLEAR_2F_SERVICE_PLEXI_OFF_WORK_TEST_HOST_HOLD__scene821'}),
+});
+/** R32H-family models (R32H and its append-only successors): exact source + views. */
+export const C80_R32H_FAMILY=Object.freeze([
+ Object.freeze({source:C80_R32H_SOURCE,views:C80_R32H_VIEWS}),
+ Object.freeze({source:C80_R33_SOURCE,views:C80_R33_VIEWS}),
+]);
+export const r32hFamilyOf=sha=>C80_R32H_FAMILY.find(m=>m.source.glbSha256===sha)??null;
+export const isR32HFamilySha=sha=>!!r32hFamilyOf(sha);
+/** Exact R32H-family view gate: SHA, array counts, stage, scene name, root count/FNV and the required roots. */
 export function isC80R32HSceneSource(json,sha,index,role,floor){
- const v=Object.values(C80_R32H_VIEWS).find(x=>x.role===role&&x.sceneIndex===index);
- const a=json?.asset?.extras,s=C80_R32H_SOURCE;
+ const m=r32hFamilyOf(sha);
+ const v=m&&Object.values(m.views).find(x=>x.role===role&&x.sceneIndex===index);
+ const a=json?.asset?.extras,s=m?.source;
  if(!v||sha!==s.glbSha256||(floor!==undefined&&floor!==v.floor)||
   json?.scene!==s.defaultScene||json?.scenes?.length!==s.sceneCount||
   json?.nodes?.length!==s.nodeCount||json?.meshes?.length!==s.meshCount||
@@ -103,12 +139,12 @@ export function isC80R32HSceneSource(json,sha,index,role,floor){
   c80R31Scene752RootsFnv32(r)!==v.rootFnv32)return false;
  const must=v.floor==='BOTH'?[s.envelopeRoot,s.p6Root,s.p6GutterRoot,s.sw04,s.sw05]:[s.sw04,s.sw05];
  if(!must.every(x=>r.includes(x))||s.replacedHallRoots.some(x=>r.includes(x))||
-  r.includes(s.plexi)!==v.plexi)return false;
+  r.includes(s.plexi)!==v.plexi||!(s.extraRoots??[]).every(x=>r.includes(x)))return false;
  const e=scene.extras??{};
  return e.current!==true&&e.asBuilt!==true&&e.CURRENT!==true;
 }
 /** R31-family viewer models (same R31 node indices, D/2F view pairs, R31 viewer runtime). */
-export const isR31FamilyViewerSha=sha=>sha===C80_R31_9E0B_SOURCE.glbSha256||sha===C80_R32H_SOURCE.glbSha256;
+export const isR31FamilyViewerSha=sha=>sha===C80_R31_9E0B_SOURCE.glbSha256||isR32HFamilySha(sha);
 const sameList=(a,b)=>Array.isArray(a)&&Array.isArray(b)&&a.length===b.length&&a.every((v,i)=>v===b[i]);
 /** Exact whole-D pair gate: SHA, counts, stage, root counts/FNV and the plexi-only difference. */
 export function isC80R31Scene769770Source(json,sha,index,role,floor){
@@ -139,8 +175,8 @@ const r31View=view=>Object.freeze({
  exactRootCount:true,
 });
 
-const r32hView=view=>Object.freeze({
- spec:Object.freeze({...C80_R32H_SOURCE,...view}),
+const r32hView=(view,source=C80_R32H_SOURCE)=>Object.freeze({
+ spec:Object.freeze({...source,...view}),
  verify:(json,sha,i)=>isC80R32HSceneSource(json,sha,i,view.role,view.floor),
  exactRootCount:true,
 });
@@ -150,8 +186,9 @@ const r32hView=view=>Object.freeze({
  * Never infer current/as-built identity or layer classes from scene names.
  */
 export function r31ViewerLayerSceneReceipt(json, loadedSha, sceneIndex) {
- if (loadedSha === C80_R32H_SOURCE.glbSha256) {
-  const r32 = Object.values(C80_R32H_VIEWS).find(v => v.sceneIndex === sceneIndex);
+ const family = r32hFamilyOf(loadedSha);
+ if (family) {
+  const r32 = Object.values(family.views).find(v => v.sceneIndex === sceneIndex);
   return r32 && isC80R32HSceneSource(json, loadedSha, sceneIndex, r32.role, r32.floor)
    ? Object.freeze({sourceSha256: loadedSha, sceneIndex, role: r32.role, floor: r32.floor}) : null;
  }
@@ -181,6 +218,8 @@ export function r31WorkTestReview(candidate){
    labels:Object.fromEntries(Object.entries(C80_R31_9E0B_VIEWS).map(([k,v])=>[k,v.label])),title:'C80 R31 D'},
   [C80_R32H_WORK_TEST_ID]:{source:C80_R32H_SOURCE,views:C80_R32H_VIEWS,
    labels:Object.fromEntries(Object.entries(C80_R32H_VIEWS).map(([k,v])=>[k,v.label])),title:'C80 R32 D'},
+  [C80_R33_WORK_TEST_ID]:{source:C80_R33_SOURCE,views:C80_R33_VIEWS,
+   labels:Object.fromEntries(Object.entries(C80_R33_VIEWS).map(([k,v])=>[k,v.label])),title:'C80 R33 D'},
  };
  const r=Object.hasOwn(table,candidate?.id)?table[candidate.id]:undefined;
  if(!r)return undefined;
@@ -223,6 +262,7 @@ export const C80_R31_REVIEW_ROLES=Object.freeze({
  [C80_R31_R300_VIEWS.service.role]:r300Role(C80_R31_R300_VIEWS.service),
  ...Object.fromEntries(Object.values(C80_R31_9E0B_VIEWS).map(v=>[v.role,r31View(v)])),
  ...Object.fromEntries(Object.values(C80_R32H_VIEWS).map(v=>[v.role,r32hView(v)])),
+ ...Object.fromEntries(Object.values(C80_R33_VIEWS).map(v=>[v.role,r32hView(v,C80_R33_SOURCE)])),
 });
 
 const matchesRenderedScene=(gltf,scene,i,cfg)=>{
