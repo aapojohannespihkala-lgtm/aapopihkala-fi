@@ -15468,7 +15468,9 @@ const title = 'Private 3D viewer';
           nwP7Row.hidden = !nwT12SourceAllowed;
           nwP7FileInput.disabled = !nwT12SourceAllowed || r32hNwP7Loading;
           nwP7OptInInput.disabled = !nwT12SourceAllowed || !r32hNwP7Gltf;
-          if (!nwT12SourceAllowed) nwP7OptInInput.checked = false;
+          if (!nwT12SourceAllowed ||
+              (r32hNwP7Preview && r32hNwP7Preview.root !== root))
+            nwP7OptInInput.checked = false;
           if (nwP7OptInInput.checked) nwT12PreviewInput.checked = false;
           const nwP7PreviewRequested = nwT12SourceAllowed &&
             !!r32hNwP7Gltf && !!r32hNwP7Sha && nwP7OptInInput.checked;
