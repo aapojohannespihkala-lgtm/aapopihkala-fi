@@ -5988,13 +5988,15 @@ const title = 'Private 3D viewer';
         const sourceEvidence = resolveSelectionSources(object);
         // Exact original R32H source-link warning only for the clicked LK75 subtree.
         // The source GLB, cover link, sourceLinks and its rendering remain unchanged.
+        const lk75ActiveScene = mainViewScope && 'isSourceScene' in mainViewScope
+          ? mainViewScope.selectedScene : fullModelScene;
         const lk75SourceMetadata = layersGltf && layersLoadedSha === C80_R32H_SOURCE.glbSha256
           ? r32hLK75SelectionMetadataEntries(
               sourceNodeModel(layersGltf),
               layersLoadedSha,
-              layersGltf.scenes?.indexOf(mainViewScope?.selectedScene ?? fullModelScene) ?? -1,
+              layersGltf.scenes?.indexOf(lk75ActiveScene) ?? -1,
               object,
-            )
+            ).map(([label, value]): readonly [string, string] => [label, value])
           : [];
         selectionPanelController.render({
           mesh: serviceTarget?.label ?? semantics.labelFi,
