@@ -1106,7 +1106,7 @@ export function buildR31RoofWaterOverlay(THREE, profile = R31_ROOFWATER_PROFILE)
   const mat = (hex, side) => new THREE.MeshStandardMaterial({ color: hex, emissive: hex, emissiveIntensity: 0.35,
     roughness: 0.6, metalness: 0, side: side ?? THREE.FrontSide });
   const pipeMat = mat(R31_INSPECTION_COLORS.ROOFWATER);
-  const wellMat = mat(R31_INSPECTION_COLORS.ROOFWATER_WELL);
+  const wellMat = mat(R31_INSPECTION_COLORS.ROOFWATER_WELL, THREE.DoubleSide);
   const gutterMat = mat(R31_INSPECTION_COLORS.ROOFWATER, THREE.DoubleSide);
   const counts = { ROOFWATER_WELL: 0, ROOFWATER_PIPE: 0, ROOFWATER_GUTTER: 0, ROOFWATER_CONNECTOR: 0 };
   const common = { presentationOnly: true, ModelStage: 'WORK_TEST_VIEW', currentClaim: false, asBuiltClaim: false,
@@ -1119,7 +1119,19 @@ export function buildR31RoofWaterOverlay(THREE, profile = R31_ROOFWATER_PROFILE)
   };
   for (const [id, w] of Object.entries(profile.wells)) {
     const isNW = id === 'RK_NW';
+    // R32H c26d99c1 baked T12 NW outlet world-Y = -0.290.
+    // Do not pretend its current below-grade endpoint connects to the 2026 photo's
+    // free discharge ABOVE the horizontal splash grate. Keep height uncertainty in the card.
+    const nwT12SourceOutletY = -0.290;
+    const nwHostGapM = isNW ? w.groundY - nwT12SourceOutletY : null;
+    const nwHostHold = isNW && nwHostGapM > 0
+      ? ' SOURCE_HOST_HOLD: R32H T12 -luoteissyöksyn lähdepää jää mallin maanpinnan alle '
+        + rwFmt(nwHostGapM) + ' m ja roiskesihdin alle '
+        + rwFmt(w.grateY - nwT12SourceOutletY)
+        + ' m; 2026 kuvassa vapaa ulostulo on sihdin yläpuolella. T12 Y/host tulee tarkistaa, eikä liittymä ole fyysisesti varmennettu.'
+      : '';
     const card = { ...common,
+      roofwaterHostStatus: isNW ? 'SOURCE_HOST_HOLD' : 'NO_PHOTO_VERIFIED_HOST',
       roofwaterWell: 'Rännikaivo ' + id.replace('RK_', '') + ' (' + R31_ROOFWATER_SOURCE.wellProduct + ')',
       roofwaterDownpipe: w.downpipe,
       roofwaterCertainty: isNW
@@ -1129,7 +1141,7 @@ export function buildR31RoofWaterOverlay(THREE, profile = R31_ROOFWATER_PROFILE)
       roofwaterProductCandidate: R31_ROOFWATER_SOURCE.manufacturerCandidate,
       roofwaterManufacturerUrl: R31_ROOFWATER_SOURCE.manufacturerUrl,
       roofwaterSourcePhotoIds: isNW ? R31_ROOFWATER_SOURCE.northwestOriginalPhotoIds.join(',') : '',
-      roofwaterUncertainty: ROOFWATER_ASSUMED_WELL,
+      roofwaterUncertainty: ROOFWATER_ASSUMED_WELL + nwHostHold,
       roofwaterBasis: R31_ROOFWATER_SOURCE.basis, physicalZClaim: false };
     const place = (suffix, geometry, centerY) => {
       const mesh = new THREE.Mesh(geometry, wellMat);
@@ -1139,8 +1151,10 @@ export function buildR31RoofWaterOverlay(THREE, profile = R31_ROOFWATER_PROFILE)
       group.add(mesh);
     };
     // Buried collector dimensions and depth remain WORK_TEST assumptions.
+    // OpenEnded is crucial: a default closed top beneath the perforated plate falsely
+    // seals the collector and blocks the actual drainage path.
     place('', new THREE.CylinderGeometry(w.diameterM / 2, w.diameterM / 2,
-      w.groundY - w.bottomY, 32), (w.bottomY + w.groundY) / 2);
+      w.groundY - w.bottomY, 32, 1, true), (w.bottomY + w.groundY) / 2);
     // Merika Avantgarde 1780RS candidate: 340 mm outer base, 310 mm cover, 249 mm height.
     // Hollow walls and a perforated plate replace the capped 460 mm cone.
     place('_SKIRT', new THREE.CylinderGeometry(w.skirtDiameterM / 2, w.skirtDiameterM / 2,
