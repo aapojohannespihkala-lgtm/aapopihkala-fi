@@ -52,6 +52,20 @@ const p139adWorkZSelectionMetadataPriority = [
   'ModelStage',
 ] as const;
 
+// R31 drainage well/end symbols are display glyphs, not measured structures.
+const r31DrainageMarkerSelectionMetadataPriority = [
+  'sourceDisplayNote',
+  'markerDisplayKind',
+  'physicalWellGeometryClaim',
+  'physicalZClaim',
+  'installationDepthClaim',
+  'currentClaim',
+  'asBuiltClaim',
+  'ModelStage',
+  'representationKind',
+  'presentationOnly',
+] as const;
+
 const electricalSelectionMetadataPriority = [
   'Pass',
   'pass',
@@ -111,6 +125,9 @@ const selectionMetadataLabels: Record<string, string> = {
   exactCurrentXYClaim: 'Nykyinen XY-sijainti täsmällinen',
   exactZClaim: 'Z-korko täsmällinen',
   publishToCURRENT: 'Julkaistaan CURRENTiin',
+  sourceDisplayNote: 'Viitesymbolin tulkinta (ei mitoitettu rakenne)',
+  markerDisplayKind: 'Viitesymbolin esitystapa',
+  physicalWellGeometryClaim: 'Kaivon fyysiset mitat varmennettu',
   sourceZNote: 'Lähteen Z-huomautus (ei fyysinen putkikorko)',
   workZBasis: 'Työ-Z:n laskentaperuste',
   workZAssumption: 'Työ-Z on oletus',
@@ -186,8 +203,17 @@ export const selectionMetadataEntries = (
     values.get('workZAssumption') === 'true' &&
     values.get('physicalZClaim') === 'false' &&
     values.has('sourceZNote');
+  const isR31DrainageMarker =
+    (values.get('r31InspectionKind') === 'well' || values.get('r31InspectionKind') === 'open') &&
+    (values.get('markerDisplayKind') === 'FLAT_REFERENCE_WELL_RING' ||
+      values.get('markerDisplayKind') === 'FLAT_UNRESOLVED_END_CROSS') &&
+    values.get('presentationOnly') === 'true' &&
+    values.get('physicalWellGeometryClaim') === 'false' &&
+    values.has('sourceDisplayNote');
   const priorityKeys: readonly string[] =
-    isP139adWorkZ
+    isR31DrainageMarker
+      ? [...r31DrainageMarkerSelectionMetadataPriority, ...selectionMetadataPriority]
+      : isP139adWorkZ
       ? [...p139adWorkZSelectionMetadataPriority, ...selectionMetadataPriority]
       : values.get('representationKind') === 'luminaireSourceSymbolAnchorMarker'
       ? [
