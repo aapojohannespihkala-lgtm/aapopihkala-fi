@@ -58,12 +58,12 @@ test('even repaired candidate leaf index remains HOST_HOLD until a reviewed succ
   assert.equal(assessR32HLK75CoverSource(a, SHA, 814).status, 'UNVERIFIED_COVER_LINK');
 });
 
-function selectedLK75Fixture() {
-  const json = sourceView(814);
+function selectedLK75Fixture(sceneIndex = 814) {
+  const json = sourceView(sceneIndex);
   json.nodes[13253].children = [13254, 13255];
   json.nodes[13254] = { name: 'LK75_R32H_GENERIC_BODY', mesh: 5097 };
   json.nodes[13255] = { name: 'LK75_R32H_GENERIC_OUTLET', mesh: 5098 };
-  const scene = json.scenes[814];
+  const scene = json.scenes[sceneIndex];
   const drain = { name: json.nodes[13253].name, parent: scene };
   const outlet = { name: json.nodes[13255].name, parent: drain };
   const tile = { name: json.nodes[11624].name, parent: scene };
@@ -104,4 +104,15 @@ test('R32H viewer selection panel uses exact-source LK75 warning without GLB sou
   assert.match(page, /r32hLK75SelectionMetadataEntries\(/);
   assert.match(page, /\.\.\.lk75SourceMetadata,/);
   assert.doesNotMatch(page, /sourceVisibleCoverNode\s*=\s*11643/);
+});
+
+test('LK75 warning follows the mounted scene across BOTH 814 to 815, not a stale cached scene', () => {
+  const { sourceModel, outlet } = selectedLK75Fixture(815);
+  assert.equal(r32hLK75SelectionMetadataEntries(sourceModel, SHA, 815, outlet).length, 2);
+  // The same selected object is not part of scene 814 and must fail closed.
+  assert.deepEqual(r32hLK75SelectionMetadataEntries(sourceModel, SHA, 814, outlet), []);
+  const page = readFileSync(new URL('../../src/pages/private-model/index.astro', import.meta.url), 'utf8');
+  assert.match(page, /const lk75ActiveScene = modelRoot\\.children\\[0\\] \\?\\? null;/);
+  assert.match(page, /layersGltf\\.scenes\\?\\.indexOf\\(lk75ActiveScene\\)/);
+  assert.doesNotMatch(page, /const lk75ActiveScene = mainViewScope/);
 });
