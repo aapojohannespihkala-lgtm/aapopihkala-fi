@@ -1081,7 +1081,7 @@ const ROOFWATER_TEXT = Object.freeze({
   }),
 });
 const ROOFWATER_ASSUMED_PIPE = 'Oletus: putken reitti, Ø110, yläpinta vähintään 0,15 m maanpinnasta, kaato virtaussuuntaan ja purkupaikan tarkka kohta; ei mitattu.';
-const ROOFWATER_ASSUMED_WELL = 'Oletus: mallin mitat (Ø315-runko noin 0,8 m maan alle, huppu Ø300 0,20 m maan yläpuolella, helma Ø460, 110 mm lähtö) yleisestä Merika 110/315 -rännikaivosta; omistajan "Melika" tulkittu Merikaksi, ei mitattu.';
+const ROOFWATER_ASSUMED_WELL = 'Oletus: Merika AvantGarde 1780RS on luoteiskaivon 2026 valokuvaa parhaiten vastaava tuote, ei varmennettu SKU. Valmistajan D310 roiskekansi, D315 runkoliittymä ja D110 lähtö; maa-asennuksen korkeus (mallissa 0,20 m), putkireitti ja kaivon syvyys (mallissa 0,80 m) eivät ole mitattuja. Kahden itäkaivon rakenne on oletus.';
 const rwFmt = (v) => (Math.round(v * 100) / 100).toFixed(2).replace('.', ',');
 
 function roofwaterPipeCard(id, pipe) {
@@ -1106,7 +1106,7 @@ export function buildR31RoofWaterOverlay(THREE, profile = R31_ROOFWATER_PROFILE)
   const mat = (hex, side) => new THREE.MeshStandardMaterial({ color: hex, emissive: hex, emissiveIntensity: 0.35,
     roughness: 0.6, metalness: 0, side: side ?? THREE.FrontSide });
   const pipeMat = mat(R31_INSPECTION_COLORS.ROOFWATER);
-  const wellMat = mat(R31_INSPECTION_COLORS.ROOFWATER_WELL);
+  const wellMat = mat(R31_INSPECTION_COLORS.ROOFWATER_WELL, THREE.DoubleSide);
   const gutterMat = mat(R31_INSPECTION_COLORS.ROOFWATER, THREE.DoubleSide);
   const counts = { ROOFWATER_WELL: 0, ROOFWATER_PIPE: 0, ROOFWATER_GUTTER: 0, ROOFWATER_CONNECTOR: 0 };
   const common = { presentationOnly: true, ModelStage: 'WORK_TEST_VIEW', currentClaim: false, asBuiltClaim: false,
@@ -1118,12 +1118,23 @@ export function buildR31RoofWaterOverlay(THREE, profile = R31_ROOFWATER_PROFILE)
     return new THREE.Mesh(new THREE.TubeGeometry(path, Math.max(8, p.length * 8), radius, 10, false), material);
   };
   for (const [id, w] of Object.entries(profile.wells)) {
+    const northWestPhoto = id === 'RK_NW';
+    const note = northWestPhoto
+      ? 'Varmaa (valokuva 25.4.2026): luoteiskaivossa on korkea avoin keräilykehä, tasainen rei\'itetty sihti ja vino syöksytorven vapaa ulostulo. Sama kaivo näkyy 2024/2025 kuvissa.'
+      : 'Varmaa (omistajan maastohavainto 23.11.2026): tämän syöksyn alla on oma Melika-rännikaivo. Kaivon tarkkaa tuoterakennetta ei ole kuvasta varmennettu.';
     const card = { ...common, roofwaterWell: `Rännikaivo ${id.replace('RK_', '')} (${R31_ROOFWATER_SOURCE.wellProduct})`,
-      roofwaterDownpipe: w.downpipe, roofwaterCertainty: 'Varmaa (omistajan maastohavainto 23.11.2026): oma rännikaivo tämän syöksyn alla, mallia Melika.',
-      roofwaterWellDepthM: `${rwFmt(w.groundY - w.bottomY)} m maan alle`, roofwaterUncertainty: ROOFWATER_ASSUMED_WELL,
+      roofwaterDownpipe: w.downpipe, roofwaterCertainty: note,
+      roofwaterPhotoEvidence: northWestPhoto ? R31_ROOFWATER_SOURCE.wellPhotoNw : 'Ei yksilöllistä valokuvanäyttöä tästä kaivosta',
+      roofwaterProductReference: R31_ROOFWATER_SOURCE.wellCatalog,
+      roofwaterWellDepthM: `${rwFmt(w.groundY - w.bottomY)} m maan alle (OLETUS)`,
+      roofwaterUncertainty: ROOFWATER_ASSUMED_WELL,
       roofwaterBasis: R31_ROOFWATER_SOURCE.basis, physicalZClaim: false };
-    const part = (name, rTop, rBottom, y0, y1, segments = 24) => {
-      const mesh = new THREE.Mesh(new THREE.CylinderGeometry(rTop, rBottom, y1 - y0, segments), wellMat);
+    // Open collector shell, never a solid cylinder sealed over the perforations.
+    const part = (name, rTop, rBottom, y0, y1, segments = 32) => {
+      const mesh = new THREE.Mesh(
+        new THREE.CylinderGeometry(rTop, rBottom, y1 - y0, segments, 1, true),
+        wellMat,
+      );
       mesh.position.set(w.x, (y0 + y1) / 2, w.z);
       mesh.updateMatrix();
       mesh.name = `R31_ROOFWATER_${id}${name}`;
@@ -1131,8 +1142,30 @@ export function buildR31RoofWaterOverlay(THREE, profile = R31_ROOFWATER_PROFILE)
       group.add(mesh);
     };
     part('', w.diameterM / 2, w.diameterM / 2, w.bottomY, w.groundY);
-    part('_SKIRT', w.skirtDiameterM / 2, w.skirtDiameterM / 2, w.groundY, w.groundY + 0.02, 32);
-    part('_HOOD', w.hoodDiameterM / 2 * 0.8, w.hoodDiameterM / 2, w.groundY + 0.02, w.hoodTopY);
+    part('_SKIRT', w.skirtDiameterM / 2, w.skirtDiameterM / 2, w.groundY - 0.035, w.groundY + 0.02);
+    part('_HOOD', w.hoodDiameterM / 2, w.hoodDiameterM / 2, w.groundY + 0.02, w.hoodTopY);
+    // The 2026 photo shows a removable FLAT strainer below the open top.
+    // Cut true circular holes instead of painting black dots on an opaque disk.
+    const grate = new THREE.Shape();
+    const rad = w.strainerDiameterM / 2 - 0.004;
+    grate.absarc(0, 0, rad, 0, Math.PI * 2, false);
+    const holeRad = w.strainerHoleDiameterM / 2;
+    const pitch = 0.034;
+    for (let ix = -3; ix <= 3; ix += 1) {
+      for (let iz = -3; iz <= 3; iz += 1) {
+        const x = ix * pitch, z = iz * pitch;
+        if (Math.hypot(x, z) + holeRad > rad - 0.015) continue;
+        const opening = new THREE.Path();
+        opening.absarc(x, z, holeRad, 0, Math.PI * 2, true);
+        grate.holes.push(opening);
+      }
+    }
+    const plate = new THREE.Mesh(new THREE.ShapeGeometry(grate, 48), wellMat);
+    plate.geometry.rotateX(-Math.PI / 2);
+    plate.position.set(w.x, w.groundY + 0.04, w.z);
+    plate.name = `R31_ROOFWATER_${id}_STRAINER`;
+    plate.userData = card;
+    group.add(plate);
     counts.ROOFWATER_WELL += 1;
   }
   for (const [id, c] of Object.entries(profile.connectors ?? {})) {
