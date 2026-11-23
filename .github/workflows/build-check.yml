@@ -285,6 +285,7 @@ jobs:
             tests/unit/private-model-d-focus-ghost.test.mjs \
             tests/unit/private-model-technical-review-hot-water.test.mjs \
             tests/unit/private-model-hidden-seam-edges.test.mjs \
+            tests/unit/private-model-r22-bathroom-c-emphasis.test.mjs \
             tests/unit/private-model-floor-depth-bias.test.mjs \
             tests/unit/private-model-c80-succ455-room3-photodoor-source-profile.test.mjs \
             tests/unit/private-model-c80-succ455-room3-mj83-source-profile.test.mjs \
