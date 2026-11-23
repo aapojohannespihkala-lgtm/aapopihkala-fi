@@ -144,3 +144,114 @@ test('unbound fallback fails closed for conflicting binding, wrong parent, mesh 
   f.sourceModel.parser.associations.set(f.parent, { nodes: f.json.scenes[814].nodes[0] });
   assert.equal(run().length, 2, 'restored source identity remains accepted');
 });
+
+
+/**
+ * Original R32H GLB source-exact scene/root/mesh/position metadata, independently
+ * read from G2b Drive1UM0piM, source SHA c26d99c1. This is a SYNTHETIC test
+ * geometry with authentic index/name/accessor bounds, not a 64 MB GLB load.
+ */
+const originalR32HSourceNodes = Object.freeze({
+  13310: { mesh: 3709, count: 256,
+    name: 'M5_VV2015_D2F_KITCHEN_V75_ALAS_FLOOR_APPROACH_SC312_313_OPEN_HOST_HOLD_D2F_KITCHEN_WASTE_CLASSIFY_VIEMARI_COW',
+    min: [6.135791301727295, 2.86299991607666, -1.6525167226791382],
+    max: [6.21079158782959, 4.550000190734863, -1.5775166749954224] },
+  13314: { mesh: 4429, count: 518,
+    name: 'D2F_KITCHEN_2026_PHOTO_WHITE_HORIZONTAL_TO_TRAP_D2F_KITCHEN_WASTE_CLASSIFY_VIEMARI_COW',
+    min: [6.0129008293151855, 3.3403701782226562, -1.6571139097213745],
+    max: [6.198000907897949, 3.4098072052001953, -1.5815786123275757] },
+  13315: { mesh: 4430, count: 1190,
+    name: 'D2F_KITCHEN_2026_PHOTO_WHITE_VERTICAL_U_BEND_D2F_KITCHEN_WASTE_CLASSIFY_VIEMARI_COW',
+    min: [6.101444721221924, 3.08567476272583, -1.7572184801101685],
+    max: [6.220225811004639, 3.365464210510254, -1.5793054103851318] },
+  13316: { mesh: 4431, count: 686,
+    name: 'D2F_KITCHEN_2026_PHOTO_GREY_ELBOW_TO_EXISTING_V75_STUB_D2F_KITCHEN_WASTE_CLASSIFY_VIEMARI_COW',
+    min: [6.085111618041992, 3.186152458190918, -1.7403438091278076],
+    max: [6.183865547180176, 3.344787836074829, -1.5863525867462158] },
+  13317: { mesh: 4432, count: 518,
+    name: 'D2F_KITCHEN_2026_PHOTO_APPLIANCE_GREY_BRANCH_TO_WHITE_TRAP_D2F_KITCHEN_WASTE_CLASSIFY_VIEMARI_COW',
+    min: [5.990418910980225, 3.252880573272705, -1.7667778730392456],
+    max: [6.202773094177246, 3.3192055225372314, -1.6006189584732056] },
+});
+const originalR32HSourceParents = Object.freeze({
+  13358: 'V93_IV_B_MJ01_REV2_TECH_2F_EXCLUDE_HIST2015_HIGH_WALL_P02_COW_P02_COW_R24_L12_WW_SEMANTIC_COW_ROOT_D2F_KITCHEN_WASTE_SEMANTIC_PARENT_COW_E220S_ROOF_HOST_WT',
+  13535: 'R31_T110_D2F_VESI_DUPLICATE_REMOVED_KEEP_VIEMARI_WT_HOLD',
+  13319: 'D2F_KITCHEN_2026_PHOTO_WASTE_VISIBLE_TRAP_U_ELBOW_APPLIANCE_HOSE_ROOT_WORK_TEST_D2F_KITCHEN_WASTE_SEMANTIC_PARENT_COW',
+});
+
+function originalR32HClashParentFixture(sceneIndex, selectedId) {
+  const source = originalR32HSourceNodes[selectedId];
+  const parent2015 = sceneIndex <= 815 ? 13358 : 13535;
+  const parentId = selectedId === 13310 ? parent2015 : 13319;
+  const nodes = Array.from({ length: fixture.counts.nodes }, () => ({}));
+  const scenes = Object.fromEntries(Object.entries(fixture.scenes).map(([i, scene]) =>
+    [i, { name: scene.name, nodes: [] }]));
+  const meshes = [];
+  const accessors = [];
+  nodes[parent2015] = { name: originalR32HSourceParents[parent2015], children: [13310] };
+  nodes[13319] = { name: originalR32HSourceParents[13319], children: [13314, 13315, 13316, 13317] };
+  scenes[sceneIndex].nodes = [parent2015, 13319];
+  for (const [accessorId, nodeId] of ids.entries()) {
+    const entry = originalR32HSourceNodes[nodeId];
+    nodes[nodeId] = { name: entry.name, mesh: entry.mesh };
+    meshes[entry.mesh] = { primitives: [{ attributes: { POSITION: accessorId } }] };
+    accessors[accessorId] = { componentType: 5126, type: 'VEC3', count: entry.count,
+      min: [...entry.min], max: [...entry.max] };
+  }
+  const json = { scenes, nodes, meshes, accessors };
+  const scene = { name: scenes[sceneIndex].name };
+  const parent = { name: nodes[parentId].name, parent: scene };
+  // Artificial vertices preserve original source accessor extrema and count.
+  const attr = { itemSize: 3, count: source.count,
+    getX: (i) => i === 0 ? source.min[0] : source.max[0],
+    getY: (i) => i === 0 ? source.min[1] : source.max[1],
+    getZ: (i) => i === 0 ? source.min[2] : source.max[2] };
+  const selected = { isMesh: true, name: source.name, parent,
+    geometry: { getAttribute: (key) => key === 'position' ? attr : null } };
+  scene.traverse = (visit) => visit(selected);
+  const associations = new Map([[parent, { nodes: parentId }]]);
+  const sourceModel = { scenes: Object.fromEntries([[sceneIndex, scene]]),
+    parser: { json, associations } };
+  return { sourceModel, parent, selected, associations, parentId, json };
+}
+
+test('original R32H source parents: 2015 n13310 switches 13358 to 13535 between BOTH and 2F', () => {
+  assert.equal(sha, 'c26d99c11ffef90859ff17cad5edecf7ab22d811baddfa0506794ecdbef6294c');
+  for (const { sceneIndex } of Object.values(C80_R32H_VIEWS)) {
+    const expected2015 = sceneIndex <= 815 ? 13358 : 13535;
+    for (const nodeId of ids) {
+      const f = originalR32HClashParentFixture(sceneIndex, nodeId);
+      assert.equal(f.parentId, nodeId === 13310 ? expected2015 : 13319);
+      assert.equal(f.json.nodes[nodeId].mesh, originalR32HSourceNodes[nodeId].mesh);
+      const entries = r32hKitchenWastewaterClashSelectionEntries(
+        f.sourceModel, sha, sceneIndex, f.selected);
+      assert.equal(entries.length, 2, 'missing source warning for n' + nodeId + ' scene ' + sceneIndex);
+      assert.match(entries[0][1], /LÄHDERISTIRIITA/);
+      assert.match(entries[1][1], /EI todista.*HOST_HOLD/);
+    }
+  }
+});
+
+test('original R32H parent swap and stale source identity fail closed for all 5 pipes x 4 scenes', () => {
+  for (const sceneIndex of [814, 815, 816, 817]) {
+    for (const nodeId of ids) {
+      const f = originalR32HClashParentFixture(sceneIndex, nodeId);
+      assert.equal(r32hKitchenWastewaterClashSelectionEntries(
+        f.sourceModel, sha, sceneIndex, f.selected).length, 2);
+      const wrongParent = nodeId === 13310 ? (sceneIndex <= 815 ? 13535 : 13358) : 13535;
+      f.parent.name = originalR32HSourceParents[wrongParent];
+      f.associations.set(f.parent, { nodes: wrongParent });
+      assert.deepEqual(r32hKitchenWastewaterClashSelectionEntries(
+        f.sourceModel, sha, sceneIndex, f.selected), [],
+        'cross-scene or cross-system n' + nodeId + ' scene ' + sceneIndex);
+      f.parent.name = originalR32HSourceParents[f.parentId];
+      f.associations.set(f.parent, { nodes: f.parentId });
+      assert.equal(r32hKitchenWastewaterClashSelectionEntries(
+        f.sourceModel, sha, sceneIndex, f.selected).length, 2);
+      f.json.nodes[nodeId].name += '_STALE';
+      assert.deepEqual(r32hKitchenWastewaterClashSelectionEntries(
+        f.sourceModel, sha, sceneIndex, f.selected), [],
+        'renamed source n' + nodeId + ' scene ' + sceneIndex);
+    }
+  }
+});
