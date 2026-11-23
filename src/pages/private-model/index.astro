@@ -2961,7 +2961,7 @@ const title = 'Private 3D viewer';
         type WorkTestLoadFailurePhase,
       } from '../../scripts/privateModelWorkTestLoadDiagnostics';
 
-      import { createC80R31ViewSwitch, r31WorkTestReview, r31ViewerLayerSceneReceipt, r31ViewerLayerBindingScope, C80_R31_9E0B_SOURCE } from '../../scripts/privateModelC80R31ReviewRuntime.mjs';
+      import { createC80R31ViewSwitch, r31WorkTestReview, r31ViewerLayerSceneReceipt, r31ViewerLayerBindingScope, C80_R31_9E0B_SOURCE, isR31FamilyViewerSha } from '../../scripts/privateModelC80R31ReviewRuntime.mjs';
       import { mountDesktopToolbar, activeDesktopPreset, activeDesktopAngle, DESKTOP_START_CANDIDATE_ID } from '../../scripts/privateModelDesktopToolbar.mjs';
       import { createDFocusGhost, dFootprintFromScope, dStoreyFootprint } from '../../scripts/privateModelDFocusGhost';
 
@@ -7373,7 +7373,7 @@ const title = 'Private 3D viewer';
 
       const activateMainModelScope = (floor: MainViewFloor, preserveCamera = false) => {
         if (!mainViewScope?.available) return;
-        if (layersLoadedSha === C80_R31_9E0B_SOURCE.glbSha256 && r300ViewSwitch && floor !== '1F') {
+        if (isR31FamilyViewerSha(layersLoadedSha) && r300ViewSwitch && floor !== '1F') {
           const active = r300ViewSwitch.activeView();
           if (active) {
             // Keep the source-authored R31 D/BOTH or D/2F scene and service role.
@@ -15356,10 +15356,10 @@ const title = 'Private 3D viewer';
           const root = modelRoot.children[0] ?? null;
           const sceneIndex = layersGltf?.scenes?.indexOf(root) ?? -1;
           // SHA alone does not authorize every scene inside an R31 work-test GLB.
-          const r31SceneScope = layersLoadedSha === C80_R31_9E0B_SOURCE.glbSha256
+          const r31SceneScope = isR31FamilyViewerSha(layersLoadedSha)
             ? r31ViewerLayerBindingScope(layersGltf?.parser?.json, layersLoadedSha, sceneIndex) : null;
           const verified = !!layersExpectedSha && layersExpectedSha === layersLoadedSha &&
-            sceneIndex >= 0 && (layersLoadedSha !== C80_R31_9E0B_SOURCE.glbSha256 || !!r31SceneScope);
+            sceneIndex >= 0 && (!isR31FamilyViewerSha(layersLoadedSha) || !!r31SceneScope);
           const filterActive = canvas.dataset.objectVisibilityFilter === 'active';
           if (filterActive) {
             technicalReviewInput.disabled = true;
@@ -16049,7 +16049,8 @@ const title = 'Private 3D viewer';
         r31ExteriorLoading = (async () => {
           // Owner 19.27: east gable as wide as the west, from R31's own scene 23.
           try {
-            r31ExteriorDonors.eastGable = await loadR31EastGableOverlay(THREE, layersGltf);
+            r31ExteriorDonors.eastGable = r31ExteriorAllowed('eastGable') || r31ExteriorAllowed('gableBoarding')
+              ? await loadR31EastGableOverlay(THREE, layersGltf) : null;
           } catch (error) {
             r31ExteriorDonors.eastGable = null;
             console.warn('R31 east gable source failed', error);
@@ -16057,7 +16058,7 @@ const title = 'Private 3D viewer';
           canvas.dataset.r31EastGable = String(r31ExteriorDonors.eastGable?.children.length ?? 0);
           // Owner 20.12 / 20.46: the west gable opening is closed, and both gable
           // triangles carry dark brown vertical boarding (Street View heinä 2026).
-          {
+          if (r31ExteriorAllowed('gableBoarding')) {
             const boarding = new THREE.MeshStandardMaterial({ color: R31_GABLE_BOARDING_COLOR, roughness: 0.85, metalness: 0, side: THREE.DoubleSide });
             const westMeshes: any[] = [];
             modelRoot.traverse((object: any) => {
@@ -16079,6 +16080,8 @@ const title = 'Private 3D viewer';
             if (brickCompletion) gable.add(brickCompletion);
             r31ExteriorDonors.gableBoarding = gable;
             canvas.dataset.r31GableBoarding = `west:${westMeshes.length}|east:${eastFace ? 1 : 0}|infill:1|westBrick:${brickCompletion ? 1 : 0}`;
+          } else canvas.dataset.r31GableBoarding = 'baked-in-model';
+          if (r31ExteriorAllowed('fiberBox')) {
             // Owner 20.46 photos: fibre box right of the D north door, cable down.
             const fiberBox = new THREE.Group();
             fiberBox.name = 'R31_FIBER_ENTRY_BOX_WORK_TEST';
