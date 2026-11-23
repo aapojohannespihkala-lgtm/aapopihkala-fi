@@ -2962,6 +2962,8 @@ const title = 'Private 3D viewer';
       } from '../../scripts/privateModelWorkTestLoadDiagnostics';
 
       import { createC80R31ViewSwitch, r31WorkTestReview, r31ViewerLayerSceneReceipt, r31ViewerLayerBindingScope, C80_R31_9E0B_SOURCE, isR31FamilyViewerSha, r32hFamilyOf } from '../../scripts/privateModelC80R31ReviewRuntime.mjs';
+      import { r32hKitchenWastewaterClashSelectionEntries } from '../../scripts/privateModelR32HKitchenWastewaterClashGuard.mjs';
+      import { r33KitchenWastewaterClashSelectionEntries } from '../../scripts/privateModelR33KitchenWastewaterClashGuard.mjs';
       import { mountDesktopToolbar, activeDesktopPreset, activeDesktopAngle, DESKTOP_START_CANDIDATE_ID } from '../../scripts/privateModelDesktopToolbar.mjs';
       import { createDFocusGhost, dFootprintFromScope, dStoreyFootprint } from '../../scripts/privateModelDFocusGhost';
 
@@ -5985,6 +5987,17 @@ const title = 'Private 3D viewer';
 
         selectedObject = object;
         const sourceEvidence = resolveSelectionSources(object);
+        // Source warnings follow only the currently mounted, SHA-verified glTF scene.
+        // These do not validate a physical connection or alter pipe geometry.
+        const wastewaterMountedScene = modelRoot.children[0] ?? null;
+        const wastewaterSceneIndex = layersGltf
+          ? layersGltf.scenes?.indexOf(wastewaterMountedScene) ?? -1 : -1;
+        const kitchenWastewaterSourceEntries = [
+          ...r32hKitchenWastewaterClashSelectionEntries(
+            layersGltf, layersLoadedSha, wastewaterSceneIndex, object),
+          ...r33KitchenWastewaterClashSelectionEntries(
+            layersGltf, layersLoadedSha, wastewaterSceneIndex, object),
+        ].map(([key, value]): readonly [string, string] => [key, value]);
         selectionPanelController.render({
           mesh: serviceTarget?.label ?? semantics.labelFi,
           group: semantics.classLabelFi,
@@ -5998,6 +6011,7 @@ const title = 'Private 3D viewer';
           })(),
           metadataEntries: [
             ...technicalMetadata,
+            ...kitchenWastewaterSourceEntries,
             ...resolveElectricalGroupEvidence(object, modelRoot.children[0] ?? null),
             ...collectSelectionMetadataEntries(object, modelRoot),
           ],
