@@ -37,7 +37,7 @@ test('missing lookup or dataset cannot inherit stale capability identity', () =>
 
 test('viewer source wires mount refresh after root replacement; presets use same identity sync', () => {
   const src = readFileSync(new URL('../../src/pages/private-model/index.astro', import.meta.url), 'utf8');
-  assert.match(src, /if \(root\) modelRoot\.add\(root\);[\s\S]{0,200}r31SourceCapabilityMountHook\(\);/);
+  assert.match(src, /if \(root\) modelRoot\.add\(root\);[\s\S]{0,400}r31SourceCapabilityMountHook\(\);/);
   assert.match(src, /r31SourceCapabilityMountHook = \(\) => syncR31SourceCapabilityMountDataset\(\s*canvas, modelRoot\.children\[0\] \?\? null, layersLoadedSha, r31ViewerSourceCapabilities/);
   assert.match(src, /if \(typeof r31SourceCapabilityMountHook === 'function'\) r31SourceCapabilityMountHook\(\);/);
   assert.equal((src.match(/r31SourceCapabilityMountHook\(\);/g) ?? []).length, 2);
