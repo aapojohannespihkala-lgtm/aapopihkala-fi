@@ -131,6 +131,12 @@ test('wrong parent, wrong source-root name and stale selection cannot leak R33 w
   assert.deepEqual(r33LK75SelectionMetadataEntries(sourceModel, SHA, 818, body), []);
 });
 
+test('stale selected object from a previous scene cannot inherit the R33 LK75 warning', () => {
+  const { sourceModel, body } = sourceSelection();
+  sourceModel.scenes[818] = { name: 'remounted scene', nodes: sourceModel.scenes[818].nodes };
+  assert.deepEqual(r33LK75SelectionMetadataEntries(sourceModel, SHA, 818, body), []);
+});
+
 test('viewer only adds gated metadata without changing sourceVisibleCoverNode or sourceLinks', () => {
   const page = readFileSync(new URL('../../src/pages/private-model/index.astro', import.meta.url), 'utf8');
   assert.match(page, /import \{ r33LK75SelectionMetadataEntries, R33_LK75_COVER_SOURCE \}/);
