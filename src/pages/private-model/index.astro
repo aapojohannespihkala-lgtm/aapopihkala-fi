@@ -2962,6 +2962,7 @@ const title = 'Private 3D viewer';
       } from '../../scripts/privateModelWorkTestLoadDiagnostics';
 
       import { createC80R31ViewSwitch, r31WorkTestReview, r31ViewerLayerSceneReceipt, r31ViewerLayerBindingScope, C80_R31_9E0B_SOURCE, isR31FamilyViewerSha, C80_R32H_SOURCE, C80_R32H_VIEWS } from '../../scripts/privateModelC80R31ReviewRuntime.mjs';
+      import { r32hKitchenWastewaterClashSelectionEntries } from '../../scripts/privateModelR32HKitchenWastewaterClashGuard.mjs';
       import { mountDesktopToolbar, activeDesktopPreset, activeDesktopAngle, DESKTOP_START_CANDIDATE_ID } from '../../scripts/privateModelDesktopToolbar.mjs';
       import { createDFocusGhost, dFootprintFromScope, dStoreyFootprint } from '../../scripts/privateModelDFocusGhost';
 
@@ -5985,6 +5986,15 @@ const title = 'Private 3D viewer';
 
         selectedObject = object;
         const sourceEvidence = resolveSelectionSources(object);
+        // This source-only warning follows the mounted glTF scene, never a cached view.
+        // It is not a physical connection claim or an automatic geometry repair.
+        const kitchenWastewaterMountedScene = modelRoot.children[0] ?? null;
+        const kitchenWastewaterSceneIndex = layersGltf
+          ? layersGltf.scenes?.indexOf(kitchenWastewaterMountedScene) ?? -1
+          : -1;
+        const kitchenWastewaterSourceEntries = r32hKitchenWastewaterClashSelectionEntries(
+          layersGltf, layersLoadedSha, kitchenWastewaterSceneIndex, object)
+          .map(([key, value]): readonly [string, string] => [key, value]);
         selectionPanelController.render({
           mesh: serviceTarget?.label ?? semantics.labelFi,
           group: semantics.classLabelFi,
@@ -5998,6 +6008,7 @@ const title = 'Private 3D viewer';
           })(),
           metadataEntries: [
             ...technicalMetadata,
+            ...kitchenWastewaterSourceEntries,
             ...resolveElectricalGroupEvidence(object, modelRoot.children[0] ?? null),
             ...collectSelectionMetadataEntries(object, modelRoot),
           ],
