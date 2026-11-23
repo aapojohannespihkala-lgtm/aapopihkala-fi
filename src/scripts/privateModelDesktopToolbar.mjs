@@ -35,8 +35,11 @@ const ISO_HIDDEN_EDGES = '<path d="M12 3.5 V12 M4.5 16.2 L12 12 M19.5 16.2 L12 1
  * WebGL check (scenes 814-817, Layerit/technical/site networks, no runtime doubles).
  * 23.11.2026 20.30: R33 3a226f98 (R32H + D2F WC open door leaf out of the wall end and
  * floor) after its production check (818/820 receipts, Layerit, technical review, networks).
+ * 23.11.2026 21.20: R34 99210ea5 (R33 + D/C party wall attic gable, balcony frieze, unified
+ * west gable, north facade boarding, east gable brick) after its production check (822/824,
+ * Layerit, technical review SADEVESI 28, site networks).
  */
-export const DESKTOP_START_CANDIDATE_ID = 'c80-r33-3a226f98-d-2f-sc818-sc821-work-test';
+export const DESKTOP_START_CANDIDATE_ID = 'c80-r34-99210ea5-d-2f-sc822-sc825-work-test';
 
 export const DESKTOP_PRESETS = Object.freeze([
   Object.freeze({ id: 'd-1f', label: 'D alakerta', icon: svg(house(true, false, false)) }),
