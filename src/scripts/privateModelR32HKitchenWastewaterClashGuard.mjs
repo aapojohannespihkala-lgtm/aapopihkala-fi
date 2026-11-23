@@ -40,6 +40,61 @@ const isActiveNode = (json, sceneIndex, targetId) => {
 };
 
 /**
+ * GLTFLoader may clone a source node shared between scenes and drop the
+ * parser.associations entry for the visible Three.Mesh. Only a *missing*
+ * binding can use this fallback, after a unique full source-parent path,
+ * source node/mesh, real mounted mesh, and name uniqueness check.
+ * A contradictory existing association is never overridden.
+ */
+function uniquelyNamedSourceFallback(json, sceneIndex, mountedScene, selected, associations) {
+  if (!selected?.isMesh || !selected.geometry ||
+      typeof mountedScene?.traverse !== 'function') return false;
+  const selectedBinding = associations.get(selected);
+  if (selectedBinding?.nodes !== undefined || selectedBinding?.meshes !== undefined) return false;
+  let realMeshMatches = 0;
+  mountedScene.traverse((object) => {
+    if (object.isMesh && object.name === selected.name) realMeshMatches++;
+  });
+  if (realMeshMatches !== 1) return false;
+
+  const roots = json.scenes?.[sceneIndex]?.nodes;
+  if (!Array.isArray(roots)) return false;
+  const stack = roots.map((id) => ({ id, parents: [] }));
+  const activeSameNamePaths = [];
+  let visits = 0;
+  while (stack.length && visits++ < C80_R32H_SOURCE.nodeCount * 2) {
+    const { id, parents } = stack.pop();
+    if (!Number.isInteger(id) || id < 0 || id >= json.nodes.length ||
+        parents.includes(id)) continue;
+    const sourceNode = json.nodes[id];
+    if (sourceNode?.name === selected.name) {
+      activeSameNamePaths.push({ id, parents });
+      if (activeSameNamePaths.length > 1) return false;
+    }
+    if (Array.isArray(sourceNode?.children)) {
+      for (const child of sourceNode.children) {
+        stack.push({ id: child, parents: [...parents, id] });
+      }
+    }
+  }
+  if (stack.length || activeSameNamePaths.length !== 1) return false;
+  const { id, parents } = activeSameNamePaths[0];
+  if (!warningNodeIds.has(id) || !Number.isInteger(json.nodes[id]?.mesh)) return false;
+  let parent = selected.parent;
+  for (const sourceParentId of parents.slice().reverse()) {
+    const expectedName = json.nodes[sourceParentId]?.name;
+    if (!expectedName || !parent || parent === mountedScene ||
+        parent.name !== expectedName) return false;
+    const binding = associations.get(parent);
+    if (binding?.nodes !== undefined && binding.nodes !== sourceParentId) return false;
+    if (binding?.meshes !== undefined &&
+        binding.meshes !== json.nodes[sourceParentId]?.mesh) return false;
+    parent = parent.parent;
+  }
+  return parent === mountedScene;
+}
+
+/**
  * Only show the documented source clash for an associated selected glTF node
  * in the actually mounted original R32H scene. Any stale selection or mismatched
  * source/SHA/scene/node/mesh fails closed. No geometry or sourceLinks mutation.
@@ -75,7 +130,13 @@ export function r32hKitchenWastewaterClashSelectionEntries(sourceModel, sha, sce
       ];
     }
     visited.add(node);
-    const nodeId = associations.get(node)?.nodes;
+    const binding = associations.get(node);
+    const nodeId = binding?.nodes;
+    if (node === selected && !Number.isInteger(nodeId) &&
+        uniquelyNamedSourceFallback(json, sceneIndex, mountedScene, node, associations)) {
+      selectsClashingPipe = true;
+    }
+    if (binding?.meshes !== undefined && !Number.isInteger(nodeId)) return [];
     if (Number.isInteger(nodeId)) {
       if (!isActiveNode(json, sceneIndex, nodeId)) return [];
       const sourceName = json.nodes?.[nodeId]?.name;
