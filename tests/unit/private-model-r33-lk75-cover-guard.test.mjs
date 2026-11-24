@@ -212,3 +212,10 @@ test('R34 V75 candidate is conditional on active source ancestry, never a physic
     assert.equal(assessR34LK75CoverSource(j, SHA34, i).v75ReferenceConflict, false);
   }
 });
+
+test('R34 viewer invokes only the exact source guard using the mounted scene', () => {
+  const page = readFileSync(new URL('../../src/pages/private-model/index.astro', import.meta.url), 'utf8');
+  assert.match(page, /const lk75ActiveScene = modelRoot\.children\[0\] \?\? null;/);
+  assert.match(page, /const lk75SceneIndex = layersGltf\?\.scenes\?\.indexOf\(lk75ActiveScene\) \?\? -1;/);
+  assert.match(page, /layersLoadedSha === R34_LK75_COVER_SOURCE\.glbSha256\s*\? r34LK75SelectionMetadataEntries\(sourceNodeModel\(layersGltf\), layersLoadedSha, lk75SceneIndex, object\)/);
+});

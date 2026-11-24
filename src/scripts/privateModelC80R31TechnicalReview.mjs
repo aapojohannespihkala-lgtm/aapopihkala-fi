@@ -11,7 +11,7 @@
  * WORK_TEST/HOST_HOLD only: no CURRENT, as-built or installation claim.
  */
 import { C80_620R22_REVIEW_MEP_NODES } from './privateModelC80620R22FloorRuntime.mjs';
-import { isR31FamilyViewerSha, r31ViewerLayerSceneReceipt, C80_R32H_SOURCE } from './privateModelC80R31ReviewRuntime.mjs';
+import { isR31FamilyViewerSha, r31ViewerLayerSceneReceipt, isR32HFamilySha } from './privateModelC80R31ReviewRuntime.mjs';
 
 /** R31 COW successors of R22 review roots and R31-only technical roots. */
 export const C80_R31_TECHNICAL_REVIEW_ADDITIONS = Object.freeze([
@@ -97,7 +97,7 @@ export function c80R31TechnicalReviewNodeSet(json, loadedSha = null) {
   nodes.forEach((node, index) => {
     if (SYSTEMS.has(node?.extras?.m5System) && node?.extras?.presentationOnly !== true) keep.add(index);
   });
-  if (loadedSha === C80_R32H_SOURCE.glbSha256) {
+  if (isR32HFamilySha(loadedSha)) {
     // Optional on top: a mismatch drops only the roof-water roots, not the review.
     const roof = C80_R32H_ROOFWATER_REVIEW_ROOTS;
     if (roof.every(({ node, name }) => nodes[node]?.name === name)) for (const { node } of roof) keep.add(node);

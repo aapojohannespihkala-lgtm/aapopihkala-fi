@@ -2444,6 +2444,7 @@ const title = 'Private 3D viewer';
       import { sourceLinksForSelectionEvidence } from '../../scripts/privateModelSourceCardLinkGuard.mjs';
       import { r32hLK75SelectionMetadataEntries } from '../../scripts/privateModelR32HLK75CoverSourceGuard.mjs';
       import { r33LK75SelectionMetadataEntries, R33_LK75_COVER_SOURCE } from '../../scripts/privateModelR33LK75CoverSourceGuard.mjs';
+      import { r34LK75SelectionMetadataEntries, R34_LK75_COVER_SOURCE } from '../../scripts/privateModelR33LK75CoverSourceGuard.mjs';
       import { pickVisibleWorkTest3DPoint } from '../../scripts/privateModelWorkTest3DPoint';
       import { classifySameClickReviewEvidence } from '../../scripts/privateModelSameClickReviewEvidence.mjs';
       import { measureAlongG1Axis } from '../../scripts/privateModelMeasureGeometry.mjs';
@@ -2963,7 +2964,7 @@ const title = 'Private 3D viewer';
         type WorkTestLoadFailurePhase,
       } from '../../scripts/privateModelWorkTestLoadDiagnostics';
 
-      import { createC80R31ViewSwitch, r31WorkTestReview, r31ViewerLayerSceneReceipt, r31ViewerLayerBindingScope, C80_R31_9E0B_SOURCE, isR31FamilyViewerSha, C80_R32H_SOURCE, C80_R32H_VIEWS } from '../../scripts/privateModelC80R31ReviewRuntime.mjs';
+      import { createC80R31ViewSwitch, r31WorkTestReview, r31ViewerLayerSceneReceipt, r31ViewerLayerBindingScope, C80_R31_9E0B_SOURCE, isR31FamilyViewerSha, r32hFamilyOf } from '../../scripts/privateModelC80R31ReviewRuntime.mjs';
       import { mountDesktopToolbar, activeDesktopPreset, activeDesktopAngle, DESKTOP_START_CANDIDATE_ID } from '../../scripts/privateModelDesktopToolbar.mjs';
       import { createDFocusGhost, dFootprintFromScope, dStoreyFootprint } from '../../scripts/privateModelDFocusGhost';
 
@@ -5987,25 +5988,17 @@ const title = 'Private 3D viewer';
 
         selectedObject = object;
         const sourceEvidence = resolveSelectionSources(object);
-        // Exact original R32H source-link warning only for the clicked LK75 subtree.
-        // The source GLB, cover link, sourceLinks and its rendering remain unchanged.
-        const lk75ActiveScene = mainViewScope && 'isSourceScene' in mainViewScope
-          ? mainViewScope.selectedScene : fullModelScene;
-        const lk75SourceMetadata = layersGltf && layersLoadedSha === C80_R32H_SOURCE.glbSha256
-          ? r32hLK75SelectionMetadataEntries(
-              sourceNodeModel(layersGltf),
-              layersLoadedSha,
-              layersGltf.scenes?.indexOf(lk75ActiveScene) ?? -1,
-              object,
-            ).map(([label, value]): readonly [string, string] => [label, value])
-          : layersGltf && layersLoadedSha === R33_LK75_COVER_SOURCE.glbSha256
-            ? r33LK75SelectionMetadataEntries(
-                sourceNodeModel(layersGltf),
-                layersLoadedSha,
-                layersGltf.scenes?.indexOf(lk75ActiveScene) ?? -1,
-                object,
-              ).map(([label, value]): readonly [string, string] => [label, value])
-            : [];
+        // Source warning belongs to the actually mounted scene, not a cached preset.
+        const lk75ActiveScene = modelRoot.children[0] ?? null;
+        const lk75SceneIndex = layersGltf?.scenes?.indexOf(lk75ActiveScene) ?? -1;
+        const lk75SourceMetadata = !layersGltf || lk75SceneIndex < 0 ? [] :
+          (layersLoadedSha === C80_R32H_SOURCE.glbSha256
+            ? r32hLK75SelectionMetadataEntries(sourceNodeModel(layersGltf), layersLoadedSha, lk75SceneIndex, object)
+            : layersLoadedSha === R33_LK75_COVER_SOURCE.glbSha256
+              ? r33LK75SelectionMetadataEntries(sourceNodeModel(layersGltf), layersLoadedSha, lk75SceneIndex, object)
+              : layersLoadedSha === R34_LK75_COVER_SOURCE.glbSha256
+                ? r34LK75SelectionMetadataEntries(sourceNodeModel(layersGltf), layersLoadedSha, lk75SceneIndex, object)
+                : []).map(([label, value]): readonly [string, string] => [label, value]);
         selectionPanelController.render({
           mesh: serviceTarget?.label ?? semantics.labelFi,
           group: semantics.classLabelFi,
@@ -15655,9 +15648,8 @@ const title = 'Private 3D viewer';
           layersLoadedSha === V82_SOURCE_SHA256 ||
           layersLoadedSha === K17_RAIL900_SOURCE_SHA256
             ? layersLoadedSha : null;
-        // Source receipt on the model's own whole-D normal scene (R31 769, R32H 814).
-        const r31LayerReceiptScene = layersLoadedSha === C80_R32H_SOURCE.glbSha256
-          ? C80_R32H_VIEWS.dNormal.sceneIndex : 769;
+        // Source receipt on the model's own whole-D normal scene (R31 769, R32H 814, R33 818).
+        const r31LayerReceiptScene = r32hFamilyOf(layersLoadedSha)?.views.dNormal.sceneIndex ?? 769;
         const verifiedR31LayerSource = !!r31ViewerLayerSceneReceipt(
           gltf?.parser?.json, layersLoadedSha, r31LayerReceiptScene);
         layersExpectedSha = session?.contract?.glbSha256 ?? verifiedChainSourceSha ??

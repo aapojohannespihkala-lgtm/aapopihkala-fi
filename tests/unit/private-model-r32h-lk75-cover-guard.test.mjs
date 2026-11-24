@@ -58,12 +58,12 @@ test('even repaired candidate leaf index remains HOST_HOLD until a reviewed succ
   assert.equal(assessR32HLK75CoverSource(a, SHA, 814).status, 'UNVERIFIED_COVER_LINK');
 });
 
-function selectedLK75Fixture() {
-  const json = sourceView(814);
+function selectedLK75Fixture(sceneIndex = 814) {
+  const json = sourceView(sceneIndex);
   json.nodes[13253].children = [13254, 13255];
   json.nodes[13254] = { name: 'LK75_R32H_GENERIC_BODY', mesh: 5097 };
   json.nodes[13255] = { name: 'LK75_R32H_GENERIC_OUTLET', mesh: 5098 };
-  const scene = json.scenes[814];
+  const scene = json.scenes[sceneIndex];
   const drain = { name: json.nodes[13253].name, parent: scene };
   const outlet = { name: json.nodes[13255].name, parent: drain };
   const tile = { name: json.nodes[11624].name, parent: scene };
@@ -104,4 +104,32 @@ test('R32H viewer selection panel uses exact-source LK75 warning without GLB sou
   assert.match(page, /r32hLK75SelectionMetadataEntries\(/);
   assert.match(page, /\.\.\.lk75SourceMetadata,/);
   assert.doesNotMatch(page, /sourceVisibleCoverNode\s*=\s*11643/);
+});
+
+test('LK75 warning tracks mounted 814 -> 815 -> 816 -> 817 -> 814 and rejects stale scene identities', () => {
+  const sequence = [814, 815, 816, 817, 814];
+  const allScenes = [814, 815, 816, 817];
+  let previous = null;
+  for (const sceneIndex of sequence) {
+    const current = selectedLK75Fixture(sceneIndex);
+    for (const selected of [current.drain, current.outlet]) {
+      const entries = r32hLK75SelectionMetadataEntries(current.sourceModel, SHA, sceneIndex, selected);
+      assert.equal(entries.length, 2, `LK75 missing from mounted scene ${sceneIndex}`);
+      for (const otherSceneIndex of allScenes.filter((index) => index !== sceneIndex)) {
+        assert.deepEqual(r32hLK75SelectionMetadataEntries(current.sourceModel, SHA, otherSceneIndex, selected), [],
+          `LK75 leaked from ${sceneIndex} into stale scene ${otherSceneIndex}`);
+      }
+    }
+    assert.deepEqual(r32hLK75SelectionMetadataEntries(current.sourceModel, SHA, sceneIndex, current.tile), []);
+    if (previous) {
+      // A selected object from the previous model session is not a descendant
+      // of the newly mounted scene, even when its scene index repeats at 814.
+      assert.deepEqual(r32hLK75SelectionMetadataEntries(current.sourceModel, SHA, sceneIndex, previous.outlet), []);
+    }
+    previous = current;
+  }
+  const page = readFileSync(new URL('../../src/pages/private-model/index.astro', import.meta.url), 'utf8');
+  assert.ok(page.includes('const lk75ActiveScene = modelRoot.children[0] ?? null;'));
+  assert.ok(page.includes('layersGltf?.scenes?.indexOf(lk75ActiveScene)'));
+  assert.ok(!page.includes('const lk75ActiveScene = mainViewScope'));
 });
