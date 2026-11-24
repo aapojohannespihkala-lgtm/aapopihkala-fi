@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { readFileSync } from 'node:fs';
-import { R33_LK75_COVER_SOURCE, assessR33LK75CoverSource, r33LK75SelectionMetadataEntries } from '../../src/scripts/privateModelR33LK75CoverSourceGuard.mjs';
+import { R33_LK75_COVER_SOURCE, assessR33LK75CoverSource, r33LK75SelectionMetadataEntries, R34_LK75_COVER_SOURCE, assessR34LK75CoverSource, r34LK75SelectionMetadataEntries } from '../../src/scripts/privateModelR33LK75CoverSourceGuard.mjs';
 
 const fixture = JSON.parse(readFileSync(new URL('../fixtures/private-model-r33-scene-roots.json', import.meta.url), 'utf8'));
 const SHA = R33_LK75_COVER_SOURCE.glbSha256;
@@ -145,4 +145,70 @@ test('viewer only adds gated metadata without changing sourceVisibleCoverNode or
   assert.match(page, /\.\.\.lk75SourceMetadata,/);
   assert.doesNotMatch(page, /sourceVisibleCoverNode\s*=\s*11643/);
   assert.doesNotMatch(page, /sourceVisibleCoverNode\s*=\s*11644/);
+});
+
+const r34Roots = JSON.parse(readFileSync(new URL('../fixtures/private-model-r34-scene-roots.json', import.meta.url), 'utf8'));
+const SHA34 = R34_LK75_COVER_SOURCE.glbSha256;
+function r34Fixture() {
+  // Actual canonical root lists and counts; inherited reviewed LK75 nodes from R33.
+  // This is a JSON fixture, not a loaded GLB or a physical connection test.
+  const j = r33Fixture();
+  j.scenes = Array.from({ length: r34Roots.counts.scenes }, () => ({ name: 'HISTORICAL', nodes: [] }));
+  for (const [i, v] of Object.entries(r34Roots.scenes)) j.scenes[Number(i)] = structuredClone(v);
+  j.nodes.push(...Array.from({ length: r34Roots.counts.nodes - j.nodes.length }, () => ({})));
+  j.meshes.push(...Array.from({ length: r34Roots.counts.meshes - j.meshes.length }, () => ({})));
+  j.scene = r34Roots.defaultScene;
+  j.asset.extras = { ...r34Roots.asset };
+  j.nodes[13253].extras.targetVerticalV75ExistingNode = 10143;
+  return j;
+}
+test('R34 exact four canonical views retain LK75 source conflict, not a verified cover', () => {
+  for (const i of [822, 823, 824, 825]) {
+    const j = r34Fixture();
+    assert.equal(j.scenes[i].name, R34_LK75_COVER_SOURCE.scenes[i]);
+    assert.equal(assessR34LK75CoverSource(j, SHA34, i).status, 'WRONG_SIDEWALL_POINTER');
+    assert.equal(assessR34LK75CoverSource(j, SHA34, i).candidateCoverMeshesActive, true);
+    assert.equal(assessR34LK75CoverSource(j, SHA34, i).physicalHostVerified, false);
+    assert.equal(assessR33LK75CoverSource(j, SHA34, i).status, 'OUT_OF_SOURCE_SCOPE');
+  }
+});
+test('R34 rejects old SHA, old scene, wrong count, missing host and changed source pointer', () => {
+  const j = r34Fixture();
+  assert.equal(assessR34LK75CoverSource(j, SHA, 822).status, 'OUT_OF_SOURCE_SCOPE');
+  assert.equal(assessR34LK75CoverSource(j, SHA34, 818).status, 'OUT_OF_SOURCE_SCOPE');
+  j.nodes.push({});
+  assert.equal(assessR34LK75CoverSource(j, SHA34, 822).status, 'OUT_OF_SOURCE_SCOPE');
+  j.nodes.pop();
+  j.nodes[13253].extras.sourceVisibleCoverNode = 11643;
+  assert.equal(assessR34LK75CoverSource(j, SHA34, 822).status, 'CHANGED_POINTER_NOT_VERIFIED');
+  j.nodes[13253].extras.sourceVisibleCoverNode = 11624;
+  j.scenes[822].nodes = j.scenes[822].nodes.filter(n => n !== 13253);
+  assert.equal(assessR34LK75CoverSource(j, SHA34, 822).status, 'SOURCE_NODE_OR_HOST_MISMATCH');
+});
+test('R34 mounted selection rejects stale scene and unrelated reparented object', () => {
+  const j = r34Fixture();
+  const scene = j.scenes[822];
+  const drain = { name: j.nodes[13253].name, parent: scene };
+  const body = { name: j.nodes[13254].name, parent: drain };
+  const tile = { name: j.nodes[11624].name, parent: drain };
+  const associations = new Map([[drain, { nodes: 13253 }], [body, { nodes: 13254 }], [tile, { nodes: 11624 }]]);
+  const sourceModel = { scenes: [...j.scenes], parser: { json: j, associations } };
+  assert.match(r34LK75SelectionMetadataEntries(sourceModel, SHA34, 822, body)[0][1], /n11624.*seinälaatta/);
+  assert.deepEqual(r34LK75SelectionMetadataEntries(sourceModel, SHA34, 822, tile), []);
+  assert.deepEqual(r34LK75SelectionMetadataEntries(sourceModel, SHA34, 824, body), []);
+  sourceModel.scenes[822] = {};
+  assert.deepEqual(r34LK75SelectionMetadataEntries(sourceModel, SHA34, 822, body), []);
+});
+test('R34 V75 candidate is conditional on active source ancestry, never a physical link', () => {
+  for (const i of [822, 823, 824, 825]) {
+    const j = r34Fixture(), candidate = R34_LK75_COVER_SOURCE.v75ByScene[i];
+    // Simulated active ancestry to isolate the conditional warning; no GLB claim.
+    j.nodes[13254].children = [candidate];
+    const check = assessR34LK75CoverSource(j, SHA34, i);
+    assert.equal(check.v75ReferenceConflict, true);
+    assert.equal(check.activeV75Candidate, candidate);
+    assert.equal(check.physicalHostVerified, false);
+    j.nodes[13254].children = [10143, candidate];
+    assert.equal(assessR34LK75CoverSource(j, SHA34, i).v75ReferenceConflict, false);
+  }
 });
