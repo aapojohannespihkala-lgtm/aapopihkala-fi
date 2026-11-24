@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import {
-  R300_OWNER_GLB_SHA256, R300_OWNER_R31_772_GLB_SHA256, R300_OWNER_R31_774_GLB_SHA256, R300_OWNER_R33_GLB_SHA256, R300_OWNER_CARD_REF,
+  R300_OWNER_GLB_SHA256, R300_OWNER_R31_772_GLB_SHA256, R300_OWNER_R31_774_GLB_SHA256, R300_OWNER_R33_GLB_SHA256, R300_OWNER_R34_GLB_SHA256, R300_OWNER_CARD_REF,
   isR300OwnerCardNode, resolveR300OwnerCardSelection,
 } from '../../src/scripts/privateModelR300OwnerCardAdapter.mjs';
 
@@ -214,4 +214,30 @@ test('original R33 scene-root source fixture retains the R300 casing but refuses
   oldDoor.scenes[sceneIndex].nodes[oldDoor.scenes[sceneIndex].nodes.indexOf(13843)]=12643;
   assert.equal(isR300OwnerCardNode({...context33,json:oldDoor}),false);
  }
+});
+
+test('R34 original exact source allows ten casing leaves across four scenes, not altered roots or stages', () => {
+  const f = JSON.parse(readFileSync(new URL('../fixtures/private-model-r34-scene-roots.json', import.meta.url), 'utf8'));
+  const j = mockJson();
+  j.scenes = Array.from({ length: f.counts.scenes }, () => ({ name: 'other', nodes: [] }));
+  j.nodes.length = f.counts.nodes;
+  j.meshes.length = f.counts.meshes;
+  for (const [i, def] of Object.entries(f.scenes)) j.scenes[Number(i)] = { name: def.name, nodes: [...def.nodes] };
+  for (const sceneIndex of [822,823,824,825]) {
+    const ctx = { ...context(j, sceneIndex), loadedGlbSha256: R300_OWNER_R34_GLB_SHA256 };
+    for (let nodeIndex=13415; nodeIndex<=13424; nodeIndex++) {
+      const sel = { ...ctx, nodeIndex, meshIndex: 4368+nodeIndex-13415, sourcePath: [13488,13487,nodeIndex] };
+      assert.equal(resolveR300OwnerCardSelection(sel, provider).state, 'matched');
+    }
+    assert.equal(resolveR300OwnerCardSelection(ctx, () => null).state, 'unavailable');
+    assert.equal(isR300OwnerCardNode({ ...ctx, loadedGlbSha256: R300_OWNER_R33_GLB_SHA256 }), false);
+    const roots = j.scenes[sceneIndex].nodes;
+    [roots[0],roots[1]]=[roots[1],roots[0]];
+    assert.equal(isR300OwnerCardNode(ctx), false, 'root ordering fingerprint');
+    [roots[0],roots[1]]=[roots[1],roots[0]];
+    j.scenes[sceneIndex].extras = { current: true };
+    assert.equal(isR300OwnerCardNode(ctx), false);
+    delete j.scenes[sceneIndex].extras;
+    assert.equal(isR300OwnerCardNode({ ...ctx, meshIndex: 999 }), false);
+  }
 });

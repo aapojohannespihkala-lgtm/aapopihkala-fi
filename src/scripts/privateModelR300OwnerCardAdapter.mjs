@@ -6,6 +6,8 @@
  * Source node indices/path must come from a verified parser node association.
  * No viewer runtime wiring, asset publication or as-built approval here.
  */
+import { c80R31Scene752RootsFnv32 } from './privateModelC80R31Scene752SourceReceipt.mjs';
+
 export const R300_OWNER_GLB_SHA256 = '0ec686edc2c36b1230b81edf7e27237e2ee95b34ac2fe18768519c255ad1ec13';
 export const R300_OWNER_CARD_REF = 'HIGH-UX-D-KOHDEKORTTI-R300';
 
@@ -16,6 +18,8 @@ export const R300_OWNER_R31_774_GLB_SHA256 = 'aa56361ce355fdf31f0fbe301364156a65
 export const R300_OWNER_R32H_GLB_SHA256 = 'c26d99c11ffef90859ff17cad5edecf7ab22d811baddfa0506794ecdbef6294c';
 /** R33 is an append-only R32H successor, but gets a separate exact-source allowance. */
 export const R300_OWNER_R33_GLB_SHA256 = '3a226f987d5605eff523029d580b760167ae4a32f13ddd51248fe933d913c54c';
+
+export const R300_OWNER_R34_GLB_SHA256 = '99210ea517c18cf24fa5f9702abe12ed2a8058a0c606d38b863e19802a270725';
 
 const PROFILES_BY_SHA = Object.freeze({
   [R300_OWNER_GLB_SHA256]: {
@@ -69,6 +73,17 @@ const PROFILES_BY_SHA = Object.freeze({
       821: { name: 'Ylisrinne_R33_D2F_WC_DOOR_CLEAR_2F_SERVICE_PLEXI_OFF_WORK_TEST_HOST_HOLD__scene821', roots: 203, plexiRootPresent: false },
     },
   },
+  [R300_OWNER_R34_GLB_SHA256]: {
+    sceneCount: 826, nodeCount: 13854, meshCount: 5242,
+    requiredSceneRoots: [13843, 13844, 13845],
+    forbiddenSceneRoots: [12643, 9199, 9200],
+    scenes: {
+      822: { name: 'Ylisrinne_R34_FACADES_PARTYWALL_FRIEZE_BOTH_NORMAL_PLEXI_ON_WORK_TEST_HOST_HOLD__scene822', roots: 505, plexiRootPresent: true, rootFnv32: '673ba191' },
+      823: { name: 'Ylisrinne_R34_FACADES_PARTYWALL_FRIEZE_BOTH_SERVICE_PLEXI_OFF_WORK_TEST_HOST_HOLD__scene823', roots: 504, plexiRootPresent: false, rootFnv32: 'f9009603' },
+      824: { name: 'Ylisrinne_R34_FACADES_PARTYWALL_FRIEZE_2F_NORMAL_PLEXI_ON_WORK_TEST_HOST_HOLD__scene824', roots: 207, plexiRootPresent: true, rootFnv32: 'abdbe8d4' },
+      825: { name: 'Ylisrinne_R34_FACADES_PARTYWALL_FRIEZE_2F_SERVICE_PLEXI_OFF_WORK_TEST_HOST_HOLD__scene825', roots: 206, plexiRootPresent: false, rootFnv32: '241f1e49' },
+    },
+  },
 });
 // Do not inherit prior SHA/scene approvals solely from matching numeric node IDs.
 const ROOT = 13488;
@@ -106,6 +121,10 @@ export function isR300OwnerCardNode({ json, loadedGlbSha256, sceneIndex, nodeInd
     asset?.ModelStage === 'WORK_TEST' && asset?.asBuilt === false &&
     asset?.current === false && asset?.HUMAN_REVIEW === 'NOT_RUN' &&
     scene?.name === expected.name && scene?.nodes?.length === expected.roots &&
+    (expected.rootFnv32 === undefined || (Array.isArray(scene.nodes) &&
+      new Set(scene.nodes).size === scene.nodes.length &&
+      c80R31Scene752RootsFnv32(scene.nodes) === expected.rootFnv32 &&
+      scene.extras?.current !== true && scene.extras?.asBuilt !== true)) &&
     (expected.plexiRootPresent === undefined ||
       scene.nodes.filter(id => id === 11625).length === (expected.plexiRootPresent ? 1 : 0)) &&
     isOnce(scene.nodes, ROOT) &&
