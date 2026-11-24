@@ -1,3 +1,5 @@
+import { sameSourceName } from './privateModelSourceNodeAssociations.mjs';
+
 /**
  * R33 2F WC LK75 source-only cover-pointer safeguard.
  *
@@ -198,7 +200,7 @@ export function r34LK75SelectionMetadataEntries(sourceModel, authenticatedSha, s
       if (!activeNode(json, sceneIndex, id) || ![13253, 13254, 13255].includes(id)) return [];
       if (previousId !== null && previousId !== id && !json.nodes[id]?.children?.includes(previousId)) return [];
       if (id === 13253) {
-        if (object.name !== json.nodes[id]?.name) return [];
+        if (!sameSourceName(object.name, json.nodes[id]?.name)) return [];
         drainSeen = true;
       }
       previousId = id;

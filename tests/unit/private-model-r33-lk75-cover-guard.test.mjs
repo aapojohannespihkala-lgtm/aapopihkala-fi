@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { readFileSync } from 'node:fs';
+import { Group, Mesh } from 'three';
+import { buildSourceNodeAssociations, createSourceNodeView } from '../../src/scripts/privateModelSourceNodeAssociations.mjs';
 import { R33_LK75_COVER_SOURCE, assessR33LK75CoverSource, r33LK75SelectionMetadataEntries, R34_LK75_COVER_SOURCE, assessR34LK75CoverSource, r34LK75SelectionMetadataEntries } from '../../src/scripts/privateModelR33LK75CoverSourceGuard.mjs';
 
 const fixture = JSON.parse(readFileSync(new URL('../fixtures/private-model-r33-scene-roots.json', import.meta.url), 'utf8'));
@@ -218,4 +220,52 @@ test('R34 viewer invokes only the exact source guard using the mounted scene', (
   assert.match(page, /const lk75ActiveScene = modelRoot\.children\[0\] \?\? null;/);
   assert.match(page, /const lk75SceneIndex = layersGltf\?\.scenes\?\.indexOf\(lk75ActiveScene\) \?\? -1;/);
   assert.match(page, /layersLoadedSha === R34_LK75_COVER_SOURCE\.glbSha256\s*\? r34LK75SelectionMetadataEntries\(sourceNodeModel\(layersGltf\), layersLoadedSha, lk75SceneIndex, object\)/);
+});
+
+test('R34 mounted Three scene cycle accepts loader-suffixed source names without stale or unrelated selections', () => {
+  // Canonical scene roots/counts with synthetic Object3D trees; NOT original GLB playback.
+  const j = r34Fixture();
+  const scenes = j.scenes.map((def, sceneIndex) => {
+    const scene = new Group();
+    scene.name = def.name;
+    const build = (id) => {
+      const node = j.nodes[id];
+      const object = Number.isInteger(node.mesh) ? new Mesh() : new Group();
+      object.name = node.name ?? '';
+      if (id === 13253 && sceneIndex !== 822) object.name += '_' + (sceneIndex - 822);
+      for (const child of node.children ?? []) object.add(build(child));
+      return object;
+    };
+    for (const id of def.nodes) scene.add(build(id));
+    return scene;
+  });
+  const gltf = { scenes, scene: scenes[j.scene], parser: { json: j, associations: new Map() } };
+  const rebuilt = buildSourceNodeAssociations(gltf);
+  const view = createSourceNodeView(gltf, rebuilt);
+  const modelRoot = new Group();
+  let prior = null;
+  for (const i of [822, 823, 824, 825, 822]) {
+    modelRoot.clear();
+    modelRoot.add(scenes[i]);
+    const mountedIndex = scenes.indexOf(modelRoot.children[0]);
+    assert.equal(mountedIndex, i);
+    const drain = scenes[i].children.find(o => rebuilt.get(o)?.nodes === 13253);
+    const tile = scenes[i].children.find(o => rebuilt.get(o)?.nodes === 11624);
+    assert.ok(drain && tile);
+    const body = drain.children[0];
+    const outlet = drain.children[1];
+    for (const selected of [drain, body, outlet]) {
+      const entries = r34LK75SelectionMetadataEntries(view, SHA34, mountedIndex, selected);
+      assert.match(entries[0]?.[1] ?? '', /n11624.*seinälaatta/);
+      assert.deepEqual(r34LK75SelectionMetadataEntries(view, SHA34, mountedIndex === 822 ? 823 : 822, selected), []);
+    }
+    assert.deepEqual(r34LK75SelectionMetadataEntries(view, SHA34, mountedIndex, tile), []);
+    if (prior) assert.deepEqual(r34LK75SelectionMetadataEntries(view, SHA34, mountedIndex, prior), []);
+    const originalName = drain.name;
+    drain.name = originalName + '_not_a_loader_suffix';
+    assert.deepEqual(r34LK75SelectionMetadataEntries(view, SHA34, mountedIndex, body), []);
+    drain.name = originalName;
+    prior = outlet;
+  }
+  assert.equal(gltf.parser.associations.size, 0, 'loader map stays untouched');
 });
