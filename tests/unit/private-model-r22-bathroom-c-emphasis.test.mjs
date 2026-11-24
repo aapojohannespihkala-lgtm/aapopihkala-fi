@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { R22_BATH_C_SOURCE, R33_BATH_C_SOURCE, createR22BathroomCEmphasis, createR33BathroomCEmphasis } from '../../src/scripts/privateModelR22BathroomCEmphasis.mjs';
+import { R22_BATH_C_SOURCE, R33_BATH_C_SOURCE, R34_BATH_C_SOURCE, createR22BathroomCEmphasis, createR33BathroomCEmphasis, createR34BathroomCEmphasis } from '../../src/scripts/privateModelR22BathroomCEmphasis.mjs';
 
 const SOURCE = R22_BATH_C_SOURCE;
 const bounds = [
@@ -63,6 +63,15 @@ function makeFixture(source = SOURCE) {
       add(child) { this.children.push(child); },
       remove(child) { this.children.splice(this.children.indexOf(child), 1); } };
     objects.push(mesh);
+  }
+  if (source.parentPaths) {
+    json.scenes[source.sceneIndex].nodes = [...new Set(source.parentPaths.map(path => path[0]))];
+    for (const path of source.parentPaths) {
+      path.slice(0, -1).forEach((node, index) => {
+        const parent = json.nodes[node] ??= { children: [] };
+        if (!parent.children.includes(path[index + 1])) parent.children.push(path[index + 1]);
+      });
+    }
   }
   const sceneRoot = { traverse: (fn) => objects.forEach(fn) };
   return { json, sceneRoot, objects, THREE, glbSha256: source.sha256, sceneIndex:source.sceneIndex, enabled:true };
@@ -162,5 +171,44 @@ test('R33 refuses mismatching SHA, scene819, missing source parts and invalid bo
     mutate(f);
     assert.equal(createR33BathroomCEmphasis(f).applied, false);
     assert.deepEqual(f.objects.map(obj => obj.children.length), [0, 0, 0, 0]);
+  }
+});
+
+test('R34 native BOTH normal scene822 uses four exact source paths and reversible edges', () => {
+  const f = makeFixture(R34_BATH_C_SOURCE);
+  const before = f.objects.map(o => ({ material:o.material, geometry:o.geometry, visible:o.visible }));
+  const r = createR34BathroomCEmphasis(f);
+  assert.equal(r.status, 'WORK_TEST_C_VISIBLE');
+  assert.equal(r.count, 4);
+  assert.equal(r.physicalHostVerified, false);
+  assert.equal(r.asBuiltClaim, false);
+  assert.ok(r.roles.every(role => role.startsWith('R34_BATHROOM_C_')));
+  f.objects.forEach((o, i) => {
+    assert.equal(o.material, before[i].material);
+    assert.equal(o.geometry, before[i].geometry);
+    assert.equal(o.visible, before[i].visible);
+    assert.equal(o.children[0].userData.sourceNodeIndex, R34_BATH_C_SOURCE.parts[i].node);
+  });
+  r.dispose();
+  r.dispose();
+  assert.deepEqual(f.objects.map(o => o.children.length), [0,0,0,0]);
+});
+
+test('R34 rejects service and 2F scenes, wrong SHA, parent remap and incomplete source without partial overlays', () => {
+  for (const mutate of [
+    f => { f.glbSha256 = R33_BATH_C_SOURCE.sha256; },
+    f => { f.sceneIndex = 823; },
+    f => { f.sceneIndex = 824; },
+    f => { f.sceneIndex = 825; },
+    f => { f.json.nodes[13167].children = [1731]; },
+    f => { f.json.nodes[13466].children = []; f.json.scenes[822].nodes.push(2202); },
+    f => { f.json.nodes[5786].mesh = -1; },
+    f => { f.json.accessors[0].max[0] += 0.25; },
+    f => { f.sceneRoot.traverse = fn => [...f.objects, f.objects[0]].forEach(fn); },
+  ]) {
+    const f = makeFixture(R34_BATH_C_SOURCE);
+    mutate(f);
+    assert.equal(createR34BathroomCEmphasis(f).applied, false);
+    assert.deepEqual(f.objects.map(o => o.children.length), [0,0,0,0]);
   }
 });

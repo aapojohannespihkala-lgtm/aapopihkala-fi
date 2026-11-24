@@ -27,6 +27,19 @@ export const R33_BATH_C_SOURCE = Object.freeze({
   parts: R22_BATH_C_SOURCE.parts,
 });
 
+/** Native R34 BOTH normal scene822 only; exact R33 geometry and parent paths retained. */
+export const R34_BATH_C_SOURCE = Object.freeze({
+  sha256: '99210ea517c18cf24fa5f9702abe12ed2a8058a0c606d38b863e19802a270725',
+  sceneIndex: 822,
+  parts: R22_BATH_C_SOURCE.parts,
+  parentPaths: Object.freeze([
+    Object.freeze([13167, 12320]),
+    Object.freeze([12408, 12407, 12406, 5786]),
+    Object.freeze([13167, 1731]),
+    Object.freeze([13466, 2202]),
+  ]),
+});
+
 const reject = (reason) => ({ status: reason, applied: false, count: 0, dispose() {} });
 const near = (a, b) => Number.isFinite(a) && Math.abs(a - b) <= 0.002;
 
@@ -63,6 +76,11 @@ function createBathroomCEmphasis({
     return reject('RECEIVER_UNAVAILABLE');
   const reachable = reachableSceneNodes(json, src.sceneIndex);
   if (!reachable) return reject('SOURCE_SCENE_INVALID');
+  // R34 is bound to its actual root-to-node paths, not just inherited names.
+  if (src.parentPaths && !src.parentPaths.every(path =>
+      json.scenes[src.sceneIndex].nodes.includes(path[0]) &&
+      path.slice(1).every((node, index) => json.nodes[path[index]]?.children?.includes(node))))
+    return reject('SOURCE_PARENT_PATH_MISMATCH');
   const targets = [];
   for (const part of src.parts) {
     const node = json?.nodes?.[part.node];
@@ -121,7 +139,7 @@ function createBathroomCEmphasis({
         depthTest: true, depthWrite: false,
       });
       const line = new THREE.LineSegments(geometry, material);
-      line.name = (src === R33_BATH_C_SOURCE ? 'R33_BATHROOM_C_' : 'R22_BATHROOM_C_') + part.role.toUpperCase();
+      line.name = (src === R34_BATH_C_SOURCE ? 'R34_BATHROOM_C_' : src === R33_BATH_C_SOURCE ? 'R33_BATHROOM_C_' : 'R22_BATHROOM_C_') + part.role.toUpperCase();
       line.userData = { PresentationOnly: true, Canonical: false,
         WorkTest: true, sourceNodeIndex: part.node, sourceMeshIndex: part.mesh };
       line.renderOrder = 35;
@@ -161,4 +179,9 @@ export function createR22BathroomCEmphasis(options = {}) {
 /** Verified R33 1F BOTH scene818 only, never scene819 or 2F. */
 export function createR33BathroomCEmphasis(options = {}) {
   return createBathroomCEmphasis(options, R33_BATH_C_SOURCE);
+}
+
+/** Verified R34 BOTH normal scene822 only; service and 2F scenes remain disabled. */
+export function createR34BathroomCEmphasis(options = {}) {
+  return createBathroomCEmphasis(options, R34_BATH_C_SOURCE);
 }
