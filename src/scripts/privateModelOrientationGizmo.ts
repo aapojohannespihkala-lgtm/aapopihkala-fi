@@ -514,11 +514,12 @@ export const createOrientationGizmoController = ({
     // Draw after the original Y-axis label so the selected north-frame
     // annotation wins. The toggle itself redraws with the cached quaternion.
     // An optional annotation must never stop the viewer render loop: a
-    // transient non-finite camera pose (e.g. before the first model fit)
-    // only leaves the previous north annotation in place.
+    // transient invalid camera pose (e.g. before the first model fit)
+    // hides the unverified north annotation until a valid pose returns.
     if (axisChanged) {
       try {
         northFrameController?.render({ quaternion });
+        delete root.dataset.northFrameError;
       } catch (error) {
         root.dataset.northFrameError = error instanceof Error ? error.message : 'YLIS_NORTH_FRAME';
       }
