@@ -76,3 +76,37 @@ test('worker allowlist pins the R34 GLB bytes and the candidate registry its Dri
   const reg = JSON.parse(readFileSync(new URL('../../.github/work-test-candidates.json', import.meta.url), 'utf8'));
   assert.equal(reg.candidates?.['c80-r34-99210ea5-d-2f-sc822-sc825-work-test']?.driveFileId ?? JSON.stringify(reg).match(/"c80-r34-99210ea5-d-2f-sc822-sc825-work-test":\{"driveFileId":"([^"]+)"/)?.[1], C80_R34_SOURCE.zipDriveId);
 });
+
+
+// Model-specific roots extracted from the original R34 GLB 99210ea5.
+// The source-only fixture guard protects the photo-relative visible casing;
+// it does not establish a measured wall penetration, condensate route or WebGL pixels.
+function assertR34IlpExteriorCaseRoots(source, sceneIndex, bothFloors) {
+  const roots = source.scenes[String(sceneIndex)]?.nodes;
+  assert.ok(Array.isArray(roots), 'missing source scene ' + sceneIndex);
+  for (const node of [13485, 13486]) {
+    assert.equal(roots.filter((root) => root === node).length, bothFloors ? 1 : 0,
+      'ILP replacement root ' + node + ' in scene ' + sceneIndex);
+  }
+  for (const node of [12559, 13259, 13484]) {
+    assert.equal(roots.includes(node), false,
+      'stale ILP photo-case root ' + node + ' leaked into scene ' + sceneIndex);
+  }
+}
+
+test('R34 photo-relative ILP white exterior case is active in BOTH, absent in 2F', () => {
+  for (const scene of [822, 823]) assertR34IlpExteriorCaseRoots(fixture, scene, true);
+  for (const scene of [824, 825]) assertR34IlpExteriorCaseRoots(fixture, scene, false);
+  const missing = structuredClone(fixture);
+  missing.scenes['822'].nodes = missing.scenes['822'].nodes.filter((n) => n !== 13486);
+  assert.throws(() => assertR34IlpExteriorCaseRoots(missing, 822, true),
+    /ILP replacement root 13486/);
+  const leaked = structuredClone(fixture);
+  leaked.scenes['824'].nodes.push(13486);
+  assert.throws(() => assertR34IlpExteriorCaseRoots(leaked, 824, false),
+    /ILP replacement root 13486/);
+  const stale = structuredClone(fixture);
+  stale.scenes['823'].nodes.push(13259);
+  assert.throws(() => assertR34IlpExteriorCaseRoots(stale, 823, true),
+    /stale ILP photo-case root 13259/);
+});
