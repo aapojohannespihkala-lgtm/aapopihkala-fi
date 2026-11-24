@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import {
-  R31_DRAINAGE_SOURCE, r31DrainageKind, buildR31DrainageOverlay, r31DrainageOmissionNotice, buildR31InfraOverlay,
+  R31_DRAINAGE_SOURCE, r31DrainageKind, buildR31DrainageOverlay, r31DrainageOmissionNotice, r31DrainagePresentationNotice, buildR31InfraOverlay,
   dimR31ModelForInspection, isR31SiteSewerName, syncR31ExteriorDonorMaterials,
 } from '../../src/scripts/privateModelR31Inspection.mjs';
 import {
@@ -101,6 +101,26 @@ test('omission diagnostics survive zero visible geometry and track independent l
   assert.equal(r31DrainageOmissionNotice(buildR31DrainageOverlay(THREE, drainSource('other')), 'visible', true), '');
   assert.equal(r31DrainageOmissionNotice({ userData: { unprofiledRoutesOmitted: 5 } }, 'visible', true), '');
   assert.equal(r31DrainageOmissionNotice({ userData: { source: R31_DRAINAGE_SOURCE, unprofiledRoutesOmitted: 0 } }, 'visible', true), '');
+});
+
+test('drainage presentation distinguishes pending, unavailable and known omitted source across scope changes', () => {
+  const known = buildR31DrainageOverlay(THREE, drainSource());
+  const rejected = buildR31DrainageOverlay(THREE, drainSource('other'));
+  assert.equal(rejected, null);
+  for (const mode of ['visible', 'ghost']) {
+    assert.match(r31DrainagePresentationNotice(undefined, mode, true), /ladataan/);
+    assert.match(r31DrainagePresentationNotice(rejected, mode, true), /ei ole käytettävissä/);
+    assert.match(r31DrainagePresentationNotice({ userData: {} }, mode, true), /ei ole käytettävissä/);
+    assert.match(r31DrainagePresentationNotice(known, mode, true), /1 reittiosaa/);
+    assert.equal(r31DrainagePresentationNotice(known, mode, false), '');
+    assert.equal(r31DrainagePresentationNotice(rejected, mode, false), '');
+  }
+  for (const source of [undefined, rejected, known]) {
+    assert.equal(r31DrainagePresentationNotice(source, 'hidden', true), '');
+  }
+  assert.equal(r31DrainagePresentationNotice({ userData: {
+    source: R31_DRAINAGE_SOURCE, unprofiledRoutesOmitted: 0,
+  } }, 'visible', true), '');
 });
 
 test('a route whose source ID is known but endpoints changed must not use old surface-line fallback', () => {

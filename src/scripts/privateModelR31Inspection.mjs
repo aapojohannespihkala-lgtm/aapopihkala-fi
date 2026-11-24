@@ -369,6 +369,17 @@ export function buildR31DrainageOverlay(THREE, gltf) {
   return group;
 }
 
+/** Loading/failed source is not evidence of an empty network. Undefined means
+ * not loaded yet; null means rejected or unavailable. Hidden/unsupported
+ * scopes deliberately have no notice. Keep the omission helper source-bound. */
+export function r31DrainagePresentationNotice(group, mode, allowed) {
+  if (!allowed || (mode !== 'visible' && mode !== 'ghost')) return '';
+  if (group === undefined) return 'Salaojat: lähdeaineistoa ladataan; verkoston näkyvyyttä ei vielä varmennettu.';
+  if (group?.userData?.source !== R31_DRAINAGE_SOURCE)
+    return 'Salaojat: lähdeaineisto ei ole käytettävissä tai sitä ei tunnistettu; verkoston näkyvyyttä ei varmennettu.';
+  return r31DrainageOmissionNotice(group, mode, allowed);
+}
+
 /** A visible warning, not a replacement pipe or a claim of complete drainage coverage. */
 export function r31DrainageOmissionNotice(group, mode, allowed) {
   if (!allowed || (mode !== 'visible' && mode !== 'ghost')) return '';
