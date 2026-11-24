@@ -154,6 +154,7 @@ export function r34T110RoofWarning(json, sha, sceneIndex, floor, sourceNodeIndex
       hold.sourceGlbSHA256!==C80_T110_512_PARENT_GLB_SHA256||
       hold.sourcePdfDriveId!==C80_T110_512_SOURCE_PDF_ID||
       hold.existingT110Node!==10145||hold.sourceRoofNode!==6642||
+      !near(hold.sourceRoofHeightAtCenterY_m,7.5125)||
       hold.sourceLinksBoundForNewSHA!==false||
       hold.roofOpeningCut!==false||hold.insulationModeled!==false||
       hold.flashingModeled!==false||hold.capModeled!==false||
@@ -171,5 +172,21 @@ export function r34T110RoofWarning(json, sha, sceneIndex, floor, sourceNodeIndex
     if(node.children!==undefined){if(!r34DenseNodes(node.children,nodes.length)) return null;pending.push(...node.children);}
   }
   if(!active.has(tube)||active.has(both?12240:12239)||active.has(10146)) return null;
-  return Object.freeze({sourceSha256:R34_T110_SHA,sceneIndex,sourceNodeIndex:tube,status:'WORK_TEST_HOST_HOLD',physicalRoofOpeningVerified:false,sourceLinksBound:false,publishAllowed:false,productionWebGLVerified:false,humanReview:'NOT_RUN',warning:'T110: vesikaton läpivienti, pellitys, eristys ja toteutunut sijainti eivät ole varmennettuja. Mallissa näkyvä putki ei osoita toimivaa tai tiivistä kattoliitosta.'});
+  // R34 changed the displayed roof. The 2015 T110 donor still cites a
+  // historical ARK3 roof (n6642, Y=7.5125), which is NOT active here.
+  // R34 BOTH actually displays n13360 (mesh5111, upper surface Y=7.3050
+  // at T110 X=6.315 Z=-6.28); 2F intentionally hides that roof. These
+  // numbers are source-mesh samples, not verified construction elevations.
+  if(active.has(6642)||active.has(13360)!==both||
+      (both&&(!roots.includes(13363)||nodes[13360]?.mesh!==5111))) return null;
+  return Object.freeze({
+    sourceSha256:R34_T110_SHA,sceneIndex,sourceNodeIndex:tube,
+    status:'WORK_TEST_HOST_HOLD',physicalRoofOpeningVerified:false,
+    sourceLinksBound:false,publishAllowed:false,productionWebGLVerified:false,
+    humanReview:'NOT_RUN',inactiveReferenceRoofNode:6642,activeBOTHRoofNode:13360,
+    activeRoofInSelectedScene:both,referenceRoofY_m:7.5125,
+    r34BOTHRoofUpperY_m:7.305,roofSampleDelta_m:-0.2075,
+    visibleProtrusionAboveR34Roof_m:0.6575,
+    warning:'T110: 450 mm ulkonema perustuu ei-aktiiviseen kattosolmuun 6642. R34 BOTH -kattopinta 13360 on samassa XZ-pisteessä 207,5 mm alempana (mallin ulkonema noin 657,5 mm). Kattoaukkoa, pellitysta, eristysta tai toteumaa ei ole varmennettu.'
+  });
 }
