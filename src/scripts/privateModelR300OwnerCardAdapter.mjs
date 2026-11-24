@@ -163,5 +163,11 @@ export function resolveR300OwnerCardSelection(context, getProtectedCard) {
       !card.sources.every(source => validCardSourceUrl(source?.url))) {
     return evidence('unavailable', 'Suojattua omistajan kohdekorttia ei voitu varmentaa.');
   }
+  // R34 source identity proves only the selected casing, not physical connectivity.
+  // This generic UI limitation is not a protected owner fact or a new source claim.
+  if (context.loadedGlbSha256 === R300_OWNER_R34_GLB_SHA256) {
+    const limitation = 'Kohdekortin kohdistus ei vahvista käyttövesiliitäntöjen kytkentää, virtaussuuntaa tai venttiilien toimintaa. Fyysinen liitäntä: ei varmennettu.';
+    return evidence('matched', undefined, [{ ...card, notes: [...new Set([...card.notes, limitation])] }]);
+  }
   return evidence('matched', undefined, [card]);
 }

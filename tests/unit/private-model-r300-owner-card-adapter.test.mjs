@@ -227,7 +227,17 @@ test('R34 original exact source allows ten casing leaves across four scenes, not
     const ctx = { ...context(j, sceneIndex), loadedGlbSha256: R300_OWNER_R34_GLB_SHA256 };
     for (let nodeIndex=13415; nodeIndex<=13424; nodeIndex++) {
       const sel = { ...ctx, nodeIndex, meshIndex: 4368+nodeIndex-13415, sourcePath: [13488,13487,nodeIndex] };
-      assert.equal(resolveR300OwnerCardSelection(sel, provider).state, 'matched');
+      const matched = resolveR300OwnerCardSelection(sel, provider);
+      assert.equal(matched.state, 'matched');
+      const limitation = 'Kohdekortin kohdistus ei vahvista käyttövesiliitäntöjen kytkentää, virtaussuuntaa tai venttiilien toimintaa. Fyysinen liitäntä: ei varmennettu.';
+      assert.deepEqual(matched.cards[0].notes, [...new Set([...card.notes, limitation])]);
+      assert.deepEqual(matched.cards[0].facts, card.facts);
+      assert.deepEqual(matched.cards[0].sources, card.sources);
+      assert.equal(card.notes.includes(limitation), false);
+      const empty = { ...card, notes: [], facts: [], conflicts: [], sources: [] };
+      assert.deepEqual(resolveR300OwnerCardSelection(sel, () => empty).cards[0].notes, [limitation]);
+      assert.deepEqual(empty.notes, []);
+      assert.deepEqual(resolveR300OwnerCardSelection(sel, () => ({ ...empty, notes: [limitation] })).cards[0].notes, [limitation]);
     }
     assert.equal(resolveR300OwnerCardSelection(ctx, () => null).state, 'unavailable');
     assert.equal(isR300OwnerCardNode({ ...ctx, loadedGlbSha256: R300_OWNER_R33_GLB_SHA256 }), false);
