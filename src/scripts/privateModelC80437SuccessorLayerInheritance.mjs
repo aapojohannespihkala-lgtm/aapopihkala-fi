@@ -83,7 +83,7 @@ import {
   isC80620R21SourceScene,
 } from './privateModelC80620R21SourceProfile.mjs';
 import {C80_620R22_GLB_SHA256,C80_620R22_SCENES,C80_620R22_COW_ALIASES,isC80620R22SourceScene} from './privateModelC80620R22SourceProfile.mjs';
-import {C80_R31_9E0B_SOURCE,C80_R31_9E0B_VIEWS,C80_R32H_SOURCE,C80_R32H_VIEWS,C80_R33_SOURCE,C80_R33_VIEWS,r31ViewerLayerSceneReceipt} from './privateModelC80R31ReviewRuntime.mjs';
+import {C80_R31_9E0B_SOURCE,C80_R31_9E0B_VIEWS,C80_R32H_SOURCE,C80_R32H_VIEWS,C80_R33_SOURCE,C80_R33_VIEWS,C80_R34_SOURCE,C80_R34_VIEWS,r31ViewerLayerSceneReceipt} from './privateModelC80R31ReviewRuntime.mjs';
 
 // Work-test identity only. The outer loader MUST authenticate the entire GLB
 // bytes before supplying sha. This never approves a new physical/as-built part.
@@ -264,7 +264,11 @@ const R33_COW_ALIASES = Object.freeze({
   13844: Object.freeze({orig:9199,fnv:'24ef311e',name:'D2F_WC_LEVER_SIDE_M__R33_WCDOOR_COW'}),
   13845: Object.freeze({orig:9200,fnv:'31f21521',name:'D2F_WC_LEVER_SIDE_P__R33_WCDOOR_COW'}),
 });
-const R32H_FAMILY_SHA = sha => sha===R32H_SHA || sha===R33_SHA;
+// R34 = R33 + facades (new roots only; COW 13849/13850 hold no receipt node).
+const R34_SHA = C80_R34_SOURCE.glbSha256;
+const R34 = Object.freeze(Object.fromEntries(Object.values(C80_R34_VIEWS).map(view =>
+  [view.sceneIndex, {floor:view.floor,glazing:'CLOSED',cutaway:false}])));
+const R32H_FAMILY_SHA = sha => sha===R32H_SHA || sha===R33_SHA || sha===R34_SHA;
 // The authored R31 roof is present only on the two whole-D review scenes.
 const R31_ROOF_ROOT = 13363;
 const R31_ROOF_ROOT_FNV = 'b9e1f9aa';
@@ -293,6 +297,7 @@ const COW_ALIASES = Object.freeze({
   [R31_SHA]: C80_620R22_COW_ALIASES,
   [R32H_SHA]: C80_620R22_COW_ALIASES,
   [R33_SHA]: R33_COW_ALIASES,
+  [R34_SHA]: R33_COW_ALIASES,
 });
 const aliasOf = (sha,node) => COW_ALIASES[sha]?.[node] ?? null;
 const toOrig = (sha,node) => aliasOf(sha,node)?.orig ?? node;
@@ -308,7 +313,7 @@ export const isC80LayerSuccessorSha = sha => [
   C80_620R15_GLB_SHA256, C80_620R16_GLB_SHA256, C80_620R17_GLB_SHA256,
   C80_620R18_GLB_SHA256, C80_620R19_GLB_SHA256,
   C80_620R20_GLB_SHA256, C80_620R21_GLB_SHA256, C80_620R22_GLB_SHA256,
-  R31_SHA, R32H_SHA, R33_SHA,
+  R31_SHA, R32H_SHA, R33_SHA, R34_SHA,
 ].includes(sha);
 const specFor = (sha,index) => {
   if (sha===C80_SUCC455_SAVO483_GLB_SHA256) return V483[index];
@@ -335,6 +340,7 @@ const specFor = (sha,index) => {
   if (sha===R31_SHA) return R31[index];
   if (sha===R32H_SHA) return R32H[index];
   if (sha===R33_SHA) return R33[index];
+  if (sha===R34_SHA) return R34[index];
   if (sha===C80_524_RAIN_GLB_SHA256) return V524[index];
   return null;
 };
