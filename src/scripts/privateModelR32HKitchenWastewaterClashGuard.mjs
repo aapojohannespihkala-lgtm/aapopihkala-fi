@@ -6,6 +6,7 @@
  * NOT a verified plumbing connection, fitting or physical as-built route.
  */
 import { C80_R32H_SOURCE, C80_R32H_VIEWS } from './privateModelC80R31ReviewRuntime.mjs';
+import { sameSourceName } from './privateModelSourceNodeAssociations.mjs';
 
 export const R32H_KITCHEN_WASTEWATER_CLASH = Object.freeze({
   original2015Node: 13310,
@@ -142,7 +143,9 @@ export function kitchenWastewaterClashEntriesForExactSource(sourceModel, sha, sc
     if (Number.isInteger(nodeId)) {
       if (!isActiveNode(json, sceneIndex, nodeId)) return [];
       const sourceName = json.nodes?.[nodeId]?.name;
-      if (sourceName && node.name !== sourceName) return [];
+      if (sourceName && node.name !== sourceName &&
+          !(spec.modelName === 'R34' && association?.nodes === nodeId &&
+            sameSourceName(node.name, sourceName))) return [];
       if (warningNodeIds.has(nodeId)) selectsClashingPipe = true;
     }
     node = node.parent;

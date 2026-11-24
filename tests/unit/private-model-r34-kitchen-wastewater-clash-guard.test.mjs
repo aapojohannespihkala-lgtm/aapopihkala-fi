@@ -131,10 +131,31 @@ test('unbound GLTFLoader fallback keeps parent, mesh geometry and uniqueness saf
   assert.deepEqual(show(f), [], 'two indistinguishable mesh clones');
 });
 
+test('R34 restored source indices accept loader suffixes, never names alone or wrong meshes', () => {
+  for (const sceneIndex of [822, 823, 824, 825]) {
+    const f = sourceFixture(sceneIndex);
+    f.selected.name += '_3';
+    f.parent.name += '_2';
+    f.associations.set(f.selected, { nodes: 13314, meshes: 4429 });
+    assert.equal(show(f).length, 2);
+    f.associations.set(f.selected, { nodes: 13314, meshes: 4430 });
+    assert.deepEqual(show(f), [], 'contradictory mesh association');
+    f.associations.set(f.selected, { nodes: 13314, meshes: 4429 });
+    f.associations.delete(f.parent);
+    assert.deepEqual(show(f), [], 'unbound suffixed parent');
+    f.associations.set(f.parent, { nodes: f.parentId });
+    f.associations.delete(f.selected);
+    assert.deepEqual(show(f), [], 'unbound suffixed mesh');
+    f.associations.set(f.selected, { nodes: 13314, meshes: 4429 });
+    f.selected.name = 'UNRELATED_3';
+    assert.deepEqual(show(f), [], 'wrong source name');
+  }
+});
+
 test('viewer calls R34 guard in the existing source-card selection, not geometry', () => {
   const page = readFileSync(new URL('../../src/pages/private-model/index.astro', import.meta.url), 'utf8');
   assert.match(page, /import \{ r34KitchenWastewaterClashSelectionEntries \} from/);
-  assert.match(page, /r34KitchenWastewaterClashSelectionEntries\(/);
+  assert.match(page, /r34KitchenWastewaterClashSelectionEntries\(\s*layersGltf \? sourceNodeModel\(layersGltf\) : layersGltf,/);
   assert.match(page, /r32hKitchenWastewaterClashSelectionEntries\(/);
   assert.doesNotMatch(page, /nodes\[13310\]\.mesh\s*=/);
 });

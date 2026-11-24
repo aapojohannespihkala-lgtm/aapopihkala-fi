@@ -5,6 +5,7 @@
  */
 import { c80R31Scene752RootsFnv32 } from './privateModelC80R31Scene752SourceReceipt.mjs';
 import { kitchenWastewaterClashEntriesForExactSource } from './privateModelR32HKitchenWastewaterClashGuard.mjs';
+import { sameSourceName } from './privateModelSourceNodeAssociations.mjs';
 
 export const R34_KITCHEN_WASTEWATER_SOURCE = Object.freeze({
   glbSha256: '99210ea517c18cf24fa5f9702abe12ed2a8058a0c606d38b863e19802a270725', nodeCount: 13854, sceneCount: 826, meshCount: 5242,
@@ -55,12 +56,23 @@ export function r34KitchenWastewaterClashSelectionEntries(sourceModel, sha, scen
   let witness = false;
   for (let node = selected; node && node !== mounted && !seen.has(node) && seen.size < 128; node = node.parent) {
     seen.add(node);
-    const id = ids.find(id => json.nodes[id]?.name === node.name);
+    const association = associations?.get?.(node);
+    const boundId = association?.nodes;
+    // A loader-suffixed name is not evidence by itself. It is accepted only
+    // with the structurally restored source-node index and matching parent.
+    const id = ids.includes(boundId) ? boundId :
+      ids.find(id => json.nodes[id]?.name === node.name);
     if (id === undefined) continue;
+    const sourceName = json.nodes[id]?.name;
+    if ((boundId !== undefined && boundId !== id) ||
+        (node.name !== sourceName && !(boundId === id && sameSourceName(node.name, sourceName))) ||
+        (association?.meshes !== undefined && association.meshes !== json.nodes[id].mesh)) return [];
     const parentId = id === 13310 ? parent2015 : 13319;
     const binding = associations?.get?.(node.parent)?.nodes;
-    if (node.parent?.name !== json.nodes[parentId]?.name ||
-        (binding !== undefined && binding !== parentId)) return [];
+    const parentName = json.nodes[parentId]?.name;
+    if ((binding !== undefined && binding !== parentId) ||
+        (node.parent?.name !== parentName &&
+         !(binding === parentId && sameSourceName(node.parent?.name, parentName)))) return [];
     witness = true;
   }
   if (!witness) return [];
