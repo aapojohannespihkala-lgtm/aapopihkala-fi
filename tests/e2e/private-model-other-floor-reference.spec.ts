@@ -183,7 +183,7 @@ test('other-floor UI preserves the reference preference across floors and clears
   await expect(canvas).toHaveAttribute('data-edge-source-mesh-count', '3');
   await select(page, 'Alue päämallissa', 'D'); await select(page, 'Kerros päämallissa', '1F');
   await select(page, 'Muu kerros', 'REFERENCE');
-  await menu(page, '#more-menu'); await page.getByRole('button', { name: 'Palauta näkymän oletukset', exact: true }).click();
+  await menu(page, '#view-menu'); await page.getByRole('button', { name: 'Palauta näkymän oletukset', exact: true }).click();
   await expect(canvas).toHaveAttribute('data-other-floor-reference-count', '0');
   await expect(canvas).toHaveAttribute('data-main-view-area', 'WHOLE');
 });
