@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { buildSourceNodeAssociations, createSourceNodeView } from '../../src/scripts/privateModelSourceNodeAssociations.mjs';
-import { R22_BATH_C_SOURCE, R33_BATH_C_SOURCE, R34_BATH_C_SOURCE, createR22BathroomCEmphasis, createR33BathroomCEmphasis, createR34BathroomCEmphasis } from '../../src/scripts/privateModelR22BathroomCEmphasis.mjs';
+import { R22_BATH_C_SOURCE, R33_BATH_C_SOURCE, R34_BATH_C_SOURCE, createR22BathroomCEmphasis, createR33BathroomCEmphasis, createR34BathroomCEmphasis, bathroomCStatusNotice } from '../../src/scripts/privateModelR22BathroomCEmphasis.mjs';
 
 const SOURCE = R22_BATH_C_SOURCE;
 const bounds = [
@@ -300,4 +300,29 @@ test('C bathroom receiver uses actually mounted scene and pristine source-node v
   assert.ok(page.includes('const bathRoot: any = modelRoot.children[0] ?? null;'));
   assert.ok(page.includes('? sourceNodeModel(layersGltf) : null;'));
   assert.ok(page.includes('associations: bathSourceModel?.parser?.associations,'));
+});
+
+
+test('C bathroom status distinguishes requested, rejected, attached and cleared scopes', () => {
+  for (const [source, create] of [
+    [R22_BATH_C_SOURCE, createR22BathroomCEmphasis],
+    [R33_BATH_C_SOURCE, createR33BathroomCEmphasis],
+    [R34_BATH_C_SOURCE, createR34BathroomCEmphasis],
+  ]) {
+    const f = makeFixture(source);
+    f.associations.delete(f.objects[0]);
+    const rejected = create(f);
+    assert.equal(rejected.applied, false);
+    assert.match(bathroomCStatusNotice(true, rejected), /Korostusta ei näytetä/);
+    assert.equal(bathroomCStatusNotice(false, rejected), '');
+    const success = create(makeFixture(source));
+    assert.match(bathroomCStatusNotice(true, success), /Neljä reunakorostusta liitetty/);
+    assert.match(bathroomCStatusNotice(true, success), /Näkyvyys riippuu/);
+    assert.equal(bathroomCStatusNotice(false, success), '');
+    success.dispose();
+  }
+  assert.match(bathroomCStatusNotice(true, { applied: true, count: 2 }), /ei näytetä/);
+  const page = readFileSync(new URL('../../src/pages/private-model/index.astro', import.meta.url), 'utf8');
+  assert.ok(page.includes('id="r22-bathroom-c-status" class="layer-note" role="status"'));
+  assert.ok(page.includes('bathroomCStatus.textContent = bathroomCStatusNotice(bathScope && bathroomCInput.checked, bathroomCOverlay);'));
 });
