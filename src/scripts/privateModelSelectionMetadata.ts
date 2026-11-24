@@ -63,6 +63,24 @@ const r31ReferenceMarkerPriority = [
   'presentationOnly',
 ] as const;
 
+// P139AD source-XY/work-Z review: pin the non-physical Z caveat above
+// generic fields so the 12-entry selection panel cannot hide it.
+// Exact WORK_TEST source family only; other objects keep prior ordering.
+const p139adWorkZSelectionMetadataPriority = [
+  'sourceZNote',
+  'workZBasis',
+  'workZAssumption',
+  'physicalZClaim',
+  'samePipeClaim',
+  'topologyLinkClaim',
+  'verticalDatumStatus',
+  'sourceObject',
+  'sourceXYState',
+  'sourceZPreservedAsProvenance',
+  'refinable',
+  'ModelStage',
+] as const;
+
 const electricalSelectionMetadataPriority = [
   'Pass',
   'pass',
@@ -127,6 +145,14 @@ const selectionMetadataLabels: Record<string, string> = {
   physicalWellGeometryClaim: 'Kaivon fyysiset mitat varmennettu',
   physicalZClaim: 'Fyysinen korko varmennettu',
   installationDepthClaim: 'Asennussyvyys varmennettu',
+  sourceZNote: 'Lähteen Z-huomautus (ei fyysinen putkikorko)',
+  workZBasis: 'Työ-Z:n laskentaperuste',
+  workZAssumption: 'Työ-Z on oletus',
+  samePipeClaim: 'Sama fyysinen putki varmennettu',
+  topologyLinkClaim: 'Todellinen liitos varmennettu',
+  verticalDatumStatus: 'Korkeusjärjestelmän tila',
+  sourceXYState: 'Lähteen XY-sidonta',
+  sourceZPreservedAsProvenance: 'Lähteen Z tallessa vain alkuperätietona',
   sourceConnection: 'Lähdeyhteys',
   sourceVideoLengthM: 'Videokuvauksen pituus (m)',
   sourceConditionClass: 'Kuntoluokka',
@@ -193,9 +219,18 @@ export const selectionMetadataEntries = (
     values.get('presentationOnly') === 'true' &&
     values.get('physicalWellGeometryClaim') === 'false' &&
     values.has('sourceDisplayNote');
+  const isP139adWorkZ =
+    /^G3_LOCUS_SITE_(WATER|WASTEWATER)_/.test(values.get('sourceObject') ?? '') &&
+    (values.get('system') === 'WATER' || values.get('system') === 'WASTEWATER') &&
+    values.get('ModelStage') === 'WORK_TEST_VIEW' &&
+    values.get('workZAssumption') === 'true' &&
+    values.get('physicalZClaim') === 'false' &&
+    values.has('sourceZNote');
   const priorityKeys: readonly string[] =
     isR31ReferenceMarker
       ? [...r31ReferenceMarkerPriority, ...selectionMetadataPriority]
+      : isP139adWorkZ
+      ? [...p139adWorkZSelectionMetadataPriority, ...selectionMetadataPriority]
       : values.get('representationKind') === 'luminaireSourceSymbolAnchorMarker'
       ? [
           ...luminaireSelectionMetadataPriority,

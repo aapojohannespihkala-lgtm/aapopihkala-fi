@@ -429,10 +429,15 @@ export function buildR31InfraOverlay(THREE, routes, verticalReferenceM) {
     }));
     mesh.name = `R31_INFRA_${route.name}`;
     mesh.renderOrder = 6;
+    // Preserve the source/work-Z caveats on each selectable P139AD review tube.
+    // Visual geometry never proves a measured elevation or physical connection.
     mesh.userData = { label: route.label, sourceObject: route.sourceObject, system: route.system,
-      workZBasis: route.workZBasis, uncertain, verticalDatumStatus: 'OPEN_UNVERIFIED',
+      sourceXYState: 'PRESERVED_EXACT_FROM_G3_LOCUS_SITE_P02',
+      sourceZPreservedAsProvenance: true, sourceZNote: route.sourceZNote,
+      workZBasis: route.workZBasis, workZAssumption: true, refinable: true,
+      uncertain, verticalDatumStatus: 'OPEN_UNVERIFIED', Canonical: false,
       presentationOnly: true, ModelStage: 'WORK_TEST_VIEW', physicalZClaim: false,
-      currentClaim: false, asBuiltClaim: false };
+      samePipeClaim: false, topologyLinkClaim: false, currentClaim: false, asBuiltClaim: false };
     group.add(mesh);
     counts[route.system] += 1;
   }
