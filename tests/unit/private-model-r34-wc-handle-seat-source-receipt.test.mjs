@@ -40,3 +40,21 @@ test('source count expectations are immutable and altered counts remain rejected
  }
  assert.ok(wcHandleSeatReceipt(fixture(original),SOURCE.glbSha256,req));
 });
+
+test('reject malformed or ambiguous handle matrices even when the relative seat offset appears valid',()=>{
+ const mutations=[
+  j=>delete j.nodes[13860].matrix[14],
+  j=>delete j.nodes[13844].matrix[3],
+  j=>j.nodes[13860].translation=[1,0,0],
+  j=>j.nodes[13844].rotation=[0,0,0,1],
+  j=>j.nodes[13863].scale=[1,1,1],
+  j=>{j.nodes[13860].matrix[3]=1;j.nodes[13844].matrix[3]=1;},
+  j=>{j.nodes[13860].matrix[15]=0;j.nodes[13844].matrix[15]=0;},
+  j=>{j.nodes[13860].matrix[0]=0;j.nodes[13844].matrix[0]=0;}
+ ];
+ for(const v of VIEWS){
+  const req={...v,explicitPreview:true};
+  assert.ok(wcHandleSeatReceipt(fixture(original),SOURCE.glbSha256,req));
+  for(const mutate of mutations){const j=fixture(original);mutate(j);assert.equal(wcHandleSeatReceipt(j,SOURCE.glbSha256,req),null);}
+ }
+});

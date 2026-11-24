@@ -96,6 +96,15 @@ export const VIEWS=Object.freeze([
 function same(a,b){return Array.isArray(a)&&Array.isArray(b)&&a.length===b.length&&a.every((v,i)=>v===b[i]);}
 function fingerprint(a){if(!Array.isArray(a)||a.some(v=>!Number.isInteger(v)||v<0))return null;let h=2166136261;for(const v of a)h=Math.imul(h^v,16777619)>>>0;return h.toString(16).padStart(8,"0");}
 function replace(roots,mapping){return roots.map(v=>mapping[v]??v);}
+// Both source and COW handle transforms must be dense, finite affine matrices.
+function validHandleMatrix(node){
+ const m=node?.matrix;
+ if(!Array.isArray(m)||m.length!==16||["translation","rotation","scale"].some(k=>Object.hasOwn(node,k)))return false;
+ for(let i=0;i<16;i++)if(!Object.hasOwn(m,i)||!Number.isFinite(m[i]))return false;
+ if(m[3]!==0||m[7]!==0||m[11]!==0||m[15]!==1)return false;
+ const det=m[0]*(m[5]*m[10]-m[9]*m[6])-m[4]*(m[1]*m[10]-m[9]*m[2])+m[8]*(m[1]*m[6]-m[5]*m[2]);
+ return Number.isFinite(det)&&det!==0;
+}
 function stage(e){return e?.stage==="WORK_TEST"&&e?.current===false&&e?.asBuilt===false&&e?.HUMAN_REVIEW==="NOT_RUN";}
 export function wcHandleSeatReceipt(json, authenticatedSha, request){
  const view=VIEWS.find(v=>v.sceneIndex===request?.sceneIndex);
@@ -118,7 +127,7 @@ export function wcHandleSeatReceipt(json, authenticatedSha, request){
  }
  for(const [id,old,mesh] of [[13860,13844,3241],[13861,13845,3242],[13862,13855,3241],[13863,13856,3242]]){
   const h=n[id],p=n[old],x=h?.extras;
-  if(h?.mesh!==mesh||p?.mesh!==mesh||x?.handleSeatCowOf!==old||x?.handleSeatSourceGLBSHA256!==SOURCE.parentGlbSha256||x?.handleSeatPhysicalClaim!==false||x?.current!==false||x?.asBuilt!==false||!Array.isArray(h?.matrix)||h.matrix.length!==16||!Array.isArray(p?.matrix)||p.matrix.length!==16)return null;
+  if(h?.mesh!==mesh||p?.mesh!==mesh||x?.handleSeatCowOf!==old||x?.handleSeatSourceGLBSHA256!==SOURCE.parentGlbSha256||x?.handleSeatPhysicalClaim!==false||x?.current!==false||x?.asBuilt!==false||!validHandleMatrix(h)||!validHandleMatrix(p))return null;
   const axis=id<13862?14:12, sign=id===13860||id===13863?1:-1;
   if(!h.matrix.every((v,i)=>Number.isFinite(v)&&Number.isFinite(p.matrix[i])&&(i===axis?Math.abs((v-p.matrix[i])-sign*0.001500129699707)<1e-10:v===p.matrix[i])))return null;
  }
