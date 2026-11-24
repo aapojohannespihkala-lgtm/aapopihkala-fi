@@ -9,6 +9,7 @@
 /**
  * WORK_TEST opened by a plain /private-model/. Owner 21.11.2026: latest WORK_TEST.
  * Owner 22.11.2026 (04.11): roof in the model and the whole building forward.
+ * Owner 25.11.2026: open the whole building preset.
  * R31 9e0bf34f scene 769 = R22 scene 688 (468/480 roots shared) + whole-building
  * roof group (intendedViewerLayer 'roof') + ABC building masses. Its D-scope
  * presets looked odd; the start therefore opens the whole building with the roof.
@@ -103,16 +104,12 @@ export const DESKTOP_ANGLES = Object.freeze([
 ]);
 
 export const DESKTOP_EDGES = Object.freeze([
-  Object.freeze({ id: 'none', label: 'Ei reunaviivoja', icon: `<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-  <path d="M12 3.55l7.6 4.4-7.6 4.4-7.6-4.4z" fill="#82919C"/>
-  <path d="M4.4 7.95l7.6 4.4v8.8l-7.6-4.4z" fill="#62717D"/>
-  <path d="M12 12.35l7.6-4.4v8.8l-7.6 4.4z" fill="#46555F"/>
-</svg>` }),
-  Object.freeze({ id: 'unified', label: 'Yhdistetyt reunat (myös piilossa olevat)', icon: `<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+  Object.freeze({ id: 'visible', label: 'Näkyvät reunat', icon: `<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
   <path d="M12 3.55l7.6 4.4-7.6 4.4-7.6-4.4z" fill="#82919C"/>
   <path d="M4.4 7.95l7.6 4.4v8.8l-7.6-4.4z" fill="#62717D"/>
   <path d="M12 12.35l7.6-4.4v8.8l-7.6 4.4z" fill="#46555F"/>
   <path d="M12 3.55l7.6 4.4v8.8l-7.6 4.4-7.6-4.4v-8.8z" fill="none" stroke="#F7F8F9" stroke-width="1.45" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M4.4 7.95l7.6 4.4 7.6-4.4M12 12.35v8.8" fill="none" stroke="#F7F8F9" stroke-width="1.45" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>` }),
   Object.freeze({ id: 'object', label: 'Objektireunat', icon: `<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
   <path d="M12 3.55l7.6 4.4-7.6 4.4-7.6-4.4z" fill="#4E5F6A"/>
@@ -122,12 +119,16 @@ export const DESKTOP_EDGES = Object.freeze([
   <path d="M4.4 7.95l7.6 4.4 7.6-4.4M12 12.35v8.8" fill="none" stroke="#F7F8F9" stroke-width="1.45" stroke-linecap="round" stroke-linejoin="round"/>
   <path d="M12 3.7v8.65l-7.5 4.35M12 12.35l7.5 4.35" fill="none" stroke="#DCE6ED" stroke-width="1.12" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>` }),
-  Object.freeze({ id: 'visible', label: 'Näkyvät reunat', icon: `<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+  Object.freeze({ id: 'unified', label: 'Yhdistetyt reunat (myös piilossa olevat)', icon: `<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
   <path d="M12 3.55l7.6 4.4-7.6 4.4-7.6-4.4z" fill="#82919C"/>
   <path d="M4.4 7.95l7.6 4.4v8.8l-7.6-4.4z" fill="#62717D"/>
   <path d="M12 12.35l7.6-4.4v8.8l-7.6 4.4z" fill="#46555F"/>
   <path d="M12 3.55l7.6 4.4v8.8l-7.6 4.4-7.6-4.4v-8.8z" fill="none" stroke="#F7F8F9" stroke-width="1.45" stroke-linecap="round" stroke-linejoin="round"/>
-  <path d="M4.4 7.95l7.6 4.4 7.6-4.4M12 12.35v8.8" fill="none" stroke="#F7F8F9" stroke-width="1.45" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>` }),
+  Object.freeze({ id: 'none', label: 'Ei reunaviivoja', icon: `<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+  <path d="M12 3.55l7.6 4.4-7.6 4.4-7.6-4.4z" fill="#82919C"/>
+  <path d="M4.4 7.95l7.6 4.4v8.8l-7.6-4.4z" fill="#62717D"/>
+  <path d="M12 12.35l7.6-4.4v8.8l-7.6 4.4z" fill="#46555F"/>
 </svg>` }),
 ]);
 
@@ -141,6 +142,11 @@ export const DESKTOP_MORE_ICON = `<svg xmlns="http://www.w3.org/2000/svg" width=
 
 export const DESKTOP_FOLDER_ICON = `<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
   <path d="M3.2 6.7a1.3 1.3 0 0 1 1.3-1.3h4.3l2 2h8.7a1.3 1.3 0 0 1 1.3 1.3v8.6a1.3 1.3 0 0 1-1.3 1.3h-15a1.3 1.3 0 0 1-1.3-1.3z" fill="none" stroke="#F7F8F9" stroke-width="1.55" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>`;
+
+export const DESKTOP_NAV_CUBE_ICON = `<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.45" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M10 3.5 16.5 7.25v7.5L10 18.5l-6.5-3.75v-7.5zM3.5 7.25 10 11l6.5-3.75M10 11v7.5"/>
+  <path d="M16.5 14.75l4 2.3m-2 .25 2-.25-.64-1.9M16.5 14.75V10.5m-1.45 1.45 1.45-1.45 1.45 1.45"/>
 </svg>`;
 
 /** Which preset icon is pressed for a viewer state. */

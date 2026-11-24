@@ -297,6 +297,7 @@ test('real Chromium toggles scene67 wall faces and restores top-plan RASTI/MITTA
     'ORTHOGRAPHIC_SOURCE_WALL_D1F_TOP');
   await expect(page.locator('#axis-measure-tool-button')).toBeEnabled();
   await expect(page.locator('#p137e-place-tool-button')).toBeEnabled();
+  await page.locator('#view-menu > summary').click();
   await page.locator('#p137e-place-tool-button').click();
   await expect(canvas).toHaveAttribute('data-interaction-mode', 'place');
 
@@ -347,6 +348,7 @@ test('real Chromium toggles scene67 wall faces and restores top-plan RASTI/MITTA
   await expect(canvas).toHaveAttribute('data-p137e-place-draft-count', '3');
   await expect(page.locator('#p137e-place-status')).toContainText('ei tallennettu G2:een');
 
+  await page.locator('#view-menu > summary').click();
   await page.locator('#axis-measure-tool-button').click();
   await expect(canvas).toHaveAttribute('data-interaction-mode', 'measure');
   await expect(canvas).toHaveAttribute('data-p137e-place-draft-count', '3');
@@ -505,6 +507,7 @@ test('simulated HTTPS viewer resaves edited Themo notes with exact snapshots and
   await page.locator('#view-menu > summary').click();
   await page.locator('#p137e-plan-face-button').click();
   await expect(canvas).toHaveAttribute('data-p137e-scene67-top-plan-tools-ready', 'true');
+  await page.locator('#view-menu > summary').click();
   await page.locator('#p137e-place-tool-button').click();
   const box = await canvas.boundingBox();
   expect(box).not.toBeNull();
@@ -683,6 +686,7 @@ test('simulated HTTPS viewer recovers a stalled independent G2 readback without 
   await page.locator('#view-menu > summary').click();
   await page.locator('#p137e-plan-face-button').click();
   await expect(canvas).toHaveAttribute('data-p137e-scene67-top-plan-tools-ready', 'true');
+  await page.locator('#view-menu > summary').click();
   await page.locator('#p137e-place-tool-button').click();
   await page.locator('#p137e-place-target').selectOption(targetId);
   const box = await canvas.boundingBox();
