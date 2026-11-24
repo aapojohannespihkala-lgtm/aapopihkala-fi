@@ -99,6 +99,13 @@ test('inactive scene nodes, stale selection and conflicting association are neve
   assert.deepEqual(show(f), []);
   f.associations.set(f.selected, { nodes: 13314 });
   assert.equal(show(f).length, 2);
+  f.parent.name = f.json.nodes[13358].name;
+  f.associations.set(f.parent, { nodes: 13358 });
+  assert.deepEqual(show(f), [], 'wrong mounted parent even with correct selected binding');
+  f.parent.name = f.json.nodes[13319].name;
+  assert.deepEqual(show(f), [], 'contradictory parent association');
+  f.associations.set(f.parent, { nodes: 13319 });
+  assert.equal(show(f).length, 2);
 });
 
 test('unbound GLTFLoader fallback keeps parent, mesh geometry and uniqueness safeguards in R34', () => {

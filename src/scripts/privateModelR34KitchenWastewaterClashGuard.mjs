@@ -47,6 +47,23 @@ export function r34KitchenWastewaterClashSelectionEntries(sourceModel, sha, scen
       !json.nodes[parent2015]?.children?.includes(13310) ||
       !ids.slice(1).every(id => json.nodes[13319]?.children?.includes(id)) ||
       !ids.every((id, i) => json.nodes[id]?.mesh === meshes[i])) return [];
+  // Check the actually mounted parent as well, including associated nodes.
+  // A stale selection with the right mesh/name under another root is rejected.
+  const mounted = sourceModel?.scenes?.[sceneIndex];
+  const associations = sourceModel?.parser?.associations;
+  const seen = new Set();
+  let witness = false;
+  for (let node = selected; node && node !== mounted && !seen.has(node) && seen.size < 128; node = node.parent) {
+    seen.add(node);
+    const id = ids.find(id => json.nodes[id]?.name === node.name);
+    if (id === undefined) continue;
+    const parentId = id === 13310 ? parent2015 : 13319;
+    const binding = associations?.get?.(node.parent)?.nodes;
+    if (node.parent?.name !== json.nodes[parentId]?.name ||
+        (binding !== undefined && binding !== parentId)) return [];
+    witness = true;
+  }
+  if (!witness) return [];
   return kitchenWastewaterClashEntriesForExactSource(
     sourceModel, sha, sceneIndex, selected, source);
 }
