@@ -641,7 +641,7 @@ const title = 'Private 3D viewer';
         --m5a-source-panel-width: min(620px, 40vw);
       }
 
-      .viewport.m5a-source-layout canvas {
+      .viewport.m5a-source-layout:has(> .m5a-source-context:not([hidden], [data-viewport-minimized])) canvas {
         width: calc(100% - var(--m5a-source-panel-width) - 24px);
         margin-left: calc(var(--m5a-source-panel-width) + 24px);
       }

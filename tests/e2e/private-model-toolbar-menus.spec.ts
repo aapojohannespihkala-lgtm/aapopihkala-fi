@@ -53,6 +53,26 @@ test('private viewer uses the approved toolbar and preserves Layerit when its wi
   const panels = viewport.locator(':scope > aside[id]');
   const minimizeButtons = panels.locator('.viewport-panel-minimize');
   expect(await minimizeButtons.count()).toBe(await panels.count());
+
+  const canvas = viewport.locator('canvas');
+  const source = viewport.locator('#m5a-source-context');
+  const sourceTitle = 'Salaojien lähdekonteksti';
+  const fullWidth = (await canvas.boundingBox())!.width;
+  // The source preview has a split layout even when its image has not loaded.
+  await source.evaluate(element => {
+    (element as HTMLElement).hidden = false;
+    element.parentElement!.classList.add('m5a-source-layout');
+  });
+  await expect.poll(async () => (await canvas.boundingBox())!.width).toBeLessThan(fullWidth);
+  await source.getByRole('button', { name: `Pienennä: ${sourceTitle}` }).click();
+  await expect.poll(async () => (await canvas.boundingBox())!.width).toBeCloseTo(fullWidth, 0);
+  await viewport.getByRole('button', { name: `Palauta: ${sourceTitle}` }).click();
+  await expect.poll(async () => (await canvas.boundingBox())!.width).toBeLessThan(fullWidth);
+  await source.evaluate(element => {
+    (element as HTMLElement).hidden = true;
+    element.parentElement!.classList.remove('m5a-source-layout');
+  });
+
   const layers = page.locator('#layers-panel');
   const layerButton = page.getByRole('button', { name: 'Layerit', exact: true });
   await layerButton.click();
