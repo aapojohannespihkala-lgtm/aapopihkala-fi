@@ -53,6 +53,17 @@ test('original 67MB GLB: exact source/scene/2015 isolation and negative guards',
  rejectMutation(json.nodes[14060].extras,'presentationOnly',false);
  rejectMutation(json.nodes[14061],'mesh',5307);
  rejectMutation(json.nodes[13979].extras,'current',true);
+ // Independently found source-gate gaps. None may change documentary WORK_TEST
+ // data into claims about the 2015 cable route or a 2026 installed host.
+ rejectMutation(json.nodes[13979].extras,'sourceLinksBoundToNewSHA',true);
+ rejectMutation(json.nodes[13979].extras,'physicalConnectionsVerified',true);
+ rejectMutation(json.nodes[14060].extras,'sourceLinksBoundForNewSHA',true);
+ rejectMutation(json.nodes[14060].extras,'sourceLinksBound',true);
+ rejectMutation(json.nodes[14061].extras,'physicalCable',true);
+ rejectMutation(json.nodes[14062].extras,'sourceLinksBound',true);
+ rejectMutation(json.scenes[866].extras,'productionWebGLVerified',true);
+ rejectMutation(json.scenes[866].extras,'sourceLinksBoundToNewSHA',true);
+ rejectMutation(json.scenes[867].extras,'humanReviewVerified',true);
  const roots=json.scenes[866].nodes,at=roots.indexOf(14062);
  assert.ok(at>=0);
  const old=roots[at];roots[at]=13369;

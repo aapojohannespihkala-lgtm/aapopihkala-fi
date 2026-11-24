@@ -26,6 +26,20 @@ const SPECS=Object.freeze({
 });
 const NEW_MASS_ROOT=14062,OLD_MASS_ROOT=13369;
 const HISTORY_START=13979,HISTORY_END=14059;
+// No source-only receipt may silently become evidence of a physical installation,
+// linked source, production renderer, or completed human review.
+const UNVERIFIED_APPROVAL_FLAGS=Object.freeze([
+ 'sourceLinksBound','sourceLinksBoundNewSHA','sourceLinksBoundToNewSHA',
+ 'sourceLinksBoundForNewSHA','physicalCable','physicalRouteVerified',
+ 'physicalCableRouteVerified','electricalCircuitVerified','physicalHostVerified',
+ 'physicalVerified','structuralCutVerified','productionWebGLVerified',
+ 'humanReviewVerified',
+]);
+function noUnverifiedApprovals(e){
+ return !!e&&UNVERIFIED_APPROVAL_FLAGS.every(k=>e[k]!==true)&&
+  (e.physicalConnectionsVerified===undefined||e.physicalConnectionsVerified===null||
+   e.physicalConnectionsVerified===0);
+}
 function rootHash(ids){
  let h=2166136261;
  for(const c of ids.join(','))h=Math.imul(h^c.charCodeAt(0),16777619)>>>0;
@@ -59,13 +73,7 @@ function activeSwapExact(oldNodes,newNodes){
 }
 function safeHistoricalNode(n){
  const e=n?.extras;
- if(!e||e.current!==false||e.asBuilt!==false)return false;
- for(const k of ['sourceLinksBound','sourceLinksBoundNewSHA','physicalCable',
-   'physicalRouteVerified','physicalCableRouteVerified','electricalCircuitVerified',
-   'physicalHostVerified','productionWebGLVerified','humanReviewVerified']){
-  if(e[k]===true)return false;
- }
- if(typeof e.physicalConnectionsVerified==='number'&&e.physicalConnectionsVerified!==0)return false;
+ if(!noUnverifiedApprovals(e)||e.current!==false||e.asBuilt!==false)return false;
  return e.r34HistoricalImport?.historicalPlanYear===2015&&
   e.r34HistoricalImport?.['2026InstalledPhysicalCableRouteVerified']===false&&
   e.r34HistoricalImport?.sourceLinksBoundForOutputSHA===false;
@@ -80,7 +88,7 @@ export function r34Katto5P186Wpt2CombinedGate(json,sha){
  const seen={};
  for(const [key,rule] of Object.entries(SPECS)){
   const i=Number(key),s=json.scenes[i],r=s?.nodes,e=s?.extras;
-  if(!Array.isArray(r)||r.length!==rule.roots||rootHash(r)!==rule.hash||
+  if(!noUnverifiedApprovals(e)||!Array.isArray(r)||r.length!==rule.roots||rootHash(r)!==rule.hash||
     !s.name?.endsWith('__scene'+i)||
     e?.['2015SchematicOptIn']!==rule.history||
     e?.historicalSchematicNotPhysicalCable!==true||
@@ -110,13 +118,13 @@ export function r34Katto5P186Wpt2CombinedGate(json,sha){
      !seen[867].has(n)||!seen[863].has(n))return null;
  }
  const root=json.nodes[NEW_MASS_ROOT],re=root?.extras;
- if(!root||JSON.stringify(root.children)!=='[13364,14060,13366,14061,13368]'||
+ if(!root||!noUnverifiedApprovals(re)||JSON.stringify(root.children)!=='[13364,14060,13366,14061,13368]'||
    re?.presentationOnly!==true||re?.physicalVerified!==false||
    re?.structuralCutVerified!==false||re?.current!==false||re?.asBuilt!==false||
    re?.stage!=='WORK_TEST/HOST_HOLD')return null;
  for(const [id,mesh] of [[14060,5311],[14061,5312]]){
   const n=json.nodes[id],e=n?.extras;
-  if(n?.mesh!==mesh||e?.presentationOnly!==true||
+  if(n?.mesh!==mesh||!noUnverifiedApprovals(e)||e?.presentationOnly!==true||
      e?.physicalVerified!==false||e?.structuralCutVerified!==false||
      e?.current!==false||e?.asBuilt!==false||
      e?.stage!=='WORK_TEST/HOST_HOLD')return null;
