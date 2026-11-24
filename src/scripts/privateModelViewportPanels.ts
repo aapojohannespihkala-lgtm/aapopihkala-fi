@@ -13,8 +13,8 @@ const panelIcons: Record<string, string> = {
 };
 const sourceIcon = '<path d="M6 3h8l4 4v14H6zM14 3v5h4M9 12h6m-6 4h6"/>';
 
-const icon = (content: string, size = 20) =>
-  `<svg width="${size}" height="${size}" viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">${content}</svg>`;
+const icon = (content: string) =>
+  `<svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">${content}</svg>`;
 
 /** Minimize the overlay independently of the feature that owns its visibility and content. */
 export function mountPrivateModelViewportPanels(viewport: HTMLElement, toolbarTools: HTMLElement) {
@@ -44,7 +44,6 @@ export function mountPrivateModelViewportPanels(viewport: HTMLElement, toolbarTo
     const minimize = doc.createElement('button');
     minimize.type = 'button';
     minimize.className = 'viewport-panel-minimize';
-    minimize.innerHTML = icon('<path d="M6 12h12"/>', 16);
     minimize.title = `Pienennä: ${title}`;
     minimize.setAttribute('aria-label', minimize.title);
     minimize.setAttribute('aria-controls', panel.id);

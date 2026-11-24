@@ -60,7 +60,13 @@ const title = 'Private 3D viewer';
       .height-scale > .viewport-panel-minimize { position: absolute; top: 0; right: 0; }
       .height-scale:has(> .viewport-panel-minimize) .height-scale-title { right: 36px; }
       .orientation-gizmo > .viewport-panel-minimize { position: absolute; top: 6px; right: 6px; }
-      .orientation-gizmo > .viewport-panel-minimize > svg { width: 16px; height: 16px; }
+      .viewport-panel-minimize::before {
+        content: ''; width: 12px; border-top: 2px solid currentColor; border-radius: 1px;
+      }
+      .viewer-shell :is(button, summary):focus-visible {
+        outline: 3px solid rgba(196, 205, 210, 0.48);
+        outline-offset: 1px;
+      }
       .viewport-panel-dock { display: inline-flex; flex-wrap: wrap; gap: 2px; }
       @media (min-width: 761px) {
         .viewport:has(> .layers-panel:not([hidden], [data-viewport-minimized])) .selection-panel {
@@ -141,7 +147,7 @@ const title = 'Private 3D viewer';
         padding: 1px 4px;
         color: var(--viewer-ink-soft);
         font-size: 10px;
-        line-height: 1.25;
+        line-height: 13px;
       }
 
       .viewer-info .model-source-badge,
@@ -274,7 +280,10 @@ const title = 'Private 3D viewer';
 
       .work-test-options { display: grid; gap: 5px; }
       .work-test-options :global(button) {
-        width: 100%; text-align: left; font-size: 12px; line-height: 1.25; overflow-wrap: anywhere;
+        appearance: none; width: 100%; min-height: 32px; padding: 6px 8px;
+        border: 1px solid var(--viewer-line); border-radius: 6px;
+        background: var(--viewer-bar); color: var(--viewer-ink); cursor: pointer;
+        text-align: left; font: inherit; font-size: 12px; line-height: 16px; overflow-wrap: anywhere;
       }
       .work-test-options :global(.toolbar-menu-label) { color: var(--viewer-stone-light); }
 
@@ -831,6 +840,7 @@ const title = 'Private 3D viewer';
         gap: 2px 12px;
         font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
         font-size: 9px;
+        line-height: 12px;
         font-variant-numeric: tabular-nums;
       }
 
