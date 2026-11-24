@@ -152,6 +152,18 @@ test('owner 23.11: profiled drains are real pipes 1 m+ below ground, wells reach
   assert.equal(w.geometry.type, 'CylinderGeometry');
   assert.equal(w.userData.markerDisplayKind, undefined, 'verified well is never downgraded to a reference glyph');
   assert.match(w.userData.drainUncertainty, /^Oletus:/);
+  // A verified underground route must survive beside an omitted route.
+  const unknown = new THREE.Group();
+  unknown.userData = { representationKind: 'referenceRouteWork', sourceConnection: 'UNKNOWN_ROUTE' };
+  unknown.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([
+    new THREE.Vector3(0, -1, 0), new THREE.Vector3(2, -1, 0)]), new THREE.LineBasicMaterial()));
+  scene.add(unknown);
+  const mixed = buildR31DrainageOverlay(THREE, { scenes, parser: { json } });
+  assert.equal(mixed.userData.counts.route, 1);
+  assert.equal(mixed.userData.profiled.route, 1);
+  assert.equal(mixed.userData.unprofiledRoutesOmitted, 1);
+  assert.equal(mixed.children.filter(c => c.userData.r31InspectionKind === 'route').length, 1);
+  assert.match(r31DrainageOmissionNotice(mixed, 'visible', true), /1 reittiosaa jätetty näyttämättä/);
 });
 
 test('infra overlay maps G1 XY + work elevation into the Y-up frame and marks parcels uncertain', () => {
