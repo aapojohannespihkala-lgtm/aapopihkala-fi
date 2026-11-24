@@ -172,6 +172,36 @@ test('without a usable camera pose, map label changes but unprojected arrow is h
   controller.dispose();
 });
 
+test('rejected live pose hides stale north projection through toggles and recovers on valid render', () => {
+  const { node } = makeDom();
+  const root = node(), svg = node(), northLabel = node();
+  root.dataset.cameraQuaternion = '0|0|0|1';
+  northLabel.style.visibility = 'visible';
+  const controller = createNorthFrameToggleController({ root, svg, northLabel });
+  controller.render({ quaternion: identity });
+  controller.toggle();
+  assert.equal(root.dataset.northProjectionReady, 'true');
+  assert.equal(svg.children[0].style.display, '');
+  for (const invalid of [{ ...identity, w: Infinity }, { ...identity, w: 2 }, undefined]) {
+    assert.throws(() => controller.render({ quaternion: invalid }), /camera quaternion/);
+    assert.equal(root.dataset.northProjectionReady, 'false');
+    assert.equal(northLabel.style.visibility, 'hidden');
+    for (const symbol of svg.children) assert.equal(symbol.style.display, 'none');
+    controller.toggle();
+    controller.toggle();
+    assert.equal(root.dataset.northProjectionReady, 'false', 'stale HUD signature is not reused');
+    assert.equal(northLabel.style.visibility, 'hidden');
+    controller.render({ quaternion: identity });
+    assert.equal(root.dataset.northProjectionReady, 'true');
+    assert.equal(northLabel.style.visibility, 'visible');
+    assert.equal(svg.children[0].style.display, '');
+  }
+  assert.throws(() => controller.render({ quaternion: undefined }), /camera quaternion/);
+  controller.dispose();
+  assert.equal(northLabel.style.visibility, 'visible');
+  assert.equal(root.dataset.northProjectionReady, undefined);
+});
+
 test('real orientation HUD integrates the opt-in north frame without making the canvas overlay interactive', () => {
   const source = readFileSync(
     new URL('../../src/scripts/privateModelOrientationGizmo.ts', import.meta.url), 'utf8',
@@ -197,5 +227,6 @@ test('orientation gizmo never lets the optional north annotation stop the render
   assert.ok(call > 0);
   const before = src.slice(Math.max(0, call - 200), call);
   assert.match(before, /try \{\s*$/);
+  assert.match(src.slice(call, call + 200), /delete root\.dataset\.northFrameError;/);
   assert.match(src.slice(call, call + 200), /catch \(error\)/);
 });
