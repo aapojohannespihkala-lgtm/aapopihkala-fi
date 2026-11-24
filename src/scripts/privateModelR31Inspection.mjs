@@ -362,10 +362,22 @@ export function buildR31DrainageOverlay(THREE, gltf) {
     group.add(mesh);
     counts[kind] += 1;
   });
-  if (!group.children.length) return null;
+  // Preserve diagnostics even if every source route was omitted (no drawable child).
+  if (!group.children.length && !unprofiledRoutesOmitted) return null;
   group.userData = { source: R31_DRAINAGE_SOURCE, counts, profiled,
     unprofiledRoutesOmitted, presentationOnly: true, depthBasis: R31_DRAINAGE_PROFILE.basis };
   return group;
+}
+
+/** A visible warning, not a replacement pipe or a claim of complete drainage coverage. */
+export function r31DrainageOmissionNotice(group, mode, allowed) {
+  if (!allowed || (mode !== 'visible' && mode !== 'ghost')) return '';
+  const data = group?.userData;
+  if (data?.source !== R31_DRAINAGE_SOURCE) return '';
+  const count = data.unprofiledRoutesOmitted;
+  return Number.isSafeInteger(count) && count > 0
+    ? `Salaojat: ${count} reittiosaa jätetty näyttämättä (korkeusprofiili puuttuu tai lähde ei täsmää). Verkosto ei ole kokonaan näkyvissä.`
+    : '';
 }
 
 /**

@@ -2753,7 +2753,7 @@ const title = 'Private 3D viewer';
       // @ts-ignore - R31 review roots and inspection overlays have unit coverage.
       import { resolveC80R31TechnicalReviewRoots, c80R31RoofWaterSystemOf } from '../../scripts/privateModelC80R31TechnicalReview.mjs';
       // @ts-ignore - pure overlay builders, THREE injected.
-      import { R31_DRAINAGE_SOURCE, R31_EXTERIOR_DONORS, buildR31DrainageOverlay, buildR31RoofWaterOverlay, buildR31InfraOverlay, buildR31FiberOverlay, buildR31StormOverlay, buildR31LowVoltageOverlay, buildR31ExteriorDonorOverlay, buildR31WestGableInfill, buildR31GableBoarding, buildR31WestBrickCompletion, buildR31FiberEntryBox, buildR31FiberEntryLink, isR31WestGableBoardingSource, R31_GABLE_BOARDING_COLOR, isR31ReplacedWestDownpipe, loadR31EastGableOverlay, relocateR31Downpipes, syncR31ExteriorDonorMaterials, setR31SiteNetworkLayerMode } from '../../scripts/privateModelR31Inspection.mjs';
+      import { R31_DRAINAGE_SOURCE, R31_EXTERIOR_DONORS, buildR31DrainageOverlay, r31DrainageOmissionNotice, buildR31RoofWaterOverlay, buildR31InfraOverlay, buildR31FiberOverlay, buildR31StormOverlay, buildR31LowVoltageOverlay, buildR31ExteriorDonorOverlay, buildR31WestGableInfill, buildR31GableBoarding, buildR31WestBrickCompletion, buildR31FiberEntryBox, buildR31FiberEntryLink, isR31WestGableBoardingSource, R31_GABLE_BOARDING_COLOR, isR31ReplacedWestDownpipe, loadR31EastGableOverlay, relocateR31Downpipes, syncR31ExteriorDonorMaterials, setR31SiteNetworkLayerMode } from '../../scripts/privateModelR31Inspection.mjs';
       import { R31_LOCUS_FIBER_LINES } from '../../scripts/privateModelR31LocusFiber.mjs';
       import { R31_LOCUS_STORM_LINES, R31_LOCUS_STORM_FLOW_MARKS } from '../../scripts/privateModelR31LocusStorm.mjs';
       import { R31_LOCUS_LOWVOLT_LINES, R31_LOCUS_LOWVOLT_SOURCE } from '../../scripts/privateModelR31LocusLowVoltage.mjs';
@@ -15128,7 +15128,7 @@ const title = 'Private 3D viewer';
         ['lowvolt', 'Pienjännite (Locus): 2D, NONCURRENT, syvyys avoin (WORK_TEST)'],
       ];
       const r31SiteLayerOverrides: Partial<Record<R31SiteKey, R31SiteMode>> = {};
-      const r31SiteLayerRows = {} as Record<R31SiteKey, { row: HTMLLabelElement; select: HTMLSelectElement }>;
+      const r31SiteLayerRows = {} as Record<R31SiteKey, { row: HTMLLabelElement; select: HTMLSelectElement; labelText: Text }>;
       let r31SiteRowAnchor: HTMLElement = successorCutawayRow;
       for (const [key, label] of r31SiteLayerSpecs) {
         const row = document.createElement('label');
@@ -15136,7 +15136,8 @@ const title = 'Private 3D viewer';
         row.hidden = true;
         row.style.display = 'none';
         row.dataset.r31SiteLayer = key;
-        row.append(document.createTextNode(label + ' '));
+        const labelText = document.createTextNode(label + ' ');
+        row.append(labelText);
         const select = document.createElement('select');
         select.setAttribute('aria-label', label + ' näkyvyys');
         for (const [mode, title] of [['visible', 'Näkyvä'], ['ghost', 'Himmeä'], ['hidden', 'Piilossa']]) {
@@ -15159,7 +15160,7 @@ const title = 'Private 3D viewer';
         row.append(select);
         r31SiteRowAnchor.after(row);
         r31SiteRowAnchor = row;
-        r31SiteLayerRows[key] = { row, select };
+        r31SiteLayerRows[key] = { row, select, labelText };
       }
       const syncM6263Glazing=()=>{
         const runtime=mainViewScope as any;
@@ -16005,6 +16006,9 @@ const title = 'Private 3D viewer';
           setR31SiteNetworkLayerMode(group, mode, siteOk, r31SiteGhostOriginals);
           if (show) Object.assign(counts, group.userData.counts);
         }
+        const drainNotice = r31DrainageOmissionNotice(r31SiteNetworks.drainage, effectiveSiteModes.drainage, siteOk);
+        r31SiteLayerRows.drainage.labelText.textContent = 'Salaojat (WORK_TEST) ' + (drainNotice ? drainNotice + ' ' : '');
+        canvas.dataset.r31DrainageOmissionNotice = drainNotice;
         canvas.dataset.r31SiteLayerModes = siteOk ? JSON.stringify(effectiveSiteModes) : '';
         canvas.dataset.r31SourceCapabilities = r31Capabilities()?.label ?? '';
         // Owner 20.12: the corner pipes replace R31's own older west lower pipes
@@ -16030,7 +16034,8 @@ const title = 'Private 3D viewer';
             `jätevesi ${counts.WASTEWATER ?? 0}, valokuitu ${counts.FIBER ?? 0} (2D, syvyys avoin; ` +
             `liittymä D:n pohjoisovella omistajan havainnosta); ` +
             `Locus sadevesiviemäri ${counts.STORM ?? 0} linjaa 2D, ei tonttiliittymää (lähin 42 m); ` +
-            `Locus pienjännite ${counts.LOWVOLT ?? 0} linjaa 2D (NONCURRENT, syvyys ja liittymä avoimia)`;
+            `Locus pienjännite ${counts.LOWVOLT ?? 0} linjaa 2D (NONCURRENT, syvyys ja liittymä avoimia)` +
+            (drainNotice ? `; ${drainNotice}` : '');
         }
         const wantsSiteNetworks = siteOk && (technical || Object.values(r31SiteLayerOverrides).some(mode => mode !== 'hidden'));
         if (wantsSiteNetworks && !r31SiteLoading && !Object.keys(r31SiteNetworks).length) {

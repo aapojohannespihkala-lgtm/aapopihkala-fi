@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import {
-  R31_DRAINAGE_SOURCE, r31DrainageKind, buildR31DrainageOverlay, buildR31InfraOverlay,
+  R31_DRAINAGE_SOURCE, r31DrainageKind, buildR31DrainageOverlay, r31DrainageOmissionNotice, buildR31InfraOverlay,
   dimR31ModelForInspection, isR31SiteSewerName, syncR31ExteriorDonorMaterials,
 } from '../../src/scripts/privateModelR31Inspection.mjs';
 import {
@@ -81,6 +81,28 @@ test('unprofiled source reference lines cannot reappear as physical surface pipe
   assert.equal(buildR31DrainageOverlay(THREE, drainSource(undefined, 'M5A-R2')), null);
 });
 
+test('omission diagnostics survive zero visible geometry and track independent layer modes', () => {
+  const mixed = buildR31DrainageOverlay(THREE, drainSource());
+  assert.equal(mixed.userData.counts.route, 0);
+  assert.match(r31DrainageOmissionNotice(mixed, 'visible', true), /1 reittiosaa jätetty näyttämättä/);
+  assert.match(r31DrainageOmissionNotice(mixed, 'ghost', true), /Verkosto ei ole kokonaan näkyvissä/);
+  assert.equal(r31DrainageOmissionNotice(mixed, 'hidden', true), '');
+  assert.equal(r31DrainageOmissionNotice(mixed, 'visible', false), '');
+  const gltf = drainSource();
+  const scene = gltf.scenes[59];
+  const route = scene.children.find(c => c.userData.representationKind === 'referenceRouteWork');
+  scene.clear(); scene.add(route);
+  const onlyOmitted = buildR31DrainageOverlay(THREE, gltf);
+  assert.ok(onlyOmitted, 'all-omitted source still returns diagnostic group');
+  assert.equal(onlyOmitted.children.length, 0, 'no fallback geometry');
+  assert.deepEqual(onlyOmitted.userData.counts, { well: 0, route: 0, open: 0 });
+  assert.equal(onlyOmitted.userData.unprofiledRoutesOmitted, 1);
+  assert.match(r31DrainageOmissionNotice(onlyOmitted, 'visible', true), /korkeusprofiili puuttuu/);
+  assert.equal(r31DrainageOmissionNotice(buildR31DrainageOverlay(THREE, drainSource('other')), 'visible', true), '');
+  assert.equal(r31DrainageOmissionNotice({ userData: { unprofiledRoutesOmitted: 5 } }, 'visible', true), '');
+  assert.equal(r31DrainageOmissionNotice({ userData: { source: R31_DRAINAGE_SOURCE, unprofiledRoutesOmitted: 0 } }, 'visible', true), '');
+});
+
 test('a route whose source ID is known but endpoints changed must not use old surface-line fallback', () => {
   const gltf = drainSource();
   const route = gltf.scenes[59].children.find((c) => c.userData.representationKind === 'referenceRouteWork');
@@ -111,6 +133,7 @@ test('owner 23.11: profiled drains are real pipes 1 m+ below ground, wells reach
   assert.deepEqual(overlay.userData.counts, { well: 1, route: 1, open: 1 });
   assert.deepEqual(overlay.userData.profiled, { route: 1, well: 1 });
   assert.equal(overlay.userData.unprofiledRoutesOmitted, 0, 'valid underground profiles stay visible');
+  assert.equal(r31DrainageOmissionNotice(overlay, 'visible', true), '');
   assert.equal(overlay.children.length, 2, 'open end is told in the card, not drawn');
   const pipe = overlay.children.find((c) => c.userData.r31InspectionKind === 'route');
   pipe.geometry.computeBoundingBox();
