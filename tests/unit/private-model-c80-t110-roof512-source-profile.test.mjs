@@ -69,3 +69,28 @@ test('mutated SHA-locked roots, fake host and cross-floor transfer fail closed',
   assert.equal(valid(json,authenticatedSha,508,'BOTH'),true,'test leaves original intact');
   assert.equal(valid(json,authenticatedSha,505,'2F'),true,'2F original intact');
 });
+
+// R34 root fixture originates from the existing exact R34 source-receipt tests.
+import {R34_T110_SHA,r34T110RoofWarning} from '../../src/scripts/privateModelC80T110Roof512SourceProfile.mjs';
+const r34Original=JSON.parse(readFileSync(new URL('../fixtures/private-model-r34-scene-roots.json',import.meta.url),'utf8'));
+function r34Fixture(){
+ const x={asset:{extras:{...r34Original.asset}},scene:r34Original.defaultScene};
+ for(const [k,n] of Object.entries(r34Original.counts))x[k]=Array.from({length:n},()=>({}));
+ for(const i of [822,823,824,825])x.scenes[i]={...r34Original.scenes[i],nodes:[...r34Original.scenes[i].nodes]};
+ for(const n of [12239,12240])x.nodes[n]={mesh:4611,extras:{m5System:'VIEMARI'}};
+ x.nodes[12242]={children:[12240,12241]};return x;
+}
+test('R34 T110 warning only follows exact four mounted scene roles and selected source leaf',()=>{
+ for(const i of [822,823,824,825]){
+  const floor=i<824?'BOTH':'2F',node=i<824?12239:12240;
+  const x=r34Fixture(),r=r34T110RoofWarning(x,R34_T110_SHA,i,floor,node);
+  assert.ok(r);assert.equal(r.physicalRoofOpeningVerified,false);assert.equal(r.publishAllowed,false);assert.equal(r.sourceLinksBound,false);
+  assert.equal(r34T110RoofWarning(x,SHA,i,floor,node),null);
+  assert.equal(r34T110RoofWarning(x,R34_T110_SHA,i,'1F',node),null);
+  assert.equal(r34T110RoofWarning(x,R34_T110_SHA,i,floor,node===12239?12240:12239),null);
+  for(const mutate of [j=>j.scenes[i].nodes.reverse(),j=>delete j.scenes[i].nodes[0],j=>j.nodes[node].mesh=4610,j=>j.nodes[node].extras.m5System='VESI',j=>j.nodes[j.scenes[i].nodes.find(n=>n!==12242&&n!==node)].children=[10146],j=>j.asset.extras.asBuilt=true]){
+   const bad=r34Fixture();mutate(bad);assert.equal(r34T110RoofWarning(bad,R34_T110_SHA,i,floor,node),null);
+  }
+  if(i>=824){const bad=r34Fixture();bad.nodes[12242].children=[12241];assert.equal(r34T110RoofWarning(bad,R34_T110_SHA,i,floor,node),null);}
+ }
+});

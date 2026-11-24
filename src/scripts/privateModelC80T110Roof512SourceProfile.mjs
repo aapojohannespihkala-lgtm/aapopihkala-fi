@@ -121,3 +121,37 @@ export function c80T110Roof512Receipt(json, sha, sceneIndex, floor) {
     physicalRoofOpeningVerified:false,
   });
 }
+
+/** R34 T110 source QA, not a mount or an installed roof penetration claim.
+ * Caller must independently authenticate and parse the same GLB bytes.
+ */
+export const R34_T110_SHA = '99210ea517c18cf24fa5f9702abe12ed2a8058a0c606d38b863e19802a270725';
+const r34T110Scenes = Object.freeze([[822,"BOTH",505,"673ba191","Ylisrinne_R34_FACADES_PARTYWALL_FRIEZE_BOTH_NORMAL_PLEXI_ON_WORK_TEST_HOST_HOLD__scene822"],[823,"BOTH",504,"f9009603","Ylisrinne_R34_FACADES_PARTYWALL_FRIEZE_BOTH_SERVICE_PLEXI_OFF_WORK_TEST_HOST_HOLD__scene823"],[824,"2F",207,"abdbe8d4","Ylisrinne_R34_FACADES_PARTYWALL_FRIEZE_2F_NORMAL_PLEXI_ON_WORK_TEST_HOST_HOLD__scene824"],[825,"2F",206,"241f1e49","Ylisrinne_R34_FACADES_PARTYWALL_FRIEZE_2F_SERVICE_PLEXI_OFF_WORK_TEST_HOST_HOLD__scene825"]].map(Object.freeze));
+const r34Counts = Object.freeze({"scenes":826,"nodes":13854,"meshes":5242,"materials":826,"accessors":11449,"bufferViews":11455});
+function r34DenseNodes(a, size) {
+  if (!Array.isArray(a)) return false;
+  for (let i=0;i<a.length;i++) if (!Object.hasOwn(a,i)||!Number.isInteger(a[i])||a[i]<0||a[i]>=size) return false;
+  return true;
+}
+export function r34T110RoofWarning(json, sha, sceneIndex, floor, sourceNodeIndex) {
+  const spec=r34T110Scenes.find(r=>r[0]===sceneIndex);
+  if (sha!==R34_T110_SHA||!spec||floor!==spec[1]||json?.scene!==292) return null;
+  const e=json.asset?.extras;
+  if(e?.ModelStage!=='WORK_TEST'||e.current!==false||e.asBuilt!==false||e.HUMAN_REVIEW!=='NOT_RUN') return null;
+  if(!Object.entries(r34Counts).every(([k,v])=>Array.isArray(json[k])&&json[k].length===v)) return null;
+  const roots=json.scenes[sceneIndex]?.nodes, nodes=json.nodes;
+  if(json.scenes[sceneIndex]?.name!==spec[4]||!r34DenseNodes(roots,nodes.length)||roots.length!==spec[2]||new Set(roots).size!==roots.length||c80T110Roof512Fnv32(roots)!==spec[3]) return null;
+  const both=floor==='BOTH', tube=both?12239:12240;
+  if(sourceNodeIndex!==tube||nodes[tube]?.mesh!==4611||!json.meshes[4611]||nodes[tube]?.extras?.m5System!=='VIEMARI') return null;
+  // Confirm the selected source path and reject stale duplicate water-system tube.
+  if(both ? (!roots.includes(tube)||roots.includes(12242)) : (!roots.includes(12242)||roots.includes(tube)||!r34DenseNodes(nodes[12242]?.children,nodes.length)||nodes[12242].children.filter(n=>n===tube).length!==1)) return null;
+  const active=new Set(), pending=[...roots];
+  while(pending.length){
+    const n=pending.pop(); if(active.has(n)) continue;
+    const node=nodes[n]; if(!node||typeof node!=='object') return null;
+    active.add(n);
+    if(node.children!==undefined){if(!r34DenseNodes(node.children,nodes.length)) return null;pending.push(...node.children);}
+  }
+  if(!active.has(tube)||active.has(both?12240:12239)||active.has(10146)) return null;
+  return Object.freeze({sourceSha256:R34_T110_SHA,sceneIndex,sourceNodeIndex:tube,status:'WORK_TEST_HOST_HOLD',physicalRoofOpeningVerified:false,sourceLinksBound:false,publishAllowed:false,productionWebGLVerified:false,humanReview:'NOT_RUN',warning:'T110: vesikaton läpivienti, pellitys, eristys ja toteutunut sijainti eivät ole varmennettuja. Mallissa näkyvä putki ei osoita toimivaa tai tiivistä kattoliitosta.'});
+}
