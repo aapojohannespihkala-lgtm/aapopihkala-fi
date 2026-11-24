@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createNavCubeAxisState, mountNavigationCube, projectNavCube, projectNavCubeEdgeAxes, projectNavCubeSilhouette, navCubeFacePrint, navCubeBasis, NAV_CUBE_GROUND_RINGS, NAV_CUBE_RING, NAV_CUBE_SUN, NAV_CUBE_HALF } from '../../src/scripts/privateModelNavigationCube.mjs';
+import { createNavCubeAxisState, mountNavigationCube, projectNavCube, projectNavCubeEdgeAxes, projectNavCubeSilhouette, navCubeFacePrint, navCubeBasis, NAV_CUBE_NORTH_MARK, NAV_CUBE_SUN, NAV_CUBE_HALF } from '../../src/scripts/privateModelNavigationCube.mjs';
 
 const unit = (q) => { const n = Math.hypot(q.x, q.y, q.z, q.w); return { x: q.x / n, y: q.y / n, z: q.z / n, w: q.w / n }; };
 const keys = (faces) => faces.map((f) => f.key).sort();
@@ -75,17 +75,22 @@ test('axis arrows reject unknown north frame and non-finite pose, without camera
 });
 const applyMatrix = ([a, b, c, d, e, f], x, y) => ({ x: a * x + c * y + e, y: b * x + d * y + f });
 
-test('17 ground rings: five interleaved rows, centered, owner sizes', () => {
-  assert.equal(NAV_CUBE_GROUND_RINGS.length, 17);
-  const rows = new Map();
-  for (const { x, y } of NAV_CUBE_GROUND_RINGS) rows.set(y, [...(rows.get(y) ?? []), x]);
-  assert.deepEqual([...rows.keys()], [-0.42, -0.21, 0, 0.21, 0.42]);
-  assert.deepEqual([...rows.values()].map((r) => r.length), [3, 4, 3, 4, 3]);
-  const sum = NAV_CUBE_GROUND_RINGS.reduce((a, p) => ({ x: a.x + p.x, y: a.y + p.y }), { x: 0, y: 0 });
-  assert.ok(Math.abs(sum.x) < 1e-9 && Math.abs(sum.y) < 1e-9, 'pattern centered');
-  assert.equal(NAV_CUBE_RING.r, 0.06);
-  assert.equal(NAV_CUBE_RING.stroke, 0.057);
-  assert.equal(NAV_CUBE_SUN.stroke, 0.057);
+test('the horizontal faces mark north while the top sun has clear space around it', () => {
+  const { y, size } = NAV_CUBE_NORTH_MARK;
+  const letterHalf = size / 2;
+  assert.ok(y - letterHalf > -1, 'N stays inside the north edge');
+  assert.ok(-NAV_CUBE_SUN.rayTo - NAV_CUBE_SUN.stroke / 2 - (y + letterHalf) > 0.07,
+    'N and the centered sun have a visible gap');
+  const q = { x: Math.SQRT1_2, y: 0, z: 0, w: Math.SQRT1_2 };
+  for (const frame of ['local', 'map']) {
+    const [bottom] = projectNavCube(q, frame);
+    assert.equal(bottom.key, 'bottom');
+    const print = navCubeFacePrint(bottom);
+    assert.equal(print.kind, 'north-mark');
+    assert.equal(print.text, 'N');
+    const projected = applyMatrix(bottom.matrix, 0, y);
+    assert.ok(projected.y > bottom.center.y, 'looking underneath, north is on the far side of the center');
+  }
 });
 
 test('face prints lie in the face plane and foreshorten with it', () => {
@@ -109,7 +114,7 @@ test('face prints lie in the face plane and foreshorten with it', () => {
       assert.ok(pts.some(([x, y]) => Math.hypot(x - p.x, y - p.y) < 0.02), `${face.key} corner`);
     }
     const print = navCubeFacePrint(face);
-    assert.equal(print.kind, face.key === 'top' ? 'sun' : face.key === 'bottom' ? 'rings' : 'letter');
+    assert.equal(print.kind, face.key === 'top' ? 'sun' : face.key === 'bottom' ? 'north-mark' : 'letter');
     assert.match(print.transform, /^matrix\(/);
   }
   // Side letters read correctly from outside: on the south face, print-right is east (+X screen in SE view).
@@ -253,6 +258,23 @@ test('mounted SVG labels expose and refresh their arrow end in both frames', () 
   svg.ownerDocument = { createElementNS };
   svg.insertBefore = (node) => svg.children.unshift(node);
   const { render } = mountNavigationCube({ svg });
+  const q = (x) => ({ x, y: 0, z: 0, w: Math.SQRT1_2 });
+  const printed = (kind) => svg.children[0].children.flatMap(node => [
+    node,
+    ...node.children,
+  ]).filter(node => node.getAttribute('data-cube-print') === kind);
+  render(q(-Math.SQRT1_2), 'local');
+  const [topMark] = printed('north-mark');
+  const [sun] = printed('sun');
+  assert.equal(topMark.textContent, 'N');
+  assert.equal(topMark.getAttribute('x'), '0');
+  assert.equal(topMark.getAttribute('y'), String(NAV_CUBE_NORTH_MARK.y));
+  assert.equal(sun.getAttribute('transform'), undefined, 'sun uses the face center');
+  assert.equal(sun.children.length, 9);
+  render(q(Math.SQRT1_2), 'map');
+  assert.equal(printed('sun').length, 0);
+  assert.equal(printed('rings').length, 0);
+  assert.equal(printed('north-mark')[0].textContent, 'N');
   const axisLabels = () => Object.fromEntries(svg.children[0].children.at(-1).children
     .filter((node) => node.getAttribute('data-cube-edge-label'))
     .map((node) => [node.getAttribute('data-cube-edge-label'), node.getAttribute('data-cube-edge-label-end')]));

@@ -26,6 +26,7 @@ type OrientationAxisElements = {
 
 type OrientationGizmoControllerArgs = {
   root: HTMLElement;
+  readoutHost: HTMLElement;
   axisX: OrientationAxisElements;
   axisY: OrientationAxisElements;
   axisZ: OrientationAxisElements;
@@ -115,9 +116,7 @@ const toYlis = (vector: THREE.Vector3) => {
 
 const createReadoutRow = (key: string, optional = false) => {
   const row = document.createElement('div');
-  row.style.display = 'grid';
-  row.style.gridTemplateColumns = '46px minmax(0, 1fr)';
-  row.style.gap = '5px';
+  row.className = 'viewer-info-reading';
   if (optional) row.hidden = true;
 
   const label = document.createElement('span');
@@ -127,9 +126,7 @@ const createReadoutRow = (key: string, optional = false) => {
 
   const value = document.createElement('span');
   value.textContent = '-';
-  value.style.minWidth = '0';
   value.style.color = 'var(--viewer-ink-soft, #e1e7ea)';
-  value.style.overflowWrap = 'anywhere';
 
   row.append(label, value);
   return { row, value };
@@ -149,6 +146,7 @@ const finiteDatasetNumber = (value: string | undefined) => {
 
 export const createOrientationGizmoController = ({
   root,
+  readoutHost,
   axisX,
   axisY,
   axisZ,
@@ -169,18 +167,7 @@ export const createOrientationGizmoController = ({
   const readout = document.createElement('div');
   readout.id = 'ai-navigator-readout';
   readout.setAttribute('aria-label', 'Kuvakaappauksen YLIS-G1-LOCAL katselutiedot');
-  Object.assign(readout.style, {
-    display: 'grid',
-    gap: '2px',
-    marginTop: '5px',
-    paddingTop: '5px',
-    borderTop: '1px solid var(--viewer-line-soft, #46535d)',
-    fontFamily:
-      'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace',
-    fontSize: '8.2px',
-    lineHeight: '1.25',
-    fontVariantNumeric: 'tabular-nums',
-  });
+  readout.className = 'viewer-info-camera';
 
   const modelRow = createReadoutRow('MODEL');
   const viewRow = createReadoutRow('VIEW');
@@ -200,7 +187,7 @@ export const createOrientationGizmoController = ({
     stateRow.row,
     pinRow.row,
   );
-  root.append(readout);
+  readoutHost.append(readout);
 
   // Existing axes stay YLIS-G1-LOCAL. Only the N annotation is switchable.
   // The HUD deliberately has pointer-events:none; enable hits on this button
@@ -216,7 +203,6 @@ export const createOrientationGizmoController = ({
       padding: '4px 8px',
       border: '0',
       borderRadius: '5px',
-      background: 'transparent',
       color: 'var(--viewer-ink)',
       // Keep accessible text unchanged; CSS shows only the active frame label.
       fontSize: '0px',
@@ -225,9 +211,7 @@ export const createOrientationGizmoController = ({
       pointerEvents: 'auto',
       touchAction: 'manipulation',
     });
-    // Place the button's visible coordinate-frame caption directly below the SVG,
-    // ahead of the independent diagnostic camera readout.
-    root.insertBefore(northFrameController.button, readout);
+    root.append(northFrameController.button);
     // Owner decision 21.11.2026: clicking the cube itself switches YLIS-G1 /
     // map north; the text under it only shows the active frame.
     northFrameSvg!.style.pointerEvents = 'auto';
@@ -275,14 +259,13 @@ export const createOrientationGizmoController = ({
     const compact = window.matchMedia('(max-width: 760px)').matches;
     // CSS dimensions depend on the viewport breakpoint, not the frame rate.
     if (lastCompact !== compact) {
-      root.style.width = compact ? '196px' : '236px';
+      root.style.width = compact ? '108px' : '142px';
       const svg = root.querySelector<SVGElement>('svg');
       if (svg) {
         svg.style.width = compact ? '78px' : '118px';
         svg.style.maxWidth = svg.style.width;
         svg.style.marginInline = 'auto';
       }
-      readout.style.fontSize = compact ? '7.3px' : '8.2px';
       lastCompact = compact;
     }
 

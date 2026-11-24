@@ -144,8 +144,7 @@ test('D1F P137E target-specific crosshairs coexist with screenshot point tool an
   await expect(place).toBeDisabled();
   await expect(page.locator('#work-test-select')).toBeEnabled();
   await page.locator('#model-menu summary').click();
-  await page.locator('#work-test-select').selectOption(candidateId);
-  await page.locator('#work-test-button').click();
+  await page.locator(`#work-test-options button[data-work-test-candidate="${candidateId}"]`).click();
   await expect(canvas).toHaveAttribute('data-model-source', 'work-test');
   await page.locator('#preset-menu > summary').click();
   await page.locator('#d1-plan-button').click();
@@ -214,20 +213,18 @@ test('P137E placement never trusts the selected option instead of the loaded can
   const option = page.locator('#work-test-select');
   await expect(option).toBeEnabled();
   const choose = async (id: string) => {
-    if (!(await option.isVisible())) await page.locator('#model-menu summary').click();
-    await option.selectOption(id);
+    await page.locator('#model-menu > summary').click();
+    await page.locator(`#work-test-options button[data-work-test-candidate="${id}"]`).click();
   };
   await choose(otherId);
-  await page.locator('#work-test-button').click();
   await expect(canvas).toHaveAttribute('data-p137e-loaded-candidate-id', otherId);
   await expect(canvas).toHaveAttribute('data-model-source', 'work-test');
   await page.locator('#preset-menu > summary').click();
   await page.locator('#d1-plan-button').click();
   await expect(place).toBeDisabled();
-  await choose(selectedId);
   await expect(place).toBeDisabled();
   await expect(canvas).toHaveAttribute('data-p137e-place-draft-count', '0');
-  await page.locator('#work-test-button').click();
+  await choose(selectedId);
   await expect(canvas).toHaveAttribute('data-p137e-loaded-candidate-id', selectedId);
   await page.locator('#preset-menu > summary').click();
   await page.locator('#d1-plan-button').click();

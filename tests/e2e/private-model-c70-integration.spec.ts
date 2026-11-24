@@ -193,7 +193,7 @@ test('C70 preview needs explicit opt-in, rejects unrelated bytes and never uploa
   const writes: string[] = [];
   watchModelWrites(page, bootstrapGlb(), writes);
   await boot(page, false);
-  await openMenu(page, '#model-menu');
+  await openMenu(page, '#more-menu');
   await expect(page.locator('#c70-preview-controls')).toBeHidden();
   await page.locator('#c70-preview-input').setInputFiles({ name: 'wrong.glb', mimeType: 'model/gltf-binary', buffer: bootstrapGlb() });
   await expect(page.locator('#private-model-canvas')).toHaveAttribute('data-model-source', 'current');
@@ -387,7 +387,7 @@ for (const width of [1280, 390]) test.describe(`C70 direct ${width}`, () => {
       gestures = ['TOUCH_ORBIT', 'TWO_FINGER_PAN', 'PINCH_ZOOM'];
     }
     await page.screenshot({ path: info.outputPath('c70-direct-gestures.png') });
-    await openMenu(page, '#model-menu'); await page.locator('#current-model-button').click();
+    await openMenu(page, '#more-menu'); await page.locator('#current-model-button').click();
     await expect(canvas).toHaveAttribute('data-model-source', 'current');
     await expect(canvas).not.toHaveAttribute('data-c70-source-sha256');
     await expect(canvas).not.toHaveAttribute('data-c70-source-transport');
@@ -570,11 +570,11 @@ for (const width of [1280, 390]) test.describe(`C80 direct ${width}`, () => {
     await expect(canvas).toHaveAttribute('data-c80-scene-index', '0');
     await openMenu(page, '#more-menu'); await page.locator('#fit-button').click();
     await settle();
-    await openMenu(page, '#model-menu'); await page.locator('#c70-fallback-link').click();
+    await openMenu(page, '#more-menu'); await page.locator('#c70-fallback-link').click();
     await expect(canvas).toHaveAttribute('data-c70-preview', 'ready', { timeout: 120_000 });
     await expect(canvas).toHaveAttribute('data-main-view-source-scene-index', '62');
     await expect(canvas).not.toHaveAttribute('data-c80-source-sha256');
-    await openMenu(page, '#model-menu'); await page.locator('#current-model-button').click();
+    await openMenu(page, '#more-menu'); await page.locator('#current-model-button').click();
     await expect(canvas).toHaveAttribute('data-model-source', 'current');
     await expect(canvas).not.toHaveAttribute('data-c80-source-sha256');
     await expect(canvas).not.toHaveAttribute('data-c80-source-transport');
@@ -606,7 +606,7 @@ for (const width of [1280, 390]) test(`actual C70 GLTFLoader viewer 1F/2F/BOTH/W
   watchModelWrites(page, bytes, writes);
   await page.setViewportSize({ width, height: 900 });
   await boot(page);
-  await openMenu(page, '#model-menu');
+  await openMenu(page, '#more-menu');
   await expect(page.locator('#c70-preview-button')).toBeVisible();
   // Same bytes reach File.arrayBuffer -> SHA/route gate -> production GLTFLoader.
   await page.locator('#c70-preview-input').setInputFiles({ name: 'model.glb', mimeType: 'model/gltf-binary', buffer: bytes });
@@ -729,7 +729,7 @@ for (const width of [1280, 390]) test(`actual C70 GLTFLoader viewer 1F/2F/BOTH/W
   await page.locator('#c70-preview-input').setInputFiles({ name: 'bad.glb', mimeType: 'model/gltf-binary', buffer: corrupt });
   await expect(canvas).toHaveAttribute('data-c70-preview', 'rejected');
   await expect(canvas).toHaveAttribute('data-main-view-source-sha256', C70_SHA);
-  await openMenu(page, '#model-menu'); await page.locator('#current-model-button').click();
+  await openMenu(page, '#more-menu'); await page.locator('#current-model-button').click();
   await expect(canvas).toHaveAttribute('data-model-source', 'current');
   await expect(canvas).not.toHaveAttribute('data-c70-source-sha256');
   if (process.env.YLIS_C70_PRODUCTION !== '1') await expect(page.locator('#main-view-area')).toBeDisabled();
@@ -768,13 +768,13 @@ for (const width of [1280, 390]) test(`actual C70 P1 source-only alternatives us
   watchModelWrites(page, bytes, writes);
   await page.setViewportSize({ width, height: 900 });
   await boot(page);
-  await openMenu(page, '#model-menu');
+  await openMenu(page, '#more-menu');
   await page.locator('#c70-preview-input').setInputFiles({
     name: 'model.glb', mimeType: 'model/gltf-binary', buffer: bytes,
   });
   const canvas = page.locator('#private-model-canvas');
   await expect(canvas).toHaveAttribute('data-c70-preview', 'ready', { timeout: 120_000 });
-  await openMenu(page, '#model-menu');
+  await openMenu(page, '#more-menu');
   await expect(page.locator('#c70-variant-controls')).toBeVisible();
   await expect(page.locator('#c70-scene-variant option')).toHaveCount(14);
   await expect(canvas).toHaveAttribute('data-main-view-source-scene-index', '62');
@@ -786,7 +786,7 @@ for (const width of [1280, 390]) test(`actual C70 P1 source-only alternatives us
     : [64, 65, 63, 54, 60, 58];
   const seen: number[] = [];
   for (const scene of variants) {
-    await openMenu(page, '#model-menu');
+    await openMenu(page, '#more-menu');
     await page.locator('#c70-scene-variant').selectOption(String(scene));
     await expect(canvas).toHaveAttribute('data-main-view-source-scene-index', String(scene));
     await expect(canvas).toHaveAttribute('data-main-view-scope-status',
@@ -815,7 +815,7 @@ for (const width of [1280, 390]) test(`actual C70 P1 source-only alternatives us
 
   // Switching floors through the existing preset selector cancels an
   // incompatible opt-in and returns to the original verified C70 route.
-  await openMenu(page, '#model-menu');
+  await openMenu(page, '#more-menu');
   await page.locator('#c70-scene-variant').selectOption('64');
   await openMenu(page, '#preset-menu');
   await page.locator('#main-view-floor').selectOption('1F');
@@ -824,7 +824,7 @@ for (const width of [1280, 390]) test(`actual C70 P1 source-only alternatives us
   await openMenu(page, '#preset-menu');
   await page.locator('#main-view-floor').selectOption('2F');
   await expect(canvas).toHaveAttribute('data-main-view-source-scene-index', '52');
-  await openMenu(page, '#model-menu');
+  await openMenu(page, '#more-menu');
   await page.locator('#current-model-button').click();
   await expect(canvas).toHaveAttribute('data-model-source', 'current');
   await expect(page.locator('#c70-variant-controls')).toBeHidden();
