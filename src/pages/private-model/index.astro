@@ -16,23 +16,39 @@ const title = 'Private 3D viewer';
       .desk-toolbar { display: inline-flex; align-items: center; gap: 10px; flex-wrap: wrap; }
       .desk-group { position: relative; display: inline-flex; align-items: center; gap: 2px; padding: 2px;
         border: 1px solid var(--viewer-line-soft); border-radius: 9px; }
-      .toolbar .desk-icon, .toolbar .desk-more { display: inline-grid; place-items: center; min-width: 36px; min-height: 36px;
+      .toolbar .desk-icon { display: inline-grid; place-items: center; min-width: 36px; min-height: 36px;
         padding: 4px; border: 1px solid transparent; border-radius: 7px; background: transparent; color: var(--viewer-ink); }
-      .toolbar .desk-more { min-width: 22px; padding: 2px; opacity: .8; }
       .toolbar .desk-icon[aria-pressed='true'], .toolbar .desk-icon[aria-expanded='true'] {
         border-color: var(--viewer-line); background: var(--viewer-bar); box-shadow: inset 0 0 0 1px var(--viewer-line); }
-      /* The native menu summaries become the small 'more' arrows (tests and keyboard keep working). */
-      .toolbar .desk-more { display: none !important; }
-      .toolbar .desk-group > .toolbar-menu > summary { display: grid; place-items: center; min-width: 22px; min-height: 36px;
-        padding: 0 2px; border: 1px solid transparent; border-radius: 7px; background: transparent; font-size: 0 !important; line-height: 0 !important; color: var(--viewer-ink); }
-      .toolbar .desk-group > .toolbar-menu > summary > * { display: none !important; }
-      .toolbar .desk-group > .toolbar-menu > summary::before { content: ''; display: block; width: 18px; height: 18px; background: currentColor;
-        -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M7 10 L12 15 L17 10'/%3E%3C/svg%3E") center / contain no-repeat; mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M7 10 L12 15 L17 10'/%3E%3C/svg%3E") center / contain no-repeat; }
       .desk-group > .toolbar-menu { position: static; }
       .desk-group > .toolbar-menu > .toolbar-menu-panel { left: auto; right: 0; }
-      .toolbar .desk-layers-native { font-size: 0 !important; line-height: 0 !important; display: inline-grid; place-items: center; min-width: 36px; min-height: 36px; padding: 4px; }
-      .desk-layers-native::before { content: ''; display: block; width: 22px; height: 22px; background: currentColor;
-        -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.6' stroke-linejoin='round'%3E%3Cpath d='M12 4 L21 9 L12 14 L3 9 Z'/%3E%3Cpath d='M3 13 L12 18 L21 13'/%3E%3Cpath d='M3 17 L12 22 L21 17'/%3E%3C/svg%3E") center / contain no-repeat; mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.6' stroke-linejoin='round'%3E%3Cpath d='M12 4 L21 9 L12 14 L3 9 Z'/%3E%3Cpath d='M3 13 L12 18 L21 13'/%3E%3Cpath d='M3 17 L12 22 L21 17'/%3E%3C/svg%3E") center / contain no-repeat; }
+      .toolbar .desk-group > .toolbar-menu > summary {
+        display: grid; place-items: center; min-width: 30px; min-height: 36px;
+        padding: 0; border: 0 !important; background: transparent; font-size: 0; line-height: 0;
+      }
+      .toolbar .desk-group > .toolbar-menu > summary > :not(svg) { display: none; }
+      .viewport > aside[data-viewport-minimized],
+      .viewport-panel-dock[hidden],
+      .viewport-panel-tab[hidden] { display: none !important; }
+      .viewport .viewport-panel-minimize {
+        min-width: 28px; min-height: 28px; padding: 0 5px;
+        margin-inline-start: auto; font-size: 16px; line-height: 1;
+        pointer-events: auto;
+      }
+      .viewport-panel-minimize-float { float: right; margin: 0 0 4px 8px; }
+      .height-scale > .viewport-panel-minimize { position: absolute; top: 0; right: 0; }
+      .height-scale:has(> .viewport-panel-minimize) .height-scale-title { right: 36px; }
+      .viewport-panel-dock {
+        position: absolute; inset: 8px 8px auto; z-index: 16;
+        display: flex; justify-content: center; flex-wrap: wrap; gap: 4px;
+        pointer-events: none;
+      }
+      .viewport:has(> .desk-side-tools) > .viewport-panel-dock { left: 66px; }
+      .viewport .viewport-panel-tab {
+        min-height: 28px; max-width: 100%; padding: 3px 8px;
+        font-size: 12px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;
+        pointer-events: auto;
+      }
       .viewport > .interaction-tools.desk-side-tools { position: absolute; z-index: 15; left: 12px; top: 12px;
         display: flex; flex-direction: column; gap: 4px; padding: 4px; background: var(--viewer-page); }
       .viewport .desk-side-tools button { display: grid; place-items: center; min-width: 38px; min-height: 38px; padding: 6px; }
@@ -40,16 +56,16 @@ const title = 'Private 3D viewer';
       .viewport .desk-side-tools button[disabled] { opacity: .35; }
       /* Layers panel opens to the right of the side tool column, not under it. */
       .viewport:has(> .desk-side-tools) .layers-panel { left: 66px !important; width: min(290px, calc(100% - 78px)) !important; }
-      /* Owner 22.11.2026 16.39: every left-side overlay (coordinates, point,
+      /* Owner 22.11.2026 16.39: every left-side overlay (point,
          measure, selection, legends) opens to the right of the side tool
          column, never on top of it. Narrow screens keep their own layout. */
       @media (min-width: 761px) {
-        .viewport:has(> .desk-side-tools) :is(.coordinate-panel, .point-measure-panel, .p137e-place-panel,
+        .viewport:has(> .desk-side-tools) :is(.point-measure-panel, .p137e-place-panel,
           .m5a-source-context, .height-scale, .d1-known-door-legend, .profile-panel, .selection-panel) {
           left: 66px !important;
           max-width: calc(100% - 78px);
         }
-        .viewport:has(> .desk-side-tools):has(.layers-panel:not([hidden])) .selection-panel {
+        .viewport:has(> .desk-side-tools):has(.layers-panel:not([hidden], [data-viewport-minimized])) .selection-panel {
           left: calc(66px + min(290px, 100% - 78px) + 12px) !important;
           max-width: calc(100% - 66px - min(290px, 100% - 78px) - 24px);
         }
@@ -523,71 +539,6 @@ const title = 'Private 3D viewer';
       .legend-swatch.water { background: #2f80ed; }
       .legend-swatch.wastewater { background: #c04472; }
 
-      .coordinate-panel {
-        position: absolute;
-        bottom: 12px;
-        left: 12px;
-        z-index: 3;
-        width: min(330px, calc(100% - 24px));
-        padding: 10px 12px;
-        border: 1px solid #c9cbc5;
-        border-radius: 10px;
-        background: rgba(255, 255, 255, 0.94);
-        box-shadow: 0 8px 28px rgba(25, 28, 25, 0.12);
-        pointer-events: none;
-      }
-
-      .coordinate-panel[hidden],
-      .coordinate-line[hidden] { display: none; }
-
-      /* Mobile-only source-bound CSS from the completed layout QA. */
-      /* PROPOSAL ONLY. DO NOT APPLY TO PRODUCTION WITHOUT REVIEW.
-         Put after the existing coordinate-panel and orientation-gizmo rules.
-         Intended as a scoped mobile change, not a viewer replacement. */
-      @media (max-width: 760px) {
-        .coordinate-panel:not([hidden]) {
-          left: 8px;
-          bottom: 8px;
-          width: min(60%, 230px);
-          padding: 7px 8px;
-        }
-        .coordinate-title-row { gap: 4px; margin-bottom: 4px; }
-        .coordinate-title { font-size: 11px; }
-        .coordinate-floor { font-size: 10px; }
-        .coordinate-line {
-          grid-template-columns: 48px minmax(0,1fr);
-          gap: 4px;
-          font-size: 10px;
-          margin-top: 2px;
-        }
-        .coordinate-line > span:last-child { overflow-wrap: anywhere; }
-        .coordinate-note {font-size: 9px; line-height: 1.2; margin-top: 5px;}
-        .viewport:has(.coordinate-panel:not([hidden])) .orientation-gizmo {
-          bottom: calc(16px + var(--coordinate-panel-block, 120px));
-        }
-      }
-      
-      /* Landscape handset: apply compact panel when width exceeds the 760px breakpoint. */
-      @media (min-width: 761px) and (max-width: 960px) and (max-height: 500px) {
-        .coordinate-panel:not([hidden]) {
-          left: 8px;
-          bottom: 8px;
-          width: min(42%, 240px);
-          padding: 7px 8px;
-          max-height: calc(100% - 16px);
-          overflow-y: auto;
-          pointer-events: auto;
-          touch-action: pan-y;
-        }
-        .coordinate-title-row { gap: 4px; margin-bottom: 4px; }
-        .coordinate-title { font-size: 11px; }
-        .coordinate-floor { font-size: 10px; }
-        .coordinate-line { grid-template-columns: 48px minmax(0,1fr); gap:4px; font-size:10px; margin-top:2px; }
-        .coordinate-line > span:last-child { overflow-wrap: anywhere; }
-        .coordinate-note { font-size: 9px; line-height:1.2; margin-top:5px; }
-      }
-
-
       .point-measure-panel {
         position: absolute;
         top: 12px;
@@ -666,49 +617,6 @@ const title = 'Private 3D viewer';
       .p137e-place-panel ul { margin: 8px 0; padding-left: 17px; }
       .p137e-place-panel p { margin: 5px 0; }
 
-      .coordinate-title-row {
-        display: flex;
-        align-items: baseline;
-        justify-content: space-between;
-        gap: 12px;
-        margin-bottom: 7px;
-      }
-
-      .coordinate-title {
-        font-size: 13px;
-        font-weight: 700;
-      }
-
-      .coordinate-floor {
-        color: #62655f;
-        font-size: 12px;
-        font-weight: 650;
-      }
-
-      .coordinate-line {
-        display: grid;
-        grid-template-columns: 64px minmax(0, 1fr);
-        gap: 8px;
-        margin-top: 4px;
-        font-size: 12px;
-      }
-
-      .coordinate-line span {
-        color: #6c6e69;
-      }
-
-      .coordinate-line > span:last-child {
-        color: #20211f;
-        font-variant-numeric: tabular-nums;
-        font-weight: 650;
-      }
-
-      .coordinate-note {
-        margin-top: 7px;
-        color: #777a75;
-        font-size: 10px;
-      }
-
       .m5a-source-context {
         position: absolute;
         top: 12px;
@@ -733,7 +641,7 @@ const title = 'Private 3D viewer';
         --m5a-source-panel-width: min(620px, 40vw);
       }
 
-      .viewport.m5a-source-layout canvas {
+      .viewport.m5a-source-layout:has(> .m5a-source-context:not([hidden], [data-viewport-minimized])) canvas {
         width: calc(100% - var(--m5a-source-panel-width) - 24px);
         margin-left: calc(var(--m5a-source-panel-width) + 24px);
       }
@@ -865,7 +773,7 @@ const title = 'Private 3D viewer';
       }
 
       /* Historical electrical labels need the complete canvas unobscured. */
-      .viewport:has(#p186e-source-context:not([hidden])) .orientation-gizmo {
+      .viewport:has(#p186e-source-context:not([hidden], [data-viewport-minimized])) .orientation-gizmo {
         left: 12px;
         right: auto;
         top: auto;
@@ -976,10 +884,6 @@ const title = 'Private 3D viewer';
           bottom: 8px;
           width: 184px;
           padding: 5px 6px 4px;
-        }
-
-        .viewport:has(.coordinate-panel:not([hidden])) .orientation-gizmo {
-          bottom: calc(16px + var(--coordinate-panel-block, 120px));
         }
 
         .orientation-gizmo-note {
@@ -1325,13 +1229,8 @@ const title = 'Private 3D viewer';
 
       .selection-panel[hidden] { display: none; }
 
-      .viewport:has(.coordinate-panel:not([hidden])) .selection-panel {
-        bottom: calc(20px + var(--coordinate-panel-block, 120px));
-        max-height: calc(100% - 32px - var(--coordinate-panel-block, 120px));
-      }
-
       /* The layers panel also lives on the left: sit beside it instead of covering its controls. */
-      .viewport:has(.layers-panel:not([hidden])) .selection-panel {
+      .viewport:has(.layers-panel:not([hidden], [data-viewport-minimized])) .selection-panel {
         left: calc(min(348px, 100% - 24px) + 24px);
         width: min(340px, calc(100% - min(348px, 100% - 24px) - 36px));
       }
@@ -1339,8 +1238,7 @@ const title = 'Private 3D viewer';
       /* Narrow screens: the full-width panel would cover the bottom gizmo, so it opens from the top. */
       @media (max-width: 760px) {
         .selection-panel,
-        .viewport:has(.coordinate-panel:not([hidden])) .selection-panel,
-        .viewport:has(.layers-panel:not([hidden])) .selection-panel {
+        .viewport:has(.layers-panel:not([hidden], [data-viewport-minimized])) .selection-panel {
           top: 8px;
           bottom: auto;
           left: 8px;
@@ -1572,9 +1470,7 @@ const title = 'Private 3D viewer';
 
       .model-source-badge,
       .status,
-      .layer-count,
-      .coordinate-panel,
-      .coordinate-line > span:last-child {
+      .layer-count {
         font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
       }
 
@@ -1595,7 +1491,6 @@ const title = 'Private 3D viewer';
       .toolbar-menu[open] > summary,
       .toolbar-menu-panel,
       .layers-panel,
-      .coordinate-panel,
       .point-measure-panel,
       .d1-known-door-legend,
       .profile-panel,
@@ -1613,9 +1508,6 @@ const title = 'Private 3D viewer';
       .layer-select,
       .layer-note,
       .layer-legend,
-      .coordinate-floor,
-      .coordinate-line span,
-      .coordinate-note,
       .point-measure-note,
       .profile-controls label,
       .profile-note,
@@ -1626,7 +1518,6 @@ const title = 'Private 3D viewer';
         color: var(--viewer-stone-light);
       }
 
-      .coordinate-line > span:last-child,
       .profile-summary,
       .selection-grid dd {
         color: var(--viewer-ink);
@@ -1986,6 +1877,7 @@ const title = 'Private 3D viewer';
         </aside>
         <aside
           id="orientation-gizmo"
+          data-panel-title="Suuntailmaisin"
           class="orientation-gizmo"
           aria-label="YLIS-G1-LOCAL suuntailmaisin: X itään, Y pohjoiseen, Z ylös"
           data-frame="YLIS-G1-LOCAL"
@@ -2097,24 +1989,10 @@ const title = 'Private 3D viewer';
           <div id="point-measure-detail" class="point-measure-detail"></div>
           <div class="point-measure-note">Mallista mitattu WORK_TEST-arvo, ei tarkemittaus. Kolmas klikkaus aloittaa uuden mitan.</div>
         </aside>
-        <aside id="coordinate-panel" class="coordinate-panel" aria-live="polite" hidden>
-          <div class="coordinate-title-row">
-            <strong class="coordinate-title">YLIS-G1-LOCAL</strong>
-            <span id="coordinate-floor" class="coordinate-floor">D 1F</span>
-          </div>
-          <div class="coordinate-line">
-            <span>Osoitin</span>
-            <span id="coordinate-pointer">X - / Y -</span>
-          </div>
-          <div class="coordinate-line">
-            <span>Klikattu</span>
-            <span id="coordinate-anchor">X - / Y -</span>
-          </div>
-          <div class="coordinate-line" id="axis-measure-row" hidden>
-            <span>Mittaus</span>
-            <span id="axis-measure-output"></span>
-          </div>
-          <div id="coordinate-note" class="coordinate-note">1 m ruudukko, 0,5 m apuviivat - metreinä. Mittaus on mallista, ei tarkemittaus.</div>
+        <aside id="axis-measure-row" class="point-measure-panel" aria-label="Mittaa pohjaa" aria-live="polite" hidden>
+          <div class="point-measure-header"><strong>Mittaa pohjaa</strong></div>
+          <div id="axis-measure-output" class="point-measure-main"></div>
+          <div class="point-measure-note">Mallista mitattu WORK_TEST-arvo, ei tarkemittaus.</div>
         </aside>
         <aside id="p137e-place-panel" class="p137e-place-panel" aria-label="Themojen rastiluonnokset" hidden>
           <strong>Kolmen Themon sijaintiluonnos (WORK_TEST)</strong>
@@ -2133,7 +2011,7 @@ const title = 'Private 3D viewer';
           <p id="p137e-g2-status" role="status">G2-yhteys varmentamatta; rastit ovat tallentamattomia.</p>
           <p>Ei fyysinen tarkemittaus eikä CURRENT/as-built-geometria.</p>
         </aside>
-        <aside id="height-scale" class="height-scale" aria-label="YLIS-G1-LOCAL korkeusasteikko" hidden>
+        <aside id="height-scale" class="height-scale" data-panel-title="Korkeusasteikko" aria-label="YLIS-G1-LOCAL korkeusasteikko" hidden>
           <div class="height-scale-title">YLIS-G1-LOCAL Z</div>
           <div id="height-scale-ticks" class="height-scale-ticks"></div>
         </aside>
@@ -2805,9 +2683,9 @@ const title = 'Private 3D viewer';
       import { createUnifiedEdgeMemo } from '../../scripts/privateModelUnifiedEdgeMemo';
       import { createCoplanarFaceIndex, surfaceLookKey } from '../../scripts/privateModelHiddenSeamEdges';
       import {
-        activateReviewCoordinatePanel,
+        activateReviewCoordinateGrid,
         clearReviewAnchorState,
-        deactivateReviewCoordinatePanel,
+        deactivateReviewCoordinateGrid,
         setReviewAnchorState,
         setReviewPointerState,
         createTargetBoundReviewAnchor,
@@ -2962,7 +2840,11 @@ const title = 'Private 3D viewer';
       } from '../../scripts/privateModelWorkTestLoadDiagnostics';
 
       import { createC80R31ViewSwitch, r31WorkTestReview, r31ViewerLayerSceneReceipt, r31ViewerLayerBindingScope, C80_R31_9E0B_SOURCE, isR31FamilyViewerSha, r32hFamilyOf } from '../../scripts/privateModelC80R31ReviewRuntime.mjs';
-      import { mountDesktopToolbar, activeDesktopPreset, activeDesktopAngle, DESKTOP_START_CANDIDATE_ID } from '../../scripts/privateModelDesktopToolbar.mjs';
+      import {
+        mountDesktopToolbar, activeDesktopPreset, activeDesktopAngle, DESKTOP_START_CANDIDATE_ID,
+        DESKTOP_LAYERS_ICON, DESKTOP_MORE_ICON,
+      } from '../../scripts/privateModelDesktopToolbar.mjs';
+      import { mountPrivateModelViewportPanels } from '../../scripts/privateModelViewportPanels';
       import { createDFocusGhost, dFootprintFromScope, dStoreyFootprint } from '../../scripts/privateModelDFocusGhost';
 
       const canvas = document.querySelector<HTMLCanvasElement>('#private-model-canvas');
@@ -3133,11 +3015,6 @@ const title = 'Private 3D viewer';
       const d1KnownDoorLegendList = document.querySelector<HTMLOListElement>('#d1-known-door-legend-list');
       const d1UserDoorLegendSection = document.querySelector<HTMLElement>('#d1-user-door-legend-section');
       const d1UserDoorLegendList = document.querySelector<HTMLOListElement>('#d1-user-door-legend-list');
-      const coordinatePanel = document.querySelector<HTMLElement>('#coordinate-panel');
-      const coordinateFloor = document.querySelector<HTMLElement>('#coordinate-floor');
-      const coordinatePointer = document.querySelector<HTMLElement>('#coordinate-pointer');
-      const coordinateAnchor = document.querySelector<HTMLElement>('#coordinate-anchor');
-      const coordinateNote = document.querySelector<HTMLElement>('#coordinate-note');
       const axisMeasureToolButton = document.querySelector<HTMLButtonElement>('#axis-measure-tool-button');
       const p137ePlaceToolButton = document.querySelector<HTMLButtonElement>('#p137e-place-tool-button');
       const p137ePlacePanel = document.querySelector<HTMLElement>('#p137e-place-panel');
@@ -3255,10 +3132,6 @@ const title = 'Private 3D viewer';
         !d1KnownDoorLegendList ||
         !d1UserDoorLegendSection ||
         !d1UserDoorLegendList ||
-        !coordinatePanel ||
-        !coordinateFloor ||
-        !coordinatePointer ||
-        !coordinateAnchor ||
         !pointPickToolButton ||
         !pointPickPanel ||
         !pointPickMain ||
@@ -4028,7 +3901,7 @@ const title = 'Private 3D viewer';
           disposeCoordinateObject(dCoordinateAnchorMarker);
           dCoordinateAnchorMarker = null;
         }
-        clearReviewAnchorState(canvas, coordinateAnchor);
+        clearReviewAnchorState(canvas);
       };
 
       const dReviewCoordinateAtClientPoint = (clientX: number, clientY: number) => {
@@ -4051,7 +3924,7 @@ const title = 'Private 3D viewer';
       const updateDCoordinatePointer = (clientX: number, clientY: number) => {
         const coordinate = dReviewCoordinateAtClientPoint(clientX, clientY);
         if (!coordinate) return;
-        setReviewPointerState(canvas, coordinatePointer, coordinate);
+        setReviewPointerState(canvas, coordinate);
       };
 
       const setDCoordinateAnchor = (clientX: number, clientY: number) => {
@@ -4088,7 +3961,7 @@ const title = 'Private 3D viewer';
         scene.add(marker);
         dCoordinateAnchorMarker = marker;
 
-        setReviewAnchorState(canvas, coordinateAnchor, coordinate);
+        setReviewAnchorState(canvas, coordinate);
       };
 
 
@@ -4368,19 +4241,12 @@ const title = 'Private 3D viewer';
       const activateDCoordinateReview = (floor: '1F' | '2F') => {
         const floorChanged = dCoordinateGridFloor !== floor;
         if (canvas.dataset.workTestClickedPoint === 'true') {
-          clearReviewAnchorState(canvas, coordinateAnchor);
+          clearReviewAnchorState(canvas);
           delete canvas.dataset.workTestClickedPoint;
         }
-        if (coordinateNote) coordinateNote.textContent = '1 m ruudukko, 0,5 m apuviivat - metreinä. Mittaus on mallista, ei tarkemittaus.';
         prepareDCoordinateGrid(floor);
         dCoordinateGridGroup.visible = true;
-        activateReviewCoordinatePanel({
-          canvas,
-          coordinatePanel,
-          coordinateFloor,
-          coordinatePointer,
-          floor,
-        });
+        activateReviewCoordinateGrid(canvas);
         if (floorChanged) {
           clearDCoordinateAnchor();
           clearDAxisMeasurement();
@@ -4397,7 +4263,7 @@ const title = 'Private 3D viewer';
       const deactivateDCoordinateReview = () => {
         delete canvas.dataset.workTestClickedPoint;
         dCoordinateGridGroup.visible = false;
-        deactivateReviewCoordinatePanel({ canvas, coordinatePanel, coordinatePointer });
+        deactivateReviewCoordinateGrid(canvas);
         clearDCoordinateAnchor();
         clearDAxisMeasurement();
         p137ePlaceToolButton.disabled = true;
@@ -6069,20 +5935,16 @@ const title = 'Private 3D viewer';
           onVisibleHit: (hit) => { coordinateHitObject = hit.object; },
         });
         if (!point) {
-          deactivateReviewCoordinatePanel({canvas, coordinatePanel, coordinatePointer});
-          clearReviewAnchorState(canvas, coordinateAnchor);
+          deactivateReviewCoordinateGrid(canvas);
+          clearReviewAnchorState(canvas);
           delete canvas.dataset.workTestClickedPoint;
           return null;
         }
-        coordinatePanel.hidden = false;
-        coordinateFloor.textContent = '3D WORK_TEST';
-        if (coordinateNote) coordinateNote.textContent =
-          'Klikattu näkyvä lähdemallin pinta: X/Y ovat mallikoordinaatteja, eivät mitattua sijaintia.';
         canvas.dataset.reviewCoordinateFrame = point.coordinateFrame;
         canvas.dataset.reviewGridVisible = 'false';
         canvas.dataset.workTestClickedPoint = 'true';
-        setReviewPointerState(canvas, coordinatePointer, point);
-        setReviewAnchorState(canvas, coordinateAnchor, point);
+        setReviewPointerState(canvas, point);
+        setReviewAnchorState(canvas, point);
         return coordinateHitObject;
       };
 
@@ -6596,8 +6458,9 @@ const title = 'Private 3D viewer';
       let mobileSafeNormalBaseDistance = 0;
       let mobileSafeFitPending = false;
       const mobileHudElements = [
-        '#coordinate-panel', '#orientation-gizmo', '#selection-panel',
-        '#point-measure-panel', '#layers-panel', '#p137e-place-panel',
+        '#orientation-gizmo', '#selection-panel', '#point-pick-panel',
+        '#point-measure-panel', '#axis-measure-row', '#layers-panel', '#p137e-place-panel',
+        '.viewport-panel-dock',
       ];
       const applyMobileSafeCamera = (mode: 'reset' | 'preserve' = 'reset') => {
         if (!mainViewScope?.active || activeCamera !== camera || activePlanFloor) {
@@ -16207,17 +16070,20 @@ const title = 'Private 3D viewer';
             deskSync();
           },
           layers() { layersButton?.click(); deskSync(); },
-          morePresets() { deskViewMenu.open = false; deskPresetMenu.open = !deskPresetMenu.open; },
-          moreAngles() { deskPresetMenu.open = false; deskViewMenu.open = !deskViewMenu.open; },
         });
         const title = deskToolbarBar.querySelector('.title');
         (title ?? deskToolbarBar.firstChild)?.after?.(deskToolbar.root);
         const groups = deskToolbar.root.querySelectorAll('.desk-group') as NodeListOf<HTMLElement>;
         groups[0]?.append(deskPresetMenu);
         groups[1]?.append(deskViewMenu);
-        // The existing Layers button becomes the icon (its text stays the accessible name).
+        for (const menu of [deskPresetMenu, deskViewMenu]) {
+          menu.querySelector(':scope > summary')?.insertAdjacentHTML('afterbegin', DESKTOP_MORE_ICON);
+        }
         if (layersButton) {
-          layersButton.classList.add('desk-icon', 'desk-layers-native');
+          layersButton.classList.add('desk-icon');
+          layersButton.setAttribute('aria-label', 'Layerit');
+          layersButton.title = 'Layerit';
+          layersButton.innerHTML = DESKTOP_LAYERS_ICON;
           deskToolbar.layers.replaceWith(layersButton);
         }
         deskToolbarBar.classList.add('desk-ready');
@@ -16628,11 +16494,6 @@ const title = 'Private 3D viewer';
                 });
                 canvas.dataset.reviewCoordinateSelectionEvidence = sameClickEvidence;
                 canvas.dataset.reviewCoordinateSelectionMatch = String(sameClickEvidence === 'MATCHED_SURFACE');
-                if (sameClickEvidence !== 'MATCHED_SURFACE' && coordinateNote) {
-                  coordinateNote.textContent =
-                    'Koordinaattipiste ja valittu kohde ovat eri osumia tai kohdetta ei valittu. ' +
-                    'Piste on erillinen WORK_TEST-havainto, ei valitun kohteen sijainnin tai hostin vahvistus.';
-                }
               }
             }
           }
@@ -16654,19 +16515,8 @@ const title = 'Private 3D viewer';
       const resizeObserver = new ResizeObserver(updateSize);
       resizeObserver.observe(canvas.parentElement ?? canvas);
 
-      // Keeps the bottom-left selection panel stacked above the coordinate panel.
-      const coordinatePanelObserver = new ResizeObserver(() => {
-        coordinatePanel.parentElement?.style.setProperty(
-          '--coordinate-panel-block',
-          `${coordinatePanel.offsetHeight}px`,
-        );
-      });
-      coordinatePanelObserver.observe(coordinatePanel);
-      // Refit after real panel height/visibility settles; no frame-by-frame camera reset.
-      const mobileHudObserver = new ResizeObserver(() => queueMobileSafeFit('preserve'));
-      mobileHudObserver.observe(coordinatePanel);
-      new MutationObserver(() => queueMobileSafeFit('preserve'))
-        .observe(coordinatePanel, { attributes:true, attributeFilter:['hidden'] });
+      const viewportPanels = canvas.closest<HTMLElement>('.viewport');
+      if (viewportPanels) mountPrivateModelViewportPanels(viewportPanels);
 
       // Opt-in, read-only source/ray observation. No public scene handle or
       // camera/material override is exposed to the browser regression.
