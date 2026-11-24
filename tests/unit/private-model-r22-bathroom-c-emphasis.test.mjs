@@ -1,5 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { buildSourceNodeAssociations, createSourceNodeView } from '../../src/scripts/privateModelSourceNodeAssociations.mjs';
 import { R22_BATH_C_SOURCE, R33_BATH_C_SOURCE, R34_BATH_C_SOURCE, createR22BathroomCEmphasis, createR33BathroomCEmphasis, createR34BathroomCEmphasis } from '../../src/scripts/privateModelR22BathroomCEmphasis.mjs';
 
 const SOURCE = R22_BATH_C_SOURCE;
@@ -263,4 +265,39 @@ test('association unavailable, wrong mesh/primitive or mounted parent fails clos
     assert.equal(createR34BathroomCEmphasis(f).applied, false);
     assert.deepEqual(f.objects.map(o => o.children.length), [0,0,0,0]);
   }
+});
+
+test('R34 pruned GLTFLoader map uses structurally reconstructed source nodes, never names alone', () => {
+  const f = makeFixture(R34_BATH_C_SOURCE);
+  const byNode = new Map();
+  for (const [obj, binding] of f.associations) byNode.set(binding.nodes, obj);
+  for (const [id, obj] of byNode) {
+    const def = f.json.nodes[id];
+    obj.children = (def.children ?? []).map(child => byNode.get(child));
+  }
+  f.sceneRoot.children = f.json.scenes[822].nodes.map(id => byNode.get(id));
+  const scenes = f.json.scenes.map((_, i) => i === 822 ? f.sceneRoot : { children: [] });
+  const gltf = { scenes, scene: f.sceneRoot, parser: { json: f.json, associations: new Map() } };
+  const rebuilt = buildSourceNodeAssociations(gltf);
+  const view = createSourceNodeView(gltf, rebuilt);
+  assert.equal(gltf.parser.associations.size, 0);
+  assert.equal(view.parser.associations.get(f.objects[1]).nodes, 5786);
+  const r = createR34BathroomCEmphasis({ ...f, associations: view.parser.associations });
+  assert.equal(r.count, 4);
+  r.dispose();
+  assert.deepEqual(f.objects.map(o => o.children.length), [0,0,0,0]);
+  // Disagreement in loader-provided metadata must fail closed even after rebuild.
+  for (const bad of [{ nodes: 5790 }, { meshes: 1735 }, { primitives: 1 }]) {
+    gltf.parser.associations.set(f.objects[1], bad);
+    const conflict = createSourceNodeView(gltf, rebuilt);
+    assert.equal(createR34BathroomCEmphasis({ ...f, associations: conflict.parser.associations }).applied, false);
+    assert.deepEqual(f.objects.map(o => o.children.length), [0,0,0,0]);
+  }
+});
+
+test('C bathroom receiver uses actually mounted scene and pristine source-node view', () => {
+  const page = readFileSync(new URL('../../src/pages/private-model/index.astro', import.meta.url), 'utf8');
+  assert.ok(page.includes('const bathRoot: any = modelRoot.children[0] ?? null;'));
+  assert.ok(page.includes('? sourceNodeModel(layersGltf) : null;'));
+  assert.ok(page.includes('associations: bathSourceModel?.parser?.associations,'));
 });

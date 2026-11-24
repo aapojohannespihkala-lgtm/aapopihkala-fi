@@ -106,7 +106,12 @@ function createBathroomCEmphasis({
     if (matches.length !== 1) return reject('RENDER_MESH_NOT_UNIQUE');
     const mesh = matches[0];
     const binding = associations.get(mesh);
-    if (binding?.meshes !== part.mesh || binding?.primitives !== 0)
+    // The pristine source-node view can reconstruct nodes after GLTFLoader
+    // prunes associations. Its node binding + the exact JSON single primitive
+    // above and geometry bounds below are sufficient; reject conflicting
+    // loader mesh/primitive metadata, never infer a node from a name.
+    if ((binding?.meshes !== undefined && binding.meshes !== part.mesh) ||
+        (binding?.primitives !== undefined && binding.primitives !== 0))
       return reject('RENDER_ASSOCIATION_MISMATCH');
     if (src.parentPaths) {
       const expected = src.parentPaths.find(path => path.at(-1) === part.node);

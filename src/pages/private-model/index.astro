@@ -5068,8 +5068,7 @@ const title = 'Private 3D viewer';
 
         // Strict original-byte/source-scene opt-in for the three verified sources.
         // A changed model, scene or expected SHA disables the option.
-        const bathRoot: any = mainViewScope && 'selectedScene' in mainViewScope
-          ? (mainViewScope.selectedScene ?? root) : root;
+        const bathRoot: any = modelRoot.children[0] ?? null;
         const bathIndex = layersGltf?.scenes?.indexOf?.(bathRoot) ?? -1;
         const bathIsR22 = layersLoadedSha === R22_BATH_C_SOURCE.sha256 &&
           bathIndex === R22_BATH_C_SOURCE.sceneIndex;
@@ -5083,12 +5082,14 @@ const title = 'Private 3D viewer';
         if (!bathScope) bathroomCInput.checked = false;
         // Runtime inputs are checked by the JS exact-source receiver.
         // Keep the payload separate from the .mjs JSDoc-inferred signature.
+        const bathSourceModel = bathScope && bathroomCInput.checked && layersGltf
+          ? sourceNodeModel(layersGltf) : null;
         const r22BathroomCArgs: any = {
           glbSha256: layersLoadedSha,
           sceneIndex: bathIndex,
-          json: layersGltf?.parser?.json,
+          json: bathSourceModel?.parser?.json,
           sceneRoot: bathRoot,
-          associations: layersGltf?.parser?.associations,
+          associations: bathSourceModel?.parser?.associations,
           THREE,
           enabled: bathScope && bathroomCInput.checked,
         };
