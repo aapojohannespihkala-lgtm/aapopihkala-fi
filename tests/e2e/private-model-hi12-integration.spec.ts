@@ -332,7 +332,7 @@ for (const width of [1280, 390]) test.describe('HI12 WebGL ' + width, () => {
     // The separate C70/C80 suite verifies their complete lifecycle/default return.
     // Here the real linked fallback must load C70 rather than retaining HI12.
     if (production || process.env.YLIS_C70_GLB) {
-      await menu(page, '#model-menu'); await page.locator('#c70-fallback-link').click();
+      await menu(page, '#more-menu'); await page.locator('#c70-fallback-link').click();
       await expect(canvas).toHaveAttribute('data-c70-preview', 'ready', { timeout: 120_000 });
       await expect(canvas).not.toHaveAttribute('data-c80-version');
     }

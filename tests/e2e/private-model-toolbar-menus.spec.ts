@@ -49,7 +49,19 @@ test('private viewer uses the approved toolbar and preserves Layerit when its wi
   await expect(page.locator('#preset-menu')).toHaveAttribute('open', '');
   await summary.click();
 
+  await expect(page.locator('#view-menu > summary > svg')).toBeVisible();
+  await expect(page.locator('#layers-button > svg')).toBeVisible();
+  await expect(page.locator('#viewer-info #model-source-badge')).toBeVisible();
+  await expect(page.locator('#viewer-info #ai-navigator-readout')).toBeVisible();
+  await expect(page.locator('.toolbar > .interaction-tools')).toBeVisible();
+  const folder = page.locator('#model-menu > summary');
+  await expect(folder.locator('svg')).toBeVisible();
+  const hoverBefore = await folder.evaluate(node => getComputedStyle(node).backgroundColor);
+  await folder.hover();
+  await expect.poll(() => folder.evaluate(node => getComputedStyle(node).backgroundColor)).not.toBe(hoverBefore);
+
   const viewport = page.locator('.viewport');
+  const toolbar = page.locator('.toolbar');
   const panels = viewport.locator(':scope > aside[id]');
   const minimizeButtons = panels.locator('.viewport-panel-minimize');
   expect(await minimizeButtons.count()).toBe(await panels.count());
@@ -66,7 +78,7 @@ test('private viewer uses the approved toolbar and preserves Layerit when its wi
   await expect.poll(async () => (await canvas.boundingBox())!.width).toBeLessThan(fullWidth);
   await source.getByRole('button', { name: `Pienennä: ${sourceTitle}` }).click();
   await expect.poll(async () => (await canvas.boundingBox())!.width).toBeCloseTo(fullWidth, 0);
-  await viewport.getByRole('button', { name: `Palauta: ${sourceTitle}` }).click();
+  await toolbar.getByRole('button', { name: `Palauta: ${sourceTitle}` }).click();
   await expect.poll(async () => (await canvas.boundingBox())!.width).toBeLessThan(fullWidth);
   await source.evaluate(element => {
     (element as HTMLElement).hidden = true;
@@ -79,13 +91,14 @@ test('private viewer uses the approved toolbar and preserves Layerit when its wi
   await expect(layers).toBeVisible();
 
   const minimize = layers.getByRole('button', { name: 'Pienennä: Layerit' });
-  const restore = viewport.getByRole('button', { name: 'Palauta: Layerit' });
+  const restore = toolbar.getByRole('button', { name: 'Palauta: Layerit' });
   const original = await layers.locator('input, select').evaluateAll(nodes =>
     nodes.map(node => [node.id, (node as HTMLInputElement).checked, (node as HTMLInputElement).value]),
   );
   await minimize.click();
   await expect(layers).toBeHidden();
   await expect(restore).toBeVisible();
+  await expect(restore.locator('svg')).toBeVisible();
   await expect(restore).toBeFocused();
   expect(await layers.evaluate(element => (element as HTMLElement).hidden)).toBe(false);
 

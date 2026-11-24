@@ -404,6 +404,7 @@ const expectReadableCaptions = async (page: any, floor: 'D1F' | 'D2F') => {
       ? 'Ryhmä ' + node.extras.sourceGroupKey : node.extras.sourceText,
   }));
   const image = decodeD1FScreenshotPng(await canvas.screenshot());
+  expect({width: layout.width, height: layout.height}).toEqual({width: image.width, height: image.height});
   expect(verifyP186ECaptionFrame({floor, layout, originalCaptions, ...image})).toMatchObject({
     captionCount: p186eExpectedCounts[floor].total, completeSourceTextVerified: true,
     readableSizeGlyphPixelsVerified: true, glyphShapeOcrVerified: false, humanReview: 'NOT_RUN',

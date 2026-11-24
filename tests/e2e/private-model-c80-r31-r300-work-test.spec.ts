@@ -81,7 +81,7 @@ test('verified original R300 switches in the viewer without moving the active ca
     }
   };
 
-  await page.locator('#model-menu summary').click();
+  await page.locator('#more-menu summary').click();
   const normal = page.getByRole('button', { name: 'Normaali', exact: true });
   const service = page.getByRole('button', { name: 'Huolto', exact: true });
   await expect(normal).toHaveAttribute('aria-pressed', 'true');

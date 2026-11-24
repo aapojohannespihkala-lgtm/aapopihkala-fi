@@ -1,4 +1,6 @@
 ---
+import { DESKTOP_FOLDER_ICON, DESKTOP_LAYERS_ICON, DESKTOP_MORE_ICON } from '../../scripts/privateModelDesktopToolbar.mjs';
+
 const title = 'Private 3D viewer';
 ---
 
@@ -11,64 +13,71 @@ const title = 'Private 3D viewer';
     <meta name="referrer" content="no-referrer" />
     <title>{title}</title>
     <style is:global>
-      /* Desktop icon toolbar (owner decisions 21.11.2026): one-click presets and
-         camera angles, Layers from its own icon, tools as side icons. */
-      .desk-toolbar { display: inline-flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-      .desk-group { position: relative; display: inline-flex; align-items: center; gap: 2px; padding: 2px;
-        border: 1px solid var(--viewer-line-soft); border-radius: 9px; }
-      .toolbar .desk-icon { display: inline-grid; place-items: center; min-width: 36px; min-height: 36px;
-        padding: 4px; border: 1px solid transparent; border-radius: 7px; background: transparent; color: var(--viewer-ink); }
-      .toolbar .desk-icon[aria-pressed='true'], .toolbar .desk-icon[aria-expanded='true'] {
-        border-color: var(--viewer-line); background: var(--viewer-bar); box-shadow: inset 0 0 0 1px var(--viewer-line); }
+      .desk-toolbar { display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; min-width: 0; }
+      .desk-group, .viewer-shell > .toolbar .interaction-tools {
+        position: relative; display: inline-flex; align-items: center; gap: 2px;
+        padding: 2px; border: 1px solid var(--viewer-line-soft); border-radius: 9px;
+      }
+      .viewer-shell > .toolbar :is(.desk-icon, .toolbar-icon) {
+        display: inline-grid; place-items: center; min-width: 36px; min-height: 36px;
+        padding: 4px; border: 1px solid transparent; border-radius: 7px;
+        background: transparent; color: var(--viewer-ink); cursor: pointer;
+      }
+      .viewer-shell > .toolbar .desk-icon:is([aria-pressed='true'], [aria-expanded='true']),
+      .viewer-shell > .toolbar details[open] > .toolbar-icon {
+        border-color: var(--viewer-line); background: var(--viewer-bar);
+        box-shadow: inset 0 0 0 1px var(--viewer-line);
+      }
+      .viewer-shell > .toolbar .desk-icon:disabled { opacity: .35; cursor: default; }
+      .viewer-shell > .toolbar .interaction-tools { flex-wrap: wrap; max-width: 100%; }
       .desk-group > .toolbar-menu { position: static; }
       .desk-group > .toolbar-menu > .toolbar-menu-panel { left: auto; right: 0; }
-      .toolbar .desk-group > .toolbar-menu > summary {
-        display: grid; place-items: center; min-width: 30px; min-height: 36px;
-        padding: 0; border: 0 !important; background: transparent; font-size: 0; line-height: 0;
+      .viewer-shell > .toolbar .desk-group > .toolbar-menu > .toolbar-icon {
+        min-width: 30px; padding: 0; border: 0;
       }
-      .toolbar .desk-group > .toolbar-menu > summary > :not(svg) { display: none; }
+      .viewer-shell > .toolbar .desk-group > .toolbar-menu[open] > .toolbar-icon {
+        box-shadow: none;
+      }
+      .viewer-shell > .toolbar #model-menu {
+        position: absolute; top: 9px; right: 10px; max-width: none;
+      }
+      .viewer-shell :is(button:not(:disabled), summary):hover,
+      .viewer-shell > .toolbar :is(.desk-icon:not(:disabled), .toolbar-icon):hover {
+        background: var(--viewer-hover);
+        border-color: var(--viewer-stone-light);
+      }
       .viewport > aside[data-viewport-minimized],
       .viewport-panel-dock[hidden],
       .viewport-panel-tab[hidden] { display: none !important; }
-      .viewport .viewport-panel-minimize {
-        min-width: 28px; min-height: 28px; padding: 0 5px;
-        margin-inline-start: auto; font-size: 16px; line-height: 1;
-        pointer-events: auto;
+      .viewer-shell .viewport .viewport-panel-minimize {
+        appearance: none; display: inline-grid; place-items: center;
+        min-width: 28px; min-height: 28px; padding: 4px;
+        border: 1px solid var(--viewer-line-soft); border-radius: 6px;
+        background: var(--viewer-bar); color: var(--viewer-ink);
+        margin-inline-start: auto; pointer-events: auto; cursor: pointer;
       }
       .viewport-panel-minimize-float { float: right; margin: 0 0 4px 8px; }
       .height-scale > .viewport-panel-minimize { position: absolute; top: 0; right: 0; }
       .height-scale:has(> .viewport-panel-minimize) .height-scale-title { right: 36px; }
-      .viewport-panel-dock {
-        position: absolute; inset: 8px 8px auto; z-index: 16;
-        display: flex; justify-content: center; flex-wrap: wrap; gap: 4px;
-        pointer-events: none;
+      .orientation-gizmo > .viewport-panel-minimize { position: absolute; top: 6px; right: 6px; }
+      .viewport-panel-minimize::before {
+        content: ''; width: 12px; border-top: 2px solid currentColor; border-radius: 1px;
       }
-      .viewport:has(> .desk-side-tools) > .viewport-panel-dock { left: 66px; }
-      .viewport .viewport-panel-tab {
-        min-height: 28px; max-width: 100%; padding: 3px 8px;
-        font-size: 12px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;
-        pointer-events: auto;
+      .viewer-shell :is(button, summary):focus-visible {
+        outline: 3px solid rgba(196, 205, 210, 0.48);
+        outline-offset: 1px;
       }
-      .viewport > .interaction-tools.desk-side-tools { position: absolute; z-index: 15; left: 12px; top: 12px;
-        display: flex; flex-direction: column; gap: 4px; padding: 4px; background: var(--viewer-page); }
-      .viewport .desk-side-tools button { display: grid; place-items: center; min-width: 38px; min-height: 38px; padding: 6px; }
-      .viewport .desk-side-tools button[aria-pressed='true'] { box-shadow: inset 0 0 0 1px var(--viewer-line); }
-      .viewport .desk-side-tools button[disabled] { opacity: .35; }
-      /* Layers panel opens to the right of the side tool column, not under it. */
-      .viewport:has(> .desk-side-tools) .layers-panel { left: 66px !important; width: min(290px, calc(100% - 78px)) !important; }
-      /* Owner 22.11.2026 16.39: every left-side overlay (point,
-         measure, selection, legends) opens to the right of the side tool
-         column, never on top of it. Narrow screens keep their own layout. */
+      .viewport-panel-dock { display: inline-flex; flex-wrap: wrap; gap: 2px; }
       @media (min-width: 761px) {
-        .viewport:has(> .desk-side-tools) :is(.point-measure-panel, .p137e-place-panel,
-          .m5a-source-context, .height-scale, .d1-known-door-legend, .profile-panel, .selection-panel) {
-          left: 66px !important;
-          max-width: calc(100% - 78px);
+        .viewport:has(> .layers-panel:not([hidden], [data-viewport-minimized])) .selection-panel {
+          left: calc(12px + min(290px, 100% - 24px) + 12px);
+          max-width: calc(100% - 36px - min(290px, 100% - 24px));
         }
-        .viewport:has(> .desk-side-tools):has(.layers-panel:not([hidden], [data-viewport-minimized])) .selection-panel {
-          left: calc(66px + min(290px, 100% - 78px) + 12px) !important;
-          max-width: calc(100% - 66px - min(290px, 100% - 78px) - 24px);
-        }
+      }
+      @media (max-width: 430px) {
+        .viewer-shell > .toolbar .desk-icon { min-width: 28px; min-height: 34px; }
+        .viewer-shell > .toolbar .desk-group > .toolbar-menu > .toolbar-icon { min-width: 24px; }
+        .desk-toolbar { gap: 5px; }
       }
       /* Navigation cube behind the gizmo axes (owner request 22.11.2026). */
       .orientation-gizmo .nav-cube-face { fill: #2f4456; stroke: #a9bcc8; stroke-width: .55; stroke-linejoin: round; }
@@ -112,41 +121,37 @@ const title = 'Private 3D viewer';
         height: calc(100dvh - 20px);
         min-height: 0;
         display: grid;
-        grid-template-rows: auto minmax(0, 1fr);
-        gap: 10px;
+        grid-template-rows: auto minmax(0, 1fr) auto;
+        gap: 6px;
       }
 
       .toolbar {
+        position: relative;
         display: flex;
         flex-wrap: wrap;
         align-items: center;
         gap: 8px;
-        padding: 9px 10px;
+        padding: 9px 54px 9px 10px;
         background: #fff;
         border: 1px solid #d7d7d2;
         border-radius: 10px;
         box-shadow: 0 8px 28px rgba(25, 28, 25, 0.10);
       }
 
-      .title {
-        margin-right: 8px;
-        font-weight: 650;
-        white-space: nowrap;
+      .viewer-info {
+        min-width: 0;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: baseline;
+        gap: 2px 12px;
+        padding: 1px 4px;
+        color: var(--viewer-ink-soft);
+        font-size: 10px;
+        line-height: 13px;
       }
 
-      .model-source-badge {
-        display: inline-flex;
-        align-items: center;
-        min-height: 28px;
-        padding: 5px 8px;
-        border: 1px solid #d7d7d2;
-        border-radius: 999px;
-        background: #f7f7f4;
-        color: #555853;
-        font-size: 12px;
-        line-height: 1;
-        white-space: nowrap;
-      }
+      .viewer-info .model-source-badge,
+      .viewer-info .status { min-width: 0; overflow-wrap: anywhere; }
 
       .toolbar-menu {
         position: relative;
@@ -268,22 +273,19 @@ const title = 'Private 3D viewer';
         background: #e2e3de;
       }
 
-      .source-menu > summary {
-        min-height: 28px;
-        padding: 0;
-        border: 0;
-        border-radius: 999px;
-        background: transparent;
+      #model-menu .toolbar-menu-panel {
+        width: min(410px, calc(100vw - 24px));
+        max-width: none;
       }
 
-      .source-menu[open] > summary {
-        border: 0;
-        background: transparent;
+      .work-test-options { display: grid; gap: 5px; }
+      .work-test-options :global(button) {
+        appearance: none; width: 100%; min-height: 32px; padding: 6px 8px;
+        border: 1px solid var(--viewer-line); border-radius: 6px;
+        background: var(--viewer-bar); color: var(--viewer-ink); cursor: pointer;
+        text-align: left; font: inherit; font-size: 12px; line-height: 16px; overflow-wrap: anywhere;
       }
-
-      .source-menu .toolbar-menu-panel {
-        min-width: 280px;
-      }
+      .work-test-options :global(.toolbar-menu-label) { color: var(--viewer-stone-light); }
 
       .work-test-filter {
         box-sizing: border-box;
@@ -294,15 +296,6 @@ const title = 'Private 3D viewer';
         border-radius: 6px;
         font: inherit;
         font-size: 13px;
-      }
-
-      .work-test-count {
-        color: #555853;
-        font-size: 11px;
-      }
-
-      .work-test-count:empty {
-        display: none;
       }
 
       #r300-work-test-views:not([hidden]) {
@@ -381,14 +374,6 @@ const title = 'Private 3D viewer';
         transform: translate(-50%, -50%) translateX(-12px) rotate(-90deg);
       }
       .axis-measure-label[hidden] { display: none; }
-
-      .status {
-        margin-left: auto;
-        min-width: 220px;
-        color: #6c6e69;
-        font-size: 13px;
-        text-align: right;
-      }
 
       .layers-panel {
         position: absolute;
@@ -847,35 +832,26 @@ const title = 'Private 3D viewer';
         white-space: nowrap;
       }
 
-      .ai-navigator-readout {
-        display: grid;
-        gap: 2px;
-        margin-top: 6px;
-        padding-top: 6px;
-        border-top: 1px solid var(--viewer-line-soft);
-        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-        font-size: 7.5px;
-        line-height: 1.25;
-      }
-
-      .ai-navigator-row {
-        display: grid;
-        grid-template-columns: 48px minmax(0, 1fr);
-        gap: 5px;
+      .viewer-info :global(.viewer-info-camera) {
+        display: flex;
+        flex: 1 1 100%;
         min-width: 0;
-      }
-
-      .ai-navigator-key {
-        color: var(--viewer-stone-light);
-        font-weight: 750;
-        letter-spacing: 0.03em;
-      }
-
-      .ai-navigator-value {
-        min-width: 0;
-        overflow-wrap: anywhere;
-        color: var(--viewer-ink-soft);
+        flex-wrap: wrap;
+        gap: 2px 12px;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        font-size: 9px;
+        line-height: 12px;
         font-variant-numeric: tabular-nums;
+      }
+
+      .viewer-info :global(.viewer-info-reading:not([hidden])) {
+        display: inline-flex;
+        gap: 4px;
+        flex-wrap: wrap;
+      }
+      .viewer-info :global(.viewer-info-reading[hidden]) { display: none; }
+      .orientation-gizmo :global([data-navigation-north="toggle"]) {
+        background: transparent;
       }
 
       @media (max-width: 760px) {
@@ -1409,16 +1385,11 @@ const title = 'Private 3D viewer';
           height: calc(100vh - 12px);
           height: calc(100dvh - 12px);
           min-height: 0;
-          grid-template-rows: auto minmax(0, 1fr);
+          grid-template-rows: auto minmax(0, 1fr) auto;
         }
         .viewport {
           min-height: 0;
           height: auto;
-        }
-        .status {
-          width: 100%;
-          margin-left: 0;
-          text-align: left;
         }
       }
 
@@ -1435,6 +1406,7 @@ const title = 'Private 3D viewer';
         --viewer-moss-deep: #edf2f4;
         --viewer-line: #64727c;
         --viewer-line-soft: #46535d;
+        --viewer-hover: #344450;
         background: var(--viewer-page);
         color: var(--viewer-ink);
       }
@@ -1451,17 +1423,11 @@ const title = 'Private 3D viewer';
         box-shadow: none;
       }
 
-      .title {
-        color: var(--viewer-ink);
-        font-family: Georgia, "Times New Roman", serif;
-      }
-
-      .model-source-badge,
       .toolbar-menu > summary,
       button,
       .layer-select select,
       .profile-controls select,
-      .source-menu .toolbar-menu-panel select,
+      .toolbar-menu-panel select,
       .work-test-filter {
         border-color: var(--viewer-line);
         background: var(--viewer-bar);
@@ -1502,7 +1468,6 @@ const title = 'Private 3D viewer';
       }
 
       .toolbar-menu-label,
-      .work-test-count,
       .layer-opacity,
       .layer-count,
       .layer-select,
@@ -1580,50 +1545,9 @@ const title = 'Private 3D viewer';
         box-shadow: none;
       }
 
-      /* VUX-C2 responsive + accessibility guardrails. */
-      body:has(#private-model-canvas[data-layers-runtime="active"]) .source-menu {
-        max-width: min(260px, 100%);
-      }
-      body:has(#private-model-canvas[data-layers-runtime="active"]) #layers-button[aria-expanded="true"] {
-        background: #52704e;
-        border-color: #728b60;
-        color: #fff;
-      }
-      .toolbar {
-        min-width: 0;
-      }
+      .toolbar { min-width: 0; }
 
-      .title,
-      .toolbar-menu,
-      .model-source-badge,
-      .status {
-        max-width: 100%;
-      }
-
-      .toolbar-menu,
-      .model-source-badge,
-      .status {
-        min-width: 0;
-      }
-
-      .source-menu {
-        max-width: min(100%, 72vw);
-      }
-
-      .source-menu > summary {
-        max-width: 100%;
-      }
-
-      .model-source-badge {
-        display: block;
-        width: 100%;
-        overflow: hidden;
-        text-overflow: ellipsis;
-      }
-
-      .toolbar-menu-panel {
-        max-height: calc(100dvh - 96px);
-      }
+      .toolbar-menu-panel { max-height: calc(100dvh - 96px); }
 
       button:focus-visible,
       select:focus-visible {
@@ -1632,28 +1556,6 @@ const title = 'Private 3D viewer';
       }
 
       @media (max-width: 760px) {
-        .title {
-          flex: 1 1 100%;
-        }
-
-        /* Keep Layers custom/reset labels from resizing the canvas. A header
-           reflow would otherwise trigger the legacy aspect-dependent fit. */
-        body:has(#private-model-canvas[data-layers-runtime="active"]) #preset-menu > summary {
-          width: 246px;
-          max-width: calc(100vw - 50px);
-        }
-
-        body:has(#private-model-canvas[data-layers-runtime="active"]) #preset-context-status {
-          min-width: 0;
-          overflow: hidden;
-          white-space: nowrap;
-          text-overflow: ellipsis;
-        }
-
-        .model-source-badge {
-          max-width: min(100%, 72vw);
-        }
-
         .toolbar-menu-panel {
           max-width: calc(100vw - 24px);
           max-height: calc(100dvh - 132px);
@@ -1676,10 +1578,9 @@ const title = 'Private 3D viewer';
     <main class="viewer-shell">
       <!-- P149A compact primary toolbar: advanced actions stay available through menus. -->
       <div class="toolbar" aria-label="3D-katselun ohjaimet">
-        <div class="title">Ylisrinne 3D</div>
-
+        <span id="preset-context-status" class="desk-sr" aria-live="polite" aria-atomic="true">Koko rakennus</span>
         <details id="preset-menu" class="toolbar-menu">
-          <summary>Presetit · <span id="preset-context-status" aria-live="polite" aria-atomic="true">Koko rakennus</span></summary>
+          <summary class="toolbar-icon" aria-label="Presetit" title="Presetit"><Fragment set:html={DESKTOP_MORE_ICON} /></summary>
           <div class="toolbar-menu-panel" aria-label="Tutkimuspresetit">
             <div class="toolbar-menu-label">Rakennus</div>
             <button id="whole-building-preset-button" type="button">Koko rakennus</button>
@@ -1729,7 +1630,7 @@ const title = 'Private 3D viewer';
         </details>
 
         <details id="view-menu" class="toolbar-menu">
-          <summary>Näkymä</summary>
+          <summary class="toolbar-icon" aria-label="Kamera" title="Kamera"><Fragment set:html={DESKTOP_MORE_ICON} /></summary>
           <div class="toolbar-menu-panel" aria-label="Kamera ja esitystapa">
             <div class="toolbar-menu-label">Kamera</div>
             <button id="orbit-button" type="button">Vapaa 3D</button>
@@ -1748,7 +1649,7 @@ const title = 'Private 3D viewer';
           </div>
         </details>
 
-        <button id="layers-button" type="button" aria-expanded="false" aria-controls="layers-panel">Layerit</button>
+        <button id="layers-button" class="desk-icon" type="button" title="Layerit" aria-label="Layerit" aria-expanded="false" aria-controls="layers-panel"><Fragment set:html={DESKTOP_LAYERS_ICON} /></button>
 
         <div class="interaction-tools" role="group" aria-label="Vuorovaikutustila">
           <button id="navigate-tool-button" type="button" aria-pressed="true">Navigoi</button>
@@ -1759,11 +1660,9 @@ const title = 'Private 3D viewer';
           <button id="p137e-place-tool-button" type="button" aria-pressed="false" disabled title="Rastiluonnos: vain D1F P137E WORK_TEST; tallennus G2:een ei vielä kytketty">Sijoita kohde</button>
         </div>
 
-        <details id="model-menu" class="toolbar-menu source-menu">
-          <summary aria-label="Malliversio">
-            <span id="model-source-badge" class="model-source-badge" data-kind="current">CURRENT</span>
-          </summary>
-          <div class="toolbar-menu-panel" aria-label="Malliversion valinta">
+        <details id="model-menu" class="toolbar-menu">
+          <summary class="toolbar-icon" aria-label="WORK_TEST-versiot" title="WORK_TEST-versiot"><Fragment set:html={DESKTOP_FOLDER_ICON} /></summary>
+          <div class="toolbar-menu-panel right" aria-label="WORK_TEST-versiot">
             <input
               id="work-test-filter"
               class="work-test-filter"
@@ -1773,11 +1672,34 @@ const title = 'Private 3D viewer';
               autocomplete="off"
               disabled
             />
-            <div id="work-test-count" class="work-test-count" aria-live="polite"></div>
-            <select id="work-test-select" aria-label="WORK_TEST-kandidaatti" disabled>
+            <div id="work-test-count" class="desk-sr" aria-live="polite"></div>
+            <div id="work-test-options" class="work-test-options">Ladataan versioita…</div>
+          </div>
+        </details>
+
+        <details id="more-menu" class="toolbar-menu more-menu">
+          <summary class="toolbar-icon" aria-label="Lisää toimintoja" title="Lisää toimintoja">⋯</summary>
+          <div class="toolbar-menu-panel right">
+            <button id="fit-button" type="button">Sovita näkymään</button>
+            <button id="reset-view-defaults-button" type="button">Palauta näkymän oletukset</button>
+            <button id="show-all-objects-button" type="button" disabled>Näytä kaikki</button>
+            <div class="clip-control" aria-label="Leikkaustaso">
+              <label class="clip-toggle" for="clip-plane-enabled">
+                <span>Leikkaa yläpuoli</span>
+                <input id="clip-plane-enabled" type="checkbox" disabled />
+              </label>
+              <label class="clip-range" for="clip-plane-height">
+                <span>Korkeus</span>
+                <output id="clip-plane-value" for="clip-plane-height">-</output>
+                <input id="clip-plane-height" type="range" min="0" max="1" step="0.05" value="1" disabled />
+              </label>
+            </div>
+            <button id="profile-button" type="button" aria-expanded="false" aria-controls="profile-panel" disabled>Pituusleikkaus</button>
+            <div class="toolbar-menu-separator"></div>
+            <div class="toolbar-menu-label">Mallitoiminnot</div>
+            <select id="work-test-select" aria-label="Vertailtava WORK_TEST-kandidaatti" disabled>
               <option value="">WORK_TEST ei saatavilla</option>
             </select>
-            <button id="work-test-button" type="button" disabled>Avaa WORK_TEST</button>
             <div id="r300-work-test-views" role="group" aria-label="C80 R31 WORK_TEST -näkymät" hidden>
               <button id="r300-view-normal" type="button" aria-pressed="false">Normaali</button>
               <button id="r300-view-service" type="button" aria-pressed="false">Huolto</button>
@@ -1800,28 +1722,6 @@ const title = 'Private 3D viewer';
           </div>
         </details>
 
-        <details id="more-menu" class="toolbar-menu more-menu">
-          <summary aria-label="Lisää toimintoja">⋯</summary>
-          <div class="toolbar-menu-panel right">
-            <button id="fit-button" type="button">Sovita näkymään</button>
-            <button id="reset-view-defaults-button" type="button">Palauta näkymän oletukset</button>
-            <button id="show-all-objects-button" type="button" disabled>Näytä kaikki</button>
-            <div class="clip-control" aria-label="Leikkaustaso">
-              <label class="clip-toggle" for="clip-plane-enabled">
-                <span>Leikkaa yläpuoli</span>
-                <input id="clip-plane-enabled" type="checkbox" disabled />
-              </label>
-              <label class="clip-range" for="clip-plane-height">
-                <span>Korkeus</span>
-                <output id="clip-plane-value" for="clip-plane-height">-</output>
-                <input id="clip-plane-height" type="range" min="0" max="1" step="0.05" value="1" disabled />
-              </label>
-            </div>
-            <button id="profile-button" type="button" aria-expanded="false" aria-controls="profile-panel" disabled>Pituusleikkaus</button>
-          </div>
-        </details>
-
-        <div id="viewer-status" class="status" role="status">Ladataan suojattua mallia...</div>
       </div>
 
       <section class="viewport" aria-label="Suojattu 3D-katseluportti">
@@ -2224,6 +2124,10 @@ const title = 'Private 3D viewer';
           </div>
         </aside>
       </section>
+      <footer id="viewer-info" class="viewer-info" aria-label="Katselutiedot">
+        <span id="model-source-badge" class="model-source-badge" data-kind="current">CURRENT</span>
+        <span id="viewer-status" class="status" role="status">Ladataan suojattua mallia...</span>
+      </footer>
     </main>
 
     <script>
@@ -2857,7 +2761,6 @@ const title = 'Private 3D viewer';
       import { r34KitchenWastewaterClashSelectionEntries } from '../../scripts/privateModelR34KitchenWastewaterClashGuard.mjs';
       import {
         mountDesktopToolbar, activeDesktopPreset, activeDesktopAngle, DESKTOP_START_CANDIDATE_ID,
-        DESKTOP_LAYERS_ICON, DESKTOP_MORE_ICON,
       } from '../../scripts/privateModelDesktopToolbar.mjs';
       import { mountPrivateModelViewportPanels } from '../../scripts/privateModelViewportPanels';
       import { createDFocusGhost, dFootprintFromScope, dStoreyFootprint } from '../../scripts/privateModelDFocusGhost';
@@ -2942,7 +2845,8 @@ const title = 'Private 3D viewer';
       let r31ReviewTitle = 'NIBE R300';
       const workTestFilter = document.querySelector<HTMLInputElement>('#work-test-filter');
       const workTestCount = document.querySelector<HTMLElement>('#work-test-count');
-      const workTestButton = document.querySelector<HTMLButtonElement>('#work-test-button');
+      const workTestOptions = document.querySelector<HTMLElement>('#work-test-options');
+      const workTestMenuTrigger = document.querySelector<HTMLElement>('#model-menu > summary');
       const compareModelButton = document.querySelector<HTMLButtonElement>('#compare-model-button');
       const workTestUploadButton = document.querySelector<HTMLButtonElement>('#work-test-upload-button');
       const workTestUploadInput = document.querySelector<HTMLInputElement>('#work-test-upload-input');
@@ -3114,7 +3018,8 @@ const title = 'Private 3D viewer';
         !workTestSelect ||
         !workTestFilter ||
         !workTestCount ||
-        !workTestButton ||
+        !workTestOptions ||
+        !workTestMenuTrigger ||
         !compareModelButton ||
         !workTestUploadButton ||
         !workTestUploadInput ||
@@ -3441,6 +3346,7 @@ const title = 'Private 3D viewer';
       });
       const orientationGizmoController = createOrientationGizmoController({
         root: orientationGizmo,
+        readoutHost: document.querySelector<HTMLElement>('#viewer-info') ?? orientationGizmo,
         axisX: {
           line: orientationAxisX,
           tip: orientationAxisXTip,
@@ -6552,7 +6458,6 @@ const title = 'Private 3D viewer';
       const mobileHudElements = [
         '#orientation-gizmo', '#selection-panel', '#point-pick-panel',
         '#point-measure-panel', '#axis-measure-row', '#layers-panel', '#p137e-place-panel',
-        '.viewport-panel-dock',
       ];
       const applyMobileSafeCamera = (mode: 'reset' | 'preserve' = 'reset') => {
         if (!mainViewScope?.active || activeCamera !== camera || activePlanFloor) {
@@ -9274,6 +9179,7 @@ const title = 'Private 3D viewer';
       };
 
       let workTestCatalogList: WorkTestCandidate[] = [];
+      let workTestPickerLoading = false;
 
       // Newest-first grouped options. The currently selected version always
       // stays in the list so a filter can never silently change the selection.
@@ -9283,6 +9189,7 @@ const title = 'Private 3D viewer';
         const ordered = groups.flatMap((group) => group.candidates);
         const keepId = preferredId && workTestCandidates.has(preferredId) ? preferredId : null;
         workTestSelect.replaceChildren();
+        workTestOptions.replaceChildren();
         let shown = 0;
         let firstShownId: string | null = null;
 
@@ -9293,18 +9200,29 @@ const title = 'Private 3D viewer';
           if (visible.length === 0) continue;
           const optgroup = document.createElement('optgroup');
           optgroup.label = group.label;
+          const groupLabel = document.createElement('div');
+          groupLabel.className = 'toolbar-menu-label';
+          groupLabel.textContent = group.label;
+          workTestOptions.append(groupLabel);
           for (const candidate of visible) {
             const option = document.createElement('option');
             option.value = candidate.id;
             option.textContent = workTestCandidateOptionText(candidate);
             option.title = candidate.label;
             optgroup.append(option);
+            const action = document.createElement('button');
+            action.type = 'button';
+            action.dataset.workTestCandidate = candidate.id;
+            action.textContent = option.textContent;
+            action.title = candidate.label;
+            workTestOptions.append(action);
             if (!firstShownId) firstShownId = candidate.id;
             if (candidate.id !== keepId || workTestCandidateMatchesFilter(candidate, filter)) shown += 1;
           }
           workTestSelect.append(optgroup);
         }
 
+        if (!firstShownId) workTestOptions.textContent = 'Ei suodatusta vastaavia versioita.';
         const total = ordered.length;
         workTestCount.textContent = filter.trim()
           ? `${shown} / ${total} versiota vastaa suodatusta`
@@ -9333,11 +9251,11 @@ const title = 'Private 3D viewer';
           const option = document.createElement('option');
           option.value = '';
           option.textContent = 'Ei WORK_TEST-kandidaatteja';
+          workTestOptions.textContent = 'WORK_TEST-versioita ei ole saatavilla.';
           workTestSelect.append(option);
           workTestSelect.disabled = true;
           workTestFilter.disabled = true;
           workTestCount.textContent = '';
-          workTestButton.disabled = true;
           compareModelButton.disabled = true;
           setWorkTestUploadFallback(reviewCandidateId);
           canvas.dataset.workTestCatalog = 'empty';
@@ -9351,7 +9269,6 @@ const title = 'Private 3D viewer';
           : null;
         // Review link wins; a catalog refresh keeps the user's choice; otherwise newest.
         renderWorkTestOptions(reviewCandidate?.id ?? previousId);
-        workTestButton.disabled = false;
         updateModelComparisonControls();
         canvas.dataset.workTestCatalog = 'ready';
         if (reviewCandidate) {
@@ -14825,7 +14742,6 @@ const title = 'Private 3D viewer';
           }
 
           selectWorkTestOption(candidate.id);
-          workTestButton.disabled = false;
           setWorkTestUploadFallback(null);
           canvas.dataset.workTestRelay = 'ready';
           delete canvas.dataset.workTestRelayError;
@@ -14888,7 +14804,6 @@ const title = 'Private 3D viewer';
           if (!candidate) throw new Error('WORK_TEST candidate missing after upload');
 
           selectWorkTestOption(candidate.id);
-          workTestButton.disabled = false;
           setWorkTestUploadFallback(null);
           canvas.dataset.workTestUpload = 'ready';
           await loadWorkTestCandidate(candidate);
@@ -14970,7 +14885,6 @@ const title = 'Private 3D viewer';
           if (!candidate) throw new Error('WORK_TEST candidate missing after import');
 
           selectWorkTestOption(candidate.id);
-          workTestButton.disabled = false;
           canvas.dataset.workTestImport = 'ready';
           await loadWorkTestCandidate(candidate);
           return true;
@@ -15468,15 +15382,8 @@ const title = 'Private 3D viewer';
           canvas.dataset.layersCameraPose = JSON.stringify({ position: activeCamera.position.toArray(), quaternion: activeCamera.quaternion.toArray(), zoom: activeCamera.zoom, target: (activeCamera === planCamera ? planControls : activeCamera === isoCamera ? isoControls : controls).target.toArray() });
           canvas.dataset.layersRuntime = verified ? (layersEnabled ? 'active' : 'ready') : 'unavailable';
           const modernContent = verified && layersEnabled;
-          layersButton.textContent = modernContent ? 'Sisältö' : 'Layerit';
           const contentHeading = layersPanel.querySelector('h2');
           if (contentHeading) contentHeading.textContent = modernContent ? 'Mallin sisältö' : 'Layerit';
-          const scopeSummary = document.querySelector('#preset-menu > summary');
-          if (scopeSummary?.firstChild?.nodeType === Node.TEXT_NODE) {
-            scopeSummary.firstChild.textContent = modernContent ? 'Rajaus · ' : 'Presetit · ';
-          }
-          const cameraSummary = document.querySelector('#view-menu > summary');
-          if (cameraSummary) cameraSummary.textContent = modernContent ? 'Kamera' : 'Näkymä';
           layerBindingNote.textContent = !verified ? 'Tämän mallin layer-sidontoja ei ole varmennettu.'
             : layersAvailable.length ? 'Valinnat koskevat luokiteltuja rakennusosia ja mallinnettuja laitteita.'
             : 'Tässä näkymässä ei ole tunnistettuja layer-kohteita.';
@@ -16174,22 +16081,11 @@ const title = 'Private 3D viewer';
           },
           layers() { layersButton?.click(); deskSync(); },
         });
-        const title = deskToolbarBar.querySelector('.title');
-        (title ?? deskToolbarBar.firstChild)?.after?.(deskToolbar.root);
+        deskToolbarBar.prepend(deskToolbar.root);
         const groups = deskToolbar.root.querySelectorAll('.desk-group') as NodeListOf<HTMLElement>;
         groups[0]?.append(deskPresetMenu);
         groups[1]?.append(deskViewMenu);
-        for (const menu of [deskPresetMenu, deskViewMenu]) {
-          menu.querySelector(':scope > summary')?.insertAdjacentHTML('afterbegin', DESKTOP_MORE_ICON);
-        }
-        if (layersButton) {
-          layersButton.classList.add('desk-icon');
-          layersButton.setAttribute('aria-label', 'Layerit');
-          layersButton.title = 'Layerit';
-          layersButton.innerHTML = DESKTOP_LAYERS_ICON;
-          deskToolbar.layers.replaceWith(layersButton);
-        }
-        deskToolbarBar.classList.add('desk-ready');
+        deskToolbar.layers.replaceWith(layersButton);
         deskSync = () => {
           deskToolbar.sync({
             preset: canvas.dataset.dFocusGhost
@@ -16213,9 +16109,7 @@ const title = 'Private 3D viewer';
           attributeFilter: ['data-standard-view-preset', 'data-view-preset', 'data-layer-roof-visible', 'data-technical-review', 'data-edge-mode', 'data-d-focus-ghost'],
         });
         if (layersButton) new MutationObserver(() => deskSync()).observe(layersButton, { attributes: true, attributeFilter: ['aria-expanded'] });
-        // Interaction tools become a vertical icon column on the model's left edge.
         const tools = deskToolbarBar.querySelector<HTMLElement>('.interaction-tools');
-        const viewport = canvas.parentElement;
         const toolIcons: Record<string, string> = {
           'navigate-tool-button': '<path d="M12 3 V21 M3 12 H21 M12 3 L9 6 M12 3 L15 6 M12 21 L9 18 M12 21 L15 18 M3 12 L6 9 M3 12 L6 15 M21 12 L18 9 M21 12 L18 15"/>',
           'selection-tool-button': '<path d="M6 3 L18 13 L12.5 13.6 L15.5 20 L13 21 L10 14.6 L6 18 Z"/>',
@@ -16224,18 +16118,16 @@ const title = 'Private 3D viewer';
           'axis-measure-tool-button': '<rect x="3" y="3" width="18" height="18"/><path d="M6 18 H18 M6 16 V20 M18 16 V20"/>',
           'p137e-place-tool-button': '<circle cx="12" cy="12" r="7"/><path d="M12 2 V7 M12 17 V22 M2 12 H7 M17 12 H22"/>',
         };
-        if (tools && viewport) {
+        if (tools) {
           for (const button of Array.from(tools.querySelectorAll<HTMLButtonElement>('button'))) {
             const icon = toolIcons[button.id];
             if (!icon) continue;
             const label = button.textContent?.trim() ?? '';
+            button.classList.add('desk-icon');
             button.setAttribute('aria-label', label);
             if (!button.title) button.title = label;
             button.innerHTML = `<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round">${icon}</svg><span class="desk-sr">${label}</span>`;
           }
-          if (getComputedStyle(viewport).position === 'static') viewport.style.position = 'relative';
-          tools.classList.add('desk-side-tools');
-          viewport.append(tools);
         }
         // Owner 22.11.2026: changing a preset never changes the camera. The menu
         // presets (Koko rakennus, D-asunto, Tontti, Infra, Salaojat, Sähköt) keep
@@ -16257,27 +16149,31 @@ const title = 'Private 3D viewer';
         }
         deskSync();
       }
-      workTestSelect.addEventListener('change', () => {
-        workTestButton.disabled = !workTestCandidates.has(workTestSelect.value);
-        clearModelComparisonState();
-      });
+      workTestSelect.addEventListener('change', clearModelComparisonState);
       workTestFilter.addEventListener('input', () => {
         const before = workTestSelect.value;
-        // Filtering narrows the list; keep the current choice only if it still matches.
         const current = workTestCandidates.get(before);
         const keep = current && workTestCandidateMatchesFilter(current, workTestFilter.value) ? before : null;
-        const after = renderWorkTestOptions(keep);
-        workTestButton.disabled = !workTestCandidates.has(after);
-        if (after !== before) clearModelComparisonState();
+        if (renderWorkTestOptions(keep) !== before) clearModelComparisonState();
       });
-      workTestButton.addEventListener('click', () => {
-        const candidate = workTestCandidates.get(workTestSelect.value);
-        if (!candidate) {
-          status.textContent = 'Valitse WORK_TEST-kandidaatti';
-          return;
-        }
+      workTestOptions.addEventListener('click', async (event) => {
+        const button = event.target instanceof Element
+          ? event.target.closest<HTMLButtonElement>('button[data-work-test-candidate]')
+          : null;
+        const candidate = workTestCandidates.get(button?.dataset.workTestCandidate ?? '');
+        if (!candidate || workTestPickerLoading) return;
+        workTestPickerLoading = true;
+        workTestOptions.inert = true;
+        selectWorkTestOption(candidate.id);
         clearModelComparisonState();
-        void loadWorkTestCandidate(candidate);
+        closeToolbarMenus();
+        workTestMenuTrigger.focus();
+        try {
+          await loadWorkTestCandidate(candidate);
+        } finally {
+          workTestPickerLoading = false;
+          workTestOptions.inert = false;
+        }
       });
       compareModelButton.addEventListener('click', () => {
         void toggleModelComparison();
@@ -16624,7 +16520,8 @@ const title = 'Private 3D viewer';
       resizeObserver.observe(canvas.parentElement ?? canvas);
 
       const viewportPanels = canvas.closest<HTMLElement>('.viewport');
-      if (viewportPanels) mountPrivateModelViewportPanels(viewportPanels);
+      const viewerTools = document.querySelector<HTMLElement>('.toolbar > .interaction-tools');
+      if (viewportPanels && viewerTools) mountPrivateModelViewportPanels(viewportPanels, viewerTools);
 
       // Opt-in, read-only source/ray observation. No public scene handle or
       // camera/material override is exposed to the browser regression.
@@ -16764,7 +16661,6 @@ const title = 'Private 3D viewer';
                 workTestFilter.value = '';
                 renderWorkTestOptions(start.id);
                 workTestSelect.value = start.id;
-                workTestButton.disabled = false;
               }
               // Owner 22.11.2026 04.50: start in the whole D with the roof, the
               // rest of the building as a faint reference.
