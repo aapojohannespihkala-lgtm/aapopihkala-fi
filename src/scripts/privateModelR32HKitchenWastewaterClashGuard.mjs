@@ -144,9 +144,23 @@ export function kitchenWastewaterClashEntriesForExactSource(sourceModel, sha, sc
       if (!isActiveNode(json, sceneIndex, nodeId)) return [];
       const sourceName = json.nodes?.[nodeId]?.name;
       if (sourceName && node.name !== sourceName &&
-          !(spec.modelName === 'R34' && association?.nodes === nodeId &&
+          !(association?.nodes === nodeId &&
             sameSourceName(node.name, sourceName))) return [];
-      if (warningNodeIds.has(nodeId)) selectsClashingPipe = true;
+      if (warningNodeIds.has(nodeId)) {
+        // Legacy views also need a source-bound parent and mesh check when
+        // the loader's node index is available. Preserve exact unbound fallback.
+        if (spec.modelName !== 'R34' && association?.nodes === nodeId) {
+          if (association.meshes !== undefined && association.meshes !== json.nodes[nodeId]?.mesh) return [];
+          const parentBinding = associations.get(node.parent)?.nodes;
+          const parentIds = (json.scenes[sceneIndex]?.nodes ?? []).filter(id =>
+            json.nodes[id]?.children?.includes(nodeId) &&
+            (parentBinding === id
+              ? sameSourceName(node.parent?.name, json.nodes[id]?.name)
+              : parentBinding === undefined && node.parent?.name === json.nodes[id]?.name));
+          if (parentIds.length !== 1 || node.parent?.parent !== mountedScene) return [];
+        }
+        selectsClashingPipe = true;
+      }
     }
     node = node.parent;
   }
@@ -160,7 +174,7 @@ const R32H_EXACT_KITCHEN_SOURCE = Object.freeze({
   modelName: 'R32H',
 });
 
-/** Keep the original R32H public source guard API and behavior unchanged. */
+/** Keep the original R32H public source guard API. */
 export function r32hKitchenWastewaterClashSelectionEntries(sourceModel, sha, sceneIndex, selected) {
   return kitchenWastewaterClashEntriesForExactSource(
     sourceModel, sha, sceneIndex, selected, R32H_EXACT_KITCHEN_SOURCE);

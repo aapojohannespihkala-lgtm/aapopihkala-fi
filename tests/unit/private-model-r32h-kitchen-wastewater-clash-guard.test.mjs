@@ -255,3 +255,22 @@ test('original R32H parent swap and stale source identity fail closed for all 5 
     }
   }
 });
+
+test('legacy restored indices retain suffixed kitchen warnings and reject wrong mesh or parent', () => {
+  for (const i of [814, 815, 816, 817]) for (const id of ids) {
+    const f = originalR32HClashParentFixture(i, id);
+    const run = () => r32hKitchenWastewaterClashSelectionEntries(f.sourceModel, sha, i, f.selected);
+    f.selected.name += '_2';
+    f.parent.name += '_3';
+    f.associations.set(f.selected, { nodes: id, meshes: f.json.nodes[id].mesh });
+    assert.equal(run().length, 2);
+    f.associations.set(f.selected, { nodes: id, meshes: 999 });
+    assert.deepEqual(run(), []);
+    f.associations.set(f.selected, { nodes: id });
+    f.associations.delete(f.parent);
+    assert.deepEqual(run(), []);
+    f.associations.set(f.parent, { nodes: f.parentId });
+    f.associations.delete(f.selected);
+    assert.deepEqual(run(), []);
+  }
+});

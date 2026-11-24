@@ -6053,9 +6053,11 @@ const title = 'Private 3D viewer';
           ? layersGltf.scenes?.indexOf(kitchenWastewaterMountedScene) ?? -1 : -1;
         const kitchenWastewaterSourceEntries = [
           ...r32hKitchenWastewaterClashSelectionEntries(
-            layersGltf, layersLoadedSha, kitchenWastewaterSceneIndex, object),
+            layersGltf ? sourceNodeModel(layersGltf) : layersGltf,
+            layersLoadedSha, kitchenWastewaterSceneIndex, object),
           ...r33KitchenWastewaterClashSelectionEntries(
-            layersGltf, layersLoadedSha, kitchenWastewaterSceneIndex, object),
+            layersGltf ? sourceNodeModel(layersGltf) : layersGltf,
+            layersLoadedSha, kitchenWastewaterSceneIndex, object),
           ...r34KitchenWastewaterClashSelectionEntries(
             layersGltf ? sourceNodeModel(layersGltf) : layersGltf,
             layersLoadedSha, kitchenWastewaterSceneIndex, object),

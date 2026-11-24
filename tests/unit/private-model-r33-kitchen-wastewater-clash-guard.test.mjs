@@ -125,3 +125,21 @@ test('viewer calls R33 guard in the existing source-card selection, not geometry
   assert.match(page, /r32hKitchenWastewaterClashSelectionEntries\(/);
   assert.doesNotMatch(page, /nodes\[13310\]\.mesh\s*=/);
 });
+
+test('R33 restored node indices retain loader suffixes, reject wrong parent and mesh', () => {
+  for (const i of [818, 819, 820, 821]) for (const id of activeIds) {
+    const f = sourceFixture(i, id);
+    f.selected.name += '_2';
+    f.parent.name += '_3';
+    f.associations.set(f.selected, { nodes: id, meshes: f.json.nodes[id].mesh });
+    assert.equal(show(f).length, 2);
+    f.associations.set(f.selected, { nodes: id, meshes: 999 });
+    assert.deepEqual(show(f), []);
+    f.associations.set(f.selected, { nodes: id });
+    f.associations.set(f.parent, { nodes: id === 13310 ? 13319 : (i <= 819 ? 13358 : 13535) });
+    assert.deepEqual(show(f), []);
+    f.associations.set(f.parent, { nodes: f.parentId });
+    f.associations.delete(f.selected);
+    assert.deepEqual(show(f), []);
+  }
+});
