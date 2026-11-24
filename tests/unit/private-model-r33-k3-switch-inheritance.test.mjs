@@ -7,6 +7,7 @@ import { readFileSync } from 'node:fs';
 // not a substitute for an authenticated production WebGL or physical-host test.
 const r32h = JSON.parse(readFileSync(new URL('../fixtures/private-model-r32h-scene-roots.json', import.meta.url), 'utf8'));
 const r33 = JSON.parse(readFileSync(new URL('../fixtures/private-model-r33-scene-roots.json', import.meta.url), 'utf8'));
+const r34 = JSON.parse(readFileSync(new URL('../fixtures/private-model-r34-scene-roots.json', import.meta.url), 'utf8'));
 
 // One semantic switch per source root: 1F SW01-04 Exxact, SW05 double rocker,
 // SW06 semantic link. 2F SW01-03 Exxact, SW04 owner-photo root, SW05 hall-face.
@@ -48,12 +49,13 @@ function checkScene(source, sceneNumber, bothFloors) {
 }
 
 test('R33 and R32H fixtures have original source stages and exact scene numbers', () => {
-  for (const [source, count, numbers] of [
-    [r32h, 818, [814, 815, 816, 817]],
-    [r33, 822, [818, 819, 820, 821]],
+  for (const [source, count, meshes, numbers] of [
+    [r32h, 818, 5237, [814, 815, 816, 817]],
+    [r33, 822, 5237, [818, 819, 820, 821]],
+    [r34, 826, 5242, [822, 823, 824, 825]],
   ]) {
     assert.equal(source.counts.scenes, count);
-    assert.equal(source.counts.meshes, 5237);
+    assert.equal(source.counts.meshes, meshes);
     assert.equal(source.defaultScene, 292);
     assert.equal(source.asset.ModelStage, 'WORK_TEST');
     assert.equal(source.asset.current, false);
@@ -91,4 +93,32 @@ test('source fixture regression rejects nested 2F semantic leaves as duplicate s
   const leaked = structuredClone(r33);
   leaked.scenes['821'].nodes.push(13814);
   assert.throws(() => checkScene(leaked, 821, false), /inactive\/extra K3 root/);
+});
+
+// R34 is the published WORK_TEST model. Preserve the source-only switch roots
+// through R33 -> R34; these fixtures do not establish rendered WebGL or as-built wiring.
+test('R34 inherits all 11 K3 switch roots in BOTH and only 5 in 2F from R33', () => {
+  const pairs = [[818, 822, true], [819, 823, true], [820, 824, false], [821, 825, false]];
+  for (const [before, after, both] of pairs) {
+    assert.deepEqual(checkScene(r34, after, both), checkScene(r33, before, both),
+      'R33 to R34 K3 switch inheritance failed ' + before + ' -> ' + after);
+  }
+});
+
+test('R34 fixture rejects missing switches, floor leaks and stale scene/source nodes', () => {
+  const missing = structuredClone(r34);
+  missing.scenes['822'].nodes = missing.scenes['822'].nodes.filter(x => x !== 13839);
+  assert.throws(() => checkScene(missing, 822, true), /missing\/duplicated K3 root/);
+  const floorLeak = structuredClone(r34);
+  floorLeak.scenes['824'].nodes.push(13534);
+  assert.throws(() => checkScene(floorLeak, 824, false), /inactive\/extra K3 root/);
+  const stale = structuredClone(r34);
+  stale.scenes['823'].nodes.push(7996);
+  assert.throws(() => checkScene(stale, 823, true), /inactive\/extra K3 root/);
+  const nested = structuredClone(r34);
+  nested.scenes['825'].nodes.push(13814);
+  assert.throws(() => checkScene(nested, 825, false), /inactive\/extra K3 root/);
+  const wrongScene = structuredClone(r34);
+  wrongScene.scenes['822'].name = wrongScene.scenes['824'].name;
+  assert.throws(() => checkScene(wrongScene, 822, true), /scene name\/index mismatch/);
 });
