@@ -2541,7 +2541,8 @@ test('private viewer restores active preset camera and semantic layer defaults o
 
   await clickViewAction(page, 'Infra');
   await expect(canvas).toHaveAttribute('data-standard-view-preset', 'infra');
-  await expect(canvas).toHaveAttribute('data-view-preset', 'top');
+  // The research preset preserves the desktop orbit camera while changing its content.
+  await expect(canvas).toHaveAttribute('data-view-preset', 'orbit');
   await expect(canvas).toHaveAttribute('data-locus-layer-parent-state', 'mixed');
   await expect(canvas).toHaveAttribute('data-locus-water-visible', 'false');
   await expect(canvas).toHaveAttribute('data-layer-edge-mode', 'none');
@@ -6581,7 +6582,8 @@ test('private viewer initializes preset layer defaults once and preserves manual
 
   await clickViewAction(page, 'Tontti');
   await expect(canvas).toHaveAttribute('data-standard-view-preset', 'site');
-  await expect(canvas).toHaveAttribute('data-view-preset', 'top');
+  // The research preset preserves the desktop orbit camera while changing its content.
+  await expect(canvas).toHaveAttribute('data-view-preset', 'orbit');
   await expect(canvas).toHaveAttribute('data-layer-state-source', 'manual');
   await expect(canvas).toHaveAttribute('data-layer-roof-visible', 'false');
   await expect(canvas).toHaveAttribute('data-layer-locus-visible', 'true');
@@ -6591,7 +6593,8 @@ test('private viewer initializes preset layer defaults once and preserves manual
 
   await clickViewAction(page, 'Infra');
   await expect(canvas).toHaveAttribute('data-standard-view-preset', 'infra');
-  await expect(canvas).toHaveAttribute('data-view-preset', 'top');
+  // The research preset preserves the desktop orbit camera while changing its content.
+  await expect(canvas).toHaveAttribute('data-view-preset', 'orbit');
   await expect(canvas).toHaveAttribute('data-layer-state-source', 'manual');
   await expect(canvas).toHaveAttribute('data-layer-roof-visible', 'false');
   await expect(canvas).toHaveAttribute('data-layer-locus-visible', 'true');
@@ -6701,7 +6704,7 @@ test('private viewer keeps dark YLIS-G1-LOCAL orientation and north direction vi
   await expect(gizmo).toHaveAttribute('data-north-axis', '+Y');
   await expect(gizmo).toHaveAttribute('data-ready', 'true');
   await expect(gizmo).toHaveAttribute('data-camera-projection', 'perspective');
-  await expect(gizmo).toContainText('X itä · Y pohjoinen · Z ylös');
+  await expect(gizmo).toHaveAttribute('aria-label', 'YLIS-G1-LOCAL suuntailmaisin: X itään, Y pohjoiseen, Z ylös');
   await expect(page.locator('#orientation-north-label')).toHaveText('N');
   await expect(gizmo).toHaveCSS('pointer-events', 'none');
   await expect(gizmo).toHaveCSS('background-color', 'rgba(27, 36, 45, 0.92)');
