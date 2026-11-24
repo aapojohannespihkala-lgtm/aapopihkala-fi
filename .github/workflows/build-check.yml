@@ -296,6 +296,7 @@ jobs:
             tests/unit/private-model-r34-kitchen-wastewater-clash-guard.test.mjs \
             tests/unit/private-model-r33-receipt.test.mjs \
             tests/unit/private-model-r34-receipt.test.mjs \
+            tests/unit/private-model-r34-wc-handle-seat-source-receipt.test.mjs \
             tests/unit/private-model-r32h-lk75-cover-guard.test.mjs \
             tests/unit/private-model-r33-lk75-cover-guard.test.mjs \
             tests/unit/private-model-d-focus-ghost.test.mjs \
