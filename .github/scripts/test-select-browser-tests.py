@@ -76,6 +76,13 @@ class SelectionTests(unittest.TestCase):
             'tests/e2e/private-model-work-test-load-diagnostics.spec.ts',
         ])
 
+    def test_r31_inspection_changes_select_real_roofwater_webgl_guard(self):
+        spec = 'tests/e2e/private-model-r31-roofwater-layer-webgl.spec.ts'
+        source = 'src/scripts/privateModelR31Inspection.mjs'
+        self.assertEqual(selected(source), [spec])
+        # The changed spec itself must not duplicate the browser run.
+        self.assertEqual(selected(source, spec, source), [spec])
+
     def test_p186e_caption_layout_selects_existing_chromium_pixel_guard(self):
         self.assertEqual(selected('src/scripts/privateModelP186ECaptionLayout.mjs'), [
             'tests/e2e/private-model-p186e-visibility.spec.ts',
