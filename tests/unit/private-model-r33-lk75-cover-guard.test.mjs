@@ -269,3 +269,16 @@ test('R34 mounted Three scene cycle accepts loader-suffixed source names without
   }
   assert.equal(gltf.parser.associations.size, 0, 'loader map stays untouched');
 });
+
+test('R33 loader-suffixed drain name retains warning in all four views, but reparented tile never inherits it', () => {
+  for (const i of [818, 819, 820, 821]) {
+    const { sourceModel, drain, body, tile } = sourceSelection();
+    drain.parent = sourceModel.scenes[i];
+    tile.parent = drain;
+    drain.name += '_2';
+    assert.equal(r33LK75SelectionMetadataEntries(sourceModel, SHA, i, body).length, 2);
+    assert.deepEqual(r33LK75SelectionMetadataEntries(sourceModel, SHA, i, tile), []);
+    drain.name += '_wrong';
+    assert.deepEqual(r33LK75SelectionMetadataEntries(sourceModel, SHA, i, body), []);
+  }
+});

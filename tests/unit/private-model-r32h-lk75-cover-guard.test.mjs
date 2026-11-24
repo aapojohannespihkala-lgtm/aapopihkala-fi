@@ -133,3 +133,15 @@ test('LK75 warning tracks mounted 814 -> 815 -> 816 -> 817 -> 814 and rejects st
   assert.ok(page.includes('layersGltf?.scenes?.indexOf(lk75ActiveScene)'));
   assert.ok(!page.includes('const lk75ActiveScene = mainViewScope'));
 });
+
+test('R32H loader-suffixed drain name retains warning, but reparented tile never inherits it', () => {
+  for (const i of [814, 815, 816, 817]) {
+    const { sourceModel, drain, outlet, tile } = selectedLK75Fixture(i);
+    drain.name += '_2';
+    assert.equal(r32hLK75SelectionMetadataEntries(sourceModel, SHA, i, outlet).length, 2);
+    tile.parent = drain;
+    assert.deepEqual(r32hLK75SelectionMetadataEntries(sourceModel, SHA, i, tile), []);
+    drain.name += '_wrong';
+    assert.deepEqual(r32hLK75SelectionMetadataEntries(sourceModel, SHA, i, outlet), []);
+  }
+});

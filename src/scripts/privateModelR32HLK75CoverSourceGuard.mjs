@@ -4,6 +4,7 @@
  * No source GLB mutation, no physical as-built assertion, no dynamic remap.
  * The source pointer 11624 is a tile sidewall, not the visible floor-drain cover.
  */
+import { sameSourceName } from './privateModelSourceNodeAssociations.mjs';
 import { C80_R32H_SOURCE, C80_R32H_VIEWS } from './privateModelC80R31ReviewRuntime.mjs';
 
 export const R32H_LK75_COVER_CONTRACT = Object.freeze({
@@ -91,9 +92,10 @@ export function r32hLK75SelectionMetadataEntries(sourceModel, authenticatedSha, 
   const visited = new Set();
   let object = selected;
   let drainOnPath = false;
+  let previousId = null;
   while (object && !visited.has(object) && visited.size < 128) {
     if (object === scene) {
-      if (!drainOnPath) return [];
+      if (!drainOnPath || previousId !== 13253 || !json.scenes[sceneIndex].nodes.includes(13253)) return [];
       return [
         ['LK75 kansiviite', 'LÄHDERISTIRIITA: n11624 (mesh4418) on seinälaatta, ei kaivon kansi.'],
         ['LK75 kannen ehdokkaat', 'n11643 ja n11644 (mesh894/895), root n11645. Tuote, liittymä ja asennus vahvistamatta.'],
@@ -102,11 +104,13 @@ export function r32hLK75SelectionMetadataEntries(sourceModel, authenticatedSha, 
     visited.add(object);
     const nodeIndex = associations.get(object)?.nodes;
     if (Number.isInteger(nodeIndex)) {
-      if (!isActiveJsonNode(json, sceneIndex, nodeIndex)) return [];
+      if (!isActiveJsonNode(json, sceneIndex, nodeIndex) || ![13253, 13254, 13255].includes(nodeIndex)) return [];
+      if (previousId !== null && previousId !== nodeIndex && !json.nodes[nodeIndex]?.children?.includes(previousId)) return [];
       if (nodeIndex === R32H_LK75_COVER_CONTRACT.drainRoot) {
-        if (object.name !== json.nodes[nodeIndex]?.name) return [];
+        if (!sameSourceName(object.name, json.nodes[nodeIndex]?.name)) return [];
         drainOnPath = true;
       }
+      previousId = nodeIndex;
     }
     object = object.parent;
   }

@@ -142,9 +142,10 @@ export function r33LK75SelectionMetadataEntries(sourceModel, authenticatedSha, s
   const seen = new Set();
   let object = selected;
   let drainSeen = false;
+  let previousId = null;
   while (object && seen.size < 128 && !seen.has(object)) {
     if (object === scene) {
-      if (!drainSeen) return [];
+      if (!drainSeen || previousId !== 13253 || !json.scenes[sceneIndex].nodes.includes(13253)) return [];
       return [
         ['LK75 kansiviite R33', 'LÄHDERISTIRIITA: n11624, mesh4418 on seinälaatta, ei kaivon kansi.'],
         ['LK75 kannen malliehdokkaat', check.candidateCoverMeshesActive
@@ -155,11 +156,13 @@ export function r33LK75SelectionMetadataEntries(sourceModel, authenticatedSha, s
     seen.add(object);
     const nodeIndex = associations.get(object)?.nodes;
     if (Number.isInteger(nodeIndex)) {
-      if (!activeNode(json, sceneIndex, nodeIndex)) return [];
+      if (!activeNode(json, sceneIndex, nodeIndex) || ![13253, 13254, 13255].includes(nodeIndex)) return [];
+      if (previousId !== null && previousId !== nodeIndex && !json.nodes[nodeIndex]?.children?.includes(previousId)) return [];
       if (nodeIndex === R33_LK75_COVER_SOURCE.drainRoot) {
-        if (object.name !== json.nodes[nodeIndex]?.name) return [];
+        if (!sameSourceName(object.name, json.nodes[nodeIndex]?.name)) return [];
         drainSeen = true;
       }
+      previousId = nodeIndex;
     }
     object = object.parent;
   }
