@@ -222,14 +222,14 @@ test('P137E placement never trusts the selected option instead of the loaded can
   await page.locator('#preset-menu > summary').click();
   await page.locator('#d1-plan-button').click();
   await expect(place).toBeDisabled();
-  await expect(place).toBeDisabled();
   await expect(canvas).toHaveAttribute('data-p137e-place-draft-count', '0');
   await choose(selectedId);
   await expect(canvas).toHaveAttribute('data-p137e-loaded-candidate-id', selectedId);
   await page.locator('#preset-menu > summary').click();
   await page.locator('#d1-plan-button').click();
   await expect(place).toBeEnabled();
-  await choose(otherId);
+  await page.locator('#more-menu > summary').click();
+  await option.selectOption(otherId);
   await expect(place).toBeEnabled();
   await page.locator('#current-model-button').click();
   await expect(canvas).toHaveAttribute('data-model-source', 'current');
