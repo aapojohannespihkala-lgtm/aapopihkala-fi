@@ -144,9 +144,13 @@ export const DESKTOP_FOLDER_ICON = `<svg xmlns="http://www.w3.org/2000/svg" widt
   <path d="M3.2 6.7a1.3 1.3 0 0 1 1.3-1.3h4.3l2 2h8.7a1.3 1.3 0 0 1 1.3 1.3v8.6a1.3 1.3 0 0 1-1.3 1.3h-15a1.3 1.3 0 0 1-1.3-1.3z" fill="none" stroke="#F7F8F9" stroke-width="1.55" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>`;
 
-export const DESKTOP_NAV_CUBE_ICON = `<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.45" stroke-linecap="round" stroke-linejoin="round">
-  <path d="M10 3.5 16.5 7.25v7.5L10 18.5l-6.5-3.75v-7.5zM3.5 7.25 10 11l6.5-3.75M10 11v7.5"/>
-  <path d="M16.5 14.75l4 2.3m-2 .25 2-.25-.64-1.9M16.5 14.75V10.5m-1.45 1.45 1.45-1.45 1.45 1.45"/>
+export const DESKTOP_NAV_CUBE_ICON = `<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+  <path d="M12 12.35L12.00 6.80" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round"/>
+  <polygon points="12,3.2 10.25,6.80 13.75,6.80" fill="currentColor"/>
+  <path d="M12 12.35L7.12 15.16" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round"/>
+  <polygon points="4,16.95 7.99,16.67 6.25,13.64" fill="currentColor"/>
+  <path d="M12 12.35L16.88 15.16" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round"/>
+  <polygon points="20,16.95 17.75,13.64 16.01,16.67" fill="currentColor"/>
 </svg>`;
 
 /** Which preset icon is pressed for a viewer state. */
