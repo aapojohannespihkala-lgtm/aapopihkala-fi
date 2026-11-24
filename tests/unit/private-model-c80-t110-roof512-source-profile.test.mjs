@@ -77,21 +77,29 @@ function r34Fixture(){
  const x={asset:{extras:{...r34Original.asset}},scene:r34Original.defaultScene};
  for(const [k,n] of Object.entries(r34Original.counts))x[k]=Array.from({length:n},()=>({}));
  for(const i of [822,823,824,825])x.scenes[i]={...r34Original.scenes[i],nodes:[...r34Original.scenes[i].nodes],extras:{stage:'WORK_TEST',physicalHost:'HOST_HOLD',current:false,asBuilt:false,humanReview:'NOT_RUN'}};
- const hold={m5System:'VIEMARI',stage:'WORK_TEST_HOST_HOLD',modelStage:'WORK_TEST',current:false,asBuilt:false,humanReview:'NOT_RUN',workAssumption:true,sourceGlbSHA256:'78fbc1c65d3a879a3097d16cc9646c098499c839828563ea23afab0ecf5214ab',sourcePdfDriveId:'1Guc8pv0oSw18bTxP0Rk4-aLtu5erPFWH',existingT110Node:10145,sourceRoofNode:6642,sourceLinksBoundForNewSHA:false,roofOpeningCut:false,insulationModeled:false,flashingModeled:false,capModeled:false,physicalRoofPointVerified:false,visualProtrusionAboveRoof_m:0.45,centerWorldGlbXZ_m:[6.315,-6.28]};
+ const hold={m5System:'VIEMARI',stage:'WORK_TEST_HOST_HOLD',modelStage:'WORK_TEST',current:false,asBuilt:false,humanReview:'NOT_RUN',workAssumption:true,sourceGlbSHA256:'78fbc1c65d3a879a3097d16cc9646c098499c839828563ea23afab0ecf5214ab',sourcePdfDriveId:'1Guc8pv0oSw18bTxP0Rk4-aLtu5erPFWH',existingT110Node:10145,sourceRoofNode:6642,sourceLinksBoundForNewSHA:false,roofOpeningCut:false,insulationModeled:false,flashingModeled:false,capModeled:false,physicalRoofPointVerified:false,visualProtrusionAboveRoof_m:0.45,sourceRoofHeightAtCenterY_m:7.5125001148224175,centerWorldGlbXZ_m:[6.315,-6.28]};
  for(const n of [12239,12240])x.nodes[n]={mesh:4611,extras:{...hold}};
- x.nodes[12242]={children:[12240,12241]};return x;
+ x.nodes[12242]={children:[12240,12241]};
+ x.nodes[13363]={children:[13360]};x.nodes[13360]={mesh:5111};return x;
 }
 test('R34 T110 warning only follows exact four mounted scene roles and selected source leaf',()=>{
  for(const i of [822,823,824,825]){
   const floor=i<824?'BOTH':'2F',node=i<824?12239:12240;
   const x=r34Fixture(),r=r34T110RoofWarning(x,R34_T110_SHA,i,floor,node);
   assert.ok(r);assert.equal(r.physicalRoofOpeningVerified,false);assert.equal(r.publishAllowed,false);assert.equal(r.sourceLinksBound,false);
+  assert.equal(r.inactiveReferenceRoofNode,6642);assert.equal(r.activeBOTHRoofNode,13360);
+  assert.equal(r.activeRoofInSelectedScene,i<824);assert.equal(r.roofSampleDelta_m,-0.2075);
+  assert.equal(r.visibleProtrusionAboveR34Roof_m,0.6575);
   assert.equal(r34T110RoofWarning(x,SHA,i,floor,node),null);
   assert.equal(r34T110RoofWarning(x,R34_T110_SHA,i,'1F',node),null);
   assert.equal(r34T110RoofWarning(x,R34_T110_SHA,i,floor,node===12239?12240:12239),null);
-  for(const mutate of [j=>j.scenes[i].nodes.reverse(),j=>delete j.scenes[i].nodes[0],j=>j.nodes[node].mesh=4610,j=>j.nodes[node].extras.m5System='VESI',j=>j.nodes[node].extras.sourcePdfDriveId='different',j=>j.nodes[node].extras.sourceGlbSHA256='different',j=>j.nodes[node].extras.roofOpeningCut=true,j=>j.nodes[node].extras.flashingModeled=true,j=>j.nodes[node].extras.physicalRoofPointVerified=true,j=>j.scenes[i].extras.physicalHost='VERIFIED',j=>j.scenes[i].extras.humanReview='APPROVED',j=>j.nodes[j.scenes[i].nodes.find(n=>n!==12242&&n!==node)].children=[10146],j=>j.asset.extras.asBuilt=true]){
+  for(const mutate of [j=>j.scenes[i].nodes.reverse(),j=>delete j.scenes[i].nodes[0],j=>j.nodes[node].mesh=4610,j=>j.nodes[node].extras.m5System='VESI',j=>j.nodes[node].extras.sourcePdfDriveId='different',j=>j.nodes[node].extras.sourceGlbSHA256='different',j=>j.nodes[node].extras.sourceRoofHeightAtCenterY_m=7.305,j=>j.nodes[node].extras.roofOpeningCut=true,j=>j.nodes[node].extras.flashingModeled=true,j=>j.nodes[node].extras.physicalRoofPointVerified=true,j=>j.scenes[i].extras.physicalHost='VERIFIED',j=>j.scenes[i].extras.humanReview='APPROVED',j=>j.nodes[j.scenes[i].nodes[0]].children=[6642],j=>j.nodes[j.scenes[i].nodes.find(n=>n!==12242&&n!==node)].children=[10146],j=>j.asset.extras.asBuilt=true]){
    const bad=r34Fixture();mutate(bad);assert.equal(r34T110RoofWarning(bad,R34_T110_SHA,i,floor,node),null);
   }
   if(i>=824){const bad=r34Fixture();bad.nodes[12242].children=[12241];assert.equal(r34T110RoofWarning(bad,R34_T110_SHA,i,floor,node),null);}
+  if(i<824){
+    const noRoof=r34Fixture();noRoof.nodes[13363].children=[];assert.equal(r34T110RoofWarning(noRoof,R34_T110_SHA,i,floor,node),null);
+    const wrongRoof=r34Fixture();wrongRoof.nodes[13360].mesh=5110;assert.equal(r34T110RoofWarning(wrongRoof,R34_T110_SHA,i,floor,node),null);
+  }
  }
 });
