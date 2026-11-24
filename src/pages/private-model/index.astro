@@ -2430,6 +2430,7 @@ const title = 'Private 3D viewer';
         sourceCardResolverForModel,
         type SelectionSourceEvidence,
       } from '../../scripts/privateModelSourceCards';
+      import { resolveR300ViewerOwnerCardEvidence } from '../../scripts/privateModelR300ViewerOwnerCardEvidence.mjs';
       import { createSelectionHighlightController } from '../../scripts/privateModelSelectionHighlight';
       import {
         nearestNamedAncestor,
@@ -6038,6 +6039,15 @@ const title = 'Private 3D viewer';
 
         selectedObject = object;
         const sourceEvidence = resolveSelectionSources(object);
+        // R300 may replace only its own exact source identity, not other source cards.
+        const r300OwnerEvidence = resolveR300ViewerOwnerCardEvidence({
+          gltf: layersGltf ? sourceNodeModel(layersGltf) : null,
+          loadedGlbSha256: layersLoadedSha,
+          mountedScene: modelRoot.children[0] ?? null,
+          selectedObject: object,
+          protectedEvidence: sourceEvidence,
+        });
+        const effectiveSourceEvidence = r300OwnerEvidence ?? sourceEvidence;
         // Source warning belongs to the actually mounted scene, not a cached preset.
         const lk75ActiveScene = modelRoot.children[0] ?? null;
         const lk75SceneIndex = layersGltf?.scenes?.indexOf(lk75ActiveScene) ?? -1;
@@ -6083,8 +6093,8 @@ const title = 'Private 3D viewer';
             ...collectSelectionMetadataEntries(object, modelRoot),
             ...lk75SourceMetadata,
           ],
-          sourceLinks: sourceLinksForSelectionEvidence(sourceEvidence, collectSelectionSourceLinks(object, modelRoot)),
-          sourceEvidence,
+          sourceLinks: sourceLinksForSelectionEvidence(effectiveSourceEvidence, collectSelectionSourceLinks(object, modelRoot)),
+          sourceEvidence: effectiveSourceEvidence,
         });
 
         selectionHighlightController.select(object);
