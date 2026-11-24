@@ -241,10 +241,18 @@ test('R33 rejects stale SHA and scene, missing corrected WC-door COW, wrong plex
 test('R34 mounted source retains authorized card, fails closed for stale or changed source, preserves unrelated evidence', () => {
  for(const sceneIndex of [822,823,824,825]) {
   const f=fixture(R300_OWNER_R34_GLB_SHA256,sceneIndex);
-  assert.equal(resolve(f).cards[0],card);
+  const limitation = 'Kohdekortin kohdistus ei vahvista käyttövesiliitäntöjen kytkentää, virtaussuuntaa tai venttiilien toimintaa. Fyysinen liitäntä: ei varmennettu.';
+  const matched = resolve(f);
+  assert.equal(matched.state,'matched');
+  assert.notEqual(matched.cards[0],card);
+  assert.deepEqual(matched.cards[0],{...card,notes:[limitation]});
+  assert.deepEqual(card.notes,[]);
   f.selectedObject.name += '_3';
   f.selectedObject.parent.name += '_2';
-  assert.equal(resolve(f).cards[0],card);
+  const suffixMatched = resolve(f);
+  assert.equal(suffixMatched.state,'matched');
+  assert.deepEqual(suffixMatched.cards[0],{...card,notes:[limitation]});
+  assert.deepEqual(card.notes,[]);
   assert.equal(resolve({...f,mountedScene:f.gltf.scenes[sceneIndex===822?823:822]}).state,'unbound');
   assert.equal(resolve({...f,protectedEvidence:{state:'unavailable',cards:[]}}).state,'unavailable');
   assert.equal(resolve({...f,selectedObject:{isMesh:true,name:'UNRELATED_WALL',parent:f.mountedScene}}),null);
