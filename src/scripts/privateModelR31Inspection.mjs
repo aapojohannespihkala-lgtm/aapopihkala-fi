@@ -369,6 +369,21 @@ export function buildR31DrainageOverlay(THREE, gltf) {
   return group;
 }
 
+/** Report drawable profile-based wells separately from flat source symbols.
+ * These are presentation counts, not an inventory of installed assets. */
+export function r31DrainageTechnicalSummary(group, mode, allowed) {
+  if (!allowed || mode === 'hidden') return 'salaojat piilotettu';
+  const data = group?.userData;
+  if ((mode !== 'visible' && mode !== 'ghost') || data?.source !== R31_DRAINAGE_SOURCE)
+    return 'salaojien lähde ei vielä varmennettu';
+  const { well, route, open } = data.counts ?? {};
+  const profiledWells = data.profiled?.well;
+  if (![well, route, open, profiledWells].every(n => Number.isSafeInteger(n) && n >= 0) ||
+      profiledWells > well)
+    return 'salaojien esitysmääriä ei varmennettu';
+  return `salaojat ${profiledWells} profiilimallinnettua kaivoa (WORK_TEST), ${well - profiledWells} viitteellistä kaivomerkkiä, ${route} reittiosaa, ${open} avointa purkua`;
+}
+
 /** Loading/failed source is not evidence of an empty network. Undefined means
  * not loaded yet; null means rejected or unavailable. Hidden/unsupported
  * scopes deliberately have no notice. Keep the omission helper source-bound. */
