@@ -45,6 +45,7 @@ function makeFixture(source = SOURCE) {
   const json = { scenes: Array.from({ length: Math.max(687, source.sceneIndex + 1) }, () => ({ nodes: [] })),
     nodes: [], meshes: [], accessors: [] };
   const objects = [];
+  const associations = new Map();
   for (let i = 0; i < source.parts.length; i++) {
     const part = source.parts[i], box = bounds[i], name = part.prefix + 'SOURCE';
     json.nodes[part.node] = { name, mesh: part.mesh };
@@ -63,6 +64,7 @@ function makeFixture(source = SOURCE) {
       add(child) { this.children.push(child); },
       remove(child) { this.children.splice(this.children.indexOf(child), 1); } };
     objects.push(mesh);
+    associations.set(mesh, { nodes: part.node, meshes: part.mesh, primitives: 0 });
   }
   if (source.parentPaths) {
     json.scenes[source.sceneIndex].nodes = [...new Set(source.parentPaths.map(path => path[0]))];
@@ -74,7 +76,23 @@ function makeFixture(source = SOURCE) {
     }
   }
   const sceneRoot = { traverse: (fn) => objects.forEach(fn) };
-  return { json, sceneRoot, objects, THREE, glbSha256: source.sha256, sceneIndex:source.sceneIndex, enabled:true };
+  if (source.parentPaths) {
+    const byNode = new Map(objects.map(o => [associations.get(o).nodes, o]));
+    for (const path of source.parentPaths) {
+      let parent = sceneRoot;
+      for (const node of path) {
+        if (!byNode.has(node)) {
+          const obj = {};
+          byNode.set(node, obj);
+          associations.set(obj, { nodes: node });
+        }
+        const obj = byNode.get(node);
+        obj.parent = parent;
+        parent = obj;
+      }
+    }
+  }
+  return { json, sceneRoot, objects, associations, THREE, glbSha256: source.sha256, sceneIndex:source.sceneIndex, enabled:true };
 }
 
 test('C highlight is deliberately opt-in and source/scene SHA bound', () => {
@@ -92,7 +110,7 @@ test('rejects wrong glTF scene membership, node identity, mesh index and vertex 
     f => { f.json.nodes[SOURCE.parts[2].node].mesh = -1; },
     f => { f.json.accessors[0].count = 301; },
     f => { f.json.accessors[0].min[0] += 0.3; },
-    f => { f.objects[3].name = 'wrong cabinet'; },
+    f => { f.associations.set(f.objects[3], { nodes: 1318, meshes: 1456, primitives: 0 }); },
     f => { f.objects[0].geometry.getAttribute = () => ({ count: 1 }); },
   ]) {
     const f = makeFixture();
@@ -205,6 +223,40 @@ test('R34 rejects service and 2F scenes, wrong SHA, parent remap and incomplete 
     f => { f.json.nodes[5786].mesh = -1; },
     f => { f.json.accessors[0].max[0] += 0.25; },
     f => { f.sceneRoot.traverse = fn => [...f.objects, f.objects[0]].forEach(fn); },
+  ]) {
+    const f = makeFixture(R34_BATH_C_SOURCE);
+    mutate(f);
+    assert.equal(createR34BathroomCEmphasis(f).applied, false);
+    assert.deepEqual(f.objects.map(o => o.children.length), [0,0,0,0]);
+  }
+});
+
+test('R34 GLTFLoader associations bind renamed objects, not same-name nodes', () => {
+  const f = makeFixture(R34_BATH_C_SOURCE);
+  const duplicateIndices = [5790, 829, 1318];
+  const duplicates = f.objects.slice(1).map((obj, i) => {
+    const duplicate = { ...obj, children: [] };
+    f.associations.set(duplicate, { nodes: duplicateIndices[i], meshes: f.associations.get(obj).meshes, primitives: 0 });
+    obj.name += '_loader_unique_' + i;
+    return duplicate;
+  });
+  f.sceneRoot.traverse = fn => [...duplicates, ...f.objects].forEach(fn);
+  const r = createR34BathroomCEmphasis(f);
+  assert.equal(r.status, 'WORK_TEST_C_VISIBLE');
+  assert.equal(r.count, 4);
+  assert.deepEqual(duplicates.map(o => o.children.length), [0,0,0]);
+  r.dispose();
+  assert.deepEqual(f.objects.map(o => o.children.length), [0,0,0,0]);
+});
+
+test('association unavailable, wrong mesh/primitive or mounted parent fails closed', () => {
+  for (const mutate of [
+    f => { f.associations = undefined; },
+    f => { f.associations.delete(f.objects[1]); },
+    f => { f.associations.set(f.objects[1], { nodes: 5786, meshes: 1735, primitives: 0 }); },
+    f => { f.associations.set(f.objects[1], { nodes: 5786, meshes: 1734, primitives: 1 }); },
+    f => { f.objects[1].parent = f.sceneRoot; },
+    f => { f.objects[0].parent = f.objects[3].parent; },
   ]) {
     const f = makeFixture(R34_BATH_C_SOURCE);
     mutate(f);

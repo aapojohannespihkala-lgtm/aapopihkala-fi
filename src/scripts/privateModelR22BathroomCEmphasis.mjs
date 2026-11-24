@@ -66,7 +66,7 @@ function reachableSceneNodes(json, sceneIndex) {
  * The returned handle removes every derived edge without altering the source.
  */
 function createBathroomCEmphasis({
-  glbSha256, sceneIndex, json, sceneRoot, THREE, enabled = false,
+  glbSha256, sceneIndex, json, sceneRoot, associations, THREE, enabled = false,
 } = {}, src) {
   if (!enabled) return reject('DISABLED');
   if (glbSha256 !== src.sha256 || sceneIndex !== src.sceneIndex)
@@ -74,6 +74,7 @@ function createBathroomCEmphasis({
   if (!sceneRoot?.traverse || !THREE?.LineSegments || !THREE?.BufferGeometry ||
       !THREE?.Float32BufferAttribute || !THREE?.EdgesGeometry || !THREE?.LineBasicMaterial)
     return reject('RECEIVER_UNAVAILABLE');
+  if (typeof associations?.get !== 'function') return reject('RENDER_ASSOCIATIONS_UNAVAILABLE');
   const reachable = reachableSceneNodes(json, src.sceneIndex);
   if (!reachable) return reject('SOURCE_SCENE_INVALID');
   // R34 is bound to its actual root-to-node paths, not just inherited names.
@@ -94,12 +95,29 @@ function createBathroomCEmphasis({
         !Array.isArray(accessor.min) || !Array.isArray(accessor.max))
       return reject('SOURCE_ACCESSOR_MISMATCH');
 
+    // GLTFLoader uniquifies runtime names across the whole source. R34
+    // contains same-name nodes 5786/5790, 829/1731/4239 and 1318/2202/4935.
+    // Do not use a name fallback: the mounted object's source association
+    // must identify the exact node, mesh and sole primitive.
     const matches = [];
     sceneRoot.traverse((obj) => {
-      if (obj?.isMesh && obj.name === node.name) matches.push(obj);
+      if (obj?.isMesh && associations.get(obj)?.nodes === part.node) matches.push(obj);
     });
     if (matches.length !== 1) return reject('RENDER_MESH_NOT_UNIQUE');
     const mesh = matches[0];
+    const binding = associations.get(mesh);
+    if (binding?.meshes !== part.mesh || binding?.primitives !== 0)
+      return reject('RENDER_ASSOCIATION_MISMATCH');
+    if (src.parentPaths) {
+      const expected = src.parentPaths.find(path => path.at(-1) === part.node);
+      let object = mesh;
+      for (let i = expected.length - 1; i >= 0; i--) {
+        if (!object || associations.get(object)?.nodes !== expected[i])
+          return reject('RENDER_PARENT_PATH_MISMATCH');
+        object = object.parent;
+      }
+      if (object !== sceneRoot) return reject('RENDER_PARENT_PATH_MISMATCH');
+    }
     const positions = mesh.geometry?.getAttribute?.('position');
     if (positions?.count !== part.vertices || !mesh.add || !mesh.remove)
       return reject('RENDER_GEOMETRY_MISMATCH');
