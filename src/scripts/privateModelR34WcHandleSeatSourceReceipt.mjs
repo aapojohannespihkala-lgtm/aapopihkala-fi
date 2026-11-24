@@ -93,7 +93,11 @@ export const VIEWS=Object.freeze([
     "doorState": "CLOSED"
   }
 ].map(Object.freeze));
-function same(a,b){return Array.isArray(a)&&Array.isArray(b)&&a.length===b.length&&a.every((v,i)=>v===b[i]);}
+function same(a,b){
+ if(!Array.isArray(a)||!Array.isArray(b)||a.length!==b.length)return false;
+ for(let i=0;i<a.length;i++)if(!Object.hasOwn(a,i)||!Object.hasOwn(b,i)||a[i]!==b[i])return false;
+ return true;
+}
 function fingerprint(a){if(!Array.isArray(a)||a.some(v=>!Number.isInteger(v)||v<0))return null;let h=2166136261;for(const v of a)h=Math.imul(h^v,16777619)>>>0;return h.toString(16).padStart(8,"0");}
 function replace(roots,mapping){return roots.map(v=>mapping[v]??v);}
 // Both source and COW handle transforms must be dense, finite affine matrices.

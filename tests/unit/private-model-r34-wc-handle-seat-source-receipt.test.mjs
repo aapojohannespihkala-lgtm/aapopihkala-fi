@@ -58,3 +58,17 @@ test('reject malformed or ambiguous handle matrices even when the relative seat 
   for(const mutate of mutations){const j=fixture(original);mutate(j);assert.equal(wcHandleSeatReceipt(j,SOURCE.glbSha256,req),null);}
  }
 });
+
+
+test('reject sparse source parent paths in every WC preview',()=>{
+ const paths=[[13843,0],[13858,1],[13841,2]];
+ for(const v of VIEWS){
+  const req={...v,explicitPreview:true};
+  assert.ok(wcHandleSeatReceipt(fixture(original),SOURCE.glbSha256,req));
+  for(const [node,index] of paths){
+   const j=fixture(original);
+   delete j.nodes[node].children[index];
+   assert.equal(wcHandleSeatReceipt(j,SOURCE.glbSha256,req),null,`missing parent path ${node}/${index}`);
+  }
+ }
+});
