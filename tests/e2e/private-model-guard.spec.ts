@@ -2921,8 +2921,7 @@ test('private viewer turns p136B D floor views into isolated review views', asyn
   );
 
   const coordinatePanel = page.locator('#coordinate-panel');
-  await expect(coordinatePanel).toBeVisible();
-  await expect(page.locator('#coordinate-floor')).toHaveText('D 1F');
+  await expect(coordinatePanel).toHaveCount(0);
   await expect(canvas).toHaveAttribute('data-review-coordinate-frame', 'YLIS-G1-LOCAL');
   await expect(canvas).toHaveAttribute('data-review-grid-visible', 'true');
   await expect(canvas).toHaveAttribute('data-review-grid-major-step-m', '1');
@@ -2938,16 +2937,12 @@ test('private viewer turns p136B D floor views into isolated review views', asyn
   );
   await expect(canvas).toHaveAttribute('data-review-pointer-x', /-?\d+\.\d{3}/);
   await expect(canvas).toHaveAttribute('data-review-pointer-y', /-?\d+\.\d{3}/);
-  await expect(page.locator('#coordinate-pointer')).toContainText('X ');
-  await expect(page.locator('#coordinate-pointer')).toContainText('Y ');
   const centerX = Number(await canvas.getAttribute('data-review-pointer-x'));
   const centerY = Number(await canvas.getAttribute('data-review-pointer-y'));
 
   await canvas.click({ position: { x: coordinateBox.width * 0.5, y: coordinateBox.height * 0.5 } });
   await expect(canvas).toHaveAttribute('data-review-anchor-x', centerX.toFixed(3));
   await expect(canvas).toHaveAttribute('data-review-anchor-y', centerY.toFixed(3));
-  await expect(page.locator('#coordinate-anchor')).toContainText('X ');
-  await expect(page.locator('#coordinate-anchor')).toContainText('Y ');
 
   await page.mouse.move(
     coordinateBox.x + coordinateBox.width * 0.75,
@@ -2979,8 +2974,7 @@ test('private viewer turns p136B D floor views into isolated review views', asyn
   await expect(canvas).toHaveAttribute('data-d1-known-door-labels-visible', 'false');
   await expect(knownDoorLegend).toBeHidden();
   await expect(page.locator('#d1-known-door-label-layer')).toBeHidden();
-  await expect(page.locator('#coordinate-floor')).toHaveText('D 2F');
-  await expect(coordinatePanel).toBeVisible();
+  await expect(coordinatePanel).toHaveCount(0);
   await expect(canvas).toHaveAttribute('data-review-grid-visible', 'true');
 
   await expect(canvas).toHaveAttribute('data-research-preset', 'd-2f');
