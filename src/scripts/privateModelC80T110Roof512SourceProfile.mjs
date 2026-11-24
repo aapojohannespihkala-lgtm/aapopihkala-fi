@@ -139,10 +139,28 @@ export function r34T110RoofWarning(json, sha, sceneIndex, floor, sourceNodeIndex
   const e=json.asset?.extras;
   if(e?.ModelStage!=='WORK_TEST'||e.current!==false||e.asBuilt!==false||e.HUMAN_REVIEW!=='NOT_RUN') return null;
   if(!Object.entries(r34Counts).every(([k,v])=>Array.isArray(json[k])&&json[k].length===v)) return null;
-  const roots=json.scenes[sceneIndex]?.nodes, nodes=json.nodes;
-  if(json.scenes[sceneIndex]?.name!==spec[4]||!r34DenseNodes(roots,nodes.length)||roots.length!==spec[2]||new Set(roots).size!==roots.length||c80T110Roof512Fnv32(roots)!==spec[3]) return null;
+  const scene=json.scenes[sceneIndex], roots=scene?.nodes, nodes=json.nodes;
+  const sceneHold=scene?.extras;
+  if(sceneHold?.stage!=='WORK_TEST'||sceneHold.physicalHost!=='HOST_HOLD'||
+      sceneHold.current!==false||sceneHold.asBuilt!==false||
+      sceneHold.humanReview!=='NOT_RUN') return null;
+  if(scene?.name!==spec[4]||!r34DenseNodes(roots,nodes.length)||roots.length!==spec[2]||new Set(roots).size!==roots.length||c80T110Roof512Fnv32(roots)!==spec[3]) return null;
   const both=floor==='BOTH', tube=both?12239:12240;
-  if(sourceNodeIndex!==tube||nodes[tube]?.mesh!==4611||!json.meshes[4611]||nodes[tube]?.extras?.m5System!=='VIEMARI') return null;
+  const selected=nodes[tube], hold=selected?.extras;
+  if(sourceNodeIndex!==tube||selected?.mesh!==4611||!json.meshes[4611]||
+      hold?.m5System!=='VIEMARI'||hold.stage!=='WORK_TEST_HOST_HOLD'||
+      hold.modelStage!=='WORK_TEST'||hold.current!==false||hold.asBuilt!==false||
+      hold.humanReview!=='NOT_RUN'||hold.workAssumption!==true||
+      hold.sourceGlbSHA256!==C80_T110_512_PARENT_GLB_SHA256||
+      hold.sourcePdfDriveId!==C80_T110_512_SOURCE_PDF_ID||
+      hold.existingT110Node!==10145||hold.sourceRoofNode!==6642||
+      hold.sourceLinksBoundForNewSHA!==false||
+      hold.roofOpeningCut!==false||hold.insulationModeled!==false||
+      hold.flashingModeled!==false||hold.capModeled!==false||
+      hold.physicalRoofPointVerified!==false||
+      !near(hold.visualProtrusionAboveRoof_m,0.45)||
+      !near(hold.centerWorldGlbXZ_m?.[0],6.315)||
+      !near(hold.centerWorldGlbXZ_m?.[1],-6.28)) return null;
   // Confirm the selected source path and reject stale duplicate water-system tube.
   if(both ? (!roots.includes(tube)||roots.includes(12242)) : (!roots.includes(12242)||roots.includes(tube)||!r34DenseNodes(nodes[12242]?.children,nodes.length)||nodes[12242].children.filter(n=>n===tube).length!==1)) return null;
   const active=new Set(), pending=[...roots];
