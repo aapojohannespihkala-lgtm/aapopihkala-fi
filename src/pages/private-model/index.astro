@@ -2964,6 +2964,7 @@ const title = 'Private 3D viewer';
       import { createC80R31ViewSwitch, r31WorkTestReview, r31ViewerLayerSceneReceipt, r31ViewerLayerBindingScope, C80_R31_9E0B_SOURCE, isR31FamilyViewerSha, C80_R32H_SOURCE, C80_R32H_VIEWS } from '../../scripts/privateModelC80R31ReviewRuntime.mjs';
       import { r32hKitchenWastewaterClashSelectionEntries } from '../../scripts/privateModelR32HKitchenWastewaterClashGuard.mjs';
       import { r33KitchenWastewaterClashSelectionEntries } from '../../scripts/privateModelR33KitchenWastewaterClashGuard.mjs';
+      import { r34KitchenWastewaterClashSelectionEntries } from '../../scripts/privateModelR34KitchenWastewaterClashGuard.mjs';
       import { mountDesktopToolbar, activeDesktopPreset, activeDesktopAngle, DESKTOP_START_CANDIDATE_ID } from '../../scripts/privateModelDesktopToolbar.mjs';
       import { createDFocusGhost, dFootprintFromScope, dStoreyFootprint } from '../../scripts/privateModelDFocusGhost';
 
@@ -5997,6 +5998,8 @@ const title = 'Private 3D viewer';
           ...r32hKitchenWastewaterClashSelectionEntries(
             layersGltf, layersLoadedSha, kitchenWastewaterSceneIndex, object),
           ...r33KitchenWastewaterClashSelectionEntries(
+            layersGltf, layersLoadedSha, kitchenWastewaterSceneIndex, object),
+          ...r34KitchenWastewaterClashSelectionEntries(
             layersGltf, layersLoadedSha, kitchenWastewaterSceneIndex, object),
         ].map(([key, value]): readonly [string, string] => [key, value]);
         selectionPanelController.render({
