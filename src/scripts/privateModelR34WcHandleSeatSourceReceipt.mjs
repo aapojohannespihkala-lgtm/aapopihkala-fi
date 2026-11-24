@@ -6,14 +6,14 @@ export const SOURCE=Object.freeze({
   "zipSha256": "61ef4c1e5846bb8dda8e882da53cfb4825bf7ded504d448bfbf560876eb7813e",
   "parentGlbSha256": "ff4724e8a844769c616447a825c001e59330e8d53e050bbbee1a2b14081d17dc",
   "originalGlbSha256": "99210ea517c18cf24fa5f9702abe12ed2a8058a0c606d38b863e19802a270725",
-  "counts": {
+  "counts": Object.freeze({
     "scenes": 838,
     "nodes": 13864,
     "meshes": 5242,
     "materials": 826,
     "accessors": 11449,
     "bufferViews": 11455
-  },
+  }),
   "defaultScene": 292
 });
 const fingerprints=["673ba191","f9009603","abdbe8d4","241f1e49","adb5d44d","737144ef","d17ef700","d8b4a76d","24fe22f1","25141da3","90bb75d4","cf03c349","0e4d7a99","40e659eb","f221e1b0","4303bffd"];

@@ -26,3 +26,17 @@ function fixture(original){
 }
 test('eight explicit WC preview views; all other source, floor, mode and state requests reject',()=>{const j=fixture(original);for(const v of VIEWS){const req={...v,explicitPreview:true};const r=wcHandleSeatReceipt(j,SOURCE.glbSha256,req);assert.equal(r?.doorState,v.doorState);assert.equal(r.publishAllowed,false);assert.equal(r.physicalHostVerified,false);for(const patch of [{explicitPreview:false},{floor:'1F'},{mode:'x'},{doorState:'x'},{sceneIndex:822}])assert.equal(wcHandleSeatReceipt(j,SOURCE.glbSha256,{...req,...patch}),null);assert.equal(wcHandleSeatReceipt(j,SOURCE.originalGlbSha256,req),null);}});
 test('fail closed on changes to either scene, source identity, root path, mesh, stage or seat transform',()=>{const req={...VIEWS[0],explicitPreview:true};for(const mut of [x=>x.scenes[830].nodes.reverse(),x=>x.scenes[837].nodes.pop(),x=>x.nodes[13863].mesh=1,x=>x.nodes[13842].children[0]=13857,x=>x.nodes[13860].matrix[14]=0,x=>x.nodes[13860].extras.handleSeatPhysicalClaim=true,x=>x.asset.extras.current=true,x=>x.scene=830,x=>x.scenes[830].extras.handleSeatSourceScene=823]){const q=fixture(original);mut(q);assert.equal(wcHandleSeatReceipt(q,SOURCE.glbSha256,req),null);}});
+
+test('source count expectations are immutable and altered counts remain rejected',()=>{
+ const req={...VIEWS[0],explicitPreview:true};
+ assert.equal(Object.isFrozen(SOURCE.counts),true);
+ for(const [key,count] of Object.entries(SOURCE.counts)){
+  const j=fixture(original);
+  j[key].pop();
+  assert.equal(wcHandleSeatReceipt(j,SOURCE.glbSha256,req),null,key);
+  assert.equal(Reflect.set(SOURCE.counts,key,count-1),false,key);
+  assert.equal(SOURCE.counts[key],count,key);
+  assert.equal(wcHandleSeatReceipt(j,SOURCE.glbSha256,req),null,key);
+ }
+ assert.ok(wcHandleSeatReceipt(fixture(original),SOURCE.glbSha256,req));
+});
