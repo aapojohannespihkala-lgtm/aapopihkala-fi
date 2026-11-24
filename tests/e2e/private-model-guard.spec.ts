@@ -1867,8 +1867,13 @@ const clickViewAction = async (page: Page, name: string) => {
   await page.getByRole('button', { name, exact: true }).click();
 };
 
-const clickModelAction = async (page: Page, name: string) => {
+const openWorkTestCandidate = async (page: Page, id: string) => {
   await openToolbarMenu(page, '#model-menu');
+  await page.locator(`#work-test-options button[data-work-test-candidate="${id}"]`).click();
+};
+
+const clickModelAction = async (page: Page, name: string) => {
+  await openToolbarMenu(page, '#more-menu');
   await page.getByRole('button', { name, exact: true }).click();
 };
 
@@ -2052,9 +2057,9 @@ test('private viewer resolves the source D scene even when Three runtime names a
 
   await page.goto('/private-model/');
 
-  await expect(page.locator('#preset-menu > summary')).toHaveText('Presetit · Koko rakennus');
+  await expect(page.locator('#preset-menu > summary > svg')).toBeVisible();
   await expect(page.locator('#preset-context-status')).toHaveText('Koko rakennus');
-  await expect(page.locator('#view-menu > summary')).toHaveText('Näkymä');
+  await expect(page.locator('#view-menu > summary > svg')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Layerit' })).toBeVisible();
   await expect(page.locator('#model-source-badge')).toBeVisible();
   await expect(page.locator('#more-menu > summary')).toBeVisible();
@@ -2855,7 +2860,7 @@ test('private viewer turns p136B D floor views into isolated review views', asyn
   await page.goto('/private-model/');
   await expect(page.locator('#work-test-select')).toBeEnabled();
   await expect(page.locator('#work-test-select')).toHaveValue(candidateId);
-  await clickModelAction(page, 'Avaa WORK_TEST');
+  await openWorkTestCandidate(page, candidateId);
 
   const canvas = page.locator('#private-model-canvas');
   await expect(canvas).toHaveAttribute('data-d-review-prepared', 'true');
@@ -3053,7 +3058,7 @@ test('private viewer makes p137J user-current D1F doors visible as A/B review ma
 
   await page.goto('/private-model/');
   await expect(page.locator('#work-test-select')).toHaveValue(candidateId);
-  await clickModelAction(page, 'Avaa WORK_TEST');
+  await openWorkTestCandidate(page, candidateId);
 
   const canvas = page.locator('#private-model-canvas');
   await expect(canvas).toHaveAttribute('data-d-review-door-marker-prepared-count', '13');
@@ -3155,15 +3160,14 @@ test('private viewer loads an allowlisted WORK_TEST candidate from the protected
   await expect(page.locator('#work-test-select')).toBeEnabled();
   await expect(page.locator('#work-test-select')).toHaveValue(candidateId);
   await expect(page.locator('#work-test-select')).toContainText(candidateLabel);
-  await expect(page.locator('#work-test-button')).toBeEnabled();
   await expect(page.getByRole('button', { name: 'Palaa CURRENTiin' })).toBeHidden();
 
-  await clickModelAction(page, 'Avaa WORK_TEST');
+  await openWorkTestCandidate(page, candidateId);
 
   await expect(page.getByRole('status')).toHaveText('WORK_TEST-malli ladattu - D-pohjat käytettävissä');
   await expect(page.locator('#model-source-badge')).toHaveText(`WORK_TEST: ${candidateLabel}`);
   await expect(page.locator('#private-model-canvas')).toHaveAttribute('data-model-source', 'work-test');
-  await openToolbarMenu(page, '#model-menu');
+  await openToolbarMenu(page, '#more-menu');
   await expect(page.getByRole('button', { name: 'Palaa CURRENTiin' })).toBeVisible();
   expect(currentLoads).toBe(1);
   expect(candidateLoads).toBe(1);
@@ -3222,7 +3226,7 @@ test('private viewer resets stale manual layer state on direct model activation'
   await expect(canvas).toHaveAttribute('data-layer-roof-opacity', '0.4');
   await expect(canvas).toHaveAttribute('data-layer-edge-mode', 'none');
 
-  await clickModelAction(page, 'Avaa WORK_TEST');
+  await openWorkTestCandidate(page, candidateId);
   await expect(canvas).toHaveAttribute('data-model-source', 'work-test');
   await expect(canvas).toHaveAttribute('data-standard-view-preset', 'whole-building');
   await expect(canvas).toHaveAttribute('data-layer-state-source', 'preset:whole-building');
@@ -3323,7 +3327,7 @@ test('private viewer opens p139N in the guarded SITE_PLAN_OVERLAY scene with rou
 
   await page.goto('/private-model/');
   await expect(page.locator('#work-test-select')).toHaveValue(candidateId);
-  await clickModelAction(page, 'Avaa WORK_TEST');
+  await openWorkTestCandidate(page, candidateId);
 
   const canvas = page.locator('#private-model-canvas');
   await expect(canvas).toHaveAttribute('data-work-test-review-mode', 'site-plan-only');
@@ -3383,7 +3387,7 @@ test('private viewer opens p139AB as a Z-only orthographic wastewater review', a
 
   await page.goto('/private-model/');
   await expect(page.locator('#work-test-select')).toHaveValue(candidateId);
-  await clickModelAction(page, 'Avaa WORK_TEST');
+  await openWorkTestCandidate(page, candidateId);
 
   const canvas = page.locator('#private-model-canvas');
   await expect(canvas).toHaveAttribute('data-work-test-review-mode', 'z-credibility-only');
@@ -6622,10 +6626,10 @@ test('private viewer keeps the primary toolbar compact and exposes legacy action
 
   await page.goto('/private-model/');
 
-  await expect(page.getByText('Ylisrinne 3D', { exact: true })).toBeVisible();
-  await expect(page.locator('#preset-menu > summary')).toHaveText('Presetit · Koko rakennus');
+  await expect(page.locator('.toolbar')).toBeVisible();
+  await expect(page.locator('#preset-menu > summary > svg')).toBeVisible();
   await expect(page.locator('#preset-context-status')).toHaveText('Koko rakennus');
-  await expect(page.locator('#view-menu > summary')).toHaveText('Näkymä');
+  await expect(page.locator('#view-menu > summary > svg')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Layerit' })).toBeVisible();
   await page.getByRole('button', { name: 'Layerit' }).click();
   const layerPanel = page.locator('#layers-panel');
@@ -6779,7 +6783,7 @@ test('private viewer compares CURRENT and WORK_TEST in the same preserved view',
   await clickViewAction(page, 'Koko rakennus');
   await expect(canvas).toHaveAttribute('data-standard-view-preset', 'whole-building');
 
-  await openToolbarMenu(page, '#model-menu');
+  await openToolbarMenu(page, '#more-menu');
   await page.getByRole('button', { name: 'Vertaa WORK_TESTiin' }).click();
   await expect(page.locator('#model-source-badge')).toHaveText(`WORK_TEST: ${candidateLabel}`);
   await expect(canvas).toHaveAttribute('data-model-comparison', 'active');
@@ -6788,7 +6792,7 @@ test('private viewer compares CURRENT and WORK_TEST in the same preserved view',
   await expect(canvas).toHaveAttribute('data-standard-view-preset', 'whole-building');
   await expect(page.getByRole('status')).toHaveText(`A/B-vertailu: WORK_TEST - ${candidateLabel}`);
 
-  await openToolbarMenu(page, '#model-menu');
+  await openToolbarMenu(page, '#more-menu');
   await page.getByRole('button', { name: 'Vertaa CURRENTiin' }).click();
   await expect(page.locator('#model-source-badge')).toHaveText('CURRENT');
   await expect(canvas).toHaveAttribute('data-model-comparison', 'active');
@@ -6832,7 +6836,8 @@ test('private viewer fails safe when the protected WORK_TEST catalog is unavaila
   );
   await expect(page.locator('#work-test-select')).toBeDisabled();
   await expect(page.locator('#work-test-select')).toContainText('Ei WORK_TEST-kandidaatteja');
-  await expect(page.locator('#work-test-button')).toBeDisabled();
+  await openToolbarMenu(page, '#model-menu');
+  await expect(page.locator('#work-test-options')).toContainText('ei ole saatavilla');
 });
 
 test('private viewer autoloads the exact P159 whole-building storage context review candidate', async ({ page }) => {

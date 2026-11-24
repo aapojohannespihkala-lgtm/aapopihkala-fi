@@ -139,6 +139,10 @@ export const DESKTOP_MORE_ICON = `<svg xmlns="http://www.w3.org/2000/svg" width=
   <path d="M5.33 9l6.67 6 6.67-6" fill="none" stroke="#D9E1E7" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>`;
 
+export const DESKTOP_FOLDER_ICON = `<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+  <path d="M3.2 6.7a1.3 1.3 0 0 1 1.3-1.3h4.3l2 2h8.7a1.3 1.3 0 0 1 1.3 1.3v8.6a1.3 1.3 0 0 1-1.3 1.3h-15a1.3 1.3 0 0 1-1.3-1.3z" fill="none" stroke="#F7F8F9" stroke-width="1.55" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>`;
+
 /** Which preset icon is pressed for a viewer state. */
 export function activeDesktopPreset({ standardViewPreset, roofVisible }) {
   if (standardViewPreset === 'd-apartment') return roofVisible ? 'd-roof' : 'd-apartment';

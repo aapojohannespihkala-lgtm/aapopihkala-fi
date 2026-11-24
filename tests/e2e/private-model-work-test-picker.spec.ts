@@ -149,7 +149,11 @@ test('private viewer preselects the newest WORK_TEST and filters the version lis
     }),
   );
 
+  await page.route('**/private-model/work-test/auto-d1f-themo-cccc3333.glb', (route) =>
+    route.fulfill({ status: 200, contentType: 'model/gltf-binary', body: currentModel }),
+  );
   await page.goto('/private-model/');
+  const choices = page.locator('#work-test-options button[data-work-test-candidate]');
   const select = page.locator('#work-test-select');
   const filter = page.locator('#work-test-filter');
   await expect(select).toBeEnabled();
@@ -162,13 +166,17 @@ test('private viewer preselects the newest WORK_TEST and filters the version lis
   await expect(select).toHaveValue('auto-d1f-themo-cccc3333');
   await expect(select.locator('option')).toHaveCount(1);
   await expect(page.locator('#work-test-count')).toHaveText('1 / 6 versiota vastaa suodatusta');
-  await expect(page.locator('#work-test-button')).toBeEnabled();
+  await expect(choices).toHaveCount(1);
 
   await filter.fill('ei-osumaa');
   await expect(select.locator('option')).toHaveCount(0);
-  await expect(page.locator('#work-test-button')).toBeDisabled();
+  await expect(choices).toHaveCount(0);
 
   await filter.fill('');
   await expect(select.locator('option')).toHaveCount(6);
-  await expect(page.locator('#work-test-button')).toBeEnabled();
+  await expect(choices).toHaveCount(6);
+  await filter.fill('scene68');
+  await choices.filter({ hasText: /THEMO/ }).click();
+  await expect(page.locator('#model-menu')).not.toHaveAttribute('open');
+  await expect(page.locator('#private-model-canvas')).toHaveAttribute('data-model-source', 'work-test');
 });

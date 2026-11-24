@@ -9,6 +9,7 @@ test('Sisältö panel keeps its Näkyvä / Himmeä / Piilossa visibility control
   for (const label of ['Näkyvä', 'Himmeä', 'Piilossa']) assert.match(controls, new RegExp(`label: '${label}'`));
   assert.match(controls, /Oletusnäkyvyys/);
   const page = await readFile(new URL('../../src/pages/private-model/index.astro', import.meta.url), 'utf8');
-  assert.match(page, /layersButton\.textContent = modernContent \? 'Sisältö' : 'Layerit'/);
+  assert.match(page, /<button id="layers-button"[^>]+aria-label="Layerit"[^>]*><Fragment set:html=\{DESKTOP_LAYERS_ICON\}/);
+  assert.doesNotMatch(page, /layersButton\.textContent\s*=/);
   assert.match(page, /modernContent \? 'Mallin sisältö' : 'Layerit'/);
 });
