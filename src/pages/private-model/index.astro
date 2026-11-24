@@ -2442,6 +2442,9 @@ const title = 'Private 3D viewer';
       import { pickSelectableObjectAtClientPoint } from '../../scripts/privateModelSelectionPicking';
       import { shouldInvalidateModelSelection } from '../../scripts/privateModelSceneSelectionInvalidation.mjs';
       import { sourceLinksForSelectionEvidence } from '../../scripts/privateModelSourceCardLinkGuard.mjs';
+      import { r32hLK75SelectionMetadataEntries } from '../../scripts/privateModelR32HLK75CoverSourceGuard.mjs';
+      import { r33LK75SelectionMetadataEntries, R33_LK75_COVER_SOURCE } from '../../scripts/privateModelR33LK75CoverSourceGuard.mjs';
+      import { r34LK75SelectionMetadataEntries, R34_LK75_COVER_SOURCE } from '../../scripts/privateModelR33LK75CoverSourceGuard.mjs';
       import { pickVisibleWorkTest3DPoint } from '../../scripts/privateModelWorkTest3DPoint';
       import { classifySameClickReviewEvidence } from '../../scripts/privateModelSameClickReviewEvidence.mjs';
       import { measureAlongG1Axis } from '../../scripts/privateModelMeasureGeometry.mjs';
@@ -2961,7 +2964,7 @@ const title = 'Private 3D viewer';
         type WorkTestLoadFailurePhase,
       } from '../../scripts/privateModelWorkTestLoadDiagnostics';
 
-      import { createC80R31ViewSwitch, r31WorkTestReview, r31ViewerLayerSceneReceipt, r31ViewerLayerBindingScope, C80_R31_9E0B_SOURCE, isR31FamilyViewerSha, r32hFamilyOf } from '../../scripts/privateModelC80R31ReviewRuntime.mjs';
+      import { createC80R31ViewSwitch, r31WorkTestReview, r31ViewerLayerSceneReceipt, r31ViewerLayerBindingScope, C80_R31_9E0B_SOURCE, C80_R32H_SOURCE, isR31FamilyViewerSha, r32hFamilyOf } from '../../scripts/privateModelC80R31ReviewRuntime.mjs';
       import { mountDesktopToolbar, activeDesktopPreset, activeDesktopAngle, DESKTOP_START_CANDIDATE_ID } from '../../scripts/privateModelDesktopToolbar.mjs';
       import { createDFocusGhost, dFootprintFromScope, dStoreyFootprint } from '../../scripts/privateModelDFocusGhost';
 
@@ -5985,6 +5988,17 @@ const title = 'Private 3D viewer';
 
         selectedObject = object;
         const sourceEvidence = resolveSelectionSources(object);
+        // Source warning belongs to the actually mounted scene, not a cached preset.
+        const lk75ActiveScene = modelRoot.children[0] ?? null;
+        const lk75SceneIndex = layersGltf?.scenes?.indexOf(lk75ActiveScene) ?? -1;
+        const lk75SourceMetadata = !layersGltf || lk75SceneIndex < 0 ? [] :
+          (layersLoadedSha === C80_R32H_SOURCE.glbSha256
+            ? r32hLK75SelectionMetadataEntries(sourceNodeModel(layersGltf), layersLoadedSha, lk75SceneIndex, object)
+            : layersLoadedSha === R33_LK75_COVER_SOURCE.glbSha256
+              ? r33LK75SelectionMetadataEntries(sourceNodeModel(layersGltf), layersLoadedSha, lk75SceneIndex, object)
+              : layersLoadedSha === R34_LK75_COVER_SOURCE.glbSha256
+                ? r34LK75SelectionMetadataEntries(sourceNodeModel(layersGltf), layersLoadedSha, lk75SceneIndex, object)
+                : []).map(([label, value]): readonly [string, string] => [label, value]);
         selectionPanelController.render({
           mesh: serviceTarget?.label ?? semantics.labelFi,
           group: semantics.classLabelFi,
@@ -6000,6 +6014,7 @@ const title = 'Private 3D viewer';
             ...technicalMetadata,
             ...resolveElectricalGroupEvidence(object, modelRoot.children[0] ?? null),
             ...collectSelectionMetadataEntries(object, modelRoot),
+            ...lk75SourceMetadata,
           ],
           sourceLinks: sourceLinksForSelectionEvidence(sourceEvidence, collectSelectionSourceLinks(object, modelRoot)),
           sourceEvidence,
