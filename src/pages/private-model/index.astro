@@ -2238,6 +2238,11 @@ const title = 'Private 3D viewer';
               </select>
             </label>
             <div class="layer-note">Johdetaan näkymässä mallipinnoista - ei erillistä reunageometriaa malliin.</div>
+            <label class="layer-row">
+              <input id="r22-bathroom-c-on" type="checkbox" disabled aria-describedby="r22-bathroom-c-note" />
+              <span>Pesuhuone C - keskeiset reunat (R22/R33/R34, WORK_TEST)</span>
+            </label>
+            <div id="r22-bathroom-c-note" class="layer-note">Vain lähdevarmennettujen scene686 (R22), scene818 (R33) ja scene822 (R34) lattian ulkoreuna, saunan oviaukko, peili ja allaskaappi. R33/R34 huolto- ja 2F-näkymät eivät sisällä kaikkia neljää. Ei muuta mallin tai layerien tilaa.</div>
           </div>
           <div id="locus-layer-group" class="layer-section">
             <div class="layer-tree-parent">
@@ -2442,6 +2447,9 @@ const title = 'Private 3D viewer';
       import { pickSelectableObjectAtClientPoint } from '../../scripts/privateModelSelectionPicking';
       import { shouldInvalidateModelSelection } from '../../scripts/privateModelSceneSelectionInvalidation.mjs';
       import { sourceLinksForSelectionEvidence } from '../../scripts/privateModelSourceCardLinkGuard.mjs';
+      import { r32hLK75SelectionMetadataEntries } from '../../scripts/privateModelR32HLK75CoverSourceGuard.mjs';
+      import { r33LK75SelectionMetadataEntries, R33_LK75_COVER_SOURCE } from '../../scripts/privateModelR33LK75CoverSourceGuard.mjs';
+      import { r34LK75SelectionMetadataEntries, R34_LK75_COVER_SOURCE } from '../../scripts/privateModelR33LK75CoverSourceGuard.mjs';
       import { pickVisibleWorkTest3DPoint } from '../../scripts/privateModelWorkTest3DPoint';
       import { classifySameClickReviewEvidence } from '../../scripts/privateModelSameClickReviewEvidence.mjs';
       import { measureAlongG1Axis } from '../../scripts/privateModelMeasureGeometry.mjs';
@@ -2753,13 +2761,15 @@ const title = 'Private 3D viewer';
       // @ts-ignore - R31 review roots and inspection overlays have unit coverage.
       import { resolveC80R31TechnicalReviewRoots, c80R31RoofWaterSystemOf } from '../../scripts/privateModelC80R31TechnicalReview.mjs';
       // @ts-ignore - pure overlay builders, THREE injected.
-      import { R31_DRAINAGE_SOURCE, R31_EXTERIOR_DONORS, buildR31DrainageOverlay, buildR31RoofWaterOverlay, buildR31InfraOverlay, buildR31FiberOverlay, buildR31StormOverlay, buildR31LowVoltageOverlay, buildR31ExteriorDonorOverlay, buildR31WestGableInfill, buildR31GableBoarding, buildR31WestBrickCompletion, buildR31FiberEntryBox, buildR31FiberEntryLink, isR31WestGableBoardingSource, R31_GABLE_BOARDING_COLOR, isR31ReplacedWestDownpipe, loadR31EastGableOverlay, relocateR31Downpipes, syncR31ExteriorDonorMaterials, setR31SiteNetworkLayerMode } from '../../scripts/privateModelR31Inspection.mjs';
+      import { R31_DRAINAGE_SOURCE, R31_EXTERIOR_DONORS, buildR31DrainageOverlay, r31DrainagePresentationNotice, buildR31RoofWaterOverlay, buildR31InfraOverlay, buildR31FiberOverlay, buildR31StormOverlay, buildR31LowVoltageOverlay, buildR31ExteriorDonorOverlay, buildR31WestGableInfill, buildR31GableBoarding, buildR31WestBrickCompletion, buildR31FiberEntryBox, buildR31FiberEntryLink, isR31WestGableBoardingSource, R31_GABLE_BOARDING_COLOR, isR31ReplacedWestDownpipe, loadR31EastGableOverlay, relocateR31Downpipes, syncR31ExteriorDonorMaterials, setR31SiteNetworkLayerMode } from '../../scripts/privateModelR31Inspection.mjs';
       import { R31_LOCUS_FIBER_LINES } from '../../scripts/privateModelR31LocusFiber.mjs';
       import { R31_LOCUS_STORM_LINES, R31_LOCUS_STORM_FLOW_MARKS } from '../../scripts/privateModelR31LocusStorm.mjs';
       import { R31_LOCUS_LOWVOLT_LINES, R31_LOCUS_LOWVOLT_SOURCE } from '../../scripts/privateModelR31LocusLowVoltage.mjs';
       import { r31SiteLayerKeyForNetwork } from '../../scripts/privateModelR31SiteLayerKey.mjs';
       import { r31ViewerSourceCapabilities, r31RuntimeExteriorAllowed } from '../../scripts/privateModelR31SourceCapabilities.mjs';
       import { resolveTechnicalReviewRoots, createTechnicalReviewPresentation, technicalReviewSystemOf, technicalReviewLayerSystemOf, refineTechnicalReviewSystem, filterNonTechnicalBoundObjects } from '../../scripts/privateModelTechnicalReviewPresentation.mjs';
+      // @ts-ignore - exact-source independent R22 1F bathroom WORK_TEST presentation.
+      import { R22_BATH_C_SOURCE, R33_BATH_C_SOURCE, R34_BATH_C_SOURCE, createR22BathroomCEmphasis, createR33BathroomCEmphasis, createR34BathroomCEmphasis } from '../../scripts/privateModelR22BathroomCEmphasis.mjs';
       import { resolveConcealedTechnicalObjects, createConcealedTechnicalPresentation } from '../../scripts/privateModelConcealedTechnicalPresentation.mjs';
       import { K17_RAIL900_SOURCE_SHA256 } from '../../scripts/privateModelK17Rail900LayerSourceProfile.mjs';
       import { createV69C035WhiteLobbyPresentation } from '../../scripts/privateModelV69C035WhiteLobbyPresentation.mjs';
@@ -2961,7 +2971,10 @@ const title = 'Private 3D viewer';
         type WorkTestLoadFailurePhase,
       } from '../../scripts/privateModelWorkTestLoadDiagnostics';
 
-      import { createC80R31ViewSwitch, r31WorkTestReview, r31ViewerLayerSceneReceipt, r31ViewerLayerBindingScope, C80_R31_9E0B_SOURCE, isR31FamilyViewerSha, r32hFamilyOf } from '../../scripts/privateModelC80R31ReviewRuntime.mjs';
+      import { createC80R31ViewSwitch, r31WorkTestReview, r31ViewerLayerSceneReceipt, r31ViewerLayerBindingScope, C80_R31_9E0B_SOURCE, C80_R32H_SOURCE, isR31FamilyViewerSha, r32hFamilyOf } from '../../scripts/privateModelC80R31ReviewRuntime.mjs';
+      import { r32hKitchenWastewaterClashSelectionEntries } from '../../scripts/privateModelR32HKitchenWastewaterClashGuard.mjs';
+      import { r33KitchenWastewaterClashSelectionEntries } from '../../scripts/privateModelR33KitchenWastewaterClashGuard.mjs';
+      import { r34KitchenWastewaterClashSelectionEntries } from '../../scripts/privateModelR34KitchenWastewaterClashGuard.mjs';
       import { mountDesktopToolbar, activeDesktopPreset, activeDesktopAngle, DESKTOP_START_CANDIDATE_ID } from '../../scripts/privateModelDesktopToolbar.mjs';
       import { createDFocusGhost, dFootprintFromScope, dStoreyFootprint } from '../../scripts/privateModelDFocusGhost';
 
@@ -3111,6 +3124,7 @@ const title = 'Private 3D viewer';
       const roofLayerOpacityValue = document.querySelector<HTMLOutputElement>('#roof-layer-opacity-value');
       const roofLayerCount = document.querySelector<HTMLElement>('#roof-layer-count');
       const edgeModeSelect = document.querySelector<HTMLSelectElement>('#edge-mode-select');
+      const bathroomCInput = document.querySelector<HTMLInputElement>('#r22-bathroom-c-on')!;
       const locusLayerVisibleInput = document.querySelector<HTMLInputElement>('#locus-layer-visible');
       const locusLayerLabel = document.querySelector<HTMLElement>('#locus-layer-label');
       const locusLayerCount = document.querySelector<HTMLElement>('#locus-layer-count');
@@ -3748,6 +3762,7 @@ const title = 'Private 3D viewer';
       edgeOverlayGroup.name = 'P146A_VIEWER_DERIVED_EDGES';
       edgeOverlayGroup.renderOrder = 30;
       scene.add(edgeOverlayGroup);
+      let bathroomCOverlay: any = null;
       const legacyEdgeVisibilityBaseline = new Map<any, boolean>();
       const locusLayerMembers = new Set<any>();
       const locusLayerObjects = new Set<any>();
@@ -4982,6 +4997,10 @@ const title = 'Private 3D viewer';
       };
 
       const refreshEdgeRendering = (root: any) => {
+        // Remove this reversible presentation BEFORE the shared edge traversal.
+        // Otherwise the C-only lines could be mistaken for legacy GLB lines.
+        bathroomCOverlay?.dispose?.();
+        bathroomCOverlay = null;
         restoreLegacyEdgeVisibility();
         mainViewScope?.enforce();
         layersRuntime?.enforce(modelRoot.children[0] ?? null, layersLoadedSha);
@@ -5052,6 +5071,37 @@ const title = 'Private 3D viewer';
             geometry.dispose();
           }
         }
+
+        // Strict original-byte/source-scene opt-in for the three verified sources.
+        // A changed model, scene or expected SHA disables the option.
+        const bathRoot: any = modelRoot.children[0] ?? null;
+        const bathIndex = layersGltf?.scenes?.indexOf?.(bathRoot) ?? -1;
+        const bathIsR22 = layersLoadedSha === R22_BATH_C_SOURCE.sha256 &&
+          bathIndex === R22_BATH_C_SOURCE.sceneIndex;
+        const bathIsR33 = layersLoadedSha === R33_BATH_C_SOURCE.sha256 &&
+          bathIndex === R33_BATH_C_SOURCE.sceneIndex;
+        const bathIsR34 = layersLoadedSha === R34_BATH_C_SOURCE.sha256 &&
+          bathIndex === R34_BATH_C_SOURCE.sceneIndex;
+        const bathScope = layersExpectedSha === layersLoadedSha &&
+          (bathIsR22 || bathIsR33 || bathIsR34) && Boolean(layersGltf?.parser?.json);
+        bathroomCInput.disabled = !bathScope;
+        if (!bathScope) bathroomCInput.checked = false;
+        // Runtime inputs are checked by the JS exact-source receiver.
+        // Keep the payload separate from the .mjs JSDoc-inferred signature.
+        const bathSourceModel = bathScope && bathroomCInput.checked && layersGltf
+          ? sourceNodeModel(layersGltf) : null;
+        const r22BathroomCArgs: any = {
+          glbSha256: layersLoadedSha,
+          sceneIndex: bathIndex,
+          json: bathSourceModel?.parser?.json,
+          sceneRoot: bathRoot,
+          associations: bathSourceModel?.parser?.associations,
+          THREE,
+          enabled: bathScope && bathroomCInput.checked,
+        };
+        bathroomCOverlay = bathIsR34 ? createR34BathroomCEmphasis(r22BathroomCArgs) : bathIsR33 ? createR33BathroomCEmphasis(r22BathroomCArgs) : createR22BathroomCEmphasis(r22BathroomCArgs);
+        canvas.dataset.r22BathroomC = bathroomCOverlay.status;
+        canvas.dataset.r22BathroomCCount = String(bathroomCOverlay.count);
 
         edgeModeSelect.value = edgeMode;
         canvas.dataset.edgeMode = edgeMode;
@@ -5985,6 +6035,31 @@ const title = 'Private 3D viewer';
 
         selectedObject = object;
         const sourceEvidence = resolveSelectionSources(object);
+        // Source warning belongs to the actually mounted scene, not a cached preset.
+        const lk75ActiveScene = modelRoot.children[0] ?? null;
+        const lk75SceneIndex = layersGltf?.scenes?.indexOf(lk75ActiveScene) ?? -1;
+        const lk75SourceMetadata = !layersGltf || lk75SceneIndex < 0 ? [] :
+          (layersLoadedSha === C80_R32H_SOURCE.glbSha256
+            ? r32hLK75SelectionMetadataEntries(sourceNodeModel(layersGltf), layersLoadedSha, lk75SceneIndex, object)
+            : layersLoadedSha === R33_LK75_COVER_SOURCE.glbSha256
+              ? r33LK75SelectionMetadataEntries(sourceNodeModel(layersGltf), layersLoadedSha, lk75SceneIndex, object)
+              : layersLoadedSha === R34_LK75_COVER_SOURCE.glbSha256
+                ? r34LK75SelectionMetadataEntries(sourceNodeModel(layersGltf), layersLoadedSha, lk75SceneIndex, object)
+                : []).map(([label, value]): readonly [string, string] => [label, value]);
+        // Source warnings follow only the actually mounted SHA-verified scene.
+        // A geometric clash is not a verified physical pipe connection.
+        const kitchenWastewaterMountedScene = modelRoot.children[0] ?? null;
+        const kitchenWastewaterSceneIndex = layersGltf
+          ? layersGltf.scenes?.indexOf(kitchenWastewaterMountedScene) ?? -1 : -1;
+        const kitchenWastewaterSourceEntries = [
+          ...r32hKitchenWastewaterClashSelectionEntries(
+            layersGltf, layersLoadedSha, kitchenWastewaterSceneIndex, object),
+          ...r33KitchenWastewaterClashSelectionEntries(
+            layersGltf, layersLoadedSha, kitchenWastewaterSceneIndex, object),
+          ...r34KitchenWastewaterClashSelectionEntries(
+            layersGltf ? sourceNodeModel(layersGltf) : layersGltf,
+            layersLoadedSha, kitchenWastewaterSceneIndex, object),
+        ].map(([key, value]): readonly [string, string] => [key, value]);
         selectionPanelController.render({
           mesh: serviceTarget?.label ?? semantics.labelFi,
           group: semantics.classLabelFi,
@@ -5998,8 +6073,10 @@ const title = 'Private 3D viewer';
           })(),
           metadataEntries: [
             ...technicalMetadata,
+            ...kitchenWastewaterSourceEntries,
             ...resolveElectricalGroupEvidence(object, modelRoot.children[0] ?? null),
             ...collectSelectionMetadataEntries(object, modelRoot),
+            ...lk75SourceMetadata,
           ],
           sourceLinks: sourceLinksForSelectionEvidence(sourceEvidence, collectSelectionSourceLinks(object, modelRoot)),
           sourceEvidence,
@@ -15128,7 +15205,7 @@ const title = 'Private 3D viewer';
         ['lowvolt', 'Pienjännite (Locus): 2D, NONCURRENT, syvyys avoin (WORK_TEST)'],
       ];
       const r31SiteLayerOverrides: Partial<Record<R31SiteKey, R31SiteMode>> = {};
-      const r31SiteLayerRows = {} as Record<R31SiteKey, { row: HTMLLabelElement; select: HTMLSelectElement }>;
+      const r31SiteLayerRows = {} as Record<R31SiteKey, { row: HTMLLabelElement; select: HTMLSelectElement; labelText: Text }>;
       let r31SiteRowAnchor: HTMLElement = successorCutawayRow;
       for (const [key, label] of r31SiteLayerSpecs) {
         const row = document.createElement('label');
@@ -15136,7 +15213,8 @@ const title = 'Private 3D viewer';
         row.hidden = true;
         row.style.display = 'none';
         row.dataset.r31SiteLayer = key;
-        row.append(document.createTextNode(label + ' '));
+        const labelText = document.createTextNode(label + ' ');
+        row.append(labelText);
         const select = document.createElement('select');
         select.setAttribute('aria-label', label + ' näkyvyys');
         for (const [mode, title] of [['visible', 'Näkyvä'], ['ghost', 'Himmeä'], ['hidden', 'Piilossa']]) {
@@ -15159,7 +15237,7 @@ const title = 'Private 3D viewer';
         row.append(select);
         r31SiteRowAnchor.after(row);
         r31SiteRowAnchor = row;
-        r31SiteLayerRows[key] = { row, select };
+        r31SiteLayerRows[key] = { row, select, labelText };
       }
       const syncM6263Glazing=()=>{
         const runtime=mainViewScope as any;
@@ -16005,6 +16083,9 @@ const title = 'Private 3D viewer';
           setR31SiteNetworkLayerMode(group, mode, siteOk, r31SiteGhostOriginals);
           if (show) Object.assign(counts, group.userData.counts);
         }
+        const drainNotice = r31DrainagePresentationNotice(r31SiteNetworks.drainage, effectiveSiteModes.drainage, siteOk);
+        r31SiteLayerRows.drainage.labelText.textContent = 'Salaojat (WORK_TEST) ' + (drainNotice ? drainNotice + ' ' : '');
+        canvas.dataset.r31DrainageOmissionNotice = drainNotice;
         canvas.dataset.r31SiteLayerModes = siteOk ? JSON.stringify(effectiveSiteModes) : '';
         canvas.dataset.r31SourceCapabilities = r31Capabilities()?.label ?? '';
         // Owner 20.12: the corner pipes replace R31's own older west lower pipes
@@ -16024,13 +16105,17 @@ const title = 'Private 3D viewer';
         canvas.dataset.r31ExteriorDonors = whole ? String(shown) : '0';
         canvas.dataset.r31SiteNetworks = whole && Object.keys(counts).length ? JSON.stringify(counts) : '';
         if (technical && Object.keys(counts).length) {
-          status.textContent = `Talotekniikka + kunnallistekniikka (WORK_TEST): salaojat ${counts.well ?? 0} kaivoa, ` +
-            `${counts.route ?? 0} reittiosaa, ${counts.open ?? 0} avointa purkua; kattovedet ${counts.ROOFWATER_WELL ?? 0} rännikaivoa, ` +
+          const drainSummary = !siteOk || effectiveSiteModes.drainage === 'hidden'
+            ? 'salaojat piilotettu' : !r31SiteNetworks.drainage
+              ? 'salaojien lähde ei vielä varmennettu'
+              : `salaojat ${counts.well ?? 0} kaivoa, ${counts.route ?? 0} reittiosaa, ${counts.open ?? 0} avointa purkua`;
+          status.textContent = `Talotekniikka + kunnallistekniikka (WORK_TEST): ${drainSummary}; kattovedet ${counts.ROOFWATER_WELL ?? 0} rännikaivoa, ` +
             `${counts.ROOFWATER_PIPE ?? 0} putkea, ${counts.ROOFWATER_GUTTER ?? 0} tilapäinen ränni; Locus vesi ${counts.WATER ?? 0}, ` +
             `jätevesi ${counts.WASTEWATER ?? 0}, valokuitu ${counts.FIBER ?? 0} (2D, syvyys avoin; ` +
             `liittymä D:n pohjoisovella omistajan havainnosta); ` +
             `Locus sadevesiviemäri ${counts.STORM ?? 0} linjaa 2D, ei tonttiliittymää (lähin 42 m); ` +
-            `Locus pienjännite ${counts.LOWVOLT ?? 0} linjaa 2D (NONCURRENT, syvyys ja liittymä avoimia)`;
+            `Locus pienjännite ${counts.LOWVOLT ?? 0} linjaa 2D (NONCURRENT, syvyys ja liittymä avoimia)` +
+            (drainNotice ? `; ${drainNotice}` : '');
         }
         const wantsSiteNetworks = siteOk && (technical || Object.values(r31SiteLayerOverrides).some(mode => mode !== 'hidden'));
         if (wantsSiteNetworks && !r31SiteLoading && !Object.keys(r31SiteNetworks).length) {
@@ -16434,6 +16519,11 @@ const title = 'Private 3D viewer';
         if (!['none', 'object', 'unified', 'visible'].includes(requestedMode)) return;
         edgeModeManuallySelected = true;
         applyViewerLayerState({ edgeMode: requestedMode }, 'manual');
+      });
+      bathroomCInput.addEventListener('change', () => {
+        // Dedicated reversible overlay. Do not reset the user's layer/roof,
+        // edge mode, pick or camera state.
+        refreshEdgeRendering(modelRoot.children[0] ?? null);
       });
       profileButton.addEventListener('click', () => setProfilePanelOpen(profilePanel.hidden));
       closeProfileButton.addEventListener('click', () => setProfilePanelOpen(false));

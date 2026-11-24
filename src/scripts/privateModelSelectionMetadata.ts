@@ -48,6 +48,21 @@ const selectionMetadataPriority = [
   'humanReview',
 ] as const;
 
+// R31 only: an unprofiled symbol is not a physical well or proven outlet.
+// Preserve its meaning ahead of the 12-row selection-card cutoff.
+const r31ReferenceMarkerPriority = [
+  'sourceDisplayNote',
+  'markerDisplayKind',
+  'physicalWellGeometryClaim',
+  'physicalZClaim',
+  'installationDepthClaim',
+  'currentClaim',
+  'asBuiltClaim',
+  'ModelStage',
+  'representationKind',
+  'presentationOnly',
+] as const;
+
 const electricalSelectionMetadataPriority = [
   'Pass',
   'pass',
@@ -107,6 +122,11 @@ const selectionMetadataLabels: Record<string, string> = {
   exactCurrentXYClaim: 'Nykyinen XY-sijainti täsmällinen',
   exactZClaim: 'Z-korko täsmällinen',
   publishToCURRENT: 'Julkaistaan CURRENTiin',
+  sourceDisplayNote: 'Viitesymbolin tulkinta (ei mitoitettu rakenne)',
+  markerDisplayKind: 'Viitesymbolin esitystapa',
+  physicalWellGeometryClaim: 'Kaivon fyysiset mitat varmennettu',
+  physicalZClaim: 'Fyysinen korko varmennettu',
+  installationDepthClaim: 'Asennussyvyys varmennettu',
   sourceConnection: 'Lähdeyhteys',
   sourceVideoLengthM: 'Videokuvauksen pituus (m)',
   sourceConditionClass: 'Kuntoluokka',
@@ -166,8 +186,17 @@ export const selectionMetadataEntries = (
     depth += 1;
   }
 
+  const isR31ReferenceMarker =
+    (values.get('r31InspectionKind') === 'well' || values.get('r31InspectionKind') === 'open') &&
+    (values.get('markerDisplayKind') === 'FLAT_REFERENCE_WELL_RING' ||
+      values.get('markerDisplayKind') === 'FLAT_UNRESOLVED_END_CROSS') &&
+    values.get('presentationOnly') === 'true' &&
+    values.get('physicalWellGeometryClaim') === 'false' &&
+    values.has('sourceDisplayNote');
   const priorityKeys: readonly string[] =
-    values.get('representationKind') === 'luminaireSourceSymbolAnchorMarker'
+    isR31ReferenceMarker
+      ? [...r31ReferenceMarkerPriority, ...selectionMetadataPriority]
+      : values.get('representationKind') === 'luminaireSourceSymbolAnchorMarker'
       ? [
           ...luminaireSelectionMetadataPriority,
           ...electricalSelectionMetadataPriority,
