@@ -17,6 +17,11 @@ test('historic WPT2 source selection remains opt-in and fail-closed',()=>{
  assert.equal(resolve(fake,SOURCE.glbSha256,'BOTH','true'),null);
  assert.equal(resolve(fake,'0'.repeat(64),'BOTH'),null);
  assert.equal(SOURCE.defaultScene,292);
+ const sparse={scenes:Array(SOURCE.sceneCount),nodes:Array(SOURCE.nodeCount),
+  meshes:Array(SOURCE.meshCount),scene:292};
+ assert.doesNotThrow(()=>gate(sparse,SOURCE.glbSha256),
+  'missing source scene rejects instead of throwing');
+ assert.equal(gate(sparse,SOURCE.glbSha256),null);
 });
 const filepath=process.env.R34_GFIV_WPT2_GLB_PATH;
 function load(){

@@ -68,7 +68,7 @@ export function r34GfivWpt2SourceGate(json,sha){
  const seen=Object.create(null);
  for(const [i,rule] of Object.entries(SPEC)){
   const scene=json.scenes[i],ex=scene?.extras,roots=scene?.nodes;
-  if(!Array.isArray(roots)||roots.length!==rule.roots||
+  if(!scene||!Array.isArray(roots)||roots.length!==rule.roots||
      fnvRoots(roots)!==rule.hash||
      !scene.name?.endsWith('__scene'+i)||
      !scene.name.includes(rule.history?'HIST2015':'CLEAN')||
@@ -84,6 +84,7 @@ export function r34GfivWpt2SourceGate(json,sha){
   if(rule.history&&rule.floor==='2F'&&newNodes[0]!==13980)return null;
   seen[i]=nodes;
  }
+ if(!Array.isArray(json.scenes[858]?.nodes)||!Array.isArray(json.scenes[860]?.nodes))return null;
  const roots=i=>json.scenes[i].nodes;
  if(!addedExact(roots(862),roots(863),[13307,13979,13980,13981,14059])||
     !sameMembers(roots(860),roots(864))||
