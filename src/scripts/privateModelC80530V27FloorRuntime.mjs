@@ -123,9 +123,14 @@ function c80530AttributeUnchanged(attr,proof,verified){
     attr.normalized!==proof.normalized||attr.offset!==proof.offset||
     attr.data?.stride!==proof.stride)return false;
  if(!proof.original)return true; // Non-typed GPU-only attributes: reference identity.
+ // A transferred/detached source buffer must reject the scene, not throw.
+ // The original bytes were copied at snapshot time and cannot be recovered.
+ let current;
+ try{
+  if(proof.array.byteLength!==proof.original.byteLength)return false;
+  current=new Uint8Array(proof.array.buffer,proof.array.byteOffset,proof.array.byteLength);
+ }catch{return false;}
  if(verified.has(proof.array))return true;
- const current=new Uint8Array(proof.array.buffer,proof.array.byteOffset,proof.array.byteLength);
- if(current.byteLength!==proof.original.byteLength)return false;
  for(let i=0;i<current.byteLength;i++)
   if(current[i]!==proof.original[i])return false;
  verified.add(proof.array);

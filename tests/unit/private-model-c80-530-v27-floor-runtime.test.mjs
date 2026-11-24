@@ -455,3 +455,22 @@ test('530 pinned geometry groups reject in-place material and triangle partition
  for(const material of materials)material.dispose();
  geometry.dispose();
 });
+
+test('530 detached source POSITION buffer fails closed without crashing scene check',async()=>{
+ const {Group,Mesh,BufferGeometry,Float32BufferAttribute,MeshBasicMaterial}=await import('three');
+ const geometry=new BufferGeometry();
+ geometry.setAttribute('position',new Float32BufferAttribute([
+  0,0,0,1,0,0,0,1,0
+ ],3));
+ const material=new MeshBasicMaterial(),scene=new Group();
+ scene.add(new Mesh(geometry,material));
+ const proof=snapshotTree(scene,1);
+ assert.ok(proof);
+ assert.equal(treeUnchanged(scene,proof),true);
+ const array=geometry.getAttribute('position').array;
+ structuredClone(array,{transfer:[array.buffer]});
+ assert.equal(array.byteLength,0,'transferred typed array is now detached');
+ assert.equal(treeUnchanged(scene,proof),false,
+  'detached GLTF source bytes must fail closed, not throw or mount');
+ material.dispose();geometry.dispose();
+});
