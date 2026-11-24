@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import {
-  R31_DRAINAGE_SOURCE, r31DrainageKind, buildR31DrainageOverlay, r31DrainageOmissionNotice, r31DrainagePresentationNotice, buildR31InfraOverlay,
+  R31_DRAINAGE_SOURCE, r31DrainageKind, buildR31DrainageOverlay, r31DrainageOmissionNotice, r31DrainagePresentationNotice, r31DrainageTechnicalSummary, buildR31InfraOverlay,
   dimR31ModelForInspection, isR31SiteSewerName, syncR31ExteriorDonorMaterials,
 } from '../../src/scripts/privateModelR31Inspection.mjs';
 import {
@@ -45,6 +45,7 @@ test('unprofiled source reference lines cannot reappear as physical surface pipe
   assert.deepEqual(overlay.userData.counts, { well: 1, route: 0, open: 1 });
   assert.equal(overlay.userData.unprofiledRoutesOmitted, 1);
   assert.equal(overlay.userData.profiled.route, 0);
+  assert.match(r31DrainageTechnicalSummary(overlay, 'visible', true), /0 profiilimallinnettua kaivoa \(WORK_TEST\), 1 viitteellistä kaivomerkkiä/);
   assert.equal(overlay.children.some((c) => c.userData.r31InspectionKind === 'route'), false);
   const well = overlay.children.find((c) => c.userData.r31InspectionKind === 'well');
   const p = new THREE.Vector3().setFromMatrixPosition(well.matrix);
@@ -123,6 +124,21 @@ test('drainage presentation distinguishes pending, unavailable and known omitted
   } }, 'visible', true), '');
 });
 
+test('technical summary separates profiled and reference wells without treating missing data as zero', () => {
+  const known = { userData: { source: R31_DRAINAGE_SOURCE,
+    counts: { well: 5, route: 7, open: 2 }, profiled: { well: 4, route: 7 } } };
+  for (const mode of ['visible', 'ghost']) {
+    assert.match(r31DrainageTechnicalSummary(known, mode, true), /4 profiilimallinnettua kaivoa \(WORK_TEST\), 1 viitteellistä kaivomerkkiä/);
+    assert.match(r31DrainageTechnicalSummary(undefined, mode, true), /lähde ei vielä varmennettu/);
+    assert.match(r31DrainageTechnicalSummary(null, mode, true), /lähde ei vielä varmennettu/);
+    assert.match(r31DrainageTechnicalSummary({ userData: { ...known.userData, source: {} } }, mode, true), /lähde ei vielä varmennettu/);
+    assert.match(r31DrainageTechnicalSummary({ userData: { ...known.userData, profiled: { well: 6 } } }, mode, true), /esitysmääriä ei varmennettu/);
+    assert.match(r31DrainageTechnicalSummary({ userData: { ...known.userData, profiled: undefined } }, mode, true), /esitysmääriä ei varmennettu/);
+    assert.equal(r31DrainageTechnicalSummary(known, mode, false), 'salaojat piilotettu');
+  }
+  assert.equal(r31DrainageTechnicalSummary(known, 'hidden', true), 'salaojat piilotettu');
+});
+
 test('a route whose source ID is known but endpoints changed must not use old surface-line fallback', () => {
   const gltf = drainSource();
   const route = gltf.scenes[59].children.find((c) => c.userData.representationKind === 'referenceRouteWork');
@@ -152,6 +168,7 @@ test('owner 23.11: profiled drains are real pipes 1 m+ below ground, wells reach
   const overlay = buildR31DrainageOverlay(THREE, { scenes, parser: { json } });
   assert.deepEqual(overlay.userData.counts, { well: 1, route: 1, open: 1 });
   assert.deepEqual(overlay.userData.profiled, { route: 1, well: 1 });
+  assert.match(r31DrainageTechnicalSummary(overlay, 'visible', true), /1 profiilimallinnettua kaivoa \(WORK_TEST\), 0 viitteellistä kaivomerkkiä/);
   assert.equal(overlay.userData.unprofiledRoutesOmitted, 0, 'valid underground profiles stay visible');
   assert.equal(r31DrainageOmissionNotice(overlay, 'visible', true), '');
   assert.equal(overlay.children.length, 2, 'open end is told in the card, not drawn');

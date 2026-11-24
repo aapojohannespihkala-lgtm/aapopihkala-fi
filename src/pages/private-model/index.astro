@@ -2753,7 +2753,7 @@ const title = 'Private 3D viewer';
       // @ts-ignore - R31 review roots and inspection overlays have unit coverage.
       import { resolveC80R31TechnicalReviewRoots, c80R31RoofWaterSystemOf } from '../../scripts/privateModelC80R31TechnicalReview.mjs';
       // @ts-ignore - pure overlay builders, THREE injected.
-      import { R31_DRAINAGE_SOURCE, R31_EXTERIOR_DONORS, buildR31DrainageOverlay, r31DrainagePresentationNotice, buildR31RoofWaterOverlay, buildR31InfraOverlay, buildR31FiberOverlay, buildR31StormOverlay, buildR31LowVoltageOverlay, buildR31ExteriorDonorOverlay, buildR31WestGableInfill, buildR31GableBoarding, buildR31WestBrickCompletion, buildR31FiberEntryBox, buildR31FiberEntryLink, isR31WestGableBoardingSource, R31_GABLE_BOARDING_COLOR, isR31ReplacedWestDownpipe, loadR31EastGableOverlay, relocateR31Downpipes, syncR31ExteriorDonorMaterials, setR31SiteNetworkLayerMode } from '../../scripts/privateModelR31Inspection.mjs';
+      import { R31_DRAINAGE_SOURCE, R31_EXTERIOR_DONORS, buildR31DrainageOverlay, r31DrainagePresentationNotice, r31DrainageTechnicalSummary, buildR31RoofWaterOverlay, buildR31InfraOverlay, buildR31FiberOverlay, buildR31StormOverlay, buildR31LowVoltageOverlay, buildR31ExteriorDonorOverlay, buildR31WestGableInfill, buildR31GableBoarding, buildR31WestBrickCompletion, buildR31FiberEntryBox, buildR31FiberEntryLink, isR31WestGableBoardingSource, R31_GABLE_BOARDING_COLOR, isR31ReplacedWestDownpipe, loadR31EastGableOverlay, relocateR31Downpipes, syncR31ExteriorDonorMaterials, setR31SiteNetworkLayerMode } from '../../scripts/privateModelR31Inspection.mjs';
       import { R31_LOCUS_FIBER_LINES } from '../../scripts/privateModelR31LocusFiber.mjs';
       import { R31_LOCUS_STORM_LINES, R31_LOCUS_STORM_FLOW_MARKS } from '../../scripts/privateModelR31LocusStorm.mjs';
       import { R31_LOCUS_LOWVOLT_LINES, R31_LOCUS_LOWVOLT_SOURCE } from '../../scripts/privateModelR31LocusLowVoltage.mjs';
@@ -16028,10 +16028,8 @@ const title = 'Private 3D viewer';
         canvas.dataset.r31ExteriorDonors = whole ? String(shown) : '0';
         canvas.dataset.r31SiteNetworks = whole && Object.keys(counts).length ? JSON.stringify(counts) : '';
         if (technical && Object.keys(counts).length) {
-          const drainSummary = !siteOk || effectiveSiteModes.drainage === 'hidden'
-            ? 'salaojat piilotettu' : !r31SiteNetworks.drainage
-              ? 'salaojien lähde ei vielä varmennettu'
-              : `salaojat ${counts.well ?? 0} kaivoa, ${counts.route ?? 0} reittiosaa, ${counts.open ?? 0} avointa purkua`;
+          const drainSummary = r31DrainageTechnicalSummary(
+            r31SiteNetworks.drainage, effectiveSiteModes.drainage, siteOk);
           status.textContent = `Talotekniikka + kunnallistekniikka (WORK_TEST): ${drainSummary}; kattovedet ${counts.ROOFWATER_WELL ?? 0} rännikaivoa, ` +
             `${counts.ROOFWATER_PIPE ?? 0} putkea, ${counts.ROOFWATER_GUTTER ?? 0} tilapäinen ränni; Locus vesi ${counts.WATER ?? 0}, ` +
             `jätevesi ${counts.WASTEWATER ?? 0}, valokuitu ${counts.FIBER ?? 0} (2D, syvyys avoin; ` +
