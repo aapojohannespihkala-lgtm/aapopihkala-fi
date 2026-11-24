@@ -208,3 +208,11 @@ export function createR33BathroomCEmphasis(options = {}) {
 export function createR34BathroomCEmphasis(options = {}) {
   return createBathroomCEmphasis(options, R34_BATH_C_SOURCE);
 }
+
+/** A requested checkbox is not evidence that the source-bound edges were attached. */
+export function bathroomCStatusNotice(requested, result) {
+  if (!requested) return '';
+  if (result?.applied === true && result.count === 4 && result.status === 'WORK_TEST_C_VISIBLE')
+    return 'Neljä reunakorostusta liitetty (WORK_TEST). Näkyvyys riippuu lähdeobjektien ja tasojen näkyvyydestä.';
+  return 'Korostusta pyydetty, mutta lähde- tai geometriatarkistus ei läpäissyt. Korostusta ei näytetä.';
+}
