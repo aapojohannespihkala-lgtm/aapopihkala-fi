@@ -16705,6 +16705,10 @@ const title = 'Private 3D viewer';
       }).observe(canvas, { attributes: true });
       markRenderDirty(3000);
       renderer.setAnimationLoop(() => {
+        // WP1c: a hidden tab cannot present pixels. Avoid traversing 3D layers and
+        // issuing WebGL draws until the browser makes this canvas visible again.
+        // Keep the animation loop installed so foreground rendering resumes normally.
+        if (document.visibilityState === 'hidden') return;
         frameProfiler?.begin(performance.now());
         mainViewScope?.enforce();
         frameProfiler?.mark('scope', performance.now());
