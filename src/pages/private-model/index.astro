@@ -2211,6 +2211,7 @@ const title = 'Private 3D viewer';
         sourceCardResolverForModel,
         type SelectionSourceEvidence,
       } from '../../scripts/privateModelSourceCards';
+      import { releaseReplacedGltfGpuResources } from '../../scripts/privateModelGpuLifetime.mjs';
       import { createSelectionHighlightController } from '../../scripts/privateModelSelectionHighlight';
       import {
         nearestNamedAncestor,
@@ -7949,6 +7950,7 @@ const title = 'Private 3D viewer';
         dInteriorOverride: THREE.Object3D | null = null,
         c70PreviewSession: any = null,
       ) => {
+        const replacedGltf = layersGltf && layersGltf !== gltf ? layersGltf : null;
         onLayersModelLoaded(gltf, c70PreviewSession);
         if (r300ViewSwitch) {
           delete canvas.dataset.workTestReviewMode;
@@ -8371,6 +8373,9 @@ const title = 'Private 3D viewer';
         if (sourceKind !== 'work-test') delete canvas.dataset.p137eLoadedCandidateId;
 
         setModelScene(fullModelScene);
+        // Only after a successful mount: failed loads keep the previous model intact.
+        // GLTFLoader does not release textures, materials or geometry on Group.clear().
+        if (replacedGltf) releaseReplacedGltfGpuResources(replacedGltf, renderer);
         applyViewerLayerState(modelLoadLayerState, 'preset:whole-building');
         configureHorizontalClippingRange();
         fitModel();
