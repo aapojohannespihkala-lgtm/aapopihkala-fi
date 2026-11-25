@@ -113,3 +113,43 @@ test('all elevation presets keep orthographic yaw-only controls and YLIS Z scree
   await expectElevation(page, 'pos-x', /X-1\.00 Y[+-]0\.00 Z[+-]0\.00/);
   await expectElevation(page, 'neg-x', /X\+1\.00 Y[+-]0\.00 Z[+-]0\.00/);
 });
+
+test('elevation to orbit and top transitions clear stale Z-scale state', async ({ page }) => {
+  const errors: string[] = [];
+  page.on('pageerror', (error) => errors.push(error.message));
+  await page.route('**/private-model/model.glb', (route) =>
+    route.fulfill({ status: 200, contentType: 'model/gltf-binary', body: makeTriangleGlb() }));
+  await page.goto('/private-model/');
+  await expect(page.getByRole('status')).toHaveText('Malli ladattu');
+  const canvas = page.locator('#private-model-canvas');
+  const scale = page.locator('#height-scale');
+  const labels = scale.locator('.height-scale-label');
+
+  const enter = async (direction: 'pos-y' | 'neg-x') => {
+    await page.locator(`[data-desk-kind="angle"][data-desk-id="elev-${direction}"]`).click();
+    await expect(canvas).toHaveAttribute('data-view-preset', 'elevation');
+    await expect(canvas).toHaveAttribute('data-elevation-direction', direction);
+    await expect(canvas).toHaveAttribute('data-camera-pitch', 'locked');
+    await expect(canvas).toHaveAttribute('data-height-scale-visible', 'true');
+    await expect(scale).toBeVisible();
+    await expect.poll(() => labels.count()).toBeGreaterThan(1);
+  };
+  const leave = async (preset: 'orbit' | 'top') => {
+    await page.locator(`[data-desk-kind="angle"][data-desk-id="${preset}"]`).click();
+    await expect(canvas).toHaveAttribute('data-view-preset', preset);
+    await expect(canvas).toHaveAttribute('data-height-scale-visible', 'false');
+    await expect(scale).toBeHidden();
+    await expect(labels).toHaveCount(0);
+    for (const attribute of ['data-elevation-direction', 'data-height-scale-min-z',
+      'data-height-scale-max-z', 'data-height-scale-step-m', 'data-camera-pitch', 'data-camera-roll']) {
+      await expect.poll(() => canvas.getAttribute(attribute)).toBeNull();
+    }
+  };
+  await enter('pos-y');
+  await leave('orbit');
+  await enter('neg-x');
+  await leave('top');
+  await enter('pos-y');
+  await leave('orbit');
+  expect(errors).toEqual([]);
+});
