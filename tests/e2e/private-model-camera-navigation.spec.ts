@@ -207,24 +207,16 @@ test('owner menu presets keep the active isometric or elevation camera direction
     };
   });
 
-  const chooseView = async (name: string) => {
-    const menu = page.locator('#view-menu');
-    if ((await menu.getAttribute('open')) === null) {
-      await menu.locator(':scope > summary').click();
-    }
-    await menu.getByRole('button', { name, exact: true }).click();
-  };
-
-  for (const { viewButton, mode, projection } of [
-    { viewButton: 'Isometrinen', mode: 'isometric', projection: 'orthographic' },
-    { viewButton: 'Julk +Y', mode: 'elevation', projection: 'orthographic' },
+  for (const { viewButton, angle, mode, projection } of [
+    { viewButton: 'Isometrinen', angle: 'iso', mode: 'isometric', projection: 'orthographic' },
+    { viewButton: 'Julk +Y', angle: 'elev-pos-y', mode: 'elevation', projection: 'orthographic' },
   ]) {
     // Each independent camera mode starts from a fresh fixture. Switching
     // isometric -> elevation is a separate navigation action, not this test's
     // menu-preset preservation contract.
     await page.goto('/private-model/');
     await expect(page.getByRole('status')).toHaveText('Malli ladattu');
-    await chooseView(viewButton);
+    await page.locator(`[data-desk-kind="angle"][data-desk-id="${angle}"]`).click();
     await expect(page.locator('#private-model-canvas')).toHaveAttribute('data-view-preset', mode);
     const before = await cameraSnapshot();
     expect(before.projection).toBe(projection);

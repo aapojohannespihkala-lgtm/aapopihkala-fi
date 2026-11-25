@@ -77,9 +77,38 @@ test('private viewer uses the approved toolbar and restores tool windows from th
 
   const viewport = page.locator('.viewport');
   const toolbar = page.locator('.toolbar');
+  const panelButtons = toolbar.locator('.toolbar-panel-button');
+  const sizes = await panelButtons.evaluateAll(buttons => buttons.map(button => {
+    const { width, height } = button.getBoundingClientRect();
+    return [width, height];
+  }));
+  expect(sizes).toHaveLength(3);
+  expect(sizes).toEqual(Array(3).fill([sizes[0][0], sizes[0][0]]));
+  const preset = presetIds.first();
+  const beforePresetHover = await preset.evaluate(node => getComputedStyle(node).backgroundColor);
+  await preset.hover();
+  await expect.poll(() => preset.evaluate(node => getComputedStyle(node).backgroundColor)).not.toBe(beforePresetHover);
+  await expect(preset).toHaveCSS('border-top-width', '0px');
+  await expect(preset).toHaveCSS('box-shadow', 'none');
+
+  const cameraMenu = page.locator('#view-menu');
+  const cameraSummary = cameraMenu.locator(':scope > summary');
+  await page.setViewportSize({ width: 1440, height: 880 });
+  await cameraSummary.click();
+  await expect(cameraMenu.locator('#orbit-button')).toBeHidden();
+  await expect(cameraMenu.locator('#elev-pos-x-button')).toBeHidden();
+  await expect(cameraMenu.locator('#bottom-button')).toBeVisible();
+  await expect(cameraMenu.locator('#fit-button')).toBeVisible();
+  await expect(cameraMenu.locator('#clip-plane-enabled')).toBeVisible();
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(cameraMenu.locator('#orbit-button')).toBeVisible();
+  await expect(cameraMenu.locator('#elev-pos-x-button')).toBeVisible();
+  await cameraSummary.click();
+  await page.setViewportSize({ width: 1024, height: 768 });
+
   const panels = viewport.locator(':scope > aside[id]');
   const minimizeButtons = panels.locator('.viewport-panel-minimize');
-  expect(await minimizeButtons.count()).toBe(await panels.count());
+  expect(await minimizeButtons.count()).toBe(await panels.count() - 1);
 
   const canvas = viewport.locator('canvas');
   const source = viewport.locator('#m5a-source-context');
@@ -104,7 +133,10 @@ test('private viewer uses the approved toolbar and restores tool windows from th
   const cube = viewport.locator('#orientation-gizmo');
   await expect(cubeButton).toHaveAttribute('aria-expanded', 'true');
   await expect(cubeButton).toHaveCSS('color', 'rgb(130, 145, 156)');
-  await cube.getByRole('button', { name: 'Pienennä: Suuntailmaisin' }).click();
+  await expect(cube).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
+  await expect(cube).toHaveCSS('top', '12px');
+  await expect(cube.locator('.viewport-panel-minimize')).toHaveCount(0);
+  await cubeButton.click();
   await expect(cube).toBeHidden();
   await expect(cubeButton).toHaveAttribute('aria-expanded', 'false');
   await expect(cubeButton).toHaveCSS('color', 'rgb(241, 244, 245)');
