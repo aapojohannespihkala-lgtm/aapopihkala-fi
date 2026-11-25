@@ -122,7 +122,7 @@ for (const width of [1280, 390]) test(`actual R4E main viewer floor/reference/or
     observations.push({ floor, transitionMs, framing,
       count: await canvas.getAttribute('data-edge-source-mesh-count') });
   }
-  await menu(page, '#more-menu'); await page.getByRole('button', { name: 'Palauta näkymän oletukset', exact: true }).click();
+  await menu(page, '#view-menu'); await page.getByRole('button', { name: 'Palauta näkymän oletukset', exact: true }).click();
   await expect(canvas).toHaveAttribute('data-main-view-area', 'WHOLE');
   await expect(canvas).toHaveAttribute('data-main-view-t04-status', 'WHOLE_ORIGINAL');
   await page.reload(); await expect(page.getByRole('status')).toContainText('Malli ladattu', { timeout: 60_000 });

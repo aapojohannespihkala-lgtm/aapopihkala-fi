@@ -150,6 +150,7 @@ test('D1F P137E target-specific crosshairs coexist with screenshot point tool an
   await page.locator('#d1-plan-button').click();
   await expect(canvas).toHaveAttribute('data-content-floor', '1F');
   await expect(place).toBeEnabled();
+  await page.locator('#view-menu > summary').click();
   await place.click();
   await expect(canvas).toHaveAttribute('data-interaction-mode', 'place');
   await expect(page.locator('#p137e-place-panel')).toBeVisible();
@@ -178,6 +179,7 @@ test('D1F P137E target-specific crosshairs coexist with screenshot point tool an
   await click(0.48, 0.45);
   await expect(canvas).toHaveAttribute('data-point-pick-state', 'picked');
   await expect(page.locator('#point-pick-main')).toContainText('Z ');
+  await page.locator('#view-menu > summary').click();
   await place.click();
   await expect(canvas).toHaveAttribute('data-point-pick-state', 'empty');
   await expect(canvas).toHaveAttribute('data-p137e-place-draft-count', '3');
@@ -228,7 +230,7 @@ test('P137E placement never trusts the selected option instead of the loaded can
   await page.locator('#preset-menu > summary').click();
   await page.locator('#d1-plan-button').click();
   await expect(place).toBeEnabled();
-  await page.locator('#more-menu > summary').click();
+  await page.locator('#preset-menu > summary').click();
   await option.selectOption(otherId);
   await expect(place).toBeEnabled();
   await page.locator('#current-model-button').click();

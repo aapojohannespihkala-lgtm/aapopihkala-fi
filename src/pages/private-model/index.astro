@@ -1,5 +1,5 @@
 ---
-import { DESKTOP_FOLDER_ICON, DESKTOP_LAYERS_ICON, DESKTOP_MORE_ICON } from '../../scripts/privateModelDesktopToolbar.mjs';
+import { DESKTOP_FOLDER_ICON, DESKTOP_LAYERS_ICON, DESKTOP_MORE_ICON, DESKTOP_NAV_CUBE_ICON } from '../../scripts/privateModelDesktopToolbar.mjs';
 
 const title = 'Private 3D viewer';
 ---
@@ -38,8 +38,24 @@ const title = 'Private 3D viewer';
       .viewer-shell > .toolbar .desk-group > .toolbar-menu[open] > .toolbar-icon {
         box-shadow: none;
       }
-      .viewer-shell > .toolbar #model-menu {
-        position: absolute; top: 9px; right: 10px; max-width: none;
+      .viewer-shell > .toolbar { gap: 6px; }
+      .viewer-shell > .toolbar > :is(#model-menu, #navigation-cube-button) { flex: 0 0 auto; }
+      .viewer-shell > .toolbar #model-menu > summary,
+      .viewer-shell > .toolbar > #navigation-cube-button {
+        border-color: var(--viewer-line-soft);
+      }
+      .viewer-shell > .toolbar > #navigation-cube-button { box-shadow: none; }
+      .viewer-shell > .toolbar > #navigation-cube-button[aria-expanded='true'] {
+        color: #82919c;
+      }
+      .toolbar-menu-panel [data-context-tool]:disabled { display: none; }
+      @media (min-width: 1240px) {
+        .viewer-shell > .toolbar, .viewer-shell > .toolbar .desk-toolbar { flex-wrap: nowrap; }
+      }
+      @media (min-width: 1000px) and (max-width: 1239px) {
+        .viewer-shell > .toolbar, .viewer-shell > .toolbar .desk-toolbar { flex-wrap: nowrap; }
+        .viewer-shell > .toolbar .desk-icon { min-width: 32px; padding: 3px; }
+        .desk-toolbar { gap: 5px; }
       }
       .viewer-shell :is(button:not(:disabled), summary):hover,
       .viewer-shell > .toolbar :is(.desk-icon:not(:disabled), .toolbar-icon):hover {
@@ -131,7 +147,7 @@ const title = 'Private 3D viewer';
         flex-wrap: wrap;
         align-items: center;
         gap: 8px;
-        padding: 9px 54px 9px 10px;
+        padding: 9px 10px;
         background: #fff;
         border: 1px solid #d7d7d2;
         border-radius: 10px;
@@ -314,14 +330,6 @@ const title = 'Private 3D viewer';
         margin: 6px 0;
         font-size: 12px;
         line-height: 1.45;
-      }
-
-      .more-menu > summary {
-        min-width: 36px;
-        justify-content: center;
-        padding-inline: 9px;
-        font-size: 18px;
-        font-weight: 700;
       }
 
       button {
@@ -1579,6 +1587,23 @@ const title = 'Private 3D viewer';
       <!-- P149A compact primary toolbar: advanced actions stay available through menus. -->
       <div class="toolbar" aria-label="3D-katselun ohjaimet">
         <span id="preset-context-status" class="desk-sr" aria-live="polite" aria-atomic="true">Koko rakennus</span>
+        <details id="model-menu" class="toolbar-menu">
+          <summary class="toolbar-icon" aria-label="WORK_TEST-versiot" title="WORK_TEST-versiot"><Fragment set:html={DESKTOP_FOLDER_ICON} /></summary>
+          <div class="toolbar-menu-panel" aria-label="WORK_TEST-versiot">
+            <input
+              id="work-test-filter"
+              class="work-test-filter"
+              type="search"
+              placeholder="Suodata versioita (esim. scene68, D1F)"
+              aria-label="Suodata WORK_TEST-versioita"
+              autocomplete="off"
+              disabled
+            />
+            <div id="work-test-count" class="desk-sr" aria-live="polite"></div>
+            <div id="work-test-options" class="work-test-options">Ladataan versioita…</div>
+          </div>
+        </details>
+
         <details id="preset-menu" class="toolbar-menu">
           <summary class="toolbar-icon" aria-label="Presetit" title="Presetit"><Fragment set:html={DESKTOP_MORE_ICON} /></summary>
           <div class="toolbar-menu-panel" aria-label="Tutkimuspresetit">
@@ -1626,75 +1651,6 @@ const title = 'Private 3D viewer';
             <button id="infra-preset-button" type="button">Infra</button>
             <button id="drainage-preset-button" type="button">Salaojat</button>
             <button id="electrical-preset-button" type="button">Sähköt</button>
-          </div>
-        </details>
-
-        <details id="view-menu" class="toolbar-menu">
-          <summary class="toolbar-icon" aria-label="Kamera" title="Kamera"><Fragment set:html={DESKTOP_MORE_ICON} /></summary>
-          <div class="toolbar-menu-panel" aria-label="Kamera ja esitystapa">
-            <div class="toolbar-menu-label">Kamera</div>
-            <button id="orbit-button" type="button">Vapaa 3D</button>
-            <button id="iso-button" type="button">Isometrinen</button>
-            <button id="top-button" type="button">Ylhäältä</button>
-            <button id="bottom-button" type="button">Alhaalta</button>
-            <button id="p137e-plan-face-button" type="button" hidden>Themot: pohja + rastit + Mittaa</button>
-            <button id="p137e-north-face-button" type="button" hidden>Themo: aula (pohjoinen)</button>
-            <button id="p137e-south-face-button" type="button" hidden>Themot: makuuhuone + kylpyhuone (eteläinen)</button>
-            <div class="toolbar-menu-separator"></div>
-            <div class="toolbar-menu-label">Julkisivut</div>
-            <button id="elev-pos-y-button" type="button" title="Ortografinen julkisivu YLIS-G1-LOCAL +Y suunnasta">Julk +Y</button>
-            <button id="elev-neg-y-button" type="button" title="Ortografinen julkisivu YLIS-G1-LOCAL -Y suunnasta">Julk -Y</button>
-            <button id="elev-pos-x-button" type="button" title="Ortografinen julkisivu YLIS-G1-LOCAL +X suunnasta">Julk +X</button>
-            <button id="elev-neg-x-button" type="button" title="Ortografinen julkisivu YLIS-G1-LOCAL -X suunnasta">Julk -X</button>
-          </div>
-        </details>
-
-        <button id="layers-button" class="desk-icon" type="button" title="Layerit" aria-label="Layerit" aria-expanded="false" aria-controls="layers-panel"><Fragment set:html={DESKTOP_LAYERS_ICON} /></button>
-
-        <div class="interaction-tools" role="group" aria-label="Vuorovaikutustila">
-          <button id="navigate-tool-button" type="button" aria-pressed="true">Navigoi</button>
-          <button id="selection-tool-button" type="button" aria-pressed="false">Valitse</button>
-          <button id="point-pick-tool-button" type="button" aria-pressed="false" title="Klikkaa mallipintaa, näytä XYZ-koordinaatit ja merkki kuvakaappausta varten.">Piste mallissa</button>
-          <button id="point-measure-tool-button" type="button" aria-pressed="false" title="Mittaa kahden näkyvän mallipinnan pisteen etäisyys missä tahansa näkymässä. Mallin arvo, ei tarkemittaus.">Mittaa 3D</button>
-          <button id="axis-measure-tool-button" type="button" aria-pressed="false" disabled title="Mittaa D-asunnon pohjan kahden pisteen etäisyys mallista, ei tarkemittaus">Mittaa pohjaa</button>
-          <button id="p137e-place-tool-button" type="button" aria-pressed="false" disabled title="Rastiluonnos: vain D1F P137E WORK_TEST; tallennus G2:een ei vielä kytketty">Sijoita kohde</button>
-        </div>
-
-        <details id="model-menu" class="toolbar-menu">
-          <summary class="toolbar-icon" aria-label="WORK_TEST-versiot" title="WORK_TEST-versiot"><Fragment set:html={DESKTOP_FOLDER_ICON} /></summary>
-          <div class="toolbar-menu-panel right" aria-label="WORK_TEST-versiot">
-            <input
-              id="work-test-filter"
-              class="work-test-filter"
-              type="search"
-              placeholder="Suodata versioita (esim. scene68, D1F)"
-              aria-label="Suodata WORK_TEST-versioita"
-              autocomplete="off"
-              disabled
-            />
-            <div id="work-test-count" class="desk-sr" aria-live="polite"></div>
-            <div id="work-test-options" class="work-test-options">Ladataan versioita…</div>
-          </div>
-        </details>
-
-        <details id="more-menu" class="toolbar-menu more-menu">
-          <summary class="toolbar-icon" aria-label="Lisää toimintoja" title="Lisää toimintoja">⋯</summary>
-          <div class="toolbar-menu-panel right">
-            <button id="fit-button" type="button">Sovita näkymään</button>
-            <button id="reset-view-defaults-button" type="button">Palauta näkymän oletukset</button>
-            <button id="show-all-objects-button" type="button" disabled>Näytä kaikki</button>
-            <div class="clip-control" aria-label="Leikkaustaso">
-              <label class="clip-toggle" for="clip-plane-enabled">
-                <span>Leikkaa yläpuoli</span>
-                <input id="clip-plane-enabled" type="checkbox" disabled />
-              </label>
-              <label class="clip-range" for="clip-plane-height">
-                <span>Korkeus</span>
-                <output id="clip-plane-value" for="clip-plane-height">-</output>
-                <input id="clip-plane-height" type="range" min="0" max="1" step="0.05" value="1" disabled />
-              </label>
-            </div>
-            <button id="profile-button" type="button" aria-expanded="false" aria-controls="profile-panel" disabled>Pituusleikkaus</button>
             <div class="toolbar-menu-separator"></div>
             <div class="toolbar-menu-label">Mallitoiminnot</div>
             <select id="work-test-select" aria-label="Vertailtava WORK_TEST-kandidaatti" disabled>
@@ -1722,6 +1678,55 @@ const title = 'Private 3D viewer';
           </div>
         </details>
 
+        <details id="view-menu" class="toolbar-menu">
+          <summary class="toolbar-icon" aria-label="Kamera" title="Kamera"><Fragment set:html={DESKTOP_MORE_ICON} /></summary>
+          <div class="toolbar-menu-panel" aria-label="Kamera ja esitystapa">
+            <div class="toolbar-menu-label">Kamera</div>
+            <button id="orbit-button" type="button">Vapaa 3D</button>
+            <button id="iso-button" type="button">Isometrinen</button>
+            <button id="top-button" type="button">Ylhäältä</button>
+            <button id="bottom-button" type="button">Alhaalta</button>
+            <button id="p137e-plan-face-button" type="button" hidden>Themot: pohja + rastit + Mittaa</button>
+            <button id="p137e-north-face-button" type="button" hidden>Themo: aula (pohjoinen)</button>
+            <button id="p137e-south-face-button" type="button" hidden>Themot: makuuhuone + kylpyhuone (eteläinen)</button>
+            <div class="toolbar-menu-separator"></div>
+            <div class="toolbar-menu-label">Julkisivut</div>
+            <button id="elev-pos-y-button" type="button" title="Ortografinen julkisivu YLIS-G1-LOCAL +Y suunnasta">Julk +Y</button>
+            <button id="elev-neg-y-button" type="button" title="Ortografinen julkisivu YLIS-G1-LOCAL -Y suunnasta">Julk -Y</button>
+            <button id="elev-pos-x-button" type="button" title="Ortografinen julkisivu YLIS-G1-LOCAL +X suunnasta">Julk +X</button>
+            <button id="elev-neg-x-button" type="button" title="Ortografinen julkisivu YLIS-G1-LOCAL -X suunnasta">Julk -X</button>
+            <div class="toolbar-menu-separator"></div>
+            <button id="axis-measure-tool-button" type="button" data-context-tool aria-pressed="false" disabled title="Mittaa D-asunnon pohjan kahden pisteen etäisyys mallista, ei tarkemittaus">Mittaa pohjaa</button>
+            <button id="p137e-place-tool-button" type="button" data-context-tool aria-pressed="false" disabled title="Rastiluonnos: vain D1F P137E WORK_TEST; tallennus G2:een ei vielä kytketty">Sijoita kohde</button>
+            <button id="fit-button" type="button">Sovita näkymään</button>
+            <button id="reset-view-defaults-button" type="button">Palauta näkymän oletukset</button>
+            <button id="show-all-objects-button" type="button" disabled>Näytä kaikki</button>
+            <div class="clip-control" aria-label="Leikkaustaso">
+              <label class="clip-toggle" for="clip-plane-enabled">
+                <span>Leikkaa yläpuoli</span>
+                <input id="clip-plane-enabled" type="checkbox" disabled />
+              </label>
+              <label class="clip-range" for="clip-plane-height">
+                <span>Korkeus</span>
+                <output id="clip-plane-value" for="clip-plane-height">-</output>
+                <input id="clip-plane-height" type="range" min="0" max="1" step="0.05" value="1" disabled />
+              </label>
+            </div>
+            <button id="profile-button" type="button" aria-expanded="false" aria-controls="profile-panel" disabled>Pituusleikkaus</button>
+          </div>
+        </details>
+
+        <button id="layers-button" class="desk-icon" type="button" title="Layerit" aria-label="Layerit" aria-expanded="false" aria-controls="layers-panel"><Fragment set:html={DESKTOP_LAYERS_ICON} /></button>
+
+        <div class="interaction-tools" role="group" aria-label="Vuorovaikutustila">
+          <button id="navigate-tool-button" type="button" aria-pressed="true">Navigoi</button>
+          <button id="selection-tool-button" type="button" aria-pressed="false">Valitse</button>
+          <button id="point-pick-tool-button" type="button" aria-pressed="false" title="Klikkaa mallipintaa, näytä XYZ-koordinaatit ja merkki kuvakaappausta varten.">Piste mallissa</button>
+          <button id="point-measure-tool-button" type="button" aria-pressed="false" title="Mittaa kahden näkyvän mallipinnan pisteen etäisyys missä tahansa näkymässä. Mallin arvo, ei tarkemittaus.">Mittaa 3D</button>
+        </div>
+
+
+        <button id="navigation-cube-button" class="desk-icon" type="button" aria-label="Suuntailmaisin" aria-expanded="true" aria-controls="orientation-gizmo" title="Pienennä suuntailmaisin"><Fragment set:html={DESKTOP_NAV_CUBE_ICON} /></button>
       </div>
 
       <section class="viewport" aria-label="Suojattu 3D-katseluportti">
@@ -2832,6 +2837,7 @@ const title = 'Private 3D viewer';
       const workTestCount = document.querySelector<HTMLElement>('#work-test-count');
       const workTestOptions = document.querySelector<HTMLElement>('#work-test-options');
       const workTestMenuTrigger = document.querySelector<HTMLElement>('#model-menu > summary');
+      const navigationCubeButton = document.querySelector<HTMLButtonElement>('#navigation-cube-button');
       const compareModelButton = document.querySelector<HTMLButtonElement>('#compare-model-button');
       const workTestUploadButton = document.querySelector<HTMLButtonElement>('#work-test-upload-button');
       const workTestUploadInput = document.querySelector<HTMLInputElement>('#work-test-upload-input');
@@ -3003,6 +3009,7 @@ const title = 'Private 3D viewer';
         !workTestCount ||
         !workTestOptions ||
         !workTestMenuTrigger ||
+        !navigationCubeButton ||
         !compareModelButton ||
         !workTestUploadButton ||
         !workTestUploadInput ||
@@ -3976,6 +3983,7 @@ const title = 'Private 3D viewer';
         updateP137EPlaceDraftList();
       };
       const placeP137EDraftAt = (clientX: number, clientY: number) => {
+        p137ePlacePanel.removeAttribute('data-viewport-minimized');
         if (canvas.dataset.interactionMode !== 'place' || !canStartP137EPlaceDraft()) return;
         const id = p137ePlaceTarget.value;
         if (!Object.prototype.hasOwnProperty.call(p137eTargetLabels, id)) return;
@@ -4094,6 +4102,7 @@ const title = 'Private 3D viewer';
       };
 
       const clickDAxisMeasurement = (clientX: number, clientY: number) => {
+        axisMeasureRow.removeAttribute('data-viewport-minimized');
         const coordinate = dReviewCoordinateAtClientPoint(clientX, clientY);
         if (!coordinate || !activePlanFloor) return;
         const withinEnvelope =
@@ -5377,6 +5386,7 @@ const title = 'Private 3D viewer';
       };
 
       const clickPointMeasure = (clientX: number, clientY: number) => {
+        pointMeasurePanel.removeAttribute('data-viewport-minimized');
         const rect = canvas.getBoundingClientRect();
         let frontmostHit: THREE.Intersection | null = null;
         const picked = pickVisibleWorkTest3DPoint({
@@ -5487,6 +5497,7 @@ const title = 'Private 3D viewer';
       // resets pointPickState, which the checklist checks before using the point.
       let electricalChecklistOnPick: ((point: any) => void) | null = null;
       const pickModelPoint = (clientX: number, clientY: number) => {
+        pointPickPanel.removeAttribute('data-viewport-minimized');
         const point = pickVisibleWorkTest3DPoint({
           clientX, clientY, rect: canvas.getBoundingClientRect(),
           camera: activeCamera, modelRoot, raycaster,
@@ -5735,6 +5746,7 @@ const title = 'Private 3D viewer';
       };
 
       const selectObject = (object: any) => {
+        selectionPanel.removeAttribute('data-viewport-minimized');
         const serviceTarget = d1fService?.resolveTarget(object);
         if (serviceTarget) object = serviceTarget.object;
         clearSelection();
@@ -15650,19 +15662,11 @@ const title = 'Private 3D viewer';
           box.union(part);
         });
         if (box.isEmpty()) return;
-        // In the whole-D focus, frame the D footprint (the faint rest stays around it).
-        const footprint = (canvas.dataset.dFocusFootprint ?? '').split(',').map(Number);
-        const focused = footprint.length === 4 && footprint.every(Number.isFinite);
-        if (focused) {
-          box.min.x = Math.max(box.min.x, footprint[0]); box.max.x = Math.min(box.max.x, footprint[1]);
-          box.min.z = Math.max(box.min.z, footprint[2]); box.max.z = Math.min(box.max.z, footprint[3]);
-          if (box.isEmpty()) return;
-        }
         const sphere = box.getBoundingSphere(new THREE.Sphere());
         if (!Number.isFinite(sphere.radius) || sphere.radius <= 0) return;
         const halfFov = THREE.MathUtils.degToRad(camera.fov) / 2;
         const aspect = Math.max(camera.aspect || 1, 0.01);
-        const radius = sphere.radius * (focused ? 1.0 : 0.82);
+        const radius = sphere.radius * 1.06;
         const distance = Math.max(radius / Math.tan(halfFov), radius / Math.tan(Math.atan(Math.tan(halfFov) * aspect)));
         const offset = new THREE.Vector3(-0.622, 0.475, 0.622).normalize();
         controls.target.copy(sphere.center);
@@ -15671,7 +15675,7 @@ const title = 'Private 3D viewer';
         camera.far = Math.max(distance * 50, 2000);
         camera.updateProjectionMatrix();
         controls.update();
-        canvas.dataset.deskStartFrame = focused ? 'd-focus-south-west' : 'building-south-west';
+        canvas.dataset.deskStartFrame = 'building-south-west';
       };
       // Whole D: the full model (no per-object D scope filter, which left parts
       // floating in R31), D footprint at full strength, everything else faint.
@@ -15898,6 +15902,12 @@ const title = 'Private 3D viewer';
           }
         }, true);
       }
+      const deskEnterWholeBuilding = () => {
+        applyStandardViewPreset('whole-building', true);
+        applyViewerLayerState({ roofVisible: true }, 'preset:whole-building');
+        deskSyncLayerRoof(true);
+        deskQueueDownspoutZones();
+      };
       const deskEnterDFocus = (roof: boolean, storey: '1F' | '2F' | null = null) => {
         const key = storey === '1F' ? 'd-1f' : storey === '2F' ? 'd-2f' : roof ? 'd-roof' : 'd-apartment';
         applyStandardViewPreset('whole-building', true);
@@ -15943,17 +15953,11 @@ const title = 'Private 3D viewer';
               deskSync();
               return;
             }
-            const target = (id === 'd-roof' ? 'd-apartment' : id) as StandardViewPreset;
             const angleBefore = deskCurrentAngle();
             const pose = deskCapturePose();
             if (id === 'd-roof' || id === 'd-apartment') deskEnterDFocus(id === 'd-roof');
             else if (id === 'd-1f' || id === 'd-2f') deskEnterDFocus(false, id === 'd-1f' ? '1F' : '2F');
-            else {
-              applyStandardViewPreset(target, true);
-              applyViewerLayerState({ roofVisible: id === 'whole-building' }, `preset:${id}`);
-              deskSyncLayerRoof(id === 'whole-building');
-              deskQueueDownspoutZones();
-            }
+            else deskEnterWholeBuilding();
             if (angleBefore && deskCurrentAngle() !== angleBefore) deskAngleButtons[angleBefore]?.click();
             if (pose && !deskApplyPose(pose)) deskRefitKeepingDirection();
             canvas.dataset.deskPresetCameraKept = pose ? 'exact' : 'angle';
@@ -15978,7 +15982,7 @@ const title = 'Private 3D viewer';
           },
           layers() { layersButton?.click(); deskSync(); },
         });
-        deskToolbarBar.prepend(deskToolbar.root);
+        workTestMenuTrigger.parentElement?.after(deskToolbar.root);
         const groups = deskToolbar.root.querySelectorAll('.desk-group') as NodeListOf<HTMLElement>;
         groups[0]?.append(deskPresetMenu);
         groups[1]?.append(deskViewMenu);
@@ -16012,8 +16016,6 @@ const title = 'Private 3D viewer';
           'selection-tool-button': '<path d="M6 3 L18 13 L12.5 13.6 L15.5 20 L13 21 L10 14.6 L6 18 Z"/>',
           'point-pick-tool-button': '<path d="M12 21 C12 21 5 14 5 9.5 A7 7 0 0 1 19 9.5 C19 14 12 21 12 21 Z"/><circle cx="12" cy="9.5" r="2.4"/>',
           'point-measure-tool-button': '<path d="M3 17 L17 3 L21 7 L7 21 Z"/><path d="M7 13 L9 15 M10 10 L12 12 M13 7 L15 9"/>',
-          'axis-measure-tool-button': '<rect x="3" y="3" width="18" height="18"/><path d="M6 18 H18 M6 16 V20 M18 16 V20"/>',
-          'p137e-place-tool-button': '<circle cx="12" cy="12" r="7"/><path d="M12 2 V7 M12 17 V22 M2 12 H7 M17 12 H22"/>',
         };
         if (tools) {
           for (const button of Array.from(tools.querySelectorAll<HTMLButtonElement>('button'))) {
@@ -16413,7 +16415,17 @@ const title = 'Private 3D viewer';
 
       const viewportPanels = canvas.closest<HTMLElement>('.viewport');
       const viewerTools = document.querySelector<HTMLElement>('.toolbar > .interaction-tools');
-      if (viewportPanels && viewerTools) mountPrivateModelViewportPanels(viewportPanels, viewerTools);
+      if (viewportPanels && viewerTools) {
+        mountPrivateModelViewportPanels(viewportPanels, viewerTools, navigationCubeButton, {
+          'layers-panel': { opener: layersButton, close: () => setLayersPanelOpen(false) },
+          'profile-panel': { opener: profileButton, close: () => setProfilePanelOpen(false) },
+          'selection-panel': { opener: selectionToolButton },
+          'point-pick-panel': { opener: pointPickToolButton },
+          'point-measure-panel': { opener: pointMeasureToolButton },
+          'axis-measure-row': { opener: axisMeasureToolButton },
+          'p137e-place-panel': { opener: p137ePlaceToolButton },
+        });
+      }
 
       // Opt-in, read-only source/ray observation. No public scene handle or
       // camera/material override is exposed to the browser regression.
@@ -16538,9 +16550,8 @@ const title = 'Private 3D viewer';
           await loadProtectedC70();
           return;
         }
-        // Owner decision 21.11.2026: a plain /private-model/ opens the latest
-        // published WORK_TEST in the whole D apartment, roof hidden. Any query
-        // or fragment keeps the previous CURRENT-first route; ?current=1 forces it.
+        // The plain viewer opens the pinned WORK_TEST source with the whole
+        // building preset. Query/fragment review routes keep their own behavior.
         let deskStartCatalogLoaded = false;
         if (!window.location.search && !window.location.hash) {
           try {
@@ -16554,11 +16565,9 @@ const title = 'Private 3D viewer';
                 renderWorkTestOptions(start.id);
                 workTestSelect.value = start.id;
               }
-              // Owner 22.11.2026 04.50: start in the whole D with the roof, the
-              // rest of the building as a faint reference.
-              deskEnterDFocus(true);
+              deskEnterWholeBuilding();
               deskStartFrame();
-              canvas.dataset.deskStartView = 'start-work-test-d-roof-focus';
+              canvas.dataset.deskStartView = 'start-work-test-whole-building';
               deskSync();
               return;
             }

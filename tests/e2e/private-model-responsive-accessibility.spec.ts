@@ -34,7 +34,7 @@ test('private viewer dark shell stays inside desktop and narrow viewports', asyn
     );
     expect(noPageOverflow).toBe(true);
 
-    const toolbarMenus = ['#preset-menu', '#view-menu', '#model-menu', '#more-menu'];
+    const toolbarMenus = ['#preset-menu', '#view-menu', '#model-menu'];
 
     for (const presetLabel of [
       'Koko rakennus',
@@ -85,7 +85,7 @@ test('private viewer exposes keyboard focus and honors reduced motion', async ({
 
   await page.keyboard.press('Tab');
   const firstFocus = await page.evaluate(() => {
-    const expected = document.querySelector('[data-desk-id=whole-building]');
+    const expected = document.querySelector('#model-menu > summary');
     const active = document.activeElement;
     return {
       correct: active === expected,
@@ -103,7 +103,7 @@ test('private viewer exposes keyboard focus and honors reduced motion', async ({
   );
   expect(viewMenuOutline).toBe('3px');
 
-  await page.locator('[data-desk-id=visible]').focus();
+  await page.locator('[data-desk-id=none]').focus();
   await page.keyboard.press('Tab');
   await expect(page.locator('#layers-button')).toBeFocused();
   const buttonOutline = await page.locator('#layers-button').evaluate(
