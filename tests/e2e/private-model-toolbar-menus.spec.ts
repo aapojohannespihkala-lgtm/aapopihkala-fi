@@ -189,7 +189,7 @@ test('toolbar icons stay centered and selected controls share the edge-mode fram
 
   for (const width of [1440, 1024, 390]) {
     await page.setViewportSize({ width, height: 900 });
-    const geometry = await toolbar.locator('.desk-icon, .toolbar-icon').evaluateAll(nodes => nodes.map(node => {
+    const geometry = await toolbar.locator('.desk-icon, .toolbar-icon').filter({ visible: true }).evaluateAll(nodes => nodes.map(node => {
       const button = node.getBoundingClientRect();
       const svg = node.querySelector('svg')!;
       const icon = svg.getBoundingClientRect();
@@ -202,6 +202,7 @@ test('toolbar icons stay centered and selected controls share the edge-mode fram
         left: button.left, right: button.right,
       };
     }));
+    expect(geometry).toHaveLength(26);
     for (const control of geometry) {
       expect(control.dx).toBeLessThanOrEqual(0.5);
       expect(control.dy).toBeLessThanOrEqual(0.5);
@@ -223,7 +224,7 @@ test('toolbar icons stay centered and selected controls share the edge-mode fram
       return { border: style.borderTop, shadow: style.boxShadow };
     };
     // Exercise every icon's selected and unselected CSS independently of model availability.
-    const choices = toolbar.locator('.desk-icon[aria-pressed]');
+    const choices = toolbar.locator('.desk-icon[aria-pressed]').filter({ visible: true });
     for (const choice of await choices.all()) {
       const previous = await choice.getAttribute('aria-pressed');
       await choice.evaluate(node => node.setAttribute('aria-pressed', 'true'));
