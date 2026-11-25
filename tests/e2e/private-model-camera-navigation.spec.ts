@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { DESKTOP_START_CANDIDATE_ID } from '../../src/scripts/privateModelDesktopToolbar.mjs';
 
 const makeMinimalGlb = (json: Record<string, unknown>) => {
   const jsonBuffer = Buffer.from(JSON.stringify(json), 'utf8');
@@ -134,6 +135,53 @@ const makeTriangleGlb = (withDScene = false) => {
 
   return Buffer.concat([header, jsonHeader, jsonChunk, binHeader, binChunk]);
 };
+
+test('a reload after an interrupted default model load opens the protected fallback', async ({ page }) => {
+  const id = DESKTOP_START_CANDIDATE_ID;
+  const path = `/private-model/work-test/${id}.glb`;
+  await page.route('**/private-model/work-test/catalog.json', route => route.fulfill({
+    json: { candidates: [{ id, path, label: 'R34 WORK_TEST' }] },
+  }));
+  await page.route('**/private-model/model.glb', route => route.fulfill({
+    contentType: 'model/gltf-binary',
+    body: makeTriangleGlb(),
+  }));
+  await page.addInitScript(startPath => {
+    const originalFetch = window.fetch.bind(window);
+    window.fetch = (input, init) => {
+      const url = new URL(input instanceof Request ? input.url : input, window.location.href);
+      if (url.pathname !== startPath || sessionStorage.getItem('test-interrupted-start')) {
+        return originalFetch(input, init);
+      }
+      sessionStorage.setItem('test-interrupted-start', 'true');
+      void originalFetch(input, init).catch(() => {});
+      // A dead renderer cannot settle the application promise. A normal
+      // reload can instead reject fetch and let the old page run its cleanup.
+      return new Promise<Response>(() => {});
+    };
+  }, path);
+  let workTestRequests = 0;
+  await page.route(`**${path}`, async route => {
+    workTestRequests++;
+    await route.fulfill({ status: 503 });
+  });
+
+  const request = page.waitForRequest(`**${path}`);
+  await page.goto('/private-model/');
+  await request;
+  await page.reload();
+  const canvas = page.locator('#private-model-canvas');
+  await expect(canvas).toHaveAttribute('data-desk-start-view', 'current-recovery');
+  await expect(canvas).toHaveAttribute('data-model-source', 'current');
+  await expect(canvas).toHaveAttribute('data-standard-view-preset', 'whole-building');
+  expect(workTestRequests).toBe(1);
+
+  // The fallback only consumes this interrupted attempt.
+  await page.reload();
+  await expect(canvas).toHaveAttribute('data-desk-start-view', 'current-fallback');
+  await expect(canvas).toHaveAttribute('data-model-source', 'current');
+  expect(workTestRequests).toBe(2);
+});
 
 test('owner menu presets keep the active isometric or elevation camera direction', async ({ page }) => {
   // A synthetic fixture exercises the actual viewer controls without publishing

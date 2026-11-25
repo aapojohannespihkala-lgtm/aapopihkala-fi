@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import {
   DESKTOP_PRESETS, DESKTOP_ANGLES, DESKTOP_EDGES, DESKTOP_START_CANDIDATE_ID,
-  activeDesktopPreset, activeDesktopAngle,
+  activeDesktopPreset, activeDesktopAngle, runDesktopStartupAttempt,
 } from '../../src/scripts/privateModelDesktopToolbar.mjs';
 
 test('desktop toolbar shows the agreed one-click presets and camera angles', () => {
@@ -56,9 +56,28 @@ test('pressed camera angle follows elevation presets and the active camera mode'
 test('plain startup uses the whole-building preset after the pinned source has loaded', async () => {
   const source = await readFile(new URL('../../src/pages/private-model/index.astro', import.meta.url), 'utf8');
   const start = source.slice(source.indexOf('let deskStartCatalogLoaded = false;'),
-    source.indexOf("canvas.dataset.deskStartView = 'current-fallback';"));
+    source.indexOf("canvas.dataset.deskStartView ??= 'current-fallback';"));
   assert.match(start, /if \(!window\.location\.search && !window\.location\.hash\)/);
-  assert.match(start, /if \(start && await loadWorkTestCandidate\(start\)\)/);
+  assert.match(start, /runDesktopStartupAttempt\(start.id, async \(\) => \{\s*if \(!await loadWorkTestCandidate\(start\)\) return false;/);
   assert.match(start, /deskEnterWholeBuilding\(\);\s*deskStartFrame\(\);\s*canvas\.dataset\.deskStartView = 'start-work-test-whole-building';/);
   assert.doesNotMatch(start, /deskEnterDFocus\(/);
+});
+
+test('an interrupted startup skips the same candidate once, then permits a retry', async () => {
+  const data = new Map();
+  const getStorage = () => ({
+    getItem: key => data.get(key),
+    setItem: (key, value) => data.set(key, value),
+    removeItem: key => data.delete(key),
+  });
+  let finish;
+  const pending = runDesktopStartupAttempt('r34', () => new Promise(resolve => { finish = resolve; }), getStorage);
+  const shouldNotLoad = () => assert.fail('Interrupted model was loaded again');
+  assert.equal(await runDesktopStartupAttempt('r34', shouldNotLoad, getStorage), 'interrupted');
+  finish(false);
+  assert.equal(await pending, 'unavailable');
+  assert.equal(await runDesktopStartupAttempt('r34', () => true, getStorage), 'loaded');
+  await assert.rejects(runDesktopStartupAttempt('r34', () => { throw Error('load error'); }, getStorage), /load error/);
+  assert.equal(data.size, 0);
+  assert.equal(await runDesktopStartupAttempt('r34', () => true, () => { throw Error('storage disabled'); }), 'loaded');
 });
