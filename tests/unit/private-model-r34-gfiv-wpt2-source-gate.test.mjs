@@ -5,6 +5,7 @@ import {createHash} from 'node:crypto';
 import {
  R34_GFIV_WPT2_SOURCE as SOURCE,
  r34GfivWpt2SourceGate as gate,
+ noR34GfivWpt2UnverifiedApprovals as approvalsSafe,
  resolveR34GfivWpt2Scene as resolve,
 } from '../../src/scripts/privateModelR34GfivWpt2SourceGate.mjs';
 
@@ -22,6 +23,21 @@ test('historic WPT2 source selection remains opt-in and fail-closed',()=>{
  assert.doesNotThrow(()=>gate(sparse,SOURCE.glbSha256),
   'missing source scene rejects instead of throwing');
  assert.equal(gate(sparse,SOURCE.glbSha256),null);
+});
+test('unverified approval metadata fails closed even without a private fixture',()=>{
+ const keys=['sourceLinksBound','sourceLinksBoundNewSHA','sourceLinksBoundToNewSHA',
+  'physicalCable','physicalRouteVerified','physicalCableRouteVerified','electricalCircuitVerified',
+  'physicalHostVerified','productionWebGLVerified','humanReviewVerified'];
+ assert.equal(approvalsSafe({}),true);
+ assert.equal(approvalsSafe(null),false);
+ for(const key of keys){
+  assert.equal(approvalsSafe({[key]:true}),false,key);
+  assert.equal(approvalsSafe({[key]:false}),true,key);
+ }
+ for(const value of [1,-1,'1',true,false,{}])
+  assert.equal(approvalsSafe({physicalConnectionsVerified:value}),false);
+ for(const value of [0,null,undefined])
+  assert.equal(approvalsSafe({physicalConnectionsVerified:value}),true);
 });
 const filepath=process.env.R34_GFIV_WPT2_GLB_PATH;
 function load(){
@@ -54,6 +70,14 @@ test('authentic R34 GFIV WPT2 4-scene protected source receipt',
  rejects(()=>{s863.extras.current=true;},()=>{s863.extras.current=false;});
  rejects(()=>{s862.nodes.push(13980);},()=>{s862.nodes.pop();});
  rejects(()=>{s865.nodes.pop();},()=>{s865.nodes.push(13980);});
+ // A scene receipt must reject approval assertions, not merely sanitize its output.
+ for(const id of [862,863,864,865]){
+  const extras=json.scenes[id].extras;
+  for(const key of ['sourceLinksBoundToNewSHA','productionWebGLVerified','humanReviewVerified','physicalCableRouteVerified']){
+   const had=Object.hasOwn(extras,key),previous=extras[key];
+   rejects(()=>{extras[key]=true;},()=>{if(had)extras[key]=previous;else delete extras[key];});
+  }
+ }
  const n=json.nodes[14059],original=n.extras.sourceLinksBound;
  rejects(()=>{n.extras.sourceLinksBound=true;},()=>{n.extras.sourceLinksBound=original;});
  const donor=s863.extras.historicalDonorGLBSHA256;

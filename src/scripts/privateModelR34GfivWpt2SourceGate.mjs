@@ -44,16 +44,19 @@ function reachable(json,roots){
  }
  return seen;
 }
+const UNVERIFIED_APPROVAL_FLAGS=Object.freeze(['sourceLinksBound','sourceLinksBoundNewSHA',
+ 'sourceLinksBoundToNewSHA','physicalCable','physicalRouteVerified',
+ 'physicalCableRouteVerified','electricalCircuitVerified',
+ 'physicalHostVerified','productionWebGLVerified','humanReviewVerified']);
+/** Reject unverified approval metadata equally on scenes and historical nodes. */
+export function noR34GfivWpt2UnverifiedApprovals(e){
+ return !!e&&UNVERIFIED_APPROVAL_FLAGS.every(key=>e[key]!==true)&&
+  (e.physicalConnectionsVerified===undefined||e.physicalConnectionsVerified===null||
+   e.physicalConnectionsVerified===0);
+}
 function historicalNodeSafe(n){
  const e=n?.extras;
- if(!e||e.current!==false||e.asBuilt!==false)return false;
- for(const key of ['sourceLinksBound','sourceLinksBoundNewSHA',
-  'sourceLinksBoundToNewSHA','physicalCable','physicalRouteVerified',
-  'physicalCableRouteVerified','electricalCircuitVerified',
-  'physicalHostVerified','productionWebGLVerified','humanReviewVerified']){
-  if(e[key]===true)return false;
- }
- if(typeof e.physicalConnectionsVerified==='number'&&e.physicalConnectionsVerified!==0)return false;
+ if(!noR34GfivWpt2UnverifiedApprovals(e)||e.current!==false||e.asBuilt!==false)return false;
  return e.r34HistoricalImport?.historicalPlanYear===2015&&
   e.r34HistoricalImport?.['2026InstalledPhysicalCableRouteVerified']===false&&
   e.r34HistoricalImport?.sourceLinksBoundForOutputSHA===false;
@@ -68,7 +71,7 @@ export function r34GfivWpt2SourceGate(json,sha){
  const seen=Object.create(null);
  for(const [i,rule] of Object.entries(SPEC)){
   const scene=json.scenes[i],ex=scene?.extras,roots=scene?.nodes;
-  if(!scene||!Array.isArray(roots)||roots.length!==rule.roots||
+  if(!scene||!noR34GfivWpt2UnverifiedApprovals(ex)||!Array.isArray(roots)||roots.length!==rule.roots||
      fnvRoots(roots)!==rule.hash||
      !scene.name?.endsWith('__scene'+i)||
      !scene.name.includes(rule.history?'HIST2015':'CLEAN')||
