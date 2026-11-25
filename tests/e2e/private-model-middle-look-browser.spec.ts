@@ -67,8 +67,8 @@ const menu = async (page: Page, id: string) => {
   await page.locator(`${id} > summary`).click();
 };
 const camera = async (page: Page, name: 'Vapaa 3D' | 'Ylhäältä') => {
-  await menu(page, '#view-menu');
-  await page.getByRole('button', { name, exact: true }).click();
+  const angle = name === 'Ylhäältä' ? 'top' : 'orbit';
+  await page.locator(`[data-desk-kind="angle"][data-desk-id="${angle}"]`).click();
   await frames(page);
 };
 const contentState = (page: Page) => page.locator('#private-model-canvas').evaluate((element) => {
