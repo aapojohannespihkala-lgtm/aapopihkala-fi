@@ -1,0 +1,200 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import * as THREE from 'three';
+import { C80_R32H_SOURCE, C80_R32H_VIEWS } from '../../src/scripts/privateModelC80R31ReviewRuntime.mjs';
+import { R32H_T12_NW_COW_SOURCE as S } from '../../src/scripts/privateModelR32HT12NorthwestCOW.mjs';
+import { createR32HT12NorthwestWorkTestReceiver as create } from '../../src/scripts/privateModelR32HT12NorthwestReceiver.mjs';
+
+// Synthetic Three scene with the ORIGINAL source index/bounds contract.
+// These tests are not proof that production WebGL or 2026 physical host passed.
+const sourcePositions = () => {
+  const p = new Float32Array(S.vertexCount * 3);
+  for (let i = 0; i < p.length; i += 3) {
+    p[i] = -0.18;
+    p[i + 1] = i % 12 === 0 ? S.sourceMinY : i % 12 === 3 ? -0.29 : i % 12 === 6 ? -0.11 : S.sourceMaxY;
+    p[i + 2] = -10.685;
+  }
+  p[0] = S.sourceBounds.minX; p[3] = S.sourceBounds.maxX;
+  p[2] = S.sourceBounds.minZ; p[5] = S.sourceBounds.maxZ;
+  return p;
+};
+const makeSource = (sceneIndex = 814) => {
+  const json = {
+    scenes: Array.from({ length: C80_R32H_SOURCE.sceneCount }, () => ({ name: 'unbound', nodes: [] })),
+    nodes: Array.from({ length: C80_R32H_SOURCE.nodeCount }, () => ({})),
+    meshes: Array.from({ length: C80_R32H_SOURCE.meshCount }, () => ({})),
+  };
+  const view = sceneIndex === 815 ? C80_R32H_VIEWS.dService : C80_R32H_VIEWS.dNormal;
+  json.scenes[sceneIndex] = { name: view.name, nodes: [13808] };
+  json.nodes[13808] = { name: 'T12_GUTTERS_AND_DOWNSPOUTS', children: [S.nodeIndex] };
+  json.nodes[S.nodeIndex] = { name: S.nodeName, mesh: S.meshIndex };
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute('position', new THREE.BufferAttribute(sourcePositions(), 3));
+  geometry.setIndex([0, 1, 2]);
+  const mesh = new THREE.Mesh(geometry, new THREE.MeshBasicMaterial());
+  mesh.name = S.nodeName;
+  mesh.userData = { sourceRole: 'T12', ModelStage: 'WORK_TEST_SOURCE', physicalZClaim: false };
+  const group = new THREE.Group();
+  group.name = 'T12_GUTTERS_AND_DOWNSPOUTS';
+  group.add(mesh);
+  const scene = new THREE.Group();
+  scene.add(group);
+  const associations = new Map([
+    [group, { nodes: 13808 }],
+    [mesh, { nodes: S.nodeIndex, meshes: S.meshIndex }],
+  ]);
+  const scenes = Array.from({ length: C80_R32H_SOURCE.sceneCount }, () => null);
+  scenes[sceneIndex] = scene;
+  return {
+    mesh, geometry, scene, json, associations,
+    gltf: { scenes, parser: { json, associations } },
+    receive: (sha = S.glbSha256, index = sceneIndex) =>
+      create({ gltf: { scenes, parser: { json, associations } }, sourceSha256: sha, sceneIndex: index }),
+  };
+};
+
+test('source-exact R32H NW COW preview replaces only geometry and restores original identity', () => {
+  const f = makeSource();
+  const before = new Float32Array(f.geometry.getAttribute('position').array);
+  const baselineData = { ...f.mesh.userData };
+  const baselineChildren = f.scene.children.length;
+  const receiver = f.receive();
+  assert.equal(receiver.status, 'WORK_TEST_PREVIEW_READY');
+  assert.equal(receiver.available, true);
+  assert.equal(receiver.sourceVerified, true);
+  assert.equal(receiver.physicalHostVerified, false);
+  assert.equal(receiver.asBuiltClaim, false);
+  assert.equal(receiver.sceneIndex, 814);
+  assert.equal(receiver.sourceNodeIndex, S.nodeIndex);
+  assert.ok(Math.abs(receiver.riseY - 0.45721) < 0.002);
+  assert.ok(receiver.shiftedVertices > 0 && receiver.shiftedVertices < S.vertexCount);
+  assert.equal(receiver.setApplied(true), true);
+  assert.equal(receiver.setApplied(true), true, 'idempotent activation');
+  assert.notEqual(f.mesh.geometry, f.geometry, 'replace geometry reference, never source vertices');
+  assert.equal(f.scene.children.length, baselineChildren, 'no second visible downpipe');
+  assert.equal(f.mesh.userData.r32hNorthwestHostStatus, 'SOURCE_HOST_HOLD');
+  assert.match(f.mesh.userData.roofwaterCertainty, /^Varmaa:/);
+  assert.match(f.mesh.userData.roofwaterUncertainty, /^Oletus:/);
+  assert.equal(f.mesh.userData.roofwaterRoute.includes('Luoteissyöksy'), true);
+  assert.equal(f.mesh.userData.currentClaim, false);
+  assert.equal(f.mesh.userData.asBuiltClaim, false);
+  assert.equal(f.mesh.userData.physicalZClaim, false);
+  const corrected = f.mesh.geometry.getAttribute('position').array;
+  assert.ok(Math.abs(Math.min(...Array.from(corrected).filter((_, i) => i % 3 === 1)) - 0.129) < 0.002);
+  assert.deepEqual(f.geometry.getAttribute('position').array, before, 'original source geometry immutable');
+  assert.equal(receiver.setApplied(false), true);
+  assert.equal(receiver.setApplied(false), true);
+  assert.equal(f.mesh.geometry, f.geometry);
+  assert.deepEqual(f.mesh.userData, baselineData, 'no stale preview/asBuilt metadata');
+  assert.equal(receiver.setApplied(true), true);
+  receiver.dispose();
+  assert.equal(f.mesh.geometry, f.geometry);
+  assert.deepEqual(f.geometry.getAttribute('position').array, before);
+  assert.equal(receiver.setApplied(true), false, 'disposed receiver cannot reactivate');
+  receiver.dispose();
+});
+
+test('same source scene815 permitted, but source scene816, wrong SHA and name fail closed', () => {
+  const service = makeSource(815);
+  const r = service.receive();
+  assert.equal(r.status, 'WORK_TEST_PREVIEW_READY');
+  r.dispose();
+  assert.equal(service.receive('wrong-sha').status, 'OUT_OF_EXACT_SOURCE_SCOPE');
+  assert.equal(service.receive(S.glbSha256, 816).status, 'OUT_OF_EXACT_SOURCE_SCOPE');
+  service.json.scenes[815].name = 'renamed like R32H';
+  assert.equal(service.receive().status, 'OUT_OF_EXACT_SOURCE_SCOPE');
+});
+
+test('requires glTF scene roots, exact node name+mesh and unique parser association', () => {
+  const f = makeSource();
+  f.json.nodes[S.nodeIndex].mesh = S.meshIndex + 1;
+  assert.equal(f.receive().status, 'SOURCE_NODE_OR_SCENE_MISMATCH');
+  f.json.nodes[S.nodeIndex].mesh = S.meshIndex;
+  f.json.scenes[814].nodes = [1];
+  assert.equal(f.receive().status, 'SOURCE_NODE_OR_SCENE_MISMATCH');
+  f.json.scenes[814].nodes = [13808];
+  f.associations.set(f.mesh, { nodes: S.nodeIndex, meshes: S.meshIndex + 1 });
+  assert.equal(f.receive().status, 'MESH_BINDING_OR_WORLD_MISMATCH');
+  f.associations.set(f.mesh, { nodes: S.nodeIndex, meshes: S.meshIndex });
+  const duplicate = f.mesh.clone();
+  f.scene.add(duplicate);
+  f.associations.set(duplicate, { nodes: S.nodeIndex, meshes: S.meshIndex });
+  assert.equal(f.receive().status, 'MESH_BINDING_OR_WORLD_MISMATCH');
+  f.scene.remove(duplicate);
+  f.mesh.position.y = 1;
+  assert.equal(f.receive().status, 'MESH_BINDING_OR_WORLD_MISMATCH', 'non-identity world transform');
+});
+
+test('real GLTFLoader missing associations use only unique exact node/parent fallback', () => {
+  const f = makeSource();
+  const source = f.mesh.geometry;
+  const originalData = { ...f.mesh.userData };
+  // Real THREE.GLTFLoader with a node reused by two scenes can omit these
+  // parser associations, unlike our canonical source-index unit fixture.
+  f.associations.delete(f.mesh);
+  f.associations.delete(f.scene.children[0]);
+  const preview = f.receive();
+  assert.equal(preview.available, true);
+  assert.equal(preview.setApplied(true), true);
+  preview.dispose();
+  assert.equal(f.mesh.geometry, source);
+  assert.deepEqual(f.mesh.userData, originalData);
+
+  const copy = f.mesh.clone();
+  f.scene.children[0].add(copy);
+  assert.equal(f.receive().status, 'MESH_BINDING_OR_WORLD_MISMATCH',
+    'two exact-name meshes under the source parent must never receive COW');
+  f.scene.children[0].remove(copy);
+  f.mesh.name = 'UNRELATED_CLONE';
+  assert.equal(f.receive().status, 'MESH_BINDING_OR_WORLD_MISMATCH',
+    'missing association cannot bypass source name');
+  f.mesh.name = S.nodeName;
+  f.scene.children[0].name = 'WRONG_SOURCE_PARENT';
+  assert.equal(f.receive().status, 'MESH_BINDING_OR_WORLD_MISMATCH',
+    'missing association cannot bypass parent name');
+  f.scene.children[0].name = 'T12_GUTTERS_AND_DOWNSPOUTS';
+  f.associations.set(f.mesh, { meshes: S.meshIndex + 1 });
+  assert.equal(f.receive().status, 'MESH_BINDING_OR_WORLD_MISMATCH',
+    'a contradictory parser mesh binding must fail closed, never use fallback');
+});
+
+test('source COW rejects geometry mismatch, and never replaces another renderer owner', () => {
+  const f = makeSource();
+  const a = f.mesh.geometry.getAttribute('position').array;
+  a[0] += 0.10;
+  assert.equal(f.receive().status, 'SOURCE_MESH_BOUNDS_MISMATCH');
+  a[0] -= 0.10;
+  const receiver = f.receive();
+  assert.equal(receiver.available, true);
+  const foreign = f.geometry.clone();
+  f.mesh.geometry = foreign;
+  assert.equal(receiver.setApplied(true), false);
+  assert.equal(f.mesh.geometry, foreign, 'no overwrite of another geometry owner');
+  f.mesh.geometry = f.geometry;
+  assert.equal(receiver.setApplied(true), true);
+  receiver.dispose();
+  assert.equal(f.mesh.geometry, f.geometry);
+});
+
+test('viewer mounts only authenticated R32H BOTH, and tears down the geometry owner on model switch', async () => {
+  const { readFileSync } = await import('node:fs');
+  const view = readFileSync(new URL('../../src/pages/private-model/index.astro', import.meta.url), 'utf8');
+  assert.match(view, /createR32HT12NorthwestWorkTestReceiver/);
+  assert.match(view, /layersLoadedSha === C80_R32H_SOURCE\.glbSha256/);
+  assert.match(view, /r31SceneScope\?\.floor === 'BOTH'/);
+  assert.match(view, /r32hNwT12WorkTestPreview\.dispose\(\)/);
+  assert.match(view, /receiver\.setApplied\(true\)/);
+  const checkboxTag = view.match(/<input id="r32h-nw-t12-preview-optin"[^>]*>/)?.[0];
+  assert.ok(checkboxTag, 'R32H preview is discoverable in Layers');
+  assert.doesNotMatch(checkboxTag, /\schecked(?:\s|\/|>)/, 'WORK_TEST opt-in must default OFF');
+  assert.match(view, /nwT12PreviewInput\.addEventListener\('change', \(\) => refreshLayers\(\)\)/);
+  assert.match(view, /const nwT12PreviewRequested = nwT12SourceAllowed && nwT12PreviewInput\.checked;/);
+  assert.match(view, /if \(!nwT12SourceAllowed\) nwT12PreviewInput\.checked = false;/);
+  assert.match(view, /if \(nwT12PreviewRequested && root && !r32hNwT12WorkTestPreview\)/);
+  assert.match(view, /sceneIndex === 814 \|\| sceneIndex === 815/);
+  assert.doesNotMatch(view, /if \(nwT12SourceAllowed && root && !r32hNwT12WorkTestPreview\)/,
+    'authenticated source alone is not permission to alter visible geometry');
+  const reloadHandler = view.slice(view.indexOf('onLayersModelLoaded = (gltf, session) => {'));
+  assert.match(reloadHandler.slice(0, 400), /nwT12PreviewInput\.checked = false;/,
+    'a new GLB load must revoke the old explicit preview choice even at the same SHA');
+});
