@@ -523,10 +523,15 @@ export const loadModelWithSourceCards = async <T extends GltfSource & object>(
   const digestTask = crypto.subtle.digest('SHA-256', bytes)
     .then(value => Array.from(new Uint8Array(value), byte => byte.toString(16).padStart(2, '0')).join(''))
     .catch(() => null);
-  if (exactSource && await digestTask !== exactSource.glbSha256)
+  // Complete WebCrypto's large GLB digest before GLTFLoader allocates parsed
+  // scenes, textures and GPU resources. The former Promise.all overlapped both
+  // memory peaks (particularly costly for 60+ MB multi-scene WORK_TEST files).
+  // Source authentication still hashes the exact bytes passed to GLTFLoader.
+  const digest = await digestTask;
+  if (exactSource && digest !== exactSource.glbSha256)
     throw Error('WORK_TEST_SOURCE_SHA_MISMATCH');
-  const [gltf, digest, cards] = await Promise.all([
-    loader.parseAsync(bytes, new URL('.', url).href), digestTask, getBundle(),
+  const [gltf, cards] = await Promise.all([
+    loader.parseAsync(bytes, new URL('.', url).href), getBundle(),
   ]);
   let identity: GltfSource = gltf;
   try { identity = await sourceCardIdentity(gltf); } catch { /* Cards fail closed, model loading remains available. */ }
