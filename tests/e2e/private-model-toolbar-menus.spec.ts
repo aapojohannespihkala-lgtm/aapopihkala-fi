@@ -88,7 +88,7 @@ test('private viewer uses the approved toolbar and restores tool windows from th
   const beforePresetHover = await preset.evaluate(node => getComputedStyle(node).backgroundColor);
   await preset.hover();
   await expect.poll(() => preset.evaluate(node => getComputedStyle(node).backgroundColor)).not.toBe(beforePresetHover);
-  await expect(preset).toHaveCSS('border-top-width', '0px');
+  await expect(preset).toHaveCSS('border-top-width', '1px');
   await expect(preset).toHaveCSS('box-shadow', 'none');
 
   const cameraMenu = page.locator('#view-menu');
@@ -132,7 +132,7 @@ test('private viewer uses the approved toolbar and restores tool windows from th
   const cubeButton = toolbar.getByRole('button', { name: 'Suuntailmaisin' });
   const cube = viewport.locator('#orientation-gizmo');
   await expect(cubeButton).toHaveAttribute('aria-expanded', 'true');
-  await expect(cubeButton).toHaveCSS('color', 'rgb(130, 145, 156)');
+  await expect(cubeButton).toHaveCSS('color', 'rgb(196, 205, 210)');
   await expect(cube).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
   await expect(cube).toHaveCSS('top', '12px');
   await expect(cube.locator('.viewport-panel-minimize')).toHaveCount(0);
@@ -175,4 +175,95 @@ test('private viewer uses the approved toolbar and restores tool windows from th
   await pointTool.press('Enter');
   await expect(point).toBeVisible();
   await expect(canvas).toHaveAttribute('data-interaction-mode', 'point-pick');
+});
+
+test('toolbar icons stay centered and selected controls share the edge-mode frame', async ({ page }) => {
+  await page.route('**/private-model/**/*.glb*', route => route.fulfill({ status: 404 }));
+  await page.goto('/private-model/?c70=1');
+  const toolbar = page.locator('.toolbar');
+  await expect(toolbar.locator('.desk-toolbar')).toBeVisible();
+  const folder = toolbar.locator('#model-menu > summary');
+  const layers = toolbar.locator('#layers-button');
+  const cube = toolbar.locator('#navigation-cube-button');
+  const preset = toolbar.locator('[data-desk-kind="preset"]').first();
+
+  for (const width of [1440, 1024, 390]) {
+    await page.setViewportSize({ width, height: 900 });
+    const geometry = await toolbar.locator('.desk-icon, .toolbar-icon').evaluateAll(nodes => nodes.map(node => {
+      const button = node.getBoundingClientRect();
+      const svg = node.querySelector('svg')!;
+      const icon = svg.getBoundingClientRect();
+      const arrow = node.classList.contains('toolbar-icon') && !node.classList.contains('toolbar-panel-button');
+      return {
+        arrow, width: button.width, height: button.height,
+        iconWidth: icon.width, iconHeight: icon.height,
+        dx: Math.abs(icon.x + icon.width / 2 - button.x - button.width / 2),
+        dy: Math.abs(icon.y + icon.height / 2 - button.y - button.height / 2),
+        left: button.left, right: button.right,
+      };
+    }));
+    for (const control of geometry) {
+      expect(control.dx).toBeLessThanOrEqual(0.5);
+      expect(control.dy).toBeLessThanOrEqual(0.5);
+      expect(control.iconWidth).toBe(control.arrow ? 18 : 22);
+      expect(control.iconHeight).toBe(control.arrow ? 18 : 22);
+      expect(control.left).toBeGreaterThanOrEqual(0);
+      expect(control.right).toBeLessThanOrEqual(width);
+    }
+    const controls = geometry.filter(control => !control.arrow);
+    expect(new Set(controls.map(control => control.height)).size).toBe(1);
+    // Panel buttons keep their square touch target on compact layouts.
+    expect(new Set(controls.map(control => control.width))).toEqual(
+      new Set(width >= 1240 ? [36] : width >= 1000 ? [32, 36] : [28, 34]),
+    );
+
+    const selectedFrame = { border: '1px solid rgb(100, 114, 124)', shadow: 'rgb(100, 114, 124) 0px 0px 0px 1px inset' };
+    const readFrame = (node: Element) => {
+      const style = getComputedStyle(node);
+      return { border: style.borderTop, shadow: style.boxShadow };
+    };
+    // Exercise every icon's selected and unselected CSS independently of model availability.
+    const choices = toolbar.locator('.desk-icon[aria-pressed]');
+    for (const choice of await choices.all()) {
+      const previous = await choice.getAttribute('aria-pressed');
+      await choice.evaluate(node => node.setAttribute('aria-pressed', 'true'));
+      expect(await choice.evaluate(readFrame)).toEqual(selectedFrame);
+      await choice.hover();
+      expect(await choice.evaluate(readFrame)).toEqual(selectedFrame);
+      await choice.evaluate(node => node.setAttribute('aria-pressed', 'false'));
+      expect((await choice.evaluate(readFrame)).shadow).toBe('none');
+      await choice.evaluate((node, value) => node.setAttribute('aria-pressed', value!), previous);
+    }
+    await folder.click();
+    expect(await folder.evaluate(readFrame)).toEqual(selectedFrame);
+    await folder.click();
+    await layers.click();
+    expect(await layers.evaluate(readFrame)).toEqual(selectedFrame);
+    await layers.click();
+    expect((await layers.evaluate(readFrame)).shadow).toBe('none');
+    expect(await cube.evaluate(readFrame)).toEqual(selectedFrame);
+    await cube.click();
+    expect((await cube.evaluate(readFrame)).shadow).toBe('none');
+    await cube.press('Enter');
+    expect(await cube.evaluate(readFrame)).toEqual(selectedFrame);
+  }
+
+  // Owner's excluded change: both existing preset hover colors remain exact.
+  await preset.evaluate(node => node.setAttribute('aria-pressed', 'false'));
+  await preset.hover();
+  await expect(preset).toHaveCSS('background-color', 'rgb(48, 56, 64)');
+  await preset.evaluate(node => node.setAttribute('aria-pressed', 'true'));
+  await expect(preset).toHaveCSS('background-color', 'rgb(78, 86, 94)');
+  const contrast = await cube.evaluate(node => {
+    const style = getComputedStyle(node);
+    const luminance = (color: string) => {
+      const channels = color.match(/\d+/g)!.slice(0, 3).map(value => {
+        const c = Number(value) / 255;
+        return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+      });
+      return channels[0] * 0.2126 + channels[1] * 0.7152 + channels[2] * 0.0722;
+    };
+    return (luminance(style.color) + 0.05) / (luminance(style.backgroundColor) + 0.05);
+  });
+  expect(contrast).toBeGreaterThan(4.5);
 });
