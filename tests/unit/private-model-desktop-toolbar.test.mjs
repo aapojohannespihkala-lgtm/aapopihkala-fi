@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
 import {
   DESKTOP_PRESETS, DESKTOP_ANGLES, DESKTOP_EDGES, DESKTOP_START_CANDIDATE_ID,
   activeDesktopPreset, activeDesktopAngle,
@@ -19,7 +20,7 @@ test('desktop toolbar shows the agreed one-click presets and camera angles', () 
 });
 
 test('edge presentation is a one-click icon group with the four existing modes', () => {
-  assert.deepEqual(DESKTOP_EDGES.map(e => e.id), ['none', 'unified', 'object', 'visible']);
+  assert.deepEqual(DESKTOP_EDGES.map(e => e.id), ['visible', 'object', 'unified', 'none']);
   for (const item of DESKTOP_EDGES) assert.match(item.icon, /^<svg /);
 });
 
@@ -50,4 +51,14 @@ test('pressed camera angle follows elevation presets and the active camera mode'
   assert.equal(activeDesktopAngle({ standardViewPreset: 'd-apartment', viewPreset: 'isometric' }), 'iso');
   assert.equal(activeDesktopAngle({ standardViewPreset: 'd-apartment', viewPreset: 'orbit' }), 'orbit');
   assert.equal(activeDesktopAngle({ standardViewPreset: 'd-apartment', viewPreset: 'bottom' }), null);
+});
+
+test('plain startup uses the whole-building preset after the pinned source has loaded', async () => {
+  const source = await readFile(new URL('../../src/pages/private-model/index.astro', import.meta.url), 'utf8');
+  const start = source.slice(source.indexOf('let deskStartCatalogLoaded = false;'),
+    source.indexOf("canvas.dataset.deskStartView = 'current-fallback';"));
+  assert.match(start, /if \(!window\.location\.search && !window\.location\.hash\)/);
+  assert.match(start, /if \(start && await loadWorkTestCandidate\(start\)\)/);
+  assert.match(start, /deskEnterWholeBuilding\(\);\s*deskStartFrame\(\);\s*canvas\.dataset\.deskStartView = 'start-work-test-whole-building';/);
+  assert.doesNotMatch(start, /deskEnterDFocus\(/);
 });

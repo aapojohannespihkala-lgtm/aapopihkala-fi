@@ -142,7 +142,7 @@ for (const width of [1280, 390]) test(`main model area/floor, independent camera
   await page.getByLabel('Kerros päämallissa', { exact: true }).selectOption('2F');
   await expect(canvas).toHaveAttribute('data-main-view-floor', '2F');
   await expect(canvas).toHaveAttribute('data-edge-source-mesh-count', '1');
-  await menu(page, '#more-menu');
+  await menu(page, '#view-menu');
   await page.getByRole('button', { name: 'Palauta näkymän oletukset', exact: true }).click();
   await expect(canvas).toHaveAttribute('data-main-view-area', 'WHOLE');
   await expect(canvas).toHaveAttribute('data-edge-source-mesh-count', '6');

@@ -136,7 +136,7 @@ test('Combined exact production: authored scenes, real source card, mobile and m
     await page.locator('[data-layer-node="' + id + '"] [data-layer-mode="hidden"]').click();
   await page.locator('#edge-mode-select').selectOption('none');
   await setLayersOpen(false);
-  await page.locator('#more-menu > summary').click();
+  await page.locator('#view-menu > summary').click();
   await page.locator('#fit-button').click();
   await page.locator('#selection-tool-button').click();
   const node = json.nodes[12096];
@@ -197,7 +197,7 @@ test('Combined exact production: authored scenes, real source card, mobile and m
   await expect(canvas).toHaveAttribute('data-layers-source-sha256', P02_SHA, { timeout: 120_000 });
   expect(p02Verified).toBe(true);
   await setLayersOpen(false);
-  await page.locator('#more-menu > summary').click();
+  await page.locator('#preset-menu > summary').click();
   await page.locator('#current-model-button').click();
   await expect(canvas).toHaveAttribute('data-model-source', 'current', { timeout: 120_000 });
   await openModelMenu();
