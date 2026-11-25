@@ -96,6 +96,20 @@ test('R34 T110 warning only follows exact four mounted scene roles and selected 
   for(const mutate of [j=>j.scenes[i].nodes.reverse(),j=>delete j.scenes[i].nodes[0],j=>j.nodes[node].mesh=4610,j=>j.nodes[node].extras.m5System='VESI',j=>j.nodes[node].extras.sourcePdfDriveId='different',j=>j.nodes[node].extras.sourceGlbSHA256='different',j=>j.nodes[node].extras.sourceRoofHeightAtCenterY_m=7.305,j=>j.nodes[node].extras.roofOpeningCut=true,j=>j.nodes[node].extras.flashingModeled=true,j=>j.nodes[node].extras.physicalRoofPointVerified=true,j=>j.scenes[i].extras.physicalHost='VERIFIED',j=>j.scenes[i].extras.humanReview='APPROVED',j=>j.nodes[j.scenes[i].nodes[0]].children=[6642],j=>j.nodes[j.scenes[i].nodes.find(n=>n!==12242&&n!==node)].children=[10146],j=>j.asset.extras.asBuilt=true]){
    const bad=r34Fixture();mutate(bad);assert.equal(r34T110RoofWarning(bad,R34_T110_SHA,i,floor,node),null);
   }
+  for(const [target,flag] of [
+   ['asset','sourceLinksBound'],['asset','humanReviewApproved'],
+   ['scene','productionWebGLVerified'],['scene','physicalHostVerified'],
+   ['scene','structuralCutVerified'],['tube','sourceLinksBound'],
+   ['tube','sourceLinksBoundForOutputSHA'],['tube','physicalConnectionsVerified'],
+   ['tube','humanReviewApproved'],['tube','CURRENT']
+  ]){
+   const bad=r34Fixture();
+   const extra=target==='asset'?bad.asset.extras:
+    target==='scene'?bad.scenes[i].extras:bad.nodes[node].extras;
+   extra[flag]=true;
+   assert.equal(r34T110RoofWarning(bad,R34_T110_SHA,i,floor,node),null,
+    target+'.'+flag+' must fail closed');
+  }
   if(i>=824){const bad=r34Fixture();bad.nodes[12242].children=[12241];assert.equal(r34T110RoofWarning(bad,R34_T110_SHA,i,floor,node),null);}
   if(i<824){
     const noRoof=r34Fixture();noRoof.nodes[13363].children=[];assert.equal(r34T110RoofWarning(noRoof,R34_T110_SHA,i,floor,node),null);
