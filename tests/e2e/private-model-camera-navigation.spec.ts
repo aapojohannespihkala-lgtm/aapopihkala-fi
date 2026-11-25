@@ -146,34 +146,41 @@ test('a reload after an interrupted default model load opens the protected fallb
     contentType: 'model/gltf-binary',
     body: makeTriangleGlb(),
   }));
-  let releaseFirstLoad!: () => void;
-  const firstLoad = new Promise<void>(resolve => { releaseFirstLoad = resolve; });
+  await page.addInitScript(startPath => {
+    const originalFetch = window.fetch.bind(window);
+    window.fetch = (input, init) => {
+      const url = new URL(input instanceof Request ? input.url : input, window.location.href);
+      if (url.pathname !== startPath || sessionStorage.getItem('test-interrupted-start')) {
+        return originalFetch(input, init);
+      }
+      sessionStorage.setItem('test-interrupted-start', 'true');
+      void originalFetch(input, init).catch(() => {});
+      // A dead renderer cannot settle the application promise. A normal
+      // reload can instead reject fetch and let the old page run its cleanup.
+      return new Promise<Response>(() => {});
+    };
+  }, path);
   let workTestRequests = 0;
   await page.route(`**${path}`, async route => {
     workTestRequests++;
-    if (workTestRequests === 1) await firstLoad;
-    await route.fulfill({ status: 503 }).catch(() => {});
+    await route.fulfill({ status: 503 });
   });
 
-  try {
-    const request = page.waitForRequest(`**${path}`);
-    await page.goto('/private-model/');
-    await request;
-    await page.reload();
-    const canvas = page.locator('#private-model-canvas');
-    await expect(canvas).toHaveAttribute('data-desk-start-view', 'current-recovery');
-    await expect(canvas).toHaveAttribute('data-model-source', 'current');
-    await expect(canvas).toHaveAttribute('data-standard-view-preset', 'whole-building');
-    expect(workTestRequests).toBe(1);
+  const request = page.waitForRequest(`**${path}`);
+  await page.goto('/private-model/');
+  await request;
+  await page.reload();
+  const canvas = page.locator('#private-model-canvas');
+  await expect(canvas).toHaveAttribute('data-desk-start-view', 'current-recovery');
+  await expect(canvas).toHaveAttribute('data-model-source', 'current');
+  await expect(canvas).toHaveAttribute('data-standard-view-preset', 'whole-building');
+  expect(workTestRequests).toBe(1);
 
-    // The fallback only consumes this interrupted attempt.
-    await page.reload();
-    await expect(canvas).toHaveAttribute('data-desk-start-view', 'current-fallback');
-    await expect(canvas).toHaveAttribute('data-model-source', 'current');
-    expect(workTestRequests).toBe(2);
-  } finally {
-    releaseFirstLoad();
-  }
+  // The fallback only consumes this interrupted attempt.
+  await page.reload();
+  await expect(canvas).toHaveAttribute('data-desk-start-view', 'current-fallback');
+  await expect(canvas).toHaveAttribute('data-model-source', 'current');
+  expect(workTestRequests).toBe(2);
 });
 
 test('owner menu presets keep the active isometric or elevation camera direction', async ({ page }) => {
