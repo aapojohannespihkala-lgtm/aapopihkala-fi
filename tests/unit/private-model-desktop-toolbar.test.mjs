@@ -51,11 +51,12 @@ test('pressed preset separates whole D with and without the roof', () => {
   assert.equal(activeDesktopPreset({ standardViewPreset: 'site', roofVisible: true }), null);
 });
 
-test('pressed camera angle follows elevation presets and the active camera mode', () => {
-  assert.equal(activeDesktopAngle({ standardViewPreset: 'elev-neg-x', viewPreset: 'elevation' }), 'elev-neg-x');
-  assert.equal(activeDesktopAngle({ standardViewPreset: 'd-apartment', viewPreset: 'isometric' }), 'iso');
-  assert.equal(activeDesktopAngle({ standardViewPreset: 'd-apartment', viewPreset: 'orbit' }), 'orbit');
-  assert.equal(activeDesktopAngle({ standardViewPreset: 'd-apartment', viewPreset: 'bottom' }), null);
+test('pressed camera angle follows the actual camera and its valid elevation direction', () => {
+  assert.equal(activeDesktopAngle({ viewPreset: 'elevation', elevationDirection: 'neg-x' }), 'elev-neg-x');
+  assert.equal(activeDesktopAngle({ viewPreset: 'elevation', elevationDirection: 'wrong' }), null);
+  assert.equal(activeDesktopAngle({ viewPreset: 'isometric', elevationDirection: 'neg-x' }), 'iso');
+  assert.equal(activeDesktopAngle({ viewPreset: 'orbit', elevationDirection: 'neg-x' }), 'orbit');
+  assert.equal(activeDesktopAngle({ viewPreset: 'bottom' }), null);
 });
 
 test('plain startup uses the whole-building preset after the pinned source has loaded', async () => {
