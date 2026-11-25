@@ -14,14 +14,18 @@ test('R31 D focus hides source-only site networks and whole-building return rebi
   const syncStart = viewerSource.indexOf('const r31SyncExteriorDonors = () => {');
   const syncEnd = viewerSource.indexOf('r31SyncExteriorDonorsHook = r31SyncExteriorDonors;');
   const dStart = viewerSource.indexOf('const deskEnterDFocus = (');
+  const wholeStart = viewerSource.indexOf('const deskEnterWholeBuilding = () => {');
+  const wholeEnd = viewerSource.indexOf('const deskEnterDFocus = (', wholeStart);
   const dEnd = viewerSource.indexOf('let deskSync = () => {};');
   const presetStart = viewerSource.indexOf('preset(id: string) {');
   const presetEnd = viewerSource.indexOf('angle(id: string) {', presetStart);
   assert.ok(syncStart >= 0 && syncEnd > syncStart && dStart >= 0 && dEnd > dStart);
   assert.ok(presetStart >= 0 && presetEnd > presetStart);
+  assert.ok(wholeStart >= 0 && wholeEnd > wholeStart);
   const sync = viewerSource.slice(syncStart, syncEnd);
   const dFocus = viewerSource.slice(dStart, dEnd);
   const presets = viewerSource.slice(presetStart, presetEnd);
+  const wholeBuilding = viewerSource.slice(wholeStart, wholeEnd);
 
   // A D footprint is not a whole-building network scene; no unverified 2D
   // network should remain visible or selectable just because Layerit was on.
@@ -35,7 +39,12 @@ test('R31 D focus hides source-only site networks and whole-building return rebi
   assert.match(sync, /setR31SiteNetworkLayerMode\(group, mode, siteOk, r31SiteGhostOriginals\)/);
   assert.match(dFocus, /deskDFocus\.apply\(root, footprint\)/);
   assert.match(dFocus, /r31SyncExteriorDonors\(\)/);
-  assert.match(presets, /applyStandardViewPreset\(target, true\)/);
+  // The desktop toolbar delegates to scoped helpers rather than passing a target.
+  // The whole-building helper still resets the active view before Layerit rebind.
+  assert.match(wholeBuilding, /applyStandardViewPreset\('whole-building', true\)/);
+  assert.match(presets, /else deskEnterWholeBuilding\(\)/);
+  assert.match(presets, /if \(id === 'd-roof' \|\| id === 'd-apartment'\) deskEnterDFocus\(id === 'd-roof'\)/);
+  assert.match(presets, /else if \(id === 'd-1f' \|\| id === 'd-2f'\) deskEnterDFocus\(false, id === 'd-1f' \? '1F' : '2F'\)/);
   assert.match(presets, /r31SyncExteriorDonors\(\)/);
 
   // User-selected per-network mode survives temporary D-focus gating.
