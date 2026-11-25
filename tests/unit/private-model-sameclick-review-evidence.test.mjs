@@ -40,7 +40,8 @@ test('viewer wires the two same-click raycasts and exposes explicit independent 
   assert.match(source,/const selectedClickObject = selectAtClientPoint\(event\.clientX, event\.clientY\)/);
   assert.match(source,/const coordinateHitObject = showWorkTestClicked3DCoordinate\(event\.clientX, event\.clientY\)/);
   assert.match(source,/canvas\.dataset\.reviewCoordinateSelectionEvidence = sameClickEvidence/);
-  assert.match(source,/Koordinaattipiste ja valittu kohde ovat eri osumia/);
+  assert.match(source,/canvas\.dataset\.reviewCoordinateSelectionMatch = String\(sameClickEvidence === 'MATCHED_SURFACE'\)/);
+  assert.doesNotMatch(source, /id="coordinate-panel"/);
 });
 
 test('new pointer click clears stale coordinate-source match before all interaction modes', () => {

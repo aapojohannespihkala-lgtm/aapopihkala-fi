@@ -183,7 +183,7 @@ test('other-floor UI preserves the reference preference across floors and clears
   await expect(canvas).toHaveAttribute('data-edge-source-mesh-count', '3');
   await select(page, 'Alue päämallissa', 'D'); await select(page, 'Kerros päämallissa', '1F');
   await select(page, 'Muu kerros', 'REFERENCE');
-  await menu(page, '#more-menu'); await page.getByRole('button', { name: 'Palauta näkymän oletukset', exact: true }).click();
+  await menu(page, '#view-menu'); await page.getByRole('button', { name: 'Palauta näkymän oletukset', exact: true }).click();
   await expect(canvas).toHaveAttribute('data-other-floor-reference-count', '0');
   await expect(canvas).toHaveAttribute('data-main-view-area', 'WHOLE');
 });
@@ -204,7 +204,7 @@ test('reference pixels appear in two 3D directions and plan, then return exactly
       const afterLook = JSON.parse((await page.locator('#ai-navigator-readout').getAttribute('data-world-pose'))!).direction as number[];
       expect(Math.hypot(...beforeLook.map((n, i) => n - afterLook[i]))).toBeGreaterThan(.1);
     } else if (view === 'plan') {
-      await menu(page, '#view-menu'); await page.getByRole('button', { name: 'Ylhäältä', exact: true }).click();
+      await page.locator('[data-desk-kind="angle"][data-desk-id="top"]').click();
     }
     await frames(page);
     const before = await canvas.screenshot();

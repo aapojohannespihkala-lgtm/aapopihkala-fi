@@ -53,13 +53,6 @@ const makeTriangleGlb = () => {
   return Buffer.concat([header, jsonHeader, jsonChunk, binHeader, binChunk]);
 };
 
-const clickViewAction = async (page: Page, name: string) => {
-  const menu = page.locator('#view-menu');
-  if ((await menu.getAttribute('open')) === null) {
-    await menu.locator(':scope > summary').click();
-  }
-  await page.getByRole('button', { name, exact: true }).click();
-};
 
 const expectZScreenUp = async (page: Page) => {
   const zAxis = page.locator('#orientation-axis-z');
@@ -75,11 +68,10 @@ const expectZScreenUp = async (page: Page) => {
 
 const expectElevation = async (
   page: Page,
-  button: 'Julk +Y' | 'Julk -Y' | 'Julk +X' | 'Julk -X',
   direction: 'pos-y' | 'neg-y' | 'pos-x' | 'neg-x',
   look: RegExp,
 ) => {
-  await clickViewAction(page, button);
+  await page.locator(`[data-desk-kind="angle"][data-desk-id="elev-${direction}"]`).click();
 
   const canvas = page.locator('#private-model-canvas');
   const aiNavigator = page.locator('#ai-navigator-readout');
@@ -116,8 +108,8 @@ test('all elevation presets keep orthographic yaw-only controls and YLIS Z scree
   await page.goto('/private-model/');
   await expect(page.getByRole('status')).toHaveText('Malli ladattu');
 
-  await expectElevation(page, 'Julk +Y', 'pos-y', /X[+-]0\.00 Y-1\.00 Z[+-]0\.00/);
-  await expectElevation(page, 'Julk -Y', 'neg-y', /X[+-]0\.00 Y\+1\.00 Z[+-]0\.00/);
-  await expectElevation(page, 'Julk +X', 'pos-x', /X-1\.00 Y[+-]0\.00 Z[+-]0\.00/);
-  await expectElevation(page, 'Julk -X', 'neg-x', /X\+1\.00 Y[+-]0\.00 Z[+-]0\.00/);
+  await expectElevation(page, 'pos-y', /X[+-]0\.00 Y-1\.00 Z[+-]0\.00/);
+  await expectElevation(page, 'neg-y', /X[+-]0\.00 Y\+1\.00 Z[+-]0\.00/);
+  await expectElevation(page, 'pos-x', /X-1\.00 Y[+-]0\.00 Z[+-]0\.00/);
+  await expectElevation(page, 'neg-x', /X\+1\.00 Y[+-]0\.00 Z[+-]0\.00/);
 });
