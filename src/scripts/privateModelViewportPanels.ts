@@ -37,6 +37,15 @@ export function mountPrivateModelViewportPanels(
   };
 
   for (const panel of viewport.querySelectorAll<HTMLElement>(':scope > aside[id]')) {
+    if (panel.id === 'orientation-gizmo') {
+      cubeButton.addEventListener('click', () => {
+        const hidden = panel.toggleAttribute('data-viewport-minimized');
+        cubeButton.setAttribute('aria-expanded', String(!hidden));
+        cubeButton.title = hidden ? 'Näytä suuntailmaisin' : 'Piilota suuntailmaisin';
+      });
+      continue;
+    }
+
     const heading = panel.querySelector('h2, .point-measure-header > strong');
     const title = panel.dataset.panelTitle ?? heading?.textContent?.trim() ??
       panel.getAttribute('aria-label');
@@ -55,20 +64,6 @@ export function mountPrivateModelViewportPanels(
     } else {
       minimize.classList.add('viewport-panel-minimize-float');
       panel.prepend(minimize);
-    }
-
-    if (panel.id === 'orientation-gizmo') {
-      const setCubeVisible = (visible: boolean) => {
-        panel.toggleAttribute('data-viewport-minimized', !visible);
-        cubeButton.setAttribute('aria-expanded', String(visible));
-        cubeButton.title = visible ? 'Pienennä suuntailmaisin' : 'Näytä suuntailmaisin';
-      };
-      cubeButton.addEventListener('click', () => setCubeVisible(panel.hasAttribute('data-viewport-minimized')));
-      minimize.addEventListener('click', () => {
-        setCubeVisible(false);
-        cubeButton.focus();
-      });
-      continue;
     }
 
     const tool = toolPanels[panel.id];

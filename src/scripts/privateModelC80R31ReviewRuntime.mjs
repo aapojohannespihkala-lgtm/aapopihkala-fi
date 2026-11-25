@@ -26,6 +26,7 @@ import {
  isC80R31Scene771772Source,
 } from './privateModelC80R31Scene752SourceReceipt.mjs';
 import {rehydrateIncompleteScene} from './privateModelSourceSceneRehydrate.mjs';
+import {resolveC80R2ChainFloorScenes} from './privateModelC80R2ChainScenes.mjs';
 
 export const C80_R31_R300_WORK_TEST_ID='c80-r31-r300-sc759-sc760-work-test';
 
@@ -153,6 +154,18 @@ export const C80_R32H_FAMILY=Object.freeze([
 ]);
 export const r32hFamilyOf=sha=>C80_R32H_FAMILY.find(m=>m.source.glbSha256===sha)??null;
 export const isR32HFamilySha=sha=>!!r32hFamilyOf(sha);
+
+/** Keep the authenticated review views and the legacy default/floor references. */
+export function c80R32HViewerSceneIndices(json, sha) {
+ const family = r32hFamilyOf(sha);
+ const views = Object.values(family?.views ?? {});
+ if (!family || !views.every(view => isC80R32HSceneSource(json, sha, view.sceneIndex, view.role, view.floor)))
+  throw new Error('C80_R31_REVIEW_SOURCE_MISMATCH');
+ const floorScenes = resolveC80R2ChainFloorScenes(json);
+ return new Set([family.source.defaultScene, ...views.map(view => view.sceneIndex),
+  ...(floorScenes ? [floorScenes['1F'], floorScenes['2F'], floorScenes.BOTH] : [])]);
+}
+
 /** Exact R32H-family view gate: SHA, array counts, stage, scene name, root count/FNV and the required roots. */
 export function isC80R32HSceneSource(json,sha,index,role,floor){
  const m=r32hFamilyOf(sha);

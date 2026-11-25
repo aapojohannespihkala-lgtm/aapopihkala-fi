@@ -9,6 +9,7 @@ type HeightScaleRenderInput = {
   maxZ: number;
   stepM: number;
   viewportHeight: number;
+  mapNorth: boolean;
 };
 
 export const createHeightScaleController = ({
@@ -16,6 +17,7 @@ export const createHeightScaleController = ({
   scale,
   ticks,
 }: HeightScaleControllerArgs) => {
+  const title = scale.querySelector('.height-scale-title');
   let signature = '';
 
   const setVisible = (visible: boolean) => {
@@ -34,10 +36,11 @@ export const createHeightScaleController = ({
     signature = '';
   };
 
-  const render = ({ minZ, maxZ, stepM, viewportHeight }: HeightScaleRenderInput) => {
+  const render = ({ minZ, maxZ, stepM, viewportHeight, mapNorth }: HeightScaleRenderInput) => {
     const spanZ = Math.max(maxZ - minZ, 0.001);
     const nextSignature = [minZ, maxZ, stepM, viewportHeight]
       .map((value) => Number(value).toFixed(3))
+      .concat(mapNorth ? 'map' : 'local')
       .join('|');
     if (nextSignature === signature) return false;
     signature = nextSignature;
@@ -75,7 +78,13 @@ export const createHeightScaleController = ({
     canvas.dataset.heightScaleMinZ = minZ.toFixed(3);
     canvas.dataset.heightScaleMaxZ = maxZ.toFixed(3);
     canvas.dataset.heightScaleStepM = String(stepM);
+    // The ETRS-GK25 transform establishes XY only. Both north settings use
+    // model Z until a vertical datum transformation has been verified.
     canvas.dataset.heightScaleFrame = 'YLIS-G1-LOCAL';
+    canvas.dataset.heightScaleNorthReference = mapNorth ? 'EPSG:3879' : 'YLIS-G1-LOCAL';
+    const caption = mapNorth ? 'ETRS-GK25 · Z paikallinen' : 'YLIS-G1-LOCAL Z';
+    if (title) title.textContent = caption;
+    scale.setAttribute('aria-label', `${caption}, korkeusasteikko`);
     return true;
   };
 

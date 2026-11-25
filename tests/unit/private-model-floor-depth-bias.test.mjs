@@ -24,3 +24,6 @@ test('only the named 2F plank floor gets a polygon offset, once', () => {
   assert.equal(wall.polygonOffset, undefined);
   assert.equal(applyD2FFloorDepthBias(root), 0, 'idempotent per root');
 });
+
+// GPU lifetime shares the viewer scene-mount CI test entrypoint.
+import './private-model-gpu-lifetime.test.mjs';
