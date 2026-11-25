@@ -1965,6 +1965,13 @@ const title = 'Private 3D viewer';
             </label>
             <div id="layers-technical-review-note" class="layer-note">Sähkö, vesi, viemäri ja IV omilla väreillään; rakennus ja kalusteet läpikuultavan harmaina. WORK_TEST, ei toteumatieto.</div>
           </div>
+          <div id="r32h-nw-t12-preview-layer" class="layer-section" hidden>
+            <label class="layer-row">
+              <input id="r32h-nw-t12-preview-optin" type="checkbox" aria-describedby="r32h-nw-t12-preview-note" />
+              <span>R32H luoteissyöksyn 20 mm työoletus (esikatselu)</span>
+            </label>
+            <div id="r32h-nw-t12-preview-note" class="layer-note">Oletuksellinen purku Merika-ehdokkaan sihdin yläpuolelle, ei mitattu korko, varmistettu tuote eikä toteumatieto. Ilman valintaa näkyy alkuperäinen R32H-geometria.</div>
+          </div>
           <div id="c80-shell-focus-layer" hidden>
             <label class="layer-row">
               <input id="c80-shell-focus" type="checkbox" checked />
@@ -2566,6 +2573,8 @@ const title = 'Private 3D viewer';
       import { V90_IV_P04_SOURCE_SHA256 } from '../../scripts/privateModelC80R2V90IVP04LayerSourceProfile.mjs';
       // @ts-ignore - R31 review roots and inspection overlays have unit coverage.
       import { resolveC80R31TechnicalReviewRoots, c80R31RoofWaterSystemOf } from '../../scripts/privateModelC80R31TechnicalReview.mjs';
+      // @ts-ignore - source-exact reversible runtime COW has dedicated unit regressions.
+      import { createR32HT12NorthwestWorkTestReceiver } from '../../scripts/privateModelR32HT12NorthwestReceiver.mjs';
       // @ts-ignore - pure overlay builders, THREE injected.
       import { R31_DRAINAGE_SOURCE, R31_EXTERIOR_DONORS, buildR31DrainageOverlay, buildR31RoofWaterOverlay, buildR31InfraOverlay, buildR31FiberOverlay, buildR31StormOverlay, buildR31LowVoltageOverlay, buildR31ExteriorDonorOverlay, buildR31WestGableInfill, buildR31GableBoarding, buildR31WestBrickCompletion, buildR31FiberEntryBox, buildR31FiberEntryLink, isR31WestGableBoardingSource, R31_GABLE_BOARDING_COLOR, isR31ReplacedWestDownpipe, loadR31EastGableOverlay, relocateR31Downpipes, syncR31ExteriorDonorMaterials, setR31SiteNetworkLayerMode } from '../../scripts/privateModelR31Inspection.mjs';
       import { R31_LOCUS_FIBER_LINES } from '../../scripts/privateModelR31LocusFiber.mjs';
@@ -14905,6 +14914,7 @@ const title = 'Private 3D viewer';
       // scene change. Legacy camera/view actions keep their existing behavior.
       const v26LayersSourceSha = 'cff2dbead53b7836747e10ef359637114ff723690ec380e313cec817e4f71d31';
       let layersGltf: any = null;
+      let r32hNwT12WorkTestPreview: { root: THREE.Object3D; dispose: () => void } | null = null;
       let v69C035LobbyPresentation: ReturnType<typeof createV69C035WhiteLobbyPresentation> | null = null;
       let v69C020UpperGlassPresentation: ReturnType<typeof createV69C020UpperGlassPresentation> | null = null;
       let layersExpectedSha: string | null = null;
@@ -15041,6 +15051,9 @@ const title = 'Private 3D viewer';
 
       const technicalReviewRow = document.querySelector<HTMLElement>('#layers-technical-review')!;
       const technicalReviewInput = document.querySelector<HTMLInputElement>('#layers-technical-review-on')!;
+      const nwT12PreviewRow = document.querySelector<HTMLElement>('#r32h-nw-t12-preview-layer')!;
+      const nwT12PreviewInput = document.querySelector<HTMLInputElement>('#r32h-nw-t12-preview-optin')!;
+      nwT12PreviewInput.addEventListener('change', () => refreshLayers());
       let technicalReviewOn = false;
       let concealedTechnical: ReturnType<typeof createConcealedTechnicalPresentation> | null = null;
       let technicalReview: ReturnType<typeof createTechnicalReviewPresentation> | null = null;
@@ -15184,6 +15197,32 @@ const title = 'Private 3D viewer';
             ? r31ViewerLayerBindingScope(layersGltf?.parser?.json, layersLoadedSha, sceneIndex) : null;
           const verified = !!layersExpectedSha && layersExpectedSha === layersLoadedSha &&
             sceneIndex >= 0 && (!isR31FamilyViewerSha(layersLoadedSha) || !!r31SceneScope);
+          // The unmeasured NW T12 20 mm WORK_TEST gap must never appear by
+          // default. Offer a reversible opt-in only in exact R32H BOTH scenes.
+          const nwT12SourceAllowed = verified && !!root &&
+            layersLoadedSha === C80_R32H_SOURCE.glbSha256 &&
+            r31SceneScope?.floor === 'BOTH' && (sceneIndex === 814 || sceneIndex === 815);
+          nwT12PreviewRow.hidden = !nwT12SourceAllowed;
+          nwT12PreviewInput.disabled = !nwT12SourceAllowed;
+          // Switching to another model/floor revokes the earlier user choice.
+          if (!nwT12SourceAllowed) nwT12PreviewInput.checked = false;
+          const nwT12PreviewRequested = nwT12SourceAllowed && nwT12PreviewInput.checked;
+          if (r32hNwT12WorkTestPreview &&
+              (!nwT12PreviewRequested || r32hNwT12WorkTestPreview.root !== root)) {
+            r32hNwT12WorkTestPreview.dispose();
+            r32hNwT12WorkTestPreview = null;
+            delete canvas.dataset.r32hNwT12Cow;
+          }
+          if (!nwT12PreviewRequested) delete canvas.dataset.r32hNwT12Cow;
+          if (nwT12PreviewRequested && root && !r32hNwT12WorkTestPreview) {
+            const receiver = createR32HT12NorthwestWorkTestReceiver({
+              gltf: layersGltf, sourceSha256: layersLoadedSha, sceneIndex,
+            });
+            const applied = receiver.available && receiver.setApplied(true);
+            canvas.dataset.r32hNwT12Cow = applied ? 'WORK_TEST_COW_APPLIED' : receiver.status;
+            if (applied) r32hNwT12WorkTestPreview = { root, dispose: receiver.dispose };
+            else receiver.dispose();
+          }
           const filterActive = canvas.dataset.objectVisibilityFilter === 'active';
           if (filterActive) {
             technicalReviewInput.disabled = true;
@@ -15361,6 +15400,13 @@ const title = 'Private 3D viewer';
         });
       };
       onLayersModelLoaded = (gltf, session) => {
+        // Each GLB load is a fresh opt-in boundary, even when its SHA matches.
+        nwT12PreviewInput.checked = false;
+        if (r32hNwT12WorkTestPreview) {
+          r32hNwT12WorkTestPreview.dispose();
+          r32hNwT12WorkTestPreview = null;
+        }
+        delete canvas.dataset.r32hNwT12Cow;
         disposeLayersPresentation();
         v69C035LobbyPresentation?.dispose();
         v69C035LobbyPresentation = null;

@@ -94,3 +94,56 @@ test('viewer loads roof water as its own Layerit row behind the site-network gat
   assert.match(source, /r31SiteNetworks\.roofwater = buildR31RoofWaterOverlay\(THREE\)/);
   assert.match(source, /const siteOk = whole && Boolean\(r31Capabilities\(\)\?\.siteNetworks\)/);
 });
+
+test('NW original owner photos support perforated Merika Avantgarde candidate but not a verified SKU', () => {
+  assert.match(R31_ROOFWATER_SOURCE.wellProduct, /Merika Avantgarde 1780RS/);
+  assert.equal(R31_ROOFWATER_SOURCE.northwestOriginalPhotoIds.length, 4);
+  assert.match(R31_ROOFWATER_SOURCE.manufacturerUrl, /meltex\.fi/);
+  for (const [id, w] of Object.entries(P.wells)) {
+    assert.equal(w.skirtDiameterM, 0.34, id + ' D340');
+    assert.equal(w.hoodDiameterM, 0.31, id + ' D310');
+    assert.ok(Math.abs(w.hoodTopY - w.groundY - 0.249) < 1e-8, id + ' H249');
+    assert.equal(w.productCandidate, id === 'RK_NW' ? 'PHOTO_MATCH_NEEDS_SKU' : 'MODEL_ASSUMPTION_NO_OWN_PHOTO');
+  }
+  const model = buildR31RoofWaterOverlay(THREE);
+  for (const id of ['RK_NW', 'RK_NE', 'RK_SE']) {
+    for (const part of ['_SKIRT', '_BASIN', '_HOOD', '_GRATE']) {
+      const mesh = model.getObjectByName('R31_ROOFWATER_' + id + part);
+      assert.ok(mesh?.isMesh, id + part + ' is mesh');
+      assert.equal(mesh.userData.asBuiltClaim, false);
+    }
+    const grate = model.getObjectByName('R31_ROOFWATER_' + id + '_GRATE');
+    assert.ok(grate.geometry.getAttribute('position').count > 200, id + ' perforated');
+    assert.match(grate.userData.roofwaterUncertainty, /NE\/SE samalla mallilla vain oletus/);
+  }
+  assert.match(model.getObjectByName('R31_ROOFWATER_RK_NW').userData.roofwaterSourcePhotoIds, /1Hbw4Ir3c7WHg2PDU58KcN6v1W_uunuS8/);
+  assert.equal(model.getObjectByName('R31_ROOFWATER_RK_NE').userData.roofwaterSourcePhotoIds, '');
+});
+
+test('Merika collector remains open below the perforated grate and NW host gap is explicit', () => {
+  const model = buildR31RoofWaterOverlay(THREE);
+  for (const id of ['RK_NW', 'RK_NE', 'RK_SE']) {
+    const collector = model.getObjectByName('R31_ROOFWATER_' + id);
+    const bottom = model.getObjectByName('R31_ROOFWATER_' + id + '_BOTTOM');
+    const grate = model.getObjectByName('R31_ROOFWATER_' + id + '_GRATE');
+    assert.equal(bottom.geometry.type, 'CircleGeometry', id + ': assumed collector sump bottom exists');
+    assert.ok(Math.abs(bottom.position.y - P.wells[id].bottomY) < 1e-8, id + ': bottom lies at assumed depth');
+    assert.equal(collector.geometry.parameters.openEnded, true, id + ': buried collector has no false sealed lid');
+    assert.equal(collector.material.side, THREE.DoubleSide, id + ': visible internal collector wall');
+    assert.ok(grate.geometry.parameters.shapes.holes.length >= 20, id + ': actual openings in the grate');
+    assert.equal(collector.userData.asBuiltClaim, false);
+    assert.equal(collector.userData.physicalZClaim, false);
+  }
+  const nw = P.wells.RK_NW;
+  const sourceOutletY = DOWNPIPE_ENDS.T12_2026_CD_LANSI_POHJOINEN[1];
+  const groundGapM = nw.groundY - sourceOutletY;
+  const grateGapM = nw.grateY - sourceOutletY;
+  assert.ok(groundGapM > 0.32 && groundGapM < 0.33, 'R32H T12 NW outlet currently ~324 mm under model ground');
+  assert.ok(grateGapM > 0.39 && grateGapM < 0.41, 'T12 NW outlet currently ~399 mm under assumed grate');
+  const nwCard = model.getObjectByName('R31_ROOFWATER_RK_NW').userData;
+  assert.equal(nwCard.roofwaterHostStatus, 'SOURCE_HOST_HOLD');
+  assert.match(nwCard.roofwaterUncertainty, /SOURCE_HOST_HOLD/);
+  assert.match(nwCard.roofwaterUncertainty, /0,32 m/);
+  assert.match(nwCard.roofwaterUncertainty, /0,40 m/);
+  assert.equal(model.getObjectByName('R31_ROOFWATER_RK_NE').userData.roofwaterHostStatus, 'NO_PHOTO_VERIFIED_HOST');
+});
