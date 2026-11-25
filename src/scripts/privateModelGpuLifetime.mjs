@@ -1,3 +1,35 @@
+import { Group } from 'three';
+
+/** Instantiate only the requested scenes without changing the source JSON or
+ * its scene indices. Three r185 still expects a Group for each slot while
+ * parsing. Remove the placeholders before any viewer code can mount one.
+ */
+export const withSelectedGltfScenes = (loader, selectScenes) => ({
+  async parseAsync(data, path) {
+    const skippedScene = new Group();
+    const plugin = (parser) => ({
+      name: 'YLISRINNE_selected_review_scenes',
+      beforeRoot() {
+        const selected = selectScenes(parser.json);
+        const loadScene = parser.loadScene.bind(parser);
+        parser.loadScene = (index) => selected.has(index)
+          ? loadScene(index)
+          : Promise.resolve(skippedScene);
+      },
+    });
+    loader.register(plugin);
+    try {
+      const gltf = await loader.parseAsync(data, path);
+      gltf.scenes.forEach((scene, index) => {
+        if (scene === skippedScene) delete gltf.scenes[index];
+      });
+      return gltf;
+    } finally {
+      loader.unregister(plugin);
+    }
+  },
+});
+
 /** Release GPU resources owned by a parsed GLTF after it has been replaced.
  * Do not call for the mounted GLTF or for another scene of the same GLTF.
  * Multiple glTF scenes may share Object3Ds, geometry, materials and textures.
