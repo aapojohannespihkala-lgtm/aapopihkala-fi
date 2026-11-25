@@ -1862,7 +1862,17 @@ const openToolbarMenu = async (
 
 const presetActions = new Set(['Koko rakennus', 'D-asunto', 'D 1F', 'D 2F', 'Tontti', 'Infra']);
 
+const cameraShortcuts = new Map([
+  ['Vapaa 3D', 'orbit'], ['Isometrinen', 'iso'], ['Ylhäältä', 'top'],
+  ['Julk +Y', 'elev-pos-y'], ['Julk -Y', 'elev-neg-y'],
+  ['Julk +X', 'elev-pos-x'], ['Julk -X', 'elev-neg-x'],
+]);
 const clickViewAction = async (page: Page, name: string) => {
+  const shortcut = cameraShortcuts.get(name);
+  if (shortcut && (page.viewportSize()?.width ?? 0) >= 1240) {
+    await page.locator(`[data-desk-kind="angle"][data-desk-id="${shortcut}"]`).click();
+    return;
+  }
   await openToolbarMenu(page, presetActions.has(name) ? '#preset-menu' : '#view-menu');
   await page.getByRole('button', { name, exact: true }).click();
 };
@@ -2028,7 +2038,7 @@ test('private viewer preset and view menus stay inside a short viewport and keep
   if (!viewBox) return;
   expect(viewBox.y + viewBox.height).toBeLessThanOrEqual(758);
 
-  const finalView = page.getByRole('button', { name: 'Julk -X', exact: true });
+  const finalView = page.getByRole('button', { name: 'Palauta näkymän oletukset', exact: true });
   await finalView.scrollIntoViewIfNeeded();
   await expect(finalView).toBeVisible();
 });
@@ -6673,13 +6683,14 @@ test('private viewer keeps the primary toolbar compact and exposes legacy action
   await page.locator('#preset-menu > summary').click();
 
   await openToolbarMenu(page, '#view-menu');
-  await expect(page.getByRole('button', { name: 'Vapaa 3D' })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Isometrinen' })).toBeVisible();
+  await expect(page.locator('#orbit-button')).toBeHidden();
+  await expect(page.locator('#iso-button')).toBeHidden();
+  await expect(page.getByRole('button', { name: 'Alhaalta' })).toBeVisible();
   await page.locator('#view-menu > summary').click();
 
   await openToolbarMenu(page, '#view-menu');
   await expect(page.getByRole('button', { name: 'Sovita näkymään' })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Pituusleikkaus' })).toBeDisabled();
+  await expect(page.locator('#profile-button')).toBeHidden();
 });
 
 
@@ -6711,7 +6722,7 @@ test('private viewer keeps dark YLIS-G1-LOCAL orientation and north direction vi
   await expect(gizmo).toHaveAttribute('aria-label', 'YLIS-G1-LOCAL suuntailmaisin: X itään, Y pohjoiseen, Z ylös');
   await expect(page.locator('#orientation-north-label')).toHaveText('N');
   await expect(gizmo).toHaveCSS('pointer-events', 'none');
-  await expect(gizmo).toHaveCSS('background-color', 'rgba(27, 36, 45, 0.92)');
+  await expect(gizmo).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
   await expect(gizmo).toHaveCSS('box-shadow', 'none');
 
   const aiNavigator = page.locator('#ai-navigator-readout');

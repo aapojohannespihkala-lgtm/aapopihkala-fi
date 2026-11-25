@@ -1,3 +1,4 @@
+import type { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import {C80_437_GLB_SHA256,C80_437_SCENES,isC80437SourceScene,resolveC80437CardNode} from './privateModelC80437SourceProfile.mjs';
 import { TATE4_MJ6263_SOURCE_SHA256, resolveM6263CardNode } from './privateModelM6263ViewerReceipt.mjs';
 import { TATE4_MJ6263_SCENES, isTate4Mj62Mj63SourceScene } from './privateModelTate4Mj62Mj63SourceProfile.mjs';
@@ -23,6 +24,8 @@ import { C80_620R20_GLB_SHA256, C80_620R20_SCENES, isC80620R20SourceScene } from
 import { C80_620R21_GLB_SHA256, C80_620R21_SCENES, isC80620R21SourceScene } from './privateModelC80620R21SourceProfile.mjs';
 import { C80_620R22_GLB_SHA256, C80_620R22_SCENES, isC80620R22SourceScene } from './privateModelC80620R22SourceProfile.mjs';
 import { resolveC80R2ChainFloorScenes } from './privateModelC80R2ChainScenes.mjs';
+import { c80R32HViewerSceneIndices, prepareC80R31ReviewScenes, r32hFamilyOf } from './privateModelC80R31ReviewRuntime.mjs';
+import { withSelectedGltfScenes } from './privateModelGpuLifetime.mjs';
 
 type RecordData = Record<string, any>;
 
@@ -505,7 +508,8 @@ const getBundle = () => bundleRequest ??= (async () => {
 
 /** Hash the same bytes passed to the existing GLTFLoader, never a catalog claim or a second fetch. */
 export const loadModelWithSourceCards = async <T extends GltfSource & object>(
-  loader: { parseAsync(data: ArrayBuffer, path: string): Promise<T> }, path: string,
+  loader: { parseAsync(data: ArrayBuffer, path: string): Promise<T> } &
+    Partial<Pick<GLTFLoader, 'register' | 'unregister'>>, path: string,
   exactSource?: { glbBytes: number; glbSha256: string },
 ): Promise<T> => {
   const url = new URL(path, window.location.href);
@@ -523,13 +527,28 @@ export const loadModelWithSourceCards = async <T extends GltfSource & object>(
   const digestTask = crypto.subtle.digest('SHA-256', bytes)
     .then(value => Array.from(new Uint8Array(value), byte => byte.toString(16).padStart(2, '0')).join(''))
     .catch(() => null);
-  if (exactSource && await digestTask !== exactSource.glbSha256)
+  // Complete WebCrypto's large GLB digest before GLTFLoader allocates parsed
+  // scenes, textures and GPU resources. The former Promise.all overlapped both
+  // memory peaks (particularly costly for 60+ MB multi-scene WORK_TEST files).
+  // Source authentication still hashes the exact bytes passed to GLTFLoader.
+  const digest = await digestTask;
+  if (exactSource && digest !== exactSource.glbSha256)
     throw Error('WORK_TEST_SOURCE_SHA_MISMATCH');
-  const [gltf, digest, cards] = await Promise.all([
-    loader.parseAsync(bytes, new URL('.', url).href), digestTask, getBundle(),
+  const review = exactSource && loader.register && loader.unregister ? r32hFamilyOf(digest) : null;
+  const modelLoader: typeof loader = review
+    ? withSelectedGltfScenes(loader, (json: unknown) => c80R32HViewerSceneIndices(json, digest))
+    : loader;
+  const [gltf, cards] = await Promise.all([
+    modelLoader.parseAsync(bytes, new URL('.', url).href), getBundle(),
   ]);
   let identity: GltfSource = gltf;
-  try { identity = await sourceCardIdentity(gltf); } catch { /* Cards fail closed, model loading remains available. */ }
+  if (review) {
+    // Bind the actual review graphs before building their source-card map.
+    // Asking for every cached node would instantiate unused historical geometry.
+    await prepareC80R31ReviewScenes(gltf, digest, review.views);
+  } else {
+    try { identity = await sourceCardIdentity(gltf); } catch { /* Cards fail closed, model loading remains available. */ }
+  }
   // After the full node cache is loaded: getDependencies('node') above moves
   // shared children into orphan parents, and later lookups can no longer steal
   // the rehydrated per-scene copies. Exact HI20 52scene SHA only.
@@ -687,9 +706,13 @@ export const loadModelWithSourceCards = async <T extends GltfSource & object>(
         cardMap.set(object, { ...cardMap.get(object), nodes: id });
     } catch { /* Keep the loader graph for this scene. */ }
   }
+  try {
+    const associations = buildSourceNodeAssociations(gltf);
+    loadedNodeAssociations.set(gltf, associations);
+    if (review) identity = createSourceNodeView(gltf, associations);
+  } catch { /* Presentations fail closed. */ }
   sessions.set(gltf, createSourceCardResolver(identity, digest, cards.bundle, cards.failure));
   if (digest) loadedDigests.set(gltf, digest);
-  try { loadedNodeAssociations.set(gltf, buildSourceNodeAssociations(gltf)); } catch { /* Presentations fail closed. */ }
   return gltf;
 };
 

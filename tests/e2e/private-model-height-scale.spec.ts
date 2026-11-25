@@ -71,8 +71,7 @@ test('private viewer height scale places higher Z above lower Z and draws full-w
   const canvas = page.locator('#private-model-canvas');
   await expect(canvas).toHaveAttribute('data-model-source', 'current');
 
-  await page.locator('#view-menu > summary').click();
-  await page.getByRole('button', { name: 'Julk +Y', exact: true }).click();
+  await page.locator('[data-desk-kind="angle"][data-desk-id="elev-pos-y"]').click();
   await expect(canvas).toHaveAttribute('data-view-preset', 'elevation');
   await expect(canvas).toHaveAttribute('data-camera-projection', 'orthographic');
   await expect(canvas).toHaveAttribute('data-height-scale-visible', 'true');
@@ -99,4 +98,17 @@ test('private viewer height scale places higher Z above lower Z and draws full-w
   expect(scaleBox).not.toBeNull();
   expect(guideBox).not.toBeNull();
   expect(guideBox!.width).toBeGreaterThan(scaleBox!.width * 0.9);
+  expect(lowestBox!.x).toBeLessThan(scaleBox!.x + 30);
+
+  const tickLabels = await labels.allTextContents();
+  const frameToggle = page.getByRole('button', { name: 'Vaihda paikallinen pohjoinen tai karttapohjoinen' });
+  await frameToggle.click();
+  await expect(canvas).toHaveAttribute('data-height-scale-north-reference', 'EPSG:3879');
+  await expect(canvas).toHaveAttribute('data-height-scale-frame', 'YLIS-G1-LOCAL');
+  await expect(page.locator('.height-scale-title')).toHaveText('ETRS-GK25 · Z paikallinen');
+  expect(await labels.allTextContents()).toEqual(tickLabels);
+
+  await frameToggle.click();
+  await expect(page.locator('.height-scale-title')).toHaveText('YLIS-G1-LOCAL Z');
+  await expect(canvas).toHaveAttribute('data-height-scale-north-reference', 'YLIS-G1-LOCAL');
 });
