@@ -29,7 +29,7 @@ test('private-model route delegates toolbar menu runtime to the module', async (
   expect(source).not.toContain('const fitToolbarMenuToViewport =');
 });
 
-test('private viewer uses the approved toolbar and preserves Layerit when its window is minimized', async ({ page }) => {
+test('private viewer uses the approved toolbar and restores tool windows from their own buttons', async ({ page }) => {
   await page.route('**/private-model/**/*.glb*', route => route.fulfill({ status: 404 }));
   await page.goto('/private-model/?c70=1');
   await expect(page.locator('.desk-toolbar')).toBeVisible();
@@ -40,7 +40,7 @@ test('private viewer uses the approved toolbar and preserves Layerit when its wi
   );
   const edgeIds = page.locator('[data-desk-kind="edge"]');
   expect(await edgeIds.evaluateAll(nodes => nodes.map(node => (node as HTMLElement).dataset.deskId))).toEqual(
-    ['none', 'unified', 'object', 'visible'],
+    ['visible', 'object', 'unified', 'none'],
   );
   const summary = page.locator('#preset-menu > summary');
   await expect(summary.locator(':scope > svg')).toBeVisible();
@@ -56,6 +56,21 @@ test('private viewer uses the approved toolbar and preserves Layerit when its wi
   await expect(page.locator('.toolbar > .interaction-tools')).toBeVisible();
   const folder = page.locator('#model-menu > summary');
   await expect(folder.locator('svg')).toBeVisible();
+  await expect(page.locator('.toolbar > #more-menu')).toHaveCount(0);
+  await expect(page.locator('.toolbar > .interaction-tools > button')).toHaveCount(4);
+  await expect(page.locator('#view-menu #axis-measure-tool-button')).toBeDisabled();
+  await expect(page.locator('#view-menu #p137e-place-tool-button')).toBeDisabled();
+  await page.setViewportSize({ width: 1024, height: 768 });
+  const boxes = await page.locator(
+    '.toolbar > #model-menu, .toolbar > .desk-toolbar, .toolbar > .interaction-tools, .toolbar > #navigation-cube-button',
+  ).evaluateAll(nodes => nodes.map(node => {
+    const { left, top, right, bottom } = node.getBoundingClientRect();
+    return { left, top, right, bottom };
+  }));
+  expect(boxes).toHaveLength(4);
+  expect(boxes.every(box => box.left >= 0 && box.right < 1024)).toBe(true);
+  expect(Math.max(...boxes.map(box => box.top)) < Math.min(...boxes.map(box => box.bottom))).toBe(true);
+  expect(boxes[0].right).toBeLessThan(boxes[1].left);
   const hoverBefore = await folder.evaluate(node => getComputedStyle(node).backgroundColor);
   await folder.hover();
   await expect.poll(() => folder.evaluate(node => getComputedStyle(node).backgroundColor)).not.toBe(hoverBefore);
@@ -85,29 +100,47 @@ test('private viewer uses the approved toolbar and preserves Layerit when its wi
     element.parentElement!.classList.remove('m5a-source-layout');
   });
 
+  const cubeButton = toolbar.getByRole('button', { name: 'Suuntailmaisin' });
+  const cube = viewport.locator('#orientation-gizmo');
+  await expect(cubeButton).toHaveAttribute('aria-expanded', 'true');
+  await expect(cubeButton).toHaveCSS('color', 'rgb(130, 145, 156)');
+  await cube.getByRole('button', { name: 'Pienennä: Suuntailmaisin' }).click();
+  await expect(cube).toBeHidden();
+  await expect(cubeButton).toHaveAttribute('aria-expanded', 'false');
+  await expect(cubeButton).toHaveCSS('color', 'rgb(241, 244, 245)');
+  await expect(cubeButton).toBeFocused();
+  await cubeButton.press('Enter');
+  await expect(cube).toBeVisible();
+
   const layers = page.locator('#layers-panel');
-  const layerButton = page.getByRole('button', { name: 'Layerit', exact: true });
+  const layerButton = toolbar.getByRole('button', { name: 'Layerit', exact: true });
   await layerButton.click();
   await expect(layers).toBeVisible();
-
   const minimize = layers.getByRole('button', { name: 'Pienennä: Layerit' });
-  const restore = toolbar.getByRole('button', { name: 'Palauta: Layerit' });
   const original = await layers.locator('input, select').evaluateAll(nodes =>
     nodes.map(node => [node.id, (node as HTMLInputElement).checked, (node as HTMLInputElement).value]),
   );
   await minimize.click();
   await expect(layers).toBeHidden();
-  await expect(restore).toBeVisible();
-  await expect(restore.locator('svg')).toBeVisible();
-  await expect(restore).toBeFocused();
-  expect(await layers.evaluate(element => (element as HTMLElement).hidden)).toBe(false);
-
+  await expect(toolbar.getByRole('button', { name: 'Palauta: Layerit' })).toHaveCount(0);
+  await expect(layerButton).toHaveAttribute('aria-expanded', 'false');
+  await expect(layerButton).toBeFocused();
   await page.setViewportSize({ width: 390, height: 844 });
-  await expect(restore).toBeInViewport();
-  await restore.press('Enter');
+  await expect(layerButton).toBeInViewport();
+  await layerButton.press('Enter');
   await expect(layers).toBeVisible();
-  await expect(minimize).toBeFocused();
   expect(await layers.locator('input, select').evaluateAll(nodes =>
     nodes.map(node => [node.id, (node as HTMLInputElement).checked, (node as HTMLInputElement).value]),
   )).toEqual(original);
+  await layers.getByRole('button', { name: 'Sulje' }).click();
+
+  const point = viewport.locator('#point-pick-panel');
+  const pointTool = toolbar.getByRole('button', { name: 'Piste mallissa' });
+  await pointTool.click();
+  await point.getByRole('button', {name: 'Pienennä: Piste mallissa'}).click();
+  await expect(point).toBeHidden();
+  await expect(toolbar.getByRole('button', { name: 'Palauta: Piste mallissa' })).toHaveCount(0);
+  await pointTool.press('Enter');
+  await expect(point).toBeVisible();
+  await expect(canvas).toHaveAttribute('data-interaction-mode', 'point-pick');
 });

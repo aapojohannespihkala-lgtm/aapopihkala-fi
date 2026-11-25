@@ -1852,7 +1852,7 @@ const makeLocusLayerGlb = () => {
 
 const openToolbarMenu = async (
   page: Page,
-  selector: '#preset-menu' | '#view-menu' | '#model-menu' | '#more-menu',
+  selector: '#preset-menu' | '#view-menu' | '#model-menu',
 ) => {
   const menu = page.locator(selector);
   if ((await menu.getAttribute('open')) === null) {
@@ -1873,12 +1873,12 @@ const openWorkTestCandidate = async (page: Page, id: string) => {
 };
 
 const clickModelAction = async (page: Page, name: string) => {
-  await openToolbarMenu(page, '#more-menu');
+  await openToolbarMenu(page, '#preset-menu');
   await page.getByRole('button', { name, exact: true }).click();
 };
 
-const clickMoreAction = async (page: Page, name: string) => {
-  await openToolbarMenu(page, '#more-menu');
+const clickCameraAction = async (page: Page, name: string) => {
+  await openToolbarMenu(page, '#view-menu');
   await page.getByRole('button', { name, exact: true }).click();
 };
 
@@ -2062,7 +2062,7 @@ test('private viewer resolves the source D scene even when Three runtime names a
   await expect(page.locator('#view-menu > summary > svg')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Layerit' })).toBeVisible();
   await expect(page.locator('#model-source-badge')).toBeVisible();
-  await expect(page.locator('#more-menu > summary')).toBeVisible();
+  await expect(page.locator('#more-menu')).toHaveCount(0);
   await expect(page.getByRole('status')).toHaveText('Malli ladattu - D-pohjat käytettävissä');
 
   const canvas = page.locator('#private-model-canvas');
@@ -2206,7 +2206,7 @@ test('private viewer can isolate, hide, and restore a selected object without ch
   await expect(canvas).toHaveAttribute('data-object-visibility-mode', 'hide');
   await expect(panel).toBeHidden();
 
-  await page.locator('#more-menu > summary').click();
+  await page.locator('#view-menu > summary').click();
   await showAll.click();
   await expect(canvas).toHaveAttribute('data-object-visibility-filter', 'inactive');
   await expect(showAll).toBeDisabled();
@@ -2240,7 +2240,7 @@ test('private viewer can enable, adjust, and disable the presentation-only horiz
   await expect(canvas).toHaveAttribute('data-model-source', 'current');
   await expect(canvas).toHaveAttribute('data-horizontal-clip', 'inactive');
 
-  await page.locator('#more-menu > summary').click();
+  await page.locator('#view-menu > summary').click();
   await expect(toggle).toBeEnabled();
   await expect(height).toBeDisabled();
 
@@ -2410,7 +2410,7 @@ test('private viewer binds architectural Layerit visibility to the shared semant
   await expect(exterior).toBeDisabled();
   await expect(canvas).toHaveAttribute('data-architecture-layer-object-filter-lock', 'true');
 
-  await page.locator('#more-menu > summary').click();
+  await page.locator('#view-menu > summary').click();
   await page.locator('#show-all-objects-button').click();
   await expect(canvas).toHaveAttribute('data-object-visibility-filter', 'inactive');
   await expect(exterior).toBeEnabled();
@@ -2470,7 +2470,7 @@ test('private viewer exposes Locus as a semantic parent layer with WATER and WAS
   await expect(canvas).toHaveAttribute('data-locus-water-visible', 'false');
   await expect(canvas).toHaveAttribute('data-locus-wastewater-visible', 'true');
 
-  await clickMoreAction(page, 'Sovita näkymään');
+  await clickCameraAction(page, 'Sovita näkymään');
   const box = await canvas.boundingBox();
   expect(box).not.toBeNull();
   if (!box) return;
@@ -2556,7 +2556,7 @@ test('private viewer restores active preset camera and semantic layer defaults o
   await expect(canvas).toHaveAttribute('data-view-preset', 'orbit');
   await expect(canvas).toHaveAttribute('data-locus-layer-parent-state', 'mixed');
 
-  await clickMoreAction(page, 'Palauta näkymän oletukset');
+  await clickCameraAction(page, 'Palauta näkymän oletukset');
   await expect(canvas).toHaveAttribute('data-standard-view-preset', 'infra');
   await expect(canvas).toHaveAttribute('data-view-preset', 'top');
   await expect(canvas).toHaveAttribute('data-camera-projection', 'orthographic');
@@ -2802,7 +2802,7 @@ test('private viewer full-model fit includes visible line geometry and excludes 
 
   await page.getByRole('button', { name: 'Layerit' }).click();
   await page.locator('#roof-layer-visible').uncheck();
-  await clickMoreAction(page, 'Sovita näkymään');
+  await clickCameraAction(page, 'Sovita näkymään');
 
   const hiddenFitCenter = Number(await canvas.getAttribute('data-fit-center-x'));
   const hiddenFitRadius = Number(await canvas.getAttribute('data-fit-radius'));
@@ -3167,7 +3167,7 @@ test('private viewer loads an allowlisted WORK_TEST candidate from the protected
   await expect(page.getByRole('status')).toHaveText('WORK_TEST-malli ladattu - D-pohjat käytettävissä');
   await expect(page.locator('#model-source-badge')).toHaveText(`WORK_TEST: ${candidateLabel}`);
   await expect(page.locator('#private-model-canvas')).toHaveAttribute('data-model-source', 'work-test');
-  await openToolbarMenu(page, '#more-menu');
+  await openToolbarMenu(page, '#preset-menu');
   await expect(page.getByRole('button', { name: 'Palaa CURRENTiin' })).toBeVisible();
   expect(currentLoads).toBe(1);
   expect(candidateLoads).toBe(1);
@@ -6077,7 +6077,7 @@ test('private viewer composes p143D SCALGO terrain and p139AD assumed-Z infra fo
   await expect(page.locator('#height-scale')).toBeVisible();
 
   await expect(page.locator('#profile-button')).toBeEnabled();
-  await clickMoreAction(page, 'Pituusleikkaus');
+  await clickCameraAction(page, 'Pituusleikkaus');
   await expect(page.locator('#profile-panel')).toBeVisible();
   await expect(page.locator('#profile-route-select')).toHaveValue(
     'P139AD_LOCUS_WASTEWATER_PARCEL_WORK_Z',
@@ -6660,7 +6660,7 @@ test('private viewer keeps the primary toolbar compact and exposes legacy action
 
   await page.getByRole('button', { name: 'Sulje' }).click();
   await expect(page.locator('#model-source-badge')).toHaveText('CURRENT');
-  await expect(page.locator('#more-menu > summary')).toHaveAttribute('aria-label', 'Lisää toimintoja');
+  await expect(page.locator('#more-menu')).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'Sovita näkymään' })).toBeHidden();
 
   await openToolbarMenu(page, '#preset-menu');
@@ -6677,7 +6677,7 @@ test('private viewer keeps the primary toolbar compact and exposes legacy action
   await expect(page.getByRole('button', { name: 'Isometrinen' })).toBeVisible();
   await page.locator('#view-menu > summary').click();
 
-  await openToolbarMenu(page, '#more-menu');
+  await openToolbarMenu(page, '#view-menu');
   await expect(page.getByRole('button', { name: 'Sovita näkymään' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Pituusleikkaus' })).toBeDisabled();
 });
@@ -6783,7 +6783,7 @@ test('private viewer compares CURRENT and WORK_TEST in the same preserved view',
   await clickViewAction(page, 'Koko rakennus');
   await expect(canvas).toHaveAttribute('data-standard-view-preset', 'whole-building');
 
-  await openToolbarMenu(page, '#more-menu');
+  await openToolbarMenu(page, '#preset-menu');
   await page.getByRole('button', { name: 'Vertaa WORK_TESTiin' }).click();
   await expect(page.locator('#model-source-badge')).toHaveText(`WORK_TEST: ${candidateLabel}`);
   await expect(canvas).toHaveAttribute('data-model-comparison', 'active');
@@ -6792,7 +6792,7 @@ test('private viewer compares CURRENT and WORK_TEST in the same preserved view',
   await expect(canvas).toHaveAttribute('data-standard-view-preset', 'whole-building');
   await expect(page.getByRole('status')).toHaveText(`A/B-vertailu: WORK_TEST - ${candidateLabel}`);
 
-  await openToolbarMenu(page, '#more-menu');
+  await openToolbarMenu(page, '#preset-menu');
   await page.getByRole('button', { name: 'Vertaa CURRENTiin' }).click();
   await expect(page.locator('#model-source-badge')).toHaveText('CURRENT');
   await expect(canvas).toHaveAttribute('data-model-comparison', 'active');
