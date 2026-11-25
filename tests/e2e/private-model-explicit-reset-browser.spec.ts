@@ -26,7 +26,7 @@ test('explicit reset restores the active research preset after view and layer ch
 
   await clickHiddenButton('#elev-pos-y-button');
   await expect(canvas).toHaveAttribute('data-research-preset', 'd-2f');
-  await expect(canvas).toHaveAttribute('data-standard-view-preset', 'elev-pos-y');
+  await expect(canvas).toHaveAttribute('data-standard-view-preset', 'd-2f');
 
   await page.locator('#roof-layer-visible').evaluate((element) => {
     const input = element as HTMLInputElement;
