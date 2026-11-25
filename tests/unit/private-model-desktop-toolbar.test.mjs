@@ -28,7 +28,12 @@ test('building, camera and edge icons retain the approved geometry and mode mapp
   const preset = id => DESKTOP_PRESETS.find(item => item.id === id).icon;
   const edge = id => DESKTOP_EDGES.find(item => item.id === id).icon;
   assert.equal([...preset('whole-building').matchAll(/<rect /g)].length, 4);
-  assert.match(preset('d-apartment'), /fill="#8597A3" fill-rule="evenodd"/);
+  for (const { icon } of DESKTOP_PRESETS) {
+    assert.doesNotMatch(icon, /\bstroke(?:-width)?=|fill="none"/);
+  }
+  assert.match(preset('d-apartment'), /<path fill="#8597A3"/);
+  assert.match(preset('d-1f'), /<rect[^>]+y="10\.75"[^>]+fill="#8597A3"/);
+  assert.match(preset('d-2f'), /<rect[^>]+y="16\.75"[^>]+fill="#8597A3"/);
   assert.match(preset('technical'), /fill="#F7F8F9" fill-rule="evenodd"/);
   assert.notEqual(DESKTOP_ANGLES.find(a => a.id === 'iso').icon, DESKTOP_ANGLES.find(a => a.id === 'orbit').icon);
   for (const angle of DESKTOP_ANGLES.filter(a => a.id.startsWith('elev-'))) {
