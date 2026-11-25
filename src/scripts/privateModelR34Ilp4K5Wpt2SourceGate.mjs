@@ -48,7 +48,7 @@ export function noUnverifiedR34Ilp4Approvals(e) {
   if(UNVERIFIED_APPROVAL_FLAGS.some(k=>e[k]===true)) return false;
   if(e.current===true||e.asBuilt===true) return false;
   if(e.physicalConnectionsVerified!=null&&e.physicalConnectionsVerified!==0) return false;
-  if(e.humanReview!=null&&!['NOT_RUN','HOLD','PENDING'].includes(e.humanReview)) return false;
+  if(e.humanReview!=null&&e.humanReview!==false&&!['NOT_RUN','HOLD','PENDING'].includes(e.humanReview)) return false;
   if(e.r34HistoricalImport?.sourceLinksBoundForOutputSHA===true) return false;
   return true;
 }

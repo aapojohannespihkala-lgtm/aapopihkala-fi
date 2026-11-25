@@ -11,6 +11,8 @@ test('inherited P186/HIST2015 and ILP4 metadata cannot assert unreviewed approva
   };
   assert.equal(approvalSafe(baseline),true);
   assert.equal(approvalSafe({...baseline,humanReview:'HOLD'}),true);
+  assert.equal(approvalSafe({...baseline,humanReview:false}),true);
+  assert.equal(approvalSafe({...baseline,humanReview:true}),false);
   assert.equal(approvalSafe(null),false);
   const unsupported=[
     'sourceLinksBound','sourceLinksBoundNewSHA','sourceLinksBoundToNewSHA',
@@ -36,6 +38,8 @@ test('HIST2015 inherited nodes require source year and explicit 2026 route/sourc
     },
   }};
   assert.equal(historicalSafe(node),true);
+  assert.equal(historicalSafe({extras:{...node.extras,humanReview:false}}),true);
+  assert.equal(historicalSafe({extras:{...node.extras,humanReview:true}}),false);
   assert.equal(historicalSafe(null),false);
   assert.equal(historicalSafe({}),false);
   for(const [field,bad] of [
