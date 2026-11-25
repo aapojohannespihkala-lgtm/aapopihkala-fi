@@ -24,6 +24,27 @@
  */
 export const DESKTOP_START_CANDIDATE_ID = 'c80-r34-99210ea5-d-2f-sc822-sc825-work-test';
 
+// The renderer can die during a large model load before the viewer's catch
+// block runs. A reload in that tab gets one recovery attempt with CURRENT.
+export async function runDesktopStartupAttempt(candidateId, load, getStorage = () => window.sessionStorage) {
+  const key = 'ylisrinne-viewer:pending-start';
+  const tracked = (update) => {
+    try { return update(getStorage()); } catch { return undefined; }
+  };
+  if (tracked(storage => storage.getItem(key)) === candidateId) {
+    tracked(storage => storage.removeItem(key));
+    return 'interrupted';
+  }
+  tracked(storage => storage.setItem(key, candidateId));
+  try {
+    return await load() ? 'loaded' : 'unavailable';
+  } finally {
+    tracked(storage => {
+      if (storage.getItem(key) === candidateId) storage.removeItem(key);
+    });
+  }
+}
+
 export const DESKTOP_PRESETS = Object.freeze([
   Object.freeze({ id: 'whole-building', label: 'Koko rakennus', aria: 'rakennus kokonaan', icon: `<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
   <g transform="translate(12 0) scale(0.93 1) translate(-12 0)">

@@ -2751,6 +2751,7 @@ const title = 'Private 3D viewer';
       import { createC80R31ViewSwitch, r31WorkTestReview, r31ViewerLayerSceneReceipt, r31ViewerLayerBindingScope, C80_R31_9E0B_SOURCE, isR31FamilyViewerSha, r32hFamilyOf } from '../../scripts/privateModelC80R31ReviewRuntime.mjs';
       import {
         mountDesktopToolbar, activeDesktopPreset, activeDesktopAngle, DESKTOP_START_CANDIDATE_ID,
+        runDesktopStartupAttempt,
       } from '../../scripts/privateModelDesktopToolbar.mjs';
       import { mountPrivateModelViewportPanels } from '../../scripts/privateModelViewportPanels';
       import { createDFocusGhost, dFootprintFromScope, dStoreyFootprint } from '../../scripts/privateModelDFocusGhost';
@@ -16558,23 +16559,27 @@ const title = 'Private 3D viewer';
             await loadWorkTestCatalog();
             deskStartCatalogLoaded = true;
             const start = workTestCandidates.get(DESKTOP_START_CANDIDATE_ID);
-            if (start && await loadWorkTestCandidate(start)) {
-              // The candidate field shows the model that is actually open.
-              if (workTestSelect.value !== start.id) {
-                workTestFilter.value = '';
-                renderWorkTestOptions(start.id);
-                workTestSelect.value = start.id;
-              }
-              deskEnterWholeBuilding();
-              deskStartFrame();
-              canvas.dataset.deskStartView = 'start-work-test-whole-building';
-              deskSync();
-              return;
+            if (start) {
+              const result = await runDesktopStartupAttempt(start.id, async () => {
+                if (!await loadWorkTestCandidate(start)) return false;
+                if (workTestSelect.value !== start.id) {
+                  workTestFilter.value = '';
+                  renderWorkTestOptions(start.id);
+                  workTestSelect.value = start.id;
+                }
+                deskEnterWholeBuilding();
+                deskStartFrame();
+                canvas.dataset.deskStartView = 'start-work-test-whole-building';
+                deskSync();
+                return true;
+              });
+              if (result === 'loaded') return;
+              if (result === 'interrupted') canvas.dataset.deskStartView = 'current-recovery';
             }
           } catch (error) {
             console.warn('DESK_START_LATEST_WORK_TEST_UNAVAILABLE', error);
           }
-          canvas.dataset.deskStartView = 'current-fallback';
+          canvas.dataset.deskStartView ??= 'current-fallback';
         }
         // Keep CURRENT-first for ordinary routes and all other reviews.
         if (
