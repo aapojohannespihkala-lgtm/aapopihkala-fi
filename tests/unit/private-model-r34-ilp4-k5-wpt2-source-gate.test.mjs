@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { receiveR34Ilp4K5Wpt2 as receive, noUnverifiedR34Ilp4Approvals as approvalSafe } from '../../src/scripts/privateModelR34Ilp4K5Wpt2SourceGate.mjs';
+import { receiveR34Ilp4K5Wpt2 as receive, noUnverifiedR34Ilp4Approvals as approvalSafe, safeR34Ilp4Historical2015Node as historicalSafe } from '../../src/scripts/privateModelR34Ilp4K5Wpt2SourceGate.mjs';
 
 test('inherited P186/HIST2015 and ILP4 metadata cannot assert unreviewed approvals',()=>{
   const baseline={
@@ -24,6 +24,37 @@ test('inherited P186/HIST2015 and ILP4 metadata cannot assert unreviewed approva
   assert.equal(approvalSafe({...baseline,physicalConnectionsVerified:1}),false);
   assert.equal(approvalSafe({...baseline,humanReview:'APPROVED'}),false);
   assert.equal(approvalSafe({...baseline,r34HistoricalImport:{sourceLinksBoundForOutputSHA:true}}),false);
+});
+
+test('HIST2015 inherited nodes require source year and explicit 2026 route/source HOLD',()=>{
+  const node={extras:{
+    current:false,asBuilt:false,sourceLinksBound:false,
+    r34HistoricalImport:{
+      historicalPlanYear:2015,
+      '2026InstalledPhysicalCableRouteVerified':false,
+      sourceLinksBoundForOutputSHA:false,
+    },
+  }};
+  assert.equal(historicalSafe(node),true);
+  assert.equal(historicalSafe(null),false);
+  assert.equal(historicalSafe({}),false);
+  for(const [field,bad] of [
+    ['historicalPlanYear',2026],
+    ['historicalPlanYear',undefined],
+    ['2026InstalledPhysicalCableRouteVerified',true],
+    ['2026InstalledPhysicalCableRouteVerified',undefined],
+    ['sourceLinksBoundForOutputSHA',true],
+    ['sourceLinksBoundForOutputSHA',undefined],
+  ]) {
+    const copy=structuredClone(node);
+    copy.extras.r34HistoricalImport[field]=bad;
+    assert.equal(historicalSafe(copy),false,field);
+  }
+  for(const flag of ['sourceLinksBound','productionWebGLVerified','current','asBuilt']) {
+    const copy=structuredClone(node);
+    copy.extras[flag]=true;
+    assert.equal(historicalSafe(copy),false,flag);
+  }
 });
 
 test('ILP4 combined receipt rejects absent, malformed or non-BOTH input',()=>{
