@@ -80,7 +80,7 @@ test('initial, whole-building, and D-apartment views keep perspective free orbit
   await expect(page.getByRole('status')).toHaveText('D-asunto - molemmat kerrokset, vapaa 3D');
 });
 
-const makeTriangleGlb = (withDScene = false) => {
+const makeTriangleGlb = (withDScene = false, withFocusContext = false) => {
   const positions = Buffer.alloc(36);
   [-1, -1, 0, 1, -1, 0, 0, 1, 0].forEach((value, index) => {
     positions.writeFloatLE(value, index * 4);
@@ -90,10 +90,13 @@ const makeTriangleGlb = (withDScene = false) => {
     asset: { version: '2.0' },
     scene: 0,
     scenes: [
-      { name: 'P133D REVIEW ROOT - BABYLON Y-UP', nodes: [0] },
+      { name: 'P133D REVIEW ROOT - BABYLON Y-UP', nodes: withFocusContext ? [0, 1] : [0] },
       ...(withDScene ? [{ name: 'D CURRENT INTERIOR - BABYLON Y-UP', nodes: [0] }] : []),
     ],
-    nodes: [{ name: 'ELEVATION_CAMERA_TEST', mesh: 0 }],
+    nodes: withFocusContext ? [
+      { name: 'TEST_D_CONTENT', mesh: 0, translation: [5.3, 1.5, 0] },
+      { name: 'TEST_OTHER_CONTENT', mesh: 0, translation: [13, 1.5, 0] },
+    ] : [{ name: 'ELEVATION_CAMERA_TEST', mesh: 0 }],
     meshes: [
       {
         name: 'TEST_TRIANGLE',
@@ -183,7 +186,54 @@ test('a reload after an interrupted default model load opens the protected fallb
   expect(workTestRequests).toBe(2);
 });
 
-test('owner menu presets keep the active isometric or elevation camera direction', async ({ page }) => {
+test('camera changes keep the selected content, D focus and manual layers', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.route('**/private-model/model.glb', route =>
+    route.fulfill({ contentType: 'model/gltf-binary', body: makeTriangleGlb(false, true) }));
+  await page.route('**/private-model/work-test/catalog.json', route => route.fulfill({ status: 404 }));
+  await page.goto('/private-model/');
+  await expect(page.getByRole('status')).toHaveText('Malli ladattu');
+
+  const canvas = page.locator('#private-model-canvas');
+  const activeAngle = page.locator('[data-desk-kind="angle"][aria-pressed="true"]');
+  const activePreset = page.locator('[data-desk-kind="preset"][aria-pressed="true"]');
+  const clickAngle = (id: string) => page.locator(`[data-desk-kind="angle"][data-desk-id="${id}"]`).click();
+  const clickPreset = (id: string) => page.locator(`[data-desk-kind="preset"][data-desk-id="${id}"]`).click();
+
+  await clickPreset('whole-building');
+  for (const [angle, mode] of [['elev-pos-x', 'elevation'], ['iso', 'isometric'], ['orbit', 'orbit']]) {
+    await clickAngle(angle);
+    await expect(canvas).toHaveAttribute('data-view-preset', mode);
+    await expect(activeAngle).toHaveAttribute('data-desk-id', angle);
+    await expect(activePreset).toHaveAttribute('data-desk-id', 'whole-building');
+  }
+  await clickPreset('d-roof');
+  await expect(canvas).toHaveAttribute('data-view-preset', 'orbit');
+  await expect(activeAngle).toHaveAttribute('data-desk-id', 'orbit');
+  await expect(activePreset).toHaveAttribute('data-desk-id', 'd-roof');
+  const focus = await canvas.getAttribute('data-d-focus-ghost');
+  expect(focus).toMatch(/^d-roof\|in:1\|out:1\|split:0/);
+
+  await page.locator('#layers-button').click();
+  await page.locator('#roof-layer-visible').uncheck();
+  await page.locator('[data-desk-kind="edge"][data-desk-id="none"]').click();
+  await expect(canvas).toHaveAttribute('data-layer-state-source', 'manual');
+
+  await page.setViewportSize({ width: 1024, height: 900 });
+  const menu = page.locator('#view-menu');
+  await menu.locator('summary').click();
+  await menu.locator('#elev-pos-x-button').click();
+  await expect(canvas).toHaveAttribute('data-elevation-direction', 'pos-x');
+  await expect(activeAngle).toHaveAttribute('data-desk-id', 'elev-pos-x');
+  await expect(canvas).toHaveAttribute('data-d-focus-ghost', focus!);
+  await expect(activePreset).toHaveAttribute('data-desk-id', 'd-roof');
+  await expect(canvas).toHaveAttribute('data-layer-state-source', 'manual');
+  await expect(canvas).toHaveAttribute('data-layer-roof-visible', 'false');
+  await expect(canvas).toHaveAttribute('data-layer-edge-mode', 'none');
+  await expect(page.locator('#layers-button')).toHaveAttribute('aria-expanded', 'true');
+});
+
+test('owner menu presets keep the active isometric, elevation or underside camera direction', async ({ page }) => {
   // A synthetic fixture exercises the actual viewer controls without publishing
   // any original Ylisrinne geometry or requiring a protected model.
   // Reuse the elevation guard's visible-triangle GLB. Empty scenes cannot
@@ -210,13 +260,19 @@ test('owner menu presets keep the active isometric or elevation camera direction
   for (const { viewButton, angle, mode, projection } of [
     { viewButton: 'Isometrinen', angle: 'iso', mode: 'isometric', projection: 'orthographic' },
     { viewButton: 'Julk +Y', angle: 'elev-pos-y', mode: 'elevation', projection: 'orthographic' },
+    { viewButton: 'Alhaalta', angle: null, mode: 'bottom', projection: 'orthographic' },
   ]) {
     // Each independent camera mode starts from a fresh fixture. Switching
     // isometric -> elevation is a separate navigation action, not this test's
     // menu-preset preservation contract.
     await page.goto('/private-model/');
     await expect(page.getByRole('status')).toHaveText('Malli ladattu');
-    await page.locator(`[data-desk-kind="angle"][data-desk-id="${angle}"]`).click();
+    if (angle) {
+      await page.locator(`[data-desk-kind="angle"][data-desk-id="${angle}"]`).click();
+    } else {
+      await page.locator('#view-menu > summary').click();
+      await page.locator('#bottom-button').click();
+    }
     await expect(page.locator('#private-model-canvas')).toHaveAttribute('data-view-preset', mode);
     const before = await cameraSnapshot();
     expect(before.projection).toBe(projection);

@@ -180,8 +180,11 @@ export function activeDesktopPreset({ standardViewPreset, roofVisible }) {
   return DESKTOP_PRESETS.some(p => p.id === standardViewPreset) ? standardViewPreset : null;
 }
 /** Which camera-angle icon is pressed for a viewer state. */
-export function activeDesktopAngle({ standardViewPreset, viewPreset }) {
-  if (typeof standardViewPreset === 'string' && standardViewPreset.startsWith('elev-')) return standardViewPreset;
+export function activeDesktopAngle({ viewPreset, elevationDirection }) {
+  if (viewPreset === 'elevation') {
+    const id = `elev-${elevationDirection}`;
+    return DESKTOP_ANGLES.some(angle => angle.id === id) ? id : null;
+  }
   if (viewPreset === 'isometric') return 'iso';
   return ['orbit', 'top'].includes(viewPreset) ? viewPreset : null;
 }
