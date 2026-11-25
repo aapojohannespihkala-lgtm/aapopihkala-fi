@@ -33,6 +33,26 @@ function active(j, roots) {
 }
 const safe = e => e?.geometryChanged===false && e.sourceLinksBound===false && e.physicalHostVerified===false && e.productionWebGLVerified===false && e.current===false && e.asBuilt===false && e.humanReview==='NOT_RUN';
 const geometry = ({name,extras,children,...rest}) => rest;
+// A source receipt cannot upgrade unverified inherited claims to accepted facts.
+// Keep this check independent of the SHA guard: an exact source can still carry
+// unsupported approval metadata.
+const UNVERIFIED_APPROVAL_FLAGS = Object.freeze([
+  'sourceLinksBound','sourceLinksBoundNewSHA','sourceLinksBoundToNewSHA',
+  'sourceLinksBoundForNewSHA','physicalCable','physicalRouteVerified',
+  'physicalCableRouteVerified','electricalCircuitVerified','physicalHostVerified',
+  'physicalVerified','structuralCutVerified','productionWebGLVerified',
+  'humanReviewVerified',
+]);
+export function noUnverifiedR34Ilp4Approvals(e) {
+  if(!e||typeof e!=='object') return false;
+  if(UNVERIFIED_APPROVAL_FLAGS.some(k=>e[k]===true)) return false;
+  if(e.current===true||e.asBuilt===true) return false;
+  if(e.physicalConnectionsVerified!=null&&e.physicalConnectionsVerified!==0) return false;
+  if(e.humanReview!=null&&!['NOT_RUN','HOLD','PENDING'].includes(e.humanReview)) return false;
+  if(e.r34HistoricalImport?.sourceLinksBoundForOutputSHA===true) return false;
+  return true;
+}
+
 
 // Both original byte streams are mandatory; no caller-supplied SHA or parsed-JSON shortcut.
 export function receiveR34Ilp4K5Wpt2(receiverBytes, cofitBytes, floor, historical2015=false) {
@@ -47,16 +67,24 @@ export function receiveR34Ilp4K5Wpt2(receiverBytes, cofitBytes, floor, historica
     if(!same(pr,jr)) return null;
     for(const [oldId,newId] of swaps) {
       const old=p.nodes[oldId], now=j.nodes[newId], e=now.extras.r34Ilp4K5Wpt2Cofit;
-      if(!same(geometry(old),geometry(now))||!same((old.children??[]).map(remap),now.children??[])||!safe(e)||e.receiverNode!==oldId||e.receiverGlbSha256!==C.receiverSha||e.donorGlbSha256!==C.donorSha) return null;
+      if(!same(geometry(old),geometry(now))||!same((old.children??[]).map(remap),now.children??[])||!noUnverifiedR34Ilp4Approvals(now.extras)||!safe(e)||e.receiverNode!==oldId||e.receiverGlbSha256!==C.receiverSha||e.donorGlbSha256!==C.donorSha) return null;
     }
     if(!same(j.nodes[14063].extras.modelWorldBBoxM,{x:[5.425,6.225],y:[0.28,0.91],z:[-9.555,-9.255]})) return null;
     const sets=[];
     for(const [i,history] of [[868,false],[869,true]]) {
       const s=j.scenes[i], old=p.scenes[i-2], e=s.extras, m=e.r34Ilp4K5Wpt2Cofit;
-      if(!s.name.endsWith('__scene'+i)||!same(old.nodes.map(remap),s.nodes)||!safe(m)||m.sourceScene!==i-2||m.receiverGlbSha256!==C.receiverSha||m.donorGlbSha256!==C.donorSha||m.oldRoot!==12554||m.newRoot!==14065||e.stage!=='WORK_TEST/HOST_HOLD'||e.optinHist2015!==history||e.optinP186PresentationOnly!==true||e.current!==false||e.asBuilt!==false||e.sourceLinksBound!==false) return null;
+      if(!s.name.endsWith('__scene'+i)||!same(old.nodes.map(remap),s.nodes)||!noUnverifiedR34Ilp4Approvals(e)||!safe(m)||m.sourceScene!==i-2||m.receiverGlbSha256!==C.receiverSha||m.donorGlbSha256!==C.donorSha||m.oldRoot!==12554||m.newRoot!==14065||e.stage!=='WORK_TEST/HOST_HOLD'||e.optinHist2015!==history||e.optinP186PresentationOnly!==true||e.current!==false||e.asBuilt!==false||e.sourceLinksBound!==false) return null;
       const ids=active(j,s.nodes), expected=active(p,old.nodes).map(remap).sort((x,y)=>x-y);
       if(!same(ids,expected)||ids.length!==(history?2768:2672)||ids.filter(n=>n>=13979&&n<=14059).length!==(history?81:0)||![14060,14061,14062,14063,14064,14065].every(n=>ids.includes(n))) return null;
       sets.push(ids);
+    }
+    for(const id of [14060,14061,14062]) {
+      const e=j.nodes[id]?.extras;
+      if(!noUnverifiedR34Ilp4Approvals(e)||e?.presentationOnly!==true||e?.current!==false||e?.asBuilt!==false||e?.structuralCutVerified!==false) return null;
+    }
+    for(let id=13979;id<=14059;id++) {
+      const e=j.nodes[id]?.extras;
+      if(!noUnverifiedR34Ilp4Approvals(e)||e?.current!==false||e?.asBuilt!==false||e?.r34HistoricalImport?.sourceLinksBoundForOutputSHA!==false) return null;
     }
     const clean=new Set(sets[0]);
     if(sets[1].filter(n=>!clean.has(n)).length!==96||sets[0].some(n=>!sets[1].includes(n))) return null;
