@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 
 const makeTriangleGlb = () => {
   const positions = Buffer.alloc(36);
@@ -53,13 +53,6 @@ const makeTriangleGlb = () => {
   return Buffer.concat([header, jsonHeader, jsonChunk, binHeader, binChunk]);
 };
 
-const clickViewAction = async (page: Page, name: string) => {
-  const menu = page.locator('#view-menu');
-  if ((await menu.getAttribute('open')) === null) {
-    await menu.locator(':scope > summary').click();
-  }
-  await page.getByRole('button', { name, exact: true }).click();
-};
 
 test('isometric view keeps orthographic free orbit with pan and zoom enabled', async ({ page }) => {
   const model = makeTriangleGlb();
@@ -75,7 +68,7 @@ test('isometric view keeps orthographic free orbit with pan and zoom enabled', a
   await page.goto('/private-model/');
   await expect(page.getByRole('status')).toHaveText('Malli ladattu');
 
-  await clickViewAction(page, 'Isometrinen');
+  await page.locator('[data-desk-kind="angle"][data-desk-id="iso"]').click();
 
   const canvas = page.locator('#private-model-canvas');
   await expect(page.locator('#viewer-status')).toHaveText('Isometrinen - ortografinen 3/4-näkymä');

@@ -24,6 +24,27 @@
  */
 export const DESKTOP_START_CANDIDATE_ID = 'c80-r34-99210ea5-d-2f-sc822-sc825-work-test';
 
+// The renderer can die during a large model load before the viewer's catch
+// block runs. A reload in that tab gets one recovery attempt with CURRENT.
+export async function runDesktopStartupAttempt(candidateId, load, getStorage = () => window.sessionStorage) {
+  const key = 'ylisrinne-viewer:pending-start';
+  const tracked = (update) => {
+    try { return update(getStorage()); } catch { return undefined; }
+  };
+  if (tracked(storage => storage.getItem(key)) === candidateId) {
+    tracked(storage => storage.removeItem(key));
+    return 'interrupted';
+  }
+  tracked(storage => storage.setItem(key, candidateId));
+  try {
+    return await load() ? 'loaded' : 'unavailable';
+  } finally {
+    tracked(storage => {
+      if (storage.getItem(key) === candidateId) storage.removeItem(key);
+    });
+  }
+}
+
 export const DESKTOP_PRESETS = Object.freeze([
   Object.freeze({ id: 'whole-building', label: 'Koko rakennus', aria: 'rakennus kokonaan', icon: `<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
   <g transform="translate(12 0) scale(0.93 1) translate(-12 0)">
@@ -43,29 +64,29 @@ export const DESKTOP_PRESETS = Object.freeze([
 </svg>` }),
   Object.freeze({ id: 'd-apartment', label: 'Koko D, katto piilossa', icon: `<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
   <g transform="translate(12 0) scale(1.17 1) translate(-12 0)">
-    <path fill="#8597A3" fill-rule="evenodd" d="M11.6 3.65Q12 3.35 12.4 3.65L19.48 8.77Q19.68 8.93 19.68 9.18Q19.68 9.5 19.3 9.5H4.7Q4.32 9.5 4.32 9.18Q4.32 8.93 4.52 8.77ZM12 4.86L17 8.42H7Z"/>
+    <path fill="#8597A3" d="M11.6 3.65Q12 3.35 12.4 3.65L19.48 8.77Q19.68 8.93 19.68 9.18Q19.68 9.5 19.3 9.5H4.7Q4.32 9.5 4.32 9.18Q4.32 8.93 4.52 8.77Z"/>
     <rect x="5.15" y="10.75" width="13.7" height="4.75" rx=".58" fill="#F7F8F9"/>
     <rect x="5.15" y="16.75" width="13.7" height="4.75" rx=".58" fill="#F7F8F9"/>
   </g>
 </svg>` }),
   Object.freeze({ id: 'd-2f', label: 'D yläkerta', icon: `<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
   <g transform="translate(12 0) scale(1.17 1) translate(-12 0)">
-    <path fill="#8597A3" fill-rule="evenodd" d="M11.6 3.65Q12 3.35 12.4 3.65L19.48 8.77Q19.68 8.93 19.68 9.18Q19.68 9.5 19.3 9.5H4.7Q4.32 9.5 4.32 9.18Q4.32 8.93 4.52 8.77ZM12 4.86L17 8.42H7Z"/>
+    <path fill="#8597A3" d="M11.6 3.65Q12 3.35 12.4 3.65L19.48 8.77Q19.68 8.93 19.68 9.18Q19.68 9.5 19.3 9.5H4.7Q4.32 9.5 4.32 9.18Q4.32 8.93 4.52 8.77Z"/>
     <rect x="5.15" y="10.75" width="13.7" height="4.75" rx=".58" fill="#F7F8F9"/>
-    <rect x="5.7" y="17.3" width="12.6" height="3.65" rx=".18" fill="none" stroke="#8597A3" stroke-width="1.1"/>
+    <rect x="5.15" y="16.75" width="13.7" height="4.75" rx=".58" fill="#8597A3"/>
   </g>
 </svg>` }),
   Object.freeze({ id: 'd-1f', label: 'D alakerta', icon: `<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
   <g transform="translate(12 0) scale(1.17 1) translate(-12 0)">
-    <path fill="#8597A3" fill-rule="evenodd" d="M11.6 3.65Q12 3.35 12.4 3.65L19.48 8.77Q19.68 8.93 19.68 9.18Q19.68 9.5 19.3 9.5H4.7Q4.32 9.5 4.32 9.18Q4.32 8.93 4.52 8.77ZM12 4.86L17 8.42H7Z"/>
-    <rect x="5.7" y="11.3" width="12.6" height="3.65" rx=".18" fill="none" stroke="#8597A3" stroke-width="1.1"/>
+    <path fill="#8597A3" d="M11.6 3.65Q12 3.35 12.4 3.65L19.48 8.77Q19.68 8.93 19.68 9.18Q19.68 9.5 19.3 9.5H4.7Q4.32 9.5 4.32 9.18Q4.32 8.93 4.52 8.77Z"/>
+    <rect x="5.15" y="10.75" width="13.7" height="4.75" rx=".58" fill="#8597A3"/>
     <rect x="5.15" y="16.75" width="13.7" height="4.75" rx=".58" fill="#F7F8F9"/>
   </g>
 </svg>` }),
   Object.freeze({ id: 'technical', label: 'Talotekniikka korostettuna', toggle: true, icon: `<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
   <g transform="translate(12 0) scale(1.17 1) translate(-12 0)">
-    <path fill="#8597A3" fill-rule="evenodd" d="M11.6 3.65Q12 3.35 12.4 3.65L19.48 8.77Q19.68 8.93 19.68 9.18Q19.68 9.5 19.3 9.5H4.7Q4.32 9.5 4.32 9.18Q4.32 8.93 4.52 8.77ZM12 4.86L17 8.42H7Z"/>
-    <rect x="5.7" y="11.3" width="12.6" height="9.65" rx=".18" fill="none" stroke="#8597A3" stroke-width="1.1"/>
+    <path fill="#8597A3" d="M11.6 3.65Q12 3.35 12.4 3.65L19.48 8.77Q19.68 8.93 19.68 9.18Q19.68 9.5 19.3 9.5H4.7Q4.32 9.5 4.32 9.18Q4.32 8.93 4.52 8.77Z"/>
+    <rect x="5.15" y="10.75" width="13.7" height="10.75" rx=".58" fill="#8597A3"/>
   </g>
   <path fill="#F7F8F9" fill-rule="evenodd" d="M11.341 13.28L11.357 12.603L12.643 12.603L12.659 13.28A2.92 2.92 0 0 1 13.545 13.647L14.035 13.18L14.945 14.09L14.478 14.58A2.92 2.92 0 0 1 14.845 15.466L15.522 15.482L15.522 16.768L14.845 16.784A2.92 2.92 0 0 1 14.478 17.67L14.945 18.16L14.035 19.07L13.545 18.603A2.92 2.92 0 0 1 12.659 18.97L12.643 19.647L11.357 19.647L11.341 18.97A2.92 2.92 0 0 1 10.455 18.603L9.965 19.07L9.055 18.16L9.522 17.67A2.92 2.92 0 0 1 9.155 16.784L8.478 16.768L8.478 15.482L9.155 15.466A2.92 2.92 0 0 1 9.522 14.58L9.055 14.09L9.965 13.18L10.455 13.647A2.92 2.92 0 0 1 11.341 13.28ZM12 14.775A1.35 1.35 0 1 1 12 17.475A1.35 1.35 0 1 1 12 14.775Z"/>
 </svg>` }),

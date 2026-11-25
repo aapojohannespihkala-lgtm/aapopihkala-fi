@@ -19,48 +19,83 @@ const title = 'Private 3D viewer';
         padding: 2px; border: 1px solid var(--viewer-line-soft); border-radius: 9px;
       }
       .viewer-shell > .toolbar :is(.desk-icon, .toolbar-icon) {
-        display: inline-grid; place-items: center; min-width: 36px; min-height: 36px;
+        display: inline-flex; align-items: center; justify-content: center; gap: 0;
+        box-sizing: border-box; flex: 0 0 auto;
+        width: 36px; height: 36px; min-width: 36px; min-height: 36px;
         padding: 4px; border: 1px solid transparent; border-radius: 7px;
         background: transparent; color: var(--viewer-ink); cursor: pointer;
       }
-      .viewer-shell > .toolbar .desk-icon:is([aria-pressed='true'], [aria-expanded='true']),
-      .viewer-shell > .toolbar details[open] > .toolbar-icon {
-        border-color: var(--viewer-line); background: var(--viewer-bar);
-        box-shadow: inset 0 0 0 1px var(--viewer-line);
+      .viewer-shell > .toolbar :is(.desk-icon, .toolbar-icon) > svg {
+        display: block; flex: 0 0 auto; width: 22px; height: 22px;
+      }
+      .viewer-shell > .toolbar .toolbar-icon:not(.toolbar-panel-button) > svg {
+        width: 18px; height: 18px;
       }
       .viewer-shell > .toolbar .desk-icon:disabled { opacity: .35; cursor: default; }
       .viewer-shell > .toolbar .interaction-tools { flex-wrap: wrap; max-width: 100%; }
       .desk-group > .toolbar-menu { position: static; }
       .desk-group > .toolbar-menu > .toolbar-menu-panel { left: auto; right: 0; }
       .viewer-shell > .toolbar .desk-group > .toolbar-menu > .toolbar-icon {
-        min-width: 30px; padding: 0; border: 0;
+        width: 30px; min-width: 30px; padding: 0; border: 0;
       }
       .viewer-shell > .toolbar .desk-group > .toolbar-menu[open] > .toolbar-icon {
         box-shadow: none;
       }
       .viewer-shell > .toolbar { gap: 6px; }
       .viewer-shell > .toolbar > :is(#model-menu, #navigation-cube-button) { flex: 0 0 auto; }
-      .viewer-shell > .toolbar #model-menu > summary,
-      .viewer-shell > .toolbar > #navigation-cube-button {
+      .viewer-shell > .toolbar :is(.desk-icon, .toolbar-icon).toolbar-panel-button {
+        box-sizing: border-box;
+        width: 36px; height: 36px;
+        padding: 0;
         border-color: var(--viewer-line-soft);
+        box-shadow: none;
       }
-      .viewer-shell > .toolbar > #navigation-cube-button { box-shadow: none; }
       .viewer-shell > .toolbar > #navigation-cube-button[aria-expanded='true'] {
-        color: #82919c;
+        color: var(--viewer-stone);
       }
       .toolbar-menu-panel [data-context-tool]:disabled { display: none; }
       @media (min-width: 1240px) {
         .viewer-shell > .toolbar, .viewer-shell > .toolbar .desk-toolbar { flex-wrap: nowrap; }
+        .desk-toolbar #view-menu :is([data-camera-shortcut], #show-all-objects-button:disabled, #profile-button:disabled) {
+          display: none;
+        }
       }
       @media (min-width: 1000px) and (max-width: 1239px) {
         .viewer-shell > .toolbar, .viewer-shell > .toolbar .desk-toolbar { flex-wrap: nowrap; }
-        .viewer-shell > .toolbar .desk-icon { min-width: 32px; padding: 3px; }
+        .viewer-shell > .toolbar .desk-icon { width: 32px; min-width: 32px; padding: 3px; }
         .desk-toolbar { gap: 5px; }
       }
-      .viewer-shell :is(button:not(:disabled), summary):hover,
-      .viewer-shell > .toolbar :is(.desk-icon:not(:disabled), .toolbar-icon):hover {
+      .viewer-shell > .toolbar .desk-icon:is([aria-pressed='true'], [aria-expanded='true']),
+      .viewer-shell > .toolbar details[open] > .toolbar-icon.toolbar-panel-button {
+        background: var(--viewer-preset-selected);
+      }
+      .viewer-shell :is(button:not(:disabled), summary):not(.desk-icon, .toolbar-icon):hover {
         background: var(--viewer-hover);
         border-color: var(--viewer-stone-light);
+      }
+      @media (hover: hover) {
+        .viewer-shell > .toolbar :is(.desk-icon:not(:disabled), .toolbar-icon):hover {
+          background: var(--viewer-icon-hover);
+          border-color: transparent;
+        }
+        .viewer-shell > .toolbar :is(.desk-icon, .toolbar-icon).toolbar-panel-button:hover {
+          border-color: var(--viewer-line-soft);
+        }
+        .viewer-shell > .toolbar .desk-icon:is([aria-pressed='true'], [aria-expanded='true']):not(.toolbar-panel-button):hover {
+          border-color: var(--viewer-line);
+        }
+        .viewer-shell > .toolbar .desk-icon[data-desk-kind='preset']:hover {
+          background: var(--viewer-icon-hover);
+        }
+        .viewer-shell > .toolbar .desk-icon[data-desk-kind='preset'][aria-pressed='true']:hover {
+          background: var(--viewer-preset-selected-hover);
+        }
+      }
+      /* The edge-mode frame is shared by presets, cameras, tools and open panels. */
+      .viewer-shell > .toolbar .desk-icon:is([aria-pressed='true'], [aria-expanded='true']):not(:disabled),
+      .viewer-shell > .toolbar details[open] > .toolbar-icon.toolbar-panel-button {
+        border: 1px solid var(--viewer-line);
+        box-shadow: inset 0 0 0 1px var(--viewer-line);
       }
       .viewport > aside[data-viewport-minimized],
       .viewport-panel-dock[hidden],
@@ -73,9 +108,8 @@ const title = 'Private 3D viewer';
         margin-inline-start: auto; pointer-events: auto; cursor: pointer;
       }
       .viewport-panel-minimize-float { float: right; margin: 0 0 4px 8px; }
-      .height-scale > .viewport-panel-minimize { position: absolute; top: 0; right: 0; }
-      .height-scale:has(> .viewport-panel-minimize) .height-scale-title { right: 36px; }
-      .orientation-gizmo > .viewport-panel-minimize { position: absolute; top: 6px; right: 6px; }
+      .height-scale > .viewport-panel-minimize { position: absolute; top: 0; left: 0; }
+      .height-scale:has(> .viewport-panel-minimize) .height-scale-title { left: 36px; }
       .viewport-panel-minimize::before {
         content: ''; width: 12px; border-top: 2px solid currentColor; border-radius: 1px;
       }
@@ -91,8 +125,12 @@ const title = 'Private 3D viewer';
         }
       }
       @media (max-width: 430px) {
-        .viewer-shell > .toolbar .desk-icon { min-width: 28px; min-height: 34px; }
-        .viewer-shell > .toolbar .desk-group > .toolbar-menu > .toolbar-icon { min-width: 24px; }
+        .viewer-shell > .toolbar :is(.desk-icon, .toolbar-icon) { height: 34px; min-height: 34px; }
+        .viewer-shell > .toolbar .desk-icon { width: 28px; min-width: 28px; }
+        .viewer-shell > .toolbar :is(.desk-icon, .toolbar-icon).toolbar-panel-button {
+          width: 34px; height: 34px; min-width: 34px; min-height: 34px;
+        }
+        .viewer-shell > .toolbar .desk-group > .toolbar-menu > .toolbar-icon { width: 24px; min-width: 24px; }
         .desk-toolbar { gap: 5px; }
       }
       /* Navigation cube behind the gizmo axes (owner request 22.11.2026). */
@@ -744,25 +782,12 @@ const title = 'Private 3D viewer';
       .orientation-gizmo {
         position: absolute;
         right: 12px;
-        bottom: 12px;
-        z-index: 6;
-        width: 212px;
-        padding: 7px 8px 6px;
-        border: 1px solid var(--viewer-line-soft);
-        border-radius: 9px;
-        background: rgba(27, 36, 45, 0.92);
-        box-shadow: none;
+        top: 12px;
+        z-index: 1;
+        width: 120px;
         color: var(--viewer-ink);
         pointer-events: none;
         user-select: none;
-      }
-
-      /* Scene66 Themo review: the Bathroom halo is behind the lower-right HUD
-         at the exact source work position. Keep the HUD visible but move it
-         into the unoccupied upper-right corner for X4 ONLY. No XY changes. */
-      .viewport:has(#private-model-canvas[data-p186f-review-variant="X4"]) .orientation-gizmo {
-        top: 12px;
-        bottom: auto;
       }
 
       /* Historical electrical labels need the complete canvas unobscured. */
@@ -771,7 +796,8 @@ const title = 'Private 3D viewer';
         right: auto;
         top: auto;
         bottom: 12px;
-        width: min(212px, calc(var(--m5a-source-panel-width) - 24px));
+        z-index: 6;
+        width: min(120px, calc(var(--m5a-source-panel-width) - 24px));
       }
 
       .orientation-gizmo-title {
@@ -865,9 +891,8 @@ const title = 'Private 3D viewer';
       @media (max-width: 760px) {
         .orientation-gizmo {
           right: 8px;
-          bottom: 8px;
-          width: 184px;
-          padding: 5px 6px 4px;
+          top: 8px;
+          width: 96px;
         }
 
         .orientation-gizmo-note {
@@ -892,7 +917,7 @@ const title = 'Private 3D viewer';
       .height-scale-title {
         position: absolute;
         top: 0;
-        right: 0;
+        left: 0;
         padding: 3px 5px;
         border-radius: 5px;
         background: rgba(255, 255, 255, 0.9);
@@ -907,7 +932,7 @@ const title = 'Private 3D viewer';
         right: 0;
         bottom: 0;
         left: 0;
-        border-right: 1px solid rgba(52, 55, 51, 0.6);
+        border-left: 1px solid rgba(196, 205, 210, 0.48);
       }
 
       :global(.height-scale-guide) {
@@ -924,7 +949,7 @@ const title = 'Private 3D viewer';
 
       :global(.height-scale-tick) {
         position: absolute;
-        right: 0;
+        left: 0;
         width: 9px;
         border-top: 1px solid rgba(52, 55, 51, 0.55);
       }
@@ -937,7 +962,7 @@ const title = 'Private 3D viewer';
 
       :global(.height-scale-label) {
         position: absolute;
-        right: 13px;
+        left: 13px;
         transform: translateY(-50%);
         padding: 1px 3px;
         border-radius: 3px;
@@ -1415,6 +1440,9 @@ const title = 'Private 3D viewer';
         --viewer-line: #64727c;
         --viewer-line-soft: #46535d;
         --viewer-hover: #344450;
+        --viewer-icon-hover: #303840;
+        --viewer-preset-selected: #414a53;
+        --viewer-preset-selected-hover: #4e565e;
         background: var(--viewer-page);
         color: var(--viewer-ink);
       }
@@ -1588,7 +1616,7 @@ const title = 'Private 3D viewer';
       <div class="toolbar" aria-label="3D-katselun ohjaimet">
         <span id="preset-context-status" class="desk-sr" aria-live="polite" aria-atomic="true">Koko rakennus</span>
         <details id="model-menu" class="toolbar-menu">
-          <summary class="toolbar-icon" aria-label="WORK_TEST-versiot" title="WORK_TEST-versiot"><Fragment set:html={DESKTOP_FOLDER_ICON} /></summary>
+          <summary class="toolbar-icon toolbar-panel-button" aria-label="WORK_TEST-versiot" title="WORK_TEST-versiot"><Fragment set:html={DESKTOP_FOLDER_ICON} /></summary>
           <div class="toolbar-menu-panel" aria-label="WORK_TEST-versiot">
             <input
               id="work-test-filter"
@@ -1681,21 +1709,21 @@ const title = 'Private 3D viewer';
         <details id="view-menu" class="toolbar-menu">
           <summary class="toolbar-icon" aria-label="Kamera" title="Kamera"><Fragment set:html={DESKTOP_MORE_ICON} /></summary>
           <div class="toolbar-menu-panel" aria-label="Kamera ja esitystapa">
-            <div class="toolbar-menu-label">Kamera</div>
-            <button id="orbit-button" type="button">Vapaa 3D</button>
-            <button id="iso-button" type="button">Isometrinen</button>
-            <button id="top-button" type="button">Ylhäältä</button>
+            <div class="toolbar-menu-label" data-camera-shortcut>Kamera</div>
+            <button id="orbit-button" type="button" data-camera-shortcut>Vapaa 3D</button>
+            <button id="iso-button" type="button" data-camera-shortcut>Isometrinen</button>
+            <button id="top-button" type="button" data-camera-shortcut>Ylhäältä</button>
             <button id="bottom-button" type="button">Alhaalta</button>
             <button id="p137e-plan-face-button" type="button" hidden>Themot: pohja + rastit + Mittaa</button>
             <button id="p137e-north-face-button" type="button" hidden>Themo: aula (pohjoinen)</button>
             <button id="p137e-south-face-button" type="button" hidden>Themot: makuuhuone + kylpyhuone (eteläinen)</button>
-            <div class="toolbar-menu-separator"></div>
-            <div class="toolbar-menu-label">Julkisivut</div>
-            <button id="elev-pos-y-button" type="button" title="Ortografinen julkisivu YLIS-G1-LOCAL +Y suunnasta">Julk +Y</button>
-            <button id="elev-neg-y-button" type="button" title="Ortografinen julkisivu YLIS-G1-LOCAL -Y suunnasta">Julk -Y</button>
-            <button id="elev-pos-x-button" type="button" title="Ortografinen julkisivu YLIS-G1-LOCAL +X suunnasta">Julk +X</button>
-            <button id="elev-neg-x-button" type="button" title="Ortografinen julkisivu YLIS-G1-LOCAL -X suunnasta">Julk -X</button>
-            <div class="toolbar-menu-separator"></div>
+            <div class="toolbar-menu-separator" data-camera-shortcut></div>
+            <div class="toolbar-menu-label" data-camera-shortcut>Julkisivut</div>
+            <button id="elev-pos-y-button" type="button" data-camera-shortcut title="Ortografinen julkisivu YLIS-G1-LOCAL +Y suunnasta">Julk +Y</button>
+            <button id="elev-neg-y-button" type="button" data-camera-shortcut title="Ortografinen julkisivu YLIS-G1-LOCAL -Y suunnasta">Julk -Y</button>
+            <button id="elev-pos-x-button" type="button" data-camera-shortcut title="Ortografinen julkisivu YLIS-G1-LOCAL +X suunnasta">Julk +X</button>
+            <button id="elev-neg-x-button" type="button" data-camera-shortcut title="Ortografinen julkisivu YLIS-G1-LOCAL -X suunnasta">Julk -X</button>
+            <div class="toolbar-menu-separator" data-camera-shortcut></div>
             <button id="axis-measure-tool-button" type="button" data-context-tool aria-pressed="false" disabled title="Mittaa D-asunnon pohjan kahden pisteen etäisyys mallista, ei tarkemittaus">Mittaa pohjaa</button>
             <button id="p137e-place-tool-button" type="button" data-context-tool aria-pressed="false" disabled title="Rastiluonnos: vain D1F P137E WORK_TEST; tallennus G2:een ei vielä kytketty">Sijoita kohde</button>
             <button id="fit-button" type="button">Sovita näkymään</button>
@@ -1716,7 +1744,7 @@ const title = 'Private 3D viewer';
           </div>
         </details>
 
-        <button id="layers-button" class="desk-icon" type="button" title="Layerit" aria-label="Layerit" aria-expanded="false" aria-controls="layers-panel"><Fragment set:html={DESKTOP_LAYERS_ICON} /></button>
+        <button id="layers-button" class="desk-icon toolbar-panel-button" type="button" title="Layerit" aria-label="Layerit" aria-expanded="false" aria-controls="layers-panel"><Fragment set:html={DESKTOP_LAYERS_ICON} /></button>
 
         <div class="interaction-tools" role="group" aria-label="Vuorovaikutustila">
           <button id="navigate-tool-button" type="button" aria-pressed="true">Navigoi</button>
@@ -1726,7 +1754,7 @@ const title = 'Private 3D viewer';
         </div>
 
 
-        <button id="navigation-cube-button" class="desk-icon" type="button" aria-label="Suuntailmaisin" aria-expanded="true" aria-controls="orientation-gizmo" title="Pienennä suuntailmaisin"><Fragment set:html={DESKTOP_NAV_CUBE_ICON} /></button>
+        <button id="navigation-cube-button" class="desk-icon toolbar-panel-button" type="button" aria-label="Suuntailmaisin" aria-expanded="true" aria-controls="orientation-gizmo" title="Piilota suuntailmaisin"><Fragment set:html={DESKTOP_NAV_CUBE_ICON} /></button>
       </div>
 
       <section class="viewport" aria-label="Suojattu 3D-katseluportti">
@@ -2211,6 +2239,7 @@ const title = 'Private 3D viewer';
         sourceCardResolverForModel,
         type SelectionSourceEvidence,
       } from '../../scripts/privateModelSourceCards';
+      import { releaseReplacedGltfGpuResources } from '../../scripts/privateModelGpuLifetime.mjs';
       import { createSelectionHighlightController } from '../../scripts/privateModelSelectionHighlight';
       import {
         nearestNamedAncestor,
@@ -2751,6 +2780,7 @@ const title = 'Private 3D viewer';
       import { createC80R31ViewSwitch, r31WorkTestReview, r31ViewerLayerSceneReceipt, r31ViewerLayerBindingScope, C80_R31_9E0B_SOURCE, isR31FamilyViewerSha, r32hFamilyOf } from '../../scripts/privateModelC80R31ReviewRuntime.mjs';
       import {
         mountDesktopToolbar, activeDesktopPreset, activeDesktopAngle, DESKTOP_START_CANDIDATE_ID,
+        runDesktopStartupAttempt,
       } from '../../scripts/privateModelDesktopToolbar.mjs';
       import { mountPrivateModelViewportPanels } from '../../scripts/privateModelViewportPanels';
       import { createDFocusGhost, dFootprintFromScope, dStoreyFootprint } from '../../scripts/privateModelDFocusGhost';
@@ -5983,6 +6013,7 @@ const title = 'Private 3D viewer';
           maxZ,
           stepM,
           viewportHeight: canvas.clientHeight,
+          mapNorth: orientationGizmo.dataset.northFrame === 'map',
         });
       };
 
@@ -7949,6 +7980,7 @@ const title = 'Private 3D viewer';
         dInteriorOverride: THREE.Object3D | null = null,
         c70PreviewSession: any = null,
       ) => {
+        const replacedGltf = layersGltf && layersGltf !== gltf ? layersGltf : null;
         onLayersModelLoaded(gltf, c70PreviewSession);
         if (r300ViewSwitch) {
           delete canvas.dataset.workTestReviewMode;
@@ -8371,6 +8403,9 @@ const title = 'Private 3D viewer';
         if (sourceKind !== 'work-test') delete canvas.dataset.p137eLoadedCandidateId;
 
         setModelScene(fullModelScene);
+        // Only after a successful mount: failed loads keep the previous model intact.
+        // GLTFLoader does not release textures, materials or geometry on Group.clear().
+        if (replacedGltf) releaseReplacedGltfGpuResources(replacedGltf, renderer);
         applyViewerLayerState(modelLoadLayerState, 'preset:whole-building');
         configureHorizontalClippingRange();
         fitModel();
@@ -16558,23 +16593,27 @@ const title = 'Private 3D viewer';
             await loadWorkTestCatalog();
             deskStartCatalogLoaded = true;
             const start = workTestCandidates.get(DESKTOP_START_CANDIDATE_ID);
-            if (start && await loadWorkTestCandidate(start)) {
-              // The candidate field shows the model that is actually open.
-              if (workTestSelect.value !== start.id) {
-                workTestFilter.value = '';
-                renderWorkTestOptions(start.id);
-                workTestSelect.value = start.id;
-              }
-              deskEnterWholeBuilding();
-              deskStartFrame();
-              canvas.dataset.deskStartView = 'start-work-test-whole-building';
-              deskSync();
-              return;
+            if (start) {
+              const result = await runDesktopStartupAttempt(start.id, async () => {
+                if (!await loadWorkTestCandidate(start)) return false;
+                if (workTestSelect.value !== start.id) {
+                  workTestFilter.value = '';
+                  renderWorkTestOptions(start.id);
+                  workTestSelect.value = start.id;
+                }
+                deskEnterWholeBuilding();
+                deskStartFrame();
+                canvas.dataset.deskStartView = 'start-work-test-whole-building';
+                deskSync();
+                return true;
+              });
+              if (result === 'loaded') return;
+              if (result === 'interrupted') canvas.dataset.deskStartView = 'current-recovery';
             }
           } catch (error) {
             console.warn('DESK_START_LATEST_WORK_TEST_UNAVAILABLE', error);
           }
-          canvas.dataset.deskStartView = 'current-fallback';
+          canvas.dataset.deskStartView ??= 'current-fallback';
         }
         // Keep CURRENT-first for ordinary routes and all other reviews.
         if (
