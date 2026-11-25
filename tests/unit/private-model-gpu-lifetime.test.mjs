@@ -40,3 +40,10 @@ test('viewer disposes only previous model after successful scene mount', () => {
   assert.match(source, /setModelScene\(fullModelScene\);[\s\S]{0,250}if \(replacedGltf\) releaseReplacedGltfGpuResources\(replacedGltf, renderer\);/);
   assert.match(source, /import \{ releaseReplacedGltfGpuResources \} from/);
 });
+
+test('large GLB digest is awaited before GLTFLoader parse, with exact SHA gate retained', () => {
+  const source = readFileSync(new URL('../../src/scripts/privateModelSourceCards.ts', import.meta.url), 'utf8');
+  assert.match(source, /const digest = await digestTask;[\\s\\S]{0,160}if \(exactSource && digest !== exactSource\.glbSha256\)/);
+  assert.match(source, /const \[gltf, cards\] = await Promise\.all\(\[[\\s\\S]{0,100}loader\.parseAsync\(bytes/);
+  assert.doesNotMatch(source, /loader\.parseAsync\(bytes[^\n]*\), digestTask, getBundle\(\)/);
+});
