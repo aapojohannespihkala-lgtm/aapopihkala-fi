@@ -54,6 +54,15 @@ export function noUnverifiedR34Ilp4Approvals(e) {
 }
 
 
+export function safeR34Ilp4Historical2015Node(node) {
+  const e=node?.extras;
+  if(!noUnverifiedR34Ilp4Approvals(e)||e.current!==false||e.asBuilt!==false) return false;
+  const h=e.r34HistoricalImport;
+  return h?.historicalPlanYear===2015 &&
+    h?.['2026InstalledPhysicalCableRouteVerified']===false &&
+    h?.sourceLinksBoundForOutputSHA===false;
+}
+
 // Both original byte streams are mandatory; no caller-supplied SHA or parsed-JSON shortcut.
 export function receiveR34Ilp4K5Wpt2(receiverBytes, cofitBytes, floor, historical2015=false) {
   if(floor!=='BOTH'||typeof historical2015!=='boolean') return null;
@@ -83,8 +92,7 @@ export function receiveR34Ilp4K5Wpt2(receiverBytes, cofitBytes, floor, historica
       if(!noUnverifiedR34Ilp4Approvals(e)||e?.presentationOnly!==true||e?.current!==false||e?.asBuilt!==false||e?.structuralCutVerified!==false) return null;
     }
     for(let id=13979;id<=14059;id++) {
-      const e=j.nodes[id]?.extras;
-      if(!noUnverifiedR34Ilp4Approvals(e)||e?.current!==false||e?.asBuilt!==false||e?.r34HistoricalImport?.sourceLinksBoundForOutputSHA!==false) return null;
+      if(!safeR34Ilp4Historical2015Node(j.nodes[id])) return null;
     }
     const clean=new Set(sets[0]);
     if(sets[1].filter(n=>!clean.has(n)).length!==96||sets[0].some(n=>!sets[1].includes(n))) return null;
