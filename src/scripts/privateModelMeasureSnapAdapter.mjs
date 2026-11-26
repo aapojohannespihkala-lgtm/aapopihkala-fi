@@ -6,6 +6,11 @@ const g1FromWorld=(p)=>({xM:p.x,yM:-p.z,sourceHeightYUpM:p.y});
 const worldFromG1=(p)=>new THREE.Vector3(p.xM,p.sourceHeightYUpM,-p.yM);
 const validG1=(p)=>p && finite(p.xM,p.yM,p.sourceHeightYUpM);
 const isValidRect=(r)=>r && finite(r.left,r.top,r.width,r.height) && r.width>0 && r.height>0;
+// Source visibility hooks may throw while a scene is being replaced.
+// Fail closed instead of allowing an exception into the viewer event loop.
+const acceptsHitSafely=(callback,hit)=>{
+  try {return callback(hit)===true;} catch {return false;}
+};
 const MAX_TRIANGLES=30000;
 const featureCache=new WeakMap();
 const attributeVersion=(attribute)=>attribute?.version ?? attribute?.data?.version ?? 0;
@@ -61,7 +66,7 @@ export const snapFromVisibleMeshHit=({
 }={})=>{
   if(typeof acceptsFrontmostHit!=='function' ||
      typeof isFeatureVisible!=='function' ||
-     !frontmostHit || acceptsFrontmostHit(frontmostHit)!==true ||
+     !frontmostHit || !acceptsHitSafely(acceptsFrontmostHit,frontmostHit) ||
      !camera?.isCamera || !isValidRect(rect) ||
      !pointerPx || !finite(pointerPx.x,pointerPx.y) ||
      pointerPx.x<rect.left || pointerPx.x>rect.left+rect.width ||
@@ -89,16 +94,19 @@ export const snapFromVisibleMeshHit=({
   const triangleCount=index ? index.count/3 : positions.count/3;
   if(!Number.isInteger(triangleCount) || triangleCount<1 ||
      triangleCount>maxTriangles || (index && !Number.isInteger(index.count))) return null;
-  // Update only the given object's matrices: never reorient or mutate the model.
-  mesh.updateWorldMatrix?.(true,false);
-  camera.updateMatrixWorld?.(true);
-  const modelMatrix=mesh.matrixWorld.clone();
-  const viewProjection=new THREE.Matrix4().multiplyMatrices(
-    camera.projectionMatrix,camera.matrixWorldInverse,
-  );
-  if(![...modelMatrix.elements,...viewProjection.elements].every(Number.isFinite)) return null;
-
-  const segments=measureEdges(mesh,positions,index,modelMatrix,creaseDegrees,maxTriangles);
+  // A stale/disposed mesh, attribute or camera can fail during a frame swap.
+  // Reject the candidate without changing camera orientation or source data.
+  let viewProjection,segments;
+  try {
+    mesh.updateWorldMatrix?.(true,false);
+    camera.updateMatrixWorld?.(true);
+    const modelMatrix=mesh.matrixWorld.clone();
+    viewProjection=new THREE.Matrix4().multiplyMatrices(
+      camera.projectionMatrix,camera.matrixWorldInverse,
+    );
+    if(![...modelMatrix.elements,...viewProjection.elements].every(Number.isFinite)) return null;
+    segments=measureEdges(mesh,positions,index,modelMatrix,creaseDegrees,maxTriangles);
+  } catch { return null; }
   if(!segments.length) return null;
 
   const projectToScreen=(p)=>{
@@ -115,15 +123,18 @@ export const snapFromVisibleMeshHit=({
       visible:!offscreen,offscreen,invW:1/clip.w,
     };
   };
-  const snap=chooseMeasureFeatureSnap({
-    pointerPx,hitPointG1:g1FromWorld(frontmostHit.point),segments,
-    projectToScreen,tolerancePx,maxWorldGapM,cornerPriorityPx,
-    isCandidateVisible:(p,kind)=>
-      isFeatureVisible({
-        sourceMesh:mesh,pointWorld:worldFromG1(p),
-        pointG1:p,kind,frontmostHit,
-      })===true,
-  });
+  let snap;
+  try {
+    snap=chooseMeasureFeatureSnap({
+      pointerPx,hitPointG1:g1FromWorld(frontmostHit.point),segments,
+      projectToScreen,tolerancePx,maxWorldGapM,cornerPriorityPx,
+      isCandidateVisible:(p,kind)=>
+        isFeatureVisible({
+          sourceMesh:mesh,pointWorld:worldFromG1(p),
+          pointG1:p,kind,frontmostHit,
+        })===true,
+    });
+  } catch { return null; }
   // Keep only plain G1 coordinates: no mutable mesh or internal raycast object
   // is persisted as part of the measurement's user-facing values.
   return snap && Object.freeze({
