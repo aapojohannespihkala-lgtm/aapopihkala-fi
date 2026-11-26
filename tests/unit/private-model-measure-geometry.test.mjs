@@ -329,7 +329,7 @@ const salientSegments=[
   {a:g(.5,0),b:g(.5,.04)},
 ];
 
-test('smart snap ignores subpixel-scale detail corners beside a major wall edge',()=>{
+test('smart snap ignores small detail corners beside a major wall edge',()=>{
   const snap=chooseMeasureFeatureSnap({
     pointerPx:{x:50,y:1},hitPointG1:g(.5,.01),segments:salientSegments,
     projectToScreen:projector,isCandidateVisible:checker,
@@ -355,14 +355,13 @@ test('corner salience threshold rejects invalid inputs',()=>{
   }),null);
 });
 
-test('short edge fragments still provide a fallback when no longer edge is eligible',()=>{
+test('short edge fragments are ignored at normal zoom, even without a competing edge',()=>{
   const snap=chooseMeasureFeatureSnap({
     pointerPx:{x:52,y:0},hitPointG1:g(.51,.005),
     segments:[{a:g(.5,0),b:g(.54,0)}],
     projectToScreen:projector,isCandidateVisible:checker,
   });
-  assert.equal(snap.kind,'edge');
-  same(snap.pointG1,g(.52,0));
+  assert.equal(snap,null);
 });
 
 test('a genuine wall corner remains salient when each straight arm is finely subdivided',()=>{
@@ -399,7 +398,19 @@ test('small subdivided details do not inherit salience across an actual 90-degre
     pointerPx:{x:4,y:0},hitPointG1:g(.04,.005),segments:detail,
     projectToScreen:projector,isCandidateVisible:checker,
   });
+  assert.equal(snap,null);
+});
+
+test('a gentle bend never becomes a straight segment for a perpendicular measurement',()=>{
+  const first={a:g(0,0),b:g(.12,0)};
+  const second={a:first.b,b:g(.24,.012)};
+  const snap=chooseMeasureFeatureSnap({
+    pointerPx:{x:7,y:0},hitPointG1:g(.07,.01),segments:[first,second],
+    projectToScreen:projector,isCandidateVisible:checker,
+  });
   assert.equal(snap?.kind,'edge');
+  assert.deepEqual(snap.segment,first);
+  assert.equal(perpendicularToMeasureEdge(g(.18,1),snap.segment),null);
 });
 
 
