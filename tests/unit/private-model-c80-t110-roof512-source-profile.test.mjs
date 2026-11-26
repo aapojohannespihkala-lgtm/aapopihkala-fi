@@ -117,3 +117,41 @@ test('R34 T110 warning only follows exact four mounted scene roles and selected 
   }
  }
 });
+
+const r34Path = process.env.R34_T110_GLB_PATH;
+// This test is opt-in: CI does not have the private 65MB source GLB.
+// It authenticates the complete immutable GLB, not a synthetic fixture.
+test('real R34 GLB: T110 822-825 source, roof visibility and negative approvals',
+ {skip:!r34Path}, () => {
+ const bytes=readFileSync(r34Path);
+ assert.equal(bytes.byteLength,65219168);
+ assert.equal(createHash('sha256').update(bytes).digest('hex'),R34_T110_SHA);
+ assert.equal(bytes.toString('ascii',0,4),'glTF');
+ assert.equal(bytes.toString('ascii',16,20),'JSON');
+ const length=bytes.readUInt32LE(12);
+ assert.ok(length>0&&length<bytes.byteLength-20);
+ const source=JSON.parse(bytes.subarray(20,20+length).toString('utf8'));
+ assert.deepEqual([source.scenes.length,source.nodes.length,source.meshes.length],[826,13854,5242]);
+ const mutate=(object,key,value,i,floor,node)=>{
+  const prior=object[key];object[key]=value;
+  try {assert.equal(r34T110RoofWarning(source,R34_T110_SHA,i,floor,node),null,
+   'original GLB mutation must be rejected: '+key);}
+  finally {object[key]=prior;}
+ };
+ for(const i of [822,823,824,825]){
+  const floor=i<824?'BOTH':'2F',node=i<824?12239:12240;
+  const receipt=r34T110RoofWarning(source,R34_T110_SHA,i,floor,node);
+  assert.ok(receipt,'original glTF scene '+i);
+  assert.equal(receipt.publishAllowed,false);
+  assert.equal(receipt.physicalRoofOpeningVerified,false);
+  assert.equal(receipt.humanReview,'NOT_RUN');
+  assert.equal(receipt.activeRoofInSelectedScene,i<824);
+  assert.equal(receipt.inactiveReferenceRoofNode,6642);
+  assert.equal(r34T110RoofWarning(source,R34_T110_SHA,i,floor,node===12239?12240:12239),null);
+  mutate(source.asset.extras,'HUMAN_REVIEW','APPROVED',i,floor,node);
+  mutate(source.scenes[i].extras,'humanReview','APPROVED',i,floor,node);
+  mutate(source.nodes[node].extras,'m5System','VESI',i,floor,node);
+  mutate(source.nodes[node].extras,'sourceRoofNode',13360,i,floor,node);
+  assert.ok(r34T110RoofWarning(source,R34_T110_SHA,i,floor,node),'source restored '+i);
+ }
+});
