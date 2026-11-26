@@ -19,15 +19,18 @@ test('free 3D measure computes distance, horizontal span and signed deltas in YL
   )).main).toBe('0,000 m');
 });
 
-const makeMeasureGlb = (vertices: number[], doubleSided = false) => {
+const makeMeasureGlb = (vertices: number[], doubleSided = false, twoSourceMeshes = false) => {
   const positions = Buffer.alloc(vertices.length * 4);
   vertices.forEach((value, index) => positions.writeFloatLE(value, index * 4));
   const bounds = [0, 1, 2].map(axis => vertices.filter((_value, index) => index % 3 === axis));
   const json = {
     asset: { version: '2.0' },
     scene: 0,
-    scenes: [{ name: 'P133D REVIEW ROOT - BABYLON Y-UP', nodes: [0] }],
-    nodes: [{ name: 'D_1F_TEST_GROUP', mesh: 0 }],
+    scenes: [{ name: 'P133D REVIEW ROOT - BABYLON Y-UP', nodes: twoSourceMeshes ? [0, 1] : [0] }],
+    nodes: twoSourceMeshes
+      ? [{ name: 'SOURCE_WALL_A', mesh: 0, translation: [-1.6, 0, 0] },
+        { name: 'SOURCE_WALL_B', mesh: 0, translation: [1.6, 0, 0] }]
+      : [{ name: 'D_1F_TEST_GROUP', mesh: 0 }],
     meshes: [{ name: 'TEST_SURFACE', primitives: [{ attributes: { POSITION: 0 }, material: 0 }] }],
     materials: [{ doubleSided }],
     buffers: [{ byteLength: positions.length }],
@@ -529,5 +532,54 @@ test('Mittaa 3D retains the sole snap toggle and never labels two points on one 
   await snap.uncheck();
   await expect(canvas).not.toHaveAttribute('data-point-measure-surface-distance', /.+/);
   expect(await page.locator('#point-measure-snap').count()).toBe(1);
+});
+
+test('Mittaa 3D computes true local triangle-to-triangle minimum for TWO actually ray-picked source meshes', async ({ page }) => {
+  // Two independently mounted source meshes, each one real triangle in XY.
+  // A reaches x=-0.6, B starts x=+0.6, so the minimum is 1.2 m even
+  // when user-selected interior click points are much farther apart.
+  const model = makeMeasureGlb([-1,-1,0, 1,-1,0, 0,1,0], false, true);
+  await page.route('**/private-model/model.glb', route =>
+    route.fulfill({ status: 200, contentType: 'model/gltf-binary', body: model }));
+  await page.goto('/private-model/');
+  await expect(page.getByRole('status').first()).toHaveText('Malli ladattu');
+  const canvas = page.locator('#private-model-canvas');
+  await page.locator('#point-pick-tool-button').click();
+  const box = await canvas.boundingBox();
+  if (!box) throw new Error('Missing model canvas');
+  const positions: Record<'A' | 'B', {x:number;y:number} | null> = {A:null,B:null};
+  // Identify real clickable source pixels via the EXISTING point-in-model
+  // picker, not by inventing screen coordinates or reading Three internals.
+  for (const fy of [0.35,0.45,0.55,0.65]) {
+    for (const fx of [0.2,0.3,0.4,0.6,0.7,0.8]) {
+      const pos={x:box.width*fx,y:box.height*fy};
+      await canvas.click({position:pos});
+      const label=await page.locator('#point-pick-main').textContent() || '';
+      const m=label.match(/^X ([−-]?\d+,\d+) m/);
+      if (!m) continue;
+      const x=Number(m[1].replace('−','-').replace(',','.'));
+      if (x<-0.85 && !positions.A) positions.A=pos;
+      if (x>0.85 && !positions.B) positions.B=pos;
+      if (positions.A && positions.B) break;
+    }
+    if (positions.A && positions.B) break;
+  }
+  expect(positions.A,'must find a real frontmost source A hit').not.toBeNull();
+  expect(positions.B,'must find a real frontmost source B hit').not.toBeNull();
+  await page.locator('#point-measure-tool-button').click();
+  const snap=page.locator('#point-measure-snap');
+  await snap.check();
+  await canvas.click({position:positions.A!});
+  await expect(canvas).toHaveAttribute('data-point-measure-state','first');
+  await canvas.click({position:positions.B!});
+  await expect(canvas).toHaveAttribute('data-point-measure-state','complete');
+  await expect(canvas).toHaveAttribute('data-point-measure-surface-scope','bounded-selected-face-WORK_TEST');
+  const measured=Number(await canvas.getAttribute('data-point-measure-surface-distance'));
+  expect(measured).toBeCloseTo(1.2,2);
+  await expect(page.locator('#point-measure-detail')).toContainText('Valittujen pintakolmioiden lyhin paikallinen 3D-väli');
+  await expect(page.locator('#point-measure-detail')).toContainText('ei koko pinnan minimi');
+  await snap.uncheck();
+  await expect(canvas).not.toHaveAttribute('data-point-measure-surface-distance',/.+/);
+  await expect(canvas).toHaveAttribute('data-point-measure-state','complete');
 });
 
