@@ -60,6 +60,26 @@ test('indexed and nonindexed geometry produce same physical boundary',()=>{
   assert.equal(indexed.length,4);
 });
 
+test('a throwing world-to-G1 transform fails closed for indexed and nonindexed meshes',()=>{
+  // During a scene swap the transform may be invalidated after some vertices.
+  // Do not return partial boundaries or propagate an exception to the viewer.
+  const interrupted=(x,y,z)=>{
+    if(x===2) throw new Error('scene switched during vertex conversion');
+    return g(x,y,z);
+  };
+  assert.deepEqual(extractMeasureFeatureEdges({
+    positions:squarePositions,toG1:interrupted,
+  }),[]);
+  assert.deepEqual(extractMeasureFeatureEdges({
+    positions:[0,0,0,2,0,0,2,1,0,0,1,0],
+    indices:[0,1,2,0,2,3],toG1:interrupted,
+  }),[]);
+  // Failure of one read must not poison the next valid source mesh.
+  assert.equal(extractMeasureFeatureEdges({
+    positions:squarePositions,toG1:identity,
+  }).length,4);
+});
+
 test('crease extraction preserves a genuine fold but rejects fake planar edges',()=>{
   const vertices=[
     0,0,0,1,0,0,0,1,0,

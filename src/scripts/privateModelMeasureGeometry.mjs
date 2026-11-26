@@ -52,8 +52,13 @@ export const extractMeasureFeatureEdges = ({
   const getVertex=(index)=>{
     if (!Number.isInteger(index) || index<0 || index*3+2>=positions.length) return null;
     if (vertices.has(index)) return vertices.get(index);
-    const p=toG1(positions[index*3],positions[index*3+1],positions[index*3+2]);
-    const v=valid(p) ? coords(p) : null;
+    // Scene replacement can invalidate the caller's world-space transform.
+    // A partial set of source edges is unsafe for snapping: fail closed.
+    let v=null;
+    try {
+      const p=toG1(positions[index*3],positions[index*3+1],positions[index*3+2]);
+      v=valid(p) ? coords(p) : null;
+    } catch {return null;}
     vertices.set(index,v);
     return v;
   };
