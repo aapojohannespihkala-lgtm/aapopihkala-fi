@@ -246,7 +246,7 @@ export const chooseMeasureFeatureSnap = ({
     if(den<1e-10) continue;
     const t=Math.max(0,Math.min(1,((pointerPx.x-a.x)*dx+(pointerPx.y-a.y)*dy)/den));
     const distancePx=Math.hypot(pointerPx.x-a.x-t*dx,pointerPx.y-a.y-t*dy);
-    if(distancePx>tolerancePx || distancePx>=(bestEdge?.distancePx ?? Infinity) ||
+    if(distancePx>tolerancePx ||
        Math.max(Math.sqrt(den),spanOf(edge))<minCornerArmPx) continue;
     // Perspective screen interpolation is not linear in world-space. A caller
     // projecting a perspective camera provides inverse clip W on both endpoints.
