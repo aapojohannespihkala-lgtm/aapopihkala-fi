@@ -7,7 +7,6 @@ test('cube face switches local/map north without changing the camera or view sco
   await page.goto('/private-model/?c70=1');
 
   const cube = page.locator('#orientation-gizmo');
-  const canvas = page.locator('#private-model-canvas');
   const frameButton = cube.locator('[data-navigation-north="toggle"]');
   const svg = cube.locator('svg').first();
 
@@ -34,8 +33,9 @@ test('cube face switches local/map north without changing the camera or view sco
   const initial = await readView();
   expect(initial.quaternion).toBeTruthy();
 
-  // Click a visible cube face, not the label toggle: no camera-navigation action.
-  await cube.locator('.nav-cube-face').first().click();
+  // The SVG owns the click. Legacy axis lines overlay the face polygon,
+  // so click the cube surface rather than an intercepted polygon target.
+  await svg.click();
   await expect(cube).toHaveAttribute('data-north-frame', 'map');
   await expect(cube).toHaveAttribute('data-north-reference', 'EPSG:3879');
   await expect(cube).toHaveAttribute('data-nav-cube-frame', 'map');
