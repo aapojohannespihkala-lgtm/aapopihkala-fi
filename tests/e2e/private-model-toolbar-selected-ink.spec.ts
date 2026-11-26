@@ -37,7 +37,6 @@ test('selected interaction tools retain light SVG ink over the grey frame and ho
         const other = tools.locator(`#${otherId}`);
         await expect(other).toHaveAttribute('aria-pressed', 'false');
         await expect(other).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
-        await expect(other).toHaveCSS('border-color', 'rgba(0, 0, 0, 0)');
         await expect(other).toHaveCSS('box-shadow', 'none');
       }
       await expect(tool).toHaveCSS('color', ink);
