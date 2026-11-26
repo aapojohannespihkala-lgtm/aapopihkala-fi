@@ -186,6 +186,9 @@ test('toolbar icons stay centered and selected controls share the edge-mode fram
   const layers = toolbar.locator('#layers-button');
   const cube = toolbar.locator('#navigation-cube-button');
   const preset = toolbar.locator('[data-desk-kind="preset"]').first();
+  const cubeShaft = cube.locator('svg path').first();
+  const cubeTip = cube.locator('svg polygon').first();
+  const iconInk = 'rgb(241, 244, 245)';
 
   for (const width of [1440, 1024, 390]) {
     await page.setViewportSize({ width, height: 900 });
@@ -243,8 +246,12 @@ test('toolbar icons stay centered and selected controls share the edge-mode fram
     await layers.click();
     expect((await layers.evaluate(readFrame)).shadow).toBe('none');
     expect(await cube.evaluate(readFrame)).toEqual(selectedFrame);
+    await expect(cubeShaft).toHaveCSS('stroke', iconInk);
+    await expect(cubeTip).toHaveCSS('fill', iconInk);
     await cube.click();
     expect((await cube.evaluate(readFrame)).shadow).toBe('none');
+    await expect(cubeShaft).toHaveCSS('stroke', iconInk);
+    await expect(cubeTip).toHaveCSS('fill', iconInk);
     await cube.press('Enter');
     expect(await cube.evaluate(readFrame)).toEqual(selectedFrame);
 
