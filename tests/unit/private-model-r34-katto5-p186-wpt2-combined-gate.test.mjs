@@ -61,6 +61,9 @@ test('original 67MB GLB: exact source/scene/2015 isolation and negative guards',
  rejectMutation(json.nodes[14060].extras,'sourceLinksBound',true);
  rejectMutation(json.nodes[14061].extras,'physicalCable',true);
  rejectMutation(json.nodes[14062].extras,'sourceLinksBound',true);
+ rejectMutation(json.scenes[862].extras,'humanReview',true);
+ rejectMutation(json.scenes[866].extras,'humanReview','APPROVED');
+ rejectMutation(json.scenes[867].extras,'HUMAN_REVIEW','APPROVED');
  rejectMutation(json.scenes[866].extras,'productionWebGLVerified',true);
  rejectMutation(json.scenes[866].extras,'sourceLinksBoundToNewSHA',true);
  rejectMutation(json.scenes[867].extras,'humanReviewVerified',true);

@@ -88,7 +88,8 @@ export function r34Katto5P186Wpt2CombinedGate(json,sha){
  const seen={};
  for(const [key,rule] of Object.entries(SPECS)){
   const i=Number(key),s=json.scenes[i],r=s?.nodes,e=s?.extras;
-  if(!noUnverifiedApprovals(e)||!Array.isArray(r)||r.length!==rule.roots||rootHash(r)!==rule.hash||
+  if(!noUnverifiedApprovals(e)||e?.humanReview!=='NOT_RUN'||e?.HUMAN_REVIEW!=='NOT_RUN'||
+    !Array.isArray(r)||r.length!==rule.roots||rootHash(r)!==rule.hash||
     !s.name?.endsWith('__scene'+i)||
     e?.['2015SchematicOptIn']!==rule.history||
     e?.historicalSchematicNotPhysicalCable!==true||
