@@ -559,3 +559,49 @@ test('nearest-first visibility rejects hidden nearest and uses next visible edge
   });
   same(tied.pointG1,g(0,.05));
 });
+
+test('dense hidden edge candidates use a bounded nearest-first visibility budget',()=>{
+  // Forty long, parallel visible-size features are within the cursor window.
+  // Without a bound, every candidate would trigger a costly source re-raycast.
+  const segments=Array.from({length:40},(_,i)=>({
+    a:g(-.1,i*.001),b:g(.1,i*.001),
+  }));
+  const args={
+    pointerPx:{x:0,y:0},hitPointG1:g(0,0),segments,
+    projectToScreen:projector,
+  };
+  let probes=0;
+  assert.equal(chooseMeasureFeatureSnap({
+    ...args,isCandidateVisible:()=>{probes++;return false;},
+  }),null);
+  assert.equal(probes,16);
+
+  probes=0;
+  const nearestVisible=chooseMeasureFeatureSnap({
+    ...args,isCandidateVisible:()=>++probes===4,
+  });
+  assert.equal(nearestVisible.kind,'edge');
+  assert.ok(Math.abs(nearestVisible.pointG1.yM-.003)<1e-12);
+  assert.equal(probes,4);
+
+  probes=0;
+  assert.equal(chooseMeasureFeatureSnap({
+    ...args,isCandidateVisible:()=>++probes===17,
+  }),null);
+  assert.equal(probes,16);
+});
+
+test('hidden corner probes do not starve an eligible edge, and budgets fail closed',()=>{
+  const checked=[];
+  const args={
+    pointerPx:{x:0,y:0},hitPointG1:g(.025,.025),
+    segments:squareEdges,projectToScreen:projector,
+    maxVisibilityChecks:1,
+    isCandidateVisible:(_p,kind)=>{checked.push(kind);return kind==='edge';},
+  };
+  assert.equal(chooseMeasureFeatureSnap(args)?.kind,'edge');
+  assert.deepEqual(checked,['corner','edge']);
+  assert.equal(chooseMeasureFeatureSnap({...args,maxVisibilityChecks:0}),null);
+  assert.equal(chooseMeasureFeatureSnap({...args,maxVisibilityChecks:17}),null);
+  assert.equal(chooseMeasureFeatureSnap({...args,maxVisibilityChecks:1.5}),null);
+});

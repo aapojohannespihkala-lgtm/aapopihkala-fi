@@ -167,6 +167,10 @@ export const chooseMeasureFeatureSnap = ({
   tolerancePx=12,maxWorldGapM=0.4,cornerPriorityPx=tolerancePx,
   // Small details remain free surface points until they are large enough on screen.
   minCornerArmPx=18,
+  // Bound costly frontmost source re-raycasts even on dense feature meshes.
+  // This cap applies independently to corners and edges, so occluded corners
+  // cannot exhaust the budget needed to test a visible edge.
+  maxVisibilityChecks=16,
 }) => {
   if(!pointerPx || ![pointerPx.x,pointerPx.y].every(Number.isFinite) ||
      !valid(hitPointG1) || !Array.isArray(segments) ||
@@ -175,7 +179,8 @@ export const chooseMeasureFeatureSnap = ({
      !Number.isFinite(maxWorldGapM) || maxWorldGapM<=0 ||
      !Number.isFinite(cornerPriorityPx) || cornerPriorityPx<0 ||
      !Number.isFinite(minCornerArmPx) || minCornerArmPx<0 ||
-     segments.length>30000) return null;
+     !Number.isInteger(maxVisibilityChecks) || maxVisibilityChecks<1 ||
+     maxVisibilityChecks>16 || segments.length>30000) return null;
   const base=coords(hitPointG1);
   const projected=new Map(),chainSpans=new Map();
   const getPixel=(p)=>{
@@ -262,8 +267,12 @@ export const chooseMeasureFeatureSnap = ({
   }
   const nearestVisible=(candidates)=>{
     candidates.sort((a,b)=>a.distancePx-b.distancePx);
-    for(const candidate of candidates)
+    // Distance-sorted and bounded: beyond this many hidden candidates,
+    // fail closed rather than launching thousands of visibility raycasts.
+    for(let i=0;i<Math.min(candidates.length,maxVisibilityChecks);i++){
+      const candidate=candidates[i];
       if(isCandidateVisible(candidate.pointG1,candidate.kind)===true) return candidate;
+    }
     return null;
   };
   const bestCorner=nearestVisible(cornerCandidates);
