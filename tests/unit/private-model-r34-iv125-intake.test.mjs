@@ -20,7 +20,9 @@ function fixture() {
   nodes[3]={children:[1]};
   const candidate={id:S.candidateId,path:S.path};
   const gltf={scenes:rendered,parser:{json:{scene:292,scenes,nodes,meshes:Array.from({length:S.meshCount},()=>({}))},associations:new Map()}};
-  const selected={name:'host',userData:{sourceLinks:links},parent:rendered[894]};
+  const parent={name:'parent',userData:{},parent:rendered[894]};
+  const selected={name:'host',userData:{sourceLinks:links},parent};
+  gltf.parser.associations.set(parent,{nodes:2});
   gltf.parser.associations.set(selected,{nodes:1});
   return {candidate,gltf,selected,links};
 }
