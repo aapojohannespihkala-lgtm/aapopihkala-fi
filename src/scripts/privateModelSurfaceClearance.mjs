@@ -48,7 +48,11 @@ const nearestTriangle=(p,t)=>{
 const intersectsTriangle=(p,q,t)=>{
   const dir=sub(q,p),e1=sub(t[1],t[0]),e2=sub(t[2],t[0]);
   const pvec=cross(dir,e2),det=dot(e1,pvec);
-  if(Math.abs(det)<1e-12) return null;
+  // Use a relative angular threshold: a fixed metre-scale determinant
+  // silently misses valid intersections on small, nondegenerate source faces.
+  const detScale=Math.sqrt(norm2(dir))*Math.sqrt(norm2(e1))*Math.sqrt(norm2(e2));
+  if(!Number.isFinite(detScale)||!Number.isFinite(det)||
+     Math.abs(det)<=1e-12*detScale) return null;
   const inv=1/det,tvec=sub(p,t[0]),u=dot(tvec,pvec)*inv;
   if(u< -1e-10||u>1+1e-10) return null;
   const qvec=cross(tvec,e1),v=dot(dir,qvec)*inv;

@@ -60,6 +60,20 @@ test('non-coplanar crossing triangles return zero even when no vertex touches th
   assert.equal(result.directionG1,null);
 });
 
+test('tiny but valid crossing faces preserve zero distance under uniform scaling',()=>{
+  // Every source triangle is nondegenerate. The old absolute 1e-12
+  // ray/face determinant gate missed both face crossings at this scale,
+  // falsely returning a positive nonzero separation for intersecting faces.
+  const s=0.00002;
+  const result=minimum(input(
+    [[g(-s,-s,0),g(s,-s,0),g(0,s,0)]],
+    [[g(0,-.5*s,-s),g(0,.5*s,s),g(0,-.5*s,s)]],
+  ));
+  assert.ok(result);
+  assert.equal(result.distanceM,0);
+  assert.deepEqual(result.from,result.to);
+});
+
 test('coplanar crossing triangles intersect along their edges',()=>{
   const result=minimum(input(
     [[g(0,0,0),g(2,0,0),g(1,2,0)]],
