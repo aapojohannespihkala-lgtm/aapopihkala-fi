@@ -29,7 +29,7 @@ const measureEdges=(mesh,positions,index,modelMatrix,creaseDegrees,maxTriangles)
   }
   const toG1=(x,y,z)=>g1FromWorld(new THREE.Vector3(x,y,z).applyMatrix4(modelMatrix));
   const segments=extractMeasureFeatureEdges({
-    positions:positionArray,indices,toG1,creaseDegrees,maxTriangles,
+    positions:positionArray,indices,toG1,creaseDegrees,maxTriangles,cacheTopology:true,
   });
   featureCache.set(mesh,{key,segments});
   return segments;
