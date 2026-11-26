@@ -924,32 +924,17 @@ const title = 'Private 3D viewer';
 
       .height-scale[hidden] { display: none; }
 
-      .height-scale-heading {
+      .height-scale-title {
         z-index: 3;
         position: absolute;
         top: 0;
         left: 0;
-        display: flex;
-        align-items: center;
-        gap: 4px;
-      }
-
-      .height-scale-title,
-      .height-scale-datum-toggle {
         padding: 3px 5px;
         border-radius: 5px;
         background: rgba(255, 255, 255, 0.9);
         font-size: 10px;
         font-weight: 700;
         white-space: nowrap;
-      }
-
-      .height-scale-datum-toggle {
-        pointer-events: auto;
-        cursor: pointer;
-        font-family: inherit;
-        color: inherit;
-        border: 1px solid rgba(52, 55, 51, 0.28);
       }
 
       .height-scale-ticks {
@@ -1965,10 +1950,7 @@ const title = 'Private 3D viewer';
           <p>Ei fyysinen tarkemittaus eikä CURRENT/as-built-geometria.</p>
         </aside>
         <aside id="height-scale" class="height-scale" data-panel-title="Korkeusasteikko" aria-label="YLIS-G1-LOCAL korkeusasteikko" hidden>
-          <div class="height-scale-heading">
-            <span class="height-scale-title" aria-live="polite">YLIS-G1-LOCAL Z</span>
-            <button type="button" class="height-scale-datum-toggle" hidden>Näytä N2000-työarvio</button>
-          </div>
+          <div class="height-scale-title" aria-live="polite">YLIS-G1-LOCAL Z</div>
           <div id="height-scale-ticks" class="height-scale-ticks"></div>
         </aside>
         <aside id="layers-panel" class="layers-panel" hidden>
@@ -3415,10 +3397,6 @@ const title = 'Private 3D viewer';
         canvas,
         scale: heightScale,
         ticks: heightScaleTicks,
-        onModeChange: () => {
-          updateHeightScale();
-          updateElevationStatus();
-        },
       });
       let fullModelScene: any = null;
       let r300ViewSwitch: Awaited<ReturnType<typeof createC80R31ViewSwitch>> | null = null;
@@ -6095,16 +6073,6 @@ const title = 'Private 3D viewer';
         applyLocusLayerState();
       };
 
-      const updateElevationStatus = () => {
-        if (!activeElevationDirection) return;
-        const [sign, axis] = activeElevationDirection.split('-');
-        const label = `${sign === 'pos' ? '+' : '-'}${axis.toUpperCase()}`;
-        const datumLabel = heightScaleController.currentMode() === 'local'
-          ? 'YLIS-G1-LOCAL Z-asteikko'
-          : 'N2000-työarvio (N60-oletus)';
-        status.textContent = `Ortografinen julkisivu ${label} - ${datumLabel}`;
-      };
-
       const activateElevationView = (direction: ElevationDirection, preserveContent = false) => {
         const contentScene = cameraContentScene(preserveContent);
         if (!contentScene) return;
@@ -6131,7 +6099,9 @@ const title = 'Private 3D viewer';
         }
 
         syncViewState('elevation');
-        updateElevationStatus();
+        const [sign, axis] = direction.split('-');
+        const label = `${sign === 'pos' ? '+' : '-'}${axis.toUpperCase()}`;
+        status.textContent = `Ortografinen julkisivu ${label}`;
       };
 
       const fitIsometricCamera = (sceneRoot: any = fullModelScene) => {

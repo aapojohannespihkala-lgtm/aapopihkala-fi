@@ -123,14 +123,14 @@ test('private viewer height scale places higher Z above lower Z and draws full-w
   const frameToggle = page.getByRole('button', { name: 'Vaihda paikallinen pohjoinen tai karttapohjoinen' });
   await frameToggle.click();
   await expect(canvas).toHaveAttribute('data-height-scale-north-reference', 'EPSG:3879');
-  await expect(canvas).toHaveAttribute('data-height-scale-frame', 'YLIS-G1-LOCAL');
-  await expect(page.locator('.height-scale-title')).toHaveText('ETRS-GK25 · Z paikallinen');
-  expect(await labels.allTextContents()).toEqual(tickLabels);
+  await expect(canvas).toHaveAttribute('data-height-scale-frame', 'N2000-CONDITIONAL-WORK_TEST');
+  await expect(page.locator('.height-scale-title')).toHaveText('N2000');
   await expectGuideProjection();
 
   await frameToggle.click();
   await expect(page.locator('.height-scale-title')).toHaveText('YLIS-G1-LOCAL Z');
   await expect(canvas).toHaveAttribute('data-height-scale-north-reference', 'YLIS-G1-LOCAL');
+  expect(await labels.allTextContents()).toEqual(tickLabels);
 
   // The same orthographic metric ruler must track the actual canvas in all four facades.
   for (const direction of ['neg-y', 'pos-x', 'neg-x'] as const) {
@@ -142,7 +142,7 @@ test('private viewer height scale places higher Z above lower Z and draws full-w
   }
 });
 
-test('N2000 WORK_TEST requires explicit opt-in and does not follow horizontal north', async ({ page }) => {
+test('the navigation cube switches the elevation datum for a referenced model', async ({ page }) => {
   const candidateId = 'unreferenced-height-scale-test';
   const candidatePath = `/private-model/work-test/${candidateId}.glb`;
   const model = makeReviewGlb();
@@ -171,20 +171,14 @@ test('N2000 WORK_TEST requires explicit opt-in and does not follow horizontal no
   const localLabels = await page.locator('#height-scale .height-scale-label').allTextContents();
 
   const north = page.getByRole('button', { name: 'Vaihda paikallinen pohjoinen tai karttapohjoinen' });
-  await north.click();
+  await expect(page.locator('#height-scale button:not(.viewport-panel-minimize)')).toHaveCount(0);
+  await north.press('Enter');
   await expect(canvas).toHaveAttribute('data-height-scale-north-reference', 'EPSG:3879');
-  await expect(canvas).toHaveAttribute('data-height-scale-frame', 'YLIS-G1-LOCAL');
-  expect(await page.locator('#height-scale .height-scale-label').allTextContents()).toEqual(localLabels);
-
-  const toggle = page.locator('.height-scale-datum-toggle');
-  await expect(toggle).toHaveText('Näytä N2000-työarvio');
-  await toggle.press('Enter');
-  await expect(toggle).toHaveText('Näytä paikallinen Z');
   await expect(canvas).toHaveAttribute('data-height-scale-datum-offset-m', '22.003');
   await expect(canvas).toHaveAttribute('data-height-scale-frame', 'N2000-CONDITIONAL-WORK_TEST');
   await expect(canvas).toHaveAttribute('data-height-scale-datum-status', 'WORK_TEST_HISTORICAL_N60_UNVERIFIED');
-  await expect(page.locator('.height-scale-title')).toHaveText('N2000-työarvio (N60-oletus)');
-  await expect(page.locator('#viewer-status')).toContainText('N2000-työarvio');
+  await expect(page.locator('.height-scale-title')).toHaveText('N2000');
+  await expect(page.locator('#viewer-status')).toHaveText('Ortografinen julkisivu +Y');
   const localMin = Number(await canvas.getAttribute('data-height-scale-local-min-z'));
   const estimatedMin = Number(await canvas.getAttribute('data-height-scale-min-z'));
   expect(Math.abs(localMin - initialLocalMin)).toBeLessThan(0.001);
@@ -192,28 +186,20 @@ test('N2000 WORK_TEST requires explicit opt-in and does not follow horizontal no
 
   await north.click();
   await expect(canvas).toHaveAttribute('data-height-scale-north-reference', 'YLIS-G1-LOCAL');
-  await expect(canvas).toHaveAttribute('data-height-scale-datum-offset-m', '22.003');
-  await expect(canvas).toHaveAttribute('data-height-scale-frame', 'N2000-CONDITIONAL-WORK_TEST');
-
-  await toggle.click();
-  await expect(toggle).toHaveText('Näytä N2000-työarvio');
   await expect(canvas).toHaveAttribute('data-height-scale-datum-offset-m', '0.000');
   await expect(canvas).toHaveAttribute('data-height-scale-frame', 'YLIS-G1-LOCAL');
   expect(await page.locator('#height-scale .height-scale-label').allTextContents()).toEqual(localLabels);
 
-  await toggle.click();
+  await north.click();
   await page.locator('[data-desk-kind="angle"][data-desk-id="orbit"]').click();
   await expect(canvas).toHaveAttribute('data-height-scale-visible', 'false');
   await page.locator('[data-desk-kind="angle"][data-desk-id="elev-pos-y"]').click();
-  await expect(canvas).toHaveAttribute('data-height-scale-frame', 'YLIS-G1-LOCAL');
-  await expect(canvas).toHaveAttribute('data-height-scale-datum-offset-m', '0.000');
-
-  await toggle.click();
   await expect(canvas).toHaveAttribute('data-height-scale-frame', 'N2000-CONDITIONAL-WORK_TEST');
   await page.locator('#model-menu > summary').click();
   await page.locator(`#work-test-options [data-work-test-candidate="${candidateId}"]`).click();
   await expect(canvas).toHaveAttribute('data-model-source', 'work-test');
   await page.locator('[data-desk-kind="angle"][data-desk-id="elev-pos-y"]').click();
+  await expect(canvas).toHaveAttribute('data-height-scale-north-reference', 'EPSG:3879');
   await expect(canvas).toHaveAttribute('data-height-scale-frame', 'YLIS-G1-LOCAL');
-  await expect(toggle).toBeHidden();
+  await expect(page.locator('.height-scale-title')).toHaveText('ETRS-GK25 · Z paikallinen');
 });
