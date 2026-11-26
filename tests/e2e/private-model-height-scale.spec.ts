@@ -171,6 +171,7 @@ test('the navigation cube switches the elevation datum for a referenced model', 
   const localLabels = await page.locator('#height-scale .height-scale-label').allTextContents();
 
   const north = page.getByRole('button', { name: 'Vaihda paikallinen pohjoinen tai karttapohjoinen' });
+  const cube = page.locator('#orientation-gizmo > svg');
   await expect(page.locator('#height-scale button:not(.viewport-panel-minimize)')).toHaveCount(0);
   await north.press('Enter');
   await expect(canvas).toHaveAttribute('data-height-scale-north-reference', 'EPSG:3879');
@@ -184,13 +185,13 @@ test('the navigation cube switches the elevation datum for a referenced model', 
   expect(Math.abs(localMin - initialLocalMin)).toBeLessThan(0.001);
   expect(Math.abs((estimatedMin - localMin) - 22.003)).toBeLessThan(0.001);
 
-  await north.click();
+  await cube.click();
   await expect(canvas).toHaveAttribute('data-height-scale-north-reference', 'YLIS-G1-LOCAL');
   await expect(canvas).toHaveAttribute('data-height-scale-datum-offset-m', '0.000');
   await expect(canvas).toHaveAttribute('data-height-scale-frame', 'YLIS-G1-LOCAL');
   expect(await page.locator('#height-scale .height-scale-label').allTextContents()).toEqual(localLabels);
 
-  await north.click();
+  await cube.click();
   await page.locator('[data-desk-kind="angle"][data-desk-id="orbit"]').click();
   await expect(canvas).toHaveAttribute('data-height-scale-visible', 'false');
   await page.locator('[data-desk-kind="angle"][data-desk-id="elev-pos-y"]').click();
