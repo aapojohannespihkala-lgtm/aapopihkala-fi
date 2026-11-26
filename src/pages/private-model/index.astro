@@ -50,9 +50,6 @@ const title = 'Private 3D viewer';
         border-color: var(--viewer-line-soft);
         box-shadow: none;
       }
-      .viewer-shell > .toolbar > #navigation-cube-button[aria-expanded='true'] {
-        color: var(--viewer-stone);
-      }
       .toolbar-menu-panel [data-context-tool]:disabled { display: none; }
       @media (min-width: 1240px) {
         .viewer-shell > .toolbar, .viewer-shell > .toolbar .desk-toolbar { flex-wrap: nowrap; }
@@ -87,7 +84,8 @@ const title = 'Private 3D viewer';
         .viewer-shell > .toolbar .desk-icon[data-desk-kind='preset']:hover {
           background: var(--viewer-icon-hover);
         }
-        .viewer-shell > .toolbar .desk-icon[data-desk-kind='preset'][aria-pressed='true']:hover {
+        .viewer-shell > .toolbar .desk-icon[data-desk-kind='preset'][aria-pressed='true']:hover,
+        .viewer-shell > .toolbar .interaction-tools .desk-icon[aria-pressed='true']:hover {
           background: var(--viewer-preset-selected-hover);
         }
       }
@@ -401,7 +399,7 @@ const title = 'Private 3D viewer';
         font-size: 12px;
       }
 
-      .interaction-tools button[aria-pressed='true'] {
+      .interaction-tools button[aria-pressed='true']:not(.desk-icon) {
         background: var(--viewer-bar);
         color: var(--viewer-ink);
       }
@@ -6069,9 +6067,23 @@ const title = 'Private 3D viewer';
         return true;
       };
 
-      const activateElevationView = (direction: ElevationDirection) => {
-        const contentScene = resolveActiveResearchContentScene();
+      // Camera controls operate on the mounted view. Legacy content presets
+      // still resolve and mount their own source scene before fitting it.
+      const cameraContentScene = (preserveContent: boolean) =>
+        preserveContent ? modelRoot.children[0] : resolveActiveResearchContentScene();
+
+      const mountCameraContent = (scene: THREE.Object3D, preserveContent: boolean) => {
+        if (preserveContent) return;
+        setModelScene(scene);
+        applyRoofLayerState();
+        applyLocusLayerState();
+      };
+
+      const activateElevationView = (direction: ElevationDirection, preserveContent = false) => {
+        const contentScene = cameraContentScene(preserveContent);
         if (!contentScene) return;
+        const visibleBounds = preserveContent ? computeVisibleBounds(contentScene, true) : null;
+        if (preserveContent && !visibleBounds) return;
 
         clearSelection();
         activePlanFloor = null;
@@ -6082,14 +6094,12 @@ const title = 'Private 3D viewer';
         setIsoRotationMode('yaw-only');
         isoControls.enabled = true;
         activeCamera = isoCamera;
-        setModelScene(contentScene);
-        applyRoofLayerState();
-        applyLocusLayerState();
+        mountCameraContent(contentScene, preserveContent);
 
         activeElevationDirection = direction;
         canvas.dataset.elevationDirection = direction;
         setHeightScaleVisible(true);
-        if (!fitElevationCamera(direction, contentScene)) {
+        if (!fitElevationCamera(direction, contentScene, visibleBounds)) {
           deactivateElevationView();
           return;
         }
@@ -6146,8 +6156,8 @@ const title = 'Private 3D viewer';
         isoControls.update();
       };
 
-      const activateIsometric = () => {
-        const contentScene = resolveActiveResearchContentScene();
+      const activateIsometric = (preserveContent = false) => {
+        const contentScene = cameraContentScene(preserveContent);
         if (!contentScene) return;
 
         deactivateElevationView();
@@ -6160,9 +6170,7 @@ const title = 'Private 3D viewer';
         setIsoRotationMode('free');
         isoControls.enabled = true;
         activeCamera = isoCamera;
-        setModelScene(contentScene);
-        applyRoofLayerState();
-        applyLocusLayerState();
+        mountCameraContent(contentScene, preserveContent);
         fitIsometricCamera(contentScene);
         syncViewState('isometric');
         status.textContent = 'Isometrinen - ortografinen 3/4-näkymä';
@@ -6495,8 +6503,8 @@ const title = 'Private 3D viewer';
         });
       };
 
-      const fitModel = () => {
-        const contentScene = resolveActiveResearchContentScene();
+      const fitModel = (preserveContent = false) => {
+        const contentScene = cameraContentScene(preserveContent);
         if (!contentScene) return;
 
         deactivateElevationView();
@@ -6509,9 +6517,7 @@ const title = 'Private 3D viewer';
         controls.enableRotate = true;
         controls.enabled = true;
         activeCamera = camera;
-        setModelScene(contentScene);
-        applyRoofLayerState();
-        applyLocusLayerState();
+        mountCameraContent(contentScene, preserveContent);
         syncViewState('orbit');
 
         if (!refreshFullModelFitMetrics(contentScene)) return;
@@ -6739,8 +6745,8 @@ const title = 'Private 3D viewer';
         return true;
       };
 
-      const axisView = (direction: 'top' | 'bottom') => {
-        const contentScene = resolveActiveResearchContentScene();
+      const axisView = (direction: 'top' | 'bottom', preserveContent = false) => {
+        const contentScene = cameraContentScene(preserveContent);
         if (!contentScene) return;
 
         deactivateElevationView();
@@ -6753,9 +6759,7 @@ const title = 'Private 3D viewer';
         setIsoRotationMode('disabled');
         isoControls.enabled = true;
         activeCamera = isoCamera;
-        setModelScene(contentScene);
-        applyRoofLayerState();
-        applyLocusLayerState();
+        mountCameraContent(contentScene, preserveContent);
 
         if (!fitAxisCamera(direction, contentScene)) return;
         syncViewState(direction);
@@ -15516,7 +15520,7 @@ const title = 'Private 3D viewer';
           mainViewFloor.value === '2F' ? 'd-2f' : 'd-apartment');
         closeToolbarMenus();
       });
-      fitButton.addEventListener('click', fitModel);
+      fitButton.addEventListener('click', () => fitModel(true));
       resetViewDefaultsButton.addEventListener('click', resetActiveViewDefaults);
       wholeBuildingPresetButton.addEventListener('click', () => applyStandardViewPreset('whole-building'));
       dOverviewPresetButton.addEventListener('click', () => applyStandardViewPreset('d-apartment'));
@@ -15524,10 +15528,10 @@ const title = 'Private 3D viewer';
       infraPresetButton.addEventListener('click', () => applyStandardViewPreset('infra'));
       drainagePresetButton.addEventListener('click', applyDrainageResearchPreset);
       electricalPresetButton.addEventListener('click', applyElectricalResearchPreset);
-      orbitButton.addEventListener('click', fitModel);
-      topButton.addEventListener('click', () => applyStandardViewPreset('top'));
-      bottomButton.addEventListener('click', () => axisView('bottom'));
-      isoButton.addEventListener('click', activateIsometric);
+      orbitButton.addEventListener('click', () => fitModel(true));
+      topButton.addEventListener('click', () => axisView('top', true));
+      bottomButton.addEventListener('click', () => axisView('bottom', true));
+      isoButton.addEventListener('click', () => activateIsometric(true));
       p137ePlanFaceButton?.addEventListener('click', () => {
         try { applyP137EScene67TopPlan(); }
         catch { status.textContent = 'P137E WORK_TEST - alkuperäisen seinän pohja ei käytettävissä'; }
@@ -15540,10 +15544,10 @@ const title = 'Private 3D viewer';
         try { applyP137EScene67SourceFace('SOUTH'); }
         catch { status.textContent = 'P137E WORK_TEST - eteläisen lähdekamera ei käytettävissä'; }
       });
-      elevPosYButton.addEventListener('click', () => applyStandardViewPreset('elev-pos-y'));
-      elevNegYButton.addEventListener('click', () => applyStandardViewPreset('elev-neg-y'));
-      elevPosXButton.addEventListener('click', () => applyStandardViewPreset('elev-pos-x'));
-      elevNegXButton.addEventListener('click', () => applyStandardViewPreset('elev-neg-x'));
+      elevPosYButton.addEventListener('click', () => activateElevationView('pos-y', true));
+      elevNegYButton.addEventListener('click', () => activateElevationView('neg-y', true));
+      elevPosXButton.addEventListener('click', () => activateElevationView('pos-x', true));
+      elevNegXButton.addEventListener('click', () => activateElevationView('neg-x', true));
       d1PlanButton.addEventListener('click', () => {
         if (canvas.dataset.workTestReviewMode === p137eScene67ReviewId) {
           try { applyP137EScene67TopPlan(); }
@@ -15674,9 +15678,10 @@ const title = 'Private 3D viewer';
         return false;
       };
       const deskCurrentAngle = () => activeDesktopAngle({
-        standardViewPreset: canvas.dataset.standardViewPreset,
         viewPreset: canvas.dataset.viewPreset,
+        elevationDirection: canvas.dataset.elevationDirection,
       });
+      const deskCameraToRestore = () => canvas.dataset.viewPreset === 'bottom' ? 'bottom' : deskCurrentAngle();
       // Start framing: the building (terrain and site context left out), seen
       // from the south-west so the D apartment at the west end is nearest.
       const deskStartFrame = () => {
@@ -15968,7 +15973,7 @@ const title = 'Private 3D viewer';
       let deskSync = () => {};
       if (deskToolbarBar && deskPresetMenu && deskViewMenu) {
         const deskAngleButtons: Record<string, HTMLButtonElement | null> = {
-          orbit: orbitButton, iso: isoButton, top: topButton,
+          orbit: orbitButton, iso: isoButton, top: topButton, bottom: bottomButton,
           'elev-pos-y': elevPosYButton, 'elev-neg-y': elevNegYButton,
           'elev-pos-x': elevPosXButton, 'elev-neg-x': elevNegXButton,
         };
@@ -15988,12 +15993,12 @@ const title = 'Private 3D viewer';
               deskSync();
               return;
             }
-            const angleBefore = deskCurrentAngle();
+            const angleBefore = deskCameraToRestore();
             const pose = deskCapturePose();
             if (id === 'd-roof' || id === 'd-apartment') deskEnterDFocus(id === 'd-roof');
             else if (id === 'd-1f' || id === 'd-2f') deskEnterDFocus(false, id === 'd-1f' ? '1F' : '2F');
             else deskEnterWholeBuilding();
-            if (angleBefore && deskCurrentAngle() !== angleBefore) deskAngleButtons[angleBefore]?.click();
+            if (angleBefore && deskCameraToRestore() !== angleBefore) deskAngleButtons[angleBefore]?.click();
             if (pose && !deskApplyPose(pose)) deskRefitKeepingDirection();
             canvas.dataset.deskPresetCameraKept = pose ? 'exact' : 'angle';
             r31SyncExteriorDonors();
@@ -16030,10 +16035,7 @@ const title = 'Private 3D viewer';
                 standardViewPreset: canvas.dataset.standardViewPreset,
                 roofVisible: canvas.dataset.layerRoofVisible === 'true',
               }),
-            angle: activeDesktopAngle({
-              standardViewPreset: canvas.dataset.standardViewPreset,
-              viewPreset: canvas.dataset.viewPreset,
-            }),
+            angle: deskCurrentAngle(),
             // The icon shows what the model really shows, not only the checkbox.
             technical: canvas.dataset.technicalReview === 'on',
             layersOpen: layersButton?.getAttribute('aria-expanded') === 'true',
@@ -16042,7 +16044,7 @@ const title = 'Private 3D viewer';
         };
         new MutationObserver(() => deskSync()).observe(canvas, {
           attributes: true,
-          attributeFilter: ['data-standard-view-preset', 'data-view-preset', 'data-layer-roof-visible', 'data-technical-review', 'data-edge-mode', 'data-d-focus-ghost'],
+          attributeFilter: ['data-standard-view-preset', 'data-view-preset', 'data-elevation-direction', 'data-layer-roof-visible', 'data-technical-review', 'data-edge-mode', 'data-d-focus-ghost'],
         });
         if (layersButton) new MutationObserver(() => deskSync()).observe(layersButton, { attributes: true, attributeFilter: ['aria-expanded'] });
         const tools = deskToolbarBar.querySelector<HTMLElement>('.interaction-tools');
@@ -16070,13 +16072,13 @@ const title = 'Private 3D viewer';
           infraPresetButton, drainagePresetButton, electricalPresetButton]) {
           let before: { angle: string | null; pose: DeskPose | null } | null = null;
           menuPreset.addEventListener('click', () => {
-            before = { angle: deskCurrentAngle(), pose: deskCapturePose() };
+            before = { angle: deskCameraToRestore(), pose: deskCapturePose() };
           }, { capture: true });
           menuPreset.addEventListener('click', () => {
             const kept = before;
             before = null;
             if (!kept?.angle) return;
-            if (deskCurrentAngle() !== kept.angle) deskAngleButtons[kept.angle]?.click();
+            if (deskCameraToRestore() !== kept.angle) deskAngleButtons[kept.angle]?.click();
             if (kept.pose) deskApplyPose(kept.pose);
             deskSync();
           });
