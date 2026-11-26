@@ -662,3 +662,59 @@ test('projection and source visibility callback exceptions fail closed without t
   assert.equal(chooseMeasureFeatureSnap(args)?.kind,'corner',
     'valid visible source geometry still snaps normally');
 });
+
+test('snap edge cache invalidates when position backing array changes without a version bump',()=>{
+  const geometry=new THREE.BufferGeometry();
+  const position=new THREE.Float32BufferAttribute([
+    0,0,0, 1,0,0, 0,1,0,
+  ],3);
+  geometry.setAttribute('position',position);
+  const mesh=new THREE.Mesh(geometry,new THREE.MeshBasicMaterial());
+  const camera=new THREE.OrthographicCamera(-5,5,5,-5,.1,20);
+  camera.position.z=8;
+  camera.lookAt(0,0,0);
+  camera.updateMatrixWorld(true);
+  const at=x=>{
+    const ndc=new THREE.Vector3(x,0,0).project(camera);
+    return snapFromVisibleMeshHit({
+      frontmostHit:{object:mesh,point:new THREE.Vector3(x+.02,.02,0)},
+      camera,rect:{left:0,top:0,width:400,height:400},
+      pointerPx:{x:200*(ndc.x+1),y:200*(1-ndc.y)},
+      acceptsFrontmostHit:()=>true,isFeatureVisible:()=>true,
+    });
+  };
+  assert.equal(at(0)?.pointG1.xM,0);
+  const version=position.version;
+  position.array=new Float32Array([3,0,0, 4,0,0, 3,1,0]);
+  assert.equal(position.version,version);
+  assert.equal(at(3)?.pointG1.xM,3,'stale old triangle must not shadow the replaced world geometry');
+});
+
+test('snap edge cache invalidates when index backing array changes without a version bump',()=>{
+  const geometry=new THREE.BufferGeometry();
+  geometry.setAttribute('position',new THREE.Float32BufferAttribute([
+    0,0,0, 1,0,0, 0,1,0,
+    3,0,0, 4,0,0, 3,1,0,
+  ],3));
+  const index=new THREE.BufferAttribute(new Uint16Array([0,1,2]),1);
+  geometry.setIndex(index);
+  const mesh=new THREE.Mesh(geometry,new THREE.MeshBasicMaterial());
+  const camera=new THREE.OrthographicCamera(-5,5,5,-5,.1,20);
+  camera.position.z=8;
+  camera.lookAt(0,0,0);
+  camera.updateMatrixWorld(true);
+  const at=x=>{
+    const ndc=new THREE.Vector3(x,0,0).project(camera);
+    return snapFromVisibleMeshHit({
+      frontmostHit:{object:mesh,point:new THREE.Vector3(x+.02,.02,0)},
+      camera,rect:{left:0,top:0,width:400,height:400},
+      pointerPx:{x:200*(ndc.x+1),y:200*(1-ndc.y)},
+      acceptsFrontmostHit:()=>true,isFeatureVisible:()=>true,
+    });
+  };
+  assert.equal(at(0)?.pointG1.xM,0);
+  const version=index.version;
+  index.array=new Uint16Array([3,4,5]);
+  assert.equal(index.version,version);
+  assert.equal(at(3)?.pointG1.xM,3,'index replacement must rebuild source-triangle snap features');
+});
