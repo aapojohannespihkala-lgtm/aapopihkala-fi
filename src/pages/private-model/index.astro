@@ -925,6 +925,11 @@ const title = 'Private 3D viewer';
       .height-scale[hidden] { display: none; }
 
       .height-scale-title {
+        z-index: 3;
+        pointer-events: auto;
+        cursor: pointer;
+        font-family: inherit;
+        border: 1px solid rgba(52, 55, 51, 0.28);
         position: absolute;
         top: 0;
         left: 0;
@@ -1948,7 +1953,7 @@ const title = 'Private 3D viewer';
           <p>Ei fyysinen tarkemittaus eikä CURRENT/as-built-geometria.</p>
         </aside>
         <aside id="height-scale" class="height-scale" data-panel-title="Korkeusasteikko" aria-label="YLIS-G1-LOCAL korkeusasteikko" hidden>
-          <div class="height-scale-title">YLIS-G1-LOCAL Z</div>
+          <button type="button" class="height-scale-title" aria-pressed="false" aria-label="Vaihda korkeusasteikon paikallisen ja ehdollisen N2000-työarvion välillä">YLIS-G1-LOCAL Z</button>
           <div id="height-scale-ticks" class="height-scale-ticks"></div>
         </aside>
         <aside id="layers-panel" class="layers-panel" hidden>
@@ -3395,6 +3400,7 @@ const title = 'Private 3D viewer';
         canvas,
         scale: heightScale,
         ticks: heightScaleTicks,
+        onModeChange: () => updateHeightScale(),
       });
       let fullModelScene: any = null;
       let r300ViewSwitch: Awaited<ReturnType<typeof createC80R31ViewSwitch>> | null = null;
@@ -6005,6 +6011,11 @@ const title = 'Private 3D viewer';
           viewportHeight: canvas.clientHeight,
           mapNorth: orientationGizmo.dataset.northFrame === 'map',
         });
+        const direction = activeElevationDirection;
+        const datumText = heightScaleController.currentMode() === 'local'
+          ? 'YLIS-G1-LOCAL Z'
+          : 'N2000-työarvio (N60-oletus, ei vahvistettu)';
+        status.textContent = `Ortografinen julkisivu ${direction} - ${datumText}`;
       };
 
       const fitElevationCamera = (
