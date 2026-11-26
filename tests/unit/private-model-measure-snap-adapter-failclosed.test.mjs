@@ -53,3 +53,36 @@ test('invalidated BufferGeometry position accessor fails closed',()=>{
   args.mesh.geometry.attributes.position.getX=fail;
   assert.equal(snapFromVisibleMeshHit(args),null);
 });
+
+
+test('replacing the position backing array invalidates cached snap edges even with unchanged version',()=>{
+  const args=fixture();
+  assert.equal(snapFromVisibleMeshHit(args)?.kind,'corner');
+  const position=args.mesh.geometry.getAttribute('position');
+  const previousArray=position.array,version=position.version;
+  const shifted=previousArray.slice();
+  for(let i=0;i<shifted.length;i+=position.itemSize) shifted[i]+=.5;
+  position.copy(new THREE.BufferAttribute(shifted,position.itemSize));
+  assert.notStrictEqual(position.array,previousArray);
+  assert.equal(position.version,version);
+  const projected=new THREE.Vector3(1.5,1,1).project(args.camera);
+  const updated={
+    ...args,
+    frontmostHit:{object:args.mesh,point:new THREE.Vector3(1.44,.94,1)},
+    pointerPx:{x:200*(projected.x+1)+2,y:200*(1-projected.y)+2},
+  };
+  const result=snapFromVisibleMeshHit(updated);
+  assert.equal(result?.kind,'corner');
+  assert.ok(Math.abs(result.pointG1.xM-1.5)<1e-6);
+});
+
+test('replacing index backing array with degenerate triangles invalidates old selectable corners',()=>{
+  const args=fixture();
+  assert.equal(snapFromVisibleMeshHit(args)?.kind,'corner');
+  const index=args.mesh.geometry.getIndex();
+  const previousArray=index.array,version=index.version;
+  index.copy(new THREE.BufferAttribute(new Uint16Array(index.count),1));
+  assert.notStrictEqual(index.array,previousArray);
+  assert.equal(index.version,version);
+  assert.equal(snapFromVisibleMeshHit(args),null);
+});

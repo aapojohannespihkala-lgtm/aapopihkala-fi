@@ -16,7 +16,10 @@ const featureCache=new WeakMap();
 const attributeVersion=(attribute)=>attribute?.version ?? attribute?.data?.version ?? 0;
 
 const measureEdges=(mesh,positions,index,modelMatrix,creaseDegrees,maxTriangles)=>{
-  const key=[positions,index,attributeVersion(positions),attributeVersion(index),
+  // Replacing an attribute's backing array via BufferAttribute.copy() can leave
+  // its version unchanged. Include array identity to avoid stale source edges.
+  const key=[positions,index,positions.array??positions.data?.array,
+    index?.array??index?.data?.array,attributeVersion(positions),attributeVersion(index),
     creaseDegrees,maxTriangles,...modelMatrix.elements];
   const cached=featureCache.get(mesh);
   if(cached?.key.every((value,i)=>value===key[i])) return cached.segments;
