@@ -166,3 +166,102 @@ test('source-mesh adapter rejects partial, deformed and unbounded geometry inste
   assert.equal(meshClearance(data),null);
   assert.equal(meshClearance({...data,maxTrianglesPerSource:65}),null);
 });
+
+const makeLargeWorkTestWall=(offsetX=0,triCount=180,indexed=false)=>{
+  const geom=new THREE.BufferGeometry();
+  const position=[
+    0,0,0, 0,0,-1, 0,1,-1,
+    0,0,0, 0,1,-1, 0,1,0,
+  ];
+  if(indexed){
+    geom.setAttribute('position',new THREE.Float32BufferAttribute(position,3));
+    geom.setIndex(Array.from({length:triCount},(_,i)=>i%2===0 ? [0,1,2]:[3,4,5]).flat());
+  }else{
+    const values=[];
+    for(let i=0;i<triCount;i++){
+      values.push(...position.slice(i%2===0?0:9,i%2===0?9:18));
+    }
+    geom.setAttribute('position',new THREE.Float32BufferAttribute(values,3));
+  }
+  const mesh=new THREE.Mesh(geom,new THREE.MeshBasicMaterial());
+  mesh.position.x=offsetX;
+  mesh.updateMatrixWorld(true);
+  return mesh;
+};
+const facePatch=(sourceId,mesh,faceIndices,faceIndex=faceIndices[0])=>({
+  sourceId,mesh,selectedFaceIndices:faceIndices,
+  frontmostHit:{object:mesh,faceIndex,point:new THREE.Vector3(mesh.position.x,.2,-.2)},
+});
+
+test('bounded source-hit face patches measure two 180-triangle meshes without full scan',()=>{
+  const a=makeLargeWorkTestWall(0),b=makeLargeWorkTestWall(.3);
+  const da=facePatch('selected-A',a,[92,93],92);
+  const db=facePatch('selected-B',b,[74,75],74);
+  const visitedA=[],visitedB=[];
+  const result=meshClearance(meshInput(a,b,{
+    sourceA:da,sourceB:db,
+    acceptsClippedTriangle:({sourceId,triangleIndex})=>{
+      (sourceId==='selected-A'?visitedA:visitedB).push(triangleIndex);
+      return true;
+    },
+  }));
+  assert.ok(result);
+  near(result.distanceM,.3);
+  assert.equal(result.boundedSourcePatch,true);
+  assert.equal(result.entireSelectedMeshesCompared,false);
+  assert.equal(result.triangleAIndex,92);
+  assert.equal(result.triangleBIndex,74);
+  assert.deepEqual(visitedA,[92,93]);
+  assert.deepEqual(visitedB,[74,75]);
+  assert.equal(result.asBuilt,false);
+});
+
+test('indexed source-hit patches preserve original indexed face IDs',()=>{
+  const a=makeLargeWorkTestWall(0,200,true);
+  const b=makeLargeWorkTestWall(.3,200,true);
+  const result=meshClearance(meshInput(a,b,{
+    sourceA:facePatch('selected-A',a,[111],111),
+    sourceB:facePatch('selected-B',b,[159],159),
+  }));
+  assert.ok(result);
+  near(result.distanceM,.3);
+  assert.equal(result.triangleAIndex,111);
+  assert.equal(result.triangleBIndex,159);
+});
+
+test('explicit source patches reject missing, stale, duplicate, oversized, and invisible anchor hits',()=>{
+  const a=makeLargeWorkTestWall(),b=makeLargeWorkTestWall(.3);
+  const da=facePatch('selected-A',a,[52,53],52);
+  const db=facePatch('selected-B',b,[58],58);
+  const args=meshInput(a,b,{sourceA:da,sourceB:db});
+  assert.equal(meshClearance(meshInput(a,b)),null); // whole mesh >64
+  assert.equal(meshClearance({...args,sourceA:{sourceId:'selected-A',mesh:a,selectedFaceIndices:[52]}}),null);
+  assert.equal(meshClearance({...args,sourceA:{...da,selectedFaceIndices:[53]}}),null);
+  assert.equal(meshClearance({...args,sourceA:{...da,selectedFaceIndices:[52,52]}}),null);
+  assert.equal(meshClearance({...args,sourceA:{...da,selectedFaceIndices:[52,180]}}),null);
+  assert.equal(meshClearance({...args,sourceA:{...da,selectedFaceIndices:[52,-1]}}),null);
+  assert.equal(meshClearance({...args,sourceA:{...da,selectedFaceIndices:Array(65).fill(52)}}),null);
+  assert.equal(meshClearance({...args,sourceA:{...da,frontmostHit:{...da.frontmostHit,object:b}}}),null);
+  assert.equal(meshClearance({...args,sourceA:{...da,frontmostHit:{...da.frontmostHit,point:null}}}),null);
+  assert.equal(meshClearance({...args,acceptsClippedTriangle:({sourceId,triangleIndex})=>
+    !(sourceId==='selected-A'&&triangleIndex===52)}),null);
+  assert.equal(meshClearance({...args,isTriangleFrontmost:({sourceId,triangleIndex})=>
+    !(sourceId==='selected-B'&&triangleIndex===58)}),null);
+});
+
+test('source patch material-group visibility must match the selected face, not a different group',()=>{
+  const a=makeLargeWorkTestWall(),b=makeLargeWorkTestWall(.3);
+  a.material=[new THREE.MeshBasicMaterial(),new THREE.MeshBasicMaterial({visible:false})];
+  a.geometry.clearGroups();
+  a.geometry.addGroup(0,90*3,0);
+  a.geometry.addGroup(90*3,90*3,1);
+  const args=meshInput(a,b,{
+    sourceA:facePatch('selected-A',a,[100],100),
+    sourceB:facePatch('selected-B',b,[50],50),
+  });
+  assert.equal(meshClearance(args),null);
+  const good={...args,sourceA:facePatch('selected-A',a,[50],50)};
+  assert.ok(meshClearance(good));
+  a.geometry.addGroup(0,180*3,0); // overlapping group is ambiguous
+  assert.equal(meshClearance(good),null);
+});

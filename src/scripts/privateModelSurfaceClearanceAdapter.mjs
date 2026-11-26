@@ -26,31 +26,73 @@ const isVisibleInHierarchy=(mesh)=>{
 const pointG1=(p)=>Object.freeze({
   xM:p.x,yM:-p.z,sourceHeightYUpM:p.y,
 });
-const usableMesh=(mesh,maxTriangles)=>{
+const usableMesh=(mesh)=>{
   const geom=mesh?.geometry,position=geom?.attributes?.position,index=geom?.index;
   if(!mesh?.isMesh || mesh.isInstancedMesh || mesh.isSkinnedMesh ||
      !geom?.isBufferGeometry || !position ||
      geom.morphAttributes?.position?.length ||
      !isVisibleInHierarchy(mesh) ||
-     !Number.isInteger(position.count) || position.count<3 ||
+     !Number.isSafeInteger(position.count) || position.count<3 ||
      !mesh.matrixWorld?.isMatrix4) return false;
   const materials=Array.isArray(mesh.material)?mesh.material:[mesh.material];
   if(!materials.length || !materials.some(m=>m?.visible===true)) return false;
   const elementCount=index ? index.count : position.count;
-  if(!Number.isInteger(elementCount) || elementCount%3!==0 ||
-     elementCount<3 || elementCount/3>maxTriangles) return false;
+  if(!Number.isSafeInteger(elementCount) || elementCount%3!==0 ||
+     elementCount<3) return false;
   const draw=geom.drawRange;
   if(draw && (draw.start!==0 ||
      (Number.isFinite(draw.count) && draw.count<elementCount))) return false;
   return true;
 };
+
+// Material arrays need a unique glTF/Three draw group for the selected face;
+// a visible OTHER material group is not evidence that this face renders.
+const visibleFaceMaterial=(mesh,faceIndex)=>{
+  if(!Array.isArray(mesh.material)) return mesh.material?.visible===true;
+  const first=3*faceIndex;
+  let selected=null;
+  for(const group of mesh.geometry.groups){
+    if(!Number.isSafeInteger(group.start)||!Number.isSafeInteger(group.count)||
+       group.start<0||group.count<3) return false;
+    if(group.start<=first && group.start+group.count>=first+3){
+      if(selected!==null) return false; // overlapping material groups
+      selected=group.materialIndex;
+    }
+  }
+  return Number.isInteger(selected) && selected>=0 &&
+    mesh.material[selected]?.visible===true;
+};
 const readSource=(selected,maxTriangles,acceptsSourceMesh,
   acceptsClippedTriangle,isTriangleFrontmost)=>{
   const sourceId=selected?.sourceId,mesh=selected?.mesh;
   if(typeof sourceId!=='string' || !sourceId.trim() ||
-     !usableMesh(mesh,maxTriangles) ||
-     acceptsSourceMesh({mesh,sourceId})!==true) return null;
-  // Update only this object's world matrix. No geometry or scene edits.
+     !usableMesh(mesh)) return null;
+
+  const position=mesh.geometry.attributes.position,index=mesh.geometry.index;
+  const totalFaces=(index?index.count:position.count)/3;
+  const patch=selected.selectedFaceIndices;
+  const isPatch=patch!==undefined;
+  // For a large source mesh a caller MUST supply face indices from a
+  // separately validated, bounded, selected source-hit neighbourhood.
+  // Never silently pick the first 64 triangles of a larger mesh.
+  if(isPatch && (!Array.isArray(patch) || !patch.length ||
+     patch.length>maxTriangles ||
+     patch.some(i=>!Number.isSafeInteger(i)||i<0||i>=totalFaces) ||
+     new Set(patch).size!==patch.length)) return null;
+  if(!isPatch && totalFaces>maxTriangles) return null;
+  const faceIndices=isPatch ? [...patch] :
+    Array.from({length:totalFaces},(_,i)=>i);
+  const anchor=selected.frontmostHit;
+  if(isPatch && (!anchor || anchor.object!==mesh ||
+     !Number.isSafeInteger(anchor.faceIndex) ||
+     !faceIndices.includes(anchor.faceIndex) ||
+     !anchor.point ||
+     !finite(anchor.point.x,anchor.point.y,anchor.point.z))) return null;
+  if(acceptsSourceMesh({
+    mesh,sourceId,frontmostHit:anchor,
+    selectedFaceIndices:isPatch?Object.freeze([...faceIndices]):undefined,
+  })!==true) return null;
+
   mesh.updateWorldMatrix?.(true,false);
   const matrix=mesh.matrixWorld;
   const e=matrix.elements;
@@ -60,13 +102,14 @@ const readSource=(selected,maxTriangles,acceptsSourceMesh,
      Math.abs(e[15]-1)>1e-12 ||
      !Number.isFinite(matrix.determinant()) ||
      Math.abs(matrix.determinant())<1e-12) return null;
-  const position=mesh.geometry.attributes.position,index=mesh.geometry.index;
-  const count=(index?index.count:position.count)/3;
   const triangles=[],visible=[];
-  for(let i=0;i<count;i++){
+  for(const faceIndex of faceIndices){
+    // A face of a hidden material group must not supply a measurement
+    // even if the source object's other material groups are rendered.
+    if(!visibleFaceMaterial(mesh,faceIndex)) return null;
     const worldTriangle=[];
     for(let j=0;j<3;j++){
-      const vertex=index ? index.getX(3*i+j) : 3*i+j;
+      const vertex=index ? index.getX(3*faceIndex+j) : 3*faceIndex+j;
       if(!Number.isInteger(vertex)||vertex<0||vertex>=position.count) return null;
       const x=position.getX(vertex),y=position.getY(vertex),z=position.getZ(vertex);
       if(!finite(x,y,z)) return null;
@@ -77,22 +120,29 @@ const readSource=(selected,maxTriangles,acceptsSourceMesh,
     const triangle=Object.freeze(worldTriangle.map(pointG1));
     triangles.push(triangle);
     const context=Object.freeze({
-      mesh,sourceId,triangleIndex:i,
+      mesh,sourceId,triangleIndex:faceIndex,originalFaceIndex:faceIndex,
+      frontmostHit:anchor,
       triangleG1:triangle,worldTriangle:Object.freeze(worldTriangle),
     });
     visible.push(acceptsClippedTriangle(context)===true &&
       isTriangleFrontmost(context)===true);
   }
-  return {surface:{sourceId,triangles},visible};
+  // If the origin of the selected patch is no longer visible/frontmost,
+  // reject the entire candidate rather than using its neighbours.
+  if(isPatch && !visible[faceIndices.indexOf(anchor.faceIndex)]) return null;
+  return {surface:{sourceId,triangles},visible,faceIndices,isPatch};
 };
 
 /**
  * Two *explicitly selected different* source meshes. All requested source,
- * clipping and frontmost predicates are mandatory. Fail closed if the
- * viewer cannot establish their truth for each complete triangle.
- * Maximum 64 triangles/mesh, 4096 triangle pairs, no deformed or partial
- * BufferGeometry. For larger sources the caller must first provide a
- * separately validated bounded selection, not silently truncate a mesh.
+ * clipping and frontmost predicates are mandatory. A whole mesh is accepted
+ * only when <=64 triangles. Large meshes require 1..64 explicit original
+ * selectedFaceIndices AND frontmostHit {object,faceIndex,point}; the anchor
+ * must itself pass both independent visibility checks. No automatic patch
+ * expansion or first-N fallback; result is shortest ONLY within the
+ * caller-approved bounded faces, not the minimum for entire source meshes.
+ * Output triangle indices always refer to ORIGINAL mesh face indices.
+ * Nonfinite, deformed and partially drawn geometry remains fail-closed.
  */
 export const closestVisibleSourceMeshClearance=({
   sourceA,sourceB,acceptsSourceMesh,acceptsClippedTriangle,
@@ -118,7 +168,14 @@ export const closestVisibleSourceMeshClearance=({
       acceptsTriangleB:(_t,i)=>b.visible[i]===true,
     });
     return result ? Object.freeze({
-      ...result,meshWorldToG1Adapter:true,
+      ...result,
+      // The pure helper indexes the selected patch. Report original source
+      // face IDs, including when selected faces are non-contiguous.
+      triangleAIndex:a.faceIndices[result.triangleAIndex],
+      triangleBIndex:b.faceIndices[result.triangleBIndex],
+      boundedSourcePatch:a.isPatch||b.isPatch,
+      entireSelectedMeshesCompared:!a.isPatch&&!b.isPatch,
+      meshWorldToG1Adapter:true,
       renderedSourceChecksCallerSupplied:true,
     }) : null;
   }catch{
