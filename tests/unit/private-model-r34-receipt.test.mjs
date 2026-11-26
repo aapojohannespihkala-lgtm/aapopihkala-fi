@@ -76,3 +76,85 @@ test('worker allowlist pins the R34 GLB bytes and the candidate registry its Dri
   const reg = JSON.parse(readFileSync(new URL('../../.github/work-test-candidates.json', import.meta.url), 'utf8'));
   assert.equal(reg.candidates?.['c80-r34-99210ea5-d-2f-sc822-sc825-work-test']?.driveFileId ?? JSON.stringify(reg).match(/"c80-r34-99210ea5-d-2f-sc822-sc825-work-test":\{"driveFileId":"([^"]+)"/)?.[1], C80_R34_SOURCE.zipDriveId);
 });
+
+
+// Model-specific roots extracted from the original R34 GLB 99210ea5.
+// The source-only fixture guard protects the photo-relative visible casing;
+// it does not establish a measured wall penetration, condensate route or WebGL pixels.
+function assertR34IlpExteriorCaseRoots(source, sceneIndex, bothFloors) {
+  const roots = source.scenes[String(sceneIndex)]?.nodes;
+  assert.ok(Array.isArray(roots), 'missing source scene ' + sceneIndex);
+  for (const node of [13485, 13486]) {
+    assert.equal(roots.filter((root) => root === node).length, bothFloors ? 1 : 0,
+      'ILP replacement root ' + node + ' in scene ' + sceneIndex);
+  }
+  for (const node of [12559, 13259, 13484]) {
+    assert.equal(roots.includes(node), false,
+      'stale ILP photo-case root ' + node + ' leaked into scene ' + sceneIndex);
+  }
+}
+
+test('R34 photo-relative ILP white exterior case is active in BOTH, absent in 2F', () => {
+  for (const scene of [822, 823]) assertR34IlpExteriorCaseRoots(fixture, scene, true);
+  for (const scene of [824, 825]) assertR34IlpExteriorCaseRoots(fixture, scene, false);
+  const missing = structuredClone(fixture);
+  missing.scenes['822'].nodes = missing.scenes['822'].nodes.filter((n) => n !== 13486);
+  assert.throws(() => assertR34IlpExteriorCaseRoots(missing, 822, true),
+    /ILP replacement root 13486/);
+  const leaked = structuredClone(fixture);
+  leaked.scenes['824'].nodes.push(13486);
+  assert.throws(() => assertR34IlpExteriorCaseRoots(leaked, 824, false),
+    /ILP replacement root 13486/);
+  const stale = structuredClone(fixture);
+  stale.scenes['823'].nodes.push(13259);
+  assert.throws(() => assertR34IlpExteriorCaseRoots(stale, 823, true),
+    /stale ILP photo-case root 13259/);
+});
+
+// PR2302+2307 cofit source wiring. This intentionally checks viewer integration
+// rather than visual approval, installed equipment, or production WebGL.
+const r34UiV2CofitIndexBindings = [
+  ["UI_FOLDER", "<Fragment set:html={DESKTOP_FOLDER_ICON} />"],
+  ["UI_FOOTER", "<footer id=\"viewer-info\" class=\"viewer-info\""],
+  ["UI_READOUT_BIND", "readoutHost: document.querySelector<HTMLElement>('#viewer-info') ?? orientationGizmo"],
+  ["UI_TOOLBAR", "const deskToolbar = mountDesktopToolbar(document, {"],
+  ["R34_DRAINAGE", "r31SiteNetworks.drainage = buildR31DrainageOverlay(THREE, await r31DrainageGltf);"],
+  ["R34_ROOFWATER", "r31SiteNetworks.roofwater = buildR31RoofWaterOverlay(THREE);"],
+  ["R34_BATHROOM_C", "id=\"r22-bathroom-c-on\""],
+  ["R34_BATHROOM_BIND", "const bathroomCInput = document.querySelector<HTMLInputElement>('#r22-bathroom-c-on')!;"],
+  ["R34_LK75", "r34LK75SelectionMetadataEntries(sourceNodeModel(layersGltf), layersLoadedSha, lk75SceneIndex, object)"],
+  ["R34_KITCHEN", "...r34KitchenWastewaterClashSelectionEntries("],
+  ["R34_SOURCE_CARD", "const r300OwnerEvidence = resolveR300ViewerOwnerCardEvidence({"],
+];
+const r34UiV2CofitGizmoBindings = [
+  ["UI_GIZMO_OUTSIDE", "readoutHost.append(readout);"],
+  ["UI_NORTH_FAILCLOSED", "delete root.dataset.northFrameError;"],
+];
+function assertR34UiV2Cofit(indexSource, gizmoSource) {
+  for (const [name, token] of r34UiV2CofitIndexBindings) {
+    assert.ok(indexSource.includes(token), 'R34_UIV2_COFIT:' + name);
+  }
+  for (const [name, token] of r34UiV2CofitGizmoBindings) {
+    assert.ok(gizmoSource.includes(token), 'R34_UIV2_COFIT:' + name);
+  }
+  assert.ok(
+    indexSource.indexOf('id="orientation-gizmo"') < indexSource.indexOf('<footer id="viewer-info"'),
+    'R34_UIV2_COFIT:UI_FOOTER_ORDER',
+  );
+  assert.ok(!gizmoSource.includes('root.append(readout);'), 'R34_UIV2_COFIT:UI_READOUT_IN_CUBE');
+}
+test('R34 staging preserves UI V2 toolbar/footer plus source-guard bindings', () => {
+  const page = readFileSync(new URL('../../src/pages/private-model/index.astro', import.meta.url), 'utf8');
+  const gizmo = readFileSync(new URL('../../src/scripts/privateModelOrientationGizmo.ts', import.meta.url), 'utf8');
+  assertR34UiV2Cofit(page, gizmo);
+  for (const [name, token] of r34UiV2CofitIndexBindings) {
+    assert.ok(page.includes(token), name + ' precondition');
+    assert.throws(() => assertR34UiV2Cofit(page.replace(token, ''), gizmo),
+      new RegExp('R34_UIV2_COFIT:' + name));
+  }
+  for (const [name, token] of r34UiV2CofitGizmoBindings) {
+    assert.ok(gizmo.includes(token), name + ' precondition');
+    assert.throws(() => assertR34UiV2Cofit(page, gizmo.replace(token, '')),
+      new RegExp('R34_UIV2_COFIT:' + name));
+  }
+});

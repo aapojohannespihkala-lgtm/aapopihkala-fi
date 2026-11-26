@@ -270,8 +270,15 @@ export function buildR31DrainageOverlay(THREE, gltf) {
     color: R31_INSPECTION_COLORS[kind], emissive: R31_INSPECTION_COLORS[kind], emissiveIntensity: 0.45,
     roughness: 0.6, metalness: 0,
   });
+  // Reuse the already reviewed flat reference glyphs from PR #2239 only
+  // when a source well/open end has no accepted physical-depth profile.
+  const markerMaterials = {};
+  const markerMaterial = (kind) => markerMaterials[kind] ??= new THREE.LineBasicMaterial({
+    color: R31_INSPECTION_COLORS[kind], depthTest: false, transparent: true, opacity: 0.95,
+  });
   const counts = { well: 0, route: 0, open: 0 };
   const profiled = { route: 0, well: 0 };
+  let unprofiledRoutesOmitted = 0;
   scene.traverse((object) => {
     if (!object.isMesh && !object.isLine && !object.isLineSegments) return;
     let kind = null, owner = null;
@@ -296,13 +303,12 @@ export function buildR31DrainageOverlay(THREE, gltf) {
         card = r31DrainageRouteCard(data.sourceConnection, profile);
         profiled.route += 1;
       } else {
-        // Line strips in source order; LINES pairs are joined the same way.
-        const path = new THREE.CurvePath();
-        for (let i = 1; i < points.length; i += 1) {
-          if (points[i].distanceTo(points[i - 1]) > 1e-6) path.add(new THREE.LineCurve3(points[i - 1], points[i]));
-        }
-        if (!path.curves.length) return;
-        mesh = new THREE.Mesh(new THREE.TubeGeometry(path, Math.max(4, path.curves.length * 6), 0.07, 8, false), material(kind));
+        // Source REFERENCE lines have no verified physical elevation. Never turn
+        // a changed or unidentified source route into a solid surface pipe.
+        // Owner 23.11: the model shows a best-knowledge underground profile,
+        // not a speculative visible fallback to the old reference geometry.
+        unprofiledRoutesOmitted += 1;
+        return;
       }
     } else {
       const box = new THREE.Box3().setFromPoints(points);
@@ -321,10 +327,31 @@ export function buildR31DrainageOverlay(THREE, gltf) {
         counts.open += 1;
         return;
       } else {
-        mesh = kind === 'well'
-          ? new THREE.Mesh(new THREE.CylinderGeometry(radius, radius, 0.3, 20), material(kind))
-          : new THREE.Mesh(new THREE.OctahedronGeometry(Math.max(0.18, radius)), material(kind));
+        // Only *unprofiled* source symbols become zero-height glyphs. The four
+        // source-locked profiled wells above stay full-depth best-knowledge
+        // cylinders; profiled discharge markers stay suppressed.
+        if (kind === 'well') {
+          const ring = Array.from({ length: 24 }, (_, i) => {
+            const angle = (2 * Math.PI * i) / 24;
+            return new THREE.Vector3(Math.cos(angle) * radius, 0, Math.sin(angle) * radius);
+          });
+          mesh = new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints(ring), markerMaterial(kind));
+        } else {
+          const arm = Math.max(0.18, radius);
+          mesh = new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints([
+            new THREE.Vector3(-arm, 0, -arm), new THREE.Vector3(arm, 0, arm),
+            new THREE.Vector3(-arm, 0, arm), new THREE.Vector3(arm, 0, -arm),
+          ]), markerMaterial(kind));
+        }
         mesh.position.copy(centre);
+        card = {
+          markerDisplayKind: kind === 'well' ? 'FLAT_REFERENCE_WELL_RING' : 'FLAT_UNRESOLVED_END_CROSS',
+          sourceDisplayNote: kind === 'well'
+            ? 'Viitteellinen kaivomerkki, ei mitoitettu kaivo. Asennuskorkeus ja syvyys ovat varmistamatta.'
+            : 'Avoimen päätepisteen viitemerkki, ei varmennettu liitos tai rakenne.',
+          physicalWellGeometryClaim: false, physicalPipeClaim: false,
+          physicalZClaim: false, installationDepthClaim: false,
+        };
       }
       mesh.updateMatrix();
     }
@@ -335,10 +362,48 @@ export function buildR31DrainageOverlay(THREE, gltf) {
     group.add(mesh);
     counts[kind] += 1;
   });
-  if (!group.children.length) return null;
-  group.userData = { source: R31_DRAINAGE_SOURCE, counts, profiled, presentationOnly: true,
-    depthBasis: R31_DRAINAGE_PROFILE.basis };
+  // Preserve diagnostics even if every source route was omitted (no drawable child).
+  if (!group.children.length && !unprofiledRoutesOmitted) return null;
+  group.userData = { source: R31_DRAINAGE_SOURCE, counts, profiled,
+    unprofiledRoutesOmitted, presentationOnly: true, depthBasis: R31_DRAINAGE_PROFILE.basis };
   return group;
+}
+
+/** Report drawable profile-based wells separately from flat source symbols.
+ * These are presentation counts, not an inventory of installed assets. */
+export function r31DrainageTechnicalSummary(group, mode, allowed) {
+  if (!allowed || mode === 'hidden') return 'salaojat piilotettu';
+  const data = group?.userData;
+  if ((mode !== 'visible' && mode !== 'ghost') || data?.source !== R31_DRAINAGE_SOURCE)
+    return 'salaojien lähde ei vielä varmennettu';
+  const { well, route, open } = data.counts ?? {};
+  const profiledWells = data.profiled?.well;
+  if (![well, route, open, profiledWells].every(n => Number.isSafeInteger(n) && n >= 0) ||
+      profiledWells > well)
+    return 'salaojien esitysmääriä ei varmennettu';
+  return `salaojat ${profiledWells} profiilimallinnettua kaivoa (WORK_TEST), ${well - profiledWells} viitteellistä kaivomerkkiä, ${route} reittiosaa, ${open} avointa purkua`;
+}
+
+/** Loading/failed source is not evidence of an empty network. Undefined means
+ * not loaded yet; null means rejected or unavailable. Hidden/unsupported
+ * scopes deliberately have no notice. Keep the omission helper source-bound. */
+export function r31DrainagePresentationNotice(group, mode, allowed) {
+  if (!allowed || (mode !== 'visible' && mode !== 'ghost')) return '';
+  if (group === undefined) return 'Salaojat: lähdeaineistoa ladataan; verkoston näkyvyyttä ei vielä varmennettu.';
+  if (group?.userData?.source !== R31_DRAINAGE_SOURCE)
+    return 'Salaojat: lähdeaineisto ei ole käytettävissä tai sitä ei tunnistettu; verkoston näkyvyyttä ei varmennettu.';
+  return r31DrainageOmissionNotice(group, mode, allowed);
+}
+
+/** A visible warning, not a replacement pipe or a claim of complete drainage coverage. */
+export function r31DrainageOmissionNotice(group, mode, allowed) {
+  if (!allowed || (mode !== 'visible' && mode !== 'ghost')) return '';
+  const data = group?.userData;
+  if (data?.source !== R31_DRAINAGE_SOURCE) return '';
+  const count = data.unprofiledRoutesOmitted;
+  return Number.isSafeInteger(count) && count > 0
+    ? `Salaojat: ${count} reittiosaa jätetty näyttämättä (korkeusprofiili puuttuu tai lähde ei täsmää). Verkosto ei ole kokonaan näkyvissä.`
+    : '';
 }
 
 /**
@@ -364,10 +429,15 @@ export function buildR31InfraOverlay(THREE, routes, verticalReferenceM) {
     }));
     mesh.name = `R31_INFRA_${route.name}`;
     mesh.renderOrder = 6;
+    // Preserve the source/work-Z caveats on each selectable P139AD review tube.
+    // Visual geometry never proves a measured elevation or physical connection.
     mesh.userData = { label: route.label, sourceObject: route.sourceObject, system: route.system,
-      workZBasis: route.workZBasis, uncertain, verticalDatumStatus: 'OPEN_UNVERIFIED',
+      sourceXYState: 'PRESERVED_EXACT_FROM_G3_LOCUS_SITE_P02',
+      sourceZPreservedAsProvenance: true, sourceZNote: route.sourceZNote,
+      workZBasis: route.workZBasis, workZAssumption: true, refinable: true,
+      uncertain, verticalDatumStatus: 'OPEN_UNVERIFIED', Canonical: false,
       presentationOnly: true, ModelStage: 'WORK_TEST_VIEW', physicalZClaim: false,
-      currentClaim: false, asBuiltClaim: false };
+      samePipeClaim: false, topologyLinkClaim: false, currentClaim: false, asBuiltClaim: false };
     group.add(mesh);
     counts[route.system] += 1;
   }

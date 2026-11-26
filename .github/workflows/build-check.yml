@@ -198,6 +198,8 @@ jobs:
             tests/unit/private-model-source-node-associations.test.mjs \
             tests/unit/private-model-c80-cross-sha-part-identity.test.mjs \
             tests/unit/private-model-scene-selection-invalidation.test.mjs \
+            tests/unit/private-model-r300-owner-card-adapter.test.mjs \
+            tests/unit/private-model-r300-viewer-owner-card-evidence.test.mjs \
             tests/unit/private-model-building-part-layer-bindings.test.mjs \
             tests/unit/private-model-technical-review-presentation.test.mjs \
             tests/unit/private-model-technical-review-role-tint.test.mjs \
@@ -236,6 +238,10 @@ jobs:
             tests/unit/private-model-sameclick-review-evidence.test.mjs \
             tests/unit/private-model-point-measure-scene-reset.test.mjs \
             tests/unit/private-model-measure-geometry.test.mjs \
+            tests/unit/private-model-measure-snap-adapter-failclosed.test.mjs \
+            tests/unit/private-model-surface-clearance.test.mjs \
+            tests/unit/private-model-surface-pair-selection.test.mjs \
+            tests/unit/private-model-surface-pair-composition.test.mjs \
             tests/unit/private-model-c80-t110-roof512-source-profile.test.mjs \
             tests/unit/private-model-c80-t110-roof512-floor-runtime.test.mjs \
             tests/unit/private-model-c80-524-rain-zones-source.test.mjs \
@@ -275,17 +281,37 @@ jobs:
             tests/unit/private-model-c80-r31-review-runtime.test.mjs \
             tests/unit/private-model-desktop-toolbar.test.mjs \
             tests/unit/private-model-navigation-cube.test.mjs \
+            tests/unit/private-model-navigation-north-frame-toggle.test.mjs \
             tests/unit/private-model-r31-inspection.test.mjs \
+            tests/unit/private-model-r31-storm-builder-layer.test.mjs \
+            tests/unit/private-model-r31-p139ad-infra-workz-metadata.test.mjs \
             tests/unit/private-model-r31-site-layer-controls.test.mjs \
+            tests/unit/private-model-r31-dfocus-sitenetwork-layer-isolation.test.mjs \
+            tests/unit/private-model-r31-lowvolt-layer-lifecycle.test.mjs \
+            tests/unit/private-model-r31-lowvolt-projection-410.test.mjs \
+            tests/unit/private-model-r31-fiber-entry-builder.test.mjs \
             tests/unit/private-model-r31-source-capabilities.test.mjs \
+            tests/unit/private-model-r34-capability-dataset-load.test.mjs \
             tests/unit/private-model-r31-drainage-profile.test.mjs \
             tests/unit/private-model-r31-roofwater.test.mjs \
             tests/unit/private-model-r32h-receipt.test.mjs \
+            tests/unit/private-model-r32h-kitchen-wastewater-clash-guard.test.mjs \
+            tests/unit/private-model-r33-kitchen-wastewater-clash-guard.test.mjs \
+            tests/unit/private-model-r34-kitchen-wastewater-clash-guard.test.mjs \
             tests/unit/private-model-r33-receipt.test.mjs \
+            tests/unit/private-model-height-points-store.test.mjs \
+            tests/unit/private-model-height-point-scene-scope.test.mjs \
+            tests/unit/private-model-r34-height-point-seeds.test.mjs \
+            tests/unit/private-model-r33-k3-switch-inheritance.test.mjs \
             tests/unit/private-model-r34-receipt.test.mjs \
+            tests/unit/private-model-r34-iv125-intake.test.mjs \
+            tests/unit/private-model-r34-wc-handle-seat-source-receipt.test.mjs \
+            tests/unit/private-model-r32h-lk75-cover-guard.test.mjs \
+            tests/unit/private-model-r33-lk75-cover-guard.test.mjs \
             tests/unit/private-model-d-focus-ghost.test.mjs \
             tests/unit/private-model-technical-review-hot-water.test.mjs \
             tests/unit/private-model-hidden-seam-edges.test.mjs \
+            tests/unit/private-model-r22-bathroom-c-emphasis.test.mjs \
             tests/unit/private-model-floor-depth-bias.test.mjs \
             tests/unit/private-model-c80-succ455-room3-photodoor-source-profile.test.mjs \
             tests/unit/private-model-c80-succ455-room3-mj83-source-profile.test.mjs \

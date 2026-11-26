@@ -48,6 +48,39 @@ const selectionMetadataPriority = [
   'humanReview',
 ] as const;
 
+// R31 only: an unprofiled symbol is not a physical well or proven outlet.
+// Preserve its meaning ahead of the 12-row selection-card cutoff.
+const r31ReferenceMarkerPriority = [
+  'sourceDisplayNote',
+  'markerDisplayKind',
+  'physicalWellGeometryClaim',
+  'physicalZClaim',
+  'installationDepthClaim',
+  'currentClaim',
+  'asBuiltClaim',
+  'ModelStage',
+  'representationKind',
+  'presentationOnly',
+] as const;
+
+// P139AD source-XY/work-Z review: pin the non-physical Z caveat above
+// generic fields so the 12-entry selection panel cannot hide it.
+// Exact WORK_TEST source family only; other objects keep prior ordering.
+const p139adWorkZSelectionMetadataPriority = [
+  'sourceZNote',
+  'workZBasis',
+  'workZAssumption',
+  'physicalZClaim',
+  'samePipeClaim',
+  'topologyLinkClaim',
+  'verticalDatumStatus',
+  'sourceObject',
+  'sourceXYState',
+  'sourceZPreservedAsProvenance',
+  'refinable',
+  'ModelStage',
+] as const;
+
 const electricalSelectionMetadataPriority = [
   'Pass',
   'pass',
@@ -107,6 +140,19 @@ const selectionMetadataLabels: Record<string, string> = {
   exactCurrentXYClaim: 'Nykyinen XY-sijainti täsmällinen',
   exactZClaim: 'Z-korko täsmällinen',
   publishToCURRENT: 'Julkaistaan CURRENTiin',
+  sourceDisplayNote: 'Viitesymbolin tulkinta (ei mitoitettu rakenne)',
+  markerDisplayKind: 'Viitesymbolin esitystapa',
+  physicalWellGeometryClaim: 'Kaivon fyysiset mitat varmennettu',
+  physicalZClaim: 'Fyysinen korko varmennettu',
+  installationDepthClaim: 'Asennussyvyys varmennettu',
+  sourceZNote: 'Lähteen Z-huomautus (ei fyysinen putkikorko)',
+  workZBasis: 'Työ-Z:n laskentaperuste',
+  workZAssumption: 'Työ-Z on oletus',
+  samePipeClaim: 'Sama fyysinen putki varmennettu',
+  topologyLinkClaim: 'Todellinen liitos varmennettu',
+  verticalDatumStatus: 'Korkeusjärjestelmän tila',
+  sourceXYState: 'Lähteen XY-sidonta',
+  sourceZPreservedAsProvenance: 'Lähteen Z tallessa vain alkuperätietona',
   sourceConnection: 'Lähdeyhteys',
   sourceVideoLengthM: 'Videokuvauksen pituus (m)',
   sourceConditionClass: 'Kuntoluokka',
@@ -166,8 +212,26 @@ export const selectionMetadataEntries = (
     depth += 1;
   }
 
+  const isR31ReferenceMarker =
+    (values.get('r31InspectionKind') === 'well' || values.get('r31InspectionKind') === 'open') &&
+    (values.get('markerDisplayKind') === 'FLAT_REFERENCE_WELL_RING' ||
+      values.get('markerDisplayKind') === 'FLAT_UNRESOLVED_END_CROSS') &&
+    values.get('presentationOnly') === 'true' &&
+    values.get('physicalWellGeometryClaim') === 'false' &&
+    values.has('sourceDisplayNote');
+  const isP139adWorkZ =
+    /^G3_LOCUS_SITE_(WATER|WASTEWATER)_/.test(values.get('sourceObject') ?? '') &&
+    (values.get('system') === 'WATER' || values.get('system') === 'WASTEWATER') &&
+    values.get('ModelStage') === 'WORK_TEST_VIEW' &&
+    values.get('workZAssumption') === 'true' &&
+    values.get('physicalZClaim') === 'false' &&
+    values.has('sourceZNote');
   const priorityKeys: readonly string[] =
-    values.get('representationKind') === 'luminaireSourceSymbolAnchorMarker'
+    isR31ReferenceMarker
+      ? [...r31ReferenceMarkerPriority, ...selectionMetadataPriority]
+      : isP139adWorkZ
+      ? [...p139adWorkZSelectionMetadataPriority, ...selectionMetadataPriority]
+      : values.get('representationKind') === 'luminaireSourceSymbolAnchorMarker'
       ? [
           ...luminaireSelectionMetadataPriority,
           ...electricalSelectionMetadataPriority,

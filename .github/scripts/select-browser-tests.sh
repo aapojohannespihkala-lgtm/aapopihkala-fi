@@ -63,6 +63,9 @@ for file in "$@"; do
       # Viewer control and caption presentation changes require their existing
       # real Chromium regressions, not only the D scope/scene contracts.
       add private-model-d1f-combined-wall-scene-contract private-model-main-view-scope private-model-other-floor-reference private-model-work-test-load-diagnostics private-model-p137e-scene67-browser-interaction private-model-p186e-visibility; p4 ;;
+    src/scripts/privateModelR31Inspection.mjs)
+      # R31 roofwater overlay visibility and ghost state must pass real Chromium/WebGL.
+      add private-model-r31-roofwater-layer-webgl ;;
     src/scripts/privateModelP186ECaptionLayout.mjs)
       # Caption pixel verification must run when only the raster/layout changes.
       add private-model-p186e-visibility ;;

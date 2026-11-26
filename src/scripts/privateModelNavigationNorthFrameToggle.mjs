@@ -108,8 +108,9 @@ export function createNorthFrameToggleController({
     text: northLabel.textContent,
     x: northLabel.getAttribute?.('x'),
     y: northLabel.getAttribute?.('y'),
+    visibility: northLabel.style.visibility ?? '',
   };
-  let frame = 'local', quaternion = null, disposed = false;
+  let frame = 'local', quaternion = null, disposed = false, poseRejected = false;
   // The existing orientation HUD publishes a rounded active-camera quaternion
   // before updating its readout. Recover that camera pose if the optional
   // overlay was mounted but never received its own render callback.
@@ -130,7 +131,9 @@ export function createNorthFrameToggleController({
     button.textContent = frame === 'local' ? 'Pohjoinen: rakennus' : 'Pohjoinen: kartta';
     button.setAttribute('aria-pressed', String(frame === 'map'));
     northLabel.textContent = frame === 'local' ? 'N' : 'N kartta';
-    const pose = quaternion ?? hudQuaternion();
+    // A rejected live pose must not fall back to a previously valid HUD signature.
+    const pose = poseRejected ? null : quaternion ?? hudQuaternion();
+    northLabel.style.visibility = poseRejected ? 'hidden' : original.visibility;
     // A map marker cannot be projected honestly without the live camera.
     line.style.display = marker.style.display = frame === 'map' && pose ? '' : 'none';
     root.dataset.northProjectionReady = String(Boolean(pose));
@@ -158,8 +161,16 @@ export function createNorthFrameToggleController({
     button,
     render({ quaternion: nextQuaternion } = {}) {
       if (disposed) fail('controller disposed');
-      // Validate before publishing a possibly-invalid mark.
-      projectNorthMarker(nextQuaternion, frame);
+      // A rejected live pose invalidates the old marker until a valid render.
+      try {
+        projectNorthMarker(nextQuaternion, frame);
+      } catch (error) {
+        poseRejected = true;
+        quaternion = null;
+        sync();
+        throw error;
+      }
+      poseRejected = false;
       // THREE.Quaternion exposes x/y/z/w through prototype getters, so object
       // spread alone copies only its internal _x/_y/_z/_w backing fields.
       quaternion = {
@@ -180,6 +191,7 @@ export function createNorthFrameToggleController({
       line.remove();
       marker.remove();
       northLabel.textContent = original.text;
+      northLabel.style.visibility = original.visibility;
       if (original.x != null) northLabel.setAttribute('x', original.x);
       if (original.y != null) northLabel.setAttribute('y', original.y);
       delete root.dataset.northFrame;

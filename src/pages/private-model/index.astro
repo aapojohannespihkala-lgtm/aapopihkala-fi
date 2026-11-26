@@ -622,6 +622,11 @@ const title = 'Private 3D viewer';
         font-size: 11px;
       }
 
+      .height-points { border-top: 1px solid rgba(127,127,127,.35); padding-top: 6px; display: grid; gap: 5px; }
+      .height-points-actions { display: flex; gap: 5px; flex-wrap: wrap; }
+      .height-points-list { margin: 0; padding-left: 18px; max-height: 160px; overflow: auto; }
+      .height-points-list li { padding: 2px 0; }
+      .height-points-list li button { float: right; margin-left: 8px; }
       /* Owner electrical checklist inside "Piste mallissa" (17.11.2026). */
       .electrical-checklist { border-top: 1px solid rgba(127, 127, 127, 0.35); padding-top: 6px; }
       .electrical-checklist > summary { cursor: pointer; font-weight: 600; }
@@ -1872,6 +1877,16 @@ const title = 'Private 3D viewer';
           <div id="point-pick-main" class="point-measure-main">Klikkaa näkyvää mallipintaa.</div>
           <div id="point-pick-source" class="point-measure-detail">YLIS-G1-LOCAL, koordinaatit metreinä</div>
           <div id="point-pick-surface" class="point-measure-detail">Osumapinta: ei valittu</div>
+          <section id="height-points-section" class="height-points" aria-label="Korkeuspisteet">
+            <div class="point-measure-header"><strong>Korkeuspisteet <span id="height-points-count"></span></strong></div>
+            <div class="height-points-actions">
+              <button id="height-point-add" type="button" disabled>Lisää klikattu piste</button>
+              <button id="height-point-seeds" type="button" hidden>Lisää R34-vertailupisteet</button>
+            </div>
+            <div id="height-point-coordinate" class="point-measure-detail">Paikallinen Z</div>
+            <ol id="height-points-list" class="height-points-list"></ol>
+            <div id="height-point-feedback" class="point-measure-note" role="status"></div>
+          </section>
           <button id="point-pick-copy" type="button" disabled>Kopioi XYZ ja pintatiedot</button>
           <div id="point-pick-feedback" class="point-measure-note" role="status"></div>
           <div class="point-measure-note">Piste ja sen merkki näkyvät kuvakaappauksessa. WORK_TEST-mallihavainto, ei tarkemittaus.</div>
@@ -2054,6 +2069,12 @@ const title = 'Private 3D viewer';
               </select>
             </label>
             <div class="layer-note">Johdetaan näkymässä mallipinnoista - ei erillistä reunageometriaa malliin.</div>
+            <label class="layer-row">
+              <input id="r22-bathroom-c-on" type="checkbox" disabled aria-describedby="r22-bathroom-c-note r22-bathroom-c-status" />
+              <span>Pesuhuone C - keskeiset reunat (R22/R33/R34, WORK_TEST)</span>
+            </label>
+            <div id="r22-bathroom-c-note" class="layer-note">Vain lähdevarmennettujen scene686 (R22), scene818 (R33) ja scene822 (R34) lattian ulkoreuna, saunan oviaukko, peili ja allaskaappi. R33/R34 huolto- ja 2F-näkymät eivät sisällä kaikkia neljää. Ei muuta mallin tai layerien tilaa.</div>
+            <div id="r22-bathroom-c-status" class="layer-note" role="status"></div>
           </div>
           <div id="locus-layer-group" class="layer-section">
             <div class="layer-tree-parent">
@@ -2245,6 +2266,7 @@ const title = 'Private 3D viewer';
         type SelectionSourceEvidence,
       } from '../../scripts/privateModelSourceCards';
       import { releaseReplacedGltfGpuResources } from '../../scripts/privateModelGpuLifetime.mjs';
+      import { resolveR300ViewerOwnerCardEvidence } from '../../scripts/privateModelR300ViewerOwnerCardEvidence.mjs';
       import { createSelectionHighlightController } from '../../scripts/privateModelSelectionHighlight';
       import {
         nearestNamedAncestor,
@@ -2263,9 +2285,29 @@ const title = 'Private 3D viewer';
       import { pickSelectableObjectAtClientPoint } from '../../scripts/privateModelSelectionPicking';
       import { shouldInvalidateModelSelection } from '../../scripts/privateModelSceneSelectionInvalidation.mjs';
       import { sourceLinksForSelectionEvidence } from '../../scripts/privateModelSourceCardLinkGuard.mjs';
+      import { R34_IV125_INTAKE, r34Iv125ExactSource, r34Iv125SelectScene, r34Iv125BoundSourceLinks } from '../../scripts/privateModelR34Iv125Intake.mjs';
+      import { r32hLK75SelectionMetadataEntries } from '../../scripts/privateModelR32HLK75CoverSourceGuard.mjs';
+      import { r33LK75SelectionMetadataEntries, R33_LK75_COVER_SOURCE } from '../../scripts/privateModelR33LK75CoverSourceGuard.mjs';
+      import { r34LK75SelectionMetadataEntries, R34_LK75_COVER_SOURCE } from '../../scripts/privateModelR33LK75CoverSourceGuard.mjs';
       import { pickVisibleWorkTest3DPoint } from '../../scripts/privateModelWorkTest3DPoint';
       import { classifySameClickReviewEvidence } from '../../scripts/privateModelSameClickReviewEvidence.mjs';
+      // @ts-ignore - version-scoped annotations and source-verified opt-in R34 anchors.
+      import {
+        addHeightPoint, removeHeightPoint, readHeightPoints, displayHeightValue,
+        MAX_HEIGHT_POINTS_PER_MODEL,
+      } from '../../scripts/privateModelHeightPointsStore.mjs';
+      // @ts-ignore - source-triangle-only reference marks, never automatic N2000.
+      import { createR34HeightPointSeeds, R34_HEIGHT_POINT_SOURCE_SHA256 } from '../../scripts/privateModelR34HeightPointSeeds.mjs';
+      import { worktestDisplayedZ } from '../../scripts/privateModelN2000Worktest';
+      // @ts-ignore - scene/floor guard keeps stale markers invisible after transitions.
+      import {
+        heightPointSceneScope, scopedHeightPointSurface, canRenderHeightPoint,
+      } from '../../scripts/privateModelHeightPointSceneScope.mjs';
       import { projectMeasurePoint, resolveMeasureCandidate } from '../../scripts/privateModelSmartMeasure';
+      // @ts-ignore - bounded WORK_TEST source surface selection.
+      import { createSurfacePairSelection } from '../../scripts/privateModelSurfacePairSelection.mjs';
+      // @ts-ignore - original THREE source triangles and independent render checks.
+      import { closestVisibleSourceMeshClearance } from '../../scripts/privateModelSurfaceClearanceAdapter.mjs';
       import {
         createPointMeasureOverlay,
         formatPointMeasureFi,
@@ -2424,7 +2466,7 @@ const title = 'Private 3D viewer';
         prepareP183P160ClosureReviewPresentation,
         resolveP183P160ClosureIntegrationRoot,
       } from '../../scripts/privateModelP183ReviewPresentation';
-      import { createHorizontalClippingController } from '../../scripts/privateModelHorizontalClipping';
+      import { createHorizontalClippingController, isPointVisibleThroughViewerHorizontalClip } from '../../scripts/privateModelHorizontalClipping';
       import { findCoplanarTJunctionBoundaryIndexes } from '../../scripts/privateModelHi20CoplanarTJunctionEdges';
       import { shouldSuppressC044CoplanarTJunctions } from '../../scripts/privateModelC80C044EdgeSourceGuard.mjs';
       import { type MainViewFloor } from '../../scripts/privateModelMainViewScope';
@@ -2573,13 +2615,15 @@ const title = 'Private 3D viewer';
       // @ts-ignore - R31 review roots and inspection overlays have unit coverage.
       import { resolveC80R31TechnicalReviewRoots, c80R31RoofWaterSystemOf } from '../../scripts/privateModelC80R31TechnicalReview.mjs';
       // @ts-ignore - pure overlay builders, THREE injected.
-      import { R31_DRAINAGE_SOURCE, R31_EXTERIOR_DONORS, buildR31DrainageOverlay, buildR31RoofWaterOverlay, buildR31InfraOverlay, buildR31FiberOverlay, buildR31StormOverlay, buildR31LowVoltageOverlay, buildR31ExteriorDonorOverlay, buildR31WestGableInfill, buildR31GableBoarding, buildR31WestBrickCompletion, buildR31FiberEntryBox, buildR31FiberEntryLink, isR31WestGableBoardingSource, R31_GABLE_BOARDING_COLOR, isR31ReplacedWestDownpipe, loadR31EastGableOverlay, relocateR31Downpipes, syncR31ExteriorDonorMaterials, setR31SiteNetworkLayerMode } from '../../scripts/privateModelR31Inspection.mjs';
+      import { R31_DRAINAGE_SOURCE, R31_EXTERIOR_DONORS, buildR31DrainageOverlay, r31DrainagePresentationNotice, r31DrainageTechnicalSummary, buildR31RoofWaterOverlay, buildR31InfraOverlay, buildR31FiberOverlay, buildR31StormOverlay, buildR31LowVoltageOverlay, buildR31ExteriorDonorOverlay, buildR31WestGableInfill, buildR31GableBoarding, buildR31WestBrickCompletion, buildR31FiberEntryBox, buildR31FiberEntryLink, isR31WestGableBoardingSource, R31_GABLE_BOARDING_COLOR, isR31ReplacedWestDownpipe, loadR31EastGableOverlay, relocateR31Downpipes, syncR31ExteriorDonorMaterials, setR31SiteNetworkLayerMode } from '../../scripts/privateModelR31Inspection.mjs';
       import { R31_LOCUS_FIBER_LINES } from '../../scripts/privateModelR31LocusFiber.mjs';
       import { R31_LOCUS_STORM_LINES, R31_LOCUS_STORM_FLOW_MARKS } from '../../scripts/privateModelR31LocusStorm.mjs';
       import { R31_LOCUS_LOWVOLT_LINES, R31_LOCUS_LOWVOLT_SOURCE } from '../../scripts/privateModelR31LocusLowVoltage.mjs';
       import { r31SiteLayerKeyForNetwork } from '../../scripts/privateModelR31SiteLayerKey.mjs';
       import { r31ViewerSourceCapabilities, r31RuntimeExteriorAllowed } from '../../scripts/privateModelR31SourceCapabilities.mjs';
       import { resolveTechnicalReviewRoots, createTechnicalReviewPresentation, technicalReviewSystemOf, technicalReviewLayerSystemOf, refineTechnicalReviewSystem, filterNonTechnicalBoundObjects } from '../../scripts/privateModelTechnicalReviewPresentation.mjs';
+      // @ts-ignore - exact-source independent R22 1F bathroom WORK_TEST presentation.
+      import { R22_BATH_C_SOURCE, R33_BATH_C_SOURCE, R34_BATH_C_SOURCE, createR22BathroomCEmphasis, createR33BathroomCEmphasis, createR34BathroomCEmphasis, bathroomCStatusNotice } from '../../scripts/privateModelR22BathroomCEmphasis.mjs';
       import { resolveConcealedTechnicalObjects, createConcealedTechnicalPresentation } from '../../scripts/privateModelConcealedTechnicalPresentation.mjs';
       import { K17_RAIL900_SOURCE_SHA256 } from '../../scripts/privateModelK17Rail900LayerSourceProfile.mjs';
       import { createV69C035WhiteLobbyPresentation } from '../../scripts/privateModelV69C035WhiteLobbyPresentation.mjs';
@@ -2621,6 +2665,7 @@ const title = 'Private 3D viewer';
       } from '../../scripts/privateModelReviewMath';
       import { createHeightScaleController } from '../../scripts/privateModelHeightScale';
       import { createOrientationGizmoController } from '../../scripts/privateModelOrientationGizmo';
+      import { northWorldDirection } from '../../scripts/privateModelNavigationNorthFrameToggle.mjs';
       import { createViewerFrameProfiler } from '../../scripts/privateModelFrameProfiler';
       import { createUnifiedEdgeMemo } from '../../scripts/privateModelUnifiedEdgeMemo';
       import { createCoplanarFaceIndex, surfaceLookKey } from '../../scripts/privateModelHiddenSeamEdges';
@@ -2781,7 +2826,10 @@ const title = 'Private 3D viewer';
         type WorkTestLoadFailurePhase,
       } from '../../scripts/privateModelWorkTestLoadDiagnostics';
 
-      import { createC80R31ViewSwitch, r31WorkTestReview, r31ViewerLayerSceneReceipt, r31ViewerLayerBindingScope, C80_R31_9E0B_SOURCE, isR31FamilyViewerSha, r32hFamilyOf } from '../../scripts/privateModelC80R31ReviewRuntime.mjs';
+      import { createC80R31ViewSwitch, r31WorkTestReview, r31ViewerLayerSceneReceipt, r31ViewerLayerBindingScope, C80_R31_9E0B_SOURCE, C80_R32H_SOURCE, isR31FamilyViewerSha, r32hFamilyOf } from '../../scripts/privateModelC80R31ReviewRuntime.mjs';
+      import { r32hKitchenWastewaterClashSelectionEntries } from '../../scripts/privateModelR32HKitchenWastewaterClashGuard.mjs';
+      import { r33KitchenWastewaterClashSelectionEntries } from '../../scripts/privateModelR33KitchenWastewaterClashGuard.mjs';
+      import { r34KitchenWastewaterClashSelectionEntries } from '../../scripts/privateModelR34KitchenWastewaterClashGuard.mjs';
       import {
         mountDesktopToolbar, activeDesktopPreset, activeDesktopAngle, DESKTOP_START_CANDIDATE_ID,
         runDesktopStartupAttempt,
@@ -2847,6 +2895,12 @@ const title = 'Private 3D viewer';
       const pointPickCopyButton = document.querySelector<HTMLButtonElement>('#point-pick-copy');
       const pointPickClearButton = document.querySelector<HTMLButtonElement>('#point-pick-clear');
       const pointPickFeedback = document.querySelector<HTMLElement>('#point-pick-feedback');
+      const hpAddButton = document.querySelector<HTMLButtonElement>('#height-point-add')!;
+      const hpSeedsButton = document.querySelector<HTMLButtonElement>('#height-point-seeds')!;
+      const hpCount = document.querySelector<HTMLElement>('#height-points-count')!;
+      const hpCoordinate = document.querySelector<HTMLElement>('#height-point-coordinate')!;
+      const hpList = document.querySelector<HTMLOListElement>('#height-points-list')!;
+      const hpFeedback = document.querySelector<HTMLElement>('#height-point-feedback')!;
       const pointMeasureToolButton = document.querySelector<HTMLButtonElement>('#point-measure-tool-button');
       const pointMeasurePanel = document.querySelector<HTMLElement>('#point-measure-panel');
       const pointMeasureMain = document.querySelector<HTMLElement>('#point-measure-main');
@@ -2937,6 +2991,8 @@ const title = 'Private 3D viewer';
       const roofLayerOpacityValue = document.querySelector<HTMLOutputElement>('#roof-layer-opacity-value');
       const roofLayerCount = document.querySelector<HTMLElement>('#roof-layer-count');
       const edgeModeSelect = document.querySelector<HTMLSelectElement>('#edge-mode-select');
+      const bathroomCInput = document.querySelector<HTMLInputElement>('#r22-bathroom-c-on')!;
+      const bathroomCStatus = document.querySelector<HTMLElement>('#r22-bathroom-c-status')!;
       const locusLayerVisibleInput = document.querySelector<HTMLInputElement>('#locus-layer-visible');
       const locusLayerLabel = document.querySelector<HTMLElement>('#locus-layer-label');
       const locusLayerCount = document.querySelector<HTMLElement>('#locus-layer-count');
@@ -3445,6 +3501,8 @@ const title = 'Private 3D viewer';
         }
       };
       let modelLoadVersion = 0;
+      // The latest explicit model choice wins even when an earlier fetch finishes later.
+      let modelLoadIntentVersion = 0;
       let sourcePreviewContract: any = c70WorkTestContract;
       // Set only from the already byte/SHA-verified HI20 source session.
       let activeHi20SourceVerified = false;
@@ -3568,6 +3626,7 @@ const title = 'Private 3D viewer';
       edgeOverlayGroup.name = 'P146A_VIEWER_DERIVED_EDGES';
       edgeOverlayGroup.renderOrder = 30;
       scene.add(edgeOverlayGroup);
+      let bathroomCOverlay: any = null;
       const legacyEdgeVisibilityBaseline = new Map<any, boolean>();
       const locusLayerMembers = new Set<any>();
       const locusLayerObjects = new Set<any>();
@@ -4797,6 +4856,10 @@ const title = 'Private 3D viewer';
       };
 
       const refreshEdgeRendering = (root: any) => {
+        // Remove this reversible presentation BEFORE the shared edge traversal.
+        // Otherwise the C-only lines could be mistaken for legacy GLB lines.
+        bathroomCOverlay?.dispose?.();
+        bathroomCOverlay = null;
         restoreLegacyEdgeVisibility();
         mainViewScope?.enforce();
         layersRuntime?.enforce(modelRoot.children[0] ?? null, layersLoadedSha);
@@ -4867,6 +4930,38 @@ const title = 'Private 3D viewer';
             geometry.dispose();
           }
         }
+
+        // Strict original-byte/source-scene opt-in for the three verified sources.
+        // A changed model, scene or expected SHA disables the option.
+        const bathRoot: any = modelRoot.children[0] ?? null;
+        const bathIndex = layersGltf?.scenes?.indexOf?.(bathRoot) ?? -1;
+        const bathIsR22 = layersLoadedSha === R22_BATH_C_SOURCE.sha256 &&
+          bathIndex === R22_BATH_C_SOURCE.sceneIndex;
+        const bathIsR33 = layersLoadedSha === R33_BATH_C_SOURCE.sha256 &&
+          bathIndex === R33_BATH_C_SOURCE.sceneIndex;
+        const bathIsR34 = layersLoadedSha === R34_BATH_C_SOURCE.sha256 &&
+          bathIndex === R34_BATH_C_SOURCE.sceneIndex;
+        const bathScope = layersExpectedSha === layersLoadedSha &&
+          (bathIsR22 || bathIsR33 || bathIsR34) && Boolean(layersGltf?.parser?.json);
+        bathroomCInput.disabled = !bathScope;
+        if (!bathScope) bathroomCInput.checked = false;
+        // Runtime inputs are checked by the JS exact-source receiver.
+        // Keep the payload separate from the .mjs JSDoc-inferred signature.
+        const bathSourceModel = bathScope && bathroomCInput.checked && layersGltf
+          ? sourceNodeModel(layersGltf) : null;
+        const r22BathroomCArgs: any = {
+          glbSha256: layersLoadedSha,
+          sceneIndex: bathIndex,
+          json: bathSourceModel?.parser?.json,
+          sceneRoot: bathRoot,
+          associations: bathSourceModel?.parser?.associations,
+          THREE,
+          enabled: bathScope && bathroomCInput.checked,
+        };
+        bathroomCOverlay = bathIsR34 ? createR34BathroomCEmphasis(r22BathroomCArgs) : bathIsR33 ? createR33BathroomCEmphasis(r22BathroomCArgs) : createR22BathroomCEmphasis(r22BathroomCArgs);
+        canvas.dataset.r22BathroomC = bathroomCOverlay.status;
+        canvas.dataset.r22BathroomCCount = String(bathroomCOverlay.count);
+        bathroomCStatus.textContent = bathroomCStatusNotice(bathScope && bathroomCInput.checked, bathroomCOverlay);
 
         edgeModeSelect.value = edgeMode;
         canvas.dataset.edgeMode = edgeMode;
@@ -5381,6 +5476,99 @@ const title = 'Private 3D viewer';
       let pointMeasureB: PointMeasurePoint | null = null;
       let previewTimer: number | undefined;
       let previewPointer: { x: number; y: number } | null = null;
+      // WORK_TEST: annotate the EXISTING two-point Mittaa 3D with a separately
+      // proven local minimum between two explicit, visible source triangles.
+      // No new mode, no whole-mesh or surveyed/as-built clearance claim.
+      const pointMeasureSurfaceOverlay = createPointMeasureOverlay(scene, { color: 0x43aaca, opacity: 0.9 });
+      const pointMeasureSourcePair = createSurfacePairSelection({ calculate: closestVisibleSourceMeshClearance } as any);
+      let pointMeasureSurfaceResult: any = null;
+      const pointMeasureSurfaceContextKey = () => {
+        const mounted = modelRoot.children[0] ?? fullModelScene;
+        return [
+          layersLoadedSha || 'UNVERIFIED_SOURCE_SHA', mounted?.uuid || 'NO_MOUNTED_SOURCE',
+          sourceSceneNames.get(mounted) || mounted?.name || '-',
+          mainViewScope?.floor || activePlanFloor || 'BOTH',
+          canvas.dataset.horizontalClip || 'inactive',
+          canvas.dataset.horizontalClipHeightM || '-', activeModelSourceKind,
+        ].join('|');
+      };
+      const clearPointMeasureSurface = () => {
+        pointMeasureSourcePair?.clear();
+        pointMeasureSurfaceResult = null;
+        pointMeasureSurfaceOverlay.clear();
+        delete canvas.dataset.pointMeasureSurfaceDistance;
+        delete canvas.dataset.pointMeasureSurfaceScope;
+      };
+      const tryPointMeasureSurfaceHit = (hit?: THREE.Intersection) => {
+        const mesh = hit?.object as THREE.Mesh | undefined;
+        const faceIndex = hit?.faceIndex;
+        if (!pointMeasureSourcePair || !mesh?.isMesh ||
+            !Number.isSafeInteger(faceIndex) || typeof faceIndex !== 'number' ||
+            !hit?.point || ![hit.point.x, hit.point.y, hit.point.z].every(Number.isFinite)) {
+          pointMeasureSourcePair?.clear();
+          return null;
+        }
+        const key = pointMeasureSurfaceContextKey();
+        if (!pointMeasureSourcePair.setContext(key) ||
+            !pointMeasureSourcePair.selectHit({
+              contextKey: key, sourceId: mesh.uuid, mesh,
+              selectedFaceIndices: [faceIndex],
+              frontmostHit: { object: mesh, faceIndex, point: hit.point.clone() },
+            })) return null;
+        const acceptsSourceMesh = ({ mesh: candidate, sourceId }: { mesh: THREE.Mesh; sourceId: string }) => {
+          if (!candidate?.isMesh || candidate.uuid !== sourceId) return false;
+          for (let node: THREE.Object3D | null = candidate; node; node = node.parent) {
+            if (node.userData?.viewerDerived === true || node.visible === false) return false;
+            if (node === modelRoot) return true;
+          }
+          return false;
+        };
+        const acceptsClippedTriangle = ({ mesh: candidate, worldTriangle }: {
+          mesh: THREE.Mesh; worldTriangle: THREE.Vector3[];
+        }) => {
+          const materials = Array.isArray(candidate.material) ? candidate.material : [candidate.material];
+          const planes: THREE.Plane[] = [
+            ...(renderer.clippingPlanes ?? []),
+            ...materials.flatMap((material: any) => material?.clippingPlanes ?? []),
+          ];
+          return worldTriangle.length === 3 && worldTriangle.every(vertex =>
+            isPointVisibleThroughViewerHorizontalClip(vertex) &&
+            planes.every(plane => {
+              const distance = plane.distanceToPoint(vertex);
+              return Number.isFinite(distance) && distance >= -1e-7;
+            }));
+        };
+        // Bounded 3x2 visible-ray validation on the ORIGINAL selected faces,
+        // not raycasts against guessed or viewer-derived proxy geometry.
+        const rect = canvas.getBoundingClientRect();
+        const isTriangleFrontmost = ({ mesh: candidate, triangleIndex, worldTriangle }: {
+          mesh: THREE.Mesh; triangleIndex: number; worldTriangle: THREE.Vector3[];
+        }) => {
+          if (worldTriangle.length !== 3) return false;
+          for (const weights of [[0.5, 0.25, 0.25], [0.25, 0.5, 0.25], [0.25, 0.25, 0.5]]) {
+            const sample = worldTriangle[0].clone().multiplyScalar(weights[0])
+              .addScaledVector(worldTriangle[1], weights[1])
+              .addScaledVector(worldTriangle[2], weights[2]);
+            const screen = projectMeasurePoint({
+              xM: sample.x, yM: -sample.z, sourceHeightYUpM: sample.y,
+            }, activeCamera, rect);
+            if (!screen) return false;
+            let frontmost: THREE.Intersection | undefined;
+            const selected = pickVisibleWorkTest3DPoint({
+              clientX: screen.x, clientY: screen.y, rect,
+              camera: activeCamera, modelRoot, raycaster,
+              onVisibleHit: visible => { frontmost = visible; },
+            });
+            if (!selected || frontmost?.object !== candidate ||
+                frontmost.faceIndex !== triangleIndex ||
+                frontmost.point.distanceTo(sample) > 1e-4) return false;
+          }
+          return true;
+        };
+        return pointMeasureSourcePair.measure({
+          contextKey: key, acceptsSourceMesh, acceptsClippedTriangle, isTriangleFrontmost,
+        });
+      };
       const pointMeasureIdleText = 'Klikkaa ensimmäinen piste mallin pinnalta.';
       const pointMeasureSnapHint = () => pointMeasureSnapToggle.checked
         ? 'Kohdistus käytössä.' : 'Kohdistus pois käytöstä.';
@@ -5398,6 +5586,7 @@ const title = 'Private 3D viewer';
         pointMeasureA = null;
         pointMeasureB = null;
         pointMeasureOverlay.clear();
+        clearPointMeasureSurface();
         clearPointMeasurePreview();
         pointMeasureMain.textContent = pointMeasureIdleText;
         pointMeasureDetail.textContent = '';
@@ -5414,7 +5603,12 @@ const title = 'Private 3D viewer';
         const formatted = formatPointMeasureFi(result);
         pointMeasureOverlay.show(pointMeasureA, pointMeasureB);
         pointMeasureMain.textContent = formatted.main;
-        pointMeasureDetail.textContent = formatted.detail;
+        pointMeasureDetail.textContent = formatted.detail +
+          (pointMeasureSurfaceResult && pointMeasureSnapToggle.checked
+            ? ' · Valittujen pintakolmioiden lyhin paikallinen 3D-väli ' +
+              pointMeasureSurfaceResult.distanceM.toFixed(3).replace('.', ',') +
+              ' m (WORK_TEST, ei koko pinnan minimi)'
+            : '');
         canvas.dataset.pointMeasureState = 'complete';
         canvas.dataset.pointMeasureDistance = result.distanceM.toFixed(3);
       };
@@ -5482,6 +5676,8 @@ const title = 'Private 3D viewer';
           ? hints[candidate.kind] : pointMeasureSnapHint();
         canvas.dataset.pointMeasureSnap = candidate.kind;
         if (!pointMeasureStart()) {
+          clearPointMeasureSurface();
+          if (pointMeasureSnapToggle.checked) tryPointMeasureSurfaceHit(candidate.frontmostHit);
           pointMeasureA = candidate.point;
           pointMeasureB = null;
           pointMeasureOverlay.show(candidate.point, null);
@@ -5492,11 +5688,24 @@ const title = 'Private 3D viewer';
           return;
         }
         pointMeasureB = candidate.point;
+        pointMeasureSurfaceResult = pointMeasureSnapToggle.checked
+          ? tryPointMeasureSurfaceHit(candidate.frontmostHit) : null;
+        if (pointMeasureSurfaceResult) {
+          pointMeasureSurfaceOverlay.show(pointMeasureSurfaceResult.from, pointMeasureSurfaceResult.to);
+          canvas.dataset.pointMeasureSurfaceDistance = pointMeasureSurfaceResult.distanceM.toFixed(3);
+          canvas.dataset.pointMeasureSurfaceScope = 'bounded-selected-face-WORK_TEST';
+        } else {
+          pointMeasureSurfaceOverlay.clear();
+          delete canvas.dataset.pointMeasureSurfaceDistance;
+          delete canvas.dataset.pointMeasureSurfaceScope;
+        }
         updatePointMeasureDisplay();
       };
 
       pointMeasureSnapToggle.addEventListener('change', () => {
         clearPointMeasurePreview();
+        clearPointMeasureSurface();
+        if (pointMeasureB) updatePointMeasureDisplay();
         pointMeasureSnapInfo.textContent = pointMeasureSnapHint();
       });
 
@@ -5504,10 +5713,13 @@ const title = 'Private 3D viewer';
       // Existing XY plane ruler remains internal to legacy P137E review code.
       const pointPickOverlay = createPointMeasureOverlay(scene);
       let pointPickClipboardText = '';
+      let hpPending: {point: any; sha: string; scope: string} | null = null;
       const pointPickFormat = (value: number) => value.toFixed(3).replace('.', ',');
       const clearPickedPoint = () => {
         pointPickOverlay.clear();
         pointPickClipboardText = '';
+        hpPending = null;
+        hpAddButton.disabled = true;
         pointPickMain.textContent = 'Klikkaa näkyvää mallipintaa.';
         pointPickSource.textContent = 'YLIS-G1-LOCAL, koordinaatit metreinä';
         pointPickSurface.textContent = 'Osumapinta: ei valittu';
@@ -5533,6 +5745,11 @@ const title = 'Private 3D viewer';
         pointPickOverlay.show(point, null);
         const sha = layersLoadedSha && /^[a-f0-9]{64}$/i.test(layersLoadedSha)
           ? layersLoadedSha.toLowerCase() : null;
+        const sceneName = hpSourceSceneName();
+        hpPending = sha ? {point, sha, scope: heightPointSceneScope({
+          sceneName, floor: mainViewScope?.floor || activePlanFloor || 'BOTH',
+        })} : null;
+        hpAddButton.disabled = !hpPending;
         const sourceKind = canvas.dataset.modelSource === 'work-test' ? 'WORK_TEST' : 'CURRENT';
         const candidate = canvas.dataset.workTestReviewCandidate ||
           canvas.dataset.p137eLoadedCandidateId || '-';
@@ -5563,6 +5780,162 @@ const title = 'Private 3D viewer';
         canvas.dataset.pointPickState = 'picked';
         electricalChecklistOnPick?.(point);
       };
+
+
+      // Persistent source-model markers. The only spatial truth is the picked visible mesh.
+      // A single geometry (max 64 vertices) avoids a marker/GLB memory leak.
+      const hpStorage = (() => { try { return window.localStorage; } catch { return null; } })();
+      const hpGeometry = new THREE.BufferGeometry();
+      hpGeometry.setAttribute('position',
+        new THREE.Float32BufferAttribute(new Float32Array(MAX_HEIGHT_POINTS_PER_MODEL * 3), 3));
+      hpGeometry.setDrawRange(0, 0);
+      const hpMarkers = new THREE.Points(hpGeometry, new THREE.PointsMaterial({
+        color: 0x437aab, size: 8, sizeAttenuation: false, depthTest: false,
+        depthWrite: false, transparent: true, opacity: 0.95,
+      }));
+      hpMarkers.name = 'HEIGHT_POINTS_ANNOTATIONS_ONLY';
+      hpMarkers.userData = {PresentationOnly: true, Canonical: false, AsBuilt: false};
+      hpMarkers.frustumCulled = false;
+      hpMarkers.renderOrder = 1002;
+      hpMarkers.visible = false;
+      scene.add(hpMarkers);
+      const hpSha = () => typeof layersLoadedSha === 'string' && /^[0-9a-f]{64}$/i.test(layersLoadedSha)
+        ? layersLoadedSha.toLowerCase() : '';
+      const hpSourceSceneName = () => {
+        const index = canvas.dataset.mainViewSourceSceneIndex;
+        if (index && /^[0-9]+$/.test(index)) return '__scene' + index;
+        const mounted = modelRoot.children[0];
+        const source = sourceSceneNames.get(mounted) || sourceSceneNames.get(fullModelScene) ||
+          mounted?.name || fullModelScene?.name || '';
+        return /^__scene[0-9]+$/.test(source) ? source : '';
+      };
+      const hpScope = () => heightPointSceneScope({
+        sceneName: hpSourceSceneName(), floor: mainViewScope?.floor || activePlanFloor || 'BOTH',
+      });
+      let hpLastRenderKey = '';
+      let hpVersion = 0;
+      const hpRefresh = (force = false) => {
+        const sha = hpSha();
+        const sceneName = hpSourceSceneName();
+        const scope = hpScope();
+        const mapFrame = orientationGizmo.dataset.northFrame === 'map';
+        const datumAvailable = canvas.dataset.modelSource === 'current' ||
+          r32hFamilyOf(sha) !== null || sha === R34_HEIGHT_POINT_SOURCE_SHA256;
+        const showN2000 = mapFrame && datumAvailable;
+        const key = [sha, sceneName, scope, showN2000 ? 'N2000' : mapFrame ? 'MAP_LOCAL_Z' : 'LOCAL', hpVersion].join('|');
+        if (!force && key === hpLastRenderKey) return;
+        hpLastRenderKey = key;
+        const records = readHeightPoints(hpStorage, sha);
+        const points: Array<{id:string;label:string;xM:number;yM:number;sourceHeightYUpM:number;surfaceObjectName:string|null}> = records.ok ? records.points : [];
+        const seeds = createR34HeightPointSeeds({modelSha256:sha,sceneName});
+        const seedIds = seeds.map((seed) => seed.id);
+        hpSeedsButton.hidden = !seeds.length;
+        hpSeedsButton.disabled = !records.ok || !seeds.some((seed) => !points.some((p) => p.id === seed.id));
+        hpCount.textContent = '(' + points.length + ')';
+        hpCoordinate.textContent = showN2000
+          ? 'N2000 (vuoden 1974 N60-työoletus, m)'
+          : mapFrame ? 'ETRS-GK25: Z paikallinen (m)' : 'YLIS-G1-LOCAL: paikallinen Z (m)';
+        canvas.dataset.heightPointFrame = showN2000 ? 'N2000-CONDITIONAL-WORK_TEST' : 'YLIS-G1-LOCAL';
+        if (!sha) hpFeedback.textContent = 'Mallin yksilöivä SHA puuttuu. Tallennus ei ole käytettävissä.';
+        else if (!records.ok) hpFeedback.textContent = 'Korkeuspisteiden tallennus ei ole käytettävissä (' + records.reason + ').';
+        const attribute = hpGeometry.getAttribute('position') as THREE.BufferAttribute;
+        let visibleCount = 0;
+        const items = points.map((point) => {
+          const visible = canRenderHeightPoint(point, scope, seedIds);
+          if (visible) {
+            attribute.setXYZ(visibleCount++, point.xM, point.sourceHeightYUpM, -point.yM);
+          }
+          const li = document.createElement('li');
+          const value = displayHeightValue(point, showN2000
+            ? {mode:'N2000', n2000OffsetM:worktestDisplayedZ(0, 'n2000-worktest'), offsetBasis:'OWNER_WORK_ASSUMPTION'}
+            : {mode:'LOCAL'});
+          const label = document.createElement('span');
+          label.textContent = point.label + (showN2000 ? ' · N2000 ' : ' · Z ') +
+            (value.ok ? value.meters.toFixed(3).replace('.', ',') + ' m' : '-') +
+            (visible ? '' : ' (ei tässä näkymässä)');
+          const remove = document.createElement('button');
+          remove.type = 'button';
+          remove.textContent = 'Poista';
+          remove.title = 'Poista tallennettu korkeuspiste';
+          remove.dataset.heightPointRemove = point.id;
+          remove.addEventListener('click', () => {
+            if (hpSha() !== sha || hpScope() !== scope) {
+              hpFeedback.textContent = 'Malli tai näkymä vaihtui. Varmista poistettava piste uudelleen.';
+              hpVersion++;
+              hpRefresh(true);
+              return;
+            }
+            const result = removeHeightPoint(hpStorage, sha, point.id);
+            hpFeedback.textContent = result.ok ? 'Korkeuspiste poistettu.' : 'Poisto estetty: ' + result.reason;
+            hpVersion++;
+            hpRefresh(true);
+          });
+          li.append(label, remove);
+          return li;
+        });
+        hpList.replaceChildren(...items);
+        hpGeometry.setDrawRange(0, visibleCount);
+        attribute.needsUpdate = true;
+        hpMarkers.visible = visibleCount > 0;
+        canvas.dataset.heightPointCount = String(points.length);
+        canvas.dataset.heightPointVisible = String(visibleCount);
+        requestAnimationFrame(() => markRenderDirty());
+      };
+      hpAddButton.addEventListener('click', () => {
+        if (!hpPending || hpPending.sha !== hpSha() || hpPending.scope !== hpScope() ||
+            canvas.dataset.pointPickState !== 'picked') {
+          hpFeedback.textContent = 'Klikkaa ensin nykyisen näkymän näkyvää mallipintaa.';
+          hpPending = null;
+          hpAddButton.disabled = true;
+          return;
+        }
+        const surface = scopedHeightPointSurface(hpPending.scope, hpPending.point.surfaceObjectName);
+        const saved = readHeightPoints(hpStorage, hpPending.sha);
+        if (!surface || !saved.ok) {
+          hpFeedback.textContent = 'Pisteen tallennus estetty: lähde tai tallennus puuttuu.';
+          return;
+        }
+        const candidate = {
+          id: 'hp_' + Date.now().toString(36) + '_' + Math.floor(Math.random()*0xffffff).toString(36),
+          label: 'Korkeuspiste ' + (saved.points.length + 1),
+          xM: hpPending.point.xM,
+          yM: hpPending.point.yM,
+          sourceHeightYUpM: hpPending.point.sourceHeightYUpM,
+          surfaceObjectName: surface,
+        };
+        const result = addHeightPoint(hpStorage, hpPending.sha, candidate);
+        hpFeedback.textContent = result.ok ? 'Korkeuspiste lisätty tähän malliversioon.' :
+          'Tallennus estetty: ' + result.reason;
+        hpVersion++;
+        hpRefresh(true);
+      });
+      hpSeedsButton.addEventListener('click', () => {
+        const sha = hpSha(), sceneName = hpSourceSceneName();
+        const seeds = createR34HeightPointSeeds({modelSha256:sha, sceneName});
+        const previous = readHeightPoints(hpStorage, sha);
+        if (!seeds.length || !previous.ok || previous.points.length +
+          seeds.filter((seed) => !previous.points.some((p: {id:string}) => p.id === seed.id)).length > MAX_HEIGHT_POINTS_PER_MODEL) {
+          hpFeedback.textContent = 'R34-lähdepisteitä ei voida lisätä tässä mallissa tai näkymässä.';
+          return;
+        }
+        let added = 0, error = '';
+        for (const seed of seeds) {
+          if (previous.points.some((point: {id:string}) => point.id === seed.id)) continue;
+          const result = addHeightPoint(hpStorage, sha, {
+            id: seed.id, label: seed.label, xM: seed.position.x, yM: -seed.position.z,
+            sourceHeightYUpM: seed.position.y,
+            surfaceObjectName: 'R34 lähde n' + seed.source.node + '/m' + seed.source.mesh +
+              '/p' + seed.source.primitive + '/t' + seed.source.triangle,
+          });
+          if (!result.ok) { error = result.reason ?? 'STORAGE_UNAVAILABLE'; break; }
+          added++;
+        }
+        hpFeedback.textContent = error ? ('Lähdepisteiden tallennus estyi: ' + error) :
+          ('Lisätty ' + added + ' R34-lähdepistettä.');
+        hpVersion++;
+        hpRefresh(true);
+      });
+      hpRefresh(true);
 
       // Owner electrical checklist (17.11.2026). Points are found in the loaded model by source
       // name, decisions stay in this browser and are copied as text for the next model round.
@@ -5791,6 +6164,42 @@ const title = 'Private 3D viewer';
 
         selectedObject = object;
         const sourceEvidence = resolveSelectionSources(object);
+        // R300 may replace only its own exact source identity, not other source cards.
+        const r300OwnerEvidence = resolveR300ViewerOwnerCardEvidence({
+          gltf: layersGltf ? sourceNodeModel(layersGltf) : null,
+          loadedGlbSha256: layersLoadedSha,
+          mountedScene: modelRoot.children[0] ?? null,
+          selectedObject: object,
+          protectedEvidence: sourceEvidence,
+        });
+        const effectiveSourceEvidence = r300OwnerEvidence ?? sourceEvidence;
+        // Source warning belongs to the actually mounted scene, not a cached preset.
+        const lk75ActiveScene = modelRoot.children[0] ?? null;
+        const lk75SceneIndex = layersGltf?.scenes?.indexOf(lk75ActiveScene) ?? -1;
+        const lk75SourceMetadata = !layersGltf || lk75SceneIndex < 0 ? [] :
+          (layersLoadedSha === C80_R32H_SOURCE.glbSha256
+            ? r32hLK75SelectionMetadataEntries(sourceNodeModel(layersGltf), layersLoadedSha, lk75SceneIndex, object)
+            : layersLoadedSha === R33_LK75_COVER_SOURCE.glbSha256
+              ? r33LK75SelectionMetadataEntries(sourceNodeModel(layersGltf), layersLoadedSha, lk75SceneIndex, object)
+              : layersLoadedSha === R34_LK75_COVER_SOURCE.glbSha256
+                ? r34LK75SelectionMetadataEntries(sourceNodeModel(layersGltf), layersLoadedSha, lk75SceneIndex, object)
+                : []).map(([label, value]): readonly [string, string] => [label, value]);
+        // Source warnings follow only the actually mounted SHA-verified scene.
+        // A geometric clash is not a verified physical pipe connection.
+        const kitchenWastewaterMountedScene = modelRoot.children[0] ?? null;
+        const kitchenWastewaterSceneIndex = layersGltf
+          ? layersGltf.scenes?.indexOf(kitchenWastewaterMountedScene) ?? -1 : -1;
+        const kitchenWastewaterSourceEntries = [
+          ...r32hKitchenWastewaterClashSelectionEntries(
+            layersGltf ? sourceNodeModel(layersGltf) : layersGltf,
+            layersLoadedSha, kitchenWastewaterSceneIndex, object),
+          ...r33KitchenWastewaterClashSelectionEntries(
+            layersGltf ? sourceNodeModel(layersGltf) : layersGltf,
+            layersLoadedSha, kitchenWastewaterSceneIndex, object),
+          ...r34KitchenWastewaterClashSelectionEntries(
+            layersGltf ? sourceNodeModel(layersGltf) : layersGltf,
+            layersLoadedSha, kitchenWastewaterSceneIndex, object),
+        ].map(([key, value]): readonly [string, string] => [key, value]);
         selectionPanelController.render({
           mesh: serviceTarget?.label ?? semantics.labelFi,
           group: semantics.classLabelFi,
@@ -5804,11 +6213,17 @@ const title = 'Private 3D viewer';
           })(),
           metadataEntries: [
             ...technicalMetadata,
+            ...kitchenWastewaterSourceEntries,
             ...resolveElectricalGroupEvidence(object, modelRoot.children[0] ?? null),
             ...collectSelectionMetadataEntries(object, modelRoot),
+            ...lk75SourceMetadata,
           ],
-          sourceLinks: sourceLinksForSelectionEvidence(sourceEvidence, collectSelectionSourceLinks(object, modelRoot)),
-          sourceEvidence,
+          sourceLinks: layersLoadedSha === R34_IV125_INTAKE.glbSha256
+            ? r34Iv125BoundSourceLinks({ gltf: sourceNodeModel(layersGltf), digest: layersLoadedSha,
+                mountedScene: modelRoot.children[0] ?? null, object,
+                links: sourceLinksForSelectionEvidence(effectiveSourceEvidence, collectSelectionSourceLinks(object, modelRoot)) })
+            : sourceLinksForSelectionEvidence(effectiveSourceEvidence, collectSelectionSourceLinks(object, modelRoot)),
+          sourceEvidence: effectiveSourceEvidence,
         });
 
         selectionHighlightController.select(object);
@@ -5855,7 +6270,11 @@ const title = 'Private 3D viewer';
         status.textContent = 'Objektisuodatus poistettu - aiempi näkyvyystila palautettu';
       };
 
-      const setHorizontalClippingState = () => horizontalClipping.apply();
+      const setHorizontalClippingState = () => {
+        horizontalClipping.apply();
+        clearPointMeasureSurface();
+        if (pointMeasureB) updatePointMeasureDisplay();
+      };
       const resetHorizontalClipping = () => horizontalClipping.reset();
       const configureHorizontalClippingRange = () => {
         if (!fullModelScene) return;
@@ -6690,6 +7109,17 @@ const title = 'Private 3D viewer';
         return true;
       };
 
+      // Camera-only map orientation. The 3D model and its local XY remain unchanged.
+      // EPSG:3879 defines horizontal north, not an N2000 height datum.
+      const mapPlanNorth = () => orientationGizmo.dataset.northFrame === 'map';
+      const mapPlanExtents = (size: THREE.Vector3) => {
+        const north = northWorldDirection('map');
+        if (!north) throw new Error('EPSG:3879 north vector unavailable');
+        return {
+          width: Math.abs(north.z) * size.x + Math.abs(north.x) * size.z,
+          height: Math.abs(north.x) * size.x + Math.abs(north.z) * size.z,
+        };
+      };
       const fitAxisCamera = (
         direction: 'top' | 'bottom',
         sceneRoot: any = resolveActiveResearchContentScene(),
@@ -6705,8 +7135,10 @@ const title = 'Private 3D viewer';
         box.getSize(size);
 
         const aspect = Math.max(canvas.clientWidth / Math.max(canvas.clientHeight, 1), 0.01);
-        let halfWidth = Math.max(size.x * 0.54, 0.25);
-        let halfHeight = Math.max(size.z * 0.54, 0.25);
+        const northUp = direction === 'top' && mapPlanNorth();
+        const projected = northUp ? mapPlanExtents(size) : { width: size.x, height: size.z };
+        let halfWidth = Math.max(projected.width * 0.54, 0.25);
+        let halfHeight = Math.max(projected.height * 0.54, 0.25);
         const modelAspect = halfWidth / Math.max(halfHeight, 1e-6);
         if (aspect > modelAspect) halfWidth = halfHeight * aspect;
         else halfHeight = halfWidth / aspect;
@@ -6717,7 +7149,8 @@ const title = 'Private 3D viewer';
             ? new THREE.Vector3(0, distance, 0)
             : new THREE.Vector3(0, -distance, 0),
         );
-        isoCamera.up.set(0, 0, direction === 'top' ? -1 : 1);
+        const north = northUp ? northWorldDirection('map') : null;
+        isoCamera.up.set(north?.x ?? 0, 0, north?.z ?? (direction === 'top' ? -1 : 1));
         isoCamera.lookAt(center);
         isoCamera.left = -halfWidth;
         isoCamera.right = halfWidth;
@@ -6779,8 +7212,10 @@ const title = 'Private 3D viewer';
           box.getSize(size);
 
           const aspect = Math.max(canvas.clientWidth / Math.max(canvas.clientHeight, 1), 0.01);
-          let halfWidth = Math.max(size.x * 0.54, 0.25);
-          let halfHeight = Math.max(size.z * 0.54, 0.25);
+          const northUp = mapPlanNorth();
+          const projected = northUp ? mapPlanExtents(size) : { width: size.x, height: size.z };
+          let halfWidth = Math.max(projected.width * 0.54, 0.25);
+          let halfHeight = Math.max(projected.height * 0.54, 0.25);
           const modelAspect = halfWidth / halfHeight;
 
           if (aspect > modelAspect) halfWidth = halfHeight * aspect;
@@ -6788,7 +7223,8 @@ const title = 'Private 3D viewer';
 
           const distance = Math.max(size.length() * 1.25, size.y * 4, 4);
           isoCamera.position.set(center.x, box.max.y + distance, center.z);
-          isoCamera.up.set(0, 0, -1);
+          const north = northUp ? northWorldDirection('map') : null;
+          isoCamera.up.set(north?.x ?? 0, 0, north?.z ?? -1);
           isoCamera.lookAt(center);
           isoCamera.left = -halfWidth;
           isoCamera.right = halfWidth;
@@ -7977,7 +8413,8 @@ const title = 'Private 3D viewer';
         // The protected project model and exact R32H-family snapshots share the
         // Ylisrinne drawing reference. An arbitrary WORK_TEST can have a different origin.
         heightScaleController.setDatumAvailable(
-          sourceKind === 'current' || r32hFamilyOf(loadedModelSha256(gltf)) !== null,
+          sourceKind === 'current' || r32hFamilyOf(loadedModelSha256(gltf)) !== null ||
+            (sourceKind === 'work-test' && loadedModelSha256(gltf) === R34_HEIGHT_POINT_SOURCE_SHA256),
         );
         if (r300ViewSwitch) {
           delete canvas.dataset.workTestReviewMode;
@@ -8417,6 +8854,7 @@ const title = 'Private 3D viewer';
       };
 
       const loadCurrentModel = async () => {
+        const loadIntent = ++modelLoadIntentVersion;
         delete canvas.dataset.p137eLoadedCandidateId;
         p137ePlaceToolButton.disabled = true;
         clearP137EPlaceDraft();
@@ -8427,9 +8865,11 @@ const title = 'Private 3D viewer';
 
         try {
           const gltf = await loadModelWithSourceCards(loader, '/private-model/model.glb');
+          if (loadIntent !== modelLoadIntentVersion) return;
           applyLoadedModel(gltf, 'current', 'CURRENT');
           locusLayerLabel.textContent = 'Locus kunnallistekniikka (WORK_TEST)';
         } catch (error) {
+          if (loadIntent !== modelLoadIntentVersion) return;
           console.error(error);
           status.textContent = 'Suojattua mallia ei ole vielä käytettävissä';
         }
@@ -12345,6 +12785,7 @@ const title = 'Private 3D viewer';
       };
 
       const loadWorkTestCandidate = async (candidate: WorkTestCandidate) => {
+        const loadIntent = ++modelLoadIntentVersion;
         delete canvas.dataset.p137eLoadedCandidateId;
         p137ePlaceToolButton.disabled = true;
         clearP137EPlaceDraft();
@@ -12363,12 +12804,14 @@ const title = 'Private 3D viewer';
           if (r31Review) {
             const previousModelVersion = modelLoadVersion;
             const gltf = await loadModelWithSourceCards(loader, candidate.path, r31Review.source);
+            if (loadIntent !== modelLoadIntentVersion) return false;
             const view = await createC80R31ViewSwitch({
               gltf, authenticatedSha: loadedModelSha256(gltf),
               mount: setModelScene, mounted: () => modelRoot.children[0] ?? null,
               views: r31Review.views,
             });
-            if (modelLoadVersion !== previousModelVersion) return false;
+            if (modelLoadVersion !== previousModelVersion ||
+                loadIntent !== modelLoadIntentVersion) return false;
             gltf.scene = view.normalScene;
             applyLoadedModel(gltf, 'work-test', `WORK_TEST: ${candidate.label}`);
             r300ViewSwitch = view;
@@ -12439,7 +12882,9 @@ const title = 'Private 3D viewer';
                     : verifiedP137EOriginal,
                 P137E_SCENE67_EXACT_ASSET_PATH.replace(/[^/]+$/, ''),
               )
-            : await loadModelWithSourceCards(loader, candidate.path));
+            : candidate.id === 'c80-r34-iv125-cdb38108-both-sc894-sc895-work-test'
+              ? await loadModelWithSourceCards(loader, candidate.path, r34Iv125ExactSource(candidate))
+              : await loadModelWithSourceCards(loader, candidate.path));
           if (candidate.id === 'ylisrinne-d-c80r2-unified64-c018-c050-1f2fboth-work-test-20261031') {
             // G2b 64-scene exact source: one candidate with the original
             // 1F60/2F62/BOTH63 roots. Never remount generic filtered geometry.
@@ -12447,6 +12892,9 @@ const title = 'Private 3D viewer';
           } else if (candidate.id === 'ylisrinne-d-c80-hi20-unified52-both-sc51-work-test-20261030') {
             // Original 52-scene GLB, not the former scene51-only extraction.
             gltf.scene = resolveHi20Unified52Scenes(gltf, loadedModelSha256(gltf)).BOTH;
+          } else if (candidate.id === 'c80-r34-iv125-cdb38108-both-sc894-sc895-work-test') {
+            // Source bytes are SHA-checked before parse; scene292 is historic default, NEVER IV125 BOTH.
+            gltf.scene = r34Iv125SelectScene(gltf, loadedModelSha256(gltf));
           }
           loadFailurePhase = 'review-runtime-failed';
           {
@@ -12764,6 +13212,7 @@ const title = 'Private 3D viewer';
                 : await buildP139abVisibleReviewScene(gltf, zScene);
           }
 
+          if (loadIntent !== modelLoadIntentVersion) return false;
           applyLoadedModel(gltf, 'work-test', `WORK_TEST: ${candidate.label}`,
             serviceModel?.scene ?? combinedWallReview?.selected.scene ?? null);
           if (d1fSevenCutawayReview) {
@@ -14557,6 +15006,7 @@ const title = 'Private 3D viewer';
           }
           return true;
         } catch (error) {
+          if (loadIntent !== modelLoadIntentVersion) return false;
           console.error(error);
           delete canvas.dataset.workTestReviewMode;
           if (
@@ -14875,6 +15325,10 @@ const title = 'Private 3D viewer';
         const snapshot = captureComparisonView();
         const targetKind: ModelSourceKind =
           activeModelSourceKind === 'work-test' ? 'current' : 'work-test';
+        // The loader starts synchronously and advances this shared intent once.
+        // A stale compare must not overwrite a newer model choice, or resurrect a
+        // comparison cancelled by changing the candidate in the picker.
+        const expectedLoadIntent = modelLoadIntentVersion + 1;
 
         canvas.dataset.modelComparison = 'switching';
         canvas.dataset.modelComparisonCandidate = candidate.id;
@@ -14885,6 +15339,8 @@ const title = 'Private 3D viewer';
           await loadWorkTestCandidate(candidate);
         }
 
+        if (modelLoadIntentVersion !== expectedLoadIntent ||
+            workTestSelect.value !== candidate.id) return;
         if (activeModelSourceKind !== targetKind) {
           clearModelComparisonState();
           return;
@@ -14949,7 +15405,7 @@ const title = 'Private 3D viewer';
         ['lowvolt', 'Pienjännite (Locus): 2D, NONCURRENT, syvyys avoin (WORK_TEST)'],
       ];
       const r31SiteLayerOverrides: Partial<Record<R31SiteKey, R31SiteMode>> = {};
-      const r31SiteLayerRows = {} as Record<R31SiteKey, { row: HTMLLabelElement; select: HTMLSelectElement }>;
+      const r31SiteLayerRows = {} as Record<R31SiteKey, { row: HTMLLabelElement; select: HTMLSelectElement; labelText: Text }>;
       let r31SiteRowAnchor: HTMLElement = successorCutawayRow;
       for (const [key, label] of r31SiteLayerSpecs) {
         const row = document.createElement('label');
@@ -14957,7 +15413,8 @@ const title = 'Private 3D viewer';
         row.hidden = true;
         row.style.display = 'none';
         row.dataset.r31SiteLayer = key;
-        row.append(document.createTextNode(label + ' '));
+        const labelText = document.createTextNode(label + ' ');
+        row.append(labelText);
         const select = document.createElement('select');
         select.setAttribute('aria-label', label + ' näkyvyys');
         for (const [mode, title] of [['visible', 'Näkyvä'], ['ghost', 'Himmeä'], ['hidden', 'Piilossa']]) {
@@ -14980,7 +15437,7 @@ const title = 'Private 3D viewer';
         row.append(select);
         r31SiteRowAnchor.after(row);
         r31SiteRowAnchor = row;
-        r31SiteLayerRows[key] = { row, select };
+        r31SiteLayerRows[key] = { row, select, labelText };
       }
       const syncM6263Glazing=()=>{
         const runtime=mainViewScope as any;
@@ -15353,7 +15810,7 @@ const title = 'Private 3D viewer';
                 ? dStoreyFootprint(currentFootprint, dFocusLabel === 'd-1f' ? '1F' : '2F')
                 : currentFootprint;
               const counts = deskDFocus.apply(root, focusFootprint);
-            canvas.dataset.dFocusGhost = `${dFocusLabel}|in:${counts.inside}|out:${counts.outside}|split:${counts.split}`;
+            canvas.dataset.dFocusGhost = `${dFocusLabel}|in:${counts.inside}|out:${counts.outside}|split:${counts.split}|hidden:${counts.hidden}|aids:${counts.aids}`;
           }
           refreshEdgeRendering(root);
           if (selectedObject && !isEffectivelyVisible(selectedObject, modelRoot)) clearSelection();
@@ -15470,6 +15927,11 @@ const title = 'Private 3D viewer';
           }
         }
         layersEnabled = verifiedChainSourceSha !== null || verifiedR31LayerSource;
+        // Refresh the SHA-scoped capability label at source receipt, not only on a preset click.
+        // Unknown or non-receipted models must clear any previous model's metadata.
+        canvas.dataset.r31SourceCapabilities = verifiedR31LayerSource
+          ? (r31ViewerSourceCapabilities(layersLoadedSha)?.label ?? '')
+          : '';
         layersContextVisible = true;
         layersState = withViewerLayerBranchVisibility(applyViewerLayerPreset(createViewerInteractionState(), 'whole-building'));
         layersAvailable = [];
@@ -15812,6 +16274,9 @@ const title = 'Private 3D viewer';
           setR31SiteNetworkLayerMode(group, mode, siteOk, r31SiteGhostOriginals);
           if (show) Object.assign(counts, group.userData.counts);
         }
+        const drainNotice = r31DrainagePresentationNotice(r31SiteNetworks.drainage, effectiveSiteModes.drainage, siteOk);
+        r31SiteLayerRows.drainage.labelText.textContent = 'Salaojat (WORK_TEST) ' + (drainNotice ? drainNotice + ' ' : '');
+        canvas.dataset.r31DrainageOmissionNotice = drainNotice;
         canvas.dataset.r31SiteLayerModes = siteOk ? JSON.stringify(effectiveSiteModes) : '';
         canvas.dataset.r31SourceCapabilities = r31Capabilities()?.label ?? '';
         // Owner 20.12: the corner pipes replace R31's own older west lower pipes
@@ -15831,13 +16296,15 @@ const title = 'Private 3D viewer';
         canvas.dataset.r31ExteriorDonors = whole ? String(shown) : '0';
         canvas.dataset.r31SiteNetworks = whole && Object.keys(counts).length ? JSON.stringify(counts) : '';
         if (technical && Object.keys(counts).length) {
-          status.textContent = `Talotekniikka + kunnallistekniikka (WORK_TEST): salaojat ${counts.well ?? 0} kaivoa, ` +
-            `${counts.route ?? 0} reittiosaa, ${counts.open ?? 0} avointa purkua; kattovedet ${counts.ROOFWATER_WELL ?? 0} rännikaivoa, ` +
+          const drainSummary = r31DrainageTechnicalSummary(
+            r31SiteNetworks.drainage, effectiveSiteModes.drainage, siteOk);
+          status.textContent = `Talotekniikka + kunnallistekniikka (WORK_TEST): ${drainSummary}; kattovedet ${counts.ROOFWATER_WELL ?? 0} rännikaivoa, ` +
             `${counts.ROOFWATER_PIPE ?? 0} putkea, ${counts.ROOFWATER_GUTTER ?? 0} tilapäinen ränni; Locus vesi ${counts.WATER ?? 0}, ` +
             `jätevesi ${counts.WASTEWATER ?? 0}, valokuitu ${counts.FIBER ?? 0} (2D, syvyys avoin; ` +
             `liittymä D:n pohjoisovella omistajan havainnosta); ` +
             `Locus sadevesiviemäri ${counts.STORM ?? 0} linjaa 2D, ei tonttiliittymää (lähin 42 m); ` +
-            `Locus pienjännite ${counts.LOWVOLT ?? 0} linjaa 2D (NONCURRENT, syvyys ja liittymä avoimia)`;
+            `Locus pienjännite ${counts.LOWVOLT ?? 0} linjaa 2D (NONCURRENT, syvyys ja liittymä avoimia)` +
+            (drainNotice ? `; ${drainNotice}` : '');
         }
         const wantsSiteNetworks = siteOk && (technical || Object.values(r31SiteLayerOverrides).some(mode => mode !== 'hidden'));
         if (wantsSiteNetworks && !r31SiteLoading && !Object.keys(r31SiteNetworks).length) {
@@ -15936,6 +16403,10 @@ const title = 'Private 3D viewer';
         }, true);
       }
       const deskEnterWholeBuilding = () => {
+        // D-only scenes have no ghost copies, but still carry a D preset marker.
+        deskDFocus.restore();
+        delete canvas.dataset.dFocusGhost;
+        delete canvas.dataset.dFocusFootprint;
         applyStandardViewPreset('whole-building', true);
         applyViewerLayerState({ roofVisible: true }, 'preset:whole-building');
         deskSyncLayerRoof(true);
@@ -15998,11 +16469,18 @@ const title = 'Private 3D viewer';
             deskSync();
           },
           angle(id: string) {
+            const previousAngle = deskCurrentAngle();
             const pose = deskCapturePose();
             deskAngleButtons[id]?.click();
-            // 3D <-> isometric: same place and size, only the projection changes.
+            // 3D <-> isometric keeps direction. From a face-on elevation,
+            // retain target and scale, but use the new isometric view direction.
             if (pose && ((id === 'iso' && activeCamera === isoCamera) || (id === 'orbit' && activeCamera === camera))) {
-              deskApplyPose(pose);
+              const fromElevationToIso = id === 'iso' && previousAngle.startsWith('elev-');
+              const isoDirection = fromElevationToIso
+                ? isoCamera.position.clone().sub(isoControls.target) : null;
+              const nextPose = isoDirection && isoDirection.lengthSq() > 1e-18
+                ? { ...pose, offset: isoDirection.normalize() } : pose;
+              deskApplyPose(nextPose);
               canvas.dataset.deskProjectionSwitch = `${pose.kind}->${id === 'iso' ? 'iso' : 'persp'}`;
             }
             deskSync();
@@ -16070,6 +16548,12 @@ const title = 'Private 3D viewer';
           menuPreset.addEventListener('click', () => {
             const kept = before;
             before = null;
+            // Explicit site-plan selection is north-up in the active map frame.
+            // Other content presets still preserve the user's prior camera pose.
+            if (menuPreset === sitePresetButton && mapPlanNorth()) {
+              deskSync();
+              return;
+            }
             if (!kept?.angle) return;
             if (deskCameraToRestore() !== kept.angle) deskAngleButtons[kept.angle]?.click();
             if (kept.pose) deskApplyPose(kept.pose);
@@ -16229,6 +16713,11 @@ const title = 'Private 3D viewer';
         edgeModeManuallySelected = true;
         applyViewerLayerState({ edgeMode: requestedMode }, 'manual');
       });
+      bathroomCInput.addEventListener('change', () => {
+        // Dedicated reversible overlay. Do not reset the user's layer/roof,
+        // edge mode, pick or camera state.
+        refreshEdgeRendering(modelRoot.children[0] ?? null);
+      });
       profileButton.addEventListener('click', () => setProfilePanelOpen(profilePanel.hidden));
       closeProfileButton.addEventListener('click', () => setProfilePanelOpen(false));
       profileRouteSelect.addEventListener('change', renderSelectedInfraProfile);
@@ -16313,6 +16802,10 @@ const title = 'Private 3D viewer';
         standardViewLayerDefaultsInitialized = true;
       });
       layersPanel.addEventListener('change', markResearchPresetCustomized);
+      layersPanel.addEventListener('change', () => {
+        clearPointMeasureSurface();
+        if (pointMeasureB) updatePointMeasureDisplay();
+      });
       layersPanel.addEventListener('input', markResearchPresetCustomized);
       navigateToolButton.addEventListener('click', () => setViewerToolMode('navigate'));
       selectionToolButton.addEventListener('click', () => setViewerToolMode('select'));
@@ -16521,6 +17014,7 @@ const title = 'Private 3D viewer';
         frameProfiler?.mark('selection', performance.now());
         updateD1KnownDoorReviewLabelPositions();
         updateHeightScale();
+        hpRefresh();
         updateDAxisMeasurementLabel();
         frameProfiler?.mark('labels', performance.now());
         orientationGizmoController.render({

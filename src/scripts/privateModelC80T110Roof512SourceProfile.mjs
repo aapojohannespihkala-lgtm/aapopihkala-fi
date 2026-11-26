@@ -121,3 +121,72 @@ export function c80T110Roof512Receipt(json, sha, sceneIndex, floor) {
     physicalRoofOpeningVerified:false,
   });
 }
+
+/** R34 T110 source QA, not a mount or an installed roof penetration claim.
+ * Caller must independently authenticate and parse the same GLB bytes.
+ */
+export const R34_T110_SHA = '99210ea517c18cf24fa5f9702abe12ed2a8058a0c606d38b863e19802a270725';
+const r34T110Scenes = Object.freeze([[822,"BOTH",505,"673ba191","Ylisrinne_R34_FACADES_PARTYWALL_FRIEZE_BOTH_NORMAL_PLEXI_ON_WORK_TEST_HOST_HOLD__scene822"],[823,"BOTH",504,"f9009603","Ylisrinne_R34_FACADES_PARTYWALL_FRIEZE_BOTH_SERVICE_PLEXI_OFF_WORK_TEST_HOST_HOLD__scene823"],[824,"2F",207,"abdbe8d4","Ylisrinne_R34_FACADES_PARTYWALL_FRIEZE_2F_NORMAL_PLEXI_ON_WORK_TEST_HOST_HOLD__scene824"],[825,"2F",206,"241f1e49","Ylisrinne_R34_FACADES_PARTYWALL_FRIEZE_2F_SERVICE_PLEXI_OFF_WORK_TEST_HOST_HOLD__scene825"]].map(Object.freeze));
+const r34Counts = Object.freeze({"scenes":826,"nodes":13854,"meshes":5242,"materials":826,"accessors":11449,"bufferViews":11455});
+function r34DenseNodes(a, size) {
+  if (!Array.isArray(a)) return false;
+  for (let i=0;i<a.length;i++) if (!Object.hasOwn(a,i)||!Number.isInteger(a[i])||a[i]<0||a[i]>=size) return false;
+  return true;
+}
+export function r34T110RoofWarning(json, sha, sceneIndex, floor, sourceNodeIndex) {
+  const spec=r34T110Scenes.find(r=>r[0]===sceneIndex);
+  if (sha!==R34_T110_SHA||!spec||floor!==spec[1]||json?.scene!==292) return null;
+  const e=json.asset?.extras;
+  if(e?.ModelStage!=='WORK_TEST'||e.current!==false||e.asBuilt!==false||e.HUMAN_REVIEW!=='NOT_RUN') return null;
+  if(!Object.entries(r34Counts).every(([k,v])=>Array.isArray(json[k])&&json[k].length===v)) return null;
+  const scene=json.scenes[sceneIndex], roots=scene?.nodes, nodes=json.nodes;
+  const sceneHold=scene?.extras;
+  if(sceneHold?.stage!=='WORK_TEST'||sceneHold.physicalHost!=='HOST_HOLD'||
+      sceneHold.current!==false||sceneHold.asBuilt!==false||
+      sceneHold.humanReview!=='NOT_RUN') return null;
+  if(scene?.name!==spec[4]||!r34DenseNodes(roots,nodes.length)||roots.length!==spec[2]||new Set(roots).size!==roots.length||c80T110Roof512Fnv32(roots)!==spec[3]) return null;
+  const both=floor==='BOTH', tube=both?12239:12240;
+  const selected=nodes[tube], hold=selected?.extras;
+  if(sourceNodeIndex!==tube||selected?.mesh!==4611||!json.meshes[4611]||
+      hold?.m5System!=='VIEMARI'||hold.stage!=='WORK_TEST_HOST_HOLD'||
+      hold.modelStage!=='WORK_TEST'||hold.current!==false||hold.asBuilt!==false||
+      hold.humanReview!=='NOT_RUN'||hold.workAssumption!==true||
+      hold.sourceGlbSHA256!==C80_T110_512_PARENT_GLB_SHA256||
+      hold.sourcePdfDriveId!==C80_T110_512_SOURCE_PDF_ID||
+      hold.existingT110Node!==10145||hold.sourceRoofNode!==6642||
+      !near(hold.sourceRoofHeightAtCenterY_m,7.5125)||
+      hold.sourceLinksBoundForNewSHA!==false||
+      hold.roofOpeningCut!==false||hold.insulationModeled!==false||
+      hold.flashingModeled!==false||hold.capModeled!==false||
+      hold.physicalRoofPointVerified!==false||
+      !near(hold.visualProtrusionAboveRoof_m,0.45)||
+      !near(hold.centerWorldGlbXZ_m?.[0],6.315)||
+      !near(hold.centerWorldGlbXZ_m?.[1],-6.28)) return null;
+  // Confirm the selected source path and reject stale duplicate water-system tube.
+  if(both ? (!roots.includes(tube)||roots.includes(12242)) : (!roots.includes(12242)||roots.includes(tube)||!r34DenseNodes(nodes[12242]?.children,nodes.length)||nodes[12242].children.filter(n=>n===tube).length!==1)) return null;
+  const active=new Set(), pending=[...roots];
+  while(pending.length){
+    const n=pending.pop(); if(active.has(n)) continue;
+    const node=nodes[n]; if(!node||typeof node!=='object') return null;
+    active.add(n);
+    if(node.children!==undefined){if(!r34DenseNodes(node.children,nodes.length)) return null;pending.push(...node.children);}
+  }
+  if(!active.has(tube)||active.has(both?12240:12239)||active.has(10146)) return null;
+  // R34 changed the displayed roof. The 2015 T110 donor still cites a
+  // historical ARK3 roof (n6642, Y=7.5125), which is NOT active here.
+  // R34 BOTH actually displays n13360 (mesh5111, upper surface Y=7.3050
+  // at T110 X=6.315 Z=-6.28); 2F intentionally hides that roof. These
+  // numbers are source-mesh samples, not verified construction elevations.
+  if(active.has(6642)||active.has(13360)!==both||
+      (both&&(!roots.includes(13363)||nodes[13360]?.mesh!==5111))) return null;
+  return Object.freeze({
+    sourceSha256:R34_T110_SHA,sceneIndex,sourceNodeIndex:tube,
+    status:'WORK_TEST_HOST_HOLD',physicalRoofOpeningVerified:false,
+    sourceLinksBound:false,publishAllowed:false,productionWebGLVerified:false,
+    humanReview:'NOT_RUN',inactiveReferenceRoofNode:6642,activeBOTHRoofNode:13360,
+    activeRoofInSelectedScene:both,referenceRoofY_m:7.5125,
+    r34BOTHRoofUpperY_m:7.305,roofSampleDelta_m:-0.2075,
+    visibleProtrusionAboveR34Roof_m:0.6575,
+    warning:'T110: 450 mm ulkonema perustuu ei-aktiiviseen kattosolmuun 6642. R34 BOTH -kattopinta 13360 on samassa XZ-pisteessä 207,5 mm alempana (mallin ulkonema noin 657,5 mm). Kattoaukkoa, pellitysta, eristysta tai toteumaa ei ole varmennettu.'
+  });
+}
