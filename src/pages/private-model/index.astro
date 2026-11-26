@@ -925,6 +925,7 @@ const title = 'Private 3D viewer';
       .height-scale[hidden] { display: none; }
 
       .height-scale-title {
+        z-index: 3;
         position: absolute;
         top: 0;
         left: 0;
@@ -1949,7 +1950,7 @@ const title = 'Private 3D viewer';
           <p>Ei fyysinen tarkemittaus eikä CURRENT/as-built-geometria.</p>
         </aside>
         <aside id="height-scale" class="height-scale" data-panel-title="Korkeusasteikko" aria-label="YLIS-G1-LOCAL korkeusasteikko" hidden>
-          <div class="height-scale-title">YLIS-G1-LOCAL Z</div>
+          <div class="height-scale-title" aria-live="polite">YLIS-G1-LOCAL Z</div>
           <div id="height-scale-ticks" class="height-scale-ticks"></div>
         </aside>
         <aside id="layers-panel" class="layers-panel" hidden>
@@ -6100,15 +6101,9 @@ const title = 'Private 3D viewer';
         }
 
         syncViewState('elevation');
-        const label =
-          direction === 'pos-y'
-            ? '+Y'
-            : direction === 'neg-y'
-              ? '-Y'
-              : direction === 'pos-x'
-                ? '+X'
-                : '-X';
-        status.textContent = `Ortografinen julkisivu ${label} - YLIS-G1-LOCAL Z-asteikko`;
+        const [sign, axis] = direction.split('-');
+        const label = `${sign === 'pos' ? '+' : '-'}${axis.toUpperCase()}`;
+        status.textContent = `Ortografinen julkisivu ${label}`;
       };
 
       const fitIsometricCamera = (sceneRoot: any = fullModelScene) => {
@@ -7981,6 +7976,11 @@ const title = 'Private 3D viewer';
       ) => {
         const replacedGltf = layersGltf && layersGltf !== gltf ? layersGltf : null;
         onLayersModelLoaded(gltf, c70PreviewSession);
+        // The protected project model and exact R32H-family snapshots share the
+        // Ylisrinne drawing reference. An arbitrary WORK_TEST can have a different origin.
+        heightScaleController.setDatumAvailable(
+          sourceKind === 'current' || r32hFamilyOf(loadedModelSha256(gltf)) !== null,
+        );
         if (r300ViewSwitch) {
           delete canvas.dataset.workTestReviewMode;
           delete canvas.dataset.workTestReviewCandidate;
