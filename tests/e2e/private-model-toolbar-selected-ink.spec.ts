@@ -61,3 +61,39 @@ test('selected interaction tools retain light SVG ink over the grey frame and ho
     }
   }
 });
+
+test('keyboard-driven toolbar selection retains one active grey frame and light SVG ink', async ({ page }) => {
+  await page.route('**/private-model/**/*.glb*', route => route.fulfill({ status: 404 }));
+  await page.goto('/private-model/?c70=1');
+
+  const tools = page.locator('.toolbar > .interaction-tools');
+  const cases = [
+    ['selection-tool-button', 'Enter'],
+    ['point-pick-tool-button', 'Space'],
+    ['point-measure-tool-button', 'Enter'],
+    ['navigate-tool-button', 'Space'],
+  ] as const;
+
+  for (const width of [1440, 390]) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.mouse.move(0, 0);
+    for (const [id, key] of cases) {
+      const tool = tools.locator('#' + id);
+      await tool.focus();
+      await expect(tool).toBeFocused();
+      await tool.press(key);
+
+      await expect(tool).toHaveAttribute('aria-pressed', 'true');
+      await expect(tool).toBeFocused();
+      await expect(tools.locator('button.desk-icon[aria-pressed="true"]')).toHaveCount(1);
+      await expect(tool).toHaveCSS('background-color', 'rgb(65, 74, 83)');
+      await expect(tool).toHaveCSS('border-color', 'rgb(100, 114, 124)');
+      await expect(tool.locator('svg path').first()).toHaveCSS('stroke', 'rgb(241, 244, 245)');
+      for (const [otherId] of cases) {
+        if (otherId !== id) {
+          await expect(tools.locator('#' + otherId)).toHaveAttribute('aria-pressed', 'false');
+        }
+      }
+    }
+  }
+});
