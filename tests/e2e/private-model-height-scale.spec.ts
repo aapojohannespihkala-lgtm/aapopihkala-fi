@@ -78,6 +78,24 @@ test('private viewer height scale places higher Z above lower Z and draws full-w
 
   const labels = page.locator('#height-scale .height-scale-label');
   const guides = page.locator('#height-scale .height-scale-guide');
+  const expectGuideProjection = async () => {
+    const viewport = await canvas.boundingBox();
+    const minZ = Number(await canvas.getAttribute('data-height-scale-min-z'));
+    const maxZ = Number(await canvas.getAttribute('data-height-scale-max-z'));
+    expect(viewport).not.toBeNull();
+    expect(maxZ).toBeGreaterThan(minZ);
+    const last = (await guides.count()) - 1;
+    expect(last).toBeGreaterThan(0);
+    for (const index of new Set([0, Math.floor(last / 2), last])) {
+      const guide = guides.nth(index);
+      const z = Number(await guide.getAttribute('data-height-m'));
+      const actual = await guide.boundingBox();
+      expect(actual).not.toBeNull();
+      const projectedY = viewport!.y + ((maxZ - z) / (maxZ - minZ)) * viewport!.height;
+      // Guards the full viewport projection, including the 40px top/12px bottom inset regression.
+      expect(Math.abs(actual!.y - projectedY)).toBeLessThan(3);
+    }
+  };
   expect(await labels.count()).toBeGreaterThan(1);
   await expect(guides).toHaveCount(await labels.count());
   await expect(labels.first()).toHaveCSS('position', 'absolute');
@@ -99,6 +117,7 @@ test('private viewer height scale places higher Z above lower Z and draws full-w
   expect(guideBox).not.toBeNull();
   expect(guideBox!.width).toBeGreaterThan(scaleBox!.width * 0.9);
   expect(lowestBox!.x).toBeLessThan(scaleBox!.x + 30);
+  await expectGuideProjection();
 
   const tickLabels = await labels.allTextContents();
   const frameToggle = page.getByRole('button', { name: 'Vaihda paikallinen pohjoinen tai karttapohjoinen' });
@@ -107,10 +126,20 @@ test('private viewer height scale places higher Z above lower Z and draws full-w
   await expect(canvas).toHaveAttribute('data-height-scale-frame', 'YLIS-G1-LOCAL');
   await expect(page.locator('.height-scale-title')).toHaveText('ETRS-GK25 · Z paikallinen');
   expect(await labels.allTextContents()).toEqual(tickLabels);
+  await expectGuideProjection();
 
   await frameToggle.click();
   await expect(page.locator('.height-scale-title')).toHaveText('YLIS-G1-LOCAL Z');
   await expect(canvas).toHaveAttribute('data-height-scale-north-reference', 'YLIS-G1-LOCAL');
+
+  // The same orthographic metric ruler must track the actual canvas in all four facades.
+  for (const direction of ['neg-y', 'pos-x', 'neg-x'] as const) {
+    await page.locator(`[data-desk-kind="angle"][data-desk-id="elev-${direction}"]`).click();
+    await expect(canvas).toHaveAttribute('data-elevation-direction', direction);
+    await expect(canvas).toHaveAttribute('data-height-scale-visible', 'true');
+    expect(await guides.count()).toBeGreaterThan(1);
+    await expectGuideProjection();
+  }
 });
 
 test('N2000 WORK_TEST requires explicit opt-in and does not follow horizontal north', async ({ page }) => {
