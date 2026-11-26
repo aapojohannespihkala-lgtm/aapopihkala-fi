@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+// CI already runs this R34 receipt suite; include the staged fail-closed Worker894 contract.
+import './private-model-r34-iv125-worker-staging.test.mjs';
 import { readFileSync } from 'node:fs';
 import {
   C80_R34_SOURCE, C80_R34_VIEWS, C80_R34_WORK_TEST_ID, C80_R33_SOURCE, C80_R33_VIEWS,
