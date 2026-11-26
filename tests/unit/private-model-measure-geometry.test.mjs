@@ -364,3 +364,40 @@ test('short edge fragments still provide a fallback when no longer edge is eligi
   assert.equal(snap.kind,'edge');
   same(snap.pointG1,g(.52,0));
 });
+
+test('a genuine wall corner remains salient when each straight arm is finely subdivided',()=>{
+  const edges=[];
+  for(let i=0;i<16;i++){
+    edges.push({a:g(i*.02,0),b:g((i+1)*.02,0)});
+    edges.push({a:g(0,i*.02),b:g(0,(i+1)*.02)});
+  }
+  const result=chooseMeasureFeatureSnap({
+    pointerPx:{x:1,y:1},hitPointG1:g(.015,.015),
+    segments:edges,projectToScreen:projector,isCandidateVisible:checker,
+  });
+  assert.equal(result?.kind,'corner');
+  same(result.pointG1,g(0,0));
+});
+
+test('a 4px detail branch cannot become a salient corner by borrowing long wall arms',()=>{
+  const segments=[];
+  for(let i=0;i<15;i++){
+    segments.push({a:g(i*.02,0),b:g((i+1)*.02,0)});
+  }
+  segments.push({a:g(.1,0),b:g(.1,.04)});
+  const result=chooseMeasureFeatureSnap({
+    pointerPx:{x:10,y:1},hitPointG1:g(.1,.01),
+    segments,projectToScreen:projector,isCandidateVisible:checker,
+  });
+  assert.equal(result?.kind,'edge');
+  same(result.pointG1,g(.1,0));
+});
+
+test('small subdivided details do not inherit salience across an actual 90-degree bend',()=>{
+  const detail=[{a:g(0,0),b:g(.04,0)},{a:g(.04,0),b:g(.04,.04)}];
+  const snap=chooseMeasureFeatureSnap({
+    pointerPx:{x:4,y:0},hitPointG1:g(.04,.005),segments:detail,
+    projectToScreen:projector,isCandidateVisible:checker,
+  });
+  assert.equal(snap?.kind,'edge');
+});

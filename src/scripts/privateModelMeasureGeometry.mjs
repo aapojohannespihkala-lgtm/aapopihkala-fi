@@ -106,7 +106,7 @@ export const chooseMeasureFeatureSnap = ({
      !Number.isFinite(minCornerArmPx) || minCornerArmPx<0 ||
      segments.length>30000) return null;
   const base=coords(hitPointG1);
-  const projected=new Map(),junctions=new Map();
+  const projected=new Map(),junctions=new Map(),featureSegments=[],segmentFeatures=new Map();
   const getPixel=(p)=>{
     const k=weldKey(coords(p));
     if(!projected.has(k)) projected.set(k,projectToScreen(p));
@@ -125,13 +125,43 @@ export const chooseMeasureFeatureSnap = ({
   for(const s of clean){
     const a=coords(s.a),b=coords(s.b);
     const ap=getPixel(s.a),bp=getPixel(s.b);
-    const spanPx=ap && bp ? Math.hypot(ap.x-bp.x,ap.y-bp.y) : 0;
+    const rawSpan=ap && bp ? Math.hypot(ap.x-bp.x,ap.y-bp.y) : 0;
+    const spanPx=Number.isFinite(rawSpan) ? rawSpan : 0;
+    const edge={aKey:weldKey(a),bKey:weldKey(b),spanPx,chainSpanPx:spanPx};
+    featureSegments.push(edge);
+    segmentFeatures.set(s,edge);
     for(const [p,other] of [[a,b],[b,a]]){
       const k=weldKey(p);
       if(!junctions.has(k)) junctions.set(k,{pos:point(p),dirs:[]});
       const d=subtract(other,p), n=norm(d);
-      junctions.get(k).dirs.push({vector:d.map(x=>x/n),spanPx});
+      junctions.get(k).dirs.push({vector:d.map(x=>x/n),edge});
     }
+  }
+  // Treat a straight, segmented building edge as one continuous visual arm.
+  // A real corner must survive tessellation into short collinear mesh edges.
+  // Stop at forks and bends: small incidental branches must not gain support
+  // from their adjacent long wall. Each edge is visited at most once.
+  const visited=new Set(), straightCos=Math.cos(10*Math.PI/180);
+  const straightAt=(v)=>v?.dirs.length===2 &&
+    dot(v.dirs[0].vector,v.dirs[1].vector)<-straightCos;
+  for(const root of featureSegments){
+    if(visited.has(root)) continue;
+    const chain=[root];
+    visited.add(root);
+    for(const startKey of [root.aKey,root.bKey]){
+      let key=startKey,previous=root;
+      while(straightAt(junctions.get(key))){
+        const v=junctions.get(key);
+        const next=v.dirs[0].edge===previous ? v.dirs[1].edge : v.dirs[0].edge;
+        if(visited.has(next)) break;
+        visited.add(next);
+        chain.push(next);
+        key=next.aKey===key ? next.bKey : next.aKey;
+        previous=next;
+      }
+    }
+    const screenSpan=chain.reduce((sum,e)=>sum+e.spanPx,0);
+    for(const e of chain) e.chainSpanPx=screenSpan;
   }
   let bestCorner=null,bestEdge=null,bestDetailEdge=null;
   const withinWorld=(p)=>norm(subtract(coords(p),base))<=maxWorldGapM;
@@ -150,9 +180,9 @@ export const chooseMeasureFeatureSnap = ({
     if(v.dirs.length<2) continue;
     let corner=false;
     for(let i=0;i<v.dirs.length && !corner;i++){
-      if(v.dirs[i].spanPx<minCornerArmPx) continue;
+      if(v.dirs[i].edge.chainSpanPx<minCornerArmPx) continue;
       for(let j=i+1;j<v.dirs.length;j++)
-        if(v.dirs[j].spanPx>=minCornerArmPx &&
+        if(v.dirs[j].edge.chainSpanPx>=minCornerArmPx &&
            Math.abs(dot(v.dirs[i].vector,v.dirs[j].vector))<Math.cos(20*Math.PI/180)) {
           corner=true;break;
         }
@@ -179,7 +209,8 @@ export const chooseMeasureFeatureSnap = ({
     const worldT=hasDepth ? t*b.invW/denom : t;
     const av=coords(s.a),bv=coords(s.b);
     const p=point(av.map((v,i)=>v+worldT*(bv[i]-v)));
-    consider('edge',p,Math.hypot(pointerPx.x-nearest.x,pointerPx.y-nearest.y),s,Math.sqrt(den));
+    const edgeSpan=segmentFeatures.get(s)?.chainSpanPx ?? Math.sqrt(den);
+    consider('edge',p,Math.hypot(pointerPx.x-nearest.x,pointerPx.y-nearest.y),s,edgeSpan);
   }
   return bestCorner?.distancePx<=cornerPriorityPx ? bestCorner : bestEdge || bestCorner || bestDetailEdge;
 };
