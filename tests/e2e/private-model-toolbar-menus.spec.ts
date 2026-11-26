@@ -254,6 +254,7 @@ test('toolbar icons stay centered and selected controls share the edge-mode fram
       const tool = tools.locator(`#${id}`);
       await expect(tool).not.toHaveCSS('background-color', 'rgb(65, 74, 83)');
       await tool.click();
+      await expect(tool).toHaveCSS('background-color', 'rgb(78, 86, 94)');
       await page.mouse.move(0, 0);
       await expect(selectedTool).toHaveCount(1);
       await expect(selectedTool).toHaveAttribute('id', id);
