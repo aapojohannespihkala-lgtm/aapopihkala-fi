@@ -103,6 +103,18 @@ test('D roof and roof-hidden presets retain unscoped D walls, split shared meshe
   await preset('d-roof').click();
   await expect(canvas).toHaveAttribute('data-d-focus-ghost', roof!);
   await expect(preset('d-roof')).toHaveAttribute('aria-pressed', 'true');
+  // QA7: two consecutive manual Layerit updates must preserve the complete
+  // D-focus status, including hidden and aids, after refreshLayers reapplies it.
+  await page.locator('#layers-button').click();
+  const roofLayer = page.locator('#roof-layer-visible');
+  const completeFocusStatus = /^d-roof\|in:\d+\|out:\d+\|split:\d+\|hidden:\d+\|aids:\d+$/;
+  await roofLayer.uncheck();
+  await expect(canvas).toHaveAttribute('data-layer-roof-visible', 'false');
+  await expect(canvas).toHaveAttribute('data-d-focus-ghost', completeFocusStatus);
+  await roofLayer.check();
+  await expect(canvas).toHaveAttribute('data-layer-roof-visible', 'true');
+  await expect(canvas).toHaveAttribute('data-d-focus-ghost', completeFocusStatus);
+  await expect(preset('d-roof')).toHaveAttribute('aria-pressed', 'true');
   expect(errors).toEqual([]);
 });
 
