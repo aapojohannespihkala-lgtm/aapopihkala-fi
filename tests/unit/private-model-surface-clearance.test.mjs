@@ -1,3 +1,5 @@
+import * as THREE from 'three';
+import { closestVisibleSourceMeshClearance as meshClearance } from '../../src/scripts/privateModelSurfaceClearanceAdapter.mjs';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { closestClearanceBetweenSelectedSurfaces as minimum } from '../../src/scripts/privateModelSurfaceClearance.mjs';
@@ -102,4 +104,65 @@ test('reject nonfinite, degenerate or unbounded source geometry before compariso
   assert.equal(minimum({...data,maxPairs:4097}),null);
   const tooMany=Array.from({length:65},()=>squareAtX(0)[0]);
   assert.equal(minimum({...data,surfaceA:{sourceId:'A',triangles:tooMany}}),null);
+});
+
+const makeWorkTestWall=(offsetX=0)=>{
+  const geometry=new THREE.BufferGeometry();
+  geometry.setAttribute('position',new THREE.Float32BufferAttribute([
+    0,0,0, 0,0,-1, 0,1,-1,
+    0,0,0, 0,1,-1, 0,1,0,
+  ],3));
+  const mesh=new THREE.Mesh(geometry,new THREE.MeshBasicMaterial());
+  mesh.position.set(offsetX,0,0);
+  mesh.updateMatrixWorld(true);
+  return mesh;
+};
+const meshInput=(a=makeWorkTestWall(),b=makeWorkTestWall(.3),extras={})=>({
+  sourceA:{sourceId:'selected-A',mesh:a},
+  sourceB:{sourceId:'selected-B',mesh:b},
+  acceptsSourceMesh:()=>true,
+  acceptsClippedTriangle:()=>true,
+  isTriangleFrontmost:()=>true,
+  ...extras,
+});
+
+test('source-mesh adapter uses transformed world triangles and correct G1 normal clearance',()=>{
+  const r=meshClearance(meshInput());
+  assert.ok(r);
+  near(r.distanceM,.3);
+  near(r.deltaXM,.3);
+  near(r.deltaYM,0);
+  near(r.deltaZM,0);
+  assert.equal(r.meshWorldToG1Adapter,true);
+  assert.equal(r.renderedSourceChecksCallerSupplied,true);
+  assert.equal(r.asBuilt,false);
+  assert.equal(r.workTestOnly,true);
+  assert.equal(r.triangleAIndex,0);
+});
+
+test('source-mesh adapter fail-closes clipping, occlusion, source mismatch and missing checks',()=>{
+  const a=makeWorkTestWall(),b=makeWorkTestWall(.3),data=meshInput(a,b);
+  assert.equal(meshClearance({...data,acceptsSourceMesh:()=>false}),null);
+  assert.equal(meshClearance({...data,acceptsClippedTriangle:undefined}),null);
+  assert.equal(meshClearance({...data,isTriangleFrontmost:undefined}),null);
+  assert.equal(meshClearance({...data,acceptsClippedTriangle:()=>1}),null);
+  assert.equal(meshClearance({...data,isTriangleFrontmost:()=>false}),null);
+  assert.equal(meshClearance({...data,acceptsClippedTriangle:()=>{throw Error('cut unknown')}}),null);
+  assert.equal(meshClearance({...data,sourceB:{sourceId:'selected-A',mesh:b}}),null);
+  assert.equal(meshClearance({...data,sourceB:{sourceId:'different-id',mesh:a}}),null);
+  b.visible=false;
+  assert.equal(meshClearance(data),null);
+});
+
+test('source-mesh adapter rejects partial, deformed and unbounded geometry instead of truncating',()=>{
+  const a=makeWorkTestWall(),b=makeWorkTestWall(.3),data=meshInput(a,b);
+  a.geometry.setDrawRange(0,3);
+  assert.equal(meshClearance(data),null);
+  a.geometry.setDrawRange(0,Infinity);
+  a.isSkinnedMesh=true;
+  assert.equal(meshClearance(data),null);
+  a.isSkinnedMesh=false;
+  a.geometry.attributes.position.setX(0,Infinity);
+  assert.equal(meshClearance(data),null);
+  assert.equal(meshClearance({...data,maxTrianglesPerSource:65}),null);
 });
