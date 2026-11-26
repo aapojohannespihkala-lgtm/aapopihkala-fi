@@ -128,3 +128,30 @@ test('reentrant context/selection changes during calculate discard stale clearan
     assert.equal(pair.status().ready,false);
   }
 });
+
+test('calculator output is bound to the exact two selected source IDs and finite clearance',()=>{
+  const a=mesh('A'),b=mesh('B');
+  const invalid=[
+    {sourceAId:'A',sourceBId:'old-B',distanceM:.2},
+    {sourceAId:'old-A',sourceBId:'B',distanceM:.2},
+    {sourceAId:'B',sourceBId:'A',distanceM:.2},
+    {sourceAId:'A',sourceBId:'B',distanceM:NaN},
+    {sourceAId:'A',sourceBId:'B',distanceM:Infinity},
+    {sourceAId:'A',sourceBId:'B',distanceM:-.01},
+    {sourceAId:'A',sourceBId:'B'},
+    Promise.resolve({sourceAId:'A',sourceBId:'B',distanceM:.2}),
+  ];
+  for (const result of invalid){
+    const pair=createSurfacePairSelection({calculate:()=>result});
+    pair.setContext(goodChecks.contextKey);
+    pair.selectHit(hit('A',a));pair.selectHit(hit('B',b));
+    assert.equal(pair.measure(goodChecks),null,'wrong/invalid output must fail closed');
+    assert.equal(pair.status().ready,true,'rejecting a result must not alter clicks');
+  }
+  const pair=createSurfacePairSelection({calculate:()=>({
+    sourceAId:'A',sourceBId:'B',distanceM:0,
+  })});
+  pair.setContext(goodChecks.contextKey);
+  pair.selectHit(hit('A',a));pair.selectHit(hit('B',b));
+  assert.equal(pair.measure(goodChecks).distanceM,0,'touching surfaces may have zero clearance');
+});

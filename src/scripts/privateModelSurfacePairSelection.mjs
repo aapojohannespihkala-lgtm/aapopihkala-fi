@@ -82,7 +82,16 @@ export const createSurfacePairSelection = ({calculate,maxFaces=MAX_PATCH_FACES}=
         acceptsSourceMesh,acceptsClippedTriangle,isTriangleFrontmost});
       if(contextKey!==contextAtStart || first!==firstAtStart ||
          second!==secondAtStart) return null;
-      return result ?? null;
+      // A stale or malformed calculator must never turn into a measured
+      // clearance between the two surfaces currently selected by the user.
+      // The source-mesh adapter is synchronous; do not leak async/thenable
+      // results whose context can change after this validation.
+      if (!result || typeof result!=='object' ||
+          typeof result.then==='function' ||
+          result.sourceAId!==firstAtStart.sourceId ||
+          result.sourceBId!==secondAtStart.sourceId ||
+          !Number.isFinite(result.distanceM) || result.distanceM<0) return null;
+      return result;
     } catch {return null;}
   };
   return Object.freeze({setContext,selectHit,measure,status,
