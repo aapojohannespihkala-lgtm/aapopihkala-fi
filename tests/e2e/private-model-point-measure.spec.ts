@@ -464,3 +464,48 @@ test('smart snap prioritizes a major visible edge over tiny coplanar detail corn
   await page.mouse.move(box.x + inside + 3, box.y + y);
   await expect(canvas).not.toHaveAttribute('data-point-measure-preview', /.+/);
 });
+
+
+test('height points can be saved, restored, viewed through the cube and removed', async ({ page }) => {
+  const model = makeTriangleGlb();
+  await page.route('**/private-model/model.glb', route =>
+    route.fulfill({status:200,contentType:'model/gltf-binary',body:model}));
+  await page.goto('/private-model/');
+  const canvas = page.locator('#private-model-canvas');
+  await expect(canvas).toHaveAttribute('data-model-source','current');
+  await page.locator('#point-pick-tool-button').click();
+  const box = await canvas.boundingBox();
+  expect(box).not.toBeNull();
+  await canvas.click({position:{x:box!.width/2,y:box!.height/2}});
+  await expect(canvas).toHaveAttribute('data-point-pick-state','picked');
+  const add = page.locator('#height-point-add');
+  await expect(add).toBeEnabled();
+  await add.click();
+  await expect(canvas).toHaveAttribute('data-height-point-count','1');
+  await expect(canvas).toHaveAttribute('data-height-point-visible','1');
+  await expect(page.locator('#height-points-list li')).toHaveCount(1);
+  await expect(page.locator('#height-points-list')).toContainText('Z ');
+  await canvas.click({position:{x:box!.width-6,y:box!.height/2}});
+  await expect(add).toBeDisabled();
+  await expect(canvas).toHaveAttribute('data-height-point-count','1');
+
+  await page.reload();
+  await expect(canvas).toHaveAttribute('data-model-source','current');
+  await page.locator('#point-pick-tool-button').click();
+  await expect(canvas).toHaveAttribute('data-height-point-count','1');
+  await expect(page.locator('#height-points-list li')).toHaveCount(1);
+  await expect(canvas).toHaveAttribute('data-height-point-visible','1');
+
+  const toggle = page.getByRole('button',{name:'Vaihda paikallinen pohjoinen tai karttapohjoinen'});
+  await toggle.click();
+  await expect(page.locator('#height-point-coordinate')).toContainText('N2000 (vuoden 1974 N60-työoletus');
+  await expect(canvas).toHaveAttribute('data-height-point-frame','N2000-CONDITIONAL-WORK_TEST');
+  await expect(page.locator('#height-points-list')).toContainText('N2000 ');
+  await toggle.click();
+  await expect(page.locator('#height-point-coordinate')).toContainText('YLIS-G1-LOCAL');
+
+  await page.locator('#height-points-list li button').click();
+  await expect(canvas).toHaveAttribute('data-height-point-count','0');
+  await expect(canvas).toHaveAttribute('data-height-point-visible','0');
+  await expect(page.locator('#height-points-list li')).toHaveCount(0);
+});

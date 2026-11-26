@@ -622,6 +622,11 @@ const title = 'Private 3D viewer';
         font-size: 11px;
       }
 
+      .height-points { border-top: 1px solid rgba(127,127,127,.35); padding-top: 6px; display: grid; gap: 5px; }
+      .height-points-actions { display: flex; gap: 5px; flex-wrap: wrap; }
+      .height-points-list { margin: 0; padding-left: 18px; max-height: 160px; overflow: auto; }
+      .height-points-list li { padding: 2px 0; }
+      .height-points-list li button { float: right; margin-left: 8px; }
       /* Owner electrical checklist inside "Piste mallissa" (17.11.2026). */
       .electrical-checklist { border-top: 1px solid rgba(127, 127, 127, 0.35); padding-top: 6px; }
       .electrical-checklist > summary { cursor: pointer; font-weight: 600; }
@@ -1872,6 +1877,16 @@ const title = 'Private 3D viewer';
           <div id="point-pick-main" class="point-measure-main">Klikkaa näkyvää mallipintaa.</div>
           <div id="point-pick-source" class="point-measure-detail">YLIS-G1-LOCAL, koordinaatit metreinä</div>
           <div id="point-pick-surface" class="point-measure-detail">Osumapinta: ei valittu</div>
+          <section id="height-points-section" class="height-points" aria-label="Korkeuspisteet">
+            <div class="point-measure-header"><strong>Korkeuspisteet <span id="height-points-count"></span></strong></div>
+            <div class="height-points-actions">
+              <button id="height-point-add" type="button" disabled>Lisää klikattu piste</button>
+              <button id="height-point-seeds" type="button" hidden>Lisää R34-vertailupisteet</button>
+            </div>
+            <div id="height-point-coordinate" class="point-measure-detail">Paikallinen Z</div>
+            <ol id="height-points-list" class="height-points-list"></ol>
+            <div id="height-point-feedback" class="point-measure-note" role="status"></div>
+          </section>
           <button id="point-pick-copy" type="button" disabled>Kopioi XYZ ja pintatiedot</button>
           <div id="point-pick-feedback" class="point-measure-note" role="status"></div>
           <div class="point-measure-note">Piste ja sen merkki näkyvät kuvakaappauksessa. WORK_TEST-mallihavainto, ei tarkemittaus.</div>
@@ -2265,6 +2280,18 @@ const title = 'Private 3D viewer';
       import { sourceLinksForSelectionEvidence } from '../../scripts/privateModelSourceCardLinkGuard.mjs';
       import { pickVisibleWorkTest3DPoint } from '../../scripts/privateModelWorkTest3DPoint';
       import { classifySameClickReviewEvidence } from '../../scripts/privateModelSameClickReviewEvidence.mjs';
+      // @ts-ignore - version-scoped annotations and source-verified opt-in R34 anchors.
+      import {
+        addHeightPoint, removeHeightPoint, readHeightPoints, displayHeightValue,
+        MAX_HEIGHT_POINTS_PER_MODEL,
+      } from '../../scripts/privateModelHeightPointsStore.mjs';
+      // @ts-ignore - source-triangle-only reference marks, never automatic N2000.
+      import { createR34HeightPointSeeds, R34_HEIGHT_POINT_SOURCE_SHA256 } from '../../scripts/privateModelR34HeightPointSeeds.mjs';
+      import { worktestDisplayedZ } from '../../scripts/privateModelN2000Worktest';
+      // @ts-ignore - scene/floor guard keeps stale markers invisible after transitions.
+      import {
+        heightPointSceneScope, scopedHeightPointSurface, canRenderHeightPoint,
+      } from '../../scripts/privateModelHeightPointSceneScope.mjs';
       import { projectMeasurePoint, resolveMeasureCandidate } from '../../scripts/privateModelSmartMeasure';
       import {
         createPointMeasureOverlay,
@@ -2847,6 +2874,12 @@ const title = 'Private 3D viewer';
       const pointPickCopyButton = document.querySelector<HTMLButtonElement>('#point-pick-copy');
       const pointPickClearButton = document.querySelector<HTMLButtonElement>('#point-pick-clear');
       const pointPickFeedback = document.querySelector<HTMLElement>('#point-pick-feedback');
+      const hpAddButton = document.querySelector<HTMLButtonElement>('#height-point-add')!;
+      const hpSeedsButton = document.querySelector<HTMLButtonElement>('#height-point-seeds')!;
+      const hpCount = document.querySelector<HTMLElement>('#height-points-count')!;
+      const hpCoordinate = document.querySelector<HTMLElement>('#height-point-coordinate')!;
+      const hpList = document.querySelector<HTMLOListElement>('#height-points-list')!;
+      const hpFeedback = document.querySelector<HTMLElement>('#height-point-feedback')!;
       const pointMeasureToolButton = document.querySelector<HTMLButtonElement>('#point-measure-tool-button');
       const pointMeasurePanel = document.querySelector<HTMLElement>('#point-measure-panel');
       const pointMeasureMain = document.querySelector<HTMLElement>('#point-measure-main');
@@ -5504,10 +5537,13 @@ const title = 'Private 3D viewer';
       // Existing XY plane ruler remains internal to legacy P137E review code.
       const pointPickOverlay = createPointMeasureOverlay(scene);
       let pointPickClipboardText = '';
+      let hpPending: {point: any; sha: string; scope: string} | null = null;
       const pointPickFormat = (value: number) => value.toFixed(3).replace('.', ',');
       const clearPickedPoint = () => {
         pointPickOverlay.clear();
         pointPickClipboardText = '';
+        hpPending = null;
+        hpAddButton.disabled = true;
         pointPickMain.textContent = 'Klikkaa näkyvää mallipintaa.';
         pointPickSource.textContent = 'YLIS-G1-LOCAL, koordinaatit metreinä';
         pointPickSurface.textContent = 'Osumapinta: ei valittu';
@@ -5533,6 +5569,11 @@ const title = 'Private 3D viewer';
         pointPickOverlay.show(point, null);
         const sha = layersLoadedSha && /^[a-f0-9]{64}$/i.test(layersLoadedSha)
           ? layersLoadedSha.toLowerCase() : null;
+        const sceneName = hpSourceSceneName();
+        hpPending = sha ? {point, sha, scope: heightPointSceneScope({
+          sceneName, floor: mainViewScope?.floor || activePlanFloor || 'BOTH',
+        })} : null;
+        hpAddButton.disabled = !hpPending;
         const sourceKind = canvas.dataset.modelSource === 'work-test' ? 'WORK_TEST' : 'CURRENT';
         const candidate = canvas.dataset.workTestReviewCandidate ||
           canvas.dataset.p137eLoadedCandidateId || '-';
@@ -5563,6 +5604,162 @@ const title = 'Private 3D viewer';
         canvas.dataset.pointPickState = 'picked';
         electricalChecklistOnPick?.(point);
       };
+
+
+      // Persistent source-model markers. The only spatial truth is the picked visible mesh.
+      // A single geometry (max 64 vertices) avoids a marker/GLB memory leak.
+      const hpStorage = (() => { try { return window.localStorage; } catch { return null; } })();
+      const hpGeometry = new THREE.BufferGeometry();
+      hpGeometry.setAttribute('position',
+        new THREE.Float32BufferAttribute(new Float32Array(MAX_HEIGHT_POINTS_PER_MODEL * 3), 3));
+      hpGeometry.setDrawRange(0, 0);
+      const hpMarkers = new THREE.Points(hpGeometry, new THREE.PointsMaterial({
+        color: 0x437aab, size: 8, sizeAttenuation: false, depthTest: false,
+        depthWrite: false, transparent: true, opacity: 0.95,
+      }));
+      hpMarkers.name = 'HEIGHT_POINTS_ANNOTATIONS_ONLY';
+      hpMarkers.userData = {PresentationOnly: true, Canonical: false, AsBuilt: false};
+      hpMarkers.frustumCulled = false;
+      hpMarkers.renderOrder = 1002;
+      hpMarkers.visible = false;
+      scene.add(hpMarkers);
+      const hpSha = () => typeof layersLoadedSha === 'string' && /^[0-9a-f]{64}$/i.test(layersLoadedSha)
+        ? layersLoadedSha.toLowerCase() : '';
+      const hpSourceSceneName = () => {
+        const index = canvas.dataset.mainViewSourceSceneIndex;
+        if (index && /^[0-9]+$/.test(index)) return '__scene' + index;
+        const mounted = modelRoot.children[0];
+        const source = sourceSceneNames.get(mounted) || sourceSceneNames.get(fullModelScene) ||
+          mounted?.name || fullModelScene?.name || '';
+        return /^__scene[0-9]+$/.test(source) ? source : '';
+      };
+      const hpScope = () => heightPointSceneScope({
+        sceneName: hpSourceSceneName(), floor: mainViewScope?.floor || activePlanFloor || 'BOTH',
+      });
+      let hpLastRenderKey = '';
+      let hpVersion = 0;
+      const hpRefresh = (force = false) => {
+        const sha = hpSha();
+        const sceneName = hpSourceSceneName();
+        const scope = hpScope();
+        const mapFrame = orientationGizmo.dataset.northFrame === 'map';
+        const datumAvailable = canvas.dataset.modelSource === 'current' ||
+          r32hFamilyOf(sha) !== null || sha === R34_HEIGHT_POINT_SOURCE_SHA256;
+        const showN2000 = mapFrame && datumAvailable;
+        const key = [sha, sceneName, scope, showN2000 ? 'N2000' : mapFrame ? 'MAP_LOCAL_Z' : 'LOCAL', hpVersion].join('|');
+        if (!force && key === hpLastRenderKey) return;
+        hpLastRenderKey = key;
+        const records = readHeightPoints(hpStorage, sha);
+        const points: Array<{id:string;label:string;xM:number;yM:number;sourceHeightYUpM:number;surfaceObjectName:string|null}> = records.ok ? records.points : [];
+        const seeds = createR34HeightPointSeeds({modelSha256:sha,sceneName});
+        const seedIds = seeds.map((seed) => seed.id);
+        hpSeedsButton.hidden = !seeds.length;
+        hpSeedsButton.disabled = !records.ok || !seeds.some((seed) => !points.some((p) => p.id === seed.id));
+        hpCount.textContent = '(' + points.length + ')';
+        hpCoordinate.textContent = showN2000
+          ? 'N2000 (vuoden 1974 N60-työoletus, m)'
+          : mapFrame ? 'ETRS-GK25: Z paikallinen (m)' : 'YLIS-G1-LOCAL: paikallinen Z (m)';
+        canvas.dataset.heightPointFrame = showN2000 ? 'N2000-CONDITIONAL-WORK_TEST' : 'YLIS-G1-LOCAL';
+        if (!sha) hpFeedback.textContent = 'Mallin yksilöivä SHA puuttuu. Tallennus ei ole käytettävissä.';
+        else if (!records.ok) hpFeedback.textContent = 'Korkeuspisteiden tallennus ei ole käytettävissä (' + records.reason + ').';
+        const attribute = hpGeometry.getAttribute('position') as THREE.BufferAttribute;
+        let visibleCount = 0;
+        const items = points.map((point) => {
+          const visible = canRenderHeightPoint(point, scope, seedIds);
+          if (visible) {
+            attribute.setXYZ(visibleCount++, point.xM, point.sourceHeightYUpM, -point.yM);
+          }
+          const li = document.createElement('li');
+          const value = displayHeightValue(point, showN2000
+            ? {mode:'N2000', n2000OffsetM:worktestDisplayedZ(0, 'n2000-worktest'), offsetBasis:'OWNER_WORK_ASSUMPTION'}
+            : {mode:'LOCAL'});
+          const label = document.createElement('span');
+          label.textContent = point.label + (showN2000 ? ' · N2000 ' : ' · Z ') +
+            (value.ok ? value.meters.toFixed(3).replace('.', ',') + ' m' : '-') +
+            (visible ? '' : ' (ei tässä näkymässä)');
+          const remove = document.createElement('button');
+          remove.type = 'button';
+          remove.textContent = 'Poista';
+          remove.title = 'Poista tallennettu korkeuspiste';
+          remove.dataset.heightPointRemove = point.id;
+          remove.addEventListener('click', () => {
+            if (hpSha() !== sha || hpScope() !== scope) {
+              hpFeedback.textContent = 'Malli tai näkymä vaihtui. Varmista poistettava piste uudelleen.';
+              hpVersion++;
+              hpRefresh(true);
+              return;
+            }
+            const result = removeHeightPoint(hpStorage, sha, point.id);
+            hpFeedback.textContent = result.ok ? 'Korkeuspiste poistettu.' : 'Poisto estetty: ' + result.reason;
+            hpVersion++;
+            hpRefresh(true);
+          });
+          li.append(label, remove);
+          return li;
+        });
+        hpList.replaceChildren(...items);
+        hpGeometry.setDrawRange(0, visibleCount);
+        attribute.needsUpdate = true;
+        hpMarkers.visible = visibleCount > 0;
+        canvas.dataset.heightPointCount = String(points.length);
+        canvas.dataset.heightPointVisible = String(visibleCount);
+        requestAnimationFrame(() => markRenderDirty());
+      };
+      hpAddButton.addEventListener('click', () => {
+        if (!hpPending || hpPending.sha !== hpSha() || hpPending.scope !== hpScope() ||
+            canvas.dataset.pointPickState !== 'picked') {
+          hpFeedback.textContent = 'Klikkaa ensin nykyisen näkymän näkyvää mallipintaa.';
+          hpPending = null;
+          hpAddButton.disabled = true;
+          return;
+        }
+        const surface = scopedHeightPointSurface(hpPending.scope, hpPending.point.surfaceObjectName);
+        const saved = readHeightPoints(hpStorage, hpPending.sha);
+        if (!surface || !saved.ok) {
+          hpFeedback.textContent = 'Pisteen tallennus estetty: lähde tai tallennus puuttuu.';
+          return;
+        }
+        const candidate = {
+          id: 'hp_' + Date.now().toString(36) + '_' + Math.floor(Math.random()*0xffffff).toString(36),
+          label: 'Korkeuspiste ' + (saved.points.length + 1),
+          xM: hpPending.point.xM,
+          yM: hpPending.point.yM,
+          sourceHeightYUpM: hpPending.point.sourceHeightYUpM,
+          surfaceObjectName: surface,
+        };
+        const result = addHeightPoint(hpStorage, hpPending.sha, candidate);
+        hpFeedback.textContent = result.ok ? 'Korkeuspiste lisätty tähän malliversioon.' :
+          'Tallennus estetty: ' + result.reason;
+        hpVersion++;
+        hpRefresh(true);
+      });
+      hpSeedsButton.addEventListener('click', () => {
+        const sha = hpSha(), sceneName = hpSourceSceneName();
+        const seeds = createR34HeightPointSeeds({modelSha256:sha, sceneName});
+        const previous = readHeightPoints(hpStorage, sha);
+        if (!seeds.length || !previous.ok || previous.points.length +
+          seeds.filter((seed) => !previous.points.some((p: {id:string}) => p.id === seed.id)).length > MAX_HEIGHT_POINTS_PER_MODEL) {
+          hpFeedback.textContent = 'R34-lähdepisteitä ei voida lisätä tässä mallissa tai näkymässä.';
+          return;
+        }
+        let added = 0, error = '';
+        for (const seed of seeds) {
+          if (previous.points.some((point: {id:string}) => point.id === seed.id)) continue;
+          const result = addHeightPoint(hpStorage, sha, {
+            id: seed.id, label: seed.label, xM: seed.position.x, yM: -seed.position.z,
+            sourceHeightYUpM: seed.position.y,
+            surfaceObjectName: 'R34 lähde n' + seed.source.node + '/m' + seed.source.mesh +
+              '/p' + seed.source.primitive + '/t' + seed.source.triangle,
+          });
+          if (!result.ok) { error = result.reason ?? 'STORAGE_UNAVAILABLE'; break; }
+          added++;
+        }
+        hpFeedback.textContent = error ? ('Lähdepisteiden tallennus estyi: ' + error) :
+          ('Lisätty ' + added + ' R34-lähdepistettä.');
+        hpVersion++;
+        hpRefresh(true);
+      });
+      hpRefresh(true);
 
       // Owner electrical checklist (17.11.2026). Points are found in the loaded model by source
       // name, decisions stay in this browser and are copied as text for the next model round.
@@ -7977,7 +8174,8 @@ const title = 'Private 3D viewer';
         // The protected project model and exact R32H-family snapshots share the
         // Ylisrinne drawing reference. An arbitrary WORK_TEST can have a different origin.
         heightScaleController.setDatumAvailable(
-          sourceKind === 'current' || r32hFamilyOf(loadedModelSha256(gltf)) !== null,
+          sourceKind === 'current' || r32hFamilyOf(loadedModelSha256(gltf)) !== null ||
+            (sourceKind === 'work-test' && loadedModelSha256(gltf) === R34_HEIGHT_POINT_SOURCE_SHA256),
         );
         if (r300ViewSwitch) {
           delete canvas.dataset.workTestReviewMode;
@@ -16521,6 +16719,7 @@ const title = 'Private 3D viewer';
         frameProfiler?.mark('selection', performance.now());
         updateD1KnownDoorReviewLabelPositions();
         updateHeightScale();
+        hpRefresh();
         updateDAxisMeasurementLabel();
         frameProfiler?.mark('labels', performance.now());
         orientationGizmoController.render({
