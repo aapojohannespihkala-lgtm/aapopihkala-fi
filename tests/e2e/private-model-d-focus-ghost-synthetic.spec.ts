@@ -80,7 +80,8 @@ test('D roof and roof-hidden presets retain unscoped D walls, split shared meshe
   await expect(preset('d-roof')).toBeVisible();
 
   await preset('d-roof').click();
-  await expect(canvas).toHaveAttribute('data-d-focus-ghost', /^d-roof\|in:\d+\|out:\d+\|split:\d+(?:\|hidden:\d+)?$/);
+  // The R34 focus status always includes hidden objects and presentation aids.
+  await expect(canvas).toHaveAttribute('data-d-focus-ghost', /^d-roof\|in:\d+\|out:\d+\|split:\d+\|hidden:\d+\|aids:\d+$/);
   const roof = await canvas.getAttribute('data-d-focus-ghost');
   const [, inside, outside, split] = roof!.match(/in:(\d+)\|out:(\d+)\|split:(\d+)/)!.map(Number);
   expect(inside).toBeGreaterThanOrEqual(3);
