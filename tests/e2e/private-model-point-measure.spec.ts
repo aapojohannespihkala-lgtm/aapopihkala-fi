@@ -548,11 +548,19 @@ test('Mittaa 3D computes true local triangle-to-triangle minimum for TWO actuall
   const box = await canvas.boundingBox();
   if (!box) throw new Error('Missing model canvas');
   const positions: Record<'A' | 'B', {x:number;y:number} | null> = {A:null,B:null};
-  // Identify real clickable source pixels via the EXISTING point-in-model
-  // picker, not by inventing screen coordinates or reading Three internals.
-  for (const fy of [0.35,0.45,0.55,0.65]) {
-    for (const fx of [0.2,0.3,0.4,0.6,0.7,0.8]) {
+  // Use the user's existing panel-minimize control before each real canvas
+  // click. The point picker deliberately reopens the panel after a hit;
+  // a click under that panel is NOT a valid canvas interaction.
+  const minimizePointPanel = page.locator('#point-pick-panel .viewport-panel-minimize');
+  for (const fy of [0.6,0.55,0.5,0.45,0.65,0.35]) {
+    for (const fx of [0.32,0.38,0.44,0.56,0.62,0.68,0.74,0.8]) {
       const pos={x:box.width*fx,y:box.height*fy};
+      if (await minimizePointPanel.isVisible()) await minimizePointPanel.click();
+      const unobstructed = await canvas.evaluate((element, {x,y}) => {
+        const rect=element.getBoundingClientRect();
+        return document.elementFromPoint(rect.left+x,rect.top+y)===element;
+      }, pos);
+      if (!unobstructed) continue;
       await canvas.click({position:pos});
       const label=await page.locator('#point-pick-main').textContent() || '';
       const m=label.match(/^X ([−-]?\d+,\d+) m/);
