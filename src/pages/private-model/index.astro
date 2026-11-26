@@ -2303,6 +2303,10 @@ const title = 'Private 3D viewer';
         heightPointSceneScope, scopedHeightPointSurface, canRenderHeightPoint,
       } from '../../scripts/privateModelHeightPointSceneScope.mjs';
       import { projectMeasurePoint, resolveMeasureCandidate } from '../../scripts/privateModelSmartMeasure';
+      // @ts-ignore - bounded WORK_TEST source surface selection.
+      import { createSurfacePairSelection } from '../../scripts/privateModelSurfacePairSelection.mjs';
+      // @ts-ignore - original THREE source triangles and independent render checks.
+      import { closestVisibleSourceMeshClearance } from '../../scripts/privateModelSurfaceClearanceAdapter.mjs';
       import {
         createPointMeasureOverlay,
         formatPointMeasureFi,
@@ -2461,7 +2465,7 @@ const title = 'Private 3D viewer';
         prepareP183P160ClosureReviewPresentation,
         resolveP183P160ClosureIntegrationRoot,
       } from '../../scripts/privateModelP183ReviewPresentation';
-      import { createHorizontalClippingController } from '../../scripts/privateModelHorizontalClipping';
+      import { createHorizontalClippingController, isPointVisibleThroughViewerHorizontalClip } from '../../scripts/privateModelHorizontalClipping';
       import { findCoplanarTJunctionBoundaryIndexes } from '../../scripts/privateModelHi20CoplanarTJunctionEdges';
       import { shouldSuppressC044CoplanarTJunctions } from '../../scripts/privateModelC80C044EdgeSourceGuard.mjs';
       import { type MainViewFloor } from '../../scripts/privateModelMainViewScope';
@@ -5471,6 +5475,99 @@ const title = 'Private 3D viewer';
       let pointMeasureB: PointMeasurePoint | null = null;
       let previewTimer: number | undefined;
       let previewPointer: { x: number; y: number } | null = null;
+      // WORK_TEST: annotate the EXISTING two-point Mittaa 3D with a separately
+      // proven local minimum between two explicit, visible source triangles.
+      // No new mode, no whole-mesh or surveyed/as-built clearance claim.
+      const pointMeasureSurfaceOverlay = createPointMeasureOverlay(scene, { color: 0x43aaca, opacity: 0.9 });
+      const pointMeasureSourcePair = createSurfacePairSelection({ calculate: closestVisibleSourceMeshClearance });
+      let pointMeasureSurfaceResult: any = null;
+      const pointMeasureSurfaceContextKey = () => {
+        const mounted = modelRoot.children[0] ?? fullModelScene;
+        return [
+          layersLoadedSha || 'UNVERIFIED_SOURCE_SHA', mounted?.uuid || 'NO_MOUNTED_SOURCE',
+          sourceSceneNames.get(mounted) || mounted?.name || '-',
+          mainViewScope?.floor || activePlanFloor || 'BOTH',
+          canvas.dataset.horizontalClip || 'inactive',
+          canvas.dataset.horizontalClipHeightM || '-', activeModelSourceKind,
+        ].join('|');
+      };
+      const clearPointMeasureSurface = () => {
+        pointMeasureSourcePair?.clear();
+        pointMeasureSurfaceResult = null;
+        pointMeasureSurfaceOverlay.clear();
+        delete canvas.dataset.pointMeasureSurfaceDistance;
+        delete canvas.dataset.pointMeasureSurfaceScope;
+      };
+      const tryPointMeasureSurfaceHit = (hit?: THREE.Intersection) => {
+        const mesh = hit?.object as THREE.Mesh | undefined;
+        const faceIndex = hit?.faceIndex;
+        if (!pointMeasureSourcePair || !mesh?.isMesh ||
+            !Number.isSafeInteger(faceIndex) || typeof faceIndex !== 'number' ||
+            !hit?.point || ![hit.point.x, hit.point.y, hit.point.z].every(Number.isFinite)) {
+          pointMeasureSourcePair?.clear();
+          return null;
+        }
+        const key = pointMeasureSurfaceContextKey();
+        if (!pointMeasureSourcePair.setContext(key) ||
+            !pointMeasureSourcePair.selectHit({
+              contextKey: key, sourceId: mesh.uuid, mesh,
+              selectedFaceIndices: [faceIndex],
+              frontmostHit: { object: mesh, faceIndex, point: hit.point.clone() },
+            })) return null;
+        const acceptsSourceMesh = ({ mesh: candidate, sourceId }: { mesh: THREE.Mesh; sourceId: string }) => {
+          if (!candidate?.isMesh || candidate.uuid !== sourceId) return false;
+          for (let node: THREE.Object3D | null = candidate; node; node = node.parent) {
+            if (node.userData?.viewerDerived === true || node.visible === false) return false;
+            if (node === modelRoot) return true;
+          }
+          return false;
+        };
+        const acceptsClippedTriangle = ({ mesh: candidate, worldTriangle }: {
+          mesh: THREE.Mesh; worldTriangle: THREE.Vector3[];
+        }) => {
+          const materials = Array.isArray(candidate.material) ? candidate.material : [candidate.material];
+          const planes: THREE.Plane[] = [
+            ...(renderer.clippingPlanes ?? []),
+            ...materials.flatMap((material: any) => material?.clippingPlanes ?? []),
+          ];
+          return worldTriangle.length === 3 && worldTriangle.every(vertex =>
+            isPointVisibleThroughViewerHorizontalClip(vertex) &&
+            planes.every(plane => {
+              const distance = plane.distanceToPoint(vertex);
+              return Number.isFinite(distance) && distance >= -1e-7;
+            }));
+        };
+        // Bounded 3x2 visible-ray validation on the ORIGINAL selected faces,
+        // not raycasts against guessed or viewer-derived proxy geometry.
+        const rect = canvas.getBoundingClientRect();
+        const isTriangleFrontmost = ({ mesh: candidate, triangleIndex, worldTriangle }: {
+          mesh: THREE.Mesh; triangleIndex: number; worldTriangle: THREE.Vector3[];
+        }) => {
+          if (worldTriangle.length !== 3) return false;
+          for (const weights of [[0.5, 0.25, 0.25], [0.25, 0.5, 0.25], [0.25, 0.25, 0.5]]) {
+            const sample = worldTriangle[0].clone().multiplyScalar(weights[0])
+              .addScaledVector(worldTriangle[1], weights[1])
+              .addScaledVector(worldTriangle[2], weights[2]);
+            const screen = projectMeasurePoint({
+              xM: sample.x, yM: -sample.z, sourceHeightYUpM: sample.y,
+            }, activeCamera, rect);
+            if (!screen) return false;
+            let frontmost: THREE.Intersection | undefined;
+            const selected = pickVisibleWorkTest3DPoint({
+              clientX: screen.x, clientY: screen.y, rect,
+              camera: activeCamera, modelRoot, raycaster,
+              onVisibleHit: visible => { frontmost = visible; },
+            });
+            if (!selected || frontmost?.object !== candidate ||
+                frontmost.faceIndex !== triangleIndex ||
+                frontmost.point.distanceTo(sample) > 1e-4) return false;
+          }
+          return true;
+        };
+        return pointMeasureSourcePair.measure({
+          contextKey: key, acceptsSourceMesh, acceptsClippedTriangle, isTriangleFrontmost,
+        });
+      };
       const pointMeasureIdleText = 'Klikkaa ensimmäinen piste mallin pinnalta.';
       const pointMeasureSnapHint = () => pointMeasureSnapToggle.checked
         ? 'Kohdistus käytössä.' : 'Kohdistus pois käytöstä.';
@@ -5488,6 +5585,7 @@ const title = 'Private 3D viewer';
         pointMeasureA = null;
         pointMeasureB = null;
         pointMeasureOverlay.clear();
+        clearPointMeasureSurface();
         clearPointMeasurePreview();
         pointMeasureMain.textContent = pointMeasureIdleText;
         pointMeasureDetail.textContent = '';
@@ -5504,7 +5602,12 @@ const title = 'Private 3D viewer';
         const formatted = formatPointMeasureFi(result);
         pointMeasureOverlay.show(pointMeasureA, pointMeasureB);
         pointMeasureMain.textContent = formatted.main;
-        pointMeasureDetail.textContent = formatted.detail;
+        pointMeasureDetail.textContent = formatted.detail +
+          (pointMeasureSurfaceResult && pointMeasureSnapToggle.checked
+            ? ' · Valittujen pintakolmioiden lyhin paikallinen 3D-väli ' +
+              pointMeasureSurfaceResult.distanceM.toFixed(3).replace('.', ',') +
+              ' m (WORK_TEST, ei koko pinnan minimi)'
+            : '');
         canvas.dataset.pointMeasureState = 'complete';
         canvas.dataset.pointMeasureDistance = result.distanceM.toFixed(3);
       };
@@ -5572,6 +5675,8 @@ const title = 'Private 3D viewer';
           ? hints[candidate.kind] : pointMeasureSnapHint();
         canvas.dataset.pointMeasureSnap = candidate.kind;
         if (!pointMeasureStart()) {
+          clearPointMeasureSurface();
+          if (pointMeasureSnapToggle.checked) tryPointMeasureSurfaceHit(candidate.frontmostHit);
           pointMeasureA = candidate.point;
           pointMeasureB = null;
           pointMeasureOverlay.show(candidate.point, null);
@@ -5582,11 +5687,24 @@ const title = 'Private 3D viewer';
           return;
         }
         pointMeasureB = candidate.point;
+        pointMeasureSurfaceResult = pointMeasureSnapToggle.checked
+          ? tryPointMeasureSurfaceHit(candidate.frontmostHit) : null;
+        if (pointMeasureSurfaceResult) {
+          pointMeasureSurfaceOverlay.show(pointMeasureSurfaceResult.from, pointMeasureSurfaceResult.to);
+          canvas.dataset.pointMeasureSurfaceDistance = pointMeasureSurfaceResult.distanceM.toFixed(3);
+          canvas.dataset.pointMeasureSurfaceScope = 'bounded-selected-face-WORK_TEST';
+        } else {
+          pointMeasureSurfaceOverlay.clear();
+          delete canvas.dataset.pointMeasureSurfaceDistance;
+          delete canvas.dataset.pointMeasureSurfaceScope;
+        }
         updatePointMeasureDisplay();
       };
 
       pointMeasureSnapToggle.addEventListener('change', () => {
         clearPointMeasurePreview();
+        clearPointMeasureSurface();
+        if (pointMeasureB) updatePointMeasureDisplay();
         pointMeasureSnapInfo.textContent = pointMeasureSnapHint();
       });
 
@@ -6147,7 +6265,11 @@ const title = 'Private 3D viewer';
         status.textContent = 'Objektisuodatus poistettu - aiempi näkyvyystila palautettu';
       };
 
-      const setHorizontalClippingState = () => horizontalClipping.apply();
+      const setHorizontalClippingState = () => {
+        horizontalClipping.apply();
+        clearPointMeasureSurface();
+        if (pointMeasureB) updatePointMeasureDisplay();
+      };
       const resetHorizontalClipping = () => horizontalClipping.reset();
       const configureHorizontalClippingRange = () => {
         if (!fullModelScene) return;
@@ -16670,6 +16792,10 @@ const title = 'Private 3D viewer';
         standardViewLayerDefaultsInitialized = true;
       });
       layersPanel.addEventListener('change', markResearchPresetCustomized);
+      layersPanel.addEventListener('change', () => {
+        clearPointMeasureSurface();
+        if (pointMeasureB) updatePointMeasureDisplay();
+      });
       layersPanel.addEventListener('input', markResearchPresetCustomized);
       navigateToolButton.addEventListener('click', () => setViewerToolMode('navigate'));
       selectionToolButton.addEventListener('click', () => setViewerToolMode('select'));

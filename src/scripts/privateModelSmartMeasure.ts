@@ -16,6 +16,7 @@ type Feature = {
 export type MeasureCandidate = {
   point: PointMeasurePoint;
   kind: 'free' | 'corner' | 'edge' | 'perpendicular';
+  frontmostHit?: THREE.Intersection;
 };
 
 const SNAP_RADIUS_PX = 12;
@@ -67,7 +68,7 @@ export const resolveMeasureCandidate = ({
     return point && hit ? { point, hit, pixel } : null;
   };
   const direct = pickAt(pointer);
-  if (!snap) return direct ? { point: direct.point, kind: 'free' } : null;
+  if (!snap) return direct ? { point: direct.point, kind: 'free', frontmostHit: direct.hit } : null;
 
   const confirmsPoint = (world: THREE.Vector3, target: SurfaceHit, toleranceM: number, edge: boolean) => {
     const pixel = projectWorld(world, camera, rect);
@@ -124,7 +125,7 @@ export const resolveMeasureCandidate = ({
       }
     }
   }
-  if (feature && deliberateCorner(feature)) return { point: feature.pointG1, kind: 'corner' };
+  if (feature && deliberateCorner(feature)) return { point: feature.pointG1, kind: 'corner', frontmostHit: target?.hit };
 
   if (start && target) {
     const foot: PointMeasurePoint | null = feature?.segment
@@ -137,10 +138,10 @@ export const resolveMeasureCandidate = ({
           world.distanceTo(target.hit.point) <= MAX_PERPENDICULAR_ADJUSTMENT_M &&
           pixel && pixelDistance(pixel, pointer) <= PERPENDICULAR_RADIUS_PX &&
           confirmsPoint(world, target, 0.004, Boolean(feature?.segment))) {
-        return { point: foot, kind: 'perpendicular' };
+        return { point: foot, kind: 'perpendicular', frontmostHit: target.hit };
       }
     }
   }
-  if (feature) return { point: feature.pointG1, kind: feature.kind };
-  return direct ? { point: direct.point, kind: 'free' } : null;
+  if (feature) return { point: feature.pointG1, kind: feature.kind, frontmostHit: target?.hit };
+  return direct ? { point: direct.point, kind: 'free', frontmostHit: direct.hit } : null;
 };

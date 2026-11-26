@@ -509,3 +509,25 @@ test('height points can be saved, restored, viewed through the cube and removed'
   await expect(canvas).toHaveAttribute('data-height-point-visible','0');
   await expect(page.locator('#height-points-list li')).toHaveCount(0);
 });
+test('Mittaa 3D retains the sole snap toggle and never labels two points on one mesh as a two-surface minimum', async ({ page }) => {
+  const model = makeTriangleGlb();
+  await page.route('**/private-model/model.glb', route =>
+    route.fulfill({ status: 200, contentType: 'model/gltf-binary', body: model }));
+  await page.goto('/private-model/');
+  await expect(page.getByRole('status').first()).toHaveText('Malli ladattu');
+  const canvas = page.locator('#private-model-canvas');
+  await page.locator('#point-measure-tool-button').click();
+  const snap = page.locator('#point-measure-snap');
+  await snap.check();
+  const box = await canvas.boundingBox();
+  if (!box) throw new Error('Missing measure viewport');
+  await canvas.click({ position: { x: box.width / 2, y: box.height / 2 } });
+  await canvas.click({ position: { x: box.width / 2, y: box.height / 2 + 8 } });
+  await expect(canvas).toHaveAttribute('data-point-measure-state', 'complete');
+  await expect(canvas).not.toHaveAttribute('data-point-measure-surface-distance', /.+/);
+  await expect(page.locator('#point-measure-detail')).not.toContainText('Valittujen pintakolmioiden');
+  await snap.uncheck();
+  await expect(canvas).not.toHaveAttribute('data-point-measure-surface-distance', /.+/);
+  expect(await page.locator('#point-measure-snap').count()).toBe(1);
+});
+
