@@ -160,7 +160,14 @@ export function createNorthFrameToggleController({
       if (disposed) fail('controller disposed');
       // Validate before publishing a possibly-invalid mark.
       projectNorthMarker(nextQuaternion, frame);
-      quaternion = { ...nextQuaternion };
+      // THREE.Quaternion exposes x/y/z/w through prototype getters, so object
+      // spread alone copies only its internal _x/_y/_z/_w backing fields.
+      quaternion = {
+        x: nextQuaternion.x,
+        y: nextQuaternion.y,
+        z: nextQuaternion.z,
+        w: nextQuaternion.w,
+      };
       sync();
       return frame;
     },
