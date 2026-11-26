@@ -341,3 +341,18 @@ test('selected frontmost hit point must lie on the ORIGINAL face, not just have 
   position.needsUpdate=true;
   assert.equal(meshClearance(args),null);
 });
+
+test('batched source meshes fail closed because shader instance transforms are not matrixWorld',()=>{
+  const a=makeWorkTestWall(),b=makeWorkTestWall(.3);
+  assert.ok(meshClearance(meshInput(a,b)));
+  // THREE.BatchedMesh extends Mesh, but per-instance batched transforms are
+  // applied by its shader and cannot be recovered from mesh.matrixWorld.
+  // A normal Mesh with the subtype flag reproduces the dangerous type path
+  // without needing GPU/WebGL construction in this deterministic Node test.
+  a.isBatchedMesh=true;
+  assert.equal(meshClearance(meshInput(a,b)),null,
+    'do not return a plausible but false world-space clearance');
+  delete a.isBatchedMesh;
+  assert.ok(meshClearance(meshInput(a,b)),
+    'ordinary unbatched source geometry remains accepted');
+});

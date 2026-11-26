@@ -35,7 +35,7 @@ const rendersVisibleColor=(material)=>material?.visible===true &&
     (!Number.isFinite(material.opacity)||material.opacity<=0));
 const usableMesh=(mesh)=>{
   const geom=mesh?.geometry,position=geom?.attributes?.position,index=geom?.index;
-  if(!mesh?.isMesh || mesh.isInstancedMesh || mesh.isSkinnedMesh ||
+  if(!mesh?.isMesh || mesh.isInstancedMesh || mesh.isBatchedMesh || mesh.isSkinnedMesh ||
      !geom?.isBufferGeometry || !position ||
      geom.morphAttributes?.position?.length ||
      !isVisibleInHierarchy(mesh) ||
