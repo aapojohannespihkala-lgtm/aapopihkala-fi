@@ -9,14 +9,15 @@ test('selected interaction tools retain light SVG ink over the grey frame and ho
   const tools = page.locator('.toolbar > .interaction-tools');
   await expect(tools.locator('button.desk-icon[aria-pressed]')).toHaveCount(4);
 
+  const toolIds = [
+    'navigate-tool-button',
+    'selection-tool-button',
+    'point-pick-tool-button',
+    'point-measure-tool-button',
+  ];
   for (const width of [1440, 390]) {
     await page.setViewportSize({ width, height: 900 });
-    for (const id of [
-      'navigate-tool-button',
-      'selection-tool-button',
-      'point-pick-tool-button',
-      'point-measure-tool-button',
-    ]) {
+    for (const id of toolIds) {
       const tool = tools.locator(`#${id}`);
       const icon = tool.locator('svg');
       const ink = 'rgb(241, 244, 245)';
@@ -25,6 +26,20 @@ test('selected interaction tools retain light SVG ink over the grey frame and ho
       await page.mouse.move(0, 0);
       await expect(tool).toHaveAttribute('aria-pressed', 'true');
       await expect(tool).toHaveCSS('background-color', 'rgb(65, 74, 83)');
+      await expect(tool).toHaveCSS('border-color', 'rgb(100, 114, 124)');
+      await expect(tool).toHaveCSS('border-width', '1px');
+      await expect(tool).not.toHaveCSS('box-shadow', 'none');
+      await expect(icon).toHaveCSS('width', '22px');
+      await expect(icon).toHaveCSS('height', '22px');
+      await expect(tools.locator('button.desk-icon[aria-pressed="true"]')).toHaveCount(1);
+      for (const otherId of toolIds) {
+        if (otherId === id) continue;
+        const other = tools.locator(`#${otherId}`);
+        await expect(other).toHaveAttribute('aria-pressed', 'false');
+        await expect(other).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
+        await expect(other).toHaveCSS('border-color', 'rgba(0, 0, 0, 0)');
+        await expect(other).toHaveCSS('box-shadow', 'none');
+      }
       await expect(tool).toHaveCSS('color', ink);
       await expect(icon).toHaveAttribute('stroke', 'currentColor');
       await expect(icon.locator('path').first()).toHaveCSS('stroke', ink);
