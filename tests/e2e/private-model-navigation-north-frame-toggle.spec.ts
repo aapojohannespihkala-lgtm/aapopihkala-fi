@@ -164,3 +164,27 @@ test('empty synthetic source keeps a valid north projection and animation frames
     return bitmap.width > 300 && bitmap.height > 150;
   })).toBe(true);
 });
+
+test('successful view change clears stale north and cube errors from previous camera frame', async ({ page }) => {
+  await loadSyntheticViewer(page);
+  const gizmo = page.locator('#orientation-gizmo');
+  const canvas = page.locator('#private-model-canvas');
+  await expect(gizmo).toHaveAttribute('data-north-projection-ready', 'true');
+
+  // Simulate a prior transient invalid scene/camera frame. The actual recovery
+  // must take place through the production camera preset renderer, not by
+  // directly clearing the attributes in the test.
+  await gizmo.evaluate((element) => {
+    const hud = element as HTMLElement;
+    hud.dataset.northFrameError = 'transient invalid camera';
+    hud.dataset.navCubeError = 'transient cube render';
+  });
+  await expect(gizmo).toHaveAttribute('data-north-frame-error', 'transient invalid camera');
+  await expect(gizmo).toHaveAttribute('data-nav-cube-error', 'transient cube render');
+
+  await page.locator('[data-desk-kind="angle"][data-desk-id="top"]').click();
+  await expect(canvas).toHaveAttribute('data-view-preset', 'top');
+  await expect.poll(() => gizmo.getAttribute('data-north-frame-error')).toBeNull();
+  await expect.poll(() => gizmo.getAttribute('data-nav-cube-error')).toBeNull();
+  await expect(gizmo).toHaveAttribute('data-north-projection-ready', 'true');
+});
