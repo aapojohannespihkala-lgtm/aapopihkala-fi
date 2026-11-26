@@ -2,7 +2,7 @@ import { expect, test, type Page } from '@playwright/test';
 
 /**
  * VIEWER-QA-6, 26.11.2026. Pure synthetic GLB/URLs.
- * Tests a stale CURRENT load completing after a newer user choice.
+ * Tests a stale WORK_TEST load completing after a newer CURRENT user choice.
  * No protected R34 geometry, hosted scene, or HUMAN_REVIEW claim.
  */
 const syntheticGlb = (name: string, source: string): Buffer => {
@@ -67,7 +67,9 @@ async function runLateLoad(page: Page, lateStatus: 200 | 503) {
   const a = syntheticGlb('SYNTHETIC_QA6_A', urlA);
   const b = syntheticGlb('SYNTHETIC_QA6_B', urlB);
   const c = syntheticGlb('SYNTHETIC_QA6_C', urlC);
-  let hit = 0;
+  let currentHit = 0;
+  let workTestHit = 0;
+  const bId = 'synthetic-qa6-b';
   let signalB!: () => void;
   let releaseB!: () => void;
   const bStarted = new Promise<void>(resolve => { signalB = resolve; });
@@ -76,26 +78,26 @@ async function runLateLoad(page: Page, lateStatus: 200 | 503) {
   const bFinished = new Promise<void>(resolve => { bNetworkFinished = resolve; });
 
   await page.route('**/private-model/work-test/catalog.json', route =>
-    route.fulfill({ json: { candidates: [] } }));
+    route.fulfill({ json: { candidates: [{
+      id: bId, label: 'Synthetic QA6 B', path: '/private-model/work-test/synthetic-qa6-b.glb',
+    }] } }));
   await page.route('**/private-model/source-cards.json', route =>
     route.fulfill({ json: { modules: {} } }));
+  await page.route('**/private-model/work-test/synthetic-qa6-b.glb', async route => {
+    workTestHit++;
+    signalB();
+    await bReleased;
+    await route.fulfill({
+      status: lateStatus, contentType: 'model/gltf-binary',
+      body: lateStatus === 200 ? b : Buffer.from('late synthetic 503'),
+    });
+    bNetworkFinished();
+  });
   await page.route('**/private-model/model.glb', async route => {
-    const sequence = ++hit;
-    if (sequence === 1) {
-      await route.fulfill({ status: 200, contentType: 'model/gltf-binary', body: a });
-      return;
-    }
-    if (sequence === 2) {
-      signalB();
-      await bReleased;
-      await route.fulfill({
-        status: lateStatus, contentType: 'model/gltf-binary',
-        body: lateStatus === 200 ? b : Buffer.from('late synthetic 503'),
-      });
-      bNetworkFinished();
-      return;
-    }
-    await route.fulfill({ status: 200, contentType: 'model/gltf-binary', body: c });
+    currentHit++;
+    await route.fulfill({
+      status: 200, contentType: 'model/gltf-binary', body: currentHit === 1 ? a : c,
+    });
   });
 
   await page.goto('/private-model/');
@@ -103,13 +105,19 @@ async function runLateLoad(page: Page, lateStatus: 200 | 503) {
   await expect(status).toContainText('Malli ladattu', { timeout: 60_000 });
   expect(await selectCenterAndGetSource(page)).toBe(urlA);
 
-  const reload = () => page.locator('#current-model-button')
+  const loadB = () => page.locator(
+    '#work-test-options button[data-work-test-candidate="synthetic-qa6-b"]',
+  ).evaluate((element: HTMLButtonElement) => element.click());
+  const loadC = () => page.locator('#current-model-button')
     .evaluate((element: HTMLButtonElement) => element.click());
 
+  await expect(page.locator('#private-model-canvas')).toHaveAttribute(
+    'data-work-test-catalog', 'ready',
+  );
   try {
-    await reload(); // B: unresolved request, older intent.
+    await loadB(); // B: unresolved WORK_TEST request, older intent.
     await bStarted;
-    await reload(); // C: newer intent, returns immediately.
+    await loadC(); // C: newer CURRENT intent, distinct URL to avoid loader coalescing.
     await expect(status).toContainText('Malli ladattu', { timeout: 60_000 });
     expect(await selectCenterAndGetSource(page)).toBe(urlC);
   } finally {
@@ -119,8 +127,10 @@ async function runLateLoad(page: Page, lateStatus: 200 | 503) {
   await bFinished;
   // Allow the normal loader's small synthetic GLB parse/error handlers to settle.
   await page.waitForTimeout(650);
-  expect(hit).toBe(3);
+  expect(currentHit).toBe(2);
+  expect(workTestHit).toBe(1);
   await expect(status).toContainText('Malli ladattu');
+  await expect(page.locator('#private-model-canvas')).toHaveAttribute('data-model-source', 'current');
   // A late B must not silently replace the visible C model or its source card.
   expect(await selectCenterAndGetSource(page)).toBe(urlC);
 }
