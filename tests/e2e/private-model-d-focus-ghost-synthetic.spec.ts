@@ -4,7 +4,7 @@ import { expect, test } from '@playwright/test';
  * H-B / #2177: browser regression for D focus with scope-less D structure.
  * This deliberately synthetic GLB is not Ylisrinne geometry or an as-built QA.
  */
-function syntheticBuildingGlb() {
+function syntheticBuildingGlb(onlyDFootprint = false) {
   const vertices = [
     [-0.5, -0.5, -0.5], [0.5, -0.5, -0.5],
     [0.5, 0.5, -0.5], [-0.5, 0.5, -0.5],
@@ -25,7 +25,7 @@ function syntheticBuildingGlb() {
   const json = {
     asset: { version: '2.0', generator: 'H-B synthetic D focus fixture' },
     scene: 0,
-    scenes: [{ name: 'Synthetic viewer D/WHOLE focus', nodes: [0, 1, 2, 3, 4, 5] }],
+    scenes: [{ name: 'Synthetic viewer D/WHOLE focus', nodes: onlyDFootprint ? [0] : [0, 1, 2, 3, 4, 5] }],
     nodes: [
       node('D_MARKED_FOOTPRINT', [2, 0, -2], [6, 0.15, 12], {
         ylisViewScope: { apartmentScope: 'D', phaseScope: 'ACTIVE_IN_SELECTED_WORKTEST' },
@@ -118,6 +118,34 @@ test('D roof and roof-hidden presets retain unscoped D walls, split shared meshe
   expect(errors).toEqual([]);
 });
 
+
+test('D-only zero-ghost focus clears stale D preset when returning to whole building', async ({ page }) => {
+  // Exactly one D-scoped mesh: there are no outside materials or ghost children
+  // to snapshot, but the D preset is still selected and must be released.
+  await page.route('**/private-model/model.glb', route =>
+    route.fulfill({ status: 200, contentType: 'model/gltf-binary', body: syntheticBuildingGlb(true) }));
+  await page.route('**/private-model/work-test/catalog.json', route =>
+    route.fulfill({ json: { candidates: [] } }));
+  await page.route('**/private-model/source-cards.json', route =>
+    route.fulfill({ json: { modules: {} } }));
+  await page.goto('/private-model/');
+  await expect(page.locator('#viewer-status')).toContainText('Malli ladattu');
+
+  const canvas = page.locator('#private-model-canvas');
+  const toolbar = page.getByRole('toolbar', { name: 'Näkymät ja kuvakulmat' });
+  const preset = (id: string) => toolbar.locator('[data-desk-kind="preset"][data-desk-id="' + id + '"]');
+  for (let cycle = 0; cycle < 2; cycle++) {
+    await preset('d-roof').click();
+    await expect(canvas).toHaveAttribute('data-d-focus-ghost', /^d-roof\|in:1\|out:0\|split:0\|hidden:0\|aids:0$/);
+    await expect(preset('d-roof')).toHaveAttribute('aria-pressed', 'true');
+    await preset('whole-building').click();
+    await expect(canvas).toHaveAttribute('data-standard-view-preset', 'whole-building');
+    await expect(canvas).not.toHaveAttribute('data-d-focus-ghost', /.+/);
+    await expect(canvas).not.toHaveAttribute('data-d-focus-footprint', /.+/);
+    await expect(preset('whole-building')).toHaveAttribute('aria-pressed', 'true');
+    await expect(preset('d-roof')).toHaveAttribute('aria-pressed', 'false');
+  }
+});
 
 test('Chromium material, clipping and hit-testing restore exactly through D focus cycles and model swap', async ({ page }) => {
   const { build } = await import('esbuild');

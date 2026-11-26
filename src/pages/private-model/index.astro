@@ -15110,11 +15110,10 @@ const title = 'Private 3D viewer';
       const disposeLayersPresentation = () => {
         // Other preset/model paths also dispose Layerit directly. Always undo
         // #2177's temporary ghost copies before restoring the layer baseline.
-        if (deskDFocus.active) {
-          deskDFocus.restore();
-          delete canvas.dataset.dFocusGhost;
-          delete canvas.dataset.dFocusFootprint;
-        }
+        if (deskDFocus.active) deskDFocus.restore();
+        // The D scope can be active in the UI even with zero changed materials.
+        delete canvas.dataset.dFocusGhost;
+        delete canvas.dataset.dFocusFootprint;
         concealedTechnical?.dispose();
         concealedTechnical = null;
         delete canvas.dataset.concealedTechnicalCount;
@@ -15134,7 +15133,9 @@ const title = 'Private 3D viewer';
       // Any scene change also ends the whole-D focus presentation (restores originals).
       beforeLayersSceneChange = () => {
         r31InspectionExitHook();
-        if (deskDFocus.active) { deskDFocus.restore(); delete canvas.dataset.dFocusGhost; delete canvas.dataset.dFocusFootprint; }
+        if (deskDFocus.active) deskDFocus.restore();
+        delete canvas.dataset.dFocusGhost;
+        delete canvas.dataset.dFocusFootprint;
         disposeLayersPresentation();
       };
 
@@ -15944,6 +15945,11 @@ const title = 'Private 3D viewer';
       }
       const deskEnterWholeBuilding = () => {
         applyStandardViewPreset('whole-building', true);
+        // A D-only scene has no ghost snapshots, but still has a D-preset
+        // selection. Clear the UI scope unconditionally on this same-scene path.
+        deskDFocus.restore();
+        delete canvas.dataset.dFocusGhost;
+        delete canvas.dataset.dFocusFootprint;
         applyViewerLayerState({ roofVisible: true }, 'preset:whole-building');
         deskSyncLayerRoof(true);
         deskQueueDownspoutZones();
