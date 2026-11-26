@@ -7,7 +7,7 @@ test('selected interaction tools retain light SVG ink over the grey frame and ho
   await page.goto('/private-model/?c70=1');
 
   const tools = page.locator('.toolbar > .interaction-tools');
-  await expect(tools.locator('button.desk-icon')).toHaveCount(4);
+  await expect(tools.locator('button.desk-icon[aria-pressed]')).toHaveCount(4);
 
   for (const width of [1440, 390]) {
     await page.setViewportSize({ width, height: 900 });
