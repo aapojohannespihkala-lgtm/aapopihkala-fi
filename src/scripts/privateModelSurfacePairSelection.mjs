@@ -75,8 +75,14 @@ export const createSurfacePairSelection = ({calculate,maxFaces=MAX_PATCH_FACES}=
         typeof acceptsClippedTriangle!=='function' ||
         typeof isTriangleFrontmost!=='function') return null;
     try {
-      return calculate({sourceA:first,sourceB:second,acceptsSourceMesh,
-        acceptsClippedTriangle,isTriangleFrontmost}) ?? null;
+      // A view/clip/selection event may invalidate the pair while a caller
+      // evaluates the selected source surfaces. Never return that stale result.
+      const firstAtStart=first,secondAtStart=second,contextAtStart=contextKey;
+      const result=calculate({sourceA:firstAtStart,sourceB:secondAtStart,
+        acceptsSourceMesh,acceptsClippedTriangle,isTriangleFrontmost});
+      if(contextKey!==contextAtStart || first!==firstAtStart ||
+         second!==secondAtStart) return null;
+      return result ?? null;
     } catch {return null;}
   };
   return Object.freeze({setContext,selectHit,measure,status,

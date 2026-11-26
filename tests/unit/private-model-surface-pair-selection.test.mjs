@@ -106,3 +106,25 @@ test('invalid construction disallows unbounded work or non-function calculator',
   assert.equal(createSurfacePairSelection({calculate:()=>null,maxFaces:65}),null);
   assert.equal(createSurfacePairSelection({calculate:()=>null,maxFaces:0}),null);
 });
+
+test('reentrant context/selection changes during calculate discard stale clearance',()=>{
+  const a=mesh('A'),b=mesh('B'),c=mesh('C');
+  const variants=[
+    pair=>pair.setContext('modelSHA:scene823:floor2F:clip0:source0'),
+    pair=>pair.clear(),
+    pair=>pair.selectHit(hit('C',c)),
+  ];
+  for(const invalidate of variants){
+    let pair;
+    pair=createSurfacePairSelection({calculate:()=>{
+      invalidate(pair);
+      return Object.freeze({distanceM:.12});
+    }});
+    assert.equal(pair.setContext(goodChecks.contextKey),true);
+    assert.equal(pair.selectHit(hit('A',a)),true);
+    assert.equal(pair.selectHit(hit('B',b)),true);
+    assert.equal(pair.measure(goodChecks),null,
+      'selection/context invalidated during calculate must fail closed');
+    assert.equal(pair.status().ready,false);
+  }
+});
