@@ -117,6 +117,16 @@ const readSource=(selected,maxTriangles,acceptsSourceMesh,
       if(!finite(w.x,w.y,w.z)) return null;
       worldTriangle.push(w);
     }
+    // A selected face index and a finite hit point are insufficient evidence
+    // that they still refer to the SAME face. Scene or geometry changes can
+    // leave a stale hit attached to this mesh. Validate its exact world-space
+    // triangle before considering even a caller-approved bounded face patch.
+    if(isPatch && faceIndex===anchor.faceIndex){
+      const closest=new THREE.Triangle(...worldTriangle)
+        .closestPointToPoint(anchor.point,new THREE.Vector3());
+      if(!finite(closest.x,closest.y,closest.z) ||
+         closest.distanceToSquared(anchor.point)>1e-10) return null;
+    }
     const triangle=Object.freeze(worldTriangle.map(pointG1));
     triangles.push(triangle);
     const context=Object.freeze({

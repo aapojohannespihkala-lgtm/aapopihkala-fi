@@ -265,3 +265,27 @@ test('source patch material-group visibility must match the selected face, not a
   a.geometry.addGroup(0,180*3,0); // overlapping group is ambiguous
   assert.equal(meshClearance(good),null);
 });
+
+test('selected frontmost hit point must lie on the ORIGINAL face, not just have a valid mesh and faceIndex',()=>{
+  const a=makeLargeWorkTestWall(),b=makeLargeWorkTestWall(.3);
+  const da=facePatch('selected-A',a,[52,53],52);
+  const db=facePatch('selected-B',b,[58],58);
+  const args=meshInput(a,b,{sourceA:da,sourceB:db});
+  assert.ok(meshClearance(args)); // genuine on-edge Three raycast coordinate
+
+  // This face remains part of the patch, and all permissive caller callbacks
+  // still return true; stale off-plane or outside-face hits must be refused.
+  const withPoint=(point)=>({...args,sourceA:{
+    ...da,frontmostHit:{...da.frontmostHit,point},
+  }});
+  assert.equal(meshClearance(withPoint(new THREE.Vector3(.01,.2,-.2))),null);
+  assert.equal(meshClearance(withPoint(new THREE.Vector3(0,1.5,-.2))),null);
+  assert.ok(meshClearance(withPoint(new THREE.Vector3(0,.5,-.5))));
+
+  // Geometry is edited after a previously valid frontmost hit. A valid mesh
+  // identity and original face index do not make its stale coordinate valid.
+  const position=a.geometry.attributes.position;
+  for(let j=0;j<3;j++)position.setX(3*52+j,1);
+  position.needsUpdate=true;
+  assert.equal(meshClearance(args),null);
+});
