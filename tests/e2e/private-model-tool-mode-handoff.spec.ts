@@ -82,4 +82,44 @@ for (const width of [1440, 390]) {
     await expect(cubeButton).toHaveAttribute('aria-expanded', 'true');
     await checkMode('navigate');
   });
+
+  // Exercise every directed mode pair, not only the linear navigation sequence.
+  // This catches stale panels and pressed flags when users change direction.
+  test(`all directed toolbar handoffs remain exclusive at ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: width === 390 ? 844 : 900 });
+    await page.route('**/private-model/**/*.glb*', route => route.fulfill({ status: 404 }));
+    await page.goto('/private-model/?c70=1');
+
+    const canvas = page.locator('#private-model-canvas');
+    const toolbar = page.locator('.toolbar > .interaction-tools');
+    const modes = ['navigate', 'select', 'point-pick', 'point-measure'] as const;
+    const buttons = [
+      toolbar.locator('#navigate-tool-button'),
+      toolbar.locator('#selection-tool-button'),
+      toolbar.locator('#point-pick-tool-button'),
+      toolbar.locator('#point-measure-tool-button'),
+    ];
+    const check = async (index: number) => {
+      await expect(canvas).toHaveAttribute('data-interaction-mode', modes[index]);
+      for (let i = 0; i < buttons.length; i += 1) {
+        await expect(buttons[i]).toHaveAttribute('aria-pressed', String(i === index));
+      }
+      await expect(page.locator('#point-pick-panel')).toBeVisible({ visible: index === 2 });
+      await expect(page.locator('#point-measure-panel')).toBeVisible({ visible: index === 3 });
+      await expect(canvas).toHaveAttribute('data-point-pick-state', 'empty');
+      await expect(canvas).toHaveAttribute('data-point-measure-state', 'empty');
+    };
+
+    for (let from = 0; from < modes.length; from += 1) {
+      await buttons[from].click();
+      await check(from);
+      for (let to = 0; to < modes.length; to += 1) {
+        if (to === from) continue;
+        await buttons[to].click();
+        await check(to);
+        await buttons[from].click();
+        await check(from);
+      }
+    }
+  });
 }
