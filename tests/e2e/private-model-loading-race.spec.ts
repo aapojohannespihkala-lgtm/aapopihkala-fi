@@ -142,3 +142,76 @@ test('latest C selection wins when delayed B succeeds after C', async ({ page })
 test('latest C selection and status survive delayed B HTTP failure', async ({ page }) => {
   await runLateLoad(page, 503);
 });
+
+
+test('overlapping A/B comparisons preserve the newest candidate and view state', async ({ page }) => {
+  test.setTimeout(90_000);
+  await page.setViewportSize({ width: 1280, height: 900 });
+  const bId = 'synthetic-qa6-b';
+  const cId = 'synthetic-qa6-c';
+  const bSource = 'https://drive.google.com/file/d/SYNTHETIC_QA6_B/view';
+  const cSource = 'https://drive.google.com/file/d/SYNTHETIC_QA6_C/view';
+  const b = syntheticGlb('SYNTHETIC_QA6_B', bSource);
+  const c = syntheticGlb('SYNTHETIC_QA6_C', cSource);
+  const a = syntheticGlb('SYNTHETIC_QA6_A', 'https://drive.google.com/file/d/SYNTHETIC_QA6_A/view');
+
+  let beginB!: () => void;
+  let releaseB!: () => void;
+  let finishB!: () => void;
+  const bStarted = new Promise<void>(resolve => { beginB = resolve; });
+  const bReleased = new Promise<void>(resolve => { releaseB = resolve; });
+  const bFinished = new Promise<void>(resolve => { finishB = resolve; });
+
+  await page.route('**/private-model/work-test/catalog.json', route =>
+    route.fulfill({ json: { candidates: [
+      { id: bId, label: 'Synthetic QA6 B', path: '/private-model/work-test/synthetic-qa6-b.glb' },
+      { id: cId, label: 'Synthetic QA6 C', path: '/private-model/work-test/synthetic-qa6-c.glb' },
+    ] } }));
+  await page.route('**/private-model/source-cards.json', route =>
+    route.fulfill({ json: { modules: {} } }));
+  await page.route('**/private-model/model.glb', route =>
+    route.fulfill({ status: 200, contentType: 'model/gltf-binary', body: a }));
+  await page.route('**/private-model/work-test/synthetic-qa6-b.glb', async route => {
+    beginB();
+    await bReleased;
+    await route.fulfill({ status: 200, contentType: 'model/gltf-binary', body: b });
+    finishB();
+  });
+  await page.route('**/private-model/work-test/synthetic-qa6-c.glb', route =>
+    route.fulfill({ status: 200, contentType: 'model/gltf-binary', body: c }));
+
+  await page.goto('/private-model/');
+  const canvas = page.locator('#private-model-canvas');
+  await expect(page.locator('#viewer-status')).toContainText('Malli ladattu', { timeout: 60_000 });
+  await expect(canvas).toHaveAttribute('data-work-test-catalog', 'ready');
+
+  const choose = async (id: string) => page.locator('#work-test-select').evaluate(
+    (element: HTMLSelectElement, choice: string) => {
+      element.value = choice;
+      element.dispatchEvent(new Event('change', { bubbles: true }));
+    }, id);
+  const compare = () => page.locator('#compare-model-button')
+    .evaluate((element: HTMLButtonElement) => element.click());
+
+  try {
+    await choose(bId);
+    await compare();
+    await bStarted;
+    // The second comparison loads C while B is still pending.
+    await choose(cId);
+    await compare();
+    await expect(canvas).toHaveAttribute('data-model-source', 'work-test');
+    await expect(canvas).toHaveAttribute('data-model-comparison', 'active');
+    await expect(canvas).toHaveAttribute('data-model-comparison-candidate', cId);
+    expect(await selectCenterAndGetSource(page)).toBe(cSource);
+  } finally {
+    releaseB();
+  }
+  await bFinished;
+  await page.waitForTimeout(650);
+  // The late B callback must not restore B's snapshot or overwrite C's badge.
+  await expect(canvas).toHaveAttribute('data-model-source', 'work-test');
+  await expect(canvas).toHaveAttribute('data-model-comparison', 'active');
+  await expect(canvas).toHaveAttribute('data-model-comparison-candidate', cId);
+  expect(await selectCenterAndGetSource(page)).toBe(cSource);
+});

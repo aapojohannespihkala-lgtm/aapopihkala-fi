@@ -14977,6 +14977,10 @@ const title = 'Private 3D viewer';
         const snapshot = captureComparisonView();
         const targetKind: ModelSourceKind =
           activeModelSourceKind === 'work-test' ? 'current' : 'work-test';
+        // The loader starts synchronously and advances this shared intent once.
+        // A stale compare must not overwrite a newer model choice, or resurrect a
+        // comparison cancelled by changing the candidate in the picker.
+        const expectedLoadIntent = modelLoadIntentVersion + 1;
 
         canvas.dataset.modelComparison = 'switching';
         canvas.dataset.modelComparisonCandidate = candidate.id;
@@ -14987,6 +14991,8 @@ const title = 'Private 3D viewer';
           await loadWorkTestCandidate(candidate);
         }
 
+        if (modelLoadIntentVersion !== expectedLoadIntent ||
+            workTestSelect.value !== candidate.id) return;
         if (activeModelSourceKind !== targetKind) {
           clearModelComparisonState();
           return;
