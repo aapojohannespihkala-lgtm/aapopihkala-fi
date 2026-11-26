@@ -90,8 +90,12 @@ test.describe('narrow touch controls', () => {
     // Touch browsers differ in whether a tapped button keeps :hover; both
     // colors belong to the approved selected frame, never the neutral frame.
     await expect(tool).toHaveCSS('background-color', /rgb\((65, 74, 83|78, 86, 94)\)/);
-    await page.locator('#navigate-tool-button').tap();
+    const navigate = page.locator('#navigate-tool-button');
+    await navigate.tap();
     await expect(tool).toHaveAttribute('aria-pressed', 'false');
+    await expect(navigate).toHaveAttribute('aria-pressed', 'true');
+    // Selection is sticky across touch focus/hover changes.
+    await expect(navigate).toHaveCSS('background-color', /rgb\((65, 74, 83|78, 86, 94)\)/);
 
     const layers = page.getByRole('button', { name: 'Layerit', exact: true });
     await layers.tap();
@@ -100,5 +104,8 @@ test.describe('narrow touch controls', () => {
     await layers.tap();
     await expect(layers).toHaveAttribute('aria-expanded', 'false');
     await expect(page.locator('#layers-panel')).toBeHidden();
+    // Opening a side panel must not silently reset the active viewport tool.
+    await expect(navigate).toHaveAttribute('aria-pressed', 'true');
+    await expect(tool).toHaveAttribute('aria-pressed', 'false');
   });
 });
