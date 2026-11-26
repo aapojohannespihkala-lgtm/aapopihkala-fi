@@ -60,6 +60,26 @@ test('indexed and nonindexed geometry produce same physical boundary',()=>{
   assert.equal(indexed.length,4);
 });
 
+test('a throwing world-to-G1 transform fails closed for indexed and nonindexed meshes',()=>{
+  // During a scene swap the transform may be invalidated after some vertices.
+  // Do not return partial boundaries or propagate an exception to the viewer.
+  const interrupted=(x,y,z)=>{
+    if(x===2) throw new Error('scene switched during vertex conversion');
+    return g(x,y,z);
+  };
+  assert.deepEqual(extractMeasureFeatureEdges({
+    positions:squarePositions,toG1:interrupted,
+  }),[]);
+  assert.deepEqual(extractMeasureFeatureEdges({
+    positions:[0,0,0,2,0,0,2,1,0,0,1,0],
+    indices:[0,1,2,0,2,3],toG1:interrupted,
+  }),[]);
+  // Failure of one read must not poison the next valid source mesh.
+  assert.equal(extractMeasureFeatureEdges({
+    positions:squarePositions,toG1:identity,
+  }).length,4);
+});
+
 test('crease extraction preserves a genuine fold but rejects fake planar edges',()=>{
   const vertices=[
     0,0,0,1,0,0,0,1,0,
@@ -73,6 +93,22 @@ test('crease extraction preserves a genuine fold but rejects fake planar edges',
   assert.ok(fold);
   assert.equal(extractMeasureFeatureEdges({positions:vertices,toG1:null}).length,0);
   assert.equal(extractMeasureFeatureEdges({positions:vertices,toG1:identity,maxTriangles:1}).length,0);
+});
+
+
+test('a non-manifold three-face edge rejects the whole mesh rather than offering false boundary snaps',()=>{
+  // Three triangles share A-B, while their six outer edges look selectable.
+  const positions=[
+    0,0,0, 1,0,0, 0,1,0, 0,0,1, 0,-1,0,
+  ];
+  const indices=[0,1,2, 1,0,3, 0,1,4];
+  const nonindexed=indices.flatMap(i=>positions.slice(i*3,i*3+3));
+  assert.deepEqual(extractMeasureFeatureEdges({
+    positions,indices,toG1:identity,
+  }),[]);
+  assert.deepEqual(extractMeasureFeatureEdges({
+    positions:nonindexed,toG1:identity,
+  }),[]);
 });
 
 const squareEdges=[
@@ -516,4 +552,169 @@ test('source-mesh adapter recognises a 3m L-corner across 2cm triangulated arms 
       ...args,frontmostHit:{object:mesh,point:new THREE.Vector3(2,-.05,0)},
     }),null);
   }
+});
+
+test('dense visible wall candidates use one nearest-first visibility raycast',()=>{
+  for(const count of [1000,10000,30000]){
+    // Reverse rank: each successive 20px-long edge is closer to the pointer.
+    // The old scan raycast every edge as the best distance improved.
+    const segments=Array.from({length:count},(_,i)=>{
+      const y=.1*(count-i)/count;
+      return {a:g(-.1,y),b:g(.1,y)};
+    });
+    let checked=0;
+    const result=chooseMeasureFeatureSnap({
+      pointerPx:{x:0,y:0},hitPointG1:g(0,0),
+      segments,projectToScreen:projector,
+      isCandidateVisible:()=>{checked++;return true;},
+    });
+    assert.equal(result?.kind,'edge','dense visible edge '+count);
+    assert.ok(Math.abs(result.pointG1.yM-.1/count)<1e-8);
+    assert.equal(checked,1,'nearest-first visibility budget '+count);
+  }
+});
+
+test('nearest-first visibility rejects hidden nearest and uses next visible edge',()=>{
+  const segments=[
+    {a:g(-.1,.06),b:g(.1,.06)},
+    {a:g(-.1,.02),b:g(.1,.02)},
+  ];
+  let checked=0;
+  const hit=chooseMeasureFeatureSnap({
+    pointerPx:{x:0,y:0},hitPointG1:g(0,0),
+    segments,projectToScreen:projector,
+    isCandidateVisible:(p)=>{checked++;return p.yM>.04;},
+  });
+  assert.equal(hit?.kind,'edge');
+  same(hit.pointG1,g(0,.06));
+  assert.equal(checked,2,'hidden nearest requires exactly one fallback');
+  const tied=chooseMeasureFeatureSnap({
+    pointerPx:{x:0,y:0},hitPointG1:g(0,0),
+    segments:[{a:g(-.1,.05),b:g(.1,.05)},{a:g(-.1,-.05),b:g(.1,-.05)}],
+    projectToScreen:projector,isCandidateVisible:checker,
+  });
+  same(tied.pointG1,g(0,.05));
+});
+
+test('dense hidden edge candidates use a bounded nearest-first visibility budget',()=>{
+  // Forty long, parallel visible-size features are within the cursor window.
+  // Without a bound, every candidate would trigger a costly source re-raycast.
+  const segments=Array.from({length:40},(_,i)=>({
+    a:g(-.1,i*.001),b:g(.1,i*.001),
+  }));
+  const args={
+    pointerPx:{x:0,y:0},hitPointG1:g(0,0),segments,
+    projectToScreen:projector,
+  };
+  let probes=0;
+  assert.equal(chooseMeasureFeatureSnap({
+    ...args,isCandidateVisible:()=>{probes++;return false;},
+  }),null);
+  assert.equal(probes,16);
+
+  probes=0;
+  const nearestVisible=chooseMeasureFeatureSnap({
+    ...args,isCandidateVisible:()=>++probes===4,
+  });
+  assert.equal(nearestVisible.kind,'edge');
+  assert.ok(Math.abs(nearestVisible.pointG1.yM-.003)<1e-12);
+  assert.equal(probes,4);
+
+  probes=0;
+  assert.equal(chooseMeasureFeatureSnap({
+    ...args,isCandidateVisible:()=>++probes===17,
+  }),null);
+  assert.equal(probes,16);
+});
+
+test('hidden corner probes do not starve an eligible edge, and budgets fail closed',()=>{
+  const checked=[];
+  const args={
+    pointerPx:{x:0,y:0},hitPointG1:g(.025,.025),
+    segments:squareEdges,projectToScreen:projector,
+    maxVisibilityChecks:1,
+    isCandidateVisible:(_p,kind)=>{checked.push(kind);return kind==='edge';},
+  };
+  assert.equal(chooseMeasureFeatureSnap(args)?.kind,'edge');
+  assert.deepEqual(checked,['corner','edge']);
+  assert.equal(chooseMeasureFeatureSnap({...args,maxVisibilityChecks:0}),null);
+  assert.equal(chooseMeasureFeatureSnap({...args,maxVisibilityChecks:17}),null);
+  assert.equal(chooseMeasureFeatureSnap({...args,maxVisibilityChecks:1.5}),null);
+});
+
+test('projection and source visibility callback exceptions fail closed without throwing',()=>{
+  const args={
+    pointerPx:{x:2,y:2},hitPointG1:g(.02,.02),
+    segments:squareEdges,projectToScreen:projector,isCandidateVisible:checker,
+  };
+  assert.equal(chooseMeasureFeatureSnap({
+    ...args,projectToScreen:()=>{throw Error('scene disposed during projection');},
+  }),null);
+  let calls=0;
+  assert.equal(chooseMeasureFeatureSnap({
+    ...args,isCandidateVisible:(_p,kind)=>{
+      calls++;
+      if(kind==='corner') throw Error('frontmost source visibility is stale');
+      return true;
+    },
+  }),null,'a failed corner check must not fall back to an unchecked edge');
+  assert.ok(calls>0,'the throwing visibility path was exercised');
+  assert.equal(chooseMeasureFeatureSnap(args)?.kind,'corner',
+    'valid visible source geometry still snaps normally');
+});
+
+test('snap edge cache invalidates when position backing array changes without a version bump',()=>{
+  const geometry=new THREE.BufferGeometry();
+  const position=new THREE.Float32BufferAttribute([
+    0,0,0, 1,0,0, 0,1,0,
+  ],3);
+  geometry.setAttribute('position',position);
+  const mesh=new THREE.Mesh(geometry,new THREE.MeshBasicMaterial());
+  const camera=new THREE.OrthographicCamera(-5,5,5,-5,.1,20);
+  camera.position.z=8;
+  camera.lookAt(0,0,0);
+  camera.updateMatrixWorld(true);
+  const at=x=>{
+    const ndc=new THREE.Vector3(x,0,0).project(camera);
+    return snapFromVisibleMeshHit({
+      frontmostHit:{object:mesh,point:new THREE.Vector3(x+.02,.02,0)},
+      camera,rect:{left:0,top:0,width:400,height:400},
+      pointerPx:{x:200*(ndc.x+1),y:200*(1-ndc.y)},
+      acceptsFrontmostHit:()=>true,isFeatureVisible:()=>true,
+    });
+  };
+  assert.equal(at(0)?.pointG1.xM,0);
+  const version=position.version;
+  position.array=new Float32Array([3,0,0, 4,0,0, 3,1,0]);
+  assert.equal(position.version,version);
+  assert.equal(at(3)?.pointG1.xM,3,'stale old triangle must not shadow the replaced world geometry');
+});
+
+test('snap edge cache invalidates when index backing array changes without a version bump',()=>{
+  const geometry=new THREE.BufferGeometry();
+  geometry.setAttribute('position',new THREE.Float32BufferAttribute([
+    0,0,0, 1,0,0, 0,1,0,
+    3,0,0, 4,0,0, 3,1,0,
+  ],3));
+  const index=new THREE.BufferAttribute(new Uint16Array([0,1,2]),1);
+  geometry.setIndex(index);
+  const mesh=new THREE.Mesh(geometry,new THREE.MeshBasicMaterial());
+  const camera=new THREE.OrthographicCamera(-5,5,5,-5,.1,20);
+  camera.position.z=8;
+  camera.lookAt(0,0,0);
+  camera.updateMatrixWorld(true);
+  const at=x=>{
+    const ndc=new THREE.Vector3(x,0,0).project(camera);
+    return snapFromVisibleMeshHit({
+      frontmostHit:{object:mesh,point:new THREE.Vector3(x+.02,.02,0)},
+      camera,rect:{left:0,top:0,width:400,height:400},
+      pointerPx:{x:200*(ndc.x+1),y:200*(1-ndc.y)},
+      acceptsFrontmostHit:()=>true,isFeatureVisible:()=>true,
+    });
+  };
+  assert.equal(at(0)?.pointG1.xM,0);
+  const version=index.version;
+  index.array=new Uint16Array([3,4,5]);
+  assert.equal(index.version,version);
+  assert.equal(at(3)?.pointG1.xM,3,'index replacement must rebuild source-triangle snap features');
 });

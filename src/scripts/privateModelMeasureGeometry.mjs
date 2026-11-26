@@ -52,8 +52,13 @@ export const extractMeasureFeatureEdges = ({
   const getVertex=(index)=>{
     if (!Number.isInteger(index) || index<0 || index*3+2>=positions.length) return null;
     if (vertices.has(index)) return vertices.get(index);
-    const p=toG1(positions[index*3],positions[index*3+1],positions[index*3+2]);
-    const v=valid(p) ? coords(p) : null;
+    // Scene replacement can invalidate the caller's world-space transform.
+    // A partial set of source edges is unsafe for snapping: fail closed.
+    let v=null;
+    try {
+      const p=toG1(positions[index*3],positions[index*3+1],positions[index*3+2]);
+      v=valid(p) ? coords(p) : null;
+    } catch {return null;}
     vertices.set(index,v);
     return v;
   };
@@ -71,7 +76,12 @@ export const extractMeasureFeatureEdges = ({
       if(ka===kb) continue;
       const key=ka<kb?ka+'|'+kb:kb+'|'+ka;
       const entry=edges.get(key);
-      if(entry){entry.normals.push(unit);}
+      if(entry){
+        // Three faces sharing a source edge are non-manifold: do not
+        // expose the remaining boundaries as trustworthy snap features.
+        if(entry.normals.length>=2) return [];
+        entry.normals.push(unit);
+      }
       else edges.set(key,{a:point(a),b:point(b),normals:[unit]});
     }
   }
@@ -167,6 +177,10 @@ export const chooseMeasureFeatureSnap = ({
   tolerancePx=12,maxWorldGapM=0.4,cornerPriorityPx=tolerancePx,
   // Small details remain free surface points until they are large enough on screen.
   minCornerArmPx=18,
+  // Bound costly frontmost source re-raycasts even on dense feature meshes.
+  // This cap applies independently to corners and edges, so occluded corners
+  // cannot exhaust the budget needed to test a visible edge.
+  maxVisibilityChecks=16,
 }) => {
   if(!pointerPx || ![pointerPx.x,pointerPx.y].every(Number.isFinite) ||
      !valid(hitPointG1) || !Array.isArray(segments) ||
@@ -175,16 +189,25 @@ export const chooseMeasureFeatureSnap = ({
      !Number.isFinite(maxWorldGapM) || maxWorldGapM<=0 ||
      !Number.isFinite(cornerPriorityPx) || cornerPriorityPx<0 ||
      !Number.isFinite(minCornerArmPx) || minCornerArmPx<0 ||
-     segments.length>30000) return null;
+     !Number.isInteger(maxVisibilityChecks) || maxVisibilityChecks<1 ||
+     maxVisibilityChecks>16 || segments.length>30000) return null;
   const base=coords(hitPointG1);
   const projected=new Map(),chainSpans=new Map();
+  // Projector and raycaster callbacks can fail while a scene is replaced.
+  // Any such failure invalidates the whole snap rather than escaping to UI.
+  let callbackFailed=false;
   const getPixel=(p)=>{
-    if(!valid(p)) return null;
-    const k=weldKey(coords(p));
-    if(!projected.has(k)) projected.set(k,projectToScreen(p));
-    const q=projected.get(k);
-    return q && (q.visible===true || q.offscreen===true) &&
-      Number.isFinite(q.x) && Number.isFinite(q.y) ? q : null;
+    try {
+      if(!valid(p)) return null;
+      const k=weldKey(coords(p));
+      if(!projected.has(k)) projected.set(k,projectToScreen(p));
+      const q=projected.get(k);
+      return q && (q.visible===true || q.offscreen===true) &&
+        Number.isFinite(q.x) && Number.isFinite(q.y) ? q : null;
+    } catch {
+      callbackFailed=true;
+      return null;
+    }
   };
   let topology=cachedTopologies.get(segments);
   if(!topology){
@@ -211,15 +234,15 @@ export const chooseMeasureFeatureSnap = ({
     }
     return chainSpans.get(chain);
   };
-  let bestCorner=null,bestEdge=null;
+  // Rank geometrically possible features before expensive source/occlusion
+  // raycasts. The first visible candidate in each class is exactly the
+  // nearest visible candidate; stable sorting preserves first-seen ties.
+  const cornerCandidates=[],edgeCandidates=[];
   const withinWorld=(p)=>norm(subtract(coords(p),base))<=maxWorldGapM;
   const consider=(kind,p,distancePx,segment)=>{
-    const best=kind==='corner' ? bestCorner : bestEdge;
-    if(distancePx>tolerancePx || distancePx>=(best?.distancePx ?? Infinity) ||
-       !withinWorld(p) || isCandidateVisible(p,kind)!==true) return;
+    if(distancePx>tolerancePx || !withinWorld(p)) return;
     const candidate={kind,pointG1:p,distancePx,workTestOnly:true,...(segment ? {segment} : {})};
-    if(kind==='corner') bestCorner=candidate;
-    else bestEdge=candidate;
+    (kind==='corner' ? cornerCandidates : edgeCandidates).push(candidate);
   };
   for(const key of localJunctionKeys){
     const v=junctions.get(key);
@@ -246,7 +269,7 @@ export const chooseMeasureFeatureSnap = ({
     if(den<1e-10) continue;
     const t=Math.max(0,Math.min(1,((pointerPx.x-a.x)*dx+(pointerPx.y-a.y)*dy)/den));
     const distancePx=Math.hypot(pointerPx.x-a.x-t*dx,pointerPx.y-a.y-t*dy);
-    if(distancePx>tolerancePx || distancePx>=(bestEdge?.distancePx ?? Infinity) ||
+    if(distancePx>tolerancePx ||
        Math.max(Math.sqrt(den),spanOf(edge))<minCornerArmPx) continue;
     // Perspective screen interpolation is not linear in world-space. A caller
     // projecting a perspective camera provides inverse clip W on both endpoints.
@@ -260,7 +283,27 @@ export const chooseMeasureFeatureSnap = ({
     const p=point(av.map((v,i)=>v+worldT*(bv[i]-v)));
     consider('edge',p,distancePx,chainFor(edge).straightSegment ?? segment);
   }
-  return bestCorner?.distancePx<=cornerPriorityPx ? bestCorner : bestEdge || bestCorner;
+  if(callbackFailed) return null;
+  const nearestVisible=(candidates)=>{
+    candidates.sort((a,b)=>a.distancePx-b.distancePx);
+    // Distance-sorted and bounded: beyond this many hidden candidates,
+    // fail closed rather than launching thousands of visibility raycasts.
+    for(let i=0;i<Math.min(candidates.length,maxVisibilityChecks);i++){
+      const candidate=candidates[i];
+      try {
+        if(isCandidateVisible(candidate.pointG1,candidate.kind)===true) return candidate;
+      } catch {
+        callbackFailed=true;
+        return null;
+      }
+    }
+    return null;
+  };
+  const bestCorner=nearestVisible(cornerCandidates);
+  if(callbackFailed) return null;
+  if(bestCorner?.distancePx<=cornerPriorityPx) return bestCorner;
+  const bestEdge=nearestVisible(edgeCandidates);
+  return callbackFailed ? null : bestEdge || bestCorner;
 };
 
 /** Foot of the perpendicular on the finite edge, or null if it needs an extension. */
