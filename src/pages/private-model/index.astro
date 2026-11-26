@@ -16096,6 +16096,12 @@ const title = 'Private 3D viewer';
           menuPreset.addEventListener('click', () => {
             const kept = before;
             before = null;
+            // Explicit site-plan selection is north-up in the active map frame.
+            // Other content presets still preserve the user's prior camera pose.
+            if (menuPreset === sitePresetButton && mapPlanNorth()) {
+              deskSync();
+              return;
+            }
             if (!kept?.angle) return;
             if (deskCameraToRestore() !== kept.angle) deskAngleButtons[kept.angle]?.click();
             if (kept.pose) deskApplyPose(kept.pose);
