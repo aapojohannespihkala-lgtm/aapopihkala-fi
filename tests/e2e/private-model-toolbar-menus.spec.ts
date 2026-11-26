@@ -132,7 +132,7 @@ test('private viewer uses the approved toolbar and restores tool windows from th
   const cubeButton = toolbar.getByRole('button', { name: 'Suuntailmaisin' });
   const cube = viewport.locator('#orientation-gizmo');
   await expect(cubeButton).toHaveAttribute('aria-expanded', 'true');
-  await expect(cubeButton).toHaveCSS('color', 'rgb(196, 205, 210)');
+  await expect(cubeButton).toHaveCSS('color', 'rgb(241, 244, 245)');
   await expect(cube).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
   await expect(cube).toHaveCSS('top', '12px');
   await expect(cube.locator('.viewport-panel-minimize')).toHaveCount(0);
