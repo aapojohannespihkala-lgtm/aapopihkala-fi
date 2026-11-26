@@ -6231,7 +6231,7 @@ test('private viewer composes p139AD Locus assumed-Z routes below the ground har
   await expect(page.locator('#height-scale')).toBeVisible();
   await expect(page.locator('#height-scale .height-scale-label').first()).toBeVisible();
   await expect(page.getByRole('status')).toHaveText(
-    'Ortografinen julkisivu +Y - YLIS-G1-LOCAL Z-asteikko',
+    'Ortografinen julkisivu +Y',
   );
 
   await clickViewAction(page, 'Julk +X');
