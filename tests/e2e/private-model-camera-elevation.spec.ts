@@ -181,7 +181,8 @@ test('four elevation rulers remain pixel-aligned through wheel zoom and north sw
     expect(viewport).not.toBeNull();
     expect(max).toBeGreaterThan(min);
     const last = (await guides.count()) - 1;
-    expect(last).toBeGreaterThan(0);
+    // A zoomed-in camera may show just one metric tick while remaining correctly aligned.
+    expect(last).toBeGreaterThanOrEqual(0);
     for (const index of new Set([0, Math.floor(last / 2), last])) {
       const guide = guides.nth(index);
       const z = Number(await guide.getAttribute('data-height-m'));
