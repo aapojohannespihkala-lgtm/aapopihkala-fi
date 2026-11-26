@@ -45,51 +45,35 @@ export async function runDesktopStartupAttempt(candidateId, load, getStorage = (
   }
 }
 
+const presetOutlineIcon = shapes => `<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+  <g fill="none" stroke="#F7F8F9" stroke-width="1.55" stroke-linecap="round" stroke-linejoin="round">
+${shapes}
+  </g>
+</svg>`;
+
 export const DESKTOP_PRESETS = Object.freeze([
-  Object.freeze({ id: 'whole-building', label: 'Koko rakennus', aria: 'rakennus kokonaan', icon: `<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-  <g transform="translate(12 0) scale(0.93 1) translate(-12 0)">
-    <path fill="#F7F8F9" d="M4.1 3.5H19.9Q20.25 3.5 20.34 3.86L21.6 8.93Q21.74 9.5 21.15 9.5H2.85Q2.26 9.5 2.4 8.93L3.66 3.86Q3.75 3.5 4.1 3.5Z"/>
-    <rect x="3.2" y="10.75" width="3.65" height="10.75" rx=".48" fill="#F7F8F9"/>
-    <rect x="7.85" y="10.75" width="3.65" height="10.75" rx=".48" fill="#F7F8F9"/>
-    <rect x="12.5" y="10.75" width="3.65" height="10.75" rx=".48" fill="#F7F8F9"/>
-    <rect x="17.15" y="10.75" width="3.65" height="10.75" rx=".48" fill="#F7F8F9"/>
-  </g>
-</svg>` }),
-  Object.freeze({ id: 'd-roof', label: 'Koko D katolla', icon: `<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-  <g transform="translate(12 0) scale(1.17 1) translate(-12 0)">
-    <path fill="#F7F8F9" d="M11.6 3.65Q12 3.35 12.4 3.65L19.48 8.77Q19.68 8.93 19.68 9.18Q19.68 9.5 19.3 9.5H4.7Q4.32 9.5 4.32 9.18Q4.32 8.93 4.52 8.77Z"/>
-    <rect x="5.15" y="10.75" width="13.7" height="4.75" rx=".58" fill="#F7F8F9"/>
-    <rect x="5.15" y="16.75" width="13.7" height="4.75" rx=".58" fill="#F7F8F9"/>
-  </g>
-</svg>` }),
-  Object.freeze({ id: 'd-apartment', label: 'Koko D, katto piilossa', icon: `<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-  <g transform="translate(12 0) scale(1.17 1) translate(-12 0)">
-    <path fill="#8597A3" d="M11.6 3.65Q12 3.35 12.4 3.65L19.48 8.77Q19.68 8.93 19.68 9.18Q19.68 9.5 19.3 9.5H4.7Q4.32 9.5 4.32 9.18Q4.32 8.93 4.52 8.77Z"/>
-    <rect x="5.15" y="10.75" width="13.7" height="4.75" rx=".58" fill="#F7F8F9"/>
-    <rect x="5.15" y="16.75" width="13.7" height="4.75" rx=".58" fill="#F7F8F9"/>
-  </g>
-</svg>` }),
-  Object.freeze({ id: 'd-2f', label: 'D yläkerta', icon: `<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-  <g transform="translate(12 0) scale(1.17 1) translate(-12 0)">
-    <path fill="#8597A3" d="M11.6 3.65Q12 3.35 12.4 3.65L19.48 8.77Q19.68 8.93 19.68 9.18Q19.68 9.5 19.3 9.5H4.7Q4.32 9.5 4.32 9.18Q4.32 8.93 4.52 8.77Z"/>
-    <rect x="5.15" y="10.75" width="13.7" height="4.75" rx=".58" fill="#F7F8F9"/>
-    <rect x="5.15" y="16.75" width="13.7" height="4.75" rx=".58" fill="#8597A3"/>
-  </g>
-</svg>` }),
-  Object.freeze({ id: 'd-1f', label: 'D alakerta', icon: `<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-  <g transform="translate(12 0) scale(1.17 1) translate(-12 0)">
-    <path fill="#8597A3" d="M11.6 3.65Q12 3.35 12.4 3.65L19.48 8.77Q19.68 8.93 19.68 9.18Q19.68 9.5 19.3 9.5H4.7Q4.32 9.5 4.32 9.18Q4.32 8.93 4.52 8.77Z"/>
-    <rect x="5.15" y="10.75" width="13.7" height="4.75" rx=".58" fill="#8597A3"/>
-    <rect x="5.15" y="16.75" width="13.7" height="4.75" rx=".58" fill="#F7F8F9"/>
-  </g>
-</svg>` }),
-  Object.freeze({ id: 'technical', label: 'Talotekniikka korostettuna', toggle: true, icon: `<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-  <g transform="translate(12 0) scale(1.17 1) translate(-12 0)">
-    <path fill="#8597A3" d="M11.6 3.65Q12 3.35 12.4 3.65L19.48 8.77Q19.68 8.93 19.68 9.18Q19.68 9.5 19.3 9.5H4.7Q4.32 9.5 4.32 9.18Q4.32 8.93 4.52 8.77Z"/>
-    <rect x="5.15" y="10.75" width="13.7" height="10.75" rx=".58" fill="#8597A3"/>
-  </g>
-  <path fill="#F7F8F9" fill-rule="evenodd" d="M11.341 13.28L11.357 12.603L12.643 12.603L12.659 13.28A2.92 2.92 0 0 1 13.545 13.647L14.035 13.18L14.945 14.09L14.478 14.58A2.92 2.92 0 0 1 14.845 15.466L15.522 15.482L15.522 16.768L14.845 16.784A2.92 2.92 0 0 1 14.478 17.67L14.945 18.16L14.035 19.07L13.545 18.603A2.92 2.92 0 0 1 12.659 18.97L12.643 19.647L11.357 19.647L11.341 18.97A2.92 2.92 0 0 1 10.455 18.603L9.965 19.07L9.055 18.16L9.522 17.67A2.92 2.92 0 0 1 9.155 16.784L8.478 16.768L8.478 15.482L9.155 15.466A2.92 2.92 0 0 1 9.522 14.58L9.055 14.09L9.965 13.18L10.455 13.647A2.92 2.92 0 0 1 11.341 13.28ZM12 14.775A1.35 1.35 0 1 1 12 17.475A1.35 1.35 0 1 1 12 14.775Z"/>
-</svg>` }),
+  Object.freeze({ id: 'whole-building', label: 'Koko rakennus', aria: 'rakennus kokonaan', icon: presetOutlineIcon(`
+    <path d="M2.6 8.3 4.7 4.1H19.3L21.4 8.3Z M3.25 8.3V19.9H20.75V8.3 M7.6 8.3V19.9 M12 8.3V19.9 M16.4 8.3V19.9"/>`) }),
+  Object.freeze({ id: 'd-roof', label: 'Koko D katolla', icon: presetOutlineIcon(`
+    <path d="M3.6 9.2 12 3.65 20.4 9.2"/>
+    <path d="M4.7 9.2H19.3V19.5H4.7Z M4.7 14.35H19.3"/>`) }),
+  Object.freeze({ id: 'd-apartment', label: 'Koko D, katto piilossa', icon: presetOutlineIcon(`
+    <path d="M3.6 9.2 12 3.65 20.4 9.2" stroke="#8597A3"/>
+    <path d="M4.7 9.2H19.3V19.5H4.7Z M4.7 14.35H19.3"/>`) }),
+  Object.freeze({ id: 'd-2f', label: 'D yläkerta', icon: presetOutlineIcon(`
+    <path d="M3.6 9.2 12 3.65 20.4 9.2" stroke="#8597A3"/>
+    <path d="M4.7 14.35V19.5H19.3V14.35" stroke="#8597A3"/>
+    <path d="M4.7 9.2H19.3V14.35H4.7Z"/>`) }),
+  Object.freeze({ id: 'd-1f', label: 'D alakerta', icon: presetOutlineIcon(`
+    <path d="M3.6 9.2 12 3.65 20.4 9.2" stroke="#8597A3"/>
+    <path d="M4.7 14.35V9.2H19.3V14.35" stroke="#8597A3"/>
+    <path d="M4.7 14.35H19.3V19.5H4.7Z"/>`) }),
+  Object.freeze({ id: 'technical', label: 'Talotekniikka korostettuna', toggle: true, icon: presetOutlineIcon(`
+    <path d="M3.6 9.2 12 3.65 20.4 9.2 M4.7 9.2V19.5H19.3V9.2" stroke="#8597A3"/>
+    <path d="M10.28 16.4H11.8V12.68 M11.8 13.95H14.32"/>
+    <circle cx="9.1" cy="16.4" r="1.18"/>
+    <circle cx="11.8" cy="11.5" r="1.18"/>
+    <circle cx="15.5" cy="13.95" r="1.18"/>`) }),
 ]);
 
 export const DESKTOP_ANGLES = Object.freeze([
@@ -180,8 +164,11 @@ export function activeDesktopPreset({ standardViewPreset, roofVisible }) {
   return DESKTOP_PRESETS.some(p => p.id === standardViewPreset) ? standardViewPreset : null;
 }
 /** Which camera-angle icon is pressed for a viewer state. */
-export function activeDesktopAngle({ standardViewPreset, viewPreset }) {
-  if (typeof standardViewPreset === 'string' && standardViewPreset.startsWith('elev-')) return standardViewPreset;
+export function activeDesktopAngle({ viewPreset, elevationDirection }) {
+  if (viewPreset === 'elevation') {
+    const id = `elev-${elevationDirection}`;
+    return DESKTOP_ANGLES.some(angle => angle.id === id) ? id : null;
+  }
   if (viewPreset === 'isometric') return 'iso';
   return ['orbit', 'top'].includes(viewPreset) ? viewPreset : null;
 }
