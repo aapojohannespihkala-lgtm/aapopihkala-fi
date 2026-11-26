@@ -16005,11 +16005,18 @@ const title = 'Private 3D viewer';
             deskSync();
           },
           angle(id: string) {
+            const previousAngle = deskCurrentAngle();
             const pose = deskCapturePose();
             deskAngleButtons[id]?.click();
-            // 3D <-> isometric: same place and size, only the projection changes.
+            // 3D <-> isometric keeps direction. From a face-on elevation,
+            // retain target and scale, but use the new isometric view direction.
             if (pose && ((id === 'iso' && activeCamera === isoCamera) || (id === 'orbit' && activeCamera === camera))) {
-              deskApplyPose(pose);
+              const fromElevationToIso = id === 'iso' && previousAngle.startsWith('elev-');
+              const isoDirection = fromElevationToIso
+                ? isoCamera.position.clone().sub(isoControls.target) : null;
+              const nextPose = isoDirection && isoDirection.lengthSq() > 1e-18
+                ? { ...pose, offset: isoDirection.normalize() } : pose;
+              deskApplyPose(nextPose);
               canvas.dataset.deskProjectionSwitch = `${pose.kind}->${id === 'iso' ? 'iso' : 'persp'}`;
             }
             deskSync();
