@@ -32,6 +32,8 @@ export type PrivateWorkTestCandidate = {
   objectKey: string;
   expectedSize: number;
   expectedSha256: string;
+  // Hold a source-verified candidate out of viewer routes until its exact scene and sourceLinks contract is received.
+  viewerReady?: boolean;
 };
 
 export const PRIVATE_WORK_TEST_CANDIDATES = [
@@ -4717,6 +4719,20 @@ const C80_R34_9921_WORK_TEST_CANDIDATE = {
   expectedSha256: '99210ea517c18cf24fa5f9702abe12ed2a8058a0c606d38b863e19802a270725',
 } as const satisfies PrivateWorkTestCandidate;
 
+// R34 IV125 s894/895: source-verified append-only BOTH successor. R2 object/readback,
+// exact scene selection and output-SHA sourceLinks are NOT yet verified. The Worker
+// permits protected upload/verify but hides this candidate from the viewer until all
+// gates are completed in the current combined viewer integration.
+const C80_R34_IV125_894_895_WORK_TEST_CANDIDATE = {
+  id: 'c80-r34-iv125-cdb38108-both-sc894-sc895-work-test',
+  label: 'R34 IV125 scene894/895 BOTH - WORK_TEST/HOST_HOLD (viewer intake pending)',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/c80-r34-iv125-cdb38108-both-sc894-sc895-work-test.glb`,
+  objectKey: 'work-test/c80-r34-iv125-cdb38108-both-sc894-sc895-work-test.glb',
+  expectedSize: 69_980_160,
+  expectedSha256: 'cdb3810894993a89243f12367cfc58623aca6a9a1c58f8dae2639f2b16ed5e69',
+  viewerReady: false,
+} as const satisfies PrivateWorkTestCandidate;
+
 // R33 3a226f98: R32H + D2F WC open door leaf out of the wall end and floor (COW); whole D (818/819) and 2F (820/821).
 const C80_R33_3A22_WORK_TEST_CANDIDATE = {
   id: 'c80-r33-3a226f98-d-2f-sc818-sc821-work-test',
@@ -4775,6 +4791,7 @@ const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
   D_C80_HI12_WORK_TEST_CANDIDATE,
   D_C80_SOURCE_ONLY_PREVIEW_CANDIDATE,
   D_C70_SOURCE_ONLY_PREVIEW_CANDIDATE,
+  C80_R34_IV125_894_895_WORK_TEST_CANDIDATE,
   C80_R34_9921_WORK_TEST_CANDIDATE,
   C80_R33_3A22_WORK_TEST_CANDIDATE,
   C80_R32H_C26D_WORK_TEST_CANDIDATE,
@@ -5205,8 +5222,12 @@ const privateJsonResponse = (request: Request, payload: unknown, status = 200) =
 export const isPrivateWorkTestPath = (pathname: string) =>
   pathname === PRIVATE_WORK_TEST_PREFIX || pathname.startsWith(`${PRIVATE_WORK_TEST_PREFIX}/`);
 
+// Only view-ready candidates are resolvable as browser GLBs; upload/verify remains
+// keyed by ID through the publisher/readback authentication gates.
+const isPrivateWorkTestViewerReady = (candidate: PrivateWorkTestCandidate) => candidate.viewerReady !== false;
+
 export const getPrivateWorkTestCandidate = (pathname: string) =>
-  PRIVATE_WORK_TEST_RUNTIME_CANDIDATES.find((candidate) => candidate.path === pathname) ?? null;
+  PRIVATE_WORK_TEST_RUNTIME_CANDIDATES.find((candidate) => candidate.path === pathname && isPrivateWorkTestViewerReady(candidate)) ?? null;
 
 export const getPrivateWorkTestCandidateById = (id: string) =>
   PRIVATE_WORK_TEST_RUNTIME_CANDIDATES.find((candidate) => candidate.id === id) ?? null;
@@ -5603,6 +5624,7 @@ const privateWorkTestCatalogResponse = async (
   const listedObjects = await privateWorkTestCatalogListedObjects(bucket);
 
   for (const candidate of PRIVATE_WORK_TEST_RUNTIME_CANDIDATES) {
+    if (!isPrivateWorkTestViewerReady(candidate)) continue;
     const object = listedObjects
       ? listedObjects.get(candidate.objectKey) ?? null
       : await privateWorkTestCatalogObject(bucket, candidate.objectKey);
