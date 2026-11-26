@@ -2285,6 +2285,7 @@ const title = 'Private 3D viewer';
       import { pickSelectableObjectAtClientPoint } from '../../scripts/privateModelSelectionPicking';
       import { shouldInvalidateModelSelection } from '../../scripts/privateModelSceneSelectionInvalidation.mjs';
       import { sourceLinksForSelectionEvidence } from '../../scripts/privateModelSourceCardLinkGuard.mjs';
+      import { R34_IV125_INTAKE, r34Iv125ExactSource, r34Iv125SelectScene, r34Iv125BoundSourceLinks } from '../../scripts/privateModelR34Iv125Intake.mjs';
       import { r32hLK75SelectionMetadataEntries } from '../../scripts/privateModelR32HLK75CoverSourceGuard.mjs';
       import { r33LK75SelectionMetadataEntries, R33_LK75_COVER_SOURCE } from '../../scripts/privateModelR33LK75CoverSourceGuard.mjs';
       import { r34LK75SelectionMetadataEntries, R34_LK75_COVER_SOURCE } from '../../scripts/privateModelR33LK75CoverSourceGuard.mjs';
@@ -6217,7 +6218,11 @@ const title = 'Private 3D viewer';
             ...collectSelectionMetadataEntries(object, modelRoot),
             ...lk75SourceMetadata,
           ],
-          sourceLinks: sourceLinksForSelectionEvidence(effectiveSourceEvidence, collectSelectionSourceLinks(object, modelRoot)),
+          sourceLinks: layersLoadedSha === R34_IV125_INTAKE.glbSha256
+            ? r34Iv125BoundSourceLinks({ gltf: sourceNodeModel(layersGltf), digest: layersLoadedSha,
+                mountedScene: modelRoot.children[0] ?? null, object,
+                links: sourceLinksForSelectionEvidence(effectiveSourceEvidence, collectSelectionSourceLinks(object, modelRoot)) })
+            : sourceLinksForSelectionEvidence(effectiveSourceEvidence, collectSelectionSourceLinks(object, modelRoot)),
           sourceEvidence: effectiveSourceEvidence,
         });
 
@@ -12877,7 +12882,7 @@ const title = 'Private 3D viewer';
                     : verifiedP137EOriginal,
                 P137E_SCENE67_EXACT_ASSET_PATH.replace(/[^/]+$/, ''),
               )
-            : await loadModelWithSourceCards(loader, candidate.path));
+            : await loadModelWithSourceCards(loader, candidate.path, r34Iv125ExactSource(candidate)));
           if (candidate.id === 'ylisrinne-d-c80r2-unified64-c018-c050-1f2fboth-work-test-20261031') {
             // G2b 64-scene exact source: one candidate with the original
             // 1F60/2F62/BOTH63 roots. Never remount generic filtered geometry.
@@ -12885,6 +12890,9 @@ const title = 'Private 3D viewer';
           } else if (candidate.id === 'ylisrinne-d-c80-hi20-unified52-both-sc51-work-test-20261030') {
             // Original 52-scene GLB, not the former scene51-only extraction.
             gltf.scene = resolveHi20Unified52Scenes(gltf, loadedModelSha256(gltf)).BOTH;
+          } else if (candidate.id === R34_IV125_INTAKE.candidateId) {
+            // Source bytes are SHA-checked before parse; scene292 is historic default, NEVER IV125 BOTH.
+            gltf.scene = r34Iv125SelectScene(gltf, loadedModelSha256(gltf));
           }
           loadFailurePhase = 'review-runtime-failed';
           {

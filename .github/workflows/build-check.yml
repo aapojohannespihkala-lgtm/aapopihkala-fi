@@ -304,6 +304,7 @@ jobs:
             tests/unit/private-model-r34-height-point-seeds.test.mjs \
             tests/unit/private-model-r33-k3-switch-inheritance.test.mjs \
             tests/unit/private-model-r34-receipt.test.mjs \
+            tests/unit/private-model-r34-iv125-intake.test.mjs \
             tests/unit/private-model-r34-wc-handle-seat-source-receipt.test.mjs \
             tests/unit/private-model-r32h-lk75-cover-guard.test.mjs \
             tests/unit/private-model-r33-lk75-cover-guard.test.mjs \
