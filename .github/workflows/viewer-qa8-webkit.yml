@@ -1,0 +1,59 @@
+# Optional QA8 browser-engine check for the viewer. No auth, deploy or release.
+# Linux WebKit is not Safari; a separate real Safari/HUMAN_REVIEW remains open.
+name: Viewer QA8 WebKit (Linux, review only)
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize]
+    paths:
+      - ".github/workflows/viewer-qa8-webkit.yml"
+      - "tests/e2e/private-model-qa8-webkit-toolbar.spec.ts"
+
+permissions:
+  contents: read
+
+jobs:
+  qa8-webkit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      PLAYWRIGHT_IMAGE: mcr.microsoft.com/playwright:v1.62.1-noble
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24.20.0
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Build local preview
+        run: npm run build
+      - name: Run actual WebKit engine, 1440 keyboard and 390 touch
+        shell: bash
+        run: |
+          set -euo pipefail
+          node_root="$(dirname "$(dirname "$(readlink -f "$(command -v node)")")")"
+          test -x "$node_root/bin/node"
+          docker pull "$PLAYWRIGHT_IMAGE"
+          docker run --rm --init --ipc=host \
+            --user "$(id -u):$(id -g)" \
+            -e CI=true -e HOME=/tmp -e QA8_BROWSER=webkit \
+            -e PATH=/opt/node24/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin \
+            -v "$GITHUB_WORKSPACE:/work" -v "$node_root:/opt/node24:ro" \
+            -w /work "$PLAYWRIGHT_IMAGE" \
+            node --input-type=module -e '
+              import { webkit } from "@playwright/test";
+              import { readFileSync } from "node:fs";
+              const version = JSON.parse(readFileSync("node_modules/@playwright/test/package.json", "utf8")).version;
+              if (version !== "1.62.1") throw new Error("Playwright package/image version mismatch");
+              const browser = await webkit.launch();
+              try { console.log("WebKit browser version:", browser.version()); }
+              finally { await browser.close(); }
+            '
+          docker run --rm --init --ipc=host \
+            --user "$(id -u):$(id -g)" \
+            -e CI=true -e HOME=/tmp -e QA8_BROWSER=webkit \
+            -e PATH=/opt/node24/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin \
+            -v "$GITHUB_WORKSPACE:/work" -v "$node_root:/opt/node24:ro" \
+            -w /work "$PLAYWRIGHT_IMAGE" \
+            npx playwright test tests/e2e/private-model-qa8-webkit-toolbar.spec.ts --workers=1
