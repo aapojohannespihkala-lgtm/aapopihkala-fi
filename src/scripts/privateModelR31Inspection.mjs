@@ -282,6 +282,17 @@ export function buildR31DrainageOverlay(THREE, gltf) {
     if (!kind) return;
     const points = worldPoints(THREE, object);
     if (points.length < 2) return;
+    if (kind === 'route' && object.isLineSegments) {
+      // glTF LINES consists of independent vertex pairs. A continuous source
+      // pipe may use consecutive pairs only when their endpoints touch.
+      // Never invent a tube across a disconnected source-pair boundary.
+      if (points.length % 2 !== 0 || points.some((p) =>
+        !Number.isFinite(p.x) || !Number.isFinite(p.y) || !Number.isFinite(p.z))) return;
+      for (let i = 0; i < points.length; i += 2) {
+        if (points[i].distanceTo(points[i + 1]) <= 1e-6) return;
+        if (i > 0 && points[i - 1].distanceTo(points[i]) > 1e-6) return;
+      }
+    }
     const data = owner.userData ?? {};
     let mesh;
     let card = {};

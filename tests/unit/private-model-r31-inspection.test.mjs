@@ -671,3 +671,37 @@ test('Locus low voltage: the 32 selected G2b lines / 410 segments, own level, no
   }
   assert.equal(r31SiteLayerKeyForNetwork('lowvolt'), 'lowvolt');
 });
+
+test('glTF LINES route pairs must touch: disjoint segments never become an invented drainage pipe', () => {
+  const source = (vertices) => {
+    const scenes = Array.from({ length: 60 }, () => new THREE.Group());
+    const scene = scenes[R31_DRAINAGE_SOURCE.sceneIndex];
+    scene.userData = { Pass: R31_DRAINAGE_SOURCE.pass };
+    const owner = new THREE.Group();
+    owner.userData = { representationKind: 'referenceRouteWork' };
+    const geometry = new THREE.BufferGeometry().setFromPoints(
+      vertices.map(([x, y, z]) => new THREE.Vector3(x, y, z)));
+    owner.add(new THREE.LineSegments(geometry, new THREE.LineBasicMaterial()));
+    scene.add(owner);
+    const json = { scenes: scenes.map((_, i) => ({
+      name: i === R31_DRAINAGE_SOURCE.sceneIndex ? R31_DRAINAGE_SOURCE.sceneName : `s${i}`,
+    })) };
+    return { scenes, parser: { json } };
+  };
+  const v = (x, z) => [x, -1, z];
+  // Source glTF LINES pairs: 0->1 and 50->51. The old fallback invented
+  // an additional 49 m tube from point 1 to point 50.
+  const disconnected = source([v(0, 0), v(1, 0), v(50, 0), v(51, 0)]);
+  assert.equal(buildR31DrainageOverlay(THREE, disconnected), null,
+    'cannot draw a connected route when source LINES pairs are disjoint');
+  const contiguous = source([v(0, 0), v(1, 0), v(1, 0), v(2, -1)]);
+  const overlay = buildR31DrainageOverlay(THREE, contiguous);
+  assert.deepEqual(overlay.userData.counts, { well: 0, route: 1, open: 0 });
+  assert.equal(overlay.children.length, 1);
+  overlay.children[0].geometry.computeBoundingBox();
+  const box = overlay.children[0].geometry.boundingBox;
+  assert.ok(box.min.x < 0.1 && box.max.x > 1.9 && box.min.z < -0.9,
+    'connected LINES pairs preserve the source pipe bend');
+  assert.equal(buildR31DrainageOverlay(THREE, source([v(0, 0), v(1, 0), v(2, 0)])), null,
+    'unpaired trailing source vertex must not create a route');
+});
