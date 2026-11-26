@@ -296,6 +296,9 @@ jobs:
             tests/unit/private-model-r33-kitchen-wastewater-clash-guard.test.mjs \
             tests/unit/private-model-r34-kitchen-wastewater-clash-guard.test.mjs \
             tests/unit/private-model-r33-receipt.test.mjs \
+            tests/unit/private-model-height-points-store.test.mjs \
+            tests/unit/private-model-height-point-scene-scope.test.mjs \
+            tests/unit/private-model-r34-height-point-seeds.test.mjs \
             tests/unit/private-model-r33-k3-switch-inheritance.test.mjs \
             tests/unit/private-model-r34-receipt.test.mjs \
             tests/unit/private-model-r34-wc-handle-seat-source-receipt.test.mjs \

@@ -32,6 +32,8 @@ test('hit -> miss -> hit -> miss clears XYZ, source/mesh, clipboard, overlay and
     pointPickSurface:{textContent:''},
     pointPickFeedback:{textContent:''},
     pointPickCopyButton:{disabled:true},
+    hpPending:null,
+    hpAddButton:{disabled:true},
     canvas:{dataset:{pointPickState:'empty'}},
   };
   vm.createContext(state);
@@ -42,6 +44,8 @@ test('hit -> miss -> hit -> miss clears XYZ, source/mesh, clipboard, overlay and
     state.pointPickSource.textContent='WORK_TEST SHA previous kerros 1F';
     state.pointPickSurface.textContent='Osumapinta: old-mesh';
     state.pointPickCopyButton.disabled=false;
+    state.hpPending={point:{xM:1},sha:'old',scope:'floor:1F'};
+    state.hpAddButton.disabled=false;
     state.canvas.dataset.pointPickState='picked';
   };
   for(let i=0;i<2;i++){
@@ -50,6 +54,8 @@ test('hit -> miss -> hit -> miss clears XYZ, source/mesh, clipboard, overlay and
     miss.runInContext(state);
     assert.equal(state.pointPickClipboardText,'','no cached XYZ/GLB SHA/mesh copied after miss');
     assert.equal(state.pointPickCopyButton.disabled,true);
+    assert.equal(state.hpPending,null,'stale height-point candidate must be cleared');
+    assert.equal(state.hpAddButton.disabled,true,'stale point cannot be stored');
     assert.equal(state.canvas.dataset.pointPickState,'empty');
     assert.equal(state.pointPickMain.textContent,'Klikkaa näkyvää mallipintaa.');
     assert.equal(state.pointPickSource.textContent,'YLIS-G1-LOCAL, koordinaatit metreinä');
