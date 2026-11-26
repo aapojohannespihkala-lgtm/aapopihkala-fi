@@ -605,3 +605,24 @@ test('hidden corner probes do not starve an eligible edge, and budgets fail clos
   assert.equal(chooseMeasureFeatureSnap({...args,maxVisibilityChecks:17}),null);
   assert.equal(chooseMeasureFeatureSnap({...args,maxVisibilityChecks:1.5}),null);
 });
+
+test('projection and source visibility callback exceptions fail closed without throwing',()=>{
+  const args={
+    pointerPx:{x:2,y:2},hitPointG1:g(.02,.02),
+    segments:squareEdges,projectToScreen:projector,isCandidateVisible:checker,
+  };
+  assert.equal(chooseMeasureFeatureSnap({
+    ...args,projectToScreen:()=>{throw Error('scene disposed during projection');},
+  }),null);
+  let calls=0;
+  assert.equal(chooseMeasureFeatureSnap({
+    ...args,isCandidateVisible:(_p,kind)=>{
+      calls++;
+      if(kind==='corner') throw Error('frontmost source visibility is stale');
+      return true;
+    },
+  }),null,'a failed corner check must not fall back to an unchecked edge');
+  assert.ok(calls>0,'the throwing visibility path was exercised');
+  assert.equal(chooseMeasureFeatureSnap(args)?.kind,'corner',
+    'valid visible source geometry still snaps normally');
+});

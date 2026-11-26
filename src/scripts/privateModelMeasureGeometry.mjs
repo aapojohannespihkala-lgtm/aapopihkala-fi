@@ -183,13 +183,21 @@ export const chooseMeasureFeatureSnap = ({
      maxVisibilityChecks>16 || segments.length>30000) return null;
   const base=coords(hitPointG1);
   const projected=new Map(),chainSpans=new Map();
+  // Projector and raycaster callbacks can fail while a scene is replaced.
+  // Any such failure invalidates the whole snap rather than escaping to UI.
+  let callbackFailed=false;
   const getPixel=(p)=>{
-    if(!valid(p)) return null;
-    const k=weldKey(coords(p));
-    if(!projected.has(k)) projected.set(k,projectToScreen(p));
-    const q=projected.get(k);
-    return q && (q.visible===true || q.offscreen===true) &&
-      Number.isFinite(q.x) && Number.isFinite(q.y) ? q : null;
+    try {
+      if(!valid(p)) return null;
+      const k=weldKey(coords(p));
+      if(!projected.has(k)) projected.set(k,projectToScreen(p));
+      const q=projected.get(k);
+      return q && (q.visible===true || q.offscreen===true) &&
+        Number.isFinite(q.x) && Number.isFinite(q.y) ? q : null;
+    } catch {
+      callbackFailed=true;
+      return null;
+    }
   };
   let topology=cachedTopologies.get(segments);
   if(!topology){
@@ -265,19 +273,27 @@ export const chooseMeasureFeatureSnap = ({
     const p=point(av.map((v,i)=>v+worldT*(bv[i]-v)));
     consider('edge',p,distancePx,chainFor(edge).straightSegment ?? segment);
   }
+  if(callbackFailed) return null;
   const nearestVisible=(candidates)=>{
     candidates.sort((a,b)=>a.distancePx-b.distancePx);
     // Distance-sorted and bounded: beyond this many hidden candidates,
     // fail closed rather than launching thousands of visibility raycasts.
     for(let i=0;i<Math.min(candidates.length,maxVisibilityChecks);i++){
       const candidate=candidates[i];
-      if(isCandidateVisible(candidate.pointG1,candidate.kind)===true) return candidate;
+      try {
+        if(isCandidateVisible(candidate.pointG1,candidate.kind)===true) return candidate;
+      } catch {
+        callbackFailed=true;
+        return null;
+      }
     }
     return null;
   };
   const bestCorner=nearestVisible(cornerCandidates);
+  if(callbackFailed) return null;
   if(bestCorner?.distancePx<=cornerPriorityPx) return bestCorner;
-  return nearestVisible(edgeCandidates) || bestCorner;
+  const bestEdge=nearestVisible(edgeCandidates);
+  return callbackFailed ? null : bestEdge || bestCorner;
 };
 
 /** Foot of the perpendicular on the finite edge, or null if it needs an extension. */
