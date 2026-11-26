@@ -321,3 +321,36 @@ test('adapter rejects mesh animation or partial-draw geometry rather than false 
   mesh.geometry.setDrawRange(0,Infinity);
   assert.ok(snapFromVisibleMeshHit(args));
 });
+
+// Small tessellated details should not displace the nearest long wall edge.
+const salientSegments=[
+  {a:g(0,0),b:g(2,0)},
+  {a:g(.5,0),b:g(.54,0)},
+  {a:g(.5,0),b:g(.5,.04)},
+];
+
+test('smart snap ignores subpixel-scale detail corners beside a major wall edge',()=>{
+  const snap=chooseMeasureFeatureSnap({
+    pointerPx:{x:50,y:1},hitPointG1:g(.5,.01),segments:salientSegments,
+    projectToScreen:projector,isCandidateVisible:checker,
+  });
+  assert.equal(snap.kind,'edge');
+  same(snap.pointG1,g(.5,0));
+});
+
+test('the same small corner becomes measurable when zoomed in',()=>{
+  const snap=chooseMeasureFeatureSnap({
+    pointerPx:{x:250,y:1},hitPointG1:g(.5,.005),segments:salientSegments,
+    projectToScreen:p=>({x:p.xM*500,y:p.yM*500,visible:true}),
+    isCandidateVisible:checker,
+  });
+  assert.equal(snap.kind,'corner');
+  same(snap.pointG1,g(.5,0));
+});
+
+test('corner salience threshold rejects invalid inputs',()=>{
+  assert.equal(chooseMeasureFeatureSnap({
+    pointerPx:{x:0,y:0},hitPointG1:g(0,0),segments:squareEdges,
+    projectToScreen:projector,isCandidateVisible:checker,minCornerArmPx:-1,
+  }),null);
+});

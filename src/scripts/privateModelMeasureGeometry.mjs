@@ -94,6 +94,8 @@ export const extractMeasureFeatureEdges = ({
 export const chooseMeasureFeatureSnap = ({
   pointerPx,hitPointG1,segments,projectToScreen,isCandidateVisible,
   tolerancePx=12,maxWorldGapM=0.4,cornerPriorityPx=tolerancePx,
+  // Ignore tiny projected corner arms unless the user zooms close enough to inspect them.
+  minCornerArmPx=18,
 }) => {
   if(!pointerPx || ![pointerPx.x,pointerPx.y].every(Number.isFinite) ||
      !valid(hitPointG1) || !Array.isArray(segments) ||
@@ -101,6 +103,7 @@ export const chooseMeasureFeatureSnap = ({
      !Number.isFinite(tolerancePx) || tolerancePx<=0 ||
      !Number.isFinite(maxWorldGapM) || maxWorldGapM<=0 ||
      !Number.isFinite(cornerPriorityPx) || cornerPriorityPx<0 ||
+     !Number.isFinite(minCornerArmPx) || minCornerArmPx<0 ||
      segments.length>30000) return null;
   const base=coords(hitPointG1);
   const projected=new Map(),junctions=new Map();
@@ -121,11 +124,13 @@ export const chooseMeasureFeatureSnap = ({
   });
   for(const s of clean){
     const a=coords(s.a),b=coords(s.b);
+    const ap=getPixel(s.a),bp=getPixel(s.b);
+    const spanPx=ap && bp ? Math.hypot(ap.x-bp.x,ap.y-bp.y) : 0;
     for(const [p,other] of [[a,b],[b,a]]){
       const k=weldKey(p);
       if(!junctions.has(k)) junctions.set(k,{pos:point(p),dirs:[]});
       const d=subtract(other,p), n=norm(d);
-      junctions.get(k).dirs.push(d.map(x=>x/n));
+      junctions.get(k).dirs.push({vector:d.map(x=>x/n),spanPx});
     }
   }
   let bestCorner=null,bestEdge=null;
@@ -141,9 +146,14 @@ export const chooseMeasureFeatureSnap = ({
   for(const v of junctions.values()){
     if(v.dirs.length<2) continue;
     let corner=false;
-    for(let i=0;i<v.dirs.length && !corner;i++)
+    for(let i=0;i<v.dirs.length && !corner;i++){
+      if(v.dirs[i].spanPx<minCornerArmPx) continue;
       for(let j=i+1;j<v.dirs.length;j++)
-        if(Math.abs(dot(v.dirs[i],v.dirs[j]))<Math.cos(20*Math.PI/180)) {corner=true;break;}
+        if(v.dirs[j].spanPx>=minCornerArmPx &&
+           Math.abs(dot(v.dirs[i].vector,v.dirs[j].vector))<Math.cos(20*Math.PI/180)) {
+          corner=true;break;
+        }
+    }
     if(!corner) continue;
     const pix=getPixel(v.pos);
     if(pix?.visible) consider('corner',v.pos,Math.hypot(pointerPx.x-pix.x,pointerPx.y-pix.y));
