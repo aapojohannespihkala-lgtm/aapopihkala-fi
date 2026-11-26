@@ -585,6 +585,18 @@ const title = 'Private 3D viewer';
       }
 
       .point-measure-panel[hidden] { display: none; }
+      .point-measure-preview-angle {
+        position: absolute;
+        z-index: 4;
+        pointer-events: none;
+        transform: translate(6px, -100%);
+        color: var(--viewer-ink);
+        background: var(--viewer-bar);
+        font: bold 15px/1.2 system-ui, sans-serif;
+        border-radius: 3px;
+        padding: 0 3px;
+      }
+      .point-measure-preview-angle[hidden] { display: none; }
 
       .point-measure-header {
         display: flex;
@@ -1759,6 +1771,7 @@ const title = 'Private 3D viewer';
       <section class="viewport" aria-label="Suojattu 3D-katseluportti">
         <canvas id="private-model-canvas" tabindex="0"></canvas>
         <div id="axis-measure-label" class="axis-measure-label" hidden aria-hidden="true"></div>
+        <span id="point-measure-preview-angle" class="point-measure-preview-angle" hidden aria-hidden="true">∟</span>
         <aside id="m5a-source-context" class="m5a-source-context" aria-label="Salaojakatselmuksen lähdekonteksti" hidden>
           <h2>Salaojien lähdekonteksti</h2>
           <p id="m5a-source-context-source"></p>
@@ -1907,16 +1920,8 @@ const title = 'Private 3D viewer';
             <strong>Mittaa 3D</strong>
             <button id="point-measure-clear" type="button">Tyhjennä</button>
           </div>
-          <label for="point-measure-axis">Mittauksen suunta</label>
-          <select id="point-measure-axis" aria-label="Mittaa 3D - suunta">
-            <option value="free">Vapaa 3D</option>
-            <option value="x">X, itä-länsi</option>
-            <option value="y">Y, pohjoinen-etelä</option>
-            <option value="z">Z, korkeus</option>
-            <option value="xy">XY, vaakataso</option>
-          </select>
-          <label><input id="point-measure-snap" type="checkbox" checked /> Kohdista kulmiin ja reunoihin</label>
-          <div id="point-measure-snap-info" class="point-measure-note">Kohdistus käytössä. Vain näkyvät mallireunat.</div>
+          <label><input id="point-measure-snap" type="checkbox" checked /> Kohdistus</label>
+          <div id="point-measure-snap-info" class="point-measure-note">Kohdistus käytössä.</div>
           <div id="point-measure-main" class="point-measure-main">Klikkaa ensimmäinen piste mallin pinnalta.</div>
           <div id="point-measure-detail" class="point-measure-detail"></div>
           <div class="point-measure-note">Mallista mitattu WORK_TEST-arvo, ei tarkemittaus. Kolmas klikkaus aloittaa uuden mitan.</div>
@@ -2259,8 +2264,7 @@ const title = 'Private 3D viewer';
       import { sourceLinksForSelectionEvidence } from '../../scripts/privateModelSourceCardLinkGuard.mjs';
       import { pickVisibleWorkTest3DPoint } from '../../scripts/privateModelWorkTest3DPoint';
       import { classifySameClickReviewEvidence } from '../../scripts/privateModelSameClickReviewEvidence.mjs';
-      import { measureAlongG1Axis } from '../../scripts/privateModelMeasureGeometry.mjs';
-      import { snapFromVisibleMeshHit } from '../../scripts/privateModelMeasureSnapAdapter.mjs';
+      import { projectMeasurePoint, resolveMeasureCandidate } from '../../scripts/privateModelSmartMeasure';
       import {
         createPointMeasureOverlay,
         formatPointMeasureFi,
@@ -2847,7 +2851,7 @@ const title = 'Private 3D viewer';
       const pointMeasureMain = document.querySelector<HTMLElement>('#point-measure-main');
       const pointMeasureDetail = document.querySelector<HTMLElement>('#point-measure-detail');
       const pointMeasureClearButton = document.querySelector<HTMLButtonElement>('#point-measure-clear');
-      const pointMeasureAxisSelect = document.querySelector<HTMLSelectElement>('#point-measure-axis');
+      const pointMeasurePreviewAngle = document.querySelector<HTMLElement>('#point-measure-preview-angle');
       const pointMeasureSnapToggle = document.querySelector<HTMLInputElement>('#point-measure-snap');
       const pointMeasureSnapInfo = document.querySelector<HTMLElement>('#point-measure-snap-info');
       const axisMeasureLabel = document.querySelector<HTMLElement>('#axis-measure-label');
@@ -3086,7 +3090,7 @@ const title = 'Private 3D viewer';
         !pointMeasureMain ||
         !pointMeasureDetail ||
         !pointMeasureClearButton ||
-        !pointMeasureAxisSelect ||
+        !pointMeasurePreviewAngle ||
         !pointMeasureSnapToggle ||
         !pointMeasureSnapInfo ||
         !axisMeasureToolButton ||
@@ -5371,20 +5375,32 @@ const title = 'Private 3D viewer';
       // Scene-bound two-point WORK_TEST measurement; source hit stays validated by
       // the same picker used for screenshot XYZ, including clipping and hidden mesh.
       const pointMeasureOverlay = createPointMeasureOverlay(scene);
+      const pointMeasurePreview = createPointMeasureOverlay(scene, { color: 0xf1f4f5, opacity: 0.75 });
       let pointMeasureA: PointMeasurePoint | null = null;
       let pointMeasureB: PointMeasurePoint | null = null;
+      let previewTimer: number | undefined;
+      let previewPointer: { x: number; y: number } | null = null;
       const pointMeasureIdleText = 'Klikkaa ensimmäinen piste mallin pinnalta.';
-      const pointMeasureFi = (m: number) => m.toFixed(3).replace('.', ',');
+      const pointMeasureSnapHint = () => pointMeasureSnapToggle.checked
+        ? 'Kohdistus käytössä.' : 'Kohdistus pois käytöstä.';
+
+      const clearPointMeasurePreview = () => {
+        if (previewTimer !== undefined) window.clearTimeout(previewTimer);
+        previewTimer = undefined;
+        previewPointer = null;
+        pointMeasurePreview.clear();
+        pointMeasurePreviewAngle.hidden = true;
+        delete canvas.dataset.pointMeasurePreview;
+      };
 
       const clearPointMeasure = () => {
         pointMeasureA = null;
         pointMeasureB = null;
         pointMeasureOverlay.clear();
+        clearPointMeasurePreview();
         pointMeasureMain.textContent = pointMeasureIdleText;
         pointMeasureDetail.textContent = '';
-        pointMeasureSnapInfo.textContent = pointMeasureSnapToggle.checked
-          ? 'Kohdistus käytössä. Vain näkyvät mallireunat.'
-          : 'Kohdistus pois käytöstä.';
+        pointMeasureSnapInfo.textContent = pointMeasureSnapHint();
         canvas.dataset.pointMeasureState = 'empty';
         delete canvas.dataset.pointMeasureDistance;
         delete canvas.dataset.pointMeasureSnap;
@@ -5393,118 +5409,94 @@ const title = 'Private 3D viewer';
 
       const updatePointMeasureDisplay = () => {
         if (!pointMeasureA || !pointMeasureB) return;
-        const mode = pointMeasureAxisSelect.value;
-        const projection = measureAlongG1Axis(pointMeasureA, pointMeasureB, mode);
-        if (!projection) {
-          clearPointMeasure();
+        const result = measureBetweenPoints(pointMeasureA, pointMeasureB);
+        const formatted = formatPointMeasureFi(result);
+        pointMeasureOverlay.show(pointMeasureA, pointMeasureB);
+        pointMeasureMain.textContent = formatted.main;
+        pointMeasureDetail.textContent = formatted.detail;
+        canvas.dataset.pointMeasureState = 'complete';
+        canvas.dataset.pointMeasureDistance = result.distanceM.toFixed(3);
+      };
+
+      const pointMeasureStart = () => pointMeasureB ? null : pointMeasureA;
+      const measureCandidate = (pointer: { x: number; y: number }, rect: DOMRect) =>
+        resolveMeasureCandidate({
+          pointer, rect, camera: activeCamera, modelRoot, raycaster,
+          snap: pointMeasureSnapToggle.checked, start: pointMeasureStart(),
+        });
+
+      const movePointMeasure = (event: PointerEvent) => {
+        if (!pointMeasureSnapToggle.checked || event.buttons || event.pointerType === 'touch') {
+          clearPointMeasurePreview();
           return;
         }
-        const free = formatPointMeasureFi(measureBetweenPoints(pointMeasureA, pointMeasureB));
-        pointMeasureOverlay.show(projection.from, projection.to);
-        pointMeasureMain.textContent = mode === 'free' ? free.main : `${pointMeasureFi(projection.distanceM)} m`;
-        const axisLabel: Record<string, string> = {
-          x: 'X, itä-länsi', y: 'Y, pohjoinen-etelä',
-          z: 'Z, korkeus', xy: 'XY, vaakataso',
-        };
-        pointMeasureDetail.textContent = mode === 'free'
-          ? free.detail
-          : `${axisLabel[mode]} · vapaa ${free.main} · ${free.detail}`;
-        canvas.dataset.pointMeasureState = 'complete';
-        canvas.dataset.pointMeasureDistance = projection.distanceM.toFixed(3);
-        canvas.dataset.pointMeasureAxis = mode;
+        previewPointer = { x: event.clientX, y: event.clientY };
+        if (previewTimer !== undefined) return;
+        // Bound the sampling rate so an edge query does not run on every mouse event.
+        previewTimer = window.setTimeout(() => {
+          previewTimer = undefined;
+          if (canvas.dataset.interactionMode !== 'point-measure' ||
+              !pointMeasureSnapToggle.checked || !previewPointer) {
+            clearPointMeasurePreview();
+            return;
+          }
+          const rect = canvas.getBoundingClientRect();
+          const candidate = measureCandidate(previewPointer, rect);
+          if (!candidate) {
+            clearPointMeasurePreview();
+            return;
+          }
+          const start = pointMeasureStart();
+          pointMeasurePreview.show(start ?? candidate.point, start ? candidate.point : null);
+          canvas.dataset.pointMeasurePreview = candidate.kind;
+          const pixel = candidate.kind === 'perpendicular'
+            ? projectMeasurePoint(candidate.point, activeCamera, rect) : null;
+          pointMeasurePreviewAngle.hidden = !pixel;
+          if (pixel) {
+            const viewport = canvas.parentElement!.getBoundingClientRect();
+            pointMeasurePreviewAngle.style.left = (pixel.x - viewport.left) + 'px';
+            pointMeasurePreviewAngle.style.top = (pixel.y - viewport.top) + 'px';
+          }
+        }, 50);
       };
 
       const clickPointMeasure = (clientX: number, clientY: number) => {
         pointMeasurePanel.removeAttribute('data-viewport-minimized');
-        const rect = canvas.getBoundingClientRect();
-        let frontmostHit: THREE.Intersection | null = null;
-        const picked = pickVisibleWorkTest3DPoint({
-          clientX, clientY, rect, camera: activeCamera, modelRoot, raycaster,
-          onVisibleHit: (hit: THREE.Intersection) => { frontmostHit = hit; },
-        });
-        if (!picked) {
+        clearPointMeasurePreview();
+        const candidate = measureCandidate({ x: clientX, y: clientY }, canvas.getBoundingClientRect());
+        if (!candidate) {
           pointMeasureMain.textContent = 'Ei osumaa näkyvään mallipintaan. Klikkaa mallia.';
+          pointMeasureSnapInfo.textContent = pointMeasureSnapHint();
+          delete canvas.dataset.pointMeasureSnap;
           return;
         }
 
-        let point: PointMeasurePoint = picked;
-        let snapKind: 'corner' | 'edge' | null = null;
-        if (pointMeasureSnapToggle.checked && frontmostHit) {
-          // The JS helper has a narrow inferred declaration from its default
-          // options object. Type the integration contract explicitly without
-          // widening or mutating the independently reviewed core helper.
-          const checkedSnap = snapFromVisibleMeshHit as unknown as (args: {
-            frontmostHit: THREE.Intersection;
-            camera: THREE.Camera;
-            rect: DOMRect;
-            pointerPx: {x: number; y: number};
-            acceptsFrontmostHit: (hit: THREE.Intersection) => boolean;
-            isFeatureVisible: (args: {
-              pointWorld: THREE.Vector3; sourceMesh: THREE.Mesh;
-            }) => boolean;
-          }) => Readonly<{
-            pointG1: PointMeasurePoint;
-            kind: 'corner' | 'edge';
-          }> | null;
-          const candidate = checkedSnap({
-            frontmostHit,
-            camera: activeCamera,
-            rect,
-            pointerPx: {x: clientX, y: clientY},
-            acceptsFrontmostHit: (hit: THREE.Intersection) => hit === frontmostHit,
-            isFeatureVisible: ({pointWorld, sourceMesh}: {
-              pointWorld: THREE.Vector3; sourceMesh: THREE.Mesh;
-            }) => {
-              // Recheck each candidate with the established source-hit picker:
-              // transparency, local/global clipping, presentation proxies and
-              // frontmost occlusion are NOT inferred from the first click.
-              const ndc = pointWorld.clone().project(activeCamera);
-              if (![ndc.x, ndc.y, ndc.z].every(Number.isFinite) ||
-                  Math.abs(ndc.x) > 1 || Math.abs(ndc.y) > 1 ||
-                  Math.abs(ndc.z) > 1) return false;
-              const px = rect.left + (ndc.x + 1) * rect.width / 2;
-              const py = rect.top + (1 - ndc.y) * rect.height / 2;
-              let checkedHit: THREE.Intersection | null = null;
-              const checkedPoint = pickVisibleWorkTest3DPoint({
-                clientX: px, clientY: py, rect, camera: activeCamera,
-                modelRoot, raycaster,
-                onVisibleHit: (hit: THREE.Intersection) => { checkedHit = hit; },
-              });
-              return !!checkedPoint && !!checkedHit &&
-                (checkedHit as THREE.Intersection).object === sourceMesh &&
-                (checkedHit as THREE.Intersection).point.distanceTo(pointWorld) <= 0.035;
-            },
-          });
-          if (candidate) {
-            point = candidate.pointG1;
-            snapKind = candidate.kind;
-          }
-        }
-        pointMeasureSnapInfo.textContent = !pointMeasureSnapToggle.checked
-          ? 'Kohdistus pois käytöstä.'
-          : snapKind === 'corner' ? 'Kohdistettu kulmaan.'
-          : snapKind === 'edge' ? 'Kohdistettu reunaan.'
-          : 'Vapaa mallipiste. Kohdistusreunaa ei vahvistettu.';
-        canvas.dataset.pointMeasureSnap = snapKind ?? 'free';
-        if (!pointMeasureA || pointMeasureB) {
-          pointMeasureA = point;
+        const hints = {
+          free: 'Vapaa mallipiste.',
+          corner: 'Kohdistettu kulmaan.',
+          edge: 'Kohdistettu reunaan.',
+          perpendicular: '∟ Kohtisuora mitta.',
+        };
+        pointMeasureSnapInfo.textContent = pointMeasureSnapToggle.checked
+          ? hints[candidate.kind] : pointMeasureSnapHint();
+        canvas.dataset.pointMeasureSnap = candidate.kind;
+        if (!pointMeasureStart()) {
+          pointMeasureA = candidate.point;
           pointMeasureB = null;
-          pointMeasureOverlay.show(point, null);
+          pointMeasureOverlay.show(candidate.point, null);
           pointMeasureMain.textContent = 'Piste 1 asetettu. Klikkaa toinen piste.';
           pointMeasureDetail.textContent = '';
           canvas.dataset.pointMeasureState = 'first';
           delete canvas.dataset.pointMeasureDistance;
           return;
         }
-        pointMeasureB = point;
+        pointMeasureB = candidate.point;
         updatePointMeasureDisplay();
       };
 
-      pointMeasureAxisSelect.addEventListener('change', updatePointMeasureDisplay);
       pointMeasureSnapToggle.addEventListener('change', () => {
-        pointMeasureSnapInfo.textContent = pointMeasureSnapToggle.checked
-          ? 'Kohdistus käytössä seuraavassa pisteessä.'
-          : 'Kohdistus pois käytöstä.';
+        clearPointMeasurePreview();
+        pointMeasureSnapInfo.textContent = pointMeasureSnapHint();
       });
 
       // A visible source mesh is the only valid screenshot coordinate target.
@@ -16391,9 +16383,13 @@ const title = 'Private 3D viewer';
       canvas.addEventListener('pointermove', (event) => {
         if (activePlanFloor) updateDCoordinatePointer(event.clientX, event.clientY);
         if (canvas.dataset.interactionMode === 'measure') moveDAxisMeasurement(event.clientX, event.clientY);
+        if (canvas.dataset.interactionMode === 'point-measure') movePointMeasure(event);
       });
+      canvas.addEventListener('pointerleave', clearPointMeasurePreview);
+      canvas.addEventListener('wheel', clearPointMeasurePreview, { passive: true });
 
       canvas.addEventListener('pointerdown', (event) => {
+        if (canvas.dataset.interactionMode === 'point-measure') clearPointMeasurePreview();
         pointerDown = { pointerId: event.pointerId, x: event.clientX, y: event.clientY };
       });
 

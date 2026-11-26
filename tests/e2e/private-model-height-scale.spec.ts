@@ -131,4 +131,13 @@ test('private viewer height scale places higher Z above lower Z and draws full-w
   await frameToggle.click();
   await expect(page.locator('.height-scale-title')).toHaveText('YLIS-G1-LOCAL Z');
   await expect(canvas).toHaveAttribute('data-height-scale-north-reference', 'YLIS-G1-LOCAL');
+
+  // The same orthographic metric ruler must track the actual canvas in all four facades.
+  for (const direction of ['neg-y', 'pos-x', 'neg-x'] as const) {
+    await page.locator(`[data-desk-kind="angle"][data-desk-id="elev-${direction}"]`).click();
+    await expect(canvas).toHaveAttribute('data-elevation-direction', direction);
+    await expect(canvas).toHaveAttribute('data-height-scale-visible', 'true');
+    expect(await guides.count()).toBeGreaterThan(1);
+    await expectGuideProjection();
+  }
 });
