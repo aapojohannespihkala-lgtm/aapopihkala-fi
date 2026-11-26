@@ -291,10 +291,13 @@ test('3D measurement survives camera changes and clears when a preset remounts t
 });
 
 test('snap previews and commits the width across a gap with one on/off control', async ({ page }) => {
-  const rectangle = (left: number, right: number) => [
-    left, -0.75, 0, right, -0.75, 0, right, 0.75, 0,
-    left, -0.75, 0, right, 0.75, 0, left, 0.75, 0,
-  ];
+  // Simulate jamb edges split every 25 mm by the exporter's triangulation.
+  const rectangle = (left: number, right: number) => Array.from({ length: 60 }, (_, i) => {
+    const bottom = -0.75 + i * 0.025;
+    const top = -0.75 + (i + 1) * 0.025;
+    return [left, bottom, 0, right, bottom, 0, right, top, 0,
+      left, bottom, 0, right, top, 0, left, top, 0];
+  }).flat();
   const model = makeMeasureGlb([...rectangle(-1.5, -0.5), ...rectangle(0.5, 1.5)], true);
   await page.route('**/private-model/model.glb', route =>
     route.fulfill({ status: 200, contentType: 'model/gltf-binary', body: model }),
@@ -368,4 +371,96 @@ test('snap previews and commits the width across a gap with one on/off control',
   await expect(canvas).toHaveAttribute('data-point-measure-state', 'complete');
   await expect(canvas).toHaveAttribute('data-point-measure-snap', 'free');
   expect(Number(await canvas.getAttribute('data-point-measure-distance'))).toBeGreaterThan(1);
+});
+/**
+ * WORK_TEST synthetic WebGL: sections of a genuine wall edge are joined while
+ * small details and their corners are ignored at normal zoom.
+ * This exercises the same user-facing canvas snap path, not just the helper.
+ */
+test('smart snap prioritizes a major visible edge over tiny coplanar detail corners', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 800 });
+  const rectangle = (left: number, right: number, bottom: number, top: number) => [
+    left, bottom, 0, right, bottom, 0, right, top, 0,
+    left, bottom, 0, right, top, 0, left, top, 0,
+  ];
+  const perimeter = [
+    ...Array.from({ length: 120 }, (_, i) => [-1.5 + i * 0.025, -0.75, 0]),
+    ...Array.from({ length: 60 }, (_, i) => [1.5, -0.75 + i * 0.025, 0]),
+    ...Array.from({ length: 120 }, (_, i) => [1.5 - i * 0.025, 0.75, 0]),
+    ...Array.from({ length: 60 }, (_, i) => [-1.5, 0.75 - i * 0.025, 0]),
+  ];
+  const wall = perimeter.flatMap((vertex, i) => [0, 0, 0, ...vertex, ...perimeter[(i + 1) % perimeter.length]]);
+  const model = makeMeasureGlb([
+    ...wall,
+    ...rectangle(-1.5, -1.46, -0.02, 0.02),
+    ...rectangle(-0.02, 0.02, -0.02, 0.02),
+  ], true);
+  await page.route('**/private-model/model.glb', route =>
+    route.fulfill({ status: 200, contentType: 'model/gltf-binary', body: model }),
+  );
+  await page.goto('/private-model/');
+  await expect(page.getByRole('status')).toHaveText('Malli ladattu');
+
+  const canvas = page.locator('#private-model-canvas');
+  await page.locator('[data-desk-kind="angle"][data-desk-id="elev-pos-y"]').click();
+  await expect(canvas).toHaveAttribute('data-view-preset', 'elevation');
+  await page.locator('#point-measure-tool-button').click();
+  const snap = page.locator('#point-measure-snap');
+  await expect(snap).toBeChecked();
+  await snap.uncheck();
+
+  const box = await canvas.boundingBox();
+  if (!box) throw new Error('Measurement viewport is not visible');
+  const center = Math.floor(box.width / 2);
+  const y = Math.floor(box.height / 2);
+  const pick = (x: number, atY = y) => canvas.click({ position: { x, y: atY } });
+  const move = (x: number, atY = y) => page.mouse.move(box.x + x, box.y + atY);
+  const hits = async (x: number, atY = y) => {
+    await pick(x, atY);
+    return !(await page.locator('#point-measure-main').textContent())?.startsWith('Ei osumaa');
+  };
+  // Identify the actual wall silhouette by ray hits, not hard-coded pixels.
+  expect(await hits(center)).toBe(true);
+  expect(await hits(6)).toBe(false);
+  let inside = center;
+  let outside = 6;
+  while (inside - outside > 1) {
+    const mid = Math.floor((inside + outside) / 2);
+    if (await hits(mid)) inside = mid;
+    else outside = mid;
+  }
+  let bottom = y;
+  let below = Math.floor(box.height) - 6;
+  expect(await hits(center, below)).toBe(false);
+  while (below - bottom > 1) {
+    const mid = Math.floor((bottom + below) / 2);
+    if (await hits(center, mid)) bottom = mid;
+    else below = mid;
+  }
+  // On this viewport the small 4 cm detail is under the 18px salience limit.
+  expect((center - inside) * (0.04 / 1.5)).toBeLessThan(18);
+  await page.locator('#point-measure-clear').click();
+  await snap.check();
+
+  await move(inside + 2);
+  await expect(canvas).toHaveAttribute('data-point-measure-preview', 'edge');
+  await pick(inside + 2);
+  await expect(canvas).toHaveAttribute('data-point-measure-state', 'first');
+  await expect(canvas).toHaveAttribute('data-point-measure-snap', 'edge');
+
+  await page.locator('#point-measure-clear').click();
+  await move(inside + 2, bottom - 2);
+  await expect(canvas).toHaveAttribute('data-point-measure-preview', 'corner');
+  await pick(inside + 2, bottom - 2);
+  await expect(canvas).toHaveAttribute('data-point-measure-snap', 'corner');
+
+  await page.locator('#point-measure-clear').click();
+  await move(center);
+  await expect(canvas).toHaveAttribute('data-point-measure-preview', 'free');
+  await pick(center);
+  await expect(canvas).toHaveAttribute('data-point-measure-snap', 'free');
+
+  await snap.uncheck();
+  await page.mouse.move(box.x + inside + 3, box.y + y);
+  await expect(canvas).not.toHaveAttribute('data-point-measure-preview', /.+/);
 });
