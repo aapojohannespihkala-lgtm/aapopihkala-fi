@@ -50,9 +50,6 @@ const title = 'Private 3D viewer';
         border-color: var(--viewer-line-soft);
         box-shadow: none;
       }
-      .viewer-shell > .toolbar > #navigation-cube-button[aria-expanded='true'] {
-        color: var(--viewer-stone);
-      }
       .toolbar-menu-panel [data-context-tool]:disabled { display: none; }
       @media (min-width: 1240px) {
         .viewer-shell > .toolbar, .viewer-shell > .toolbar .desk-toolbar { flex-wrap: nowrap; }
@@ -15363,7 +15360,7 @@ const title = 'Private 3D viewer';
                 ? dStoreyFootprint(currentFootprint, dFocusLabel === 'd-1f' ? '1F' : '2F')
                 : currentFootprint;
               const counts = deskDFocus.apply(root, focusFootprint);
-            canvas.dataset.dFocusGhost = `${dFocusLabel}|in:${counts.inside}|out:${counts.outside}|split:${counts.split}`;
+            canvas.dataset.dFocusGhost = `${dFocusLabel}|in:${counts.inside}|out:${counts.outside}|split:${counts.split}|hidden:${counts.hidden}|aids:${counts.aids}`;
           }
           refreshEdgeRendering(root);
           if (selectedObject && !isEffectivelyVisible(selectedObject, modelRoot)) clearSelection();
