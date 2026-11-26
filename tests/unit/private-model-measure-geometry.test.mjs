@@ -354,3 +354,13 @@ test('corner salience threshold rejects invalid inputs',()=>{
     projectToScreen:projector,isCandidateVisible:checker,minCornerArmPx:-1,
   }),null);
 });
+
+test('short edge fragments still provide a fallback when no longer edge is eligible',()=>{
+  const snap=chooseMeasureFeatureSnap({
+    pointerPx:{x:52,y:0},hitPointG1:g(.51,.005),
+    segments:[{a:g(.5,0),b:g(.54,0)}],
+    projectToScreen:projector,isCandidateVisible:checker,
+  });
+  assert.equal(snap.kind,'edge');
+  same(snap.pointG1,g(.52,0));
+});

@@ -133,14 +133,17 @@ export const chooseMeasureFeatureSnap = ({
       junctions.get(k).dirs.push({vector:d.map(x=>x/n),spanPx});
     }
   }
-  let bestCorner=null,bestEdge=null;
+  let bestCorner=null,bestEdge=null,bestDetailEdge=null;
   const withinWorld=(p)=>norm(subtract(coords(p),base))<=maxWorldGapM;
-  const consider=(kind,p,distancePx,segment)=>{
+  const consider=(kind,p,distancePx,segment,visualSpanPx=Infinity)=>{
     if(distancePx>tolerancePx || !withinWorld(p) ||
        isCandidateVisible(p,kind)!==true) return;
     const candidate={kind,pointG1:p,distancePx,workTestOnly:true,...(segment ? {segment} : {})};
     if(kind==='corner'){
       if(!bestCorner || distancePx<bestCorner.distancePx) bestCorner=candidate;
+    }else if(visualSpanPx<minCornerArmPx){
+      // Short edges remain a fallback, but cannot steal a nearby meaningful wall edge.
+      if(!bestDetailEdge || distancePx<bestDetailEdge.distancePx) bestDetailEdge=candidate;
     }else if(!bestEdge || distancePx<bestEdge.distancePx) bestEdge=candidate;
   };
   for(const v of junctions.values()){
@@ -176,9 +179,9 @@ export const chooseMeasureFeatureSnap = ({
     const worldT=hasDepth ? t*b.invW/denom : t;
     const av=coords(s.a),bv=coords(s.b);
     const p=point(av.map((v,i)=>v+worldT*(bv[i]-v)));
-    consider('edge',p,Math.hypot(pointerPx.x-nearest.x,pointerPx.y-nearest.y),s);
+    consider('edge',p,Math.hypot(pointerPx.x-nearest.x,pointerPx.y-nearest.y),s,Math.sqrt(den));
   }
-  return bestCorner?.distancePx<=cornerPriorityPx ? bestCorner : bestEdge || bestCorner;
+  return bestCorner?.distancePx<=cornerPriorityPx ? bestCorner : bestEdge || bestCorner || bestDetailEdge;
 };
 
 /** Foot of the perpendicular on the finite edge, or null if it needs an extension. */
