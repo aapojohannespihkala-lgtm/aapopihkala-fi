@@ -2615,6 +2615,7 @@ const title = 'Private 3D viewer';
       } from '../../scripts/privateModelReviewMath';
       import { createHeightScaleController } from '../../scripts/privateModelHeightScale';
       import { createOrientationGizmoController } from '../../scripts/privateModelOrientationGizmo';
+      import { northWorldDirection } from '../../scripts/privateModelNavigationNorthFrameToggle.mjs';
       import { createViewerFrameProfiler } from '../../scripts/privateModelFrameProfiler';
       import { createUnifiedEdgeMemo } from '../../scripts/privateModelUnifiedEdgeMemo';
       import { createCoplanarFaceIndex, surfaceLookKey } from '../../scripts/privateModelHiddenSeamEdges';
@@ -6113,7 +6114,9 @@ const title = 'Private 3D viewer';
               : direction === 'pos-x'
                 ? '+X'
                 : '-X';
-        status.textContent = `Ortografinen julkisivu ${label} - YLIS-G1-LOCAL Z-asteikko`;
+        status.textContent = `Ortografinen julkisivu ${label} - ${orientationGizmo.dataset.northFrame === 'map'
+          ? 'suunnitelmakorko (+21,750 m, N2000 varmentamatta)'
+          : 'YLIS-G1-LOCAL Z-asteikko'}`;
       };
 
       const fitIsometricCamera = (sceneRoot: any = fullModelScene) => {
@@ -6702,6 +6705,16 @@ const title = 'Private 3D viewer';
         return true;
       };
 
+      // Camera-only map orientation. The 3D model and its local XY remain unchanged.
+      // EPSG:3879 defines horizontal north, not an N2000 height datum.
+      const mapPlanNorth = () => orientationGizmo.dataset.northFrame === 'map';
+      const mapPlanExtents = (size: THREE.Vector3) => {
+        const north = northWorldDirection('map');
+        return {
+          width: Math.abs(north.z) * size.x + Math.abs(north.x) * size.z,
+          height: Math.abs(north.x) * size.x + Math.abs(north.z) * size.z,
+        };
+      };
       const fitAxisCamera = (
         direction: 'top' | 'bottom',
         sceneRoot: any = resolveActiveResearchContentScene(),
@@ -6717,8 +6730,10 @@ const title = 'Private 3D viewer';
         box.getSize(size);
 
         const aspect = Math.max(canvas.clientWidth / Math.max(canvas.clientHeight, 1), 0.01);
-        let halfWidth = Math.max(size.x * 0.54, 0.25);
-        let halfHeight = Math.max(size.z * 0.54, 0.25);
+        const northUp = direction === 'top' && mapPlanNorth();
+        const projected = northUp ? mapPlanExtents(size) : { width: size.x, height: size.z };
+        let halfWidth = Math.max(projected.width * 0.54, 0.25);
+        let halfHeight = Math.max(projected.height * 0.54, 0.25);
         const modelAspect = halfWidth / Math.max(halfHeight, 1e-6);
         if (aspect > modelAspect) halfWidth = halfHeight * aspect;
         else halfHeight = halfWidth / aspect;
@@ -6729,7 +6744,8 @@ const title = 'Private 3D viewer';
             ? new THREE.Vector3(0, distance, 0)
             : new THREE.Vector3(0, -distance, 0),
         );
-        isoCamera.up.set(0, 0, direction === 'top' ? -1 : 1);
+        const north = northUp ? northWorldDirection('map') : null;
+        isoCamera.up.set(north?.x ?? 0, 0, north?.z ?? (direction === 'top' ? -1 : 1));
         isoCamera.lookAt(center);
         isoCamera.left = -halfWidth;
         isoCamera.right = halfWidth;
@@ -6791,8 +6807,10 @@ const title = 'Private 3D viewer';
           box.getSize(size);
 
           const aspect = Math.max(canvas.clientWidth / Math.max(canvas.clientHeight, 1), 0.01);
-          let halfWidth = Math.max(size.x * 0.54, 0.25);
-          let halfHeight = Math.max(size.z * 0.54, 0.25);
+          const northUp = mapPlanNorth();
+          const projected = northUp ? mapPlanExtents(size) : { width: size.x, height: size.z };
+          let halfWidth = Math.max(projected.width * 0.54, 0.25);
+          let halfHeight = Math.max(projected.height * 0.54, 0.25);
           const modelAspect = halfWidth / halfHeight;
 
           if (aspect > modelAspect) halfWidth = halfHeight * aspect;
@@ -6800,7 +6818,8 @@ const title = 'Private 3D viewer';
 
           const distance = Math.max(size.length() * 1.25, size.y * 4, 4);
           isoCamera.position.set(center.x, box.max.y + distance, center.z);
-          isoCamera.up.set(0, 0, -1);
+          const north = northUp ? northWorldDirection('map') : null;
+          isoCamera.up.set(north?.x ?? 0, 0, north?.z ?? -1);
           isoCamera.lookAt(center);
           isoCamera.left = -halfWidth;
           isoCamera.right = halfWidth;
