@@ -247,6 +247,19 @@ test('toolbar icons stay centered and selected controls share the edge-mode fram
     expect((await cube.evaluate(readFrame)).shadow).toBe('none');
     await cube.press('Enter');
     expect(await cube.evaluate(readFrame)).toEqual(selectedFrame);
+
+    const tools = toolbar.locator('.interaction-tools');
+    const selectedTool = tools.locator('button[aria-pressed="true"]');
+    for (const id of ['point-pick-tool-button', 'point-measure-tool-button', 'selection-tool-button', 'navigate-tool-button']) {
+      const tool = tools.locator(`#${id}`);
+      await expect(tool).not.toHaveCSS('background-color', 'rgb(65, 74, 83)');
+      await tool.click();
+      await expect(tool).toHaveCSS('background-color', 'rgb(78, 86, 94)');
+      await page.mouse.move(0, 0);
+      await expect(selectedTool).toHaveCount(1);
+      await expect(selectedTool).toHaveAttribute('id', id);
+      await expect(selectedTool).toHaveCSS('background-color', 'rgb(65, 74, 83)');
+    }
   }
 
   // Owner's excluded change: both existing preset hover colors remain exact.
