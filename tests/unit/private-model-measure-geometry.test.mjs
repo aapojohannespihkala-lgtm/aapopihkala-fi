@@ -4,6 +4,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   measureAlongG1Axis,extractMeasureFeatureEdges,chooseMeasureFeatureSnap,
+  perpendicularToMeasureEdge,perpendicularToMeasurePlane,
 } from '../../src/scripts/privateModelMeasureGeometry.mjs';
 
 const g=(x,y,z=0)=>({xM:x,yM:y,sourceHeightYUpM:z});
@@ -99,6 +100,37 @@ test('snap chooses a position along a genuine edge away from corners',()=>{
   assert.equal(result.kind,'edge');
   assert.ok(Math.abs(result.pointG1.xM-.98)<1e-12);
   assert.equal(result.pointG1.yM,0);
+});
+
+test('an edge crossing the viewport snaps even when both endpoints are outside',()=>{
+  const args={
+    pointerPx:{x:50,y:52},hitPointG1:g(0,.02),
+    segments:[{a:g(-1,0),b:g(1,0)}],
+    projectToScreen:p=>({x:50+p.xM*100,y:50+p.yM*100,visible:false,offscreen:true}),
+    isCandidateVisible:checker,
+  };
+  const snap=chooseMeasureFeatureSnap(args);
+  assert.equal(snap.kind,'edge');
+  same(snap.pointG1,g(0,0));
+  assert.equal(chooseMeasureFeatureSnap({...args,isCandidateVisible:()=>false}),null);
+});
+
+test('a deliberate corner wins but an incidental corner does not pull an edge pick sideways',()=>{
+  const args={hitPointG1:g(.08,.02),segments:squareEdges,projectToScreen:projector,
+    isCandidateVisible:checker,cornerPriorityPx:6};
+  assert.equal(chooseMeasureFeatureSnap({...args,pointerPx:{x:3,y:2}}).kind,'corner');
+  const nearEdge=chooseMeasureFeatureSnap({...args,pointerPx:{x:9,y:2}});
+  assert.equal(nearEdge.kind,'edge');
+  same(nearEdge.pointG1,g(.09,0));
+});
+
+test('perpendicular uses the finite tilted edge or the actual face normal',()=>{
+  const segment={a:g(1,0),b:g(3,2)};
+  same(perpendicularToMeasureEdge(g(0,2),segment),g(1.5,.5));
+  assert.equal(perpendicularToMeasureEdge(g(5,4),segment),null);
+  assert.equal(perpendicularToMeasureEdge(g(0,2),{a:segment.a,b:segment.a}),null);
+  same(perpendicularToMeasurePlane(g(0,0,2),g(1,1,0),{x:1,y:1,z:0}),g(1,1,2));
+  assert.equal(perpendicularToMeasurePlane(g(0,0),g(1,0),{x:0,y:0,z:0}),null);
 });
 
 test('fails closed for hidden, distant, no-hit and out-of-range candidates',()=>{
