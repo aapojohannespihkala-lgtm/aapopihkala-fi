@@ -253,6 +253,23 @@ test('530 actual GLTFLoader source subtree blocks same-name mesh and geometry sw
  manual.matrixAutoUpdate=false;
  assert.equal(treeUnchanged(manualScene,manualProof),true);
  const geometry=mesh.geometry;
+ const position=geometry.getAttribute('position'),originalX=position.array[0];
+ position.array[0]=originalX+0.125;
+ assert.equal(renderedRootsMatch(json,scene,0),true,'source names unchanged');
+ assert.equal(treeUnchanged(scene,proof),false,
+  'in-place source POSITION edit is rejected without geometry replacement');
+ position.array[0]=originalX;
+ assert.equal(treeUnchanged(scene,proof),true,'exact vertex bytes restored');
+ const originalPositionBinding=position;
+ const originalGroups=geometry.groups.map(group=>({...group}));
+ geometry.addGroup(0,3,0);
+ assert.equal(treeUnchanged(scene,proof),false,'actual GLTFLoader geometry group added');
+ geometry.groups=originalGroups;
+ assert.equal(treeUnchanged(scene,proof),true,'actual source groups restored');
+ geometry.setAttribute('position',position.clone());
+ assert.equal(treeUnchanged(scene,proof),false,'source attribute clone binding is rejected');
+ geometry.setAttribute('position',originalPositionBinding);
+ assert.equal(treeUnchanged(scene,proof),true);
  mesh.geometry=new BufferGeometry();
  assert.equal(renderedRootsMatch(json,scene,0),true,'prior name/tree-only check missed geometry');
  assert.equal(treeUnchanged(scene,proof),false,'geometry rebind blocked');
@@ -365,4 +382,153 @@ test('authentic C80 530 identifies the seven old/new soil-parent alias IDs',
  assert.equal(json.scenes[526].nodes.includes(12254),true);
  assert.equal(json.scenes[520].nodes.includes(9008),true);
  assert.equal(json.scenes[525].nodes.includes(12254),false);
+});
+
+
+test('530 pinned geometry rejects in-place index, normal and UV byte edits',async()=>{
+ const {Group,Mesh,BufferGeometry,Float32BufferAttribute,MeshBasicMaterial}=await import('three');
+ const geometry=new BufferGeometry();
+ geometry.setAttribute('position',new Float32BufferAttribute([
+  0,0,0,1,0,0,0,1,0
+ ],3));
+ geometry.setAttribute('normal',new Float32BufferAttribute([
+  0,0,1,0,0,1,0,0,1
+ ],3));
+ geometry.setAttribute('uv',new Float32BufferAttribute([0,0,1,0,0,1],2));
+ geometry.setIndex([0,1,2]);
+ const mesh=new Mesh(geometry,new MeshBasicMaterial()),scene=new Group();
+ scene.add(mesh);
+ const proof=snapshotTree(scene,1);
+ assert.ok(proof);
+ for(const attr of [geometry.index,geometry.getAttribute('normal'),geometry.getAttribute('uv')]){
+  const previous=attr.array[0];
+  attr.array[0]=previous+1;
+  assert.equal(treeUnchanged(scene,proof),false,'source attribute bytes changed');
+  attr.array[0]=previous;
+  assert.equal(treeUnchanged(scene,proof),true,'source buffer bytes restored');
+ }
+ const previousDraw=geometry.drawRange.count;
+ geometry.setDrawRange(0,2);
+ assert.equal(treeUnchanged(scene,proof),false,'source draw range changed');
+ geometry.setDrawRange(0,previousDraw);
+ assert.equal(treeUnchanged(scene,proof),true);
+ mesh.material.dispose();geometry.dispose();
+});
+
+test('530 pinned geometry groups reject in-place material and triangle partition edits',async()=>{
+ const {Group,Mesh,BufferGeometry,Float32BufferAttribute,MeshBasicMaterial}=await import('three');
+ const geometry=new BufferGeometry();
+ geometry.setAttribute('position',new Float32BufferAttribute([
+  0,0,0,1,0,0,0,1,0
+ ],3));
+ geometry.setIndex([0,1,2,2,1,0]);
+ geometry.addGroup(0,3,0);
+ geometry.addGroup(3,3,1);
+ const materials=[new MeshBasicMaterial(),new MeshBasicMaterial()];
+ const mesh=new Mesh(geometry,materials),scene=new Group();
+ scene.add(mesh);
+ const proof=snapshotTree(scene,1);
+ assert.ok(proof);
+ assert.equal(treeUnchanged(scene,proof),true);
+ for(const [groupIndex,field] of [[0,'start'],[0,'count'],[0,'materialIndex'],[1,'start'],[1,'count'],[1,'materialIndex']]){
+  const group=geometry.groups[groupIndex],original=group[field];
+  group[field]=original+1;
+  assert.equal(treeUnchanged(scene,proof),false,`group ${groupIndex} ${field} mutated`);
+  group[field]=original;
+  assert.equal(treeUnchanged(scene,proof),true,`group ${groupIndex} ${field} restored`);
+ }
+ geometry.addGroup(0,3,1);
+ assert.equal(treeUnchanged(scene,proof),false,'appended group blocked');
+ geometry.groups.pop();
+ assert.equal(treeUnchanged(scene,proof),true,'group array length restored');
+ const removed=geometry.groups.shift();
+ assert.equal(treeUnchanged(scene,proof),false,'removed group blocked');
+ geometry.groups.unshift(removed);
+ assert.equal(treeUnchanged(scene,proof),true,'removed group restored');
+ const originalGroups=geometry.groups;
+ geometry.groups=[...originalGroups.map(group=>({...group}))];
+ assert.equal(treeUnchanged(scene,proof),true,'equal semantic groups accepted');
+ geometry.clearGroups();
+ assert.equal(treeUnchanged(scene,proof),false,'cleared groups blocked');
+ geometry.groups=originalGroups;
+ assert.equal(treeUnchanged(scene,proof),true,'exact groups restored');
+ for(const material of materials)material.dispose();
+ geometry.dispose();
+});
+
+test('530 detached source POSITION buffer fails closed without crashing scene check',async()=>{
+ const {Group,Mesh,BufferGeometry,Float32BufferAttribute,MeshBasicMaterial}=await import('three');
+ const geometry=new BufferGeometry();
+ geometry.setAttribute('position',new Float32BufferAttribute([
+  0,0,0,1,0,0,0,1,0
+ ],3));
+ const material=new MeshBasicMaterial(),scene=new Group();
+ scene.add(new Mesh(geometry,material));
+ const proof=snapshotTree(scene,1);
+ assert.ok(proof);
+ assert.equal(treeUnchanged(scene,proof),true);
+ const array=geometry.getAttribute('position').array;
+ structuredClone(array,{transfer:[array.buffer]});
+ assert.equal(array.byteLength,0,'transferred typed array is now detached');
+ assert.equal(treeUnchanged(scene,proof),false,
+  'detached GLTF source bytes must fail closed, not throw or mount');
+ material.dispose();geometry.dispose();
+});
+
+// Original 55 MB source fixture is private. This opt-in test never downloads,
+// publishes, or rewrites the GLB and does not claim production WebGL coverage.
+test('530 original 55 MB THREE.GLTFLoader validates source geometry and blocks edits (opt-in)',
+ {skip:!fixture,timeout:240_000},async()=>{
+ const original=readFileSync(fixture);
+ assert.equal(original.byteLength,BYTES);
+ assert.equal(createHash('sha256').update(original).digest('hex'),SHA);
+ const {GLTFLoader}=await import('three/addons/loaders/GLTFLoader.js');
+ const {TextureLoader,Texture}=await import('three');
+ // Node has no HTML image decoder. Only skip texture *decoding*, not source
+ // GLB parsing, scene/root hierarchy, meshes, or binary geometry buffers.
+ const loadTexture=TextureLoader.prototype.load;
+ TextureLoader.prototype.load=function(_url,onLoad){
+  const texture=new Texture();
+  queueMicrotask(()=>onLoad?.(texture));
+  return texture;
+ };
+ let gltf;
+ try{
+  const arrayBuffer=original.buffer.slice(original.byteOffset,
+   original.byteOffset+original.byteLength);
+  gltf=await new Promise((ok,fail)=>new GLTFLoader().parse(arrayBuffer,'',ok,fail));
+ }finally{
+  TextureLoader.prototype.load=loadTexture;
+ }
+ assert.equal(gltf.scenes.length,530,'the full original scene catalog was loaded');
+ const actual=resolve(gltf,SHA);
+ assert.ok(actual,'exact SHA, six source roots and real rendered Object3D paths');
+ let current=actual[526];
+ const runtime=create({gltf,sha:SHA,mount:next=>{current=next;},mounted:()=>current});
+ assert.equal(runtime.publicationStatus,'NOT_AUTHORIZED');
+ for(const [scene,f,g,c] of modes){
+  assert.equal(runtime.restore(),true);
+  const result=c?runtime.setCutaway(true):f==='BOTH'&&g!=='CLOSED'?
+   runtime.setGlazing(g):runtime.apply(f);
+  assert.ok(result,'real THREE Object3D scene '+scene);
+  assert.equal(current,actual[scene]);
+ }
+ assert.equal(runtime.restore(),true);
+ let sourceMesh=null;
+ actual[526].traverse(obj=>{
+  if(!sourceMesh&&obj.isMesh&&obj.geometry?.getAttribute('position')?.array?.length)
+   sourceMesh=obj;
+ });
+ assert.ok(sourceMesh,'authentic rendered source BufferGeometry exists');
+ const positions=sourceMesh.geometry.getAttribute('position').array;
+ const old=positions[0];
+ positions[0]=old+0.125;
+ try{
+  assert.equal(runtime.apply('2F'),null,'in-place geometry edit blocks switch');
+  assert.equal(runtime.restore(),false,'in-place geometry edit blocks restore');
+  assert.equal(current,actual[526]);
+ }finally{positions[0]=old;}
+ assert.ok(runtime.apply('2F'),'restored original geometry allows switch');
+ assert.equal(runtime.restore(),true);
+ runtime.dispose();
 });
