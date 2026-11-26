@@ -10,6 +10,7 @@
     "directory": "./dist",
     "binding": "ASSETS",
     "run_worker_first": [
+      "/api/current/weather",
       "/api/current/electricity",
       "/api/current/electricity-month",
       "/api/current/hsl",

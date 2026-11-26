@@ -53,13 +53,6 @@ const makeTriangleGlb = () => {
   return Buffer.concat([header, jsonHeader, jsonChunk, binHeader, binChunk]);
 };
 
-const clickViewAction = async (page: Page, name: string) => {
-  const menu = page.locator('#view-menu');
-  if ((await menu.getAttribute('open')) === null) {
-    await menu.locator(':scope > summary').click();
-  }
-  await page.getByRole('button', { name, exact: true }).click();
-};
 
 const expectZScreenUp = async (page: Page) => {
   const zAxis = page.locator('#orientation-axis-z');
@@ -75,11 +68,10 @@ const expectZScreenUp = async (page: Page) => {
 
 const expectElevation = async (
   page: Page,
-  button: 'Julk +Y' | 'Julk -Y' | 'Julk +X' | 'Julk -X',
   direction: 'pos-y' | 'neg-y' | 'pos-x' | 'neg-x',
   look: RegExp,
 ) => {
-  await clickViewAction(page, button);
+  await page.locator(`[data-desk-kind="angle"][data-desk-id="elev-${direction}"]`).click();
 
   const canvas = page.locator('#private-model-canvas');
   const aiNavigator = page.locator('#ai-navigator-readout');
@@ -116,8 +108,116 @@ test('all elevation presets keep orthographic yaw-only controls and YLIS Z scree
   await page.goto('/private-model/');
   await expect(page.getByRole('status')).toHaveText('Malli ladattu');
 
-  await expectElevation(page, 'Julk +Y', 'pos-y', /X[+-]0\.00 Y-1\.00 Z[+-]0\.00/);
-  await expectElevation(page, 'Julk -Y', 'neg-y', /X[+-]0\.00 Y\+1\.00 Z[+-]0\.00/);
-  await expectElevation(page, 'Julk +X', 'pos-x', /X-1\.00 Y[+-]0\.00 Z[+-]0\.00/);
-  await expectElevation(page, 'Julk -X', 'neg-x', /X\+1\.00 Y[+-]0\.00 Z[+-]0\.00/);
+  await expectElevation(page, 'pos-y', /X[+-]0\.00 Y-1\.00 Z[+-]0\.00/);
+  await expectElevation(page, 'neg-y', /X[+-]0\.00 Y\+1\.00 Z[+-]0\.00/);
+  await expectElevation(page, 'pos-x', /X-1\.00 Y[+-]0\.00 Z[+-]0\.00/);
+  await expectElevation(page, 'neg-x', /X\+1\.00 Y[+-]0\.00 Z[+-]0\.00/);
+});
+
+test('elevation to orbit and top transitions clear stale Z-scale state', async ({ page }) => {
+  const errors: string[] = [];
+  page.on('pageerror', (error) => errors.push(error.message));
+  await page.route('**/private-model/model.glb', (route) =>
+    route.fulfill({ status: 200, contentType: 'model/gltf-binary', body: makeTriangleGlb() }));
+  await page.goto('/private-model/');
+  await expect(page.getByRole('status')).toHaveText('Malli ladattu');
+  const canvas = page.locator('#private-model-canvas');
+  const scale = page.locator('#height-scale');
+  const labels = scale.locator('.height-scale-label');
+
+  const enter = async (direction: 'pos-y' | 'neg-x') => {
+    await page.locator(`[data-desk-kind="angle"][data-desk-id="elev-${direction}"]`).click();
+    await expect(canvas).toHaveAttribute('data-view-preset', 'elevation');
+    await expect(canvas).toHaveAttribute('data-elevation-direction', direction);
+    await expect(canvas).toHaveAttribute('data-camera-pitch', 'locked');
+    await expect(canvas).toHaveAttribute('data-height-scale-visible', 'true');
+    await expect(scale).toBeVisible();
+    await expect.poll(() => labels.count()).toBeGreaterThan(1);
+  };
+  const leave = async (preset: 'orbit' | 'top') => {
+    await page.locator(`[data-desk-kind="angle"][data-desk-id="${preset}"]`).click();
+    await expect(canvas).toHaveAttribute('data-view-preset', preset);
+    await expect(canvas).toHaveAttribute('data-height-scale-visible', 'false');
+    await expect(scale).toBeHidden();
+    await expect(labels).toHaveCount(0);
+    for (const attribute of ['data-elevation-direction', 'data-height-scale-min-z',
+      'data-height-scale-max-z', 'data-height-scale-step-m', 'data-camera-pitch', 'data-camera-roll']) {
+      await expect.poll(() => canvas.getAttribute(attribute)).toBeNull();
+    }
+  };
+  await enter('pos-y');
+  await leave('orbit');
+  await enter('neg-x');
+  await leave('top');
+  await enter('pos-y');
+  await leave('orbit');
+  expect(errors).toEqual([]);
+});
+
+test('four elevation rulers remain pixel-aligned through wheel zoom and north switches', async ({ page }) => {
+  const errors: string[] = [];
+  page.on('pageerror', (error) => errors.push(error.message));
+  await page.route('**/private-model/model.glb', (route) =>
+    route.fulfill({ status: 200, contentType: 'model/gltf-binary', body: makeTriangleGlb() }));
+  await page.goto('/private-model/');
+  await expect(page.getByRole('status')).toHaveText('Malli ladattu');
+
+  const canvas = page.locator('#private-model-canvas');
+  const scale = page.locator('#height-scale');
+  const guides = scale.locator('.height-scale-guide');
+  const labels = scale.locator('.height-scale-label');
+  const northToggle = page.getByRole('button', {
+    name: 'Vaihda paikallinen pohjoinen tai karttapohjoinen',
+  });
+  const span = async () => {
+    const min = Number(await canvas.getAttribute('data-height-scale-min-z'));
+    const max = Number(await canvas.getAttribute('data-height-scale-max-z'));
+    return max - min;
+  };
+  const expectProjectedTicks = async () => {
+    const viewport = await canvas.boundingBox();
+    const min = Number(await canvas.getAttribute('data-height-scale-min-z'));
+    const max = Number(await canvas.getAttribute('data-height-scale-max-z'));
+    expect(viewport).not.toBeNull();
+    expect(max).toBeGreaterThan(min);
+    const last = (await guides.count()) - 1;
+    // A zoomed-in camera may show just one metric tick while remaining correctly aligned.
+    expect(last).toBeGreaterThanOrEqual(0);
+    for (const index of new Set([0, Math.floor(last / 2), last])) {
+      const guide = guides.nth(index);
+      const z = Number(await guide.getAttribute('data-height-m'));
+      const box = await guide.boundingBox();
+      expect(box).not.toBeNull();
+      const expectedY = viewport!.y + (max - z) / (max - min) * viewport!.height;
+      expect(Math.abs(box!.y - expectedY)).toBeLessThan(3);
+    }
+  };
+
+  for (const direction of ['pos-y', 'neg-y', 'pos-x', 'neg-x'] as const) {
+    await page.locator('[data-desk-kind="angle"][data-desk-id="elev-' + direction + '"]').click();
+    await expect(canvas).toHaveAttribute('data-elevation-direction', direction);
+    await expect(canvas).toHaveAttribute('data-height-scale-visible', 'true');
+    await expect(scale).toBeVisible();
+    await expect.poll(() => guides.count()).toBeGreaterThan(1);
+    await expectProjectedTicks();
+
+    const initialSpan = await span();
+    await canvas.hover();
+    await page.mouse.wheel(0, -320);
+    await expect.poll(span).toBeLessThan(initialSpan - 0.01);
+    await expectProjectedTicks();
+
+    const oldLabels = await labels.allTextContents();
+    await northToggle.click();
+    await expect(canvas).toHaveAttribute('data-height-scale-north-reference', 'EPSG:3879');
+    await expect(canvas).toHaveAttribute('data-height-scale-frame', 'N2000-CONDITIONAL-WORK_TEST');
+    await expectProjectedTicks();
+    await northToggle.click();
+    await expect(canvas).toHaveAttribute('data-height-scale-north-reference', 'YLIS-G1-LOCAL');
+    await expect(canvas).toHaveAttribute('data-height-scale-frame', 'YLIS-G1-LOCAL');
+    expect(await labels.allTextContents()).toEqual(oldLabels);
+    await expectProjectedTicks();
+  }
+
+  expect(errors).toEqual([]);
 });

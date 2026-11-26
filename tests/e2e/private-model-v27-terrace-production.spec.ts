@@ -74,7 +74,7 @@ test('exact V27 viewer: D upstairs, ghost walls, supported IV, reset, floor chan
   // An explicit camera action frames the selected floor before testing that
   // Layers edits themselves preserve it. Do not inherit the site's wide fit.
   await page.locator('#layers-button').click();
-  await page.locator('#more-menu > summary').click();
+  await page.locator('#view-menu > summary').click();
   await page.locator('#fit-button').click();
   await page.locator('#layers-button').click();
   await expect(page.locator('[data-technical-layer-availability] [data-technical-layer="technical-ventilation"]')).toHaveAttribute('data-available', 'true');
@@ -116,7 +116,7 @@ test('exact V27 viewer: D upstairs, ghost walls, supported IV, reset, floor chan
   }
   await page.setViewportSize({ width: 390, height: 844 });
   await page.locator('#layers-button').click();
-  await page.locator('#more-menu > summary').click();
+  await page.locator('#view-menu > summary').click();
   await page.locator('#fit-button').click();
   await page.locator('#layers-button').click();
   const readLiveCamera = async () => {

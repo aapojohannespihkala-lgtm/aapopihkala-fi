@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { DESKTOP_START_CANDIDATE_ID } from '../../src/scripts/privateModelDesktopToolbar.mjs';
 
 const makeMinimalGlb = (json: Record<string, unknown>) => {
   const jsonBuffer = Buffer.from(JSON.stringify(json), 'utf8');
@@ -25,7 +26,7 @@ const openPresetMenu = async (page: Page) => {
 
 const selectResearchPreset = async (page: Page, name: 'Koko rakennus' | 'D-asunto') => {
   await openPresetMenu(page);
-  await page.getByRole('button', { name, exact: true }).click();
+  await page.locator('#preset-menu').getByRole('button', { name, exact: true }).click();
 };
 
 const expectPerspectiveFreeOrbit = async (page: Page) => {
@@ -77,4 +78,289 @@ test('initial, whole-building, and D-apartment views keep perspective free orbit
   );
   await expectPerspectiveFreeOrbit(page);
   await expect(page.getByRole('status')).toHaveText('D-asunto - molemmat kerrokset, vapaa 3D');
+});
+
+const makeTriangleGlb = (withDScene = false, withFocusContext = false) => {
+  const positions = Buffer.alloc(36);
+  [-1, -1, 0, 1, -1, 0, 0, 1, 0].forEach((value, index) => {
+    positions.writeFloatLE(value, index * 4);
+  });
+
+  const json = {
+    asset: { version: '2.0' },
+    scene: 0,
+    scenes: [
+      { name: 'P133D REVIEW ROOT - BABYLON Y-UP', nodes: withFocusContext ? [0, 1] : [0] },
+      ...(withDScene ? [{ name: 'D CURRENT INTERIOR - BABYLON Y-UP', nodes: [0] }] : []),
+    ],
+    nodes: withFocusContext ? [
+      { name: 'TEST_D_CONTENT', mesh: 0, translation: [5.3, 1.5, 0] },
+      { name: 'TEST_OTHER_CONTENT', mesh: 0, translation: [13, 1.5, 0] },
+    ] : [{ name: 'ELEVATION_CAMERA_TEST', mesh: 0 }],
+    meshes: [
+      {
+        name: 'TEST_TRIANGLE',
+        primitives: [{ attributes: { POSITION: 0 } }],
+      },
+    ],
+    buffers: [{ byteLength: positions.length }],
+    bufferViews: [{ buffer: 0, byteOffset: 0, byteLength: positions.length, target: 34962 }],
+    accessors: [
+      {
+        bufferView: 0,
+        componentType: 5126,
+        count: 3,
+        type: 'VEC3',
+        min: [-1, -1, 0],
+        max: [1, 1, 0],
+      },
+    ],
+  };
+
+  const jsonBuffer = Buffer.from(JSON.stringify(json), 'utf8');
+  const jsonPadding = (4 - (jsonBuffer.length % 4)) % 4;
+  const jsonChunk = Buffer.concat([jsonBuffer, Buffer.alloc(jsonPadding, 0x20)]);
+  const binPadding = (4 - (positions.length % 4)) % 4;
+  const binChunk = Buffer.concat([positions, Buffer.alloc(binPadding)]);
+
+  const header = Buffer.alloc(12);
+  header.write('glTF', 0, 'ascii');
+  header.writeUInt32LE(2, 4);
+  header.writeUInt32LE(12 + 8 + jsonChunk.length + 8 + binChunk.length, 8);
+
+  const jsonHeader = Buffer.alloc(8);
+  jsonHeader.writeUInt32LE(jsonChunk.length, 0);
+  jsonHeader.writeUInt32LE(0x4e4f534a, 4);
+
+  const binHeader = Buffer.alloc(8);
+  binHeader.writeUInt32LE(binChunk.length, 0);
+  binHeader.writeUInt32LE(0x004e4942, 4);
+
+  return Buffer.concat([header, jsonHeader, jsonChunk, binHeader, binChunk]);
+};
+
+test('a reload after an interrupted default model load opens the protected fallback', async ({ page }) => {
+  const id = DESKTOP_START_CANDIDATE_ID;
+  const path = `/private-model/work-test/${id}.glb`;
+  await page.route('**/private-model/work-test/catalog.json', route => route.fulfill({
+    json: { candidates: [{ id, path, label: 'R34 WORK_TEST' }] },
+  }));
+  await page.route('**/private-model/model.glb', route => route.fulfill({
+    contentType: 'model/gltf-binary',
+    body: makeTriangleGlb(),
+  }));
+  await page.addInitScript(startPath => {
+    const originalFetch = window.fetch.bind(window);
+    window.fetch = (input, init) => {
+      const url = new URL(input instanceof Request ? input.url : input, window.location.href);
+      if (url.pathname !== startPath || sessionStorage.getItem('test-interrupted-start')) {
+        return originalFetch(input, init);
+      }
+      sessionStorage.setItem('test-interrupted-start', 'true');
+      void originalFetch(input, init).catch(() => {});
+      // A dead renderer cannot settle the application promise. A normal
+      // reload can instead reject fetch and let the old page run its cleanup.
+      return new Promise<Response>(() => {});
+    };
+  }, path);
+  let workTestRequests = 0;
+  await page.route(`**${path}`, async route => {
+    workTestRequests++;
+    await route.fulfill({ status: 503 });
+  });
+
+  const request = page.waitForRequest(`**${path}`);
+  await page.goto('/private-model/');
+  await request;
+  await page.reload();
+  const canvas = page.locator('#private-model-canvas');
+  await expect(canvas).toHaveAttribute('data-desk-start-view', 'current-recovery');
+  await expect(canvas).toHaveAttribute('data-model-source', 'current');
+  await expect(canvas).toHaveAttribute('data-standard-view-preset', 'whole-building');
+  expect(workTestRequests).toBe(1);
+
+  // The fallback only consumes this interrupted attempt.
+  await page.reload();
+  await expect(canvas).toHaveAttribute('data-desk-start-view', 'current-fallback');
+  await expect(canvas).toHaveAttribute('data-model-source', 'current');
+  expect(workTestRequests).toBe(2);
+});
+
+test('camera changes keep the selected content, D focus and manual layers', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.route('**/private-model/model.glb', route =>
+    route.fulfill({ contentType: 'model/gltf-binary', body: makeTriangleGlb(false, true) }));
+  await page.route('**/private-model/work-test/catalog.json', route => route.fulfill({ status: 404 }));
+  await page.goto('/private-model/');
+  await expect(page.getByRole('status')).toHaveText('Malli ladattu');
+
+  const canvas = page.locator('#private-model-canvas');
+  const activeAngle = page.locator('[data-desk-kind="angle"][aria-pressed="true"]');
+  const activePreset = page.locator('[data-desk-kind="preset"][aria-pressed="true"]');
+  const clickAngle = (id: string) => page.locator(`[data-desk-kind="angle"][data-desk-id="${id}"]`).click();
+  const clickPreset = (id: string) => page.locator(`[data-desk-kind="preset"][data-desk-id="${id}"]`).click();
+
+  await clickPreset('whole-building');
+  for (const [angle, mode] of [['elev-pos-x', 'elevation'], ['iso', 'isometric'], ['orbit', 'orbit']]) {
+    await clickAngle(angle);
+    await expect(canvas).toHaveAttribute('data-view-preset', mode);
+    await expect(activeAngle).toHaveAttribute('data-desk-id', angle);
+    await expect(activePreset).toHaveAttribute('data-desk-id', 'whole-building');
+  }
+  await clickPreset('d-roof');
+  await expect(canvas).toHaveAttribute('data-view-preset', 'orbit');
+  await expect(activeAngle).toHaveAttribute('data-desk-id', 'orbit');
+  await expect(activePreset).toHaveAttribute('data-desk-id', 'd-roof');
+  const focus = await canvas.getAttribute('data-d-focus-ghost');
+  expect(focus).toMatch(/^d-roof\|in:1\|out:1\|split:0/);
+
+  await page.locator('#layers-button').click();
+  await page.locator('#roof-layer-visible').uncheck();
+  await page.locator('[data-desk-kind="edge"][data-desk-id="none"]').click();
+  await expect(canvas).toHaveAttribute('data-layer-state-source', 'manual');
+
+  await page.setViewportSize({ width: 1024, height: 900 });
+  const menu = page.locator('#view-menu');
+  await menu.locator('summary').click();
+  await menu.locator('#elev-pos-x-button').click();
+  await expect(canvas).toHaveAttribute('data-elevation-direction', 'pos-x');
+  await expect(activeAngle).toHaveAttribute('data-desk-id', 'elev-pos-x');
+  await expect(canvas).toHaveAttribute('data-d-focus-ghost', focus!);
+  await expect(activePreset).toHaveAttribute('data-desk-id', 'd-roof');
+  await expect(canvas).toHaveAttribute('data-layer-state-source', 'manual');
+  await expect(canvas).toHaveAttribute('data-layer-roof-visible', 'false');
+  await expect(canvas).toHaveAttribute('data-layer-edge-mode', 'none');
+  await expect(page.locator('#layers-button')).toHaveAttribute('aria-expanded', 'true');
+});
+
+test('owner menu presets keep the active isometric, elevation or underside camera direction', async ({ page }) => {
+  // A synthetic fixture exercises the actual viewer controls without publishing
+  // any original Ylisrinne geometry or requiring a protected model.
+  // Reuse the elevation guard's visible-triangle GLB. Empty scenes cannot
+  // activate elevation because the camera has no visible bounds to frame.
+  const model = makeTriangleGlb();
+
+  await page.route('**/private-model/model.glb', (route) =>
+    route.fulfill({ status: 200, contentType: 'model/gltf-binary', body: model }),
+  );
+  await page.goto('/private-model/');
+  await expect(page.getByRole('status')).toHaveText('Malli ladattu');
+
+  const cameraSnapshot = () => page.evaluate(() => {
+    const canvas = document.querySelector<HTMLCanvasElement>('#private-model-canvas');
+    const readout = document.querySelector<HTMLElement>('#ai-navigator-readout');
+    return {
+      view: canvas?.dataset.viewPreset ?? null,
+      projection: canvas?.dataset.cameraProjection ?? null,
+      look: readout?.dataset.lookVector ?? null,
+      elevation: canvas?.dataset.elevationDirection ?? null,
+    };
+  });
+
+  for (const { viewButton, angle, mode, projection } of [
+    { viewButton: 'Isometrinen', angle: 'iso', mode: 'isometric', projection: 'orthographic' },
+    { viewButton: 'Julk +Y', angle: 'elev-pos-y', mode: 'elevation', projection: 'orthographic' },
+    { viewButton: 'Alhaalta', angle: null, mode: 'bottom', projection: 'orthographic' },
+  ]) {
+    // Each independent camera mode starts from a fresh fixture. Switching
+    // isometric -> elevation is a separate navigation action, not this test's
+    // menu-preset preservation contract.
+    await page.goto('/private-model/');
+    await expect(page.getByRole('status')).toHaveText('Malli ladattu');
+    if (angle) {
+      await page.locator(`[data-desk-kind="angle"][data-desk-id="${angle}"]`).click();
+    } else {
+      await page.locator('#view-menu > summary').click();
+      await page.locator('#bottom-button').click();
+    }
+    await expect(page.locator('#private-model-canvas')).toHaveAttribute('data-view-preset', mode);
+    const before = await cameraSnapshot();
+    expect(before.projection).toBe(projection);
+    expect(before.look).toMatch(/^X[+-]/);
+
+    for (const preset of ['Koko rakennus', 'D-asunto'] as const) {
+      await selectResearchPreset(page, preset);
+      await expect.poll(cameraSnapshot, {
+        message: `${preset} must preserve ${viewButton} camera orientation and projection`,
+      }).toEqual(before);
+    }
+  }
+});
+
+test('exact 3D/isometric projection toggle preserves target, view direction and visible frame', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 800 });
+  const model = makeTriangleGlb(true);
+  await page.route('**/private-model/model.glb', route =>
+    route.fulfill({ status: 200, contentType: 'model/gltf-binary', body: model }));
+  await page.goto('/private-model/');
+  await expect(page.getByRole('status')).toContainText('Malli ladattu');
+  const canvas = page.locator('#private-model-canvas');
+  const readout = page.locator('#ai-navigator-readout');
+  await expect(readout).toHaveAttribute('data-ready', 'true');
+
+  const state = () => page.evaluate(() => {
+    const canvasEl = document.querySelector<HTMLCanvasElement>('#private-model-canvas')!;
+    const readoutEl = document.querySelector<HTMLElement>('#ai-navigator-readout')!;
+    const pose = JSON.parse(readoutEl.dataset.worldPose || 'null');
+    return {
+      pose,
+      frame: readoutEl.dataset.visibleBounds ?? '',
+      model: canvasEl.dataset.modelSource ?? '',
+      kept: canvasEl.dataset.deskPresetCameraKept ?? null,
+      projectionSwitch: canvasEl.dataset.deskProjectionSwitch ?? null,
+    };
+  });
+  const assertSamePose = (
+    actual: Awaited<ReturnType<typeof state>>,
+    reference: Awaited<ReturnType<typeof state>>,
+  ) => {
+    expect(actual.pose?.frame).toBe('THREE_WORLD_Y_UP');
+    expect(actual.pose.target).toHaveLength(3);
+    for (const key of ['target', 'direction'] as const) {
+      for (let i = 0; i < 3; i++) {
+        expect(Math.abs(actual.pose[key][i] - reference.pose[key][i])).toBeLessThan(1e-5);
+      }
+    }
+    // Human bounds are rounded to one decimal. A projection-only switch
+    // can cross the 0.1 m display rounding threshold without changing the
+    // machine-readable camera target or direction.
+    const bounds = (label: string) =>
+      (label.match(/[+-]?\d+(?:\.\d+)?/g) ?? []).map(Number);
+    const a = bounds(actual.frame), b = bounds(reference.frame);
+    expect(a).toHaveLength(6);
+    expect(b).toHaveLength(6);
+    for (let i = 0; i < 6; i++) {
+      expect(Math.abs(a[i] - b[i])).toBeLessThanOrEqual(0.15);
+    }
+  };
+  const cameraButton = (id: 'iso' | 'orbit') =>
+    page.locator(`.desk-toolbar [data-desk-kind="angle"][data-desk-id="${id}"]`);
+  await expect(cameraButton('iso')).toBeVisible();
+
+  const perspective = await state();
+  expect(perspective.pose.projection).toBe('perspective');
+  expect(perspective.frame).toBeTruthy();
+
+  await cameraButton('iso').click();
+  await expect(canvas).toHaveAttribute('data-desk-projection-switch', 'persp->iso');
+  await expect(canvas).toHaveAttribute('data-camera-projection', 'orthographic');
+  const iso = await state();
+  expect(iso.pose.projection).toBe('orthographic');
+  assertSamePose(iso, perspective);
+
+  for (const preset of ['Koko rakennus', 'D-asunto'] as const) {
+    await selectResearchPreset(page, preset);
+    // The older menu path preserves the pose via capture/bubble handlers;
+    // only the new toolbar buttons set data-desk-preset-camera-kept.
+    const afterPreset = await state();
+    expect(afterPreset.pose.projection).toBe('orthographic');
+    assertSamePose(afterPreset, perspective);
+  }
+  await cameraButton('orbit').click();
+  // The marker is only a diagnostic for toolbar pose reapplication.
+  // Verify the actual camera projection and readout, not the stale marker.
+  await expect(canvas).toHaveAttribute('data-camera-projection', 'perspective');
+  const restored = await state();
+  expect(restored.pose.projection).toBe('perspective');
+  assertSamePose(restored, perspective);
 });

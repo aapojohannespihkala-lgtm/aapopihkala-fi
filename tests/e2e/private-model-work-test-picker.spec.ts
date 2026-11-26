@@ -79,6 +79,21 @@ test('WORK_TEST picker puts the higher C80 model number first within the same re
   ]);
 });
 
+test('WORK_TEST picker puts the newest C80 revision first within the same review date', () => {
+  // Owner 17.11.2026: the latest WORK_TEST must always be at the top, whatever the catalog order.
+  // The review date comes from the candidate ID (YYYYMMDD), as in the Worker catalog.
+  const groups = groupWorkTestCandidatesForPicker([
+    candidate('c80-620r13-x-20261117', 'C80 620R13 - kotelo - 17.11.2026 WORK_TEST/HOST_HOLD'),
+    candidate('c80-620r12-x-20261117', 'C80 620R12 - kanava - 17.11.2026 WORK_TEST/HOST_HOLD'),
+    candidate('c80-620r11-x-20261117', 'C80 620R11 - välykset - 17.11.2026 WORK_TEST/HOST_HOLD'),
+    candidate('c80-614r10-x-20261117', 'C80 614 R10 - porras - 17.11.2026 WORK_TEST/HOST_HOLD'),
+    candidate('c80-608c-x-20261117', 'C80 608C - korjaukset - 17.11.2026 WORK_TEST/HOST_HOLD'),
+  ]);
+  expect(groups[0].candidates.map((item) => item.id)).toEqual([
+    'c80-620r13-x-20261117', 'c80-620r12-x-20261117', 'c80-620r11-x-20261117', 'c80-614r10-x-20261117', 'c80-608c-x-20261117',
+  ]);
+});
+
 test('WORK_TEST picker helpers parse dates, shorten auto labels and filter by all terms', () => {
   expect(workTestCandidateLabelDate('x 20261019 y 20261020 (scene69)')).toBe('2026-10-20');
   expect(workTestCandidateLabelDate('SOURCE156 scene300 no date')).toBeNull();
@@ -134,7 +149,11 @@ test('private viewer preselects the newest WORK_TEST and filters the version lis
     }),
   );
 
+  await page.route('**/private-model/work-test/auto-d1f-themo-cccc3333.glb', (route) =>
+    route.fulfill({ status: 200, contentType: 'model/gltf-binary', body: currentModel }),
+  );
   await page.goto('/private-model/');
+  const choices = page.locator('#work-test-options button[data-work-test-candidate]');
   const select = page.locator('#work-test-select');
   const filter = page.locator('#work-test-filter');
   await expect(select).toBeEnabled();
@@ -147,13 +166,17 @@ test('private viewer preselects the newest WORK_TEST and filters the version lis
   await expect(select).toHaveValue('auto-d1f-themo-cccc3333');
   await expect(select.locator('option')).toHaveCount(1);
   await expect(page.locator('#work-test-count')).toHaveText('1 / 6 versiota vastaa suodatusta');
-  await expect(page.locator('#work-test-button')).toBeEnabled();
+  await expect(choices).toHaveCount(1);
 
   await filter.fill('ei-osumaa');
   await expect(select.locator('option')).toHaveCount(0);
-  await expect(page.locator('#work-test-button')).toBeDisabled();
+  await expect(choices).toHaveCount(0);
 
   await filter.fill('');
   await expect(select.locator('option')).toHaveCount(6);
-  await expect(page.locator('#work-test-button')).toBeEnabled();
+  await expect(choices).toHaveCount(6);
+  await filter.fill('scene68');
+  await choices.filter({ hasText: /THEMO/ }).click();
+  await expect(page.locator('#model-menu')).not.toHaveAttribute('open');
+  await expect(page.locator('#private-model-canvas')).toHaveAttribute('data-model-source', 'work-test');
 });

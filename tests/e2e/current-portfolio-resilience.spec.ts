@@ -186,6 +186,8 @@ test('portfolio feed recovers transient sources and enriches OP index 1D/1W from
         id: string;
         symbol: string;
         changes: Record<string, number | null>;
+        estimatedPeriods?: string[];
+        estimationMethod?: string;
       }>;
       expected: number;
       unavailable: string[];
@@ -227,10 +229,12 @@ test('portfolio feed recovers transient sources and enriches OP index 1D/1W from
     const forest = body.items.find((candidate) => candidate.id === 'op-forest-owner-b');
     expect(readerAttempts.get('op-forest-owner')).toBe(4);
     expect(forest).toBeDefined();
-    expect(forest?.changes.today).toBeNull();
-    expect(forest?.changes.week1).toBeNull();
-    expect(forest?.changes.month1).toBe(1);
+    expect(forest?.changes.today).toBeCloseTo((Math.pow(1.02, 1 / 91) - 1) * 100, 8);
+    expect(forest?.changes.week1).toBeCloseTo((Math.pow(1.02, 7 / 91) - 1) * 100, 8);
+    expect(forest?.changes.month1).toBe(1); // Keep the source-provided 1M return.
     expect(forest?.changes.month3).toBe(2);
+    expect(forest?.estimatedPeriods).toEqual(['today', 'week1']);
+    expect(forest?.estimationMethod).toBe('compound-3m-over-91-days');
     expect(forest?.changes.month6).toBe(3);
     expect(forest?.changes.ytd).toBe(0.6);
     expect(forest?.changes.year1).toBe(4);

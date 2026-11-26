@@ -7,7 +7,7 @@ on:
         description: Exact published source, or all established regressions
         type: choice
         default: all
-        options: [all, V68, V69, K17_RAIL900, V69P12R1, P02, TATE, TATE3, TATE4, M6263, SUCC437]
+        options: [all, V68, V69, K17_RAIL900, V69P12R1, P02, TATE, TATE3, TATE4, M6263, SUCC437, C80_R22]
       tate_phase:
         description: TATE proof phase (full preserves every existing gate)
         type: choice
@@ -64,13 +64,14 @@ permissions:
 concurrency:
   # The established all matrix excludes P12R1. Its automatic replay must not
   # cancel the dedicated P12R1 capture of the same trusted main head.
-  group: d-view-exact-source-webgl${{ inputs.source_version == 'SUCC437' && '-succ437' || inputs.source_version == 'M6263' && '-m6263' || inputs.source_version == 'TATE4' && '-tate4' || inputs.source_version == 'TATE3' && '-tate3' || inputs.source_version == 'TATE' && '-tate' || inputs.source_version == 'P02' && '-p02' || inputs.source_version == 'V69P12R1' && '-v69p12r1' || '' }}
+  group: d-view-exact-source-webgl${{ inputs.source_version == 'C80_R22' && '-r22' || inputs.source_version == 'SUCC437' && '-succ437' || inputs.source_version == 'M6263' && '-m6263' || inputs.source_version == 'TATE4' && '-tate4' || inputs.source_version == 'TATE3' && '-tate3' || inputs.source_version == 'TATE' && '-tate' || inputs.source_version == 'P02' && '-p02' || inputs.source_version == 'V69P12R1' && '-v69p12r1' || '' }}
   # Read-only viewer QA is bound to one exact main head. A newer head supersedes it.
   cancel-in-progress: true
 
 jobs:
   real-model-webgl:
     if: >-
+      inputs.source_version != 'C80_R22' &&
       github.ref == 'refs/heads/main' &&
       github.repository == 'aapojohannespihkala-lgtm/aapopihkala-fi' &&
       (github.event_name != 'workflow_run' ||
@@ -968,3 +969,48 @@ jobs:
 
 
 
+
+  c80-r22-production:
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && github.repository == 'aapojohannespihkala-lgtm/aapopihkala-fi' && inputs.source_version == 'C80_R22'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.20.0
+          cache: npm
+      - run: npm ci
+      - name: Authenticate existing read-only Drive source access
+        id: google-auth
+        uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: ${{ vars.GDRIVE_WIF_PROVIDER }}
+          service_account: ${{ vars.GDRIVE_PUBLISHER_SERVICE_ACCOUNT }}
+          token_format: access_token
+          access_token_scopes: https://www.googleapis.com/auth/drive.readonly
+          create_credentials_file: false
+          export_environment_variables: false
+      - name: Derive fixed source locks from the trusted main profiles
+        run: node .github/scripts/c80-r22-source-locks.mjs > "$RUNNER_TEMP/r22-locks.json"
+      - name: Read original ZIPs and run authentic R21/R22 GLB parity and binding tests
+        env:
+          GDRIVE_ACCESS_TOKEN: ${{ steps.google-auth.outputs.access_token }}
+        run: |
+          python3 .github/scripts/c80-r22-source-fetch.py
+          C80_620R21_GLB_PATH="$RUNNER_TEMP/r21.glb" C80_620R22_GLB_PATH="$RUNNER_TEMP/r22.glb" node --test tests/unit/private-model-c80-620r22-work-test-receiver.test.mjs
+      - run: npx playwright install --with-deps chromium
+      - name: Authenticated production WebGL exact SHA and all system counts
+        env:
+          CF_ACCESS_VIEWER_PROBE_CLIENT_ID: ${{ secrets.CF_ACCESS_VIEWER_PROBE_CLIENT_ID }}
+          CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET: ${{ secrets.CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET }}
+          D_VIEW_TESTED_COMMIT: ${{ github.sha }}
+        run: node .github/scripts/private-model-c80-r22-production-probe.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: c80-r22-production-proof
+          path: test-results/c80-r22-production/
+      - name: Remove temporary protected source bytes
+        if: always()
+        run: rm -f "$RUNNER_TEMP/r21.glb" "$RUNNER_TEMP/r22.glb" "$RUNNER_TEMP/r22-locks.json"

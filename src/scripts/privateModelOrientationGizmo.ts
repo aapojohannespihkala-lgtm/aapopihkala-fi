@@ -7,6 +7,8 @@ import {
   viewerWorldToYlis,
 } from './privateModelAiNavigator';
 import { THREE, getTrackedOrbitControls } from './threeRuntime';
+import { createNorthFrameToggleController } from './privateModelNavigationNorthFrameToggle.mjs';
+import { mountNavigationCube } from './privateModelNavigationCube.mjs';
 
 type QuaternionLike = {
   x: number;
@@ -24,6 +26,7 @@ type OrientationAxisElements = {
 
 type OrientationGizmoControllerArgs = {
   root: HTMLElement;
+  readoutHost: HTMLElement;
   axisX: OrientationAxisElements;
   axisY: OrientationAxisElements;
   axisZ: OrientationAxisElements;
@@ -113,9 +116,7 @@ const toYlis = (vector: THREE.Vector3) => {
 
 const createReadoutRow = (key: string, optional = false) => {
   const row = document.createElement('div');
-  row.style.display = 'grid';
-  row.style.gridTemplateColumns = '46px minmax(0, 1fr)';
-  row.style.gap = '5px';
+  row.className = 'viewer-info-reading';
   if (optional) row.hidden = true;
 
   const label = document.createElement('span');
@@ -125,9 +126,7 @@ const createReadoutRow = (key: string, optional = false) => {
 
   const value = document.createElement('span');
   value.textContent = '-';
-  value.style.minWidth = '0';
   value.style.color = 'var(--viewer-ink-soft, #e1e7ea)';
-  value.style.overflowWrap = 'anywhere';
 
   row.append(label, value);
   return { row, value };
@@ -147,6 +146,7 @@ const finiteDatasetNumber = (value: string | undefined) => {
 
 export const createOrientationGizmoController = ({
   root,
+  readoutHost,
   axisX,
   axisY,
   axisZ,
@@ -160,9 +160,6 @@ export const createOrientationGizmoController = ({
   root.dataset.frame = 'YLIS-G1-LOCAL';
   root.dataset.northAxis = '+Y';
 
-  const title = root.querySelector<HTMLElement>('.orientation-gizmo-title');
-  if (title) title.textContent = 'YLIS-G1-LOCAL · m';
-
   const canvas =
     root.closest('.viewport')?.querySelector<HTMLCanvasElement>('canvas') ??
     document.querySelector<HTMLCanvasElement>('#private-model-canvas');
@@ -170,18 +167,7 @@ export const createOrientationGizmoController = ({
   const readout = document.createElement('div');
   readout.id = 'ai-navigator-readout';
   readout.setAttribute('aria-label', 'Kuvakaappauksen YLIS-G1-LOCAL katselutiedot');
-  Object.assign(readout.style, {
-    display: 'grid',
-    gap: '2px',
-    marginTop: '5px',
-    paddingTop: '5px',
-    borderTop: '1px solid var(--viewer-line-soft, #46535d)',
-    fontFamily:
-      'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace',
-    fontSize: '8.2px',
-    lineHeight: '1.25',
-    fontVariantNumeric: 'tabular-nums',
-  });
+  readout.className = 'viewer-info-camera';
 
   const modelRow = createReadoutRow('MODEL');
   const viewRow = createReadoutRow('VIEW');
@@ -201,7 +187,46 @@ export const createOrientationGizmoController = ({
     stateRow.row,
     pinRow.row,
   );
-  root.append(readout);
+  readoutHost.append(readout);
+
+  // Existing axes stay YLIS-G1-LOCAL. Only the N annotation is switchable.
+  // The HUD deliberately has pointer-events:none; enable hits on this button
+  // alone so dragging elsewhere still belongs to the model canvas.
+  const northFrameSvg = root.querySelector<SVGSVGElement>('svg');
+  const northFrameController = northFrameSvg
+    ? createNorthFrameToggleController({ root, svg: northFrameSvg, northLabel })
+    : null;
+  if (northFrameController) {
+    Object.assign(northFrameController.button.style, {
+      display: 'block',
+      margin: '4px auto 0',
+      padding: '4px 8px',
+      border: '0',
+      borderRadius: '5px',
+      color: 'var(--viewer-ink)',
+      // Keep accessible text unchanged; CSS shows only the active frame label.
+      fontSize: '0px',
+      lineHeight: '1.3',
+      cursor: 'pointer',
+      pointerEvents: 'auto',
+      touchAction: 'manipulation',
+    });
+    root.append(northFrameController.button);
+    // Owner decision 21.11.2026: clicking the cube itself switches YLIS-G1 /
+    // map north; the text under it only shows the active frame.
+    northFrameSvg!.style.pointerEvents = 'auto';
+    northFrameSvg!.style.cursor = 'pointer';
+    northFrameSvg!.setAttribute('aria-hidden', 'true');
+    northFrameSvg!.addEventListener('click', (event) => {
+      event.stopPropagation();
+      northFrameController.button.click();
+    });
+  }
+
+  // Owner request 22.11.2026: a navigation cube behind the axes. It turns with
+  // the camera and follows the selected north frame; clicking it (the svg)
+  // switches the frame as before. It never moves the camera.
+  const navCube = northFrameSvg ? mountNavigationCube({ svg: northFrameSvg, root }) : null;
 
   const findControls = (
     quaternion: QuaternionLike,
@@ -234,14 +259,13 @@ export const createOrientationGizmoController = ({
     const compact = window.matchMedia('(max-width: 760px)').matches;
     // CSS dimensions depend on the viewport breakpoint, not the frame rate.
     if (lastCompact !== compact) {
-      root.style.width = compact ? '196px' : '236px';
+      root.style.width = compact ? '108px' : '142px';
       const svg = root.querySelector<SVGElement>('svg');
       if (svg) {
-        svg.style.width = compact ? '60px' : '78px';
+        svg.style.width = compact ? '78px' : '118px';
         svg.style.maxWidth = svg.style.width;
         svg.style.marginInline = 'auto';
       }
-      readout.style.fontSize = compact ? '7.3px' : '8.2px';
       lastCompact = compact;
     }
 
@@ -469,7 +493,26 @@ export const createOrientationGizmoController = ({
       root.dataset.ready = 'true';
     }
 
-    return renderNavigator(quaternion, projection) || axisChanged;
+    const navigatorChanged = renderNavigator(quaternion, projection);
+    // Draw after the original Y-axis label so the selected north-frame
+    // annotation wins. The toggle itself redraws with the cached quaternion.
+    // An optional annotation must never stop the viewer render loop: a
+    // transient non-finite camera pose (e.g. before the first model fit)
+    // only leaves the previous north annotation in place.
+    if (axisChanged) {
+      try {
+        northFrameController?.render({ quaternion });
+      } catch (error) {
+        root.dataset.northFrameError = error instanceof Error ? error.message : 'YLIS_NORTH_FRAME';
+      }
+    }
+    let cubeChanged = false;
+    try {
+      cubeChanged = navCube?.render(quaternion, root.dataset.northFrame === 'map' ? 'map' : 'local') ?? false;
+    } catch (error) {
+      root.dataset.navCubeError = error instanceof Error ? error.message : 'YLIS_NAV_CUBE';
+    }
+    return navigatorChanged || axisChanged || cubeChanged;
   };
 
   return { render };

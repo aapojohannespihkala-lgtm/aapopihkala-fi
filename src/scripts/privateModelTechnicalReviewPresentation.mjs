@@ -4,6 +4,38 @@ import { C80_500_GLB_SHA256 } from './privateModelC80500WW1974ABCSourceProfile.m
 import { C80_524_RAIN_GLB_SHA256 } from './privateModelC80524RainZonesSourceProfile.mjs';
 import { C80_530_V27_GLB_SHA256 } from './privateModelC80530V27SourceProfile.mjs';
 import { c80530V27ReviewProfile } from './privateModelC80530V27FloorRuntime.mjs';
+import { C80_602_GLB_SHA256 } from './privateModelC80602SourceProfile.mjs';
+import { c80602ReviewProfile } from './privateModelC80602FloorRuntime.mjs';
+import { C80_608C_GLB_SHA256 } from './privateModelC80608CSourceProfile.mjs';
+import { c80608CReviewProfile } from './privateModelC80608CFloorRuntime.mjs';
+import { C80_614_GLB_SHA256 } from './privateModelC80614SourceProfile.mjs';
+import { c80614ReviewProfile } from './privateModelC80614FloorRuntime.mjs';
+import { C80_620R10_GLB_SHA256 } from './privateModelC80620R10SourceProfile.mjs';
+import { c80620R10ReviewProfile } from './privateModelC80620R10FloorRuntime.mjs';
+import { C80_620R11_GLB_SHA256 } from './privateModelC80620R11SourceProfile.mjs';
+import { c80620R11ReviewProfile } from './privateModelC80620R11FloorRuntime.mjs';
+import { C80_620R12_GLB_SHA256 } from './privateModelC80620R12SourceProfile.mjs';
+import { c80620R12ReviewProfile } from './privateModelC80620R12FloorRuntime.mjs';
+import { C80_620R13_GLB_SHA256 } from './privateModelC80620R13SourceProfile.mjs';
+import { c80620R13ReviewProfile } from './privateModelC80620R13FloorRuntime.mjs';
+import { C80_620R14_GLB_SHA256 } from './privateModelC80620R14SourceProfile.mjs';
+import { c80620R14ReviewProfile } from './privateModelC80620R14FloorRuntime.mjs';
+import { C80_620R15_GLB_SHA256 } from './privateModelC80620R15SourceProfile.mjs';
+import { c80620R15ReviewProfile } from './privateModelC80620R15FloorRuntime.mjs';
+import { C80_620R16_GLB_SHA256 } from './privateModelC80620R16SourceProfile.mjs';
+import { c80620R16ReviewProfile } from './privateModelC80620R16FloorRuntime.mjs';
+import { C80_620R17_GLB_SHA256 } from './privateModelC80620R17SourceProfile.mjs';
+import { c80620R17ReviewProfile } from './privateModelC80620R17FloorRuntime.mjs';
+import { C80_620R18_GLB_SHA256 } from './privateModelC80620R18SourceProfile.mjs';
+import { c80620R18ReviewProfile } from './privateModelC80620R18FloorRuntime.mjs';
+import { C80_620R19_GLB_SHA256 } from './privateModelC80620R19SourceProfile.mjs';
+import { c80620R19ReviewProfile } from './privateModelC80620R19FloorRuntime.mjs';
+import { C80_620R20_GLB_SHA256 } from './privateModelC80620R20SourceProfile.mjs';
+import { c80620R20ReviewProfile } from './privateModelC80620R20FloorRuntime.mjs';
+import {C80_620R22_GLB_SHA256} from './privateModelC80620R22SourceProfile.mjs';
+import {c80620R22ReviewProfile} from './privateModelC80620R22FloorRuntime.mjs';
+import { C80_620R21_GLB_SHA256 } from './privateModelC80620R21SourceProfile.mjs';
+import { c80620R21ReviewProfile } from './privateModelC80620R21FloorRuntime.mjs';
 import { c80524RainReviewProfile } from './privateModelC80524RainZonesFloorRuntime.mjs';
 import { c80500ABCReviewProfile } from './privateModelC80500WW1974ABCFloorRuntime.mjs';
 import { C80_495_GLB_SHA256, c80495SavoSewerReviewProfile } from './privateModelC80495SavoSewerFloorRuntime.mjs';
@@ -104,8 +136,38 @@ import { sameSourceName } from './privateModelSourceNodeAssociations.mjs';
  * node IDs. Never apply this exclusion to other GLBs or their node indices.
  */
 const COMPOSITE_PRESENTATION_ROOTS = new Set([2220,11613,11945]);
+// C80 524/530 append-only successors keep the same immutable node indices
+// (SHA-gated profiles). Owner review 15.11.2026: the H24 KPH floor tiles and
+// the MJ54 Bosch washer (11996, an appliance, not an installation) were shown
+// as electrical orange. Grey them; H24 device leaves are re-added below.
+const C80_CHAIN_COMPOSITE_SHAS = new Set([C80_524_RAIN_GLB_SHA256, C80_530_V27_GLB_SHA256, C80_602_GLB_SHA256, C80_608C_GLB_SHA256, C80_614_GLB_SHA256, C80_620R10_GLB_SHA256, C80_620R11_GLB_SHA256, C80_620R12_GLB_SHA256, C80_620R13_GLB_SHA256, C80_620R14_GLB_SHA256, C80_620R15_GLB_SHA256, C80_620R16_GLB_SHA256, C80_620R17_GLB_SHA256, C80_620R18_GLB_SHA256, C80_620R19_GLB_SHA256, C80_620R20_GLB_SHA256, C80_620R21_GLB_SHA256, C80_620R22_GLB_SHA256]);
+const C80_CHAIN_COMPOSITE_ROOTS = new Set([...COMPOSITE_PRESENTATION_ROOTS, 11996]);
+// C80 524/530 Sisältö technical-layer bindings also list a few fixtures
+// (owner review 15.11.2026 K15): the H24 WC/KPH floor-tile clones and the
+// MJ54 Bosch washer appliance. They keep their layer membership for Sisältö,
+// but are not shown with the electrical palette. SHA-gated exact name prefixes.
+const C80_CHAIN_NONTECHNICAL_BOUND_PREFIXES = Object.freeze([
+  'K11_XMIRROR_R989_FLOOR_INTEGRATION_DERIVED_CLONE_',
+  'MJ54_BOSCH_WNG254ABSN_',
+]);
+export function filterNonTechnicalBoundObjects(items,loadedSha) {
+  if (!Array.isArray(items) || !C80_CHAIN_COMPOSITE_SHAS.has(loadedSha)) return items;
+  // The washer is bound per child mesh (C80-037_BOSCH_1_*), so test the
+  // bound object and its ancestors against the exact source root prefixes.
+  const excluded=object=>{
+    for (let node=object; node; node=node.parent) {
+      const name=node.name;
+      if (typeof name==='string' &&
+        C80_CHAIN_NONTECHNICAL_BOUND_PREFIXES.some(prefix=>name.startsWith(prefix))) return true;
+    }
+    return false;
+  };
+  return items.filter(item=>!excluded(item?.object));
+}
 export function filterCompositePresentationRoots(entries,loadedSha) {
   if (!Array.isArray(entries)) return null;
+  if (C80_CHAIN_COMPOSITE_SHAS.has(loadedSha))
+    return entries.filter(entry=>!C80_CHAIN_COMPOSITE_ROOTS.has(entry.node));
   if (loadedSha !== TATE4_MJ6263_SOURCE_SHA256 &&
       loadedSha !== SUCCESSOR_R1_SHA256) return entries;
   return entries.filter(entry=>!COMPOSITE_PRESENTATION_ROOTS.has(entry.node));
@@ -168,7 +230,8 @@ const h24NestedSystems=new WeakMap();
 export function appendSourceExactH24Children(json,scene,sceneIndex,loadedSha,associations,roots) {
   if (!Array.isArray(roots)) return null;
   if (loadedSha !== SUCCESSOR_R1_SHA256 &&
-      loadedSha !== TATE4_MJ6263_SOURCE_SHA256) return roots;
+      loadedSha !== TATE4_MJ6263_SOURCE_SHA256 &&
+      !C80_CHAIN_COMPOSITE_SHAS.has(loadedSha)) return roots;
   const active=json?.scenes?.[sceneIndex]?.nodes;
   if (!Array.isArray(active) || !active.includes(11613)) return roots;
   const sourceParent=json.nodes?.[11613];
@@ -203,6 +266,22 @@ export function resolveTechnicalReviewRoots(gltf, scene, sceneIndex, loadedSha, 
   const associations = gltf?.parser?.associations;
   const source = loadedSha === C80_437_GLB_SHA256 ? c80437ReviewProfile(json,loadedSha,sceneIndex)
     : loadedSha === C80_530_V27_GLB_SHA256 ? c80530V27ReviewProfile(json,loadedSha,sceneIndex)
+    : loadedSha === C80_602_GLB_SHA256 ? c80602ReviewProfile(json,loadedSha,sceneIndex)
+    : loadedSha === C80_608C_GLB_SHA256 ? c80608CReviewProfile(json,loadedSha,sceneIndex)
+    : loadedSha === C80_620R10_GLB_SHA256 ? c80620R10ReviewProfile(json,loadedSha,sceneIndex)
+    : loadedSha === C80_620R11_GLB_SHA256 ? c80620R11ReviewProfile(json,loadedSha,sceneIndex)
+    : loadedSha === C80_620R12_GLB_SHA256 ? c80620R12ReviewProfile(json,loadedSha,sceneIndex)
+    : loadedSha === C80_620R13_GLB_SHA256 ? c80620R13ReviewProfile(json,loadedSha,sceneIndex)
+    : loadedSha === C80_620R14_GLB_SHA256 ? c80620R14ReviewProfile(json,loadedSha,sceneIndex)
+    : loadedSha === C80_620R15_GLB_SHA256 ? c80620R15ReviewProfile(json,loadedSha,sceneIndex)
+    : loadedSha === C80_620R16_GLB_SHA256 ? c80620R16ReviewProfile(json,loadedSha,sceneIndex)
+    : loadedSha === C80_620R17_GLB_SHA256 ? c80620R17ReviewProfile(json,loadedSha,sceneIndex)
+    : loadedSha === C80_620R18_GLB_SHA256 ? c80620R18ReviewProfile(json,loadedSha,sceneIndex)
+    : loadedSha === C80_620R19_GLB_SHA256 ? c80620R19ReviewProfile(json,loadedSha,sceneIndex)
+    : loadedSha === C80_620R20_GLB_SHA256 ? c80620R20ReviewProfile(json,loadedSha,sceneIndex)
+    : loadedSha === C80_620R22_GLB_SHA256 ? c80620R22ReviewProfile(json,loadedSha,sceneIndex)
+    : loadedSha === C80_620R21_GLB_SHA256 ? c80620R21ReviewProfile(json,loadedSha,sceneIndex)
+    : loadedSha === C80_614_GLB_SHA256 ? c80614ReviewProfile(json,loadedSha,sceneIndex)
     : loadedSha === C80_524_RAIN_GLB_SHA256 ? c80524RainReviewProfile(json,loadedSha,sceneIndex)
     : loadedSha === C80_500_GLB_SHA256 ? c80500ABCReviewProfile(json,loadedSha,sceneIndex)
     : loadedSha === C80_495_GLB_SHA256 ? c80495SavoSewerReviewProfile(json,loadedSha,sceneIndex)
@@ -246,6 +325,23 @@ export function resolveTechnicalReviewRoots(gltf, scene, sceneIndex, loadedSha, 
   return appendSourceExactH24Children(json,scene,sceneIndex,loadedSha,associations,roots);
 }
 
+// WP-T4 (owner 15.11.2026 and 17.11.2026: "varaaja ja liesituuletin näkyvät täysväreissä"):
+// a source extras.ylisTechRole of DEVICE, ENCLOSURE or ACCESSORY marks a device body, a casing
+// or a fitting. Only ROUTE parts (pipes, ducts, cables) and unlabelled technical parts keep the
+// full system color; the labelled bodies get a light translucent tint of the same system so the
+// routes inside and behind them stay readable. Without the metadata nothing changes.
+const LIGHT_TECH_ROLES = new Set(['DEVICE', 'ENCLOSURE', 'ACCESSORY']);
+export const TECHNICAL_REVIEW_LIGHT_ROLE_OPACITY = 0.2;
+
+/** Nearest source ylisTechRole of an object or its ancestors below the scene root. */
+export function technicalReviewRoleOf(object, root) {
+  for (let node = object; node && node !== root; node = node.parent) {
+    const role = node.userData?.ylisTechRole;
+    if (typeof role === 'string') return role;
+  }
+  return null;
+}
+
 const isRenderable = object => object?.isMesh === true || object?.isLine === true ||
   object?.isLineSegments === true || object?.isPoints === true;
 
@@ -260,9 +356,40 @@ export function createTechnicalReviewPresentation(root, keepRoots, createMateria
   const keep = new Set(keepRoots.filter(Boolean));
   const saved = new Map();
   let materials = null;
+  // Single-pass DoubleSide highlight on a mesh without vertex normals renders
+  // black (three only auto-flat-shades one-sided passes). Such meshes get an
+  // explicitly flat-shaded twin of the same shared highlight material.
+  let flatTwins = new Map();
+  const forGeometry = (material, object) => {
+    if (!material || material.forceSinglePass !== true || material.flatShading === true ||
+        object.geometry?.attributes?.normal || typeof material.clone !== 'function') return material;
+    let twin = flatTwins.get(material);
+    if (!twin) {
+      twin = material.clone();
+      twin.flatShading = true;
+      flatTwins.set(material, twin);
+    }
+    return twin;
+  };
+  // Light role tints are viewer-owned clones of the shared system materials.
+  let lightTints = new Map();
+  const lightOf = material => {
+    if (!material || typeof material.clone !== 'function') return material;
+    let tint = lightTints.get(material);
+    if (!tint) {
+      tint = material.clone();
+      tint.transparent = true;
+      tint.opacity = TECHNICAL_REVIEW_LIGHT_ROLE_OPACITY;
+      tint.depthWrite = false;
+      if (typeof tint.emissiveIntensity === 'number') tint.emissiveIntensity = Math.min(tint.emissiveIntensity, 0.25);
+      lightTints.set(material, tint);
+    }
+    return tint;
+  };
   let applied = false;
   let disposed = false;
   let systemCounts = {};
+  let lightRoleCount = 0;
 
   const kept = object => {
     for (let node = object; node && node !== root; node = node.parent) if (keep.has(node)) return true;
@@ -283,6 +410,10 @@ export function createTechnicalReviewPresentation(root, keepRoots, createMateria
     owned?.surface?.dispose?.();
     owned?.line?.dispose?.();
     for (const material of Object.values(owned?.systems ?? {})) material?.dispose?.();
+    for (const twin of flatTwins.values()) twin?.dispose?.();
+    flatTwins = new Map();
+    for (const tint of lightTints.values()) tint?.dispose?.();
+    lightTints = new Map();
   };
 
   const apply = on => {
@@ -291,6 +422,7 @@ export function createTechnicalReviewPresentation(root, keepRoots, createMateria
     if (applied) return true;
     try {
       systemCounts = {};
+      lightRoleCount = 0;
       materials ??= markTechnicalReviewPickMaterials(createMaterials());
       root.traverse(object => {
         if (object === root || !isRenderable(object) || saved.has(object)) return;
@@ -302,8 +434,11 @@ export function createTechnicalReviewPresentation(root, keepRoots, createMateria
           // A palette-free legacy review keeps its original source materials.
           if (!materials.systems) return;
           const system = object.isMesh ? systemOf(object) : null;
+          const systemMaterial = object.isMesh ? materials.systems[system ?? ''] : null;
+          const light = !!systemMaterial && LIGHT_TECH_ROLES.has(technicalReviewRoleOf(object, root));
+          if (light) lightRoleCount += 1;
           shared = object.isMesh
-            ? (materials.systems[system ?? ''] ?? materials.surface)
+            ? forGeometry(light ? lightOf(systemMaterial) : systemMaterial ?? materials.surface, object)
             : materials.line;
           if (object.isMesh) {
             const key = system && materials.systems[system] ? system : 'GREY';
@@ -335,13 +470,42 @@ export function createTechnicalReviewPresentation(root, keepRoots, createMateria
 
   return { apply, dispose, get applied() { return applied; }, get changedCount() { return saved.size; },
     /** Kept meshes per highlight system in the last apply (GREY = no system). */
-    get systemCounts() { return { ...systemCounts }; } };
+    get systemCounts() { return { ...systemCounts }; },
+    /** Kept system meshes shown as a light device/enclosure/accessory tint in the last apply. */
+    get lightRoleCount() { return lightRoleCount; } };
 }
 
 const DRAIN_NAME = /(?:^|_)(?:V75|V75_D\d|V110|T110|V50|V32|DRAIN|WASTE|SEWER|WW1974|WW74|WW20\d\d|VV20\d\d|LK_?75|KK_?32)(?:_|$)/;
 // Wrappers and water/electric/ventilation parts that merely mention a drain
 // size (e.g. "..._ONE_V75_COW" wrappers, KV/LV clearance sleeves, cisterns).
 const NOT_DRAIN_NAME = /(?:^|_)(?:KV|LV|KVLV|PEX|KV\d+|LV\d+|VM\d+|ELECTRICAL\d*|IV|IV\d+|SAHKO|RK\d+|CISTERN)(?:_|$)/;
+
+// Domestic hot water (LV = lämmin vesi) vs cold water (KV) in builder names.
+// The nearest name that names only one temperature decides; a wrapper that
+// names both (e.g. "P02_2F_KV_LV_CONNECTIONS") is skipped upwards.
+const HOT_WATER_NAME = /(?:^|_)(?:LV|LV\d+|LKV|HOT|MIXED_HOT)(?:_|$)/;
+const COLD_WATER_NAME = /(?:^|_)(?:KV|KV\d+|COLD)(?:_|$)/;
+
+/**
+ * Water line of a mesh already classified as VESI: 'VESI_LV' for a hot-water
+ * part, 'VESI' otherwise. Only builder names are read; unnamed or mixed parts
+ * stay in the generic water color (no guessing from geometry or position).
+ */
+export function technicalReviewWaterLineOf(object, root) {
+  for (let node = object; node && node !== root; node = node.parent) {
+    // "..._HOT_COLD_CLEARANCE_..." is a provenance suffix, not a temperature.
+    const name = typeof node.name === 'string' ? node.name.replace(/HOT_COLD_CLEARANCE/g, '') : '';
+    const hot = HOT_WATER_NAME.test(name), cold = COLD_WATER_NAME.test(name);
+    if (hot && !cold) return 'VESI_LV';
+    if (cold && !hot) return 'VESI';
+  }
+  return 'VESI';
+}
+
+/** Splits VESI into cold (VESI) and hot (VESI_LV); other systems pass through. */
+export function refineTechnicalReviewSystem(system, object, root) {
+  return system === 'VESI' ? technicalReviewWaterLineOf(object, root) : system;
+}
 
 /** Sisältö (layer) ids that carry a technical review color. */
 export const TECHNICAL_REVIEW_LAYER_SYSTEMS = Object.freeze({

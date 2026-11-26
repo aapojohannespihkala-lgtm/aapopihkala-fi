@@ -26,10 +26,14 @@ export type WorkTest3DPoint = Readonly<{
 
 type Rect = {left:number;top:number;width:number;height:number};
 
+// Viewer-generated review geometry (userData.viewerDerived) must not become
+// a source point. GLB extras PresentationOnly/presentationOnly are NOT used
+// here: C80/M5 source GLBs set them on whole building roots, which made every
+// real model surface unpickable (Piste mallissa / Mittaa 3D: "Ei osumaa").
 const hasPresentationOnlyAncestor = (node: THREE.Object3D, root: THREE.Object3D) => {
   let current: THREE.Object3D | null = node;
   while(current && current!==root.parent){
-    if (current.userData?.PresentationOnly === true || current.userData?.presentationOnly === true) return true;
+    if (current.userData?.viewerDerived === true) return true;
     if(current===root) break;
     current=current.parent;
   }

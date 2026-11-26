@@ -285,7 +285,10 @@ test('Current modules remain inside a 390 px mobile viewport', async ({ page }) 
   await expect(page.locator('[data-current-weather]')).toBeVisible();
   await expect(page.locator('[data-weather-hour]')).toHaveCount(6);
   await expect(page.locator('[data-weather-day]')).toHaveCount(5);
-  await expect(page.locator('[data-weather-solar-arc]')).toBeVisible();
+  // /current/ shows the Android-style disk for valid sunrise/sunset data.
+  // If the weather source is incomplete, the existing orbit remains the fallback.
+  await expect.poll(async () => Number(await page.locator('[data-weather-daynight-disk]').isVisible()) +
+    Number(await page.locator('[data-weather-solar-arc]').isVisible())).toBe(1);
   await expect(page.locator('[data-weather-daylight]')).toBeVisible();
   await expect(page.locator('.language-switch')).toBeVisible();
   await expect(page.locator('[data-night-mode-toggle]')).toBeVisible();

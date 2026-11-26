@@ -259,7 +259,7 @@ for(const floor of ['D1F','D2F'] as const)test('real WebGL DoubleSide renders pr
 
 test('viewer source mounts the runtime and HUD occupies the source column',async({page})=>{
   const index=readFileSync('src/pages/private-model/index.astro','utf8');
-  const rule=index.match(/\.viewport:has\(#p186e-source-context:not\(\[hidden\]\)\) \.orientation-gizmo\s*\{[^}]+\}/)?.[0];
+  const rule=index.match(/\.viewport:has\(#p186e-source-context:not\(\[hidden\], \[data-viewport-minimized\]\)\) \.orientation-gizmo\s*\{[^}]+\}/)?.[0];
   expect(rule).toBeTruthy();
   expect(index).toContain('p186ePixelRuntime = createP186ELabelPixelRuntime({');
   expect(index).toContain("window.addEventListener('p186e-source-pixel-probe'");

@@ -1,6 +1,7 @@
 import { onRequestGet as getElectricityResponse } from './electricity';
 import { onRequestGet as getMarketsResponse } from './markets-stable';
-import { onRequestGet as getPortfolioPerformance } from './portfolio';
+import { onRequestGet as getPortfolioPerformance } from './portfolio-complete';
+import { estimatePortfolioItemIfValid, type PortfolioPeriod, type PeriodEstimateDetail } from './portfolio-estimation';
 
 type WeatherResponse = {
   utc_offset_seconds?: unknown;
@@ -32,6 +33,7 @@ type ElectricityResponse = {
 
 type PortfolioItem = {
   id?: unknown;
+  symbol?: unknown;
   price?: unknown;
   observedAt?: unknown;
   changes?: {
@@ -39,6 +41,8 @@ type PortfolioItem = {
     month1?: unknown;
     year1?: unknown;
   };
+  estimatedPeriods?: unknown;
+  estimationDetails?: Partial<Record<PortfolioPeriod, PeriodEstimateDetail>>;
 };
 
 type PortfolioResponse = {
@@ -440,26 +444,47 @@ const median = (values: number[]) => {
     : (sorted[midpoint - 1] + sorted[midpoint]) / 2;
 };
 
-const loadPortfolio = async () => {
-  const data = await readJson<PortfolioResponse>(await getPortfolioPerformance());
-  if (!data || !Array.isArray(data.items)) return null;
+type WidgetFundSource = {
+  symbol: string;
+  observedAt: string;
+  estimated: boolean;
+  detail?: PeriodEstimateDetail;
+};
+
+type WidgetSummaryPeriod = 'today' | 'month1' | 'year1';
+const WIDGET_SUMMARY_PERIODS = ['today','month1','year1'] as const;
+
+export const summarizeWidgetPortfolio = (data: PortfolioResponse, now = new Date()) => {
+  if (!Array.isArray(data.items)) return null;
 
   const byId = new Map<string, PortfolioItem>();
-  const todayValues: number[] = [];
+  const values: Record<WidgetSummaryPeriod, number[]> = {
+    today: [], month1: [], year1: [],
+  };
+  const counts: Record<WidgetSummaryPeriod, { estimated: number; total: number }> = {
+    today: { estimated: 0, total: 0 },
+    month1: { estimated: 0, total: 0 },
+    year1: { estimated: 0, total: 0 },
+  };
   const todayObservedAt: unknown[] = [];
-  const month1Values: number[] = [];
-  const year1Values: number[] = [];
 
   for (const raw of data.items) {
-    if (!raw || typeof raw !== 'object') continue;
-    const item = raw as PortfolioItem;
-    if (typeof item.id === 'string') byId.set(item.id, item);
-    if (isFiniteNumber(item.changes?.today)) {
-      todayValues.push(item.changes.today);
-      todayObservedAt.push(item.observedAt);
+    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) continue;
+    // Keep the presentation estimate local once the verified observations arrive.
+    const item = estimatePortfolioItemIfValid(raw, now) as PortfolioItem;
+    if (typeof item.id !== 'string') continue;
+    byId.set(item.id, item);
+    for (const period of WIDGET_SUMMARY_PERIODS) {
+      const value = item.changes?.[period];
+      if (!isFiniteNumber(value)) continue;
+      values[period].push(value);
+      counts[period].total += 1;
+      if (Array.isArray(item.estimatedPeriods) &&
+          item.estimatedPeriods.includes(period)) {
+        counts[period].estimated += 1;
+      }
+      if (period === 'today') todayObservedAt.push(item.observedAt);
     }
-    if (isFiniteNumber(item.changes?.month1)) month1Values.push(item.changes.month1);
-    if (isFiniteNumber(item.changes?.year1)) year1Values.push(item.changes.year1);
   }
 
   const selectedValue = (id: string) => {
@@ -470,11 +495,35 @@ const loadPortfolio = async () => {
     const value = byId.get(id)?.price;
     return isFiniteNumber(value) ? value : null;
   };
+  const selectedSource = (id: string): WidgetFundSource | null => {
+    const item = byId.get(id);
+    if (!item || !isFiniteNumber(item.changes?.today)) return null;
+    const estimated = Array.isArray(item.estimatedPeriods) &&
+      item.estimatedPeriods.includes('today');
+    const detail = estimated ? item.estimationDetails?.today : undefined;
+    return {
+      symbol: typeof item.symbol === 'string' ? item.symbol : id,
+      observedAt: typeof item.observedAt === 'string' ? item.observedAt : '',
+      estimated,
+      ...(detail ? { detail } : {}),
+    };
+  };
+
+  const selected = {
+    world: selectedSource(SELECTED_MARKETS.world),
+    usa: selectedSource(SELECTED_MARKETS.usa),
+    finland: selectedSource(SELECTED_MARKETS.finland),
+    btcEur: selectedSource(SELECTED_MARKETS.btcEur),
+    remedy: selectedSource(SELECTED_MARKETS.remedy),
+  };
+  const unresolvedSelected = Object.entries(selected)
+    .filter(([, provenance]) => provenance === null)
+    .map(([key]) => key);
 
   return {
-    median: median(todayValues),
-    month1Median: median(month1Values),
-    year1Median: median(year1Values),
+    median: median(values.today),
+    month1Median: median(values.month1),
+    year1Median: median(values.year1),
     observedAt: oldestSourceObservedAt(todayObservedAt),
     world: selectedValue(SELECTED_MARKETS.world),
     usa: selectedValue(SELECTED_MARKETS.usa),
@@ -482,8 +531,18 @@ const loadPortfolio = async () => {
     btcEur: selectedValue(SELECTED_MARKETS.btcEur),
     remedy: selectedValue(SELECTED_MARKETS.remedy),
     remedyPrice: selectedPrice(SELECTED_MARKETS.remedy),
+    estimatedCounts: counts,
+    selectedSources: selected,
+    unresolvedSelected,
   };
 };
+
+const loadPortfolio = async (now: Date, loadPortfolioResponse: () => Promise<Response>) => {
+  const response = await loadPortfolioResponse();
+  const data = await readJson<PortfolioResponse>(response);
+  return data ? summarizeWidgetPortfolio(data, now) : null;
+};
+
 
 const loadRates = async (request: Request) => {
   const marketsUrl = new URL('/api/current/markets', request.url);
@@ -535,11 +594,15 @@ const safely = async <T>(loader: () => Promise<T>): Promise<T | null> => {
   }
 };
 
-export const buildWidgetResponse = async (request: Request, now = new Date()) => {
+export const buildWidgetResponse = async (
+  request: Request,
+  now = new Date(),
+  loadPortfolioResponse = getPortfolioPerformance,
+) => {
   const [weather, electricity, markets, rates] = await Promise.all([
     safely(() => loadWeather(now)),
     safely(() => loadElectricity(now)),
-    safely(loadPortfolio),
+    safely(() => loadPortfolio(now, loadPortfolioResponse)),
     safely(() => loadRates(request)),
   ]);
 
@@ -555,4 +618,7 @@ export const buildWidgetResponse = async (request: Request, now = new Date()) =>
   return jsonResponse(hasData ? body : { ...body, error: 'widget_data_unavailable' }, hasData ? 200 : 503);
 };
 
-export const onRequestGet = (context: { request: Request }) => buildWidgetResponse(context.request);
+export const onRequestGet = (context: {
+  request: Request;
+  loadPortfolioResponse?: () => Promise<Response>;
+}) => buildWidgetResponse(context.request, undefined, context.loadPortfolioResponse);

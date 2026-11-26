@@ -3,12 +3,15 @@ import { expect, test } from '@playwright/test';
 import { fetchElectricityResponse } from '../../functions/api/current/electricity';
 import { fetchElectricityMonthResponse } from '../../functions/api/current/electricity-month';
 import { fetchHslDeparturesResponse } from '../../functions/api/current/hsl';
+import { fetchWeatherResponse } from '../../functions/api/current/weather';
 import worker, {
+  serveCurrentFeedWithLastKnownGood,
   servePortfolioWithLastKnownGood,
   serveWidgetWithLastKnownGood,
 } from '../../worker/index';
 
 const workerFirstPaths = [
+  '/api/current/weather',
   '/api/current/electricity',
   '/api/current/electricity-month',
   '/api/current/hsl',
@@ -103,11 +106,55 @@ test('Wrangler sends every Current API route through the Worker first', () => {
   ]);
 });
 
-test('Worker preserves environment bindings for both Widget v2 routes', () => {
-  const source = readFileSync(new URL('../../worker/index.ts', import.meta.url), 'utf8');
-  const calls = source.match(/getWidgetV2Response\(\{ request, env \}\)/g) ?? [];
+test('Widget and Current reuse the same verified portfolio response', async () => {
+  const portfolioEntry = {
+    id: 'handelsbanken-usa', symbol: 'SE0006800140', price: 100,
+    observedAt: new Date().toISOString().slice(0, 10),
+    changes: { today: -0.28, week1: 1, month1: 2, month3: 3, month6: 4,
+      ytd: 5, year1: 6, year3: 7, year5: 8 },
+  };
+  const body = { items: [portfolioEntry] };
+  const cacheRequests: string[] = [];
+  const hslKeys: Array<string | null> = [];
+  const originalCaches = Object.getOwnPropertyDescriptor(globalThis, 'caches');
+  const originalFetch = globalThis.fetch;
+  Object.defineProperty(globalThis, 'caches', { configurable: true, value: { default: {
+    match: async (request: Request) => {
+      cacheRequests.push(request.url);
+      if (request.url !== 'https://aapopihkala.fi/api/current/markets?portfolio=1&cache=last-known-good-v1') return undefined;
+      return Response.json(body, { headers: { 'X-Portfolio-Cached-At': new Date().toISOString() } });
+    },
+    put: async () => undefined,
+  } } });
+  globalThis.fetch = async (input, init) => {
+    if (new URL(String(input)).hostname === 'api.digitransit.fi') {
+      hslKeys.push(new Headers(init?.headers).get('digitransit-subscription-key'));
+    }
+    return new Response(null, { status: 404 });
+  };
+  const env = {
+    ASSETS: { fetch: async () => new Response(null, { status: 404 }) },
+    DIGITRANSIT_API_KEY: 'fixture-key',
+  };
 
-  expect(calls).toHaveLength(2);
+  try {
+    const current = await worker.fetch(new Request('https://aapopihkala.fi/api/current/markets?portfolio=1&v=6'), env);
+    expect(await current.json()).toEqual(body);
+    for (const path of ['/api/current/widget-v2?channel=prod', '/api/current/widget?v=2&channel=prod']) {
+      const widget = await worker.fetch(new Request('https://aapopihkala.fi' + path), env);
+      const payload = await widget.json();
+      expect(payload.sections.find((section: { id: string }) => section.id === 'markets')?.rows)
+        .toContainEqual(expect.objectContaining({ label: 'USA', value: '-0.28%' }));
+    }
+    expect(hslKeys).toEqual(['fixture-key', 'fixture-key']);
+    await worker.fetch(new Request('https://aapopihkala.fi/api/current/widget-v2?channel=prod&live_smoke=check'), env);
+    expect(cacheRequests.filter((url) => url.includes('portfolio=1&cache=last-known-good-v1')))
+      .toHaveLength(3);
+  } finally {
+    globalThis.fetch = originalFetch;
+    if (originalCaches) Object.defineProperty(globalThis, 'caches', originalCaches);
+    else Reflect.deleteProperty(globalThis, 'caches');
+  }
 });
 
 test('Worker serves Current APIs, enforces route methods and keeps static assets as fallback', async () => {
@@ -765,4 +812,109 @@ test('Widget does not hide a 503 when no last-known-good payload exists', async 
   );
 
   expect(response.status).toBe(503);
+});
+
+
+test('Current Weather proxy rejects malformed responses but accepts valid forecasts', async () => {
+  const fixture = {
+    current: { time: '2026-11-21T15:00', temperature_2m: 2, weather_code: 1, is_day: 1 },
+    hourly: { time: ['2026-11-21T15:00'] },
+    daily: { time: ['2026-11-21'], sunrise: ['2026-11-21T08:00'] },
+  };
+
+  const successfulFetch = (async (url: RequestInfo | URL, init?: RequestInit) => {
+    expect(String(url)).toContain('api.open-meteo.com/v1/forecast?');
+    expect(init?.signal).toBeInstanceOf(AbortSignal);
+    return Response.json(fixture);
+  }) as typeof fetch;
+
+  const success = await fetchWeatherResponse(successfulFetch);
+  expect(success.status).toBe(200);
+  expect(await success.json()).toEqual(fixture);
+
+  const invalid = await fetchWeatherResponse((async () => Response.json({ current: {} })) as typeof fetch);
+  expect(invalid.status).toBe(502);
+  expect(await invalid.json()).toEqual({ error: 'weather_unavailable' });
+});
+
+test('Current feeds reuse only validated same-origin cached data after upstream failure', async () => {
+  const data = {
+    current: { time: '2026-11-21T15:00', temperature_2m: 2 },
+    hourly: { time: ['2026-11-21T15:00'] },
+    daily: { time: ['2026-11-21'] },
+  };
+  const entries = new Map<string, Response>();
+  const cache = {
+    match: async (key: Request) => entries.get(key.url)?.clone(),
+    put: async (key: Request, response: Response) => {
+      entries.set(key.url, response.clone());
+    },
+  };
+  const request = new Request('https://aapopihkala.fi/api/current/weather?source=live');
+  const live = await serveCurrentFeedWithLastKnownGood(
+    request, 'weather', async () => Response.json(data), cache,
+  );
+  expect(live.status).toBe(200);
+  expect(entries.size).toBe(1);
+
+  const fallback = await serveCurrentFeedWithLastKnownGood(
+    request, 'weather', async () => Response.json({ error: 'upstream_unavailable' }, { status: 502 }), cache,
+  );
+  expect(fallback.status).toBe(200);
+  expect(fallback.headers.get('x-current-fallback')).toBe('last-known-good');
+  expect(fallback.headers.get('cache-control')).toBe('private, no-store');
+  expect(await fallback.json()).toEqual(data);
+
+  const smoke = await serveCurrentFeedWithLastKnownGood(
+    new Request('https://aapopihkala.fi/api/current/weather?live_smoke=1'),
+    'weather',
+    async () => Response.json({ error: 'upstream_unavailable' }, { status: 502 }),
+    cache,
+  );
+  expect(smoke.status).toBe(502);
+
+  const emptyCache = {
+    match: async (_key: Request) => undefined,
+    put: async (_key: Request, _response: Response) => undefined,
+  };
+  const unavailable = await serveCurrentFeedWithLastKnownGood(
+    request,
+    'weather',
+    async () => Response.json({ error: 'upstream_unavailable' }, { status: 502 }),
+    emptyCache,
+  );
+  expect(unavailable.status).toBe(502);
+});
+
+test('Current electricity cache does not show expired price intervals as live', async () => {
+  const now = Date.now();
+  const fresh = {
+    prices: [{ price: 1.25, startDate: new Date(now - 10_000).toISOString(), endDate: new Date(now + 10_000).toISOString() }],
+  };
+  const cache = {
+    match: async (_key: Request) => undefined,
+    put: async (_key: Request, response: Response) => {
+      expect((await response.json()).prices).toEqual(fresh.prices);
+    },
+  };
+  const request = new Request('https://aapopihkala.fi/api/current/electricity');
+  const response = await serveCurrentFeedWithLastKnownGood(
+    request, 'electricity', async () => Response.json(fresh), cache,
+  );
+  expect(response.status).toBe(200);
+
+  const expired = {
+    prices: [{ price: 1.25, startDate: new Date(now - 90_000).toISOString(), endDate: new Date(now - 50_000).toISOString() }],
+  };
+  const invalidCache = {
+    match: async (_key: Request) => Response.json(expired),
+    put: async (_key: Request, _response: Response) => undefined,
+  };
+  const failure = await serveCurrentFeedWithLastKnownGood(
+    request,
+    'electricity',
+    async () => Response.json({ error: 'upstream_unavailable' }, { status: 502 }),
+    invalidCache,
+  );
+  expect(failure.status).toBe(502);
 });

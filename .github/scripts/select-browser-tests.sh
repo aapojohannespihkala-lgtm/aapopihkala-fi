@@ -60,7 +60,12 @@ for file in "$@"; do
     functions/api/current/*|worker/*|wrangler.jsonc)
       add current-worker-regression current-portfolio-resilience current-markets-fallback current-markets-timeout ;;
     src/pages/private-model/index.astro)
-      add private-model-d1f-combined-wall-scene-contract private-model-main-view-scope private-model-other-floor-reference private-model-work-test-load-diagnostics; p4 ;;
+      # Viewer control and caption presentation changes require their existing
+      # real Chromium regressions, not only the D scope/scene contracts.
+      add private-model-d1f-combined-wall-scene-contract private-model-main-view-scope private-model-other-floor-reference private-model-work-test-load-diagnostics private-model-p137e-scene67-browser-interaction private-model-p186e-visibility; p4 ;;
+    src/scripts/privateModelP186ECaptionLayout.mjs)
+      # Caption pixel verification must run when only the raster/layout changes.
+      add private-model-p186e-visibility ;;
     src/scripts/privateModelBuildingPartLayerBindings.mjs|src/scripts/privateModelC80R2V*LayerSourceProfile.mjs|src/scripts/privateModelFurnitureLayerSourceProfile.mjs|src/scripts/privateModelV35LillangenMirrorSourceProfile.mjs)
       # Changes to exact-source building/furniture profiles must recheck the
       # existing Layers runtime and architectural representation contracts.
@@ -97,6 +102,12 @@ for file in "$@"; do
       # HIGH2 source bindings and source-availability UI share one verified
       # technical inventory. Re-run their existing browser and DOM guards.
       add private-model-technical-systems-layers private-model-technical-layers-availability-ui private-model-technical-layers-availability-dom ;;
+    src/scripts/privateModelNavigationCube.mjs)
+      # An A-style cube change must always rerun the real Chromium edge and camera guard.
+      add private-model-navigation-cube-edge-arrows ;;
+    src/scripts/privateModelNavigationNorthFrameToggle.mjs|src/scripts/privateModelOrientationGizmo.ts)
+      # Camera-frame/renderer changes can alter both cube edges and north switching.
+      add private-model-navigation-cube-edge-arrows private-model-navigation-north-frame-toggle ;;
     src/scripts/privateModelObjectVisibility.ts)
       # Scene-root-scoped hide/isolate must retain stale-target and model-swap guards.
       add private-model-object-visibility ;;

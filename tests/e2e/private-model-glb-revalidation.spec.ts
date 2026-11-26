@@ -112,7 +112,7 @@ test('authenticated viewer GLB routes revalidate with SHA ETag and answer 304 wi
     expect(html.status).toBe(200);
     expect(html.headers.get('Cache-Control')).toBe('private, no-store, no-transform');
     expect(html.headers.get('Content-Security-Policy')).toBe(
-      "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'",
+      "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' blob:; object-src 'none'; base-uri 'none'; frame-ancestors 'none'",
     );
     expect(html.headers.get('Referrer-Policy')).toBe('no-referrer');
     expect(html.headers.get('X-Robots-Tag')).toContain('noindex');
