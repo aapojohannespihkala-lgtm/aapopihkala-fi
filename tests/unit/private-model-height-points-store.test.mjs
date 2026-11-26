@@ -55,6 +55,20 @@ test('annotation storage is strictly isolated by 64-char model SHA', () => {
   assert.deepEqual(readHeightPoints(storage, B).points.map(p => p.id), ['terrace']);
 });
 
+test('A to B to A viewer model switching restores A without copying or deleting B', () => {
+  const storage = memoryStorage();
+  const sourceA = A;
+  const sourceB = B;
+  assert.equal(addHeightPoint(storage, sourceA, marker('ridge-a')).ok, true);
+  assert.deepEqual(readHeightPoints(storage, sourceA).points.map(p => p.id), ['ridge-a']);
+  assert.equal(readHeightPoints(storage, sourceB).points.length, 0);
+  assert.equal(addHeightPoint(storage, sourceB, marker('terrace-b')).ok, true);
+  assert.deepEqual(readHeightPoints(storage, sourceB).points.map(p => p.id), ['terrace-b']);
+  assert.deepEqual(readHeightPoints(storage, sourceA).points.map(p => p.id), ['ridge-a']);
+  assert.equal(removeHeightPoint(storage, sourceB, 'ridge-a').reason, 'POINT_NOT_FOUND');
+  assert.deepEqual(readHeightPoints(storage, sourceA).points.map(p => p.id), ['ridge-a']);
+});
+
 test('duplicate IDs fail closed, preserving the original', () => {
   const storage = memoryStorage();
   addHeightPoint(storage, A, marker());
