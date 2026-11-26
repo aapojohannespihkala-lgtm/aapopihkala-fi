@@ -155,3 +155,21 @@ test('calculator output is bound to the exact two selected source IDs and finite
   pair.selectHit(hit('A',a));pair.selectHit(hit('B',b));
   assert.equal(pair.measure(goodChecks).distanceM,0,'touching surfaces may have zero clearance');
 });
+
+test('invalidated or empty raycast events fail closed without corrupting selected pair',()=>{
+  const {pair}=make(),a=mesh('A'),b=mesh('B');
+  pair.setContext(goodChecks.contextKey);
+  assert.equal(pair.selectHit(hit('A',a)),true);
+  const stale=hit('B',b);
+  const badClick={...stale,frontmostHit:{
+    object:b,faceIndex:1,point:{x:0,y:0,z:0,clone(){throw Error('scene disposed')}},
+  }};
+  const badKey={get contextKey(){throw Error('stale picker')}};
+  for(const input of [null,false,0,'',badKey,badClick]){
+    assert.doesNotThrow(()=>assert.equal(pair.selectHit(input),false));
+    assert.equal(pair.status().firstSourceId,'A');
+    assert.equal(pair.status().ready,false);
+  }
+  assert.equal(pair.selectHit(hit('B',b)),true);
+  assert.equal(pair.measure(goodChecks).distanceM,.3);
+});

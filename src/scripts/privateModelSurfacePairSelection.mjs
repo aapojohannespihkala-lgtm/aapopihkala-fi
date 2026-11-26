@@ -48,9 +48,15 @@ export const createSurfacePairSelection = ({calculate,maxFaces=MAX_PATCH_FACES}=
     contextKey,firstSourceId:first?.sourceId??null,
     secondSourceId:second?.sourceId??null,ready:!!(first&&second),
   });
-  const selectHit = ({contextKey:key,...pick}={}) => {
-    if (!keyOk(key) || key!==contextKey) return false;
-    const selected=sanitizePick(pick,maxFaces);
+  const selectHit = (input={}) => {
+    // Empty/invalidated raycaster events and disposed scene evidence are not clicks.
+    if (!input || typeof input!=='object') return false;
+    let key,pick,selected;
+    try {
+      ({contextKey:key,...pick}=input);
+      if (!keyOk(key) || key!==contextKey) return false;
+      selected=sanitizePick(pick,maxFaces);
+    } catch {return false;}
     if (!selected) return false;
     if (!first) {first=selected;return true;}
     if (selected.mesh===first.mesh && selected.sourceId!==first.sourceId) return false;
