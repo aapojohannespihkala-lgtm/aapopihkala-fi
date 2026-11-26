@@ -80,15 +80,47 @@ function systemOf(json, active, nodeId, role) {
     Array.isArray(p.children)&&p.children.includes(nodeId));
 }
 
+
+/**
+ * Previously observed R34 WORK_TEST NIBE open interfaces (High KP010-G2S-02,
+ * 24.11.2026). PriorQaGapMm is a recorded source-QA observation, NOT newly
+ * measured by this helper, a fabrication tolerance, or evidence of a fitting.
+ * A/B are model markers only: installed KV/LV roles and XL3/XL4/XL48 are unknown.
+ * The two proxy distances are nearest-water-mesh samples, not pipe connections.
+ */
+export const R34_NIBE_OPEN_INTERFACES = Object.freeze([
+  Object.freeze({id:'NIBE_A_VISUAL_MARKER',kind:'END_TO_VISUAL_MARKER',nodeIds:Object.freeze([11681,13492]),priorQaGapMm:2}),
+  Object.freeze({id:'NIBE_B_VISUAL_MARKER',kind:'END_TO_VISUAL_MARKER',nodeIds:Object.freeze([11682,13493]),priorQaGapMm:2}),
+  Object.freeze({id:'NIBE_VALVE_PROXY_11703',kind:'DEVICE_PROXY',nodeIds:Object.freeze([11703]),priorQaNearestWaterMeshMm:424}),
+  Object.freeze({id:'NIBE_VALVE_PROXY_11704',kind:'DEVICE_PROXY',nodeIds:Object.freeze([11704]),priorQaNearestWaterMeshMm:305}),
+]);
+
+function inspectNibeOpenInterfaces(json, active) {
+  return R34_NIBE_OPEN_INTERFACES.map(p=>{
+    const mounted=p.nodeIds.every(id=>active.has(id) && Number.isInteger(json.nodes[id]?.mesh));
+    return Object.freeze({
+      id:p.id, kind:p.kind, nodeIds:p.nodeIds, modelNodesPresent:mounted,
+      status:!mounted?'SOURCE_NODE_NOT_MOUNTED':p.kind==='DEVICE_PROXY'?
+        'DEVICE_PROXY_CONNECTION_UNKNOWN':'OPEN_INTERFACE_NOT_CONNECTED_VERIFIED',
+      priorQaGapMm:p.priorQaGapMm??null,
+      priorQaNearestWaterMeshMm:p.priorQaNearestWaterMeshMm??null,
+      evidence:'R34_WORK_TEST_PRIOR_SOURCE_QA_2026_11_24',
+      gapRecheckedInThisRun:false, installedPortRoleVerified:false,
+      geometryConnectedVerified:false, technicalFunctionVerified:false,
+      physicalVerified:false, current:false, asBuilt:false,
+    });
+  });
+}
+
 /** ok means required SOURCE MODEL pieces present, never a physical connection. */
 export function inspectR34MepNetwork(json, loadedSha, sceneIndex) {
   const sceneRole=R34_MEP_SOURCE.scenes[sceneIndex]??null;
   if (!sceneRole || loadedSha!==R34_MEP_SOURCE.sha256 ||
       !Array.isArray(json?.scenes) || json.scenes.length<=825 ||
       !Array.isArray(json?.nodes) || json.nodes.length<=13806)
-    return {sourceValid:false,sceneRole,chains:[],ok:false,physicalVerified:false};
+    return {sourceValid:false,sceneRole,chains:[],openInterfaces:[],ok:false,physicalVerified:false};
   const active=mountedNodes(json,sceneIndex);
-  if (!active) return {sourceValid:false,sceneRole,chains:[],ok:false,physicalVerified:false};
+  if (!active) return {sourceValid:false,sceneRole,chains:[],openInterfaces:[],ok:false,physicalVerified:false};
   const chains=R34_MEP_CHAINS.filter(c=>c.views.includes(sceneRole)).map(c=>{
     const missing=[],badType=[];
     for (const n of c.nodes) {
@@ -100,5 +132,6 @@ export function inspectR34MepNetwork(json, loadedSha, sceneIndex) {
       status:missing.length||badType.length?'SOURCE_MODEL_INCOMPLETE':'MODEL_PRESENT_PHYSICAL_HOLD'});
   });
   return {sourceValid:true,sceneRole,chains,
+    openInterfaces:inspectNibeOpenInterfaces(json,active),
     ok:chains.every(c=>c.modelPresent),physicalVerified:false};
 }
