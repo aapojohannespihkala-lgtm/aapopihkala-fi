@@ -15110,11 +15110,11 @@ const title = 'Private 3D viewer';
       const disposeLayersPresentation = () => {
         // Other preset/model paths also dispose Layerit directly. Always undo
         // #2177's temporary ghost copies before restoring the layer baseline.
-        // No ghost snapshots are recorded when every mesh is within D.
-        // Clear the D focus marker even if the presentation is already inactive.
-        deskDFocus.restore();
-        delete canvas.dataset.dFocusGhost;
-        delete canvas.dataset.dFocusFootprint;
+        if (deskDFocus.active) {
+          deskDFocus.restore();
+          delete canvas.dataset.dFocusGhost;
+          delete canvas.dataset.dFocusFootprint;
+        }
         concealedTechnical?.dispose();
         concealedTechnical = null;
         delete canvas.dataset.concealedTechnicalCount;
