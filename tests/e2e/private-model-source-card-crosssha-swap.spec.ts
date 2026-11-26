@@ -44,10 +44,11 @@ const syntheticGlb = (name: string, source: string): Buffer => {
   return Buffer.concat([header, jsonHeader, jsonChunk, binHeader, triangle]);
 };
 
-test('switching synthetic GLB SHA with reused node index clears stale browser source links', async ({ page }) => {
+test('synthetic A to B to A model reload with reused node index clears stale browser source links', async ({ page }) => {
   const urlA = 'https://drive.google.com/file/d/SYNTHETIC_ROOM3_SOURCE_A/view';
   const urlB = 'https://drive.google.com/file/d/SYNTHETIC_WALL_SOURCE_B/view';
   let active = syntheticGlb('ROOM3_DOOR_NODE0', urlA);
+  const original = active;
   const next = syntheticGlb('C80_V84_WALL_NODE0', urlB);
   expect(active.equals(next)).toBe(false);
 
@@ -90,6 +91,23 @@ test('switching synthetic GLB SHA with reused node index clears stale browser so
   await expect(links).toHaveCount(1);
   await expect(links.first()).toHaveAttribute('href', urlB);
   await expect(page.locator('#selection-source-links-list')).not.toContainText('ROOM3');
+  await expect(canvas).toHaveAttribute('data-selection-source-link-count', '1');
+
+  // Return to A after the B selection. Identical node index 0 must not reuse
+  // the B source link or the old selection across an A -> B -> A reload.
+  active = original;
+  await page.locator('#current-model-button').evaluate((element: HTMLButtonElement) => element.click());
+  await expect(page.getByRole('status').first()).toContainText('Malli ladattu');
+  await expect(page.locator('#selection-panel')).toBeHidden();
+  await expect(links).toHaveCount(0);
+  await expect(canvas).not.toHaveAttribute('data-selection-source-link-count', /./);
+  if (await canvas.getAttribute('data-interaction-mode') !== 'select') {
+    await page.locator('#selection-tool-button').click();
+  }
+  await clickMiddle();
+  await expect(page.locator('#selection-panel')).toBeVisible();
+  await expect(links).toHaveCount(1);
+  await expect(links.first()).toHaveAttribute('href', urlA);
   await expect(canvas).toHaveAttribute('data-selection-source-link-count', '1');
   expect(errors).toEqual([]);
 });
