@@ -75,6 +75,22 @@ test('crease extraction preserves a genuine fold but rejects fake planar edges',
   assert.equal(extractMeasureFeatureEdges({positions:vertices,toG1:identity,maxTriangles:1}).length,0);
 });
 
+
+test('a non-manifold three-face edge rejects the whole mesh rather than offering false boundary snaps',()=>{
+  // Three triangles share A-B, while their six outer edges look selectable.
+  const positions=[
+    0,0,0, 1,0,0, 0,1,0, 0,0,1, 0,-1,0,
+  ];
+  const indices=[0,1,2, 1,0,3, 0,1,4];
+  const nonindexed=indices.flatMap(i=>positions.slice(i*3,i*3+3));
+  assert.deepEqual(extractMeasureFeatureEdges({
+    positions,indices,toG1:identity,
+  }),[]);
+  assert.deepEqual(extractMeasureFeatureEdges({
+    positions:nonindexed,toG1:identity,
+  }),[]);
+});
+
 const squareEdges=[
   {a:g(0,0),b:g(2,0)},
   {a:g(2,0),b:g(2,1)},

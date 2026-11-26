@@ -71,7 +71,12 @@ export const extractMeasureFeatureEdges = ({
       if(ka===kb) continue;
       const key=ka<kb?ka+'|'+kb:kb+'|'+ka;
       const entry=edges.get(key);
-      if(entry){entry.normals.push(unit);}
+      if(entry){
+        // Three faces sharing a source edge are non-manifold: do not
+        // expose the remaining boundaries as trustworthy snap features.
+        if(entry.normals.length>=2) return [];
+        entry.normals.push(unit);
+      }
       else edges.set(key,{a:point(a),b:point(b),normals:[unit]});
     }
   }
