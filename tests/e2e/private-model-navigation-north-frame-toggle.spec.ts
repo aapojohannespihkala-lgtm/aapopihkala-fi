@@ -127,11 +127,11 @@ test('same north-reference switch is keyboard accessible in the compact viewport
   expect(await activeCameraState(page)).toEqual(before);
 });
 
-test('synthetic north overlay exception cannot blank the canvas or stop animation frames', async ({ page }) => {
-  // PR2139 -> PR2149 regression: with an empty synthetic source, the
-  // first orientation-gizmo render can receive an invalid camera quaternion.
-  // The optional north annotation must not stop the viewer's RAF loop.
-  // This test does not load or attest to any protected Ylisrinne GLB.
+test('empty synthetic source keeps a valid north projection and animation frames', async ({ page }) => {
+  // A getter-backed THREE camera must render the north annotation normally,
+  // even with an empty synthetic model. Unit tests separately exercise the
+  // fail-closed contract for invalid quaternion inputs.
+  // This does not load or attest to any protected Ylisrinne GLB.
   await page.addInitScript(() => {
     const w = window as unknown as Window & { __ylisNorthTestFrames: number };
     const original = window.requestAnimationFrame.bind(window);
@@ -146,10 +146,9 @@ test('synthetic north overlay exception cannot blank the canvas or stop animatio
   const readout = page.locator('#ai-navigator-readout');
   const canvas = page.locator('#private-model-canvas');
 
-  // The synthetic zero-pose source exercises the real failure path without
-  // patching a source module, camera or protected artifact.
-  await expect(gizmo).toHaveAttribute('data-north-frame-error',
-    /YLIS_NORTH_FRAME: finite camera quaternion required/);
+  // A normal camera pose no longer triggers the old getter-spread error.
+  await expect(gizmo).toHaveAttribute('data-north-projection-ready', 'true');
+  expect(await gizmo.getAttribute('data-north-frame-error')).toBeNull();
   await expect(readout).toHaveAttribute('data-ready', 'true');
   await expect.poll(() => canvas.evaluate((element) => {
     const bitmap = element as HTMLCanvasElement;
