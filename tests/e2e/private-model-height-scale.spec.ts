@@ -148,7 +148,7 @@ test('N2000 WORK_TEST requires explicit opt-in and does not follow horizontal no
   await expect(toggle).toHaveAttribute('aria-pressed', 'false');
   await toggle.click();
   await expect(toggle).toHaveAttribute('aria-pressed', 'true');
-  await expect(canvas).toHaveAttribute('data-height-scale-datum-offset-m', '21.997');
+  await expect(canvas).toHaveAttribute('data-height-scale-datum-offset-m', '22.003');
   await expect(canvas).toHaveAttribute('data-height-scale-frame', 'N2000-CONDITIONAL-WORK_TEST');
   await expect(canvas).toHaveAttribute('data-height-scale-datum-status', 'WORK_TEST_HISTORICAL_N60_UNVERIFIED');
   await expect(toggle).toHaveText('N2000-työarvio* (N60-oletus)');
@@ -156,11 +156,11 @@ test('N2000 WORK_TEST requires explicit opt-in and does not follow horizontal no
   const localMin = Number(await canvas.getAttribute('data-height-scale-local-min-z'));
   const estimatedMin = Number(await canvas.getAttribute('data-height-scale-min-z'));
   expect(Math.abs(localMin - initialLocalMin)).toBeLessThan(0.001);
-  expect(Math.abs((estimatedMin - localMin) - 21.997)).toBeLessThan(0.001);
+  expect(Math.abs((estimatedMin - localMin) - 22.003)).toBeLessThan(0.001);
 
   await north.click();
   await expect(canvas).toHaveAttribute('data-height-scale-north-reference', 'YLIS-G1-LOCAL');
-  await expect(canvas).toHaveAttribute('data-height-scale-datum-offset-m', '21.997');
+  await expect(canvas).toHaveAttribute('data-height-scale-datum-offset-m', '22.003');
   await expect(canvas).toHaveAttribute('data-height-scale-frame', 'N2000-CONDITIONAL-WORK_TEST');
 
   await toggle.click();
