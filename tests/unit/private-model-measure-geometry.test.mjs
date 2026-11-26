@@ -517,3 +517,45 @@ test('source-mesh adapter recognises a 3m L-corner across 2cm triangulated arms 
     }),null);
   }
 });
+
+test('dense visible wall candidates use one nearest-first visibility raycast',()=>{
+  for(const count of [1000,10000,30000]){
+    // Reverse rank: each successive 20px-long edge is closer to the pointer.
+    // The old scan raycast every edge as the best distance improved.
+    const segments=Array.from({length:count},(_,i)=>{
+      const y=.1*(count-i)/count;
+      return {a:g(-.1,y),b:g(.1,y)};
+    });
+    let checked=0;
+    const result=chooseMeasureFeatureSnap({
+      pointerPx:{x:0,y:0},hitPointG1:g(0,0),
+      segments,projectToScreen:projector,
+      isCandidateVisible:()=>{checked++;return true;},
+    });
+    assert.equal(result?.kind,'edge','dense visible edge '+count);
+    assert.ok(Math.abs(result.pointG1.yM-.1/count)<1e-8);
+    assert.equal(checked,1,'nearest-first visibility budget '+count);
+  }
+});
+
+test('nearest-first visibility rejects hidden nearest and uses next visible edge',()=>{
+  const segments=[
+    {a:g(-.1,.06),b:g(.1,.06)},
+    {a:g(-.1,.02),b:g(.1,.02)},
+  ];
+  let checked=0;
+  const hit=chooseMeasureFeatureSnap({
+    pointerPx:{x:0,y:0},hitPointG1:g(0,0),
+    segments,projectToScreen:projector,
+    isCandidateVisible:(p)=>{checked++;return p.yM>.04;},
+  });
+  assert.equal(hit?.kind,'edge');
+  same(hit.pointG1,g(0,.06));
+  assert.equal(checked,2,'hidden nearest requires exactly one fallback');
+  const tied=chooseMeasureFeatureSnap({
+    pointerPx:{x:0,y:0},hitPointG1:g(0,0),
+    segments:[{a:g(-.1,.05),b:g(.1,.05)},{a:g(-.1,-.05),b:g(.1,-.05)}],
+    projectToScreen:projector,isCandidateVisible:checker,
+  });
+  same(tied.pointG1,g(0,.05));
+});

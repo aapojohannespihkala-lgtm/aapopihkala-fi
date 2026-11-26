@@ -211,15 +211,15 @@ export const chooseMeasureFeatureSnap = ({
     }
     return chainSpans.get(chain);
   };
-  let bestCorner=null,bestEdge=null;
+  // Rank geometrically possible features before expensive source/occlusion
+  // raycasts. The first visible candidate in each class is exactly the
+  // nearest visible candidate; stable sorting preserves first-seen ties.
+  const cornerCandidates=[],edgeCandidates=[];
   const withinWorld=(p)=>norm(subtract(coords(p),base))<=maxWorldGapM;
   const consider=(kind,p,distancePx,segment)=>{
-    const best=kind==='corner' ? bestCorner : bestEdge;
-    if(distancePx>tolerancePx || distancePx>=(best?.distancePx ?? Infinity) ||
-       !withinWorld(p) || isCandidateVisible(p,kind)!==true) return;
+    if(distancePx>tolerancePx || !withinWorld(p)) return;
     const candidate={kind,pointG1:p,distancePx,workTestOnly:true,...(segment ? {segment} : {})};
-    if(kind==='corner') bestCorner=candidate;
-    else bestEdge=candidate;
+    (kind==='corner' ? cornerCandidates : edgeCandidates).push(candidate);
   };
   for(const key of localJunctionKeys){
     const v=junctions.get(key);
@@ -260,7 +260,15 @@ export const chooseMeasureFeatureSnap = ({
     const p=point(av.map((v,i)=>v+worldT*(bv[i]-v)));
     consider('edge',p,distancePx,chainFor(edge).straightSegment ?? segment);
   }
-  return bestCorner?.distancePx<=cornerPriorityPx ? bestCorner : bestEdge || bestCorner;
+  const nearestVisible=(candidates)=>{
+    candidates.sort((a,b)=>a.distancePx-b.distancePx);
+    for(const candidate of candidates)
+      if(isCandidateVisible(candidate.pointG1,candidate.kind)===true) return candidate;
+    return null;
+  };
+  const bestCorner=nearestVisible(cornerCandidates);
+  if(bestCorner?.distancePx<=cornerPriorityPx) return bestCorner;
+  return nearestVisible(edgeCandidates) || bestCorner;
 };
 
 /** Foot of the perpendicular on the finite edge, or null if it needs an extension. */
