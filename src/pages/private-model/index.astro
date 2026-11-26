@@ -3445,6 +3445,8 @@ const title = 'Private 3D viewer';
         }
       };
       let modelLoadVersion = 0;
+      // The latest explicit model choice wins even when an earlier fetch finishes later.
+      let modelLoadIntentVersion = 0;
       let sourcePreviewContract: any = c70WorkTestContract;
       // Set only from the already byte/SHA-verified HI20 source session.
       let activeHi20SourceVerified = false;
@@ -8417,6 +8419,7 @@ const title = 'Private 3D viewer';
       };
 
       const loadCurrentModel = async () => {
+        const loadIntent = ++modelLoadIntentVersion;
         delete canvas.dataset.p137eLoadedCandidateId;
         p137ePlaceToolButton.disabled = true;
         clearP137EPlaceDraft();
@@ -8427,9 +8430,11 @@ const title = 'Private 3D viewer';
 
         try {
           const gltf = await loadModelWithSourceCards(loader, '/private-model/model.glb');
+          if (loadIntent !== modelLoadIntentVersion) return;
           applyLoadedModel(gltf, 'current', 'CURRENT');
           locusLayerLabel.textContent = 'Locus kunnallistekniikka (WORK_TEST)';
         } catch (error) {
+          if (loadIntent !== modelLoadIntentVersion) return;
           console.error(error);
           status.textContent = 'Suojattua mallia ei ole vielä käytettävissä';
         }
@@ -12345,6 +12350,7 @@ const title = 'Private 3D viewer';
       };
 
       const loadWorkTestCandidate = async (candidate: WorkTestCandidate) => {
+        const loadIntent = ++modelLoadIntentVersion;
         delete canvas.dataset.p137eLoadedCandidateId;
         p137ePlaceToolButton.disabled = true;
         clearP137EPlaceDraft();
@@ -12363,12 +12369,14 @@ const title = 'Private 3D viewer';
           if (r31Review) {
             const previousModelVersion = modelLoadVersion;
             const gltf = await loadModelWithSourceCards(loader, candidate.path, r31Review.source);
+            if (loadIntent !== modelLoadIntentVersion) return false;
             const view = await createC80R31ViewSwitch({
               gltf, authenticatedSha: loadedModelSha256(gltf),
               mount: setModelScene, mounted: () => modelRoot.children[0] ?? null,
               views: r31Review.views,
             });
-            if (modelLoadVersion !== previousModelVersion) return false;
+            if (modelLoadVersion !== previousModelVersion ||
+                loadIntent !== modelLoadIntentVersion) return false;
             gltf.scene = view.normalScene;
             applyLoadedModel(gltf, 'work-test', `WORK_TEST: ${candidate.label}`);
             r300ViewSwitch = view;
@@ -12764,6 +12772,7 @@ const title = 'Private 3D viewer';
                 : await buildP139abVisibleReviewScene(gltf, zScene);
           }
 
+          if (loadIntent !== modelLoadIntentVersion) return false;
           applyLoadedModel(gltf, 'work-test', `WORK_TEST: ${candidate.label}`,
             serviceModel?.scene ?? combinedWallReview?.selected.scene ?? null);
           if (d1fSevenCutawayReview) {
@@ -14557,6 +14566,7 @@ const title = 'Private 3D viewer';
           }
           return true;
         } catch (error) {
+          if (loadIntent !== modelLoadIntentVersion) return false;
           console.error(error);
           delete canvas.dataset.workTestReviewMode;
           if (
@@ -15353,7 +15363,7 @@ const title = 'Private 3D viewer';
                 ? dStoreyFootprint(currentFootprint, dFocusLabel === 'd-1f' ? '1F' : '2F')
                 : currentFootprint;
               const counts = deskDFocus.apply(root, focusFootprint);
-            canvas.dataset.dFocusGhost = `${dFocusLabel}|in:${counts.inside}|out:${counts.outside}|split:${counts.split}`;
+            canvas.dataset.dFocusGhost = `${dFocusLabel}|in:${counts.inside}|out:${counts.outside}|split:${counts.split}|hidden:${counts.hidden}|aids:${counts.aids}`;
           }
           refreshEdgeRendering(root);
           if (selectedObject && !isEffectivelyVisible(selectedObject, modelRoot)) clearSelection();
@@ -15936,6 +15946,10 @@ const title = 'Private 3D viewer';
         }, true);
       }
       const deskEnterWholeBuilding = () => {
+        // D-only scenes have no ghost copies, but still carry a D preset marker.
+        deskDFocus.restore();
+        delete canvas.dataset.dFocusGhost;
+        delete canvas.dataset.dFocusFootprint;
         applyStandardViewPreset('whole-building', true);
         applyViewerLayerState({ roofVisible: true }, 'preset:whole-building');
         deskSyncLayerRoof(true);
@@ -15998,11 +16012,18 @@ const title = 'Private 3D viewer';
             deskSync();
           },
           angle(id: string) {
+            const previousAngle = deskCurrentAngle();
             const pose = deskCapturePose();
             deskAngleButtons[id]?.click();
-            // 3D <-> isometric: same place and size, only the projection changes.
+            // 3D <-> isometric keeps direction. From a face-on elevation,
+            // retain target and scale, but use the new isometric view direction.
             if (pose && ((id === 'iso' && activeCamera === isoCamera) || (id === 'orbit' && activeCamera === camera))) {
-              deskApplyPose(pose);
+              const fromElevationToIso = id === 'iso' && previousAngle.startsWith('elev-');
+              const isoDirection = fromElevationToIso
+                ? isoCamera.position.clone().sub(isoControls.target) : null;
+              const nextPose = isoDirection && isoDirection.lengthSq() > 1e-18
+                ? { ...pose, offset: isoDirection.normalize() } : pose;
+              deskApplyPose(nextPose);
               canvas.dataset.deskProjectionSwitch = `${pose.kind}->${id === 'iso' ? 'iso' : 'persp'}`;
             }
             deskSync();
