@@ -96,6 +96,16 @@ test('map north aligns the plan camera while leaving the local model oblique', a
   expect(mapUp[2]).toBeCloseTo(-0.928963773, 2);
   expect(Math.abs(mapUp[0])).toBeGreaterThan(0.35);
 
+  // Asemapiirros is a content preset. Its old camera-pose restore must not
+  // undo the explicit EPSG:3879 north-up selection.
+  await page.locator('#preset-menu > summary').click();
+  await page.locator('#site-preset-button').click();
+  await expect(canvas).toHaveAttribute('data-standard-view-preset', 'site');
+  await expect(canvas).toHaveAttribute('data-view-preset', 'top');
+  const siteUp = await worldUp();
+  expect(siteUp[0]).toBeCloseTo(-0.370170648, 2);
+  expect(siteUp[2]).toBeCloseTo(-0.928963773, 2);
+
   await toggle.click();
   await top.click();
   const restored = await worldUp();
