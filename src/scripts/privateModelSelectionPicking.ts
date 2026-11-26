@@ -40,6 +40,20 @@ type PickSelectableObjectOptions = {
   hasVisibleMaterial: (object: any) => boolean;
 };
 
+// Viewer-generated review overlays may be rendered before real GLB source
+// surfaces. They must not become a selected source object or source card.
+// GLB PresentationOnly/presentationOnly is intentionally NOT excluded: real
+// C80 source GLBs use those flags on whole-building roots.
+const hasViewerDerivedAncestor = (object: any, modelRoot: any): boolean => {
+  let node = object;
+  while (node) {
+    if (node.userData?.viewerDerived === true) return true;
+    if (node === modelRoot) break;
+    node = node.parent;
+  }
+  return false;
+};
+
 export const pickSelectableObjectAtClientPoint = ({
   canvas,
   camera,
@@ -131,6 +145,7 @@ export const pickSelectableObjectAtClientPoint = ({
           candidate.object?.isLine ||
           candidate.object?.isLineSegments) &&
         isEffectivelyVisible(candidate.object, modelRoot) &&
+        !hasViewerDerivedAncestor(candidate.object, modelRoot) &&
         isHitMaterialVisible(candidate) &&
         isHitWithinRenderedClip(candidate),
     );
