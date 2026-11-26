@@ -436,3 +436,29 @@ test('30000-way ambiguous shared vertex fails closed as a corner',()=>{
   });
   assert.equal(snap?.kind,'edge');
 });
+
+test('a 3m physical wall corner remains salient at 30/40/100 px per metre',()=>{
+  const segments=[];
+  for(let i=0;i<150;i++) segments.push({
+    a:g(i*.02,0),b:g((i+1)*.02,0),
+  });
+  for(let i=0;i<100;i++) segments.push({
+    a:g(0,i*.02),b:g(0,(i+1)*.02),
+  });
+  for(const pixelsPerMetre of [30,40,100]){
+    const snap=chooseMeasureFeatureSnap({
+      pointerPx:{x:.35,y:.35},hitPointG1:g(.015,.015),
+      segments,projectToScreen:p=>({
+        x:p.xM*pixelsPerMetre,y:p.yM*pixelsPerMetre,visible:true,
+      }),isCandidateVisible:checker,
+    });
+    assert.equal(snap?.kind,'corner',`zoom ${pixelsPerMetre} px/m`);
+    same(snap.pointG1,g(0,0));
+  }
+  const far=chooseMeasureFeatureSnap({
+    pointerPx:{x:90,y:0},hitPointG1:g(.015,.015),segments,
+    projectToScreen:p=>({x:p.xM*30,y:p.yM*30,visible:true}),
+    isCandidateVisible:checker,
+  });
+  assert.equal(far,null,'full-edge context must never snap to a 3m remote point');
+});

@@ -106,46 +106,46 @@ export const chooseMeasureFeatureSnap = ({
      !Number.isFinite(minCornerArmPx) || minCornerArmPx<0 ||
      segments.length>30000) return null;
   const base=coords(hitPointG1);
-  const projected=new Map(),junctions=new Map(),featureSegments=[],segmentFeatures=new Map();
+  const projected=new Map(),junctions=new Map(),segmentFeatures=new Map();
   const getPixel=(p)=>{
+    if(!valid(p)) return null;
     const k=weldKey(coords(p));
     if(!projected.has(k)) projected.set(k,projectToScreen(p));
     const q=projected.get(k);
     return q && (q.visible===true || q.offscreen===true) &&
       Number.isFinite(q.x) && Number.isFinite(q.y) ? q : null;
   };
-  const clean=segments.filter(s=>{
-    if(!s || !valid(s.a) || !valid(s.b)) return false;
+  const validSegments=segments.filter(s=>s && valid(s.a) && valid(s.b) &&
+    norm(subtract(coords(s.b),coords(s.a)))>1e-8);
+  // Only the local 0.4m context may become a snap candidate.
+  // The full source-mesh topology is needed to recognise a physically long
+  // edge whose short tessellation segments extend beyond that local window.
+  const clean=validSegments.filter(s=>{
     const a=coords(s.a),b=coords(s.b);
-    // Distant edges cannot produce an eligible snap, even if they overlap the
-    // pointer in screen space. Avoid projecting them on every pointer preview.
     return base.every((value,i)=>value>=Math.min(a[i],b[i])-maxWorldGapM &&
-      value<=Math.max(a[i],b[i])+maxWorldGapM) && norm(subtract(b,a))>1e-8;
+      value<=Math.max(a[i],b[i])+maxWorldGapM);
   });
-  for(const s of clean){
+  if(!clean.length) return null;
+  const localJunctionKeys=new Set();
+  for(const s of validSegments){
     const a=coords(s.a),b=coords(s.b);
-    const ap=getPixel(s.a),bp=getPixel(s.b);
-    const rawSpan=ap && bp ? Math.hypot(ap.x-bp.x,ap.y-bp.y) : 0;
-    const spanPx=Number.isFinite(rawSpan) ? rawSpan : 0;
-    const edge={aKey:weldKey(a),bKey:weldKey(b),spanPx,chainSpanPx:spanPx};
-    featureSegments.push(edge);
+    const aKey=weldKey(a),bKey=weldKey(b);
+    const edge={aKey,bKey,chainSpanPx:0};
     segmentFeatures.set(s,edge);
-    for(const [p,other] of [[a,b],[b,a]]){
-      const k=weldKey(p);
-      if(!junctions.has(k)) junctions.set(k,{pos:point(p),dirs:[]});
-      const d=subtract(other,p), n=norm(d);
-      junctions.get(k).dirs.push({vector:d.map(x=>x/n),edge});
+    for(const [pos,other] of [[a,b],[b,a]]){
+      const key=weldKey(pos);
+      if(!junctions.has(key)) junctions.set(key,{pos:point(pos),dirs:[]});
+      const d=subtract(other,pos),n=norm(d);
+      junctions.get(key).dirs.push({vector:d.map(x=>x/n),edge});
     }
   }
-  // Treat a straight, segmented building edge as one continuous visual arm.
-  // A real corner must survive tessellation into short collinear mesh edges.
-  // Stop at forks and bends: small incidental branches must not gain support
-  // from their adjacent long wall. Each edge is visited at most once.
-  const visited=new Set(), straightCos=Math.cos(10*Math.PI/180);
-  const maxJunctionDegree=6;
+  for(const s of clean){
+    const edge=segmentFeatures.get(s);
+    localJunctionKeys.add(edge.aKey);
+    localJunctionKeys.add(edge.bKey);
+  }
+  const straightCos=Math.cos(10*Math.PI/180),maxJunctionDegree=6;
   const continueStraight=(junction,previous)=>{
-    // An ambiguous or non-manifold high-valence vertex cannot establish a corner.
-    // Reject it before the quadratic pair scan.
     if(!junction || junction.dirs.length<2 ||
        junction.dirs.length>maxJunctionDegree) return null;
     const incoming=junction.dirs.find(dir=>dir.edge===previous);
@@ -154,31 +154,39 @@ export const chooseMeasureFeatureSnap = ({
     for(const dir of junction.dirs){
       if(dir.edge===previous ||
          dot(incoming.vector,dir.vector)>=-straightCos) continue;
-      // Traverse a T-junction through its one straight continuation.
-      // A short side-branch cannot borrow the main wall's accumulated span.
       if(continuation) return null;
       continuation=dir.edge;
     }
     return continuation;
   };
-  for(const root of featureSegments){
-    if(visited.has(root)) continue;
-    const chain=[root];
-    visited.add(root);
-    for(const startKey of [root.aKey,root.bKey]){
-      let key=startKey,previous=root;
+  // Build only chains attached to locally eligible edges. Project just the two
+  // chain endpoints, never every distant tessellation vertex on each preview.
+  // A fork/angle/high-valence vertex terminates the chain unless there is one
+  // unambiguous straight continuation. No distant chain point is snap-eligible.
+  const assigned=new Set();
+  const assignChain=(root)=>{
+    if(assigned.has(root)) return;
+    const chain=[root],endKeys=[root.aKey,root.bKey];
+    assigned.add(root);
+    for(let side=0;side<2;side++){
+      let key=endKeys[side],previous=root;
       while(true){
         const next=continueStraight(junctions.get(key),previous);
-        if(!next || visited.has(next)) break;
-        visited.add(next);
+        if(!next || assigned.has(next)) break;
+        assigned.add(next);
         chain.push(next);
         key=next.aKey===key ? next.bKey : next.aKey;
         previous=next;
       }
+      endKeys[side]=key;
     }
-    const screenSpan=chain.reduce((sum,e)=>sum+e.spanPx,0);
-    for(const e of chain) e.chainSpanPx=screenSpan;
-  }
+    const pa=getPixel(junctions.get(endKeys[0])?.pos);
+    const pb=getPixel(junctions.get(endKeys[1])?.pos);
+    const rawSpan=pa && pb ? Math.hypot(pa.x-pb.x,pa.y-pb.y) : 0;
+    const spanPx=Number.isFinite(rawSpan) ? rawSpan : 0;
+    for(const edge of chain) edge.chainSpanPx=spanPx;
+  };
+  for(const s of clean) assignChain(segmentFeatures.get(s));
   let bestCorner=null,bestEdge=null,bestDetailEdge=null;
   const withinWorld=(p)=>norm(subtract(coords(p),base))<=maxWorldGapM;
   const consider=(kind,p,distancePx,segment,visualSpanPx=Infinity)=>{
@@ -192,8 +200,10 @@ export const chooseMeasureFeatureSnap = ({
       if(!bestDetailEdge || distancePx<bestDetailEdge.distancePx) bestDetailEdge=candidate;
     }else if(!bestEdge || distancePx<bestEdge.distancePx) bestEdge=candidate;
   };
-  for(const v of junctions.values()){
-    if(v.dirs.length<2 || v.dirs.length>maxJunctionDegree) continue;
+  for(const key of localJunctionKeys){
+    const v=junctions.get(key);
+    if(!v || v.dirs.length<2 || v.dirs.length>maxJunctionDegree ||
+       norm(subtract(coords(v.pos),base))>maxWorldGapM) continue;
     let corner=false;
     for(let i=0;i<v.dirs.length && !corner;i++){
       if(v.dirs[i].edge.chainSpanPx<minCornerArmPx) continue;
