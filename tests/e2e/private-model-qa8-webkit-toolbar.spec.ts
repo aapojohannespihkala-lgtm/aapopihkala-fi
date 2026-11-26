@@ -87,7 +87,9 @@ test.describe('narrow touch controls', () => {
     const tool = page.locator('#point-pick-tool-button');
     await tool.tap();
     await expect(tool).toHaveAttribute('aria-pressed', 'true');
-    await expect(tool).toHaveCSS('background-color', 'rgb(78, 86, 94)');
+    // Touch browsers differ in whether a tapped button keeps :hover; both
+    // colors belong to the approved selected frame, never the neutral frame.
+    await expect(tool).toHaveCSS('background-color', /rgb\((65, 74, 83|78, 86, 94)\)/);
     await page.locator('#navigate-tool-button').tap();
     await expect(tool).toHaveAttribute('aria-pressed', 'false');
 
