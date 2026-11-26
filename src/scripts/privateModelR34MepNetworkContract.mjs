@@ -95,6 +95,48 @@ export const R34_NIBE_OPEN_INTERFACES = Object.freeze([
   Object.freeze({id:'NIBE_VALVE_PROXY_11704',kind:'DEVICE_PROXY',nodeIds:Object.freeze([11704]),priorQaNearestWaterMeshMm:305}),
 ]);
 
+
+/**
+ * NIBE manufacturer COMPARISON, not a 2003 installed-port survey.
+ * Ylisrinne plans 2015/2017 identify a NIBE made in 2003; its type plate,
+ * actual variant, connector locations, valve set and discharge are unknown.
+ * NIBE COMPACT R (2014) port numbers 41/42/83 and the later COMPACT
+ * XL3/XL4/XL48 naming share purposes and published nominal sizes.
+ * The documents do not establish interchangeability with the installed unit.
+ * Older source: https://www.nibe.fi/assets/documents/14134/031802-2.pdf
+ * Newer source: https://assetstore.nibe.se/hcms/v2.3/entity/document/121335/storage/MTIxMzM1LzAvbWFzdGVy
+ * Ylisrinne 2017 2F plan: Drive 12xVc522i-IAj1vjvs7nRf7M9majjdnD6
+ */
+export const R34_NIBE_COMPACT_REFERENCE = Object.freeze({
+  referenceOnly:true,
+  installedDeviceYearFromPlans:2003,
+  installedExactModelVerified:false,
+  installedPortPositionsVerified:false,
+  installedServiceAccessVerified:false,
+  installedElectricalRouteVerified:false,
+  ports:Object.freeze([
+    Object.freeze({function:'COLD_INLET',compactR2014:'41',laterCompact:'XL3',referenceDiameterMm:22,system:'VESI'}),
+    Object.freeze({function:'HOT_OUTLET',compactR2014:'42',laterCompact:'XL4',referenceDiameterMm:22,system:'VESI'}),
+    Object.freeze({function:'SAFETY_VALVE_DISCHARGE',compactR2014:'83',laterCompact:'XL48',referenceDiameterMm:15,system:'TURVAPURKU'}),
+  ]),
+});
+
+/** Never infer an installed port or drain from a comparative manual or R34 visual marker. */
+function inspectNibeReferencePorts() {
+  return R34_NIBE_COMPACT_REFERENCE.ports.map(p=>Object.freeze({
+    ...p, status:'MANUFACTURER_REFERENCE_ONLY_INSTALLATION_UNVERIFIED',
+    installedNodeId:null, installedDiameterVerified:false,
+    installedPortVerified:false, hostOpeningVerified:false,
+    drainDischargeVerified:false, serviceAccessVerified:false,
+    electricalConnectionVerified:false, connected:false,
+    physicalVerified:false, technicalFunctionVerified:false,
+    current:false, asBuilt:false,
+    requiredEvidence:p.function==='SAFETY_VALVE_DISCHARGE'?
+      '2003_MODEL_PLATE_AND_ACTUAL_VALVE_OUTLET_AND_DISCHARGE_TO_DRAIN':
+      '2003_MODEL_PLATE_AND_ACTUAL_PORT_AND_PIPE_JOINT',
+  }));
+}
+
 function inspectNibeOpenInterfaces(json, active) {
   return R34_NIBE_OPEN_INTERFACES.map(p=>{
     const mounted=p.nodeIds.every(id=>active.has(id) && Number.isInteger(json.nodes[id]?.mesh));
@@ -118,9 +160,9 @@ export function inspectR34MepNetwork(json, loadedSha, sceneIndex) {
   if (!sceneRole || loadedSha!==R34_MEP_SOURCE.sha256 ||
       !Array.isArray(json?.scenes) || json.scenes.length<=825 ||
       !Array.isArray(json?.nodes) || json.nodes.length<=13806)
-    return {sourceValid:false,sceneRole,chains:[],openInterfaces:[],ok:false,physicalVerified:false};
+    return {sourceValid:false,sceneRole,chains:[],openInterfaces:[],manufacturerReferencePorts:[],ok:false,physicalVerified:false};
   const active=mountedNodes(json,sceneIndex);
-  if (!active) return {sourceValid:false,sceneRole,chains:[],openInterfaces:[],ok:false,physicalVerified:false};
+  if (!active) return {sourceValid:false,sceneRole,chains:[],openInterfaces:[],manufacturerReferencePorts:[],ok:false,physicalVerified:false};
   const chains=R34_MEP_CHAINS.filter(c=>c.views.includes(sceneRole)).map(c=>{
     const missing=[],badType=[];
     for (const n of c.nodes) {
@@ -133,5 +175,6 @@ export function inspectR34MepNetwork(json, loadedSha, sceneIndex) {
   });
   return {sourceValid:true,sceneRole,chains,
     openInterfaces:inspectNibeOpenInterfaces(json,active),
+    manufacturerReferencePorts:inspectNibeReferencePorts(),
     ok:chains.every(c=>c.modelPresent),physicalVerified:false};
 }
