@@ -2286,7 +2286,8 @@ const title = 'Private 3D viewer';
         MAX_HEIGHT_POINTS_PER_MODEL,
       } from '../../scripts/privateModelHeightPointsStore.mjs';
       // @ts-ignore - source-triangle-only reference marks, never automatic N2000.
-      import { createR34HeightPointSeeds } from '../../scripts/privateModelR34HeightPointSeeds.mjs';
+      import { createR34HeightPointSeeds, R34_HEIGHT_POINT_SOURCE_SHA256 } from '../../scripts/privateModelR34HeightPointSeeds.mjs';
+      import { worktestDisplayedZ } from '../../scripts/privateModelN2000Worktest';
       // @ts-ignore - scene/floor guard keeps stale markers invisible after transitions.
       import {
         heightPointSceneScope, scopedHeightPointSurface, canRenderHeightPoint,
@@ -5642,7 +5643,10 @@ const title = 'Private 3D viewer';
         const sceneName = hpSourceSceneName();
         const scope = hpScope();
         const mapFrame = orientationGizmo.dataset.northFrame === 'map';
-        const key = [sha, sceneName, scope, mapFrame ? 'N2000' : 'LOCAL', hpVersion].join('|');
+        const datumAvailable = canvas.dataset.modelSource === 'current' ||
+          r32hFamilyOf(sha) !== null || sha === R34_HEIGHT_POINT_SOURCE_SHA256;
+        const showN2000 = mapFrame && datumAvailable;
+        const key = [sha, sceneName, scope, showN2000 ? 'N2000' : mapFrame ? 'MAP_LOCAL_Z' : 'LOCAL', hpVersion].join('|');
         if (!force && key === hpLastRenderKey) return;
         hpLastRenderKey = key;
         const records = readHeightPoints(hpStorage, sha);
@@ -5652,9 +5656,10 @@ const title = 'Private 3D viewer';
         hpSeedsButton.hidden = !seeds.length;
         hpSeedsButton.disabled = !records.ok || !seeds.some((seed) => !points.some((p) => p.id === seed.id));
         hpCount.textContent = '(' + points.length + ')';
-        hpCoordinate.textContent = mapFrame
-          ? 'N2000: lähtökorko vahvistamatta. Mallin Z näytetään paikallisena.'
-          : 'YLIS-G1-LOCAL: paikallinen Z (m)';
+        hpCoordinate.textContent = showN2000
+          ? 'N2000 (vuoden 1974 N60-työoletus, m)'
+          : mapFrame ? 'ETRS-GK25: Z paikallinen (m)' : 'YLIS-G1-LOCAL: paikallinen Z (m)';
+        canvas.dataset.heightPointFrame = showN2000 ? 'N2000-CONDITIONAL-WORK_TEST' : 'YLIS-G1-LOCAL';
         if (!sha) hpFeedback.textContent = 'Mallin yksilöivä SHA puuttuu. Tallennus ei ole käytettävissä.';
         else if (!records.ok) hpFeedback.textContent = 'Korkeuspisteiden tallennus ei ole käytettävissä (' + records.reason + ').';
         const attribute = hpGeometry.getAttribute('position') as THREE.BufferAttribute;
@@ -5665,9 +5670,11 @@ const title = 'Private 3D viewer';
             attribute.setXYZ(visibleCount++, point.xM, point.sourceHeightYUpM, -point.yM);
           }
           const li = document.createElement('li');
-          const value = displayHeightValue(point, {mode:'LOCAL'});
+          const value = displayHeightValue(point, showN2000
+            ? {mode:'N2000', n2000OffsetM:worktestDisplayedZ(0, 'n2000-worktest'), offsetBasis:'OWNER_WORK_ASSUMPTION'}
+            : {mode:'LOCAL'});
           const label = document.createElement('span');
-          label.textContent = point.label + ' · Z ' +
+          label.textContent = point.label + (showN2000 ? ' · N2000 ' : ' · Z ') +
             (value.ok ? value.meters.toFixed(3).replace('.', ',') + ' m' : '-') +
             (visible ? '' : ' (ei tässä näkymässä)');
           const remove = document.createElement('button');
@@ -8167,7 +8174,8 @@ const title = 'Private 3D viewer';
         // The protected project model and exact R32H-family snapshots share the
         // Ylisrinne drawing reference. An arbitrary WORK_TEST can have a different origin.
         heightScaleController.setDatumAvailable(
-          sourceKind === 'current' || r32hFamilyOf(loadedModelSha256(gltf)) !== null,
+          sourceKind === 'current' || r32hFamilyOf(loadedModelSha256(gltf)) !== null ||
+            (sourceKind === 'work-test' && loadedModelSha256(gltf) === R34_HEIGHT_POINT_SOURCE_SHA256),
         );
         if (r300ViewSwitch) {
           delete canvas.dataset.workTestReviewMode;

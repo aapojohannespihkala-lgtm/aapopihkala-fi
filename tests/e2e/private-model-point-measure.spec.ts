@@ -498,7 +498,9 @@ test('height points can be saved, restored, viewed through the cube and removed'
 
   const toggle = page.getByRole('button',{name:'Vaihda paikallinen pohjoinen tai karttapohjoinen'});
   await toggle.click();
-  await expect(page.locator('#height-point-coordinate')).toContainText('N2000: lähtökorko vahvistamatta');
+  await expect(page.locator('#height-point-coordinate')).toContainText('N2000 (vuoden 1974 N60-työoletus');
+  await expect(canvas).toHaveAttribute('data-height-point-frame','N2000-CONDITIONAL-WORK_TEST');
+  await expect(page.locator('#height-points-list')).toContainText('N2000 ');
   await expect(page.locator('#height-points-list')).toContainText('Z ');
   await toggle.click();
   await expect(page.locator('#height-point-coordinate')).toContainText('YLIS-G1-LOCAL');
