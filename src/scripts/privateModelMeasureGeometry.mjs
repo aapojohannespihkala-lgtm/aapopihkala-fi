@@ -142,18 +142,34 @@ export const chooseMeasureFeatureSnap = ({
   // Stop at forks and bends: small incidental branches must not gain support
   // from their adjacent long wall. Each edge is visited at most once.
   const visited=new Set(), straightCos=Math.cos(10*Math.PI/180);
-  const straightAt=(v)=>v?.dirs.length===2 &&
-    dot(v.dirs[0].vector,v.dirs[1].vector)<-straightCos;
+  const maxJunctionDegree=6;
+  const continueStraight=(junction,previous)=>{
+    // An ambiguous or non-manifold high-valence vertex cannot establish a corner.
+    // Reject it before the quadratic pair scan.
+    if(!junction || junction.dirs.length<2 ||
+       junction.dirs.length>maxJunctionDegree) return null;
+    const incoming=junction.dirs.find(dir=>dir.edge===previous);
+    if(!incoming) return null;
+    let continuation=null;
+    for(const dir of junction.dirs){
+      if(dir.edge===previous ||
+         dot(incoming.vector,dir.vector)>=-straightCos) continue;
+      // Traverse a T-junction through its one straight continuation.
+      // A short side-branch cannot borrow the main wall's accumulated span.
+      if(continuation) return null;
+      continuation=dir.edge;
+    }
+    return continuation;
+  };
   for(const root of featureSegments){
     if(visited.has(root)) continue;
     const chain=[root];
     visited.add(root);
     for(const startKey of [root.aKey,root.bKey]){
       let key=startKey,previous=root;
-      while(straightAt(junctions.get(key))){
-        const v=junctions.get(key);
-        const next=v.dirs[0].edge===previous ? v.dirs[1].edge : v.dirs[0].edge;
-        if(visited.has(next)) break;
+      while(true){
+        const next=continueStraight(junctions.get(key),previous);
+        if(!next || visited.has(next)) break;
         visited.add(next);
         chain.push(next);
         key=next.aKey===key ? next.bKey : next.aKey;
@@ -177,7 +193,7 @@ export const chooseMeasureFeatureSnap = ({
     }else if(!bestEdge || distancePx<bestEdge.distancePx) bestEdge=candidate;
   };
   for(const v of junctions.values()){
-    if(v.dirs.length<2) continue;
+    if(v.dirs.length<2 || v.dirs.length>maxJunctionDegree) continue;
     let corner=false;
     for(let i=0;i<v.dirs.length && !corner;i++){
       if(v.dirs[i].edge.chainSpanPx<minCornerArmPx) continue;

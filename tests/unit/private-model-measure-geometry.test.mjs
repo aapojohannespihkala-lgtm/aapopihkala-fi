@@ -401,3 +401,38 @@ test('small subdivided details do not inherit salience across an actual 90-degre
   });
   assert.equal(snap?.kind,'edge');
 });
+
+
+test('real building corner retains 20px straight wall arms across a tiny T-junction',()=>{
+  const segments=[];
+  for(let i=0;i<20;i++){
+    segments.push({a:g(i*.01,0),b:g((i+1)*.01,0)});
+    segments.push({a:g(0,i*.01),b:g(0,(i+1)*.01)});
+  }
+  segments.push({a:g(.05,0),b:g(.05,.04)});
+  const args={segments,projectToScreen:projector,isCandidateVisible:checker};
+  const corner=chooseMeasureFeatureSnap({
+    ...args,pointerPx:{x:1,y:1},hitPointG1:g(.01,.01),
+  });
+  assert.equal(corner?.kind,'corner');
+  same(corner.pointG1,g(0,0));
+  // A deliberate pick beyond the 3px corner-priority radius remains on the wall.
+  const branch=chooseMeasureFeatureSnap({
+    ...args,pointerPx:{x:5,y:1},hitPointG1:g(.05,.01),cornerPriorityPx:3,
+  });
+  assert.equal(branch?.kind,'edge');
+  same(branch.pointG1,g(.05,0));
+});
+
+test('30000-way ambiguous shared vertex fails closed as a corner',()=>{
+  const count=30000;
+  const segments=Array.from({length:count},(_,i)=>{
+    const theta=2*Math.PI*i/count;
+    return {a:g(0,0),b:g(.3*Math.cos(theta),.3*Math.sin(theta))};
+  });
+  const snap=chooseMeasureFeatureSnap({
+    pointerPx:{x:0,y:0},hitPointG1:g(0,0),
+    segments,projectToScreen:projector,isCandidateVisible:checker,
+  });
+  assert.equal(snap?.kind,'edge');
+});
