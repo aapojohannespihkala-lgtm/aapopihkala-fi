@@ -174,13 +174,15 @@ test('successful view change clears stale north and cube errors from previous ca
   // Simulate a prior transient invalid scene/camera frame. The actual recovery
   // must take place through the production camera preset renderer, not by
   // directly clearing the attributes in the test.
-  await gizmo.evaluate((element) => {
+  const injected = await gizmo.evaluate((element) => {
     const hud = element as HTMLElement;
     hud.dataset.northFrameError = 'transient invalid camera';
     hud.dataset.navCubeError = 'transient cube render';
+    return [hud.dataset.northFrameError, hud.dataset.navCubeError];
   });
-  await expect(gizmo).toHaveAttribute('data-north-frame-error', 'transient invalid camera');
-  await expect(gizmo).toHaveAttribute('data-nav-cube-error', 'transient cube render');
+  // The live RAF loop may already recover before the next Playwright assertion.
+  // Confirm injection synchronously and verify only the durable recovered state.
+  expect(injected).toEqual(['transient invalid camera', 'transient cube render']);
 
   await page.locator('[data-desk-kind="angle"][data-desk-id="top"]').click();
   await expect(canvas).toHaveAttribute('data-view-preset', 'top');
