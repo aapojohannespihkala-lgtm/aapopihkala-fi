@@ -1,6 +1,5 @@
 import {
   CONDITIONAL_DATUM_STATUS,
-  type VerticalDisplayMode,
   worktestDisplayedZ,
 } from './privateModelN2000Worktest';
 
@@ -8,7 +7,6 @@ type HeightScaleControllerArgs = {
   canvas: HTMLElement;
   scale: HTMLElement;
   ticks: HTMLElement;
-  onModeChange?: () => void;
 };
 
 type HeightScaleRenderInput = {
@@ -23,12 +21,10 @@ export const createHeightScaleController = ({
   canvas,
   scale,
   ticks,
-  onModeChange,
 }: HeightScaleControllerArgs) => {
   const title = scale.querySelector('.height-scale-title');
-  const datumToggle = scale.querySelector<HTMLButtonElement>('.height-scale-datum-toggle');
   let signature = '';
-  let mode: VerticalDisplayMode = 'local';
+  let datumAvailable = false;
 
   const invalidate = () => {
     signature = '';
@@ -40,8 +36,6 @@ export const createHeightScaleController = ({
     if (!visible) {
       ticks.replaceChildren();
       signature = '';
-      // No stale conditional Z when switching view/mode or reopening a scene.
-      mode = 'local';
       delete canvas.dataset.heightScaleMinZ;
       delete canvas.dataset.heightScaleMaxZ;
       delete canvas.dataset.heightScaleLocalMinZ;
@@ -55,19 +49,12 @@ export const createHeightScaleController = ({
   };
 
   const setDatumAvailable = (available: boolean) => {
-    mode = 'local';
-    if (datumToggle) datumToggle.hidden = !available;
+    datumAvailable = available;
     invalidate();
   };
 
-  datumToggle?.addEventListener('click', () => {
-    if (scale.hidden || datumToggle.hidden) return;
-    mode = mode === 'local' ? 'n2000-worktest' : 'local';
-    invalidate();
-    onModeChange?.();
-  });
-
   const render = ({ minZ, maxZ, stepM, viewportHeight, mapNorth }: HeightScaleRenderInput) => {
+    const mode = mapNorth && datumAvailable ? 'n2000-worktest' : 'local';
     const displayMinZ = worktestDisplayedZ(minZ, mode);
     const displayMaxZ = worktestDisplayedZ(maxZ, mode);
     const offsetM = displayMinZ - minZ;
@@ -121,15 +108,11 @@ export const createHeightScaleController = ({
     canvas.dataset.heightScaleNorthReference = mapNorth ? 'EPSG:3879' : 'YLIS-G1-LOCAL';
     const caption = mode === 'local'
       ? (mapNorth ? 'ETRS-GK25 · Z paikallinen' : 'YLIS-G1-LOCAL Z')
-      : 'N2000-työarvio (N60-oletus)';
+      : 'N2000';
     if (title && title.textContent !== caption) title.textContent = caption;
-    if (datumToggle) {
-      datumToggle.textContent = mode === 'local' ? 'Näytä N2000-työarvio' : 'Näytä paikallinen Z';
-      datumToggle.title = 'C-D 1. kerroksen piirustuskorko +21,750 m (N60-oletus) ja MML:n paikallinen muunnos N60:stä N2000:een +0,253175 m.';
-    }
     scale.setAttribute('aria-label', `${caption}, korkeusasteikko`);
     return true;
   };
 
-  return { invalidate, render, setVisible, setDatumAvailable, currentMode: () => mode };
+  return { invalidate, render, setVisible, setDatumAvailable };
 };

@@ -102,7 +102,7 @@ export function createNorthFrameToggleController({
   button.type = 'button';
   button.dataset.navigationNorth = 'toggle';
   button.setAttribute('aria-label', 'Vaihda paikallinen pohjoinen tai karttapohjoinen');
-  button.title = 'Muuta vain suunnistusmerkintää, älä kameran tai mallin koordinaatteja';
+  button.title = 'Vaihda paikallinen viite tai karttaviite';
   buttonHost.append(button);
   const original = {
     text: northLabel.textContent,
