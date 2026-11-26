@@ -4,6 +4,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   measureAlongG1Axis,extractMeasureFeatureEdges,chooseMeasureFeatureSnap,
+  perpendicularToMeasureEdge,perpendicularToMeasurePlane,
 } from '../../src/scripts/privateModelMeasureGeometry.mjs';
 
 const g=(x,y,z=0)=>({xM:x,yM:y,sourceHeightYUpM:z});
@@ -99,6 +100,37 @@ test('snap chooses a position along a genuine edge away from corners',()=>{
   assert.equal(result.kind,'edge');
   assert.ok(Math.abs(result.pointG1.xM-.98)<1e-12);
   assert.equal(result.pointG1.yM,0);
+});
+
+test('an edge crossing the viewport snaps even when both endpoints are outside',()=>{
+  const args={
+    pointerPx:{x:50,y:52},hitPointG1:g(0,.02),
+    segments:[{a:g(-1,0),b:g(1,0)}],
+    projectToScreen:p=>({x:50+p.xM*100,y:50+p.yM*100,visible:false,offscreen:true}),
+    isCandidateVisible:checker,
+  };
+  const snap=chooseMeasureFeatureSnap(args);
+  assert.equal(snap.kind,'edge');
+  same(snap.pointG1,g(0,0));
+  assert.equal(chooseMeasureFeatureSnap({...args,isCandidateVisible:()=>false}),null);
+});
+
+test('a deliberate corner wins but an incidental corner does not pull an edge pick sideways',()=>{
+  const args={hitPointG1:g(.08,.02),segments:squareEdges,projectToScreen:projector,
+    isCandidateVisible:checker,cornerPriorityPx:6};
+  assert.equal(chooseMeasureFeatureSnap({...args,pointerPx:{x:3,y:2}}).kind,'corner');
+  const nearEdge=chooseMeasureFeatureSnap({...args,pointerPx:{x:9,y:2}});
+  assert.equal(nearEdge.kind,'edge');
+  same(nearEdge.pointG1,g(.09,0));
+});
+
+test('perpendicular uses the finite tilted edge or the actual face normal',()=>{
+  const segment={a:g(1,0),b:g(3,2)};
+  same(perpendicularToMeasureEdge(g(0,2),segment),g(1.5,.5));
+  assert.equal(perpendicularToMeasureEdge(g(5,4),segment),null);
+  assert.equal(perpendicularToMeasureEdge(g(0,2),{a:segment.a,b:segment.a}),null);
+  same(perpendicularToMeasurePlane(g(0,0,2),g(1,1,0),{x:1,y:1,z:0}),g(1,1,2));
+  assert.equal(perpendicularToMeasurePlane(g(0,0),g(1,0),{x:0,y:0,z:0}),null);
 });
 
 test('fails closed for hidden, distant, no-hit and out-of-range candidates',()=>{
@@ -288,4 +320,200 @@ test('adapter rejects mesh animation or partial-draw geometry rather than false 
   assert.equal(snapFromVisibleMeshHit(args),null);
   mesh.geometry.setDrawRange(0,Infinity);
   assert.ok(snapFromVisibleMeshHit(args));
+});
+
+// Small tessellated details should not displace the nearest long wall edge.
+const salientSegments=[
+  {a:g(0,0),b:g(2,0)},
+  {a:g(.5,0),b:g(.54,0)},
+  {a:g(.5,0),b:g(.5,.04)},
+];
+
+test('smart snap ignores small detail corners beside a major wall edge',()=>{
+  const snap=chooseMeasureFeatureSnap({
+    pointerPx:{x:50,y:1},hitPointG1:g(.5,.01),segments:salientSegments,
+    projectToScreen:projector,isCandidateVisible:checker,
+  });
+  assert.equal(snap.kind,'edge');
+  same(snap.pointG1,g(.5,0));
+});
+
+test('the same small corner becomes measurable when zoomed in',()=>{
+  const snap=chooseMeasureFeatureSnap({
+    pointerPx:{x:250,y:1},hitPointG1:g(.5,.005),segments:salientSegments,
+    projectToScreen:p=>({x:p.xM*500,y:p.yM*500,visible:true}),
+    isCandidateVisible:checker,
+  });
+  assert.equal(snap.kind,'corner');
+  same(snap.pointG1,g(.5,0));
+});
+
+test('corner salience threshold rejects invalid inputs',()=>{
+  assert.equal(chooseMeasureFeatureSnap({
+    pointerPx:{x:0,y:0},hitPointG1:g(0,0),segments:squareEdges,
+    projectToScreen:projector,isCandidateVisible:checker,minCornerArmPx:-1,
+  }),null);
+});
+
+test('short edge fragments are ignored at normal zoom, even without a competing edge',()=>{
+  const snap=chooseMeasureFeatureSnap({
+    pointerPx:{x:52,y:0},hitPointG1:g(.51,.005),
+    segments:[{a:g(.5,0),b:g(.54,0)}],
+    projectToScreen:projector,isCandidateVisible:checker,
+  });
+  assert.equal(snap,null);
+});
+
+test('a genuine wall corner remains salient when each straight arm is finely subdivided',()=>{
+  const edges=[];
+  for(let i=0;i<16;i++){
+    edges.push({a:g(i*.02,0),b:g((i+1)*.02,0)});
+    edges.push({a:g(0,i*.02),b:g(0,(i+1)*.02)});
+  }
+  const result=chooseMeasureFeatureSnap({
+    pointerPx:{x:1,y:1},hitPointG1:g(.015,.015),
+    segments:edges,projectToScreen:projector,isCandidateVisible:checker,
+  });
+  assert.equal(result?.kind,'corner');
+  same(result.pointG1,g(0,0));
+});
+
+test('a 4px detail branch cannot become a salient corner by borrowing long wall arms',()=>{
+  const segments=[];
+  for(let i=0;i<15;i++){
+    segments.push({a:g(i*.02,0),b:g((i+1)*.02,0)});
+  }
+  segments.push({a:g(.1,0),b:g(.1,.04)});
+  const result=chooseMeasureFeatureSnap({
+    pointerPx:{x:10,y:1},hitPointG1:g(.1,.01),
+    segments,projectToScreen:projector,isCandidateVisible:checker,
+  });
+  assert.equal(result?.kind,'edge');
+  same(result.pointG1,g(.1,0));
+});
+
+test('small subdivided details do not inherit salience across an actual 90-degree bend',()=>{
+  const detail=[{a:g(0,0),b:g(.04,0)},{a:g(.04,0),b:g(.04,.04)}];
+  const snap=chooseMeasureFeatureSnap({
+    pointerPx:{x:4,y:0},hitPointG1:g(.04,.005),segments:detail,
+    projectToScreen:projector,isCandidateVisible:checker,
+  });
+  assert.equal(snap,null);
+});
+
+test('a gentle bend never becomes a straight segment for a perpendicular measurement',()=>{
+  const first={a:g(0,0),b:g(.12,0)};
+  const second={a:first.b,b:g(.24,.012)};
+  const snap=chooseMeasureFeatureSnap({
+    pointerPx:{x:7,y:0},hitPointG1:g(.07,.01),segments:[first,second],
+    projectToScreen:projector,isCandidateVisible:checker,
+  });
+  assert.equal(snap?.kind,'edge');
+  assert.deepEqual(snap.segment,first);
+  assert.equal(perpendicularToMeasureEdge(g(.18,1),snap.segment),null);
+});
+
+
+test('real building corner retains 20px straight wall arms across a tiny T-junction',()=>{
+  const segments=[];
+  for(let i=0;i<20;i++){
+    segments.push({a:g(i*.01,0),b:g((i+1)*.01,0)});
+    segments.push({a:g(0,i*.01),b:g(0,(i+1)*.01)});
+  }
+  segments.push({a:g(.05,0),b:g(.05,.04)});
+  const args={segments,projectToScreen:projector,isCandidateVisible:checker};
+  const corner=chooseMeasureFeatureSnap({
+    ...args,pointerPx:{x:1,y:1},hitPointG1:g(.01,.01),
+  });
+  assert.equal(corner?.kind,'corner');
+  same(corner.pointG1,g(0,0));
+  // A deliberate pick beyond the 3px corner-priority radius remains on the wall.
+  const branch=chooseMeasureFeatureSnap({
+    ...args,pointerPx:{x:5,y:1},hitPointG1:g(.05,.01),cornerPriorityPx:3,
+  });
+  assert.equal(branch?.kind,'edge');
+  same(branch.pointG1,g(.05,0));
+});
+
+test('30000-way ambiguous shared vertex fails closed as a corner',()=>{
+  const count=30000;
+  const segments=Array.from({length:count},(_,i)=>{
+    const theta=2*Math.PI*i/count;
+    return {a:g(0,0),b:g(.3*Math.cos(theta),.3*Math.sin(theta))};
+  });
+  const snap=chooseMeasureFeatureSnap({
+    pointerPx:{x:0,y:0},hitPointG1:g(0,0),
+    segments,projectToScreen:projector,isCandidateVisible:checker,
+  });
+  assert.equal(snap?.kind,'edge');
+});
+
+test('a 3m physical wall corner remains salient at 30/40/100 px per metre',()=>{
+  const segments=[];
+  for(let i=0;i<150;i++) segments.push({
+    a:g(i*.02,0),b:g((i+1)*.02,0),
+  });
+  for(let i=0;i<100;i++) segments.push({
+    a:g(0,i*.02),b:g(0,(i+1)*.02),
+  });
+  for(const pixelsPerMetre of [30,40,100]){
+    const snap=chooseMeasureFeatureSnap({
+      pointerPx:{x:.35,y:.35},hitPointG1:g(.015,.015),
+      segments,projectToScreen:p=>({
+        x:p.xM*pixelsPerMetre,y:p.yM*pixelsPerMetre,visible:true,
+      }),isCandidateVisible:checker,
+    });
+    assert.equal(snap?.kind,'corner',`zoom ${pixelsPerMetre} px/m`);
+    same(snap.pointG1,g(0,0));
+  }
+  const far=chooseMeasureFeatureSnap({
+    pointerPx:{x:90,y:0},hitPointG1:g(.015,.015),segments,
+    projectToScreen:p=>({x:p.xM*30,y:p.yM*30,visible:true}),
+    isCandidateVisible:checker,
+  });
+  assert.equal(far,null,'full-edge context must never snap to a 3m remote point');
+});
+test('source-mesh adapter recognises a 3m L-corner across 2cm triangulated arms at overview zoom',()=>{
+  // One genuine planar L-shaped wall footprint: the physical inner corner is
+  // at (0,0), and its two 3m arms have 150 individual 2cm boundary segments.
+  // Triangulation spokes are coplanar and must not become measurable edges.
+  const boundary=[[0,0]];
+  for(let i=1;i<=150;i++) boundary.push([i*.02,0]);
+  boundary.push([3,-.1],[-.1,-.1],[-.1,3],[0,3]);
+  for(let i=149;i>=1;i--) boundary.push([0,i*.02]);
+  const positions=[];
+  for(let i=0;i<boundary.length;i++){
+    const a=boundary[i],b=boundary[(i+1)%boundary.length];
+    positions.push(-.05,-.05,0,a[0],a[1],0,b[0],b[1],0);
+  }
+  const geometry=new THREE.BufferGeometry();
+  geometry.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));
+  const mesh=new THREE.Mesh(geometry,new THREE.MeshBasicMaterial({side:THREE.DoubleSide}));
+  mesh.updateMatrixWorld(true);
+  const rect={left:0,top:0,width:480,height:480};
+  for(const pixelsPerMetre of [30,40]){
+    const halfSpan=240/pixelsPerMetre;
+    const camera=new THREE.OrthographicCamera(-halfSpan,halfSpan,halfSpan,-halfSpan,.1,30);
+    camera.position.set(1.5,1.5,10);
+    camera.lookAt(1.5,1.5,0);
+    camera.updateMatrixWorld(true);
+    const projection=new THREE.Vector3(0,0,0).project(camera);
+    const pointerPx={x:240*(projection.x+1),y:240*(1-projection.y)};
+    const args={
+      frontmostHit:{object:mesh,point:new THREE.Vector3(-.025,-.025,0)},
+      camera,rect,pointerPx,
+      acceptsFrontmostHit:()=>true,
+      isFeatureVisible:({pointWorld})=>Math.abs(pointWorld.z)<1e-5,
+    };
+    const snap=snapFromVisibleMeshHit(args);
+    assert.equal(snap?.kind,'corner','real subdivided corner at '+pixelsPerMetre+' px/m');
+    assert.ok(Math.abs(snap.pointG1.xM)<1e-7);
+    assert.ok(Math.abs(snap.pointG1.sourceHeightYUpM)<1e-7);
+    assert.ok(Math.abs(snap.pointG1.yM)<1e-7);
+    // Full-edge salience is context only. A distant validated surface hit must
+    // never permit a false 3m-long jump back to this screen-space corner.
+    assert.equal(snapFromVisibleMeshHit({
+      ...args,frontmostHit:{object:mesh,point:new THREE.Vector3(2,-.05,0)},
+    }),null);
+  }
 });
