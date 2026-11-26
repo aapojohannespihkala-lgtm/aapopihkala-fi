@@ -5479,7 +5479,7 @@ const title = 'Private 3D viewer';
       // proven local minimum between two explicit, visible source triangles.
       // No new mode, no whole-mesh or surveyed/as-built clearance claim.
       const pointMeasureSurfaceOverlay = createPointMeasureOverlay(scene, { color: 0x43aaca, opacity: 0.9 });
-      const pointMeasureSourcePair = createSurfacePairSelection({ calculate: closestVisibleSourceMeshClearance });
+      const pointMeasureSourcePair = createSurfacePairSelection({ calculate: closestVisibleSourceMeshClearance } as any);
       let pointMeasureSurfaceResult: any = null;
       const pointMeasureSurfaceContextKey = () => {
         const mounted = modelRoot.children[0] ?? fullModelScene;
