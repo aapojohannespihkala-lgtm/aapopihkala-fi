@@ -188,9 +188,16 @@ export function buildR31FiberOverlay(THREE, lines, displayY = R31_FIBER_DISPLAY_
 function worldPoints(THREE, object) {
   const position = object.geometry?.attributes?.position;
   if (!position) return [];
+  // Line primitives can use a glTF index buffer. Their drawing order is the
+  // indexed order, not the raw position-attribute order. Otherwise unrelated
+  // LINES segments can be joined into an invented route.
+  const lineIndex = (object.isLine || object.isLineSegments) ? object.geometry?.getIndex?.() : null;
+  const count = lineIndex?.count ?? position.count;
   const out = [];
-  for (let i = 0; i < position.count; i += 1) {
-    out.push(new THREE.Vector3().fromBufferAttribute(position, i).applyMatrix4(object.matrixWorld));
+  for (let i = 0; i < count; i += 1) {
+    const vertex = lineIndex ? lineIndex.getX(i) : i;
+    if (!Number.isInteger(vertex) || vertex < 0 || vertex >= position.count) return [];
+    out.push(new THREE.Vector3().fromBufferAttribute(position, vertex).applyMatrix4(object.matrixWorld));
   }
   return out;
 }
@@ -282,6 +289,17 @@ export function buildR31DrainageOverlay(THREE, gltf) {
     if (!kind) return;
     const points = worldPoints(THREE, object);
     if (points.length < 2) return;
+    if (kind === 'route' && object.isLineSegments) {
+      // glTF LINES consists of independent vertex pairs. A continuous source
+      // pipe may use consecutive pairs only when their endpoints touch.
+      // Never invent a tube across a disconnected source-pair boundary.
+      if (points.length % 2 !== 0 || points.some((p) =>
+        !Number.isFinite(p.x) || !Number.isFinite(p.y) || !Number.isFinite(p.z))) return;
+      for (let i = 0; i < points.length; i += 2) {
+        if (points[i].distanceTo(points[i + 1]) <= 1e-6) return;
+        if (i > 0 && points[i - 1].distanceTo(points[i]) > 1e-6) return;
+      }
+    }
     const data = owner.userData ?? {};
     let mesh;
     let card = {};
