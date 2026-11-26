@@ -1,6 +1,5 @@
 import {
   CONDITIONAL_DATUM_STATUS,
-  CONDITIONAL_N2000_ZERO_ESTIMATE_M,
   type VerticalDisplayMode,
   worktestDisplayedZ,
 } from './privateModelN2000Worktest';
@@ -26,7 +25,8 @@ export const createHeightScaleController = ({
   ticks,
   onModeChange,
 }: HeightScaleControllerArgs) => {
-  const title = scale.querySelector<HTMLButtonElement>('.height-scale-title');
+  const title = scale.querySelector('.height-scale-title');
+  const datumToggle = scale.querySelector<HTMLButtonElement>('.height-scale-datum-toggle');
   let signature = '';
   let mode: VerticalDisplayMode = 'local';
 
@@ -42,7 +42,6 @@ export const createHeightScaleController = ({
       signature = '';
       // No stale conditional Z when switching view/mode or reopening a scene.
       mode = 'local';
-      title?.setAttribute('aria-pressed', 'false');
       delete canvas.dataset.heightScaleMinZ;
       delete canvas.dataset.heightScaleMaxZ;
       delete canvas.dataset.heightScaleLocalMinZ;
@@ -55,8 +54,14 @@ export const createHeightScaleController = ({
     }
   };
 
-  title?.addEventListener('click', () => {
-    if (scale.hidden) return;
+  const setDatumAvailable = (available: boolean) => {
+    mode = 'local';
+    if (datumToggle) datumToggle.hidden = !available;
+    invalidate();
+  };
+
+  datumToggle?.addEventListener('click', () => {
+    if (scale.hidden || datumToggle.hidden) return;
     mode = mode === 'local' ? 'n2000-worktest' : 'local';
     invalidate();
     onModeChange?.();
@@ -116,17 +121,15 @@ export const createHeightScaleController = ({
     canvas.dataset.heightScaleNorthReference = mapNorth ? 'EPSG:3879' : 'YLIS-G1-LOCAL';
     const caption = mode === 'local'
       ? (mapNorth ? 'ETRS-GK25 · Z paikallinen' : 'YLIS-G1-LOCAL Z')
-      : 'N2000-työarvio* (N60-oletus)';
-    if (title) {
-      title.textContent = caption;
-      title.setAttribute('aria-pressed', String(mode !== 'local'));
-      title.title = mode === 'local'
-        ? 'Vaihda ehdolliseen N2000-työarvioon (N60-lähtöjärjestelmää ei ole vahvistettu).'
-        : 'WORK_TEST, EI VARMENNETTU: 1974 C-D +21,750 m oletetaan N60:ksi. MML:n virallinen kolmioittainen muunnos paikalla on +0,253175 m. Vuoden 1974 lähtödatumia ei ole vahvistettu.';
+      : 'N2000-työarvio (N60-oletus)';
+    if (title && title.textContent !== caption) title.textContent = caption;
+    if (datumToggle) {
+      datumToggle.textContent = mode === 'local' ? 'Näytä N2000-työarvio' : 'Näytä paikallinen Z';
+      datumToggle.title = 'C-D 1. kerroksen piirustuskorko +21,750 m (N60-oletus) ja MML:n paikallinen muunnos N60:stä N2000:een +0,253175 m.';
     }
     scale.setAttribute('aria-label', `${caption}, korkeusasteikko`);
     return true;
   };
 
-  return { invalidate, render, setVisible, currentMode: () => mode };
+  return { invalidate, render, setVisible, setDatumAvailable, currentMode: () => mode };
 };
