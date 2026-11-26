@@ -184,8 +184,19 @@ test('successful view change clears stale north and cube errors from previous ca
   // Confirm injection synchronously and verify only the durable recovered state.
   expect(injected).toEqual(['transient invalid camera', 'transient cube render']);
 
-  await page.locator('[data-desk-kind="angle"][data-desk-id="top"]').click();
-  await expect(canvas).toHaveAttribute('data-view-preset', 'top');
+  // This minimal GLB has no bounds for a top-preset fit. Exercise actual
+  // OrbitControls instead: mouse rotation changes the live camera quaternion.
+  const beforeQuaternion = await gizmo.getAttribute('data-camera-quaternion');
+  await expect(canvas).toHaveAttribute('data-view-preset', 'orbit');
+  const bounds = await canvas.boundingBox();
+  expect(bounds).not.toBeNull();
+  const x = bounds!.x + bounds!.width * 0.5;
+  const y = bounds!.y + bounds!.height * 0.5;
+  await page.mouse.move(x, y);
+  await page.mouse.down();
+  await page.mouse.move(x + 170, y + 60, { steps: 12 });
+  await page.mouse.up();
+  await expect.poll(() => gizmo.getAttribute('data-camera-quaternion')).not.toBe(beforeQuaternion);
   await expect.poll(() => gizmo.getAttribute('data-north-frame-error')).toBeNull();
   await expect.poll(() => gizmo.getAttribute('data-nav-cube-error')).toBeNull();
   await expect(gizmo).toHaveAttribute('data-north-projection-ready', 'true');
