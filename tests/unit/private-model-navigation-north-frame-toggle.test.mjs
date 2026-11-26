@@ -199,3 +199,32 @@ test('orientation gizmo never lets the optional north annotation stop the render
   assert.match(before, /try \{\s*$/);
   assert.match(src.slice(call, call + 200), /catch \(error\)/);
 });
+
+test('north toggle caches getter-backed camera quaternion components', () => {
+  // THREE.Quaternion stores _x/_y/_z/_w as own fields and exposes
+  // the public x/y/z/w values through prototype getters.
+  class CameraQuaternion {
+    constructor() { this._x = 0; this._y = 0; this._z = 0; this._w = 1; }
+    get x() { return this._x; }
+    get y() { return this._y; }
+    get z() { return this._z; }
+    get w() { return this._w; }
+  }
+  const q = new CameraQuaternion();
+  assert.equal(Object.hasOwn(q, 'x'), false);
+  assert.equal(projectNorthMarker(q, 'map').endOn, false);
+  const { node } = makeDom();
+  const root = node(), svg = node(), northLabel = node();
+  const controller = createNorthFrameToggleController({ root, svg, northLabel });
+  controller.render({ quaternion: q });
+  controller.button.click();
+  assert.equal(controller.frame, 'map');
+  assert.equal(root.dataset.northProjectionReady, 'true');
+  assert.equal(northLabel.textContent, 'N kartta');
+  assert.ok(Number.isFinite(Number(svg.children[0].getAttribute('x2'))));
+  controller.button.click();
+  assert.equal(controller.frame, 'local');
+  assert.equal(root.dataset.northProjectionReady, 'true');
+  assert.equal(northLabel.textContent, 'N');
+  controller.dispose();
+});
