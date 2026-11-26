@@ -67,7 +67,10 @@ test('viewer uses one source-card outcome for both link suppression and card ren
   const select = source.slice(start, end);
   assert.match(select, /const sourceEvidence = resolveSelectionSources\(object\);/);
   assert.match(select, /const effectiveSourceEvidence = r300OwnerEvidence \?\? sourceEvidence;/);
-  assert.match(select, /sourceLinks: sourceLinksForSelectionEvidence\(effectiveSourceEvidence, collectSelectionSourceLinks\(object, modelRoot\)\),/);
+  assert.match(select, /sourceLinks: layersLoadedSha === R34_IV125_INTAKE\.glbSha256/);
+  assert.match(select, /r34Iv125BoundSourceLinks\(\{ gltf: sourceNodeModel\(layersGltf\)/);
+  // The old models still use the same effective evidence, without new IV125 constraints.
+  assert.match(select, /: sourceLinksForSelectionEvidence\(effectiveSourceEvidence, collectSelectionSourceLinks\(object, modelRoot\)\),/);
   assert.match(select, /sourceEvidence: effectiveSourceEvidence,/);
   assert.ok(select.indexOf('const sourceEvidence =') < select.indexOf('selectionPanelController.render('));
 });
