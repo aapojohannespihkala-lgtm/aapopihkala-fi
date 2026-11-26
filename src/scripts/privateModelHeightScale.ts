@@ -1,3 +1,7 @@
+// 1974 drawing reference for YLIS-G1-LOCAL Z=0 (C-D finished floor).
+// This is NOT a verified N2000 vertical datum / transform of EPSG:3879.
+export const YLIS_1974_DRAWING_DATUM_M = 21.75;
+
 type HeightScaleControllerArgs = {
   canvas: HTMLElement;
   scale: HTMLElement;
@@ -29,6 +33,12 @@ export const createHeightScaleController = ({
       delete canvas.dataset.heightScaleMinZ;
       delete canvas.dataset.heightScaleMaxZ;
       delete canvas.dataset.heightScaleStepM;
+      delete canvas.dataset.heightScaleLocalMinZ;
+      delete canvas.dataset.heightScaleLocalMaxZ;
+      delete canvas.dataset.heightScaleDatumOffsetM;
+      delete canvas.dataset.heightScaleDatumStatus;
+      delete canvas.dataset.heightScaleFrame;
+      delete canvas.dataset.heightScaleNorthReference;
     }
   };
 
@@ -37,6 +47,9 @@ export const createHeightScaleController = ({
   };
 
   const render = ({ minZ, maxZ, stepM, viewportHeight, mapNorth }: HeightScaleRenderInput) => {
+    const offsetM = mapNorth ? YLIS_1974_DRAWING_DATUM_M : 0;
+    const displayMinZ = minZ + offsetM;
+    const displayMaxZ = maxZ + offsetM;
     const spanZ = Math.max(maxZ - minZ, 0.001);
     const nextSignature = [minZ, maxZ, stepM, viewportHeight]
       .map((value) => Number(value).toFixed(3))
@@ -46,9 +59,9 @@ export const createHeightScaleController = ({
     signature = nextSignature;
 
     ticks.replaceChildren();
-    const first = Math.ceil((minZ - 1e-9) / stepM) * stepM;
-    for (let value = first; value <= maxZ + 1e-9; value += stepM) {
-      const normalized = (maxZ - value) / spanZ;
+    const first = Math.ceil((displayMinZ - 1e-9) / stepM) * stepM;
+    for (let value = first; value <= displayMaxZ + 1e-9; value += stepM) {
+      const normalized = (displayMaxZ - value) / spanZ;
       const topPct = Math.max(0, Math.min(100, normalized * 100));
       const isZero = Math.abs(value) < 1e-8;
 
@@ -75,14 +88,16 @@ export const createHeightScaleController = ({
       ticks.append(guide, tick, label);
     }
 
-    canvas.dataset.heightScaleMinZ = minZ.toFixed(3);
-    canvas.dataset.heightScaleMaxZ = maxZ.toFixed(3);
+    canvas.dataset.heightScaleMinZ = displayMinZ.toFixed(3);
+    canvas.dataset.heightScaleMaxZ = displayMaxZ.toFixed(3);
+    canvas.dataset.heightScaleLocalMinZ = minZ.toFixed(3);
+    canvas.dataset.heightScaleLocalMaxZ = maxZ.toFixed(3);
     canvas.dataset.heightScaleStepM = String(stepM);
-    // The ETRS-GK25 transform establishes XY only. Both north settings use
-    // model Z until a vertical datum transformation has been verified.
-    canvas.dataset.heightScaleFrame = 'YLIS-G1-LOCAL';
+    canvas.dataset.heightScaleDatumOffsetM = offsetM.toFixed(3);
+    canvas.dataset.heightScaleDatumStatus = mapNorth ? '1974-drawing-reference-unverified-n2000' : 'local';
+    canvas.dataset.heightScaleFrame = mapNorth ? 'YLIS-1974-DRAWING-Z' : 'YLIS-G1-LOCAL';
     canvas.dataset.heightScaleNorthReference = mapNorth ? 'EPSG:3879' : 'YLIS-G1-LOCAL';
-    const caption = mapNorth ? 'ETRS-GK25 · Z paikallinen' : 'YLIS-G1-LOCAL Z';
+    const caption = mapNorth ? 'ETRS-GK25 · Z suunnitelmakorko (ei N2000)' : 'YLIS-G1-LOCAL Z';
     if (title) title.textContent = caption;
     scale.setAttribute('aria-label', `${caption}, korkeusasteikko`);
     return true;

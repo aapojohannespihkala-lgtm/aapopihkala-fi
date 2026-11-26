@@ -104,11 +104,25 @@ test('private viewer height scale places higher Z above lower Z and draws full-w
   const frameToggle = page.getByRole('button', { name: 'Vaihda paikallinen pohjoinen tai karttapohjoinen' });
   await frameToggle.click();
   await expect(canvas).toHaveAttribute('data-height-scale-north-reference', 'EPSG:3879');
-  await expect(canvas).toHaveAttribute('data-height-scale-frame', 'YLIS-G1-LOCAL');
-  await expect(page.locator('.height-scale-title')).toHaveText('ETRS-GK25 · Z paikallinen');
-  expect(await labels.allTextContents()).toEqual(tickLabels);
+  await expect(canvas).toHaveAttribute('data-height-scale-frame', 'YLIS-1974-DRAWING-Z');
+  await expect(canvas).toHaveAttribute('data-height-scale-datum-offset-m', '21.750');
+  await expect(canvas).toHaveAttribute('data-height-scale-datum-status', '1974-drawing-reference-unverified-n2000');
+  await expect(page.locator('.height-scale-title')).toHaveText('ETRS-GK25 · Z suunnitelmakorko (ei N2000)');
+  const heights = await labels.evaluateAll((items) => items.map((el) => ({
+    shown: Number((el as HTMLElement).dataset.heightM),
+    top: parseFloat((el as HTMLElement).style.top),
+  })));
+  expect(heights.length).toBeGreaterThan(1);
+  for (const { shown, top } of heights) {
+    const minLocal = Number(await canvas.getAttribute('data-height-scale-local-min-z'));
+    const maxLocal = Number(await canvas.getAttribute('data-height-scale-local-max-z'));
+    const expected = 100 * (maxLocal - (shown - 21.75)) / (maxLocal - minLocal);
+    expect(Math.abs(top - expected)).toBeLessThan(0.02);
+  }
 
   await frameToggle.click();
   await expect(page.locator('.height-scale-title')).toHaveText('YLIS-G1-LOCAL Z');
   await expect(canvas).toHaveAttribute('data-height-scale-north-reference', 'YLIS-G1-LOCAL');
+  await expect(canvas).toHaveAttribute('data-height-scale-datum-offset-m', '0.000');
+  expect(await labels.allTextContents()).toEqual(tickLabels);
 });
