@@ -210,10 +210,12 @@ test('four elevation rulers remain pixel-aligned through wheel zoom and north sw
     const oldLabels = await labels.allTextContents();
     await northToggle.click();
     await expect(canvas).toHaveAttribute('data-height-scale-north-reference', 'EPSG:3879');
+    await expect(canvas).toHaveAttribute('data-height-scale-frame', 'N2000-CONDITIONAL-WORK_TEST');
     await expectProjectedTicks();
-    expect(await labels.allTextContents()).toEqual(oldLabels);
     await northToggle.click();
     await expect(canvas).toHaveAttribute('data-height-scale-north-reference', 'YLIS-G1-LOCAL');
+    await expect(canvas).toHaveAttribute('data-height-scale-frame', 'YLIS-G1-LOCAL');
+    expect(await labels.allTextContents()).toEqual(oldLabels);
     await expectProjectedTicks();
   }
 
