@@ -87,18 +87,20 @@ export const extractMeasureFeatureEdges = ({
 };
 
 /** Pick an actual corner (two noncollinear feature edges) before an edge.
- * Projector yields {x,y,visible}; caller supplies a visibility/occlusion test.
+ * Projector yields {x,y,visible} and may mark offscreen endpoints explicitly.
+ * The interpolated edge point still needs the caller's visibility check.
  * Snapping is forbidden without a validated surface-hit point and checker.
  */
 export const chooseMeasureFeatureSnap = ({
   pointerPx,hitPointG1,segments,projectToScreen,isCandidateVisible,
-  tolerancePx=12,maxWorldGapM=0.4,
+  tolerancePx=12,maxWorldGapM=0.4,cornerPriorityPx=tolerancePx,
 }) => {
   if(!pointerPx || ![pointerPx.x,pointerPx.y].every(Number.isFinite) ||
      !valid(hitPointG1) || !Array.isArray(segments) ||
      typeof projectToScreen!=='function' || typeof isCandidateVisible!=='function' ||
      !Number.isFinite(tolerancePx) || tolerancePx<=0 ||
      !Number.isFinite(maxWorldGapM) || maxWorldGapM<=0 ||
+     !Number.isFinite(cornerPriorityPx) || cornerPriorityPx<0 ||
      segments.length>30000) return null;
   const base=coords(hitPointG1);
   const projected=new Map(),junctions=new Map();
@@ -106,10 +108,17 @@ export const chooseMeasureFeatureSnap = ({
     const k=weldKey(coords(p));
     if(!projected.has(k)) projected.set(k,projectToScreen(p));
     const q=projected.get(k);
-    return q && q.visible===true && Number.isFinite(q.x) && Number.isFinite(q.y) ? q : null;
+    return q && (q.visible===true || q.offscreen===true) &&
+      Number.isFinite(q.x) && Number.isFinite(q.y) ? q : null;
   };
-  const clean=segments.filter(s=>s && valid(s.a) && valid(s.b) &&
-    norm(subtract(coords(s.b),coords(s.a)))>1e-8);
+  const clean=segments.filter(s=>{
+    if(!s || !valid(s.a) || !valid(s.b)) return false;
+    const a=coords(s.a),b=coords(s.b);
+    // Distant edges cannot produce an eligible snap, even if they overlap the
+    // pointer in screen space. Avoid projecting them on every pointer preview.
+    return base.every((value,i)=>value>=Math.min(a[i],b[i])-maxWorldGapM &&
+      value<=Math.max(a[i],b[i])+maxWorldGapM) && norm(subtract(b,a))>1e-8;
+  });
   for(const s of clean){
     const a=coords(s.a),b=coords(s.b);
     for(const [p,other] of [[a,b],[b,a]]){
@@ -121,10 +130,10 @@ export const chooseMeasureFeatureSnap = ({
   }
   let bestCorner=null,bestEdge=null;
   const withinWorld=(p)=>norm(subtract(coords(p),base))<=maxWorldGapM;
-  const consider=(kind,p,pix,distancePx)=>{
+  const consider=(kind,p,distancePx,segment)=>{
     if(distancePx>tolerancePx || !withinWorld(p) ||
        isCandidateVisible(p,kind)!==true) return;
-    const candidate={kind,pointG1:p,distancePx,workTestOnly:true};
+    const candidate={kind,pointG1:p,distancePx,workTestOnly:true,...(segment ? {segment} : {})};
     if(kind==='corner'){
       if(!bestCorner || distancePx<bestCorner.distancePx) bestCorner=candidate;
     }else if(!bestEdge || distancePx<bestEdge.distancePx) bestEdge=candidate;
@@ -137,7 +146,7 @@ export const chooseMeasureFeatureSnap = ({
         if(Math.abs(dot(v.dirs[i],v.dirs[j]))<Math.cos(20*Math.PI/180)) {corner=true;break;}
     if(!corner) continue;
     const pix=getPixel(v.pos);
-    if(pix) consider('corner',v.pos,pix,Math.hypot(pointerPx.x-pix.x,pointerPx.y-pix.y));
+    if(pix?.visible) consider('corner',v.pos,Math.hypot(pointerPx.x-pix.x,pointerPx.y-pix.y));
   }
   for(const s of clean){
     const a=getPixel(s.a),b=getPixel(s.b);
@@ -157,7 +166,31 @@ export const chooseMeasureFeatureSnap = ({
     const worldT=hasDepth ? t*b.invW/denom : t;
     const av=coords(s.a),bv=coords(s.b);
     const p=point(av.map((v,i)=>v+worldT*(bv[i]-v)));
-    consider('edge',p,nearest,Math.hypot(pointerPx.x-nearest.x,pointerPx.y-nearest.y));
+    consider('edge',p,Math.hypot(pointerPx.x-nearest.x,pointerPx.y-nearest.y),s);
   }
-  return bestCorner || bestEdge;
+  return bestCorner?.distancePx<=cornerPriorityPx ? bestCorner : bestEdge || bestCorner;
+};
+
+/** Foot of the perpendicular on the finite edge, or null if it needs an extension. */
+export const perpendicularToMeasureEdge = (from, segment) => {
+  if (!valid(from) || !valid(segment?.a) || !valid(segment?.b)) return null;
+  const a = coords(segment.a);
+  const direction = subtract(coords(segment.b), a);
+  const lengthSquared = dot(direction, direction);
+  if (lengthSquared < 1e-12) return null;
+  const t = dot(subtract(coords(from), a), direction) / lengthSquared;
+  if (t < 0 || t > 1) return null;
+  return point(a.map((value, i) => value + t * direction[i]));
+};
+
+/** Orthogonal projection onto a picked face plane. The caller validates the finite surface. */
+export const perpendicularToMeasurePlane = (from, surface, normal) => {
+  if (!valid(from) || !valid(surface) || !normal) return null;
+  const direction = [normal.x, normal.y, normal.z];
+  if (!direction.every(Number.isFinite)) return null;
+  const lengthSquared = dot(direction, direction);
+  if (lengthSquared < 1e-12) return null;
+  const a = coords(from);
+  const t = dot(subtract(a, coords(surface)), direction) / lengthSquared;
+  return point(a.map((value, i) => value - t * direction[i]));
 };

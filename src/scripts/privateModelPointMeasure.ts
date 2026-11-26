@@ -41,7 +41,7 @@ const toViewerWorld = (point: PointMeasurePoint) =>
  * direct child of the scene (never of the model root), so it is excluded from
  * picking, bounds, fitting and edge rendering.
  */
-export const createPointMeasureOverlay = (scene: THREE.Object3D) => {
+export const createPointMeasureOverlay = (scene: THREE.Object3D, { color = 0xffc94a, opacity = 1 } = {}) => {
   const group = new THREE.Group();
   group.name = 'POINT_MEASURE_OVERLAY';
   group.userData.PresentationOnly = true;
@@ -49,7 +49,8 @@ export const createPointMeasureOverlay = (scene: THREE.Object3D) => {
   group.visible = false;
 
   const markerMaterial = new THREE.PointsMaterial({
-    color: 0xffc94a,
+    color,
+    opacity,
     size: 9,
     sizeAttenuation: false,
     depthTest: false,
@@ -63,7 +64,8 @@ export const createPointMeasureOverlay = (scene: THREE.Object3D) => {
   markers.frustumCulled = false;
 
   const lineMaterial = new THREE.LineBasicMaterial({
-    color: 0xffc94a,
+    color,
+    opacity,
     depthTest: false,
     depthWrite: false,
     transparent: true,
