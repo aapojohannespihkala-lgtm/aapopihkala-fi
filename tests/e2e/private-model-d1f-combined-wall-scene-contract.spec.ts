@@ -398,7 +398,8 @@ test('actual viewer load callsite uses verified scene for ' + id, async () => {
   const selected = await vm.runInNewContext(
     prefix + 'return { gltf, combinedWallReview }; } catch (error) { throw error; } }; loadWorkTestCandidate(candidate);',
     {
-      candidate, canvas: { dataset: {} }, status: {}, p137ePlaceToolButton: {},
+      candidate, modelLoadIntentVersion: 0,
+      canvas: { dataset: {} }, status: {}, p137ePlaceToolButton: {},
       r31WorkTestReview,
       clearP137EPlaceDraft() {}, clearPointMeasure() {}, setViewerToolMode() {}, GLTFLoader: CheckedLoader,
       p137eScene67CandidateId: 'p137e-d1f-three-wall-mounted-themos',
