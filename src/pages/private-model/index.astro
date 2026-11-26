@@ -5650,7 +5650,7 @@ const title = 'Private 3D viewer';
         if (!force && key === hpLastRenderKey) return;
         hpLastRenderKey = key;
         const records = readHeightPoints(hpStorage, sha);
-        const points = records.ok ? records.points : [];
+        const points: Array<{id:string;label:string;xM:number;yM:number;sourceHeightYUpM:number;surfaceObjectName:string|null}> = records.ok ? records.points : [];
         const seeds = createR34HeightPointSeeds({modelSha256:sha,sceneName});
         const seedIds = seeds.map((seed) => seed.id);
         hpSeedsButton.hidden = !seeds.length;
@@ -5738,20 +5738,20 @@ const title = 'Private 3D viewer';
         const seeds = createR34HeightPointSeeds({modelSha256:sha, sceneName});
         const previous = readHeightPoints(hpStorage, sha);
         if (!seeds.length || !previous.ok || previous.points.length +
-          seeds.filter((seed) => !previous.points.some((p) => p.id === seed.id)).length > MAX_HEIGHT_POINTS_PER_MODEL) {
+          seeds.filter((seed) => !previous.points.some((p: {id:string}) => p.id === seed.id)).length > MAX_HEIGHT_POINTS_PER_MODEL) {
           hpFeedback.textContent = 'R34-lähdepisteitä ei voida lisätä tässä mallissa tai näkymässä.';
           return;
         }
         let added = 0, error = '';
         for (const seed of seeds) {
-          if (previous.points.some((point) => point.id === seed.id)) continue;
+          if (previous.points.some((point: {id:string}) => point.id === seed.id)) continue;
           const result = addHeightPoint(hpStorage, sha, {
             id: seed.id, label: seed.label, xM: seed.position.x, yM: -seed.position.z,
             sourceHeightYUpM: seed.position.y,
             surfaceObjectName: 'R34 lähde n' + seed.source.node + '/m' + seed.source.mesh +
               '/p' + seed.source.primitive + '/t' + seed.source.triangle,
           });
-          if (!result.ok) { error = result.reason; break; }
+          if (!result.ok) { error = result.reason ?? 'STORAGE_UNAVAILABLE'; break; }
           added++;
         }
         hpFeedback.textContent = error ? ('Lähdepisteiden tallennus estyi: ' + error) :
