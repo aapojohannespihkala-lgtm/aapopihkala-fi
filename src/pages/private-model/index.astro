@@ -6710,6 +6710,7 @@ const title = 'Private 3D viewer';
       const mapPlanNorth = () => orientationGizmo.dataset.northFrame === 'map';
       const mapPlanExtents = (size: THREE.Vector3) => {
         const north = northWorldDirection('map');
+        if (!north) throw new Error('EPSG:3879 north vector unavailable');
         return {
           width: Math.abs(north.z) * size.x + Math.abs(north.x) * size.z,
           height: Math.abs(north.x) * size.x + Math.abs(north.z) * size.z,
