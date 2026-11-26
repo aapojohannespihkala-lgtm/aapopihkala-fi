@@ -238,6 +238,7 @@ jobs:
             tests/unit/private-model-measure-geometry.test.mjs \
             tests/unit/private-model-surface-clearance.test.mjs \
             tests/unit/private-model-surface-pair-selection.test.mjs \
+            tests/unit/private-model-surface-pair-composition.test.mjs \
             tests/unit/private-model-c80-t110-roof512-source-profile.test.mjs \
             tests/unit/private-model-c80-t110-roof512-floor-runtime.test.mjs \
             tests/unit/private-model-c80-524-rain-zones-source.test.mjs \
