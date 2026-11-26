@@ -102,7 +102,7 @@ export function createNorthFrameToggleController({
   button.type = 'button';
   button.dataset.navigationNorth = 'toggle';
   button.setAttribute('aria-label', 'Vaihda paikallinen pohjoinen tai karttapohjoinen');
-  button.title = 'Muuta vain suunnistusmerkintää, älä kameran tai mallin koordinaatteja';
+  button.title = 'Vaihda paikallinen viite tai karttaviite';
   buttonHost.append(button);
   const original = {
     text: northLabel.textContent,
@@ -171,7 +171,14 @@ export function createNorthFrameToggleController({
         throw error;
       }
       poseRejected = false;
-      quaternion = { ...nextQuaternion };
+      // THREE.Quaternion exposes x/y/z/w through prototype getters, so object
+      // spread alone copies only its internal _x/_y/_z/_w backing fields.
+      quaternion = {
+        x: nextQuaternion.x,
+        y: nextQuaternion.y,
+        z: nextQuaternion.z,
+        w: nextQuaternion.w,
+      };
       sync();
       return frame;
     },
