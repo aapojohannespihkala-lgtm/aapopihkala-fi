@@ -132,7 +132,7 @@ test('private viewer uses the approved toolbar and restores tool windows from th
   const cubeButton = toolbar.getByRole('button', { name: 'Suuntailmaisin' });
   const cube = viewport.locator('#orientation-gizmo');
   await expect(cubeButton).toHaveAttribute('aria-expanded', 'true');
-  await expect(cubeButton).toHaveCSS('color', 'rgb(196, 205, 210)');
+  await expect(cubeButton).toHaveCSS('color', 'rgb(241, 244, 245)');
   await expect(cube).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
   await expect(cube).toHaveCSS('top', '12px');
   await expect(cube.locator('.viewport-panel-minimize')).toHaveCount(0);
@@ -186,6 +186,9 @@ test('toolbar icons stay centered and selected controls share the edge-mode fram
   const layers = toolbar.locator('#layers-button');
   const cube = toolbar.locator('#navigation-cube-button');
   const preset = toolbar.locator('[data-desk-kind="preset"]').first();
+  const cubeShaft = cube.locator('svg path').first();
+  const cubeTip = cube.locator('svg polygon').first();
+  const iconInk = 'rgb(241, 244, 245)';
 
   for (const width of [1440, 1024, 390]) {
     await page.setViewportSize({ width, height: 900 });
@@ -243,10 +246,27 @@ test('toolbar icons stay centered and selected controls share the edge-mode fram
     await layers.click();
     expect((await layers.evaluate(readFrame)).shadow).toBe('none');
     expect(await cube.evaluate(readFrame)).toEqual(selectedFrame);
+    await expect(cubeShaft).toHaveCSS('stroke', iconInk);
+    await expect(cubeTip).toHaveCSS('fill', iconInk);
     await cube.click();
     expect((await cube.evaluate(readFrame)).shadow).toBe('none');
+    await expect(cubeShaft).toHaveCSS('stroke', iconInk);
+    await expect(cubeTip).toHaveCSS('fill', iconInk);
     await cube.press('Enter');
     expect(await cube.evaluate(readFrame)).toEqual(selectedFrame);
+
+    const tools = toolbar.locator('.interaction-tools');
+    const selectedTool = tools.locator('button[aria-pressed="true"]');
+    for (const id of ['point-pick-tool-button', 'point-measure-tool-button', 'selection-tool-button', 'navigate-tool-button']) {
+      const tool = tools.locator(`#${id}`);
+      await expect(tool).not.toHaveCSS('background-color', 'rgb(65, 74, 83)');
+      await tool.click();
+      await expect(tool).toHaveCSS('background-color', 'rgb(78, 86, 94)');
+      await page.mouse.move(0, 0);
+      await expect(selectedTool).toHaveCount(1);
+      await expect(selectedTool).toHaveAttribute('id', id);
+      await expect(selectedTool).toHaveCSS('background-color', 'rgb(65, 74, 83)');
+    }
   }
 
   // Owner's excluded change: both existing preset hover colors remain exact.
