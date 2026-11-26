@@ -216,7 +216,7 @@ test('point in model screenshot pixel proof: real WebGL pin and readable XYZ', a
     { body: after, contentType: 'image/png' });
 });
 
-test('scene remount clears 3D distance after viewport resize keeps it', async ({ page }) => {
+test('3D measurement survives camera changes and clears when a preset remounts the scene', async ({ page }) => {
   const model = makeTriangleGlb();
   await page.route('**/private-model/model.glb', route =>
     route.fulfill({ status: 200, contentType: 'model/gltf-binary', body: model }),
@@ -226,35 +226,62 @@ test('scene remount clears 3D distance after viewport resize keeps it', async ({
 
   const canvas = page.locator('#private-model-canvas');
   const tool = page.locator('#point-measure-tool-button');
+  const distance = 'data-point-measure-distance';
+  const readout = page.locator('#point-measure-main');
+  const detail = page.locator('#point-measure-detail');
+  const camera = (id: string) => page.locator(`[data-desk-kind="angle"][data-desk-id="${id}"]`);
+  const preset = (id: string) => page.locator(`[data-desk-kind="preset"][data-desk-id="${id}"]`);
+  const pick = async (offsetY = 0) => {
+    const box = await canvas.boundingBox();
+    if (!box) throw new Error('Measurement canvas is not visible');
+    await canvas.click({ position: { x: box.width / 2, y: box.height / 2 + offsetY } });
+  };
+  const expectClearedMeasurement = async () => {
+    await expect(tool).toHaveAttribute('aria-pressed', 'true');
+    await expect(canvas).toHaveAttribute('data-interaction-mode', 'point-measure');
+    await expect(canvas).toHaveAttribute('data-point-measure-state', 'empty');
+    await expect(canvas).not.toHaveAttribute(distance, /.+/);
+    await expect(readout).toHaveText('Klikkaa ensimmäinen piste mallin pinnalta.');
+    await expect(detail).toBeEmpty();
+  };
+
   await tool.click();
-  const box = await canvas.boundingBox();
-  expect(box).not.toBeNull();
-  if (!box) return;
+  await page.locator('#point-measure-snap').uncheck();
 
-  await canvas.click({ position: { x: box.width / 2, y: box.height / 2 } });
+  await pick();
   await expect(canvas).toHaveAttribute('data-point-measure-state', 'first');
-  await canvas.click({ position: { x: box.width / 2, y: box.height / 2 + 8 } });
-  await expect(canvas).toHaveAttribute('data-point-measure-state', 'complete');
-  const savedDistance = await canvas.getAttribute('data-point-measure-distance');
-  expect(savedDistance).not.toBeNull();
-  await expect(page.locator('#point-measure-main')).toHaveText(/^\d+,\d{3} m$/);
+  await camera('iso').click();
+  await expect(canvas).toHaveAttribute('data-view-preset', 'isometric');
+  await expect(canvas).toHaveAttribute('data-point-measure-state', 'first');
+  await expect(canvas).not.toHaveAttribute(distance, /.+/);
 
-  // A camera/viewport-only update must not invalidate a surface measurement.
+  await preset('d-roof').click();
+  await expect(preset('d-roof')).toHaveAttribute('aria-pressed', 'true');
+  await expect(canvas).toHaveAttribute('data-view-preset', 'isometric');
+  await expectClearedMeasurement();
+
+  await pick();
+  await expect(canvas).toHaveAttribute('data-point-measure-state', 'first');
+  await pick(12);
+  await expect(canvas).toHaveAttribute('data-point-measure-state', 'complete');
+  const savedDistance = await canvas.getAttribute(distance);
+  expect(Number(savedDistance)).toBeGreaterThan(0);
+  await expect(readout).toHaveText(/^\d+,\d{3} m$/);
+
+  for (const [id, view] of [['orbit', 'orbit'], ['elev-pos-y', 'elevation']]) {
+    await camera(id).click();
+    await expect(canvas).toHaveAttribute('data-view-preset', view);
+    await expect(canvas).toHaveAttribute('data-point-measure-state', 'complete');
+    await expect(canvas).toHaveAttribute(distance, savedDistance ?? '');
+  }
   await page.setViewportSize({ width: 1186, height: 822 });
   await expect(canvas).toHaveAttribute('data-point-measure-state', 'complete');
-  await expect(canvas).toHaveAttribute('data-point-measure-distance', savedDistance ?? '');
+  await expect(canvas).toHaveAttribute(distance, savedDistance ?? '');
 
-  // The real preset event remounts the same source root in setModelScene.
-  // This must clear stale A/B and overlay even when the interaction tool stays active.
-  await page.locator('#elev-pos-y-button').evaluate(element =>
-    (element as HTMLButtonElement).click());
+  await preset('d-1f').click();
+  await expect(preset('d-1f')).toHaveAttribute('aria-pressed', 'true');
   await expect(canvas).toHaveAttribute('data-view-preset', 'elevation');
-  await expect(canvas).toHaveAttribute('data-interaction-mode', 'point-measure');
-  await expect(canvas).toHaveAttribute('data-point-measure-state', 'empty');
-  await expect(canvas).not.toHaveAttribute('data-point-measure-distance', /.+/);
-  await expect(page.locator('#point-measure-main'))
-    .toHaveText('Klikkaa ensimmäinen piste mallin pinnalta.');
-  await expect(page.locator('#point-measure-detail')).toBeEmpty();
+  await expectClearedMeasurement();
 });
 
 test('point-measure axis controls reproject a completed measurement without a new click', async ({ page }) => {
