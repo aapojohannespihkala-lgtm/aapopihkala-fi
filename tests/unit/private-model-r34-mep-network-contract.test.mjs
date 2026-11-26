@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {R34_MEP_CHAINS,R34_MEP_SOURCE,R34_NIBE_OPEN_INTERFACES,inspectR34MepNetwork} from '../../src/scripts/privateModelR34MepNetworkContract.mjs';
+import {R34_MEP_CHAINS,R34_MEP_SOURCE,R34_NIBE_OPEN_INTERFACES,R34_NIBE_COMPACT_REFERENCE,inspectR34MepNetwork} from '../../src/scripts/privateModelR34MepNetworkContract.mjs';
 
 // Synthetic source fixture; the private original R34 GLB is not committed.
 function fixture(sceneIndex=822) {
@@ -102,4 +102,33 @@ test('NIBE cannot promote forced source metadata into physical or CURRENT approv
   assert.equal(r.openInterfaces.length,4);
   assert.ok(r.openInterfaces.every(x=>!x.physicalVerified&&!x.technicalFunctionVerified&&!x.current&&!x.asBuilt));
   assert.deepEqual(inspectR34MepNetwork(j,'wrong-sha',824).openInterfaces,[]);
+});
+
+test('NIBE 2003 installation never inherits COMPACT comparison dimensions or ports',()=>{
+  const p=R34_NIBE_COMPACT_REFERENCE;
+  assert.equal(p.installedDeviceYearFromPlans,2003);
+  assert.equal(p.referenceOnly,true);
+  assert.equal(p.installedExactModelVerified,false);
+  assert.deepEqual(p.ports.map(x=>[x.compactR2014,x.laterCompact,x.referenceDiameterMm]),[
+    ['41','XL3',22],['42','XL4',22],['83','XL48',15]
+  ]);
+  const r=inspectR34MepNetwork(fixture(822),R34_MEP_SOURCE.sha256,822);
+  assert.deepEqual(r.manufacturerReferencePorts.map(x=>x.status),
+    Array(3).fill('MANUFACTURER_REFERENCE_ONLY_INSTALLATION_UNVERIFIED'));
+  assert.ok(r.manufacturerReferencePorts.every(x=>x.installedNodeId===null&&
+    !x.installedPortVerified&&!x.installedDiameterVerified&&!x.connected&&
+    !x.physicalVerified&&!x.technicalFunctionVerified&&!x.asBuilt));
+});
+test('NIBE safety discharge is not a domestic-water outlet or guessed pipe to drain',()=>{
+  const p=inspectR34MepNetwork(fixture(824),R34_MEP_SOURCE.sha256,824).manufacturerReferencePorts;
+  assert.deepEqual(p.map(x=>x.system),['VESI','VESI','TURVAPURKU']);
+  const drain=p.find(x=>x.laterCompact==='XL48');
+  assert.equal(drain.function,'SAFETY_VALVE_DISCHARGE');
+  assert.equal(drain.drainDischargeVerified,false);
+  assert.equal(drain.hostOpeningVerified,false);
+  assert.match(drain.requiredEvidence,/ACTUAL_VALVE_OUTLET_AND_DISCHARGE_TO_DRAIN/);
+});
+test('NIBE model reference is never returned for untrusted SHA or invalid scene',()=>{
+  assert.deepEqual(inspectR34MepNetwork(fixture(822),'wrong',822).manufacturerReferencePorts,[]);
+  assert.deepEqual(inspectR34MepNetwork(fixture(822),R34_MEP_SOURCE.sha256,292).manufacturerReferencePorts,[]);
 });
