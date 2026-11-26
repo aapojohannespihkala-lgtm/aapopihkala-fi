@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {R34_MEP_CHAINS,R34_MEP_SOURCE,inspectR34MepNetwork} from '../../src/scripts/privateModelR34MepNetworkContract.mjs';
+import {R34_MEP_CHAINS,R34_MEP_SOURCE,R34_NIBE_OPEN_INTERFACES,inspectR34MepNetwork} from '../../src/scripts/privateModelR34MepNetworkContract.mjs';
 
 // Synthetic source fixture; the private original R34 GLB is not committed.
 function fixture(sceneIndex=822) {
@@ -67,4 +67,39 @@ test('2F excludes 1F/roofwater and includes 2F T110 and IV fan',()=>{
   assert.equal(c.some(x=>x.id==='D_IV_1F_TO_2F'),false);
   assert.equal(c.some(x=>x.id==='ROOF_GUTTER_FIVE_OUTLETS'),false);
   assert.equal(c.some(x=>x.id==='D_WASTE_T110_2F'),true);
+});
+
+test('NIBE open interface retains prior QA gaps without claiming a fitted port',()=>{
+  const j=fixture(822);
+  j.scenes[822].nodes.push(11703,11704);
+  const r=inspectR34MepNetwork(j,R34_MEP_SOURCE.sha256,822);
+  assert.equal(r.ok,true);
+  assert.equal(R34_NIBE_OPEN_INTERFACES.length,4);
+  assert.equal(r.openInterfaces.length,4);
+  assert.deepEqual(r.openInterfaces.slice(0,2).map(x=>x.priorQaGapMm),[2,2]);
+  assert.deepEqual(r.openInterfaces.slice(2).map(x=>x.priorQaNearestWaterMeshMm),[424,305]);
+  assert.ok(r.openInterfaces.every(x=>x.modelNodesPresent&&!x.physicalVerified&&!x.installedPortRoleVerified&&!x.geometryConnectedVerified&&!x.technicalFunctionVerified&&!x.gapRecheckedInThisRun));
+  assert.deepEqual(r.openInterfaces.map(x=>x.status),[
+    'OPEN_INTERFACE_NOT_CONNECTED_VERIFIED','OPEN_INTERFACE_NOT_CONNECTED_VERIFIED',
+    'DEVICE_PROXY_CONNECTION_UNKNOWN','DEVICE_PROXY_CONNECTION_UNKNOWN']);
+});
+test('NIBE missing source endpoint is not silently bridged by nearby visual',()=>{
+  const j=fixture(822);
+  j.scenes[822].nodes=j.scenes[822].nodes.filter(id=>id!==13492);
+  const r=inspectR34MepNetwork(j,R34_MEP_SOURCE.sha256,822);
+  const a=r.openInterfaces.find(x=>x.id==='NIBE_A_VISUAL_MARKER');
+  assert.equal(a.modelNodesPresent,false);
+  assert.equal(a.status,'SOURCE_NODE_NOT_MOUNTED');
+  assert.equal(a.geometryConnectedVerified,false);
+});
+test('NIBE cannot promote forced source metadata into physical or CURRENT approval',()=>{
+  const j=fixture(824);
+  for(const id of [11681,11682,13492,13493,11703,11704]){
+    j.scenes[824].nodes.push(id);
+    Object.assign(j.nodes[id].extras,{physicalConnectionsVerified:true,current:true,asBuilt:true,installedPortVerified:true});
+  }
+  const r=inspectR34MepNetwork(j,R34_MEP_SOURCE.sha256,824);
+  assert.equal(r.openInterfaces.length,4);
+  assert.ok(r.openInterfaces.every(x=>!x.physicalVerified&&!x.technicalFunctionVerified&&!x.current&&!x.asBuilt));
+  assert.deepEqual(inspectR34MepNetwork(j,'wrong-sha',824).openInterfaces,[]);
 });
