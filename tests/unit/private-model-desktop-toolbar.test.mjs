@@ -27,14 +27,19 @@ test('edge presentation is a one-click icon group with the four existing modes',
 test('building, camera and edge icons retain the approved geometry and mode mapping', () => {
   const preset = id => DESKTOP_PRESETS.find(item => item.id === id).icon;
   const edge = id => DESKTOP_EDGES.find(item => item.id === id).icon;
-  assert.equal([...preset('whole-building').matchAll(/<rect /g)].length, 4);
   for (const { icon } of DESKTOP_PRESETS) {
-    assert.doesNotMatch(icon, /\bstroke(?:-width)?=|fill="none"/);
+    assert.deepEqual([...icon.matchAll(/\bfill="([^"]+)"/g)].map(match => match[1]), ['none']);
+    assert.deepEqual([...icon.matchAll(/\bstroke-width="([^"]+)"/g)].map(match => match[1]), ['1.55']);
+    assert.match(icon, /<g fill="none" stroke="#F7F8F9"/);
+    assert.ok([...icon.matchAll(/\bstroke="([^"]+)"/g)].slice(1).every(match => match[1] === '#8597A3'));
   }
-  assert.match(preset('d-apartment'), /<path fill="#8597A3"/);
-  assert.match(preset('d-1f'), /<rect[^>]+y="10\.75"[^>]+fill="#8597A3"/);
-  assert.match(preset('d-2f'), /<rect[^>]+y="16\.75"[^>]+fill="#8597A3"/);
-  assert.match(preset('technical'), /fill="#F7F8F9" fill-rule="evenodd"/);
+  assert.match(preset('d-roof'), /<path d="M3\.6 9\.2 12 3\.65 20\.4 9\.2"\/>/);
+  for (const id of ['d-apartment', 'd-1f', 'd-2f']) {
+    assert.match(preset(id), /<path d="M3\.6 9\.2 12 3\.65 20\.4 9\.2" stroke="#8597A3"/);
+  }
+  assert.match(preset('d-1f'), /M4\.7 14\.35V9\.2H19\.3V14\.35" stroke="#8597A3"[\s\S]*<path d="M4\.7 14\.35H19\.3V19\.5H4\.7Z"\/>/);
+  assert.match(preset('d-2f'), /M4\.7 14\.35V19\.5H19\.3V14\.35" stroke="#8597A3"[\s\S]*<path d="M4\.7 9\.2H19\.3V14\.35H4\.7Z"\/>/);
+  assert.equal([...preset('technical').matchAll(/<circle /g)].length, 3);
   assert.notEqual(DESKTOP_ANGLES.find(a => a.id === 'iso').icon, DESKTOP_ANGLES.find(a => a.id === 'orbit').icon);
   for (const angle of DESKTOP_ANGLES.filter(a => a.id.startsWith('elev-'))) {
     assert.match(angle.icon, /<rect[^>]+stroke="#F7F8F9"/);

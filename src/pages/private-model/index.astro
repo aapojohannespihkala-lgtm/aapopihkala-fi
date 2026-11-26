@@ -50,9 +50,6 @@ const title = 'Private 3D viewer';
         border-color: var(--viewer-line-soft);
         box-shadow: none;
       }
-      .viewer-shell > .toolbar > #navigation-cube-button[aria-expanded='true'] {
-        color: var(--viewer-stone);
-      }
       .toolbar-menu-panel [data-context-tool]:disabled { display: none; }
       @media (min-width: 1240px) {
         .viewer-shell > .toolbar, .viewer-shell > .toolbar .desk-toolbar { flex-wrap: nowrap; }
@@ -87,7 +84,8 @@ const title = 'Private 3D viewer';
         .viewer-shell > .toolbar .desk-icon[data-desk-kind='preset']:hover {
           background: var(--viewer-icon-hover);
         }
-        .viewer-shell > .toolbar .desk-icon[data-desk-kind='preset'][aria-pressed='true']:hover {
+        .viewer-shell > .toolbar .desk-icon[data-desk-kind='preset'][aria-pressed='true']:hover,
+        .viewer-shell > .toolbar .interaction-tools .desk-icon[aria-pressed='true']:hover {
           background: var(--viewer-preset-selected-hover);
         }
       }
@@ -401,7 +399,7 @@ const title = 'Private 3D viewer';
         font-size: 12px;
       }
 
-      .interaction-tools button[aria-pressed='true'] {
+      .interaction-tools button[aria-pressed='true']:not(.desk-icon) {
         background: var(--viewer-bar);
         color: var(--viewer-ink);
       }
