@@ -369,3 +369,68 @@ test('snap previews and commits the width across a gap with one on/off control',
   await expect(canvas).toHaveAttribute('data-point-measure-snap', 'free');
   expect(Number(await canvas.getAttribute('data-point-measure-distance'))).toBeGreaterThan(1);
 });
+/**
+ * WORK_TEST synthetic WebGL: a 4 cm decorative inset should not become the
+ * preferred corner over a long, genuinely visible wall edge at normal zoom.
+ * This exercises the same user-facing canvas snap path, not just the helper.
+ */
+test('smart snap prioritizes a major visible edge over tiny coplanar detail corners', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 800 });
+  const rectangle = (left: number, right: number, bottom: number, top: number) => [
+    left, bottom, 0, right, bottom, 0, right, top, 0,
+    left, bottom, 0, right, top, 0, left, top, 0,
+  ];
+  // A 3 m long rectangle and a 4 cm square inset are one source mesh.
+  // The long left edge is geometrically continuous through the small detail.
+  const model = makeMeasureGlb([
+    ...rectangle(-1.5, 1.5, -0.75, 0.75),
+    ...rectangle(-1.5, -1.46, -0.02, 0.02),
+  ], true);
+  await page.route('**/private-model/model.glb', route =>
+    route.fulfill({ status: 200, contentType: 'model/gltf-binary', body: model }),
+  );
+  await page.goto('/private-model/');
+  await expect(page.getByRole('status')).toHaveText('Malli ladattu');
+
+  const canvas = page.locator('#private-model-canvas');
+  await page.locator('[data-desk-kind="angle"][data-desk-id="elev-pos-y"]').click();
+  await expect(canvas).toHaveAttribute('data-view-preset', 'elevation');
+  await page.locator('#point-measure-tool-button').click();
+  const snap = page.locator('#point-measure-snap');
+  await expect(snap).toBeChecked();
+  await snap.uncheck();
+
+  const box = await canvas.boundingBox();
+  if (!box) throw new Error('Measurement viewport is not visible');
+  const center = Math.floor(box.width / 2);
+  const y = Math.floor(box.height / 2);
+  const pick = (x: number) => canvas.click({ position: { x, y } });
+  const hits = async (x: number) => {
+    await pick(x);
+    return !(await page.locator('#point-measure-main').textContent())?.startsWith('Ei osumaa');
+  };
+  // Identify the actual wall silhouette by ray hits, not hard-coded pixels.
+  expect(await hits(center)).toBe(true);
+  expect(await hits(6)).toBe(false);
+  let inside = center;
+  let outside = 6;
+  while (inside - outside > 1) {
+    const mid = Math.floor((inside + outside) / 2);
+    if (await hits(mid)) inside = mid;
+    else outside = mid;
+  }
+  // On this viewport the small 4 cm detail is under the 18px salience limit.
+  expect((center - inside) * (0.04 / 1.5)).toBeLessThan(18);
+  await page.locator('#point-measure-clear').click();
+  await snap.check();
+
+  await page.mouse.move(box.x + inside + 2, box.y + y);
+  await expect(canvas).toHaveAttribute('data-point-measure-preview', 'edge');
+  await pick(inside + 2);
+  await expect(canvas).toHaveAttribute('data-point-measure-state', 'first');
+  await expect(canvas).toHaveAttribute('data-point-measure-snap', 'edge');
+
+  await snap.uncheck();
+  await page.mouse.move(box.x + inside + 3, box.y + y);
+  await expect(canvas).not.toHaveAttribute('data-point-measure-preview', /.+/);
+});
