@@ -673,7 +673,7 @@ test('Locus low voltage: the 32 selected G2b lines / 410 segments, own level, no
 });
 
 test('glTF LINES route pairs must touch: disjoint segments never become an invented drainage pipe', () => {
-  const source = (vertices) => {
+  const source = (vertices, indices = null) => {
     const scenes = Array.from({ length: 60 }, () => new THREE.Group());
     const scene = scenes[R31_DRAINAGE_SOURCE.sceneIndex];
     scene.userData = { Pass: R31_DRAINAGE_SOURCE.pass };
@@ -681,6 +681,7 @@ test('glTF LINES route pairs must touch: disjoint segments never become an inven
     owner.userData = { representationKind: 'referenceRouteWork' };
     const geometry = new THREE.BufferGeometry().setFromPoints(
       vertices.map(([x, y, z]) => new THREE.Vector3(x, y, z)));
+    if (indices) geometry.setIndex(indices);
     owner.add(new THREE.LineSegments(geometry, new THREE.LineBasicMaterial()));
     scene.add(owner);
     const json = { scenes: scenes.map((_, i) => ({
@@ -694,6 +695,19 @@ test('glTF LINES route pairs must touch: disjoint segments never become an inven
   const disconnected = source([v(0, 0), v(1, 0), v(50, 0), v(51, 0)]);
   assert.equal(buildR31DrainageOverlay(THREE, disconnected), null,
     'cannot draw a connected route when source LINES pairs are disjoint');
+  // Six raw positions appear to describe three connected segments, but the
+  // glTF index buffer draws only A-B and C-D. Never invent the B-C bridge.
+  const indexedDisjoint = source([
+    v(0, 0), v(1, 0), v(1, 0), v(50, 50), v(50, 50), v(51, 50),
+  ], [0, 1, 4, 5]);
+  assert.equal(buildR31DrainageOverlay(THREE, indexedDisjoint), null,
+    'indexed LINES must use actual index-pair order, not raw vertex order');
+  // Three raw positions with four indices encode two legitimate connected
+  // segments. The old position.count-based parity check dropped this route.
+  const indexedContiguous = source([v(0, 0), v(1, 0), v(2, -1)], [0, 1, 1, 2]);
+  const indexedOverlay = buildR31DrainageOverlay(THREE, indexedContiguous);
+  assert.deepEqual(indexedOverlay?.userData.counts, { well: 0, route: 1, open: 0 },
+    'valid indexed LINES pair continuity must be preserved');
   const contiguous = source([v(0, 0), v(1, 0), v(1, 0), v(2, -1)]);
   const overlay = buildR31DrainageOverlay(THREE, contiguous);
   assert.deepEqual(overlay.userData.counts, { well: 0, route: 1, open: 0 });

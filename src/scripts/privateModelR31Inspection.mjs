@@ -188,9 +188,16 @@ export function buildR31FiberOverlay(THREE, lines, displayY = R31_FIBER_DISPLAY_
 function worldPoints(THREE, object) {
   const position = object.geometry?.attributes?.position;
   if (!position) return [];
+  // Line primitives can use a glTF index buffer. Their drawing order is the
+  // indexed order, not the raw position-attribute order. Otherwise unrelated
+  // LINES segments can be joined into an invented route.
+  const lineIndex = (object.isLine || object.isLineSegments) ? object.geometry?.getIndex?.() : null;
+  const count = lineIndex?.count ?? position.count;
   const out = [];
-  for (let i = 0; i < position.count; i += 1) {
-    out.push(new THREE.Vector3().fromBufferAttribute(position, i).applyMatrix4(object.matrixWorld));
+  for (let i = 0; i < count; i += 1) {
+    const vertex = lineIndex ? lineIndex.getX(i) : i;
+    if (!Number.isInteger(vertex) || vertex < 0 || vertex >= position.count) return [];
+    out.push(new THREE.Vector3().fromBufferAttribute(position, vertex).applyMatrix4(object.matrixWorld));
   }
   return out;
 }
