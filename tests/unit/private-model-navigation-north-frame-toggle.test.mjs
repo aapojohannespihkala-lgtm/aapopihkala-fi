@@ -228,3 +228,26 @@ test('north toggle caches getter-backed camera quaternion components', () => {
   assert.equal(northLabel.textContent, 'N');
   controller.dispose();
 });
+
+test('north and cube transient status is cleared only inside successful later draws', () => {
+  // A render failure during a scene/camera transition is recoverable.
+  // The next valid frame must not keep exposing its stale dataset error.
+  const source = readFileSync(
+    new URL('../../src/scripts/privateModelOrientationGizmo.ts', import.meta.url), 'utf8',
+  );
+  const northRender = source.indexOf('northFrameController?.render({ quaternion });');
+  const northClear = source.indexOf('delete root.dataset.northFrameError;', northRender);
+  const northCatch = source.indexOf('} catch (error)', northRender);
+  assert.ok(northRender >= 0 && northClear > northRender && northClear < northCatch,
+    'north-frame stale error must clear on success before the error catch');
+  assert.match(source.slice(northCatch, northCatch + 180),
+    /root\.dataset\.northFrameError\s*=/);
+
+  const cubeRender = source.indexOf('cubeChanged = navCube?.render(');
+  const cubeClear = source.indexOf('delete root.dataset.navCubeError;', cubeRender);
+  const cubeCatch = source.indexOf('} catch (error)', cubeRender);
+  assert.ok(cubeRender >= 0 && cubeClear > cubeRender && cubeClear < cubeCatch,
+    'navigation-cube stale error must clear on success before the error catch');
+  assert.match(source.slice(cubeCatch, cubeCatch + 180),
+    /root\.dataset\.navCubeError\s*=/);
+});

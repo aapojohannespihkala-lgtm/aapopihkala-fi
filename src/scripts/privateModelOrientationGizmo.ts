@@ -502,6 +502,8 @@ export const createOrientationGizmoController = ({
     if (axisChanged) {
       try {
         northFrameController?.render({ quaternion });
+        // A recovered camera/scene draw must not retain an earlier transient error.
+        delete root.dataset.northFrameError;
       } catch (error) {
         root.dataset.northFrameError = error instanceof Error ? error.message : 'YLIS_NORTH_FRAME';
       }
@@ -509,6 +511,7 @@ export const createOrientationGizmoController = ({
     let cubeChanged = false;
     try {
       cubeChanged = navCube?.render(quaternion, root.dataset.northFrame === 'map' ? 'map' : 'local') ?? false;
+      delete root.dataset.navCubeError;
     } catch (error) {
       root.dataset.navCubeError = error instanceof Error ? error.message : 'YLIS_NAV_CUBE';
     }
