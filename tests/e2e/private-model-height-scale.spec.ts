@@ -170,7 +170,7 @@ test('N2000 WORK_TEST requires explicit opt-in and does not follow horizontal no
   expect(await page.locator('#height-scale .height-scale-label').allTextContents()).toEqual(localLabels);
 
   await toggle.click();
-  await page.locator('[data-desk-kind="angle"][data-desk-id="orbit"]').click();
+  await page.locator('#orbit-button').click();
   await expect(canvas).toHaveAttribute('data-height-scale-visible', 'false');
   await page.locator('[data-desk-kind="angle"][data-desk-id="elev-pos-y"]').click();
   await expect(canvas).toHaveAttribute('data-height-scale-frame', 'YLIS-G1-LOCAL');
