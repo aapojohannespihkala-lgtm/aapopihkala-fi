@@ -153,3 +153,68 @@ test('elevation to orbit and top transitions clear stale Z-scale state', async (
   await leave('orbit');
   expect(errors).toEqual([]);
 });
+
+test('four elevation rulers remain pixel-aligned through wheel zoom and north switches', async ({ page }) => {
+  const errors: string[] = [];
+  page.on('pageerror', (error) => errors.push(error.message));
+  await page.route('**/private-model/model.glb', (route) =>
+    route.fulfill({ status: 200, contentType: 'model/gltf-binary', body: makeTriangleGlb() }));
+  await page.goto('/private-model/');
+  await expect(page.getByRole('status')).toHaveText('Malli ladattu');
+
+  const canvas = page.locator('#private-model-canvas');
+  const scale = page.locator('#height-scale');
+  const guides = scale.locator('.height-scale-guide');
+  const labels = scale.locator('.height-scale-label');
+  const northToggle = page.getByRole('button', {
+    name: 'Vaihda paikallinen pohjoinen tai karttapohjoinen',
+  });
+  const span = async () => {
+    const min = Number(await canvas.getAttribute('data-height-scale-min-z'));
+    const max = Number(await canvas.getAttribute('data-height-scale-max-z'));
+    return max - min;
+  };
+  const expectProjectedTicks = async () => {
+    const viewport = await canvas.boundingBox();
+    const min = Number(await canvas.getAttribute('data-height-scale-min-z'));
+    const max = Number(await canvas.getAttribute('data-height-scale-max-z'));
+    expect(viewport).not.toBeNull();
+    expect(max).toBeGreaterThan(min);
+    const last = (await guides.count()) - 1;
+    expect(last).toBeGreaterThan(0);
+    for (const index of new Set([0, Math.floor(last / 2), last])) {
+      const guide = guides.nth(index);
+      const z = Number(await guide.getAttribute('data-height-m'));
+      const box = await guide.boundingBox();
+      expect(box).not.toBeNull();
+      const expectedY = viewport!.y + (max - z) / (max - min) * viewport!.height;
+      expect(Math.abs(box!.y - expectedY)).toBeLessThan(3);
+    }
+  };
+
+  for (const direction of ['pos-y', 'neg-y', 'pos-x', 'neg-x'] as const) {
+    await page.locator('[data-desk-kind="angle"][data-desk-id="elev-' + direction + '"]').click();
+    await expect(canvas).toHaveAttribute('data-elevation-direction', direction);
+    await expect(canvas).toHaveAttribute('data-height-scale-visible', 'true');
+    await expect(scale).toBeVisible();
+    await expect.poll(() => guides.count()).toBeGreaterThan(1);
+    await expectProjectedTicks();
+
+    const initialSpan = await span();
+    await canvas.hover();
+    await page.mouse.wheel(0, -320);
+    await expect.poll(span).toBeLessThan(initialSpan - 0.01);
+    await expectProjectedTicks();
+
+    const oldLabels = await labels.allTextContents();
+    await northToggle.click();
+    await expect(canvas).toHaveAttribute('data-height-scale-north-reference', 'EPSG:3879');
+    await expectProjectedTicks();
+    expect(await labels.allTextContents()).toEqual(oldLabels);
+    await northToggle.click();
+    await expect(canvas).toHaveAttribute('data-height-scale-north-reference', 'YLIS-G1-LOCAL');
+    await expectProjectedTicks();
+  }
+
+  expect(errors).toEqual([]);
+});
