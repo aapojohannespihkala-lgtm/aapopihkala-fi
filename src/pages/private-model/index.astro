@@ -1,4 +1,6 @@
 ---
+import { DESKTOP_FOLDER_ICON, DESKTOP_LAYERS_ICON, DESKTOP_MORE_ICON, DESKTOP_NAV_CUBE_ICON } from '../../scripts/privateModelDesktopToolbar.mjs';
+
 const title = 'Private 3D viewer';
 ---
 
@@ -11,48 +13,123 @@ const title = 'Private 3D viewer';
     <meta name="referrer" content="no-referrer" />
     <title>{title}</title>
     <style is:global>
-      /* Desktop icon toolbar (owner decisions 21.11.2026): one-click presets and
-         camera angles, Layers from its own icon, tools as side icons. */
-      .desk-toolbar { display: inline-flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-      .desk-group { position: relative; display: inline-flex; align-items: center; gap: 2px; padding: 2px;
-        border: 1px solid var(--viewer-line-soft); border-radius: 9px; }
-      .toolbar .desk-icon, .toolbar .desk-more { display: inline-grid; place-items: center; min-width: 36px; min-height: 36px;
-        padding: 4px; border: 1px solid transparent; border-radius: 7px; background: transparent; color: var(--viewer-ink); }
-      .toolbar .desk-more { min-width: 22px; padding: 2px; opacity: .8; }
-      .toolbar .desk-icon[aria-pressed='true'], .toolbar .desk-icon[aria-expanded='true'] {
-        border-color: var(--viewer-line); background: var(--viewer-bar); box-shadow: inset 0 0 0 1px var(--viewer-line); }
-      /* The native menu summaries become the small 'more' arrows (tests and keyboard keep working). */
-      .toolbar .desk-more { display: none !important; }
-      .toolbar .desk-group > .toolbar-menu > summary { display: grid; place-items: center; min-width: 22px; min-height: 36px;
-        padding: 0 2px; border: 1px solid transparent; border-radius: 7px; background: transparent; font-size: 0 !important; line-height: 0 !important; color: var(--viewer-ink); }
-      .toolbar .desk-group > .toolbar-menu > summary > * { display: none !important; }
-      .toolbar .desk-group > .toolbar-menu > summary::before { content: ''; display: block; width: 18px; height: 18px; background: currentColor;
-        -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M7 10 L12 15 L17 10'/%3E%3C/svg%3E") center / contain no-repeat; mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M7 10 L12 15 L17 10'/%3E%3C/svg%3E") center / contain no-repeat; }
+      .desk-toolbar { display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; min-width: 0; }
+      .desk-group, .viewer-shell > .toolbar .interaction-tools {
+        position: relative; display: inline-flex; align-items: center; gap: 2px;
+        padding: 2px; border: 1px solid var(--viewer-line-soft); border-radius: 9px;
+      }
+      .viewer-shell > .toolbar :is(.desk-icon, .toolbar-icon) {
+        display: inline-flex; align-items: center; justify-content: center; gap: 0;
+        box-sizing: border-box; flex: 0 0 auto;
+        width: 36px; height: 36px; min-width: 36px; min-height: 36px;
+        padding: 4px; border: 1px solid transparent; border-radius: 7px;
+        background: transparent; color: var(--viewer-ink); cursor: pointer;
+      }
+      .viewer-shell > .toolbar :is(.desk-icon, .toolbar-icon) > svg {
+        display: block; flex: 0 0 auto; width: 22px; height: 22px;
+      }
+      .viewer-shell > .toolbar .toolbar-icon:not(.toolbar-panel-button) > svg {
+        width: 18px; height: 18px;
+      }
+      .viewer-shell > .toolbar .desk-icon:disabled { opacity: .35; cursor: default; }
+      .viewer-shell > .toolbar .interaction-tools { flex-wrap: wrap; max-width: 100%; }
       .desk-group > .toolbar-menu { position: static; }
       .desk-group > .toolbar-menu > .toolbar-menu-panel { left: auto; right: 0; }
-      .toolbar .desk-layers-native { font-size: 0 !important; line-height: 0 !important; display: inline-grid; place-items: center; min-width: 36px; min-height: 36px; padding: 4px; }
-      .desk-layers-native::before { content: ''; display: block; width: 22px; height: 22px; background: currentColor;
-        -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.6' stroke-linejoin='round'%3E%3Cpath d='M12 4 L21 9 L12 14 L3 9 Z'/%3E%3Cpath d='M3 13 L12 18 L21 13'/%3E%3Cpath d='M3 17 L12 22 L21 17'/%3E%3C/svg%3E") center / contain no-repeat; mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.6' stroke-linejoin='round'%3E%3Cpath d='M12 4 L21 9 L12 14 L3 9 Z'/%3E%3Cpath d='M3 13 L12 18 L21 13'/%3E%3Cpath d='M3 17 L12 22 L21 17'/%3E%3C/svg%3E") center / contain no-repeat; }
-      .viewport > .interaction-tools.desk-side-tools { position: absolute; z-index: 15; left: 12px; top: 12px;
-        display: flex; flex-direction: column; gap: 4px; padding: 4px; background: var(--viewer-page); }
-      .viewport .desk-side-tools button { display: grid; place-items: center; min-width: 38px; min-height: 38px; padding: 6px; }
-      .viewport .desk-side-tools button[aria-pressed='true'] { box-shadow: inset 0 0 0 1px var(--viewer-line); }
-      .viewport .desk-side-tools button[disabled] { opacity: .35; }
-      /* Layers panel opens to the right of the side tool column, not under it. */
-      .viewport:has(> .desk-side-tools) .layers-panel { left: 66px !important; width: min(290px, calc(100% - 78px)) !important; }
-      /* Owner 22.11.2026 16.39: every left-side overlay (coordinates, point,
-         measure, selection, legends) opens to the right of the side tool
-         column, never on top of it. Narrow screens keep their own layout. */
+      .viewer-shell > .toolbar .desk-group > .toolbar-menu > .toolbar-icon {
+        width: 30px; min-width: 30px; padding: 0; border: 0;
+      }
+      .viewer-shell > .toolbar .desk-group > .toolbar-menu[open] > .toolbar-icon {
+        box-shadow: none;
+      }
+      .viewer-shell > .toolbar { gap: 6px; }
+      .viewer-shell > .toolbar > :is(#model-menu, #navigation-cube-button) { flex: 0 0 auto; }
+      .viewer-shell > .toolbar :is(.desk-icon, .toolbar-icon).toolbar-panel-button {
+        box-sizing: border-box;
+        width: 36px; height: 36px;
+        padding: 0;
+        border-color: var(--viewer-line-soft);
+        box-shadow: none;
+      }
+      .toolbar-menu-panel [data-context-tool]:disabled { display: none; }
+      @media (min-width: 1240px) {
+        .viewer-shell > .toolbar, .viewer-shell > .toolbar .desk-toolbar { flex-wrap: nowrap; }
+        .desk-toolbar #view-menu :is([data-camera-shortcut], #show-all-objects-button:disabled, #profile-button:disabled) {
+          display: none;
+        }
+      }
+      @media (min-width: 1000px) and (max-width: 1239px) {
+        .viewer-shell > .toolbar, .viewer-shell > .toolbar .desk-toolbar { flex-wrap: nowrap; }
+        .viewer-shell > .toolbar .desk-icon { width: 32px; min-width: 32px; padding: 3px; }
+        .desk-toolbar { gap: 5px; }
+      }
+      .viewer-shell > .toolbar .desk-icon:is([aria-pressed='true'], [aria-expanded='true']),
+      .viewer-shell > .toolbar details[open] > .toolbar-icon.toolbar-panel-button {
+        background: var(--viewer-preset-selected);
+      }
+      .viewer-shell :is(button:not(:disabled), summary):not(.desk-icon, .toolbar-icon):hover {
+        background: var(--viewer-hover);
+        border-color: var(--viewer-stone-light);
+      }
+      @media (hover: hover) {
+        .viewer-shell > .toolbar :is(.desk-icon:not(:disabled), .toolbar-icon):hover {
+          background: var(--viewer-icon-hover);
+          border-color: transparent;
+        }
+        .viewer-shell > .toolbar :is(.desk-icon, .toolbar-icon).toolbar-panel-button:hover {
+          border-color: var(--viewer-line-soft);
+        }
+        .viewer-shell > .toolbar .desk-icon:is([aria-pressed='true'], [aria-expanded='true']):not(.toolbar-panel-button):hover {
+          border-color: var(--viewer-line);
+        }
+        .viewer-shell > .toolbar .desk-icon[data-desk-kind='preset']:hover {
+          background: var(--viewer-icon-hover);
+        }
+        .viewer-shell > .toolbar .desk-icon[data-desk-kind='preset'][aria-pressed='true']:hover,
+        .viewer-shell > .toolbar .interaction-tools .desk-icon[aria-pressed='true']:hover {
+          background: var(--viewer-preset-selected-hover);
+        }
+      }
+      /* The edge-mode frame is shared by presets, cameras, tools and open panels. */
+      .viewer-shell > .toolbar .desk-icon:is([aria-pressed='true'], [aria-expanded='true']):not(:disabled),
+      .viewer-shell > .toolbar details[open] > .toolbar-icon.toolbar-panel-button {
+        border: 1px solid var(--viewer-line);
+        box-shadow: inset 0 0 0 1px var(--viewer-line);
+      }
+      .viewport > aside[data-viewport-minimized],
+      .viewport-panel-dock[hidden],
+      .viewport-panel-tab[hidden] { display: none !important; }
+      .viewer-shell .viewport .viewport-panel-minimize {
+        appearance: none; display: inline-grid; place-items: center;
+        min-width: 28px; min-height: 28px; padding: 4px;
+        border: 1px solid var(--viewer-line-soft); border-radius: 6px;
+        background: var(--viewer-bar); color: var(--viewer-ink);
+        margin-inline-start: auto; pointer-events: auto; cursor: pointer;
+      }
+      .viewport-panel-minimize-float { float: right; margin: 0 0 4px 8px; }
+      .height-scale > .viewport-panel-minimize { position: absolute; top: 0; left: 0; }
+      .height-scale:has(> .viewport-panel-minimize) .height-scale-title { left: 36px; }
+      .viewport-panel-minimize::before {
+        content: ''; width: 12px; border-top: 2px solid currentColor; border-radius: 1px;
+      }
+      .viewer-shell :is(button, summary):focus-visible {
+        outline: 3px solid rgba(196, 205, 210, 0.48);
+        outline-offset: 1px;
+      }
+      .viewport-panel-dock { display: inline-flex; flex-wrap: wrap; gap: 2px; }
       @media (min-width: 761px) {
-        .viewport:has(> .desk-side-tools) :is(.coordinate-panel, .point-measure-panel, .p137e-place-panel,
-          .m5a-source-context, .height-scale, .d1-known-door-legend, .profile-panel, .selection-panel) {
-          left: 66px !important;
-          max-width: calc(100% - 78px);
+        .viewport:has(> .layers-panel:not([hidden], [data-viewport-minimized])) .selection-panel {
+          left: calc(12px + min(290px, 100% - 24px) + 12px);
+          max-width: calc(100% - 36px - min(290px, 100% - 24px));
         }
-        .viewport:has(> .desk-side-tools):has(.layers-panel:not([hidden])) .selection-panel {
-          left: calc(66px + min(290px, 100% - 78px) + 12px) !important;
-          max-width: calc(100% - 66px - min(290px, 100% - 78px) - 24px);
+      }
+      @media (max-width: 430px) {
+        .viewer-shell > .toolbar :is(.desk-icon, .toolbar-icon) { height: 34px; min-height: 34px; }
+        .viewer-shell > .toolbar .desk-icon { width: 28px; min-width: 28px; }
+        .viewer-shell > .toolbar :is(.desk-icon, .toolbar-icon).toolbar-panel-button {
+          width: 34px; height: 34px; min-width: 34px; min-height: 34px;
         }
+        .viewer-shell > .toolbar .desk-group > .toolbar-menu > .toolbar-icon { width: 24px; min-width: 24px; }
+        .desk-toolbar { gap: 5px; }
       }
       /* Navigation cube behind the gizmo axes (owner request 22.11.2026). */
       .orientation-gizmo .nav-cube-face { fill: #2f4456; stroke: #a9bcc8; stroke-width: .55; stroke-linejoin: round; }
@@ -96,11 +173,12 @@ const title = 'Private 3D viewer';
         height: calc(100dvh - 20px);
         min-height: 0;
         display: grid;
-        grid-template-rows: auto minmax(0, 1fr);
-        gap: 10px;
+        grid-template-rows: auto minmax(0, 1fr) auto;
+        gap: 6px;
       }
 
       .toolbar {
+        position: relative;
         display: flex;
         flex-wrap: wrap;
         align-items: center;
@@ -112,25 +190,20 @@ const title = 'Private 3D viewer';
         box-shadow: 0 8px 28px rgba(25, 28, 25, 0.10);
       }
 
-      .title {
-        margin-right: 8px;
-        font-weight: 650;
-        white-space: nowrap;
+      .viewer-info {
+        min-width: 0;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: baseline;
+        gap: 2px 12px;
+        padding: 1px 4px;
+        color: var(--viewer-ink-soft);
+        font-size: 10px;
+        line-height: 13px;
       }
 
-      .model-source-badge {
-        display: inline-flex;
-        align-items: center;
-        min-height: 28px;
-        padding: 5px 8px;
-        border: 1px solid #d7d7d2;
-        border-radius: 999px;
-        background: #f7f7f4;
-        color: #555853;
-        font-size: 12px;
-        line-height: 1;
-        white-space: nowrap;
-      }
+      .viewer-info .model-source-badge,
+      .viewer-info .status { min-width: 0; overflow-wrap: anywhere; }
 
       .toolbar-menu {
         position: relative;
@@ -252,22 +325,19 @@ const title = 'Private 3D viewer';
         background: #e2e3de;
       }
 
-      .source-menu > summary {
-        min-height: 28px;
-        padding: 0;
-        border: 0;
-        border-radius: 999px;
-        background: transparent;
+      #model-menu .toolbar-menu-panel {
+        width: min(410px, calc(100vw - 24px));
+        max-width: none;
       }
 
-      .source-menu[open] > summary {
-        border: 0;
-        background: transparent;
+      .work-test-options { display: grid; gap: 5px; }
+      .work-test-options :global(button) {
+        appearance: none; width: 100%; min-height: 32px; padding: 6px 8px;
+        border: 1px solid var(--viewer-line); border-radius: 6px;
+        background: var(--viewer-bar); color: var(--viewer-ink); cursor: pointer;
+        text-align: left; font: inherit; font-size: 12px; line-height: 16px; overflow-wrap: anywhere;
       }
-
-      .source-menu .toolbar-menu-panel {
-        min-width: 280px;
-      }
+      .work-test-options :global(.toolbar-menu-label) { color: var(--viewer-stone-light); }
 
       .work-test-filter {
         box-sizing: border-box;
@@ -278,15 +348,6 @@ const title = 'Private 3D viewer';
         border-radius: 6px;
         font: inherit;
         font-size: 13px;
-      }
-
-      .work-test-count {
-        color: #555853;
-        font-size: 11px;
-      }
-
-      .work-test-count:empty {
-        display: none;
       }
 
       #r300-work-test-views:not([hidden]) {
@@ -305,14 +366,6 @@ const title = 'Private 3D viewer';
         margin: 6px 0;
         font-size: 12px;
         line-height: 1.45;
-      }
-
-      .more-menu > summary {
-        min-width: 36px;
-        justify-content: center;
-        padding-inline: 9px;
-        font-size: 18px;
-        font-weight: 700;
       }
 
       button {
@@ -346,7 +399,7 @@ const title = 'Private 3D viewer';
         font-size: 12px;
       }
 
-      .interaction-tools button[aria-pressed='true'] {
+      .interaction-tools button[aria-pressed='true']:not(.desk-icon) {
         background: var(--viewer-bar);
         color: var(--viewer-ink);
       }
@@ -365,14 +418,6 @@ const title = 'Private 3D viewer';
         transform: translate(-50%, -50%) translateX(-12px) rotate(-90deg);
       }
       .axis-measure-label[hidden] { display: none; }
-
-      .status {
-        margin-left: auto;
-        min-width: 220px;
-        color: #6c6e69;
-        font-size: 13px;
-        text-align: right;
-      }
 
       .layers-panel {
         position: absolute;
@@ -523,71 +568,6 @@ const title = 'Private 3D viewer';
       .legend-swatch.water { background: #2f80ed; }
       .legend-swatch.wastewater { background: #c04472; }
 
-      .coordinate-panel {
-        position: absolute;
-        bottom: 12px;
-        left: 12px;
-        z-index: 3;
-        width: min(330px, calc(100% - 24px));
-        padding: 10px 12px;
-        border: 1px solid #c9cbc5;
-        border-radius: 10px;
-        background: rgba(255, 255, 255, 0.94);
-        box-shadow: 0 8px 28px rgba(25, 28, 25, 0.12);
-        pointer-events: none;
-      }
-
-      .coordinate-panel[hidden],
-      .coordinate-line[hidden] { display: none; }
-
-      /* Mobile-only source-bound CSS from the completed layout QA. */
-      /* PROPOSAL ONLY. DO NOT APPLY TO PRODUCTION WITHOUT REVIEW.
-         Put after the existing coordinate-panel and orientation-gizmo rules.
-         Intended as a scoped mobile change, not a viewer replacement. */
-      @media (max-width: 760px) {
-        .coordinate-panel:not([hidden]) {
-          left: 8px;
-          bottom: 8px;
-          width: min(60%, 230px);
-          padding: 7px 8px;
-        }
-        .coordinate-title-row { gap: 4px; margin-bottom: 4px; }
-        .coordinate-title { font-size: 11px; }
-        .coordinate-floor { font-size: 10px; }
-        .coordinate-line {
-          grid-template-columns: 48px minmax(0,1fr);
-          gap: 4px;
-          font-size: 10px;
-          margin-top: 2px;
-        }
-        .coordinate-line > span:last-child { overflow-wrap: anywhere; }
-        .coordinate-note {font-size: 9px; line-height: 1.2; margin-top: 5px;}
-        .viewport:has(.coordinate-panel:not([hidden])) .orientation-gizmo {
-          bottom: calc(16px + var(--coordinate-panel-block, 120px));
-        }
-      }
-      
-      /* Landscape handset: apply compact panel when width exceeds the 760px breakpoint. */
-      @media (min-width: 761px) and (max-width: 960px) and (max-height: 500px) {
-        .coordinate-panel:not([hidden]) {
-          left: 8px;
-          bottom: 8px;
-          width: min(42%, 240px);
-          padding: 7px 8px;
-          max-height: calc(100% - 16px);
-          overflow-y: auto;
-          pointer-events: auto;
-          touch-action: pan-y;
-        }
-        .coordinate-title-row { gap: 4px; margin-bottom: 4px; }
-        .coordinate-title { font-size: 11px; }
-        .coordinate-floor { font-size: 10px; }
-        .coordinate-line { grid-template-columns: 48px minmax(0,1fr); gap:4px; font-size:10px; margin-top:2px; }
-        .coordinate-line > span:last-child { overflow-wrap: anywhere; }
-        .coordinate-note { font-size: 9px; line-height:1.2; margin-top:5px; }
-      }
-
-
       .point-measure-panel {
         position: absolute;
         top: 12px;
@@ -605,6 +585,18 @@ const title = 'Private 3D viewer';
       }
 
       .point-measure-panel[hidden] { display: none; }
+      .point-measure-preview-angle {
+        position: absolute;
+        z-index: 4;
+        pointer-events: none;
+        transform: translate(6px, -100%);
+        color: var(--viewer-ink);
+        background: var(--viewer-bar);
+        font: bold 15px/1.2 system-ui, sans-serif;
+        border-radius: 3px;
+        padding: 0 3px;
+      }
+      .point-measure-preview-angle[hidden] { display: none; }
 
       .point-measure-header {
         display: flex;
@@ -666,49 +658,6 @@ const title = 'Private 3D viewer';
       .p137e-place-panel ul { margin: 8px 0; padding-left: 17px; }
       .p137e-place-panel p { margin: 5px 0; }
 
-      .coordinate-title-row {
-        display: flex;
-        align-items: baseline;
-        justify-content: space-between;
-        gap: 12px;
-        margin-bottom: 7px;
-      }
-
-      .coordinate-title {
-        font-size: 13px;
-        font-weight: 700;
-      }
-
-      .coordinate-floor {
-        color: #62655f;
-        font-size: 12px;
-        font-weight: 650;
-      }
-
-      .coordinate-line {
-        display: grid;
-        grid-template-columns: 64px minmax(0, 1fr);
-        gap: 8px;
-        margin-top: 4px;
-        font-size: 12px;
-      }
-
-      .coordinate-line span {
-        color: #6c6e69;
-      }
-
-      .coordinate-line > span:last-child {
-        color: #20211f;
-        font-variant-numeric: tabular-nums;
-        font-weight: 650;
-      }
-
-      .coordinate-note {
-        margin-top: 7px;
-        color: #777a75;
-        font-size: 10px;
-      }
-
       .m5a-source-context {
         position: absolute;
         top: 12px;
@@ -733,7 +682,7 @@ const title = 'Private 3D viewer';
         --m5a-source-panel-width: min(620px, 40vw);
       }
 
-      .viewport.m5a-source-layout canvas {
+      .viewport.m5a-source-layout:has(> .m5a-source-context:not([hidden], [data-viewport-minimized])) canvas {
         width: calc(100% - var(--m5a-source-panel-width) - 24px);
         margin-left: calc(var(--m5a-source-panel-width) + 24px);
       }
@@ -843,34 +792,22 @@ const title = 'Private 3D viewer';
       .orientation-gizmo {
         position: absolute;
         right: 12px;
-        bottom: 12px;
-        z-index: 6;
-        width: 212px;
-        padding: 7px 8px 6px;
-        border: 1px solid var(--viewer-line-soft);
-        border-radius: 9px;
-        background: rgba(27, 36, 45, 0.92);
-        box-shadow: none;
+        top: 12px;
+        z-index: 1;
+        width: 120px;
         color: var(--viewer-ink);
         pointer-events: none;
         user-select: none;
       }
 
-      /* Scene66 Themo review: the Bathroom halo is behind the lower-right HUD
-         at the exact source work position. Keep the HUD visible but move it
-         into the unoccupied upper-right corner for X4 ONLY. No XY changes. */
-      .viewport:has(#private-model-canvas[data-p186f-review-variant="X4"]) .orientation-gizmo {
-        top: 12px;
-        bottom: auto;
-      }
-
       /* Historical electrical labels need the complete canvas unobscured. */
-      .viewport:has(#p186e-source-context:not([hidden])) .orientation-gizmo {
+      .viewport:has(#p186e-source-context:not([hidden], [data-viewport-minimized])) .orientation-gizmo {
         left: 12px;
         right: auto;
         top: auto;
         bottom: 12px;
-        width: min(212px, calc(var(--m5a-source-panel-width) - 24px));
+        z-index: 6;
+        width: min(120px, calc(var(--m5a-source-panel-width) - 24px));
       }
 
       .orientation-gizmo-title {
@@ -939,47 +876,33 @@ const title = 'Private 3D viewer';
         white-space: nowrap;
       }
 
-      .ai-navigator-readout {
-        display: grid;
-        gap: 2px;
-        margin-top: 6px;
-        padding-top: 6px;
-        border-top: 1px solid var(--viewer-line-soft);
-        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-        font-size: 7.5px;
-        line-height: 1.25;
-      }
-
-      .ai-navigator-row {
-        display: grid;
-        grid-template-columns: 48px minmax(0, 1fr);
-        gap: 5px;
+      .viewer-info :global(.viewer-info-camera) {
+        display: flex;
+        flex: 1 1 100%;
         min-width: 0;
-      }
-
-      .ai-navigator-key {
-        color: var(--viewer-stone-light);
-        font-weight: 750;
-        letter-spacing: 0.03em;
-      }
-
-      .ai-navigator-value {
-        min-width: 0;
-        overflow-wrap: anywhere;
-        color: var(--viewer-ink-soft);
+        flex-wrap: wrap;
+        gap: 2px 12px;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        font-size: 9px;
+        line-height: 12px;
         font-variant-numeric: tabular-nums;
+      }
+
+      .viewer-info :global(.viewer-info-reading:not([hidden])) {
+        display: inline-flex;
+        gap: 4px;
+        flex-wrap: wrap;
+      }
+      .viewer-info :global(.viewer-info-reading[hidden]) { display: none; }
+      .orientation-gizmo :global([data-navigation-north="toggle"]) {
+        background: transparent;
       }
 
       @media (max-width: 760px) {
         .orientation-gizmo {
           right: 8px;
-          bottom: 8px;
-          width: 184px;
-          padding: 5px 6px 4px;
-        }
-
-        .viewport:has(.coordinate-panel:not([hidden])) .orientation-gizmo {
-          bottom: calc(16px + var(--coordinate-panel-block, 120px));
+          top: 8px;
+          width: 96px;
         }
 
         .orientation-gizmo-note {
@@ -1002,9 +925,10 @@ const title = 'Private 3D viewer';
       .height-scale[hidden] { display: none; }
 
       .height-scale-title {
+        z-index: 3;
         position: absolute;
         top: 0;
-        right: 0;
+        left: 0;
         padding: 3px 5px;
         border-radius: 5px;
         background: rgba(255, 255, 255, 0.9);
@@ -1015,11 +939,12 @@ const title = 'Private 3D viewer';
 
       .height-scale-ticks {
         position: absolute;
-        top: 28px;
+        /* Tick percentages track the complete camera viewport, not the inset title. */
+        top: -12px;
         right: 0;
-        bottom: 0;
+        bottom: -12px;
         left: 0;
-        border-right: 1px solid rgba(52, 55, 51, 0.6);
+        border-left: 1px solid rgba(196, 205, 210, 0.48);
       }
 
       :global(.height-scale-guide) {
@@ -1036,7 +961,7 @@ const title = 'Private 3D viewer';
 
       :global(.height-scale-tick) {
         position: absolute;
-        right: 0;
+        left: 0;
         width: 9px;
         border-top: 1px solid rgba(52, 55, 51, 0.55);
       }
@@ -1049,7 +974,7 @@ const title = 'Private 3D viewer';
 
       :global(.height-scale-label) {
         position: absolute;
-        right: 13px;
+        left: 13px;
         transform: translateY(-50%);
         padding: 1px 3px;
         border-radius: 3px;
@@ -1325,13 +1250,8 @@ const title = 'Private 3D viewer';
 
       .selection-panel[hidden] { display: none; }
 
-      .viewport:has(.coordinate-panel:not([hidden])) .selection-panel {
-        bottom: calc(20px + var(--coordinate-panel-block, 120px));
-        max-height: calc(100% - 32px - var(--coordinate-panel-block, 120px));
-      }
-
       /* The layers panel also lives on the left: sit beside it instead of covering its controls. */
-      .viewport:has(.layers-panel:not([hidden])) .selection-panel {
+      .viewport:has(.layers-panel:not([hidden], [data-viewport-minimized])) .selection-panel {
         left: calc(min(348px, 100% - 24px) + 24px);
         width: min(340px, calc(100% - min(348px, 100% - 24px) - 36px));
       }
@@ -1339,8 +1259,7 @@ const title = 'Private 3D viewer';
       /* Narrow screens: the full-width panel would cover the bottom gizmo, so it opens from the top. */
       @media (max-width: 760px) {
         .selection-panel,
-        .viewport:has(.coordinate-panel:not([hidden])) .selection-panel,
-        .viewport:has(.layers-panel:not([hidden])) .selection-panel {
+        .viewport:has(.layers-panel:not([hidden], [data-viewport-minimized])) .selection-panel {
           top: 8px;
           bottom: auto;
           left: 8px;
@@ -1511,16 +1430,11 @@ const title = 'Private 3D viewer';
           height: calc(100vh - 12px);
           height: calc(100dvh - 12px);
           min-height: 0;
-          grid-template-rows: auto minmax(0, 1fr);
+          grid-template-rows: auto minmax(0, 1fr) auto;
         }
         .viewport {
           min-height: 0;
           height: auto;
-        }
-        .status {
-          width: 100%;
-          margin-left: 0;
-          text-align: left;
         }
       }
 
@@ -1537,6 +1451,10 @@ const title = 'Private 3D viewer';
         --viewer-moss-deep: #edf2f4;
         --viewer-line: #64727c;
         --viewer-line-soft: #46535d;
+        --viewer-hover: #344450;
+        --viewer-icon-hover: #303840;
+        --viewer-preset-selected: #414a53;
+        --viewer-preset-selected-hover: #4e565e;
         background: var(--viewer-page);
         color: var(--viewer-ink);
       }
@@ -1553,17 +1471,11 @@ const title = 'Private 3D viewer';
         box-shadow: none;
       }
 
-      .title {
-        color: var(--viewer-ink);
-        font-family: Georgia, "Times New Roman", serif;
-      }
-
-      .model-source-badge,
       .toolbar-menu > summary,
       button,
       .layer-select select,
       .profile-controls select,
-      .source-menu .toolbar-menu-panel select,
+      .toolbar-menu-panel select,
       .work-test-filter {
         border-color: var(--viewer-line);
         background: var(--viewer-bar);
@@ -1572,9 +1484,7 @@ const title = 'Private 3D viewer';
 
       .model-source-badge,
       .status,
-      .layer-count,
-      .coordinate-panel,
-      .coordinate-line > span:last-child {
+      .layer-count {
         font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
       }
 
@@ -1595,7 +1505,6 @@ const title = 'Private 3D viewer';
       .toolbar-menu[open] > summary,
       .toolbar-menu-panel,
       .layers-panel,
-      .coordinate-panel,
       .point-measure-panel,
       .d1-known-door-legend,
       .profile-panel,
@@ -1607,15 +1516,11 @@ const title = 'Private 3D viewer';
       }
 
       .toolbar-menu-label,
-      .work-test-count,
       .layer-opacity,
       .layer-count,
       .layer-select,
       .layer-note,
       .layer-legend,
-      .coordinate-floor,
-      .coordinate-line span,
-      .coordinate-note,
       .point-measure-note,
       .profile-controls label,
       .profile-note,
@@ -1626,7 +1531,6 @@ const title = 'Private 3D viewer';
         color: var(--viewer-stone-light);
       }
 
-      .coordinate-line > span:last-child,
       .profile-summary,
       .selection-grid dd {
         color: var(--viewer-ink);
@@ -1689,50 +1593,9 @@ const title = 'Private 3D viewer';
         box-shadow: none;
       }
 
-      /* VUX-C2 responsive + accessibility guardrails. */
-      body:has(#private-model-canvas[data-layers-runtime="active"]) .source-menu {
-        max-width: min(260px, 100%);
-      }
-      body:has(#private-model-canvas[data-layers-runtime="active"]) #layers-button[aria-expanded="true"] {
-        background: #52704e;
-        border-color: #728b60;
-        color: #fff;
-      }
-      .toolbar {
-        min-width: 0;
-      }
+      .toolbar { min-width: 0; }
 
-      .title,
-      .toolbar-menu,
-      .model-source-badge,
-      .status {
-        max-width: 100%;
-      }
-
-      .toolbar-menu,
-      .model-source-badge,
-      .status {
-        min-width: 0;
-      }
-
-      .source-menu {
-        max-width: min(100%, 72vw);
-      }
-
-      .source-menu > summary {
-        max-width: 100%;
-      }
-
-      .model-source-badge {
-        display: block;
-        width: 100%;
-        overflow: hidden;
-        text-overflow: ellipsis;
-      }
-
-      .toolbar-menu-panel {
-        max-height: calc(100dvh - 96px);
-      }
+      .toolbar-menu-panel { max-height: calc(100dvh - 96px); }
 
       button:focus-visible,
       select:focus-visible {
@@ -1741,28 +1604,6 @@ const title = 'Private 3D viewer';
       }
 
       @media (max-width: 760px) {
-        .title {
-          flex: 1 1 100%;
-        }
-
-        /* Keep Layers custom/reset labels from resizing the canvas. A header
-           reflow would otherwise trigger the legacy aspect-dependent fit. */
-        body:has(#private-model-canvas[data-layers-runtime="active"]) #preset-menu > summary {
-          width: 246px;
-          max-width: calc(100vw - 50px);
-        }
-
-        body:has(#private-model-canvas[data-layers-runtime="active"]) #preset-context-status {
-          min-width: 0;
-          overflow: hidden;
-          white-space: nowrap;
-          text-overflow: ellipsis;
-        }
-
-        .model-source-badge {
-          max-width: min(100%, 72vw);
-        }
-
         .toolbar-menu-panel {
           max-width: calc(100vw - 24px);
           max-height: calc(100dvh - 132px);
@@ -1785,10 +1626,26 @@ const title = 'Private 3D viewer';
     <main class="viewer-shell">
       <!-- P149A compact primary toolbar: advanced actions stay available through menus. -->
       <div class="toolbar" aria-label="3D-katselun ohjaimet">
-        <div class="title">Ylisrinne 3D</div>
+        <span id="preset-context-status" class="desk-sr" aria-live="polite" aria-atomic="true">Koko rakennus</span>
+        <details id="model-menu" class="toolbar-menu">
+          <summary class="toolbar-icon toolbar-panel-button" aria-label="WORK_TEST-versiot" title="WORK_TEST-versiot"><Fragment set:html={DESKTOP_FOLDER_ICON} /></summary>
+          <div class="toolbar-menu-panel" aria-label="WORK_TEST-versiot">
+            <input
+              id="work-test-filter"
+              class="work-test-filter"
+              type="search"
+              placeholder="Suodata versioita (esim. scene68, D1F)"
+              aria-label="Suodata WORK_TEST-versioita"
+              autocomplete="off"
+              disabled
+            />
+            <div id="work-test-count" class="desk-sr" aria-live="polite"></div>
+            <div id="work-test-options" class="work-test-options">Ladataan versioita…</div>
+          </div>
+        </details>
 
         <details id="preset-menu" class="toolbar-menu">
-          <summary>Presetit · <span id="preset-context-status" aria-live="polite" aria-atomic="true">Koko rakennus</span></summary>
+          <summary class="toolbar-icon" aria-label="Presetit" title="Presetit"><Fragment set:html={DESKTOP_MORE_ICON} /></summary>
           <div class="toolbar-menu-panel" aria-label="Tutkimuspresetit">
             <div class="toolbar-menu-label">Rakennus</div>
             <button id="whole-building-preset-button" type="button">Koko rakennus</button>
@@ -1834,59 +1691,11 @@ const title = 'Private 3D viewer';
             <button id="infra-preset-button" type="button">Infra</button>
             <button id="drainage-preset-button" type="button">Salaojat</button>
             <button id="electrical-preset-button" type="button">Sähköt</button>
-          </div>
-        </details>
-
-        <details id="view-menu" class="toolbar-menu">
-          <summary>Näkymä</summary>
-          <div class="toolbar-menu-panel" aria-label="Kamera ja esitystapa">
-            <div class="toolbar-menu-label">Kamera</div>
-            <button id="orbit-button" type="button">Vapaa 3D</button>
-            <button id="iso-button" type="button">Isometrinen</button>
-            <button id="top-button" type="button">Ylhäältä</button>
-            <button id="bottom-button" type="button">Alhaalta</button>
-            <button id="p137e-plan-face-button" type="button" hidden>Themot: pohja + rastit + Mittaa</button>
-            <button id="p137e-north-face-button" type="button" hidden>Themo: aula (pohjoinen)</button>
-            <button id="p137e-south-face-button" type="button" hidden>Themot: makuuhuone + kylpyhuone (eteläinen)</button>
             <div class="toolbar-menu-separator"></div>
-            <div class="toolbar-menu-label">Julkisivut</div>
-            <button id="elev-pos-y-button" type="button" title="Ortografinen julkisivu YLIS-G1-LOCAL +Y suunnasta">Julk +Y</button>
-            <button id="elev-neg-y-button" type="button" title="Ortografinen julkisivu YLIS-G1-LOCAL -Y suunnasta">Julk -Y</button>
-            <button id="elev-pos-x-button" type="button" title="Ortografinen julkisivu YLIS-G1-LOCAL +X suunnasta">Julk +X</button>
-            <button id="elev-neg-x-button" type="button" title="Ortografinen julkisivu YLIS-G1-LOCAL -X suunnasta">Julk -X</button>
-          </div>
-        </details>
-
-        <button id="layers-button" type="button" aria-expanded="false" aria-controls="layers-panel">Layerit</button>
-
-        <div class="interaction-tools" role="group" aria-label="Vuorovaikutustila">
-          <button id="navigate-tool-button" type="button" aria-pressed="true">Navigoi</button>
-          <button id="selection-tool-button" type="button" aria-pressed="false">Valitse</button>
-          <button id="point-pick-tool-button" type="button" aria-pressed="false" title="Klikkaa mallipintaa, näytä XYZ-koordinaatit ja merkki kuvakaappausta varten.">Piste mallissa</button>
-          <button id="point-measure-tool-button" type="button" aria-pressed="false" title="Mittaa kahden näkyvän mallipinnan pisteen etäisyys missä tahansa näkymässä. Mallin arvo, ei tarkemittaus.">Mittaa 3D</button>
-          <button id="axis-measure-tool-button" type="button" aria-pressed="false" disabled title="Mittaa D-asunnon pohjan kahden pisteen etäisyys mallista, ei tarkemittaus">Mittaa pohjaa</button>
-          <button id="p137e-place-tool-button" type="button" aria-pressed="false" disabled title="Rastiluonnos: vain D1F P137E WORK_TEST; tallennus G2:een ei vielä kytketty">Sijoita kohde</button>
-        </div>
-
-        <details id="model-menu" class="toolbar-menu source-menu">
-          <summary aria-label="Malliversio">
-            <span id="model-source-badge" class="model-source-badge" data-kind="current">CURRENT</span>
-          </summary>
-          <div class="toolbar-menu-panel" aria-label="Malliversion valinta">
-            <input
-              id="work-test-filter"
-              class="work-test-filter"
-              type="search"
-              placeholder="Suodata versioita (esim. scene68, D1F)"
-              aria-label="Suodata WORK_TEST-versioita"
-              autocomplete="off"
-              disabled
-            />
-            <div id="work-test-count" class="work-test-count" aria-live="polite"></div>
-            <select id="work-test-select" aria-label="WORK_TEST-kandidaatti" disabled>
+            <div class="toolbar-menu-label">Mallitoiminnot</div>
+            <select id="work-test-select" aria-label="Vertailtava WORK_TEST-kandidaatti" disabled>
               <option value="">WORK_TEST ei saatavilla</option>
             </select>
-            <button id="work-test-button" type="button" disabled>Avaa WORK_TEST</button>
             <div id="r300-work-test-views" role="group" aria-label="C80 R31 WORK_TEST -näkymät" hidden>
               <button id="r300-view-normal" type="button" aria-pressed="false">Normaali</button>
               <button id="r300-view-service" type="button" aria-pressed="false">Huolto</button>
@@ -1909,9 +1718,26 @@ const title = 'Private 3D viewer';
           </div>
         </details>
 
-        <details id="more-menu" class="toolbar-menu more-menu">
-          <summary aria-label="Lisää toimintoja">⋯</summary>
-          <div class="toolbar-menu-panel right">
+        <details id="view-menu" class="toolbar-menu">
+          <summary class="toolbar-icon" aria-label="Kamera" title="Kamera"><Fragment set:html={DESKTOP_MORE_ICON} /></summary>
+          <div class="toolbar-menu-panel" aria-label="Kamera ja esitystapa">
+            <div class="toolbar-menu-label" data-camera-shortcut>Kamera</div>
+            <button id="orbit-button" type="button" data-camera-shortcut>Vapaa 3D</button>
+            <button id="iso-button" type="button" data-camera-shortcut>Isometrinen</button>
+            <button id="top-button" type="button" data-camera-shortcut>Ylhäältä</button>
+            <button id="bottom-button" type="button">Alhaalta</button>
+            <button id="p137e-plan-face-button" type="button" hidden>Themot: pohja + rastit + Mittaa</button>
+            <button id="p137e-north-face-button" type="button" hidden>Themo: aula (pohjoinen)</button>
+            <button id="p137e-south-face-button" type="button" hidden>Themot: makuuhuone + kylpyhuone (eteläinen)</button>
+            <div class="toolbar-menu-separator" data-camera-shortcut></div>
+            <div class="toolbar-menu-label" data-camera-shortcut>Julkisivut</div>
+            <button id="elev-pos-y-button" type="button" data-camera-shortcut title="Ortografinen julkisivu YLIS-G1-LOCAL +Y suunnasta">Julk +Y</button>
+            <button id="elev-neg-y-button" type="button" data-camera-shortcut title="Ortografinen julkisivu YLIS-G1-LOCAL -Y suunnasta">Julk -Y</button>
+            <button id="elev-pos-x-button" type="button" data-camera-shortcut title="Ortografinen julkisivu YLIS-G1-LOCAL +X suunnasta">Julk +X</button>
+            <button id="elev-neg-x-button" type="button" data-camera-shortcut title="Ortografinen julkisivu YLIS-G1-LOCAL -X suunnasta">Julk -X</button>
+            <div class="toolbar-menu-separator" data-camera-shortcut></div>
+            <button id="axis-measure-tool-button" type="button" data-context-tool aria-pressed="false" disabled title="Mittaa D-asunnon pohjan kahden pisteen etäisyys mallista, ei tarkemittaus">Mittaa pohjaa</button>
+            <button id="p137e-place-tool-button" type="button" data-context-tool aria-pressed="false" disabled title="Rastiluonnos: vain D1F P137E WORK_TEST; tallennus G2:een ei vielä kytketty">Sijoita kohde</button>
             <button id="fit-button" type="button">Sovita näkymään</button>
             <button id="reset-view-defaults-button" type="button">Palauta näkymän oletukset</button>
             <button id="show-all-objects-button" type="button" disabled>Näytä kaikki</button>
@@ -1930,12 +1756,23 @@ const title = 'Private 3D viewer';
           </div>
         </details>
 
-        <div id="viewer-status" class="status" role="status">Ladataan suojattua mallia...</div>
+        <button id="layers-button" class="desk-icon toolbar-panel-button" type="button" title="Layerit" aria-label="Layerit" aria-expanded="false" aria-controls="layers-panel"><Fragment set:html={DESKTOP_LAYERS_ICON} /></button>
+
+        <div class="interaction-tools" role="group" aria-label="Vuorovaikutustila">
+          <button id="navigate-tool-button" type="button" aria-pressed="true">Navigoi</button>
+          <button id="selection-tool-button" type="button" aria-pressed="false">Valitse</button>
+          <button id="point-pick-tool-button" type="button" aria-pressed="false" title="Klikkaa mallipintaa, näytä XYZ-koordinaatit ja merkki kuvakaappausta varten.">Piste mallissa</button>
+          <button id="point-measure-tool-button" type="button" aria-pressed="false" title="Mittaa kahden näkyvän mallipinnan pisteen etäisyys missä tahansa näkymässä. Mallin arvo, ei tarkemittaus.">Mittaa 3D</button>
+        </div>
+
+
+        <button id="navigation-cube-button" class="desk-icon toolbar-panel-button" type="button" aria-label="Suuntailmaisin" aria-expanded="true" aria-controls="orientation-gizmo" title="Piilota suuntailmaisin"><Fragment set:html={DESKTOP_NAV_CUBE_ICON} /></button>
       </div>
 
       <section class="viewport" aria-label="Suojattu 3D-katseluportti">
         <canvas id="private-model-canvas" tabindex="0"></canvas>
         <div id="axis-measure-label" class="axis-measure-label" hidden aria-hidden="true"></div>
+        <span id="point-measure-preview-angle" class="point-measure-preview-angle" hidden aria-hidden="true">∟</span>
         <aside id="m5a-source-context" class="m5a-source-context" aria-label="Salaojakatselmuksen lähdekonteksti" hidden>
           <h2>Salaojien lähdekonteksti</h2>
           <p id="m5a-source-context-source"></p>
@@ -1986,6 +1823,7 @@ const title = 'Private 3D viewer';
         </aside>
         <aside
           id="orientation-gizmo"
+          data-panel-title="Suuntailmaisin"
           class="orientation-gizmo"
           aria-label="YLIS-G1-LOCAL suuntailmaisin: X itään, Y pohjoiseen, Z ylös"
           data-frame="YLIS-G1-LOCAL"
@@ -2083,38 +1921,16 @@ const title = 'Private 3D viewer';
             <strong>Mittaa 3D</strong>
             <button id="point-measure-clear" type="button">Tyhjennä</button>
           </div>
-          <label for="point-measure-axis">Mittauksen suunta</label>
-          <select id="point-measure-axis" aria-label="Mittaa 3D - suunta">
-            <option value="free">Vapaa 3D</option>
-            <option value="x">X, itä-länsi</option>
-            <option value="y">Y, pohjoinen-etelä</option>
-            <option value="z">Z, korkeus</option>
-            <option value="xy">XY, vaakataso</option>
-          </select>
-          <label><input id="point-measure-snap" type="checkbox" checked /> Kohdista kulmiin ja reunoihin</label>
-          <div id="point-measure-snap-info" class="point-measure-note">Kohdistus käytössä. Vain näkyvät mallireunat.</div>
+          <label><input id="point-measure-snap" type="checkbox" checked /> Kohdistus</label>
+          <div id="point-measure-snap-info" class="point-measure-note">Kohdistus käytössä.</div>
           <div id="point-measure-main" class="point-measure-main">Klikkaa ensimmäinen piste mallin pinnalta.</div>
           <div id="point-measure-detail" class="point-measure-detail"></div>
           <div class="point-measure-note">Mallista mitattu WORK_TEST-arvo, ei tarkemittaus. Kolmas klikkaus aloittaa uuden mitan.</div>
         </aside>
-        <aside id="coordinate-panel" class="coordinate-panel" aria-live="polite" hidden>
-          <div class="coordinate-title-row">
-            <strong class="coordinate-title">YLIS-G1-LOCAL</strong>
-            <span id="coordinate-floor" class="coordinate-floor">D 1F</span>
-          </div>
-          <div class="coordinate-line">
-            <span>Osoitin</span>
-            <span id="coordinate-pointer">X - / Y -</span>
-          </div>
-          <div class="coordinate-line">
-            <span>Klikattu</span>
-            <span id="coordinate-anchor">X - / Y -</span>
-          </div>
-          <div class="coordinate-line" id="axis-measure-row" hidden>
-            <span>Mittaus</span>
-            <span id="axis-measure-output"></span>
-          </div>
-          <div id="coordinate-note" class="coordinate-note">1 m ruudukko, 0,5 m apuviivat - metreinä. Mittaus on mallista, ei tarkemittaus.</div>
+        <aside id="axis-measure-row" class="point-measure-panel" aria-label="Mittaa pohjaa" aria-live="polite" hidden>
+          <div class="point-measure-header"><strong>Mittaa pohjaa</strong></div>
+          <div id="axis-measure-output" class="point-measure-main"></div>
+          <div class="point-measure-note">Mallista mitattu WORK_TEST-arvo, ei tarkemittaus.</div>
         </aside>
         <aside id="p137e-place-panel" class="p137e-place-panel" aria-label="Themojen rastiluonnokset" hidden>
           <strong>Kolmen Themon sijaintiluonnos (WORK_TEST)</strong>
@@ -2133,8 +1949,8 @@ const title = 'Private 3D viewer';
           <p id="p137e-g2-status" role="status">G2-yhteys varmentamatta; rastit ovat tallentamattomia.</p>
           <p>Ei fyysinen tarkemittaus eikä CURRENT/as-built-geometria.</p>
         </aside>
-        <aside id="height-scale" class="height-scale" aria-label="YLIS-G1-LOCAL korkeusasteikko" hidden>
-          <div class="height-scale-title">YLIS-G1-LOCAL Z</div>
+        <aside id="height-scale" class="height-scale" data-panel-title="Korkeusasteikko" aria-label="YLIS-G1-LOCAL korkeusasteikko" hidden>
+          <div class="height-scale-title" aria-live="polite">YLIS-G1-LOCAL Z</div>
           <div id="height-scale-ticks" class="height-scale-ticks"></div>
         </aside>
         <aside id="layers-panel" class="layers-panel" hidden>
@@ -2340,6 +2156,10 @@ const title = 'Private 3D viewer';
           </div>
         </aside>
       </section>
+      <footer id="viewer-info" class="viewer-info" aria-label="Katselutiedot">
+        <span id="model-source-badge" class="model-source-badge" data-kind="current">CURRENT</span>
+        <span id="viewer-status" class="status" role="status">Ladataan suojattua mallia...</span>
+      </footer>
     </main>
 
     <script>
@@ -2424,6 +2244,7 @@ const title = 'Private 3D viewer';
         sourceCardResolverForModel,
         type SelectionSourceEvidence,
       } from '../../scripts/privateModelSourceCards';
+      import { releaseReplacedGltfGpuResources } from '../../scripts/privateModelGpuLifetime.mjs';
       import { createSelectionHighlightController } from '../../scripts/privateModelSelectionHighlight';
       import {
         nearestNamedAncestor,
@@ -2444,8 +2265,7 @@ const title = 'Private 3D viewer';
       import { sourceLinksForSelectionEvidence } from '../../scripts/privateModelSourceCardLinkGuard.mjs';
       import { pickVisibleWorkTest3DPoint } from '../../scripts/privateModelWorkTest3DPoint';
       import { classifySameClickReviewEvidence } from '../../scripts/privateModelSameClickReviewEvidence.mjs';
-      import { measureAlongG1Axis } from '../../scripts/privateModelMeasureGeometry.mjs';
-      import { snapFromVisibleMeshHit } from '../../scripts/privateModelMeasureSnapAdapter.mjs';
+      import { projectMeasurePoint, resolveMeasureCandidate } from '../../scripts/privateModelSmartMeasure';
       import {
         createPointMeasureOverlay,
         formatPointMeasureFi,
@@ -2805,9 +2625,9 @@ const title = 'Private 3D viewer';
       import { createUnifiedEdgeMemo } from '../../scripts/privateModelUnifiedEdgeMemo';
       import { createCoplanarFaceIndex, surfaceLookKey } from '../../scripts/privateModelHiddenSeamEdges';
       import {
-        activateReviewCoordinatePanel,
+        activateReviewCoordinateGrid,
         clearReviewAnchorState,
-        deactivateReviewCoordinatePanel,
+        deactivateReviewCoordinateGrid,
         setReviewAnchorState,
         setReviewPointerState,
         createTargetBoundReviewAnchor,
@@ -2961,8 +2781,12 @@ const title = 'Private 3D viewer';
         type WorkTestLoadFailurePhase,
       } from '../../scripts/privateModelWorkTestLoadDiagnostics';
 
-      import { createC80R31ViewSwitch, r31WorkTestReview, r31ViewerLayerSceneReceipt, r31ViewerLayerBindingScope, C80_R31_9E0B_SOURCE, isR31FamilyViewerSha, C80_R32H_SOURCE, C80_R32H_VIEWS } from '../../scripts/privateModelC80R31ReviewRuntime.mjs';
-      import { mountDesktopToolbar, activeDesktopPreset, activeDesktopAngle, DESKTOP_START_CANDIDATE_ID } from '../../scripts/privateModelDesktopToolbar.mjs';
+      import { createC80R31ViewSwitch, r31WorkTestReview, r31ViewerLayerSceneReceipt, r31ViewerLayerBindingScope, C80_R31_9E0B_SOURCE, isR31FamilyViewerSha, r32hFamilyOf } from '../../scripts/privateModelC80R31ReviewRuntime.mjs';
+      import {
+        mountDesktopToolbar, activeDesktopPreset, activeDesktopAngle, DESKTOP_START_CANDIDATE_ID,
+        runDesktopStartupAttempt,
+      } from '../../scripts/privateModelDesktopToolbar.mjs';
+      import { mountPrivateModelViewportPanels } from '../../scripts/privateModelViewportPanels';
       import { createDFocusGhost, dFootprintFromScope, dStoreyFootprint } from '../../scripts/privateModelDFocusGhost';
 
       const canvas = document.querySelector<HTMLCanvasElement>('#private-model-canvas');
@@ -3028,7 +2852,7 @@ const title = 'Private 3D viewer';
       const pointMeasureMain = document.querySelector<HTMLElement>('#point-measure-main');
       const pointMeasureDetail = document.querySelector<HTMLElement>('#point-measure-detail');
       const pointMeasureClearButton = document.querySelector<HTMLButtonElement>('#point-measure-clear');
-      const pointMeasureAxisSelect = document.querySelector<HTMLSelectElement>('#point-measure-axis');
+      const pointMeasurePreviewAngle = document.querySelector<HTMLElement>('#point-measure-preview-angle');
       const pointMeasureSnapToggle = document.querySelector<HTMLInputElement>('#point-measure-snap');
       const pointMeasureSnapInfo = document.querySelector<HTMLElement>('#point-measure-snap-info');
       const axisMeasureLabel = document.querySelector<HTMLElement>('#axis-measure-label');
@@ -3045,7 +2869,9 @@ const title = 'Private 3D viewer';
       let r31ReviewTitle = 'NIBE R300';
       const workTestFilter = document.querySelector<HTMLInputElement>('#work-test-filter');
       const workTestCount = document.querySelector<HTMLElement>('#work-test-count');
-      const workTestButton = document.querySelector<HTMLButtonElement>('#work-test-button');
+      const workTestOptions = document.querySelector<HTMLElement>('#work-test-options');
+      const workTestMenuTrigger = document.querySelector<HTMLElement>('#model-menu > summary');
+      const navigationCubeButton = document.querySelector<HTMLButtonElement>('#navigation-cube-button');
       const compareModelButton = document.querySelector<HTMLButtonElement>('#compare-model-button');
       const workTestUploadButton = document.querySelector<HTMLButtonElement>('#work-test-upload-button');
       const workTestUploadInput = document.querySelector<HTMLInputElement>('#work-test-upload-input');
@@ -3133,11 +2959,6 @@ const title = 'Private 3D viewer';
       const d1KnownDoorLegendList = document.querySelector<HTMLOListElement>('#d1-known-door-legend-list');
       const d1UserDoorLegendSection = document.querySelector<HTMLElement>('#d1-user-door-legend-section');
       const d1UserDoorLegendList = document.querySelector<HTMLOListElement>('#d1-user-door-legend-list');
-      const coordinatePanel = document.querySelector<HTMLElement>('#coordinate-panel');
-      const coordinateFloor = document.querySelector<HTMLElement>('#coordinate-floor');
-      const coordinatePointer = document.querySelector<HTMLElement>('#coordinate-pointer');
-      const coordinateAnchor = document.querySelector<HTMLElement>('#coordinate-anchor');
-      const coordinateNote = document.querySelector<HTMLElement>('#coordinate-note');
       const axisMeasureToolButton = document.querySelector<HTMLButtonElement>('#axis-measure-tool-button');
       const p137ePlaceToolButton = document.querySelector<HTMLButtonElement>('#p137e-place-tool-button');
       const p137ePlacePanel = document.querySelector<HTMLElement>('#p137e-place-panel');
@@ -3220,7 +3041,9 @@ const title = 'Private 3D viewer';
         !workTestSelect ||
         !workTestFilter ||
         !workTestCount ||
-        !workTestButton ||
+        !workTestOptions ||
+        !workTestMenuTrigger ||
+        !navigationCubeButton ||
         !compareModelButton ||
         !workTestUploadButton ||
         !workTestUploadInput ||
@@ -3255,10 +3078,6 @@ const title = 'Private 3D viewer';
         !d1KnownDoorLegendList ||
         !d1UserDoorLegendSection ||
         !d1UserDoorLegendList ||
-        !coordinatePanel ||
-        !coordinateFloor ||
-        !coordinatePointer ||
-        !coordinateAnchor ||
         !pointPickToolButton ||
         !pointPickPanel ||
         !pointPickMain ||
@@ -3272,7 +3091,7 @@ const title = 'Private 3D viewer';
         !pointMeasureMain ||
         !pointMeasureDetail ||
         !pointMeasureClearButton ||
-        !pointMeasureAxisSelect ||
+        !pointMeasurePreviewAngle ||
         !pointMeasureSnapToggle ||
         !pointMeasureSnapInfo ||
         !axisMeasureToolButton ||
@@ -3551,6 +3370,7 @@ const title = 'Private 3D viewer';
       });
       const orientationGizmoController = createOrientationGizmoController({
         root: orientationGizmo,
+        readoutHost: document.querySelector<HTMLElement>('#viewer-info') ?? orientationGizmo,
         axisX: {
           line: orientationAxisX,
           tip: orientationAxisXTip,
@@ -4028,7 +3848,7 @@ const title = 'Private 3D viewer';
           disposeCoordinateObject(dCoordinateAnchorMarker);
           dCoordinateAnchorMarker = null;
         }
-        clearReviewAnchorState(canvas, coordinateAnchor);
+        clearReviewAnchorState(canvas);
       };
 
       const dReviewCoordinateAtClientPoint = (clientX: number, clientY: number) => {
@@ -4051,7 +3871,7 @@ const title = 'Private 3D viewer';
       const updateDCoordinatePointer = (clientX: number, clientY: number) => {
         const coordinate = dReviewCoordinateAtClientPoint(clientX, clientY);
         if (!coordinate) return;
-        setReviewPointerState(canvas, coordinatePointer, coordinate);
+        setReviewPointerState(canvas, coordinate);
       };
 
       const setDCoordinateAnchor = (clientX: number, clientY: number) => {
@@ -4088,7 +3908,7 @@ const title = 'Private 3D viewer';
         scene.add(marker);
         dCoordinateAnchorMarker = marker;
 
-        setReviewAnchorState(canvas, coordinateAnchor, coordinate);
+        setReviewAnchorState(canvas, coordinate);
       };
 
 
@@ -4197,6 +4017,7 @@ const title = 'Private 3D viewer';
         updateP137EPlaceDraftList();
       };
       const placeP137EDraftAt = (clientX: number, clientY: number) => {
+        p137ePlacePanel.removeAttribute('data-viewport-minimized');
         if (canvas.dataset.interactionMode !== 'place' || !canStartP137EPlaceDraft()) return;
         const id = p137ePlaceTarget.value;
         if (!Object.prototype.hasOwnProperty.call(p137eTargetLabels, id)) return;
@@ -4315,6 +4136,7 @@ const title = 'Private 3D viewer';
       };
 
       const clickDAxisMeasurement = (clientX: number, clientY: number) => {
+        axisMeasureRow.removeAttribute('data-viewport-minimized');
         const coordinate = dReviewCoordinateAtClientPoint(clientX, clientY);
         if (!coordinate || !activePlanFloor) return;
         const withinEnvelope =
@@ -4368,19 +4190,12 @@ const title = 'Private 3D viewer';
       const activateDCoordinateReview = (floor: '1F' | '2F') => {
         const floorChanged = dCoordinateGridFloor !== floor;
         if (canvas.dataset.workTestClickedPoint === 'true') {
-          clearReviewAnchorState(canvas, coordinateAnchor);
+          clearReviewAnchorState(canvas);
           delete canvas.dataset.workTestClickedPoint;
         }
-        if (coordinateNote) coordinateNote.textContent = '1 m ruudukko, 0,5 m apuviivat - metreinä. Mittaus on mallista, ei tarkemittaus.';
         prepareDCoordinateGrid(floor);
         dCoordinateGridGroup.visible = true;
-        activateReviewCoordinatePanel({
-          canvas,
-          coordinatePanel,
-          coordinateFloor,
-          coordinatePointer,
-          floor,
-        });
+        activateReviewCoordinateGrid(canvas);
         if (floorChanged) {
           clearDCoordinateAnchor();
           clearDAxisMeasurement();
@@ -4397,7 +4212,7 @@ const title = 'Private 3D viewer';
       const deactivateDCoordinateReview = () => {
         delete canvas.dataset.workTestClickedPoint;
         dCoordinateGridGroup.visible = false;
-        deactivateReviewCoordinatePanel({ canvas, coordinatePanel, coordinatePointer });
+        deactivateReviewCoordinateGrid(canvas);
         clearDCoordinateAnchor();
         clearDAxisMeasurement();
         p137ePlaceToolButton.disabled = true;
@@ -5561,20 +5376,32 @@ const title = 'Private 3D viewer';
       // Scene-bound two-point WORK_TEST measurement; source hit stays validated by
       // the same picker used for screenshot XYZ, including clipping and hidden mesh.
       const pointMeasureOverlay = createPointMeasureOverlay(scene);
+      const pointMeasurePreview = createPointMeasureOverlay(scene, { color: 0xf1f4f5, opacity: 0.75 });
       let pointMeasureA: PointMeasurePoint | null = null;
       let pointMeasureB: PointMeasurePoint | null = null;
+      let previewTimer: number | undefined;
+      let previewPointer: { x: number; y: number } | null = null;
       const pointMeasureIdleText = 'Klikkaa ensimmäinen piste mallin pinnalta.';
-      const pointMeasureFi = (m: number) => m.toFixed(3).replace('.', ',');
+      const pointMeasureSnapHint = () => pointMeasureSnapToggle.checked
+        ? 'Kohdistus käytössä.' : 'Kohdistus pois käytöstä.';
+
+      const clearPointMeasurePreview = () => {
+        if (previewTimer !== undefined) window.clearTimeout(previewTimer);
+        previewTimer = undefined;
+        previewPointer = null;
+        pointMeasurePreview.clear();
+        pointMeasurePreviewAngle.hidden = true;
+        delete canvas.dataset.pointMeasurePreview;
+      };
 
       const clearPointMeasure = () => {
         pointMeasureA = null;
         pointMeasureB = null;
         pointMeasureOverlay.clear();
+        clearPointMeasurePreview();
         pointMeasureMain.textContent = pointMeasureIdleText;
         pointMeasureDetail.textContent = '';
-        pointMeasureSnapInfo.textContent = pointMeasureSnapToggle.checked
-          ? 'Kohdistus käytössä. Vain näkyvät mallireunat.'
-          : 'Kohdistus pois käytöstä.';
+        pointMeasureSnapInfo.textContent = pointMeasureSnapHint();
         canvas.dataset.pointMeasureState = 'empty';
         delete canvas.dataset.pointMeasureDistance;
         delete canvas.dataset.pointMeasureSnap;
@@ -5583,117 +5410,94 @@ const title = 'Private 3D viewer';
 
       const updatePointMeasureDisplay = () => {
         if (!pointMeasureA || !pointMeasureB) return;
-        const mode = pointMeasureAxisSelect.value;
-        const projection = measureAlongG1Axis(pointMeasureA, pointMeasureB, mode);
-        if (!projection) {
-          clearPointMeasure();
+        const result = measureBetweenPoints(pointMeasureA, pointMeasureB);
+        const formatted = formatPointMeasureFi(result);
+        pointMeasureOverlay.show(pointMeasureA, pointMeasureB);
+        pointMeasureMain.textContent = formatted.main;
+        pointMeasureDetail.textContent = formatted.detail;
+        canvas.dataset.pointMeasureState = 'complete';
+        canvas.dataset.pointMeasureDistance = result.distanceM.toFixed(3);
+      };
+
+      const pointMeasureStart = () => pointMeasureB ? null : pointMeasureA;
+      const measureCandidate = (pointer: { x: number; y: number }, rect: DOMRect) =>
+        resolveMeasureCandidate({
+          pointer, rect, camera: activeCamera, modelRoot, raycaster,
+          snap: pointMeasureSnapToggle.checked, start: pointMeasureStart(),
+        });
+
+      const movePointMeasure = (event: PointerEvent) => {
+        if (!pointMeasureSnapToggle.checked || event.buttons || event.pointerType === 'touch') {
+          clearPointMeasurePreview();
           return;
         }
-        const free = formatPointMeasureFi(measureBetweenPoints(pointMeasureA, pointMeasureB));
-        pointMeasureOverlay.show(projection.from, projection.to);
-        pointMeasureMain.textContent = mode === 'free' ? free.main : `${pointMeasureFi(projection.distanceM)} m`;
-        const axisLabel: Record<string, string> = {
-          x: 'X, itä-länsi', y: 'Y, pohjoinen-etelä',
-          z: 'Z, korkeus', xy: 'XY, vaakataso',
-        };
-        pointMeasureDetail.textContent = mode === 'free'
-          ? free.detail
-          : `${axisLabel[mode]} · vapaa ${free.main} · ${free.detail}`;
-        canvas.dataset.pointMeasureState = 'complete';
-        canvas.dataset.pointMeasureDistance = projection.distanceM.toFixed(3);
-        canvas.dataset.pointMeasureAxis = mode;
+        previewPointer = { x: event.clientX, y: event.clientY };
+        if (previewTimer !== undefined) return;
+        // Bound the sampling rate so an edge query does not run on every mouse event.
+        previewTimer = window.setTimeout(() => {
+          previewTimer = undefined;
+          if (canvas.dataset.interactionMode !== 'point-measure' ||
+              !pointMeasureSnapToggle.checked || !previewPointer) {
+            clearPointMeasurePreview();
+            return;
+          }
+          const rect = canvas.getBoundingClientRect();
+          const candidate = measureCandidate(previewPointer, rect);
+          if (!candidate) {
+            clearPointMeasurePreview();
+            return;
+          }
+          const start = pointMeasureStart();
+          pointMeasurePreview.show(start ?? candidate.point, start ? candidate.point : null);
+          canvas.dataset.pointMeasurePreview = candidate.kind;
+          const pixel = candidate.kind === 'perpendicular'
+            ? projectMeasurePoint(candidate.point, activeCamera, rect) : null;
+          pointMeasurePreviewAngle.hidden = !pixel;
+          if (pixel) {
+            const viewport = canvas.parentElement!.getBoundingClientRect();
+            pointMeasurePreviewAngle.style.left = (pixel.x - viewport.left) + 'px';
+            pointMeasurePreviewAngle.style.top = (pixel.y - viewport.top) + 'px';
+          }
+        }, 50);
       };
 
       const clickPointMeasure = (clientX: number, clientY: number) => {
-        const rect = canvas.getBoundingClientRect();
-        let frontmostHit: THREE.Intersection | null = null;
-        const picked = pickVisibleWorkTest3DPoint({
-          clientX, clientY, rect, camera: activeCamera, modelRoot, raycaster,
-          onVisibleHit: (hit: THREE.Intersection) => { frontmostHit = hit; },
-        });
-        if (!picked) {
+        pointMeasurePanel.removeAttribute('data-viewport-minimized');
+        clearPointMeasurePreview();
+        const candidate = measureCandidate({ x: clientX, y: clientY }, canvas.getBoundingClientRect());
+        if (!candidate) {
           pointMeasureMain.textContent = 'Ei osumaa näkyvään mallipintaan. Klikkaa mallia.';
+          pointMeasureSnapInfo.textContent = pointMeasureSnapHint();
+          delete canvas.dataset.pointMeasureSnap;
           return;
         }
 
-        let point: PointMeasurePoint = picked;
-        let snapKind: 'corner' | 'edge' | null = null;
-        if (pointMeasureSnapToggle.checked && frontmostHit) {
-          // The JS helper has a narrow inferred declaration from its default
-          // options object. Type the integration contract explicitly without
-          // widening or mutating the independently reviewed core helper.
-          const checkedSnap = snapFromVisibleMeshHit as unknown as (args: {
-            frontmostHit: THREE.Intersection;
-            camera: THREE.Camera;
-            rect: DOMRect;
-            pointerPx: {x: number; y: number};
-            acceptsFrontmostHit: (hit: THREE.Intersection) => boolean;
-            isFeatureVisible: (args: {
-              pointWorld: THREE.Vector3; sourceMesh: THREE.Mesh;
-            }) => boolean;
-          }) => Readonly<{
-            pointG1: PointMeasurePoint;
-            kind: 'corner' | 'edge';
-          }> | null;
-          const candidate = checkedSnap({
-            frontmostHit,
-            camera: activeCamera,
-            rect,
-            pointerPx: {x: clientX, y: clientY},
-            acceptsFrontmostHit: (hit: THREE.Intersection) => hit === frontmostHit,
-            isFeatureVisible: ({pointWorld, sourceMesh}: {
-              pointWorld: THREE.Vector3; sourceMesh: THREE.Mesh;
-            }) => {
-              // Recheck each candidate with the established source-hit picker:
-              // transparency, local/global clipping, presentation proxies and
-              // frontmost occlusion are NOT inferred from the first click.
-              const ndc = pointWorld.clone().project(activeCamera);
-              if (![ndc.x, ndc.y, ndc.z].every(Number.isFinite) ||
-                  Math.abs(ndc.x) > 1 || Math.abs(ndc.y) > 1 ||
-                  Math.abs(ndc.z) > 1) return false;
-              const px = rect.left + (ndc.x + 1) * rect.width / 2;
-              const py = rect.top + (1 - ndc.y) * rect.height / 2;
-              let checkedHit: THREE.Intersection | null = null;
-              const checkedPoint = pickVisibleWorkTest3DPoint({
-                clientX: px, clientY: py, rect, camera: activeCamera,
-                modelRoot, raycaster,
-                onVisibleHit: (hit: THREE.Intersection) => { checkedHit = hit; },
-              });
-              return !!checkedPoint && !!checkedHit &&
-                (checkedHit as THREE.Intersection).object === sourceMesh &&
-                (checkedHit as THREE.Intersection).point.distanceTo(pointWorld) <= 0.035;
-            },
-          });
-          if (candidate) {
-            point = candidate.pointG1;
-            snapKind = candidate.kind;
-          }
-        }
-        pointMeasureSnapInfo.textContent = !pointMeasureSnapToggle.checked
-          ? 'Kohdistus pois käytöstä.'
-          : snapKind === 'corner' ? 'Kohdistettu kulmaan.'
-          : snapKind === 'edge' ? 'Kohdistettu reunaan.'
-          : 'Vapaa mallipiste. Kohdistusreunaa ei vahvistettu.';
-        canvas.dataset.pointMeasureSnap = snapKind ?? 'free';
-        if (!pointMeasureA || pointMeasureB) {
-          pointMeasureA = point;
+        const hints = {
+          free: 'Vapaa mallipiste.',
+          corner: 'Kohdistettu kulmaan.',
+          edge: 'Kohdistettu reunaan.',
+          perpendicular: '∟ Kohtisuora mitta.',
+        };
+        pointMeasureSnapInfo.textContent = pointMeasureSnapToggle.checked
+          ? hints[candidate.kind] : pointMeasureSnapHint();
+        canvas.dataset.pointMeasureSnap = candidate.kind;
+        if (!pointMeasureStart()) {
+          pointMeasureA = candidate.point;
           pointMeasureB = null;
-          pointMeasureOverlay.show(point, null);
+          pointMeasureOverlay.show(candidate.point, null);
           pointMeasureMain.textContent = 'Piste 1 asetettu. Klikkaa toinen piste.';
           pointMeasureDetail.textContent = '';
           canvas.dataset.pointMeasureState = 'first';
           delete canvas.dataset.pointMeasureDistance;
           return;
         }
-        pointMeasureB = point;
+        pointMeasureB = candidate.point;
         updatePointMeasureDisplay();
       };
 
-      pointMeasureAxisSelect.addEventListener('change', updatePointMeasureDisplay);
       pointMeasureSnapToggle.addEventListener('change', () => {
-        pointMeasureSnapInfo.textContent = pointMeasureSnapToggle.checked
-          ? 'Kohdistus käytössä seuraavassa pisteessä.'
-          : 'Kohdistus pois käytöstä.';
+        clearPointMeasurePreview();
+        pointMeasureSnapInfo.textContent = pointMeasureSnapHint();
       });
 
       // A visible source mesh is the only valid screenshot coordinate target.
@@ -5715,6 +5519,7 @@ const title = 'Private 3D viewer';
       // resets pointPickState, which the checklist checks before using the point.
       let electricalChecklistOnPick: ((point: any) => void) | null = null;
       const pickModelPoint = (clientX: number, clientY: number) => {
+        pointPickPanel.removeAttribute('data-viewport-minimized');
         const point = pickVisibleWorkTest3DPoint({
           clientX, clientY, rect: canvas.getBoundingClientRect(),
           camera: activeCamera, modelRoot, raycaster,
@@ -5963,6 +5768,7 @@ const title = 'Private 3D viewer';
       };
 
       const selectObject = (object: any) => {
+        selectionPanel.removeAttribute('data-viewport-minimized');
         const serviceTarget = d1fService?.resolveTarget(object);
         if (serviceTarget) object = serviceTarget.object;
         clearSelection();
@@ -6069,20 +5875,16 @@ const title = 'Private 3D viewer';
           onVisibleHit: (hit) => { coordinateHitObject = hit.object; },
         });
         if (!point) {
-          deactivateReviewCoordinatePanel({canvas, coordinatePanel, coordinatePointer});
-          clearReviewAnchorState(canvas, coordinateAnchor);
+          deactivateReviewCoordinateGrid(canvas);
+          clearReviewAnchorState(canvas);
           delete canvas.dataset.workTestClickedPoint;
           return null;
         }
-        coordinatePanel.hidden = false;
-        coordinateFloor.textContent = '3D WORK_TEST';
-        if (coordinateNote) coordinateNote.textContent =
-          'Klikattu näkyvä lähdemallin pinta: X/Y ovat mallikoordinaatteja, eivät mitattua sijaintia.';
         canvas.dataset.reviewCoordinateFrame = point.coordinateFrame;
         canvas.dataset.reviewGridVisible = 'false';
         canvas.dataset.workTestClickedPoint = 'true';
-        setReviewPointerState(canvas, coordinatePointer, point);
-        setReviewAnchorState(canvas, coordinateAnchor, point);
+        setReviewPointerState(canvas, point);
+        setReviewAnchorState(canvas, point);
         return coordinateHitObject;
       };
 
@@ -6203,6 +6005,7 @@ const title = 'Private 3D viewer';
           maxZ,
           stepM,
           viewportHeight: canvas.clientHeight,
+          mapNorth: orientationGizmo.dataset.northFrame === 'map',
         });
       };
 
@@ -6258,9 +6061,23 @@ const title = 'Private 3D viewer';
         return true;
       };
 
-      const activateElevationView = (direction: ElevationDirection) => {
-        const contentScene = resolveActiveResearchContentScene();
+      // Camera controls operate on the mounted view. Legacy content presets
+      // still resolve and mount their own source scene before fitting it.
+      const cameraContentScene = (preserveContent: boolean) =>
+        preserveContent ? modelRoot.children[0] : resolveActiveResearchContentScene();
+
+      const mountCameraContent = (scene: THREE.Object3D, preserveContent: boolean) => {
+        if (preserveContent) return;
+        setModelScene(scene);
+        applyRoofLayerState();
+        applyLocusLayerState();
+      };
+
+      const activateElevationView = (direction: ElevationDirection, preserveContent = false) => {
+        const contentScene = cameraContentScene(preserveContent);
         if (!contentScene) return;
+        const visibleBounds = preserveContent ? computeVisibleBounds(contentScene, true) : null;
+        if (preserveContent && !visibleBounds) return;
 
         clearSelection();
         activePlanFloor = null;
@@ -6271,28 +6088,20 @@ const title = 'Private 3D viewer';
         setIsoRotationMode('yaw-only');
         isoControls.enabled = true;
         activeCamera = isoCamera;
-        setModelScene(contentScene);
-        applyRoofLayerState();
-        applyLocusLayerState();
+        mountCameraContent(contentScene, preserveContent);
 
         activeElevationDirection = direction;
         canvas.dataset.elevationDirection = direction;
         setHeightScaleVisible(true);
-        if (!fitElevationCamera(direction, contentScene)) {
+        if (!fitElevationCamera(direction, contentScene, visibleBounds)) {
           deactivateElevationView();
           return;
         }
 
         syncViewState('elevation');
-        const label =
-          direction === 'pos-y'
-            ? '+Y'
-            : direction === 'neg-y'
-              ? '-Y'
-              : direction === 'pos-x'
-                ? '+X'
-                : '-X';
-        status.textContent = `Ortografinen julkisivu ${label} - YLIS-G1-LOCAL Z-asteikko`;
+        const [sign, axis] = direction.split('-');
+        const label = `${sign === 'pos' ? '+' : '-'}${axis.toUpperCase()}`;
+        status.textContent = `Ortografinen julkisivu ${label}`;
       };
 
       const fitIsometricCamera = (sceneRoot: any = fullModelScene) => {
@@ -6335,8 +6144,8 @@ const title = 'Private 3D viewer';
         isoControls.update();
       };
 
-      const activateIsometric = () => {
-        const contentScene = resolveActiveResearchContentScene();
+      const activateIsometric = (preserveContent = false) => {
+        const contentScene = cameraContentScene(preserveContent);
         if (!contentScene) return;
 
         deactivateElevationView();
@@ -6349,9 +6158,7 @@ const title = 'Private 3D viewer';
         setIsoRotationMode('free');
         isoControls.enabled = true;
         activeCamera = isoCamera;
-        setModelScene(contentScene);
-        applyRoofLayerState();
-        applyLocusLayerState();
+        mountCameraContent(contentScene, preserveContent);
         fitIsometricCamera(contentScene);
         syncViewState('isometric');
         status.textContent = 'Isometrinen - ortografinen 3/4-näkymä';
@@ -6596,8 +6403,8 @@ const title = 'Private 3D viewer';
       let mobileSafeNormalBaseDistance = 0;
       let mobileSafeFitPending = false;
       const mobileHudElements = [
-        '#coordinate-panel', '#orientation-gizmo', '#selection-panel',
-        '#point-measure-panel', '#layers-panel', '#p137e-place-panel',
+        '#orientation-gizmo', '#selection-panel', '#point-pick-panel',
+        '#point-measure-panel', '#axis-measure-row', '#layers-panel', '#p137e-place-panel',
       ];
       const applyMobileSafeCamera = (mode: 'reset' | 'preserve' = 'reset') => {
         if (!mainViewScope?.active || activeCamera !== camera || activePlanFloor) {
@@ -6684,8 +6491,8 @@ const title = 'Private 3D viewer';
         });
       };
 
-      const fitModel = () => {
-        const contentScene = resolveActiveResearchContentScene();
+      const fitModel = (preserveContent = false) => {
+        const contentScene = cameraContentScene(preserveContent);
         if (!contentScene) return;
 
         deactivateElevationView();
@@ -6698,9 +6505,7 @@ const title = 'Private 3D viewer';
         controls.enableRotate = true;
         controls.enabled = true;
         activeCamera = camera;
-        setModelScene(contentScene);
-        applyRoofLayerState();
-        applyLocusLayerState();
+        mountCameraContent(contentScene, preserveContent);
         syncViewState('orbit');
 
         if (!refreshFullModelFitMetrics(contentScene)) return;
@@ -6928,8 +6733,8 @@ const title = 'Private 3D viewer';
         return true;
       };
 
-      const axisView = (direction: 'top' | 'bottom') => {
-        const contentScene = resolveActiveResearchContentScene();
+      const axisView = (direction: 'top' | 'bottom', preserveContent = false) => {
+        const contentScene = cameraContentScene(preserveContent);
         if (!contentScene) return;
 
         deactivateElevationView();
@@ -6942,9 +6747,7 @@ const title = 'Private 3D viewer';
         setIsoRotationMode('disabled');
         isoControls.enabled = true;
         activeCamera = isoCamera;
-        setModelScene(contentScene);
-        applyRoofLayerState();
-        applyLocusLayerState();
+        mountCameraContent(contentScene, preserveContent);
 
         if (!fitAxisCamera(direction, contentScene)) return;
         syncViewState(direction);
@@ -8169,7 +7972,13 @@ const title = 'Private 3D viewer';
         dInteriorOverride: THREE.Object3D | null = null,
         c70PreviewSession: any = null,
       ) => {
+        const replacedGltf = layersGltf && layersGltf !== gltf ? layersGltf : null;
         onLayersModelLoaded(gltf, c70PreviewSession);
+        // The protected project model and exact R32H-family snapshots share the
+        // Ylisrinne drawing reference. An arbitrary WORK_TEST can have a different origin.
+        heightScaleController.setDatumAvailable(
+          sourceKind === 'current' || r32hFamilyOf(loadedModelSha256(gltf)) !== null,
+        );
         if (r300ViewSwitch) {
           delete canvas.dataset.workTestReviewMode;
           delete canvas.dataset.workTestReviewCandidate;
@@ -8591,6 +8400,9 @@ const title = 'Private 3D viewer';
         if (sourceKind !== 'work-test') delete canvas.dataset.p137eLoadedCandidateId;
 
         setModelScene(fullModelScene);
+        // Only after a successful mount: failed loads keep the previous model intact.
+        // GLTFLoader does not release textures, materials or geometry on Group.clear().
+        if (replacedGltf) releaseReplacedGltfGpuResources(replacedGltf, renderer);
         applyViewerLayerState(modelLoadLayerState, 'preset:whole-building');
         configureHorizontalClippingRange();
         fitModel();
@@ -9319,6 +9131,7 @@ const title = 'Private 3D viewer';
       };
 
       let workTestCatalogList: WorkTestCandidate[] = [];
+      let workTestPickerLoading = false;
 
       // Newest-first grouped options. The currently selected version always
       // stays in the list so a filter can never silently change the selection.
@@ -9328,6 +9141,7 @@ const title = 'Private 3D viewer';
         const ordered = groups.flatMap((group) => group.candidates);
         const keepId = preferredId && workTestCandidates.has(preferredId) ? preferredId : null;
         workTestSelect.replaceChildren();
+        workTestOptions.replaceChildren();
         let shown = 0;
         let firstShownId: string | null = null;
 
@@ -9338,18 +9152,29 @@ const title = 'Private 3D viewer';
           if (visible.length === 0) continue;
           const optgroup = document.createElement('optgroup');
           optgroup.label = group.label;
+          const groupLabel = document.createElement('div');
+          groupLabel.className = 'toolbar-menu-label';
+          groupLabel.textContent = group.label;
+          workTestOptions.append(groupLabel);
           for (const candidate of visible) {
             const option = document.createElement('option');
             option.value = candidate.id;
             option.textContent = workTestCandidateOptionText(candidate);
             option.title = candidate.label;
             optgroup.append(option);
+            const action = document.createElement('button');
+            action.type = 'button';
+            action.dataset.workTestCandidate = candidate.id;
+            action.textContent = option.textContent;
+            action.title = candidate.label;
+            workTestOptions.append(action);
             if (!firstShownId) firstShownId = candidate.id;
             if (candidate.id !== keepId || workTestCandidateMatchesFilter(candidate, filter)) shown += 1;
           }
           workTestSelect.append(optgroup);
         }
 
+        if (!firstShownId) workTestOptions.textContent = 'Ei suodatusta vastaavia versioita.';
         const total = ordered.length;
         workTestCount.textContent = filter.trim()
           ? `${shown} / ${total} versiota vastaa suodatusta`
@@ -9378,11 +9203,11 @@ const title = 'Private 3D viewer';
           const option = document.createElement('option');
           option.value = '';
           option.textContent = 'Ei WORK_TEST-kandidaatteja';
+          workTestOptions.textContent = 'WORK_TEST-versioita ei ole saatavilla.';
           workTestSelect.append(option);
           workTestSelect.disabled = true;
           workTestFilter.disabled = true;
           workTestCount.textContent = '';
-          workTestButton.disabled = true;
           compareModelButton.disabled = true;
           setWorkTestUploadFallback(reviewCandidateId);
           canvas.dataset.workTestCatalog = 'empty';
@@ -9396,7 +9221,6 @@ const title = 'Private 3D viewer';
           : null;
         // Review link wins; a catalog refresh keeps the user's choice; otherwise newest.
         renderWorkTestOptions(reviewCandidate?.id ?? previousId);
-        workTestButton.disabled = false;
         updateModelComparisonControls();
         canvas.dataset.workTestCatalog = 'ready';
         if (reviewCandidate) {
@@ -14870,7 +14694,6 @@ const title = 'Private 3D viewer';
           }
 
           selectWorkTestOption(candidate.id);
-          workTestButton.disabled = false;
           setWorkTestUploadFallback(null);
           canvas.dataset.workTestRelay = 'ready';
           delete canvas.dataset.workTestRelayError;
@@ -14933,7 +14756,6 @@ const title = 'Private 3D viewer';
           if (!candidate) throw new Error('WORK_TEST candidate missing after upload');
 
           selectWorkTestOption(candidate.id);
-          workTestButton.disabled = false;
           setWorkTestUploadFallback(null);
           canvas.dataset.workTestUpload = 'ready';
           await loadWorkTestCandidate(candidate);
@@ -15015,7 +14837,6 @@ const title = 'Private 3D viewer';
           if (!candidate) throw new Error('WORK_TEST candidate missing after import');
 
           selectWorkTestOption(candidate.id);
-          workTestButton.disabled = false;
           canvas.dataset.workTestImport = 'ready';
           await loadWorkTestCandidate(candidate);
           return true;
@@ -15512,15 +15333,8 @@ const title = 'Private 3D viewer';
           canvas.dataset.layersCameraPose = JSON.stringify({ position: activeCamera.position.toArray(), quaternion: activeCamera.quaternion.toArray(), zoom: activeCamera.zoom, target: (activeCamera === planCamera ? planControls : activeCamera === isoCamera ? isoControls : controls).target.toArray() });
           canvas.dataset.layersRuntime = verified ? (layersEnabled ? 'active' : 'ready') : 'unavailable';
           const modernContent = verified && layersEnabled;
-          layersButton.textContent = modernContent ? 'Sisältö' : 'Layerit';
           const contentHeading = layersPanel.querySelector('h2');
           if (contentHeading) contentHeading.textContent = modernContent ? 'Mallin sisältö' : 'Layerit';
-          const scopeSummary = document.querySelector('#preset-menu > summary');
-          if (scopeSummary?.firstChild?.nodeType === Node.TEXT_NODE) {
-            scopeSummary.firstChild.textContent = modernContent ? 'Rajaus · ' : 'Presetit · ';
-          }
-          const cameraSummary = document.querySelector('#view-menu > summary');
-          if (cameraSummary) cameraSummary.textContent = modernContent ? 'Kamera' : 'Näkymä';
           layerBindingNote.textContent = !verified ? 'Tämän mallin layer-sidontoja ei ole varmennettu.'
             : layersAvailable.length ? 'Valinnat koskevat luokiteltuja rakennusosia ja mallinnettuja laitteita.'
             : 'Tässä näkymässä ei ole tunnistettuja layer-kohteita.';
@@ -15633,9 +15447,8 @@ const title = 'Private 3D viewer';
           layersLoadedSha === V82_SOURCE_SHA256 ||
           layersLoadedSha === K17_RAIL900_SOURCE_SHA256
             ? layersLoadedSha : null;
-        // Source receipt on the model's own whole-D normal scene (R31 769, R32H 814).
-        const r31LayerReceiptScene = layersLoadedSha === C80_R32H_SOURCE.glbSha256
-          ? C80_R32H_VIEWS.dNormal.sceneIndex : 769;
+        // Source receipt on the model's own whole-D normal scene (R31 769, R32H 814, R33 818).
+        const r31LayerReceiptScene = r32hFamilyOf(layersLoadedSha)?.views.dNormal.sceneIndex ?? 769;
         const verifiedR31LayerSource = !!r31ViewerLayerSceneReceipt(
           gltf?.parser?.json, layersLoadedSha, r31LayerReceiptScene);
         layersExpectedSha = session?.contract?.glbSha256 ?? verifiedChainSourceSha ??
@@ -15700,7 +15513,7 @@ const title = 'Private 3D viewer';
           mainViewFloor.value === '2F' ? 'd-2f' : 'd-apartment');
         closeToolbarMenus();
       });
-      fitButton.addEventListener('click', fitModel);
+      fitButton.addEventListener('click', () => fitModel(true));
       resetViewDefaultsButton.addEventListener('click', resetActiveViewDefaults);
       wholeBuildingPresetButton.addEventListener('click', () => applyStandardViewPreset('whole-building'));
       dOverviewPresetButton.addEventListener('click', () => applyStandardViewPreset('d-apartment'));
@@ -15708,10 +15521,10 @@ const title = 'Private 3D viewer';
       infraPresetButton.addEventListener('click', () => applyStandardViewPreset('infra'));
       drainagePresetButton.addEventListener('click', applyDrainageResearchPreset);
       electricalPresetButton.addEventListener('click', applyElectricalResearchPreset);
-      orbitButton.addEventListener('click', fitModel);
-      topButton.addEventListener('click', () => applyStandardViewPreset('top'));
-      bottomButton.addEventListener('click', () => axisView('bottom'));
-      isoButton.addEventListener('click', activateIsometric);
+      orbitButton.addEventListener('click', () => fitModel(true));
+      topButton.addEventListener('click', () => axisView('top', true));
+      bottomButton.addEventListener('click', () => axisView('bottom', true));
+      isoButton.addEventListener('click', () => activateIsometric(true));
       p137ePlanFaceButton?.addEventListener('click', () => {
         try { applyP137EScene67TopPlan(); }
         catch { status.textContent = 'P137E WORK_TEST - alkuperäisen seinän pohja ei käytettävissä'; }
@@ -15724,10 +15537,10 @@ const title = 'Private 3D viewer';
         try { applyP137EScene67SourceFace('SOUTH'); }
         catch { status.textContent = 'P137E WORK_TEST - eteläisen lähdekamera ei käytettävissä'; }
       });
-      elevPosYButton.addEventListener('click', () => applyStandardViewPreset('elev-pos-y'));
-      elevNegYButton.addEventListener('click', () => applyStandardViewPreset('elev-neg-y'));
-      elevPosXButton.addEventListener('click', () => applyStandardViewPreset('elev-pos-x'));
-      elevNegXButton.addEventListener('click', () => applyStandardViewPreset('elev-neg-x'));
+      elevPosYButton.addEventListener('click', () => activateElevationView('pos-y', true));
+      elevNegYButton.addEventListener('click', () => activateElevationView('neg-y', true));
+      elevPosXButton.addEventListener('click', () => activateElevationView('pos-x', true));
+      elevNegXButton.addEventListener('click', () => activateElevationView('neg-x', true));
       d1PlanButton.addEventListener('click', () => {
         if (canvas.dataset.workTestReviewMode === p137eScene67ReviewId) {
           try { applyP137EScene67TopPlan(); }
@@ -15858,9 +15671,10 @@ const title = 'Private 3D viewer';
         return false;
       };
       const deskCurrentAngle = () => activeDesktopAngle({
-        standardViewPreset: canvas.dataset.standardViewPreset,
         viewPreset: canvas.dataset.viewPreset,
+        elevationDirection: canvas.dataset.elevationDirection,
       });
+      const deskCameraToRestore = () => canvas.dataset.viewPreset === 'bottom' ? 'bottom' : deskCurrentAngle();
       // Start framing: the building (terrain and site context left out), seen
       // from the south-west so the D apartment at the west end is nearest.
       const deskStartFrame = () => {
@@ -15881,19 +15695,11 @@ const title = 'Private 3D viewer';
           box.union(part);
         });
         if (box.isEmpty()) return;
-        // In the whole-D focus, frame the D footprint (the faint rest stays around it).
-        const footprint = (canvas.dataset.dFocusFootprint ?? '').split(',').map(Number);
-        const focused = footprint.length === 4 && footprint.every(Number.isFinite);
-        if (focused) {
-          box.min.x = Math.max(box.min.x, footprint[0]); box.max.x = Math.min(box.max.x, footprint[1]);
-          box.min.z = Math.max(box.min.z, footprint[2]); box.max.z = Math.min(box.max.z, footprint[3]);
-          if (box.isEmpty()) return;
-        }
         const sphere = box.getBoundingSphere(new THREE.Sphere());
         if (!Number.isFinite(sphere.radius) || sphere.radius <= 0) return;
         const halfFov = THREE.MathUtils.degToRad(camera.fov) / 2;
         const aspect = Math.max(camera.aspect || 1, 0.01);
-        const radius = sphere.radius * (focused ? 1.0 : 0.82);
+        const radius = sphere.radius * 1.06;
         const distance = Math.max(radius / Math.tan(halfFov), radius / Math.tan(Math.atan(Math.tan(halfFov) * aspect)));
         const offset = new THREE.Vector3(-0.622, 0.475, 0.622).normalize();
         controls.target.copy(sphere.center);
@@ -15902,7 +15708,7 @@ const title = 'Private 3D viewer';
         camera.far = Math.max(distance * 50, 2000);
         camera.updateProjectionMatrix();
         controls.update();
-        canvas.dataset.deskStartFrame = focused ? 'd-focus-south-west' : 'building-south-west';
+        canvas.dataset.deskStartFrame = 'building-south-west';
       };
       // Whole D: the full model (no per-object D scope filter, which left parts
       // floating in R31), D footprint at full strength, everything else faint.
@@ -16129,6 +15935,12 @@ const title = 'Private 3D viewer';
           }
         }, true);
       }
+      const deskEnterWholeBuilding = () => {
+        applyStandardViewPreset('whole-building', true);
+        applyViewerLayerState({ roofVisible: true }, 'preset:whole-building');
+        deskSyncLayerRoof(true);
+        deskQueueDownspoutZones();
+      };
       const deskEnterDFocus = (roof: boolean, storey: '1F' | '2F' | null = null) => {
         const key = storey === '1F' ? 'd-1f' : storey === '2F' ? 'd-2f' : roof ? 'd-roof' : 'd-apartment';
         applyStandardViewPreset('whole-building', true);
@@ -16154,7 +15966,7 @@ const title = 'Private 3D viewer';
       let deskSync = () => {};
       if (deskToolbarBar && deskPresetMenu && deskViewMenu) {
         const deskAngleButtons: Record<string, HTMLButtonElement | null> = {
-          orbit: orbitButton, iso: isoButton, top: topButton,
+          orbit: orbitButton, iso: isoButton, top: topButton, bottom: bottomButton,
           'elev-pos-y': elevPosYButton, 'elev-neg-y': elevNegYButton,
           'elev-pos-x': elevPosXButton, 'elev-neg-x': elevNegXButton,
         };
@@ -16174,18 +15986,12 @@ const title = 'Private 3D viewer';
               deskSync();
               return;
             }
-            const target = (id === 'd-roof' ? 'd-apartment' : id) as StandardViewPreset;
-            const angleBefore = deskCurrentAngle();
+            const angleBefore = deskCameraToRestore();
             const pose = deskCapturePose();
             if (id === 'd-roof' || id === 'd-apartment') deskEnterDFocus(id === 'd-roof');
             else if (id === 'd-1f' || id === 'd-2f') deskEnterDFocus(false, id === 'd-1f' ? '1F' : '2F');
-            else {
-              applyStandardViewPreset(target, true);
-              applyViewerLayerState({ roofVisible: id === 'whole-building' }, `preset:${id}`);
-              deskSyncLayerRoof(id === 'whole-building');
-              deskQueueDownspoutZones();
-            }
-            if (angleBefore && deskCurrentAngle() !== angleBefore) deskAngleButtons[angleBefore]?.click();
+            else deskEnterWholeBuilding();
+            if (angleBefore && deskCameraToRestore() !== angleBefore) deskAngleButtons[angleBefore]?.click();
             if (pose && !deskApplyPose(pose)) deskRefitKeepingDirection();
             canvas.dataset.deskPresetCameraKept = pose ? 'exact' : 'angle';
             r31SyncExteriorDonors();
@@ -16208,20 +16014,12 @@ const title = 'Private 3D viewer';
             deskSync();
           },
           layers() { layersButton?.click(); deskSync(); },
-          morePresets() { deskViewMenu.open = false; deskPresetMenu.open = !deskPresetMenu.open; },
-          moreAngles() { deskPresetMenu.open = false; deskViewMenu.open = !deskViewMenu.open; },
         });
-        const title = deskToolbarBar.querySelector('.title');
-        (title ?? deskToolbarBar.firstChild)?.after?.(deskToolbar.root);
+        workTestMenuTrigger.parentElement?.after(deskToolbar.root);
         const groups = deskToolbar.root.querySelectorAll('.desk-group') as NodeListOf<HTMLElement>;
         groups[0]?.append(deskPresetMenu);
         groups[1]?.append(deskViewMenu);
-        // The existing Layers button becomes the icon (its text stays the accessible name).
-        if (layersButton) {
-          layersButton.classList.add('desk-icon', 'desk-layers-native');
-          deskToolbar.layers.replaceWith(layersButton);
-        }
-        deskToolbarBar.classList.add('desk-ready');
+        deskToolbar.layers.replaceWith(layersButton);
         deskSync = () => {
           deskToolbar.sync({
             preset: canvas.dataset.dFocusGhost
@@ -16230,10 +16028,7 @@ const title = 'Private 3D viewer';
                 standardViewPreset: canvas.dataset.standardViewPreset,
                 roofVisible: canvas.dataset.layerRoofVisible === 'true',
               }),
-            angle: activeDesktopAngle({
-              standardViewPreset: canvas.dataset.standardViewPreset,
-              viewPreset: canvas.dataset.viewPreset,
-            }),
+            angle: deskCurrentAngle(),
             // The icon shows what the model really shows, not only the checkbox.
             technical: canvas.dataset.technicalReview === 'on',
             layersOpen: layersButton?.getAttribute('aria-expanded') === 'true',
@@ -16242,32 +16037,26 @@ const title = 'Private 3D viewer';
         };
         new MutationObserver(() => deskSync()).observe(canvas, {
           attributes: true,
-          attributeFilter: ['data-standard-view-preset', 'data-view-preset', 'data-layer-roof-visible', 'data-technical-review', 'data-edge-mode', 'data-d-focus-ghost'],
+          attributeFilter: ['data-standard-view-preset', 'data-view-preset', 'data-elevation-direction', 'data-layer-roof-visible', 'data-technical-review', 'data-edge-mode', 'data-d-focus-ghost'],
         });
         if (layersButton) new MutationObserver(() => deskSync()).observe(layersButton, { attributes: true, attributeFilter: ['aria-expanded'] });
-        // Interaction tools become a vertical icon column on the model's left edge.
         const tools = deskToolbarBar.querySelector<HTMLElement>('.interaction-tools');
-        const viewport = canvas.parentElement;
         const toolIcons: Record<string, string> = {
           'navigate-tool-button': '<path d="M12 3 V21 M3 12 H21 M12 3 L9 6 M12 3 L15 6 M12 21 L9 18 M12 21 L15 18 M3 12 L6 9 M3 12 L6 15 M21 12 L18 9 M21 12 L18 15"/>',
           'selection-tool-button': '<path d="M6 3 L18 13 L12.5 13.6 L15.5 20 L13 21 L10 14.6 L6 18 Z"/>',
           'point-pick-tool-button': '<path d="M12 21 C12 21 5 14 5 9.5 A7 7 0 0 1 19 9.5 C19 14 12 21 12 21 Z"/><circle cx="12" cy="9.5" r="2.4"/>',
           'point-measure-tool-button': '<path d="M3 17 L17 3 L21 7 L7 21 Z"/><path d="M7 13 L9 15 M10 10 L12 12 M13 7 L15 9"/>',
-          'axis-measure-tool-button': '<rect x="3" y="3" width="18" height="18"/><path d="M6 18 H18 M6 16 V20 M18 16 V20"/>',
-          'p137e-place-tool-button': '<circle cx="12" cy="12" r="7"/><path d="M12 2 V7 M12 17 V22 M2 12 H7 M17 12 H22"/>',
         };
-        if (tools && viewport) {
+        if (tools) {
           for (const button of Array.from(tools.querySelectorAll<HTMLButtonElement>('button'))) {
             const icon = toolIcons[button.id];
             if (!icon) continue;
             const label = button.textContent?.trim() ?? '';
+            button.classList.add('desk-icon');
             button.setAttribute('aria-label', label);
             if (!button.title) button.title = label;
             button.innerHTML = `<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round">${icon}</svg><span class="desk-sr">${label}</span>`;
           }
-          if (getComputedStyle(viewport).position === 'static') viewport.style.position = 'relative';
-          tools.classList.add('desk-side-tools');
-          viewport.append(tools);
         }
         // Owner 22.11.2026: changing a preset never changes the camera. The menu
         // presets (Koko rakennus, D-asunto, Tontti, Infra, Salaojat, Sähköt) keep
@@ -16276,40 +16065,44 @@ const title = 'Private 3D viewer';
           infraPresetButton, drainagePresetButton, electricalPresetButton]) {
           let before: { angle: string | null; pose: DeskPose | null } | null = null;
           menuPreset.addEventListener('click', () => {
-            before = { angle: deskCurrentAngle(), pose: deskCapturePose() };
+            before = { angle: deskCameraToRestore(), pose: deskCapturePose() };
           }, { capture: true });
           menuPreset.addEventListener('click', () => {
             const kept = before;
             before = null;
             if (!kept?.angle) return;
-            if (deskCurrentAngle() !== kept.angle) deskAngleButtons[kept.angle]?.click();
+            if (deskCameraToRestore() !== kept.angle) deskAngleButtons[kept.angle]?.click();
             if (kept.pose) deskApplyPose(kept.pose);
             deskSync();
           });
         }
         deskSync();
       }
-      workTestSelect.addEventListener('change', () => {
-        workTestButton.disabled = !workTestCandidates.has(workTestSelect.value);
-        clearModelComparisonState();
-      });
+      workTestSelect.addEventListener('change', clearModelComparisonState);
       workTestFilter.addEventListener('input', () => {
         const before = workTestSelect.value;
-        // Filtering narrows the list; keep the current choice only if it still matches.
         const current = workTestCandidates.get(before);
         const keep = current && workTestCandidateMatchesFilter(current, workTestFilter.value) ? before : null;
-        const after = renderWorkTestOptions(keep);
-        workTestButton.disabled = !workTestCandidates.has(after);
-        if (after !== before) clearModelComparisonState();
+        if (renderWorkTestOptions(keep) !== before) clearModelComparisonState();
       });
-      workTestButton.addEventListener('click', () => {
-        const candidate = workTestCandidates.get(workTestSelect.value);
-        if (!candidate) {
-          status.textContent = 'Valitse WORK_TEST-kandidaatti';
-          return;
-        }
+      workTestOptions.addEventListener('click', async (event) => {
+        const button = event.target instanceof Element
+          ? event.target.closest<HTMLButtonElement>('button[data-work-test-candidate]')
+          : null;
+        const candidate = workTestCandidates.get(button?.dataset.workTestCandidate ?? '');
+        if (!candidate || workTestPickerLoading) return;
+        workTestPickerLoading = true;
+        workTestOptions.inert = true;
+        selectWorkTestOption(candidate.id);
         clearModelComparisonState();
-        void loadWorkTestCandidate(candidate);
+        closeToolbarMenus();
+        workTestMenuTrigger.focus();
+        try {
+          await loadWorkTestCandidate(candidate);
+        } finally {
+          workTestPickerLoading = false;
+          workTestOptions.inert = false;
+        }
       });
       compareModelButton.addEventListener('click', () => {
         void toggleModelComparison();
@@ -16590,9 +16383,13 @@ const title = 'Private 3D viewer';
       canvas.addEventListener('pointermove', (event) => {
         if (activePlanFloor) updateDCoordinatePointer(event.clientX, event.clientY);
         if (canvas.dataset.interactionMode === 'measure') moveDAxisMeasurement(event.clientX, event.clientY);
+        if (canvas.dataset.interactionMode === 'point-measure') movePointMeasure(event);
       });
+      canvas.addEventListener('pointerleave', clearPointMeasurePreview);
+      canvas.addEventListener('wheel', clearPointMeasurePreview, { passive: true });
 
       canvas.addEventListener('pointerdown', (event) => {
+        if (canvas.dataset.interactionMode === 'point-measure') clearPointMeasurePreview();
         pointerDown = { pointerId: event.pointerId, x: event.clientX, y: event.clientY };
       });
 
@@ -16629,11 +16426,6 @@ const title = 'Private 3D viewer';
                 });
                 canvas.dataset.reviewCoordinateSelectionEvidence = sameClickEvidence;
                 canvas.dataset.reviewCoordinateSelectionMatch = String(sameClickEvidence === 'MATCHED_SURFACE');
-                if (sameClickEvidence !== 'MATCHED_SURFACE' && coordinateNote) {
-                  coordinateNote.textContent =
-                    'Koordinaattipiste ja valittu kohde ovat eri osumia tai kohdetta ei valittu. ' +
-                    'Piste on erillinen WORK_TEST-havainto, ei valitun kohteen sijainnin tai hostin vahvistus.';
-                }
               }
             }
           }
@@ -16655,19 +16447,19 @@ const title = 'Private 3D viewer';
       const resizeObserver = new ResizeObserver(updateSize);
       resizeObserver.observe(canvas.parentElement ?? canvas);
 
-      // Keeps the bottom-left selection panel stacked above the coordinate panel.
-      const coordinatePanelObserver = new ResizeObserver(() => {
-        coordinatePanel.parentElement?.style.setProperty(
-          '--coordinate-panel-block',
-          `${coordinatePanel.offsetHeight}px`,
-        );
-      });
-      coordinatePanelObserver.observe(coordinatePanel);
-      // Refit after real panel height/visibility settles; no frame-by-frame camera reset.
-      const mobileHudObserver = new ResizeObserver(() => queueMobileSafeFit('preserve'));
-      mobileHudObserver.observe(coordinatePanel);
-      new MutationObserver(() => queueMobileSafeFit('preserve'))
-        .observe(coordinatePanel, { attributes:true, attributeFilter:['hidden'] });
+      const viewportPanels = canvas.closest<HTMLElement>('.viewport');
+      const viewerTools = document.querySelector<HTMLElement>('.toolbar > .interaction-tools');
+      if (viewportPanels && viewerTools) {
+        mountPrivateModelViewportPanels(viewportPanels, viewerTools, navigationCubeButton, {
+          'layers-panel': { opener: layersButton, close: () => setLayersPanelOpen(false) },
+          'profile-panel': { opener: profileButton, close: () => setProfilePanelOpen(false) },
+          'selection-panel': { opener: selectionToolButton },
+          'point-pick-panel': { opener: pointPickToolButton },
+          'point-measure-panel': { opener: pointMeasureToolButton },
+          'axis-measure-row': { opener: axisMeasureToolButton },
+          'p137e-place-panel': { opener: p137ePlaceToolButton },
+        });
+      }
 
       // Opt-in, read-only source/ray observation. No public scene handle or
       // camera/material override is exposed to the browser regression.
@@ -16792,35 +16584,35 @@ const title = 'Private 3D viewer';
           await loadProtectedC70();
           return;
         }
-        // Owner decision 21.11.2026: a plain /private-model/ opens the latest
-        // published WORK_TEST in the whole D apartment, roof hidden. Any query
-        // or fragment keeps the previous CURRENT-first route; ?current=1 forces it.
+        // The plain viewer opens the pinned WORK_TEST source with the whole
+        // building preset. Query/fragment review routes keep their own behavior.
         let deskStartCatalogLoaded = false;
         if (!window.location.search && !window.location.hash) {
           try {
             await loadWorkTestCatalog();
             deskStartCatalogLoaded = true;
             const start = workTestCandidates.get(DESKTOP_START_CANDIDATE_ID);
-            if (start && await loadWorkTestCandidate(start)) {
-              // The candidate field shows the model that is actually open.
-              if (workTestSelect.value !== start.id) {
-                workTestFilter.value = '';
-                renderWorkTestOptions(start.id);
-                workTestSelect.value = start.id;
-                workTestButton.disabled = false;
-              }
-              // Owner 22.11.2026 04.50: start in the whole D with the roof, the
-              // rest of the building as a faint reference.
-              deskEnterDFocus(true);
-              deskStartFrame();
-              canvas.dataset.deskStartView = 'start-work-test-d-roof-focus';
-              deskSync();
-              return;
+            if (start) {
+              const result = await runDesktopStartupAttempt(start.id, async () => {
+                if (!await loadWorkTestCandidate(start)) return false;
+                if (workTestSelect.value !== start.id) {
+                  workTestFilter.value = '';
+                  renderWorkTestOptions(start.id);
+                  workTestSelect.value = start.id;
+                }
+                deskEnterWholeBuilding();
+                deskStartFrame();
+                canvas.dataset.deskStartView = 'start-work-test-whole-building';
+                deskSync();
+                return true;
+              });
+              if (result === 'loaded') return;
+              if (result === 'interrupted') canvas.dataset.deskStartView = 'current-recovery';
             }
           } catch (error) {
             console.warn('DESK_START_LATEST_WORK_TEST_UNAVAILABLE', error);
           }
-          canvas.dataset.deskStartView = 'current-fallback';
+          canvas.dataset.deskStartView ??= 'current-fallback';
         }
         // Keep CURRENT-first for ordinary routes and all other reviews.
         if (

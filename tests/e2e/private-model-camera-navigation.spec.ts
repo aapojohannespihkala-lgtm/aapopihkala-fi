@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { DESKTOP_START_CANDIDATE_ID } from '../../src/scripts/privateModelDesktopToolbar.mjs';
 
 const makeMinimalGlb = (json: Record<string, unknown>) => {
   const jsonBuffer = Buffer.from(JSON.stringify(json), 'utf8');
@@ -79,7 +80,7 @@ test('initial, whole-building, and D-apartment views keep perspective free orbit
   await expect(page.getByRole('status')).toHaveText('D-asunto - molemmat kerrokset, vapaa 3D');
 });
 
-const makeTriangleGlb = (withDScene = false) => {
+const makeTriangleGlb = (withDScene = false, withFocusContext = false) => {
   const positions = Buffer.alloc(36);
   [-1, -1, 0, 1, -1, 0, 0, 1, 0].forEach((value, index) => {
     positions.writeFloatLE(value, index * 4);
@@ -89,10 +90,13 @@ const makeTriangleGlb = (withDScene = false) => {
     asset: { version: '2.0' },
     scene: 0,
     scenes: [
-      { name: 'P133D REVIEW ROOT - BABYLON Y-UP', nodes: [0] },
+      { name: 'P133D REVIEW ROOT - BABYLON Y-UP', nodes: withFocusContext ? [0, 1] : [0] },
       ...(withDScene ? [{ name: 'D CURRENT INTERIOR - BABYLON Y-UP', nodes: [0] }] : []),
     ],
-    nodes: [{ name: 'ELEVATION_CAMERA_TEST', mesh: 0 }],
+    nodes: withFocusContext ? [
+      { name: 'TEST_D_CONTENT', mesh: 0, translation: [5.3, 1.5, 0] },
+      { name: 'TEST_OTHER_CONTENT', mesh: 0, translation: [13, 1.5, 0] },
+    ] : [{ name: 'ELEVATION_CAMERA_TEST', mesh: 0 }],
     meshes: [
       {
         name: 'TEST_TRIANGLE',
@@ -135,7 +139,101 @@ const makeTriangleGlb = (withDScene = false) => {
   return Buffer.concat([header, jsonHeader, jsonChunk, binHeader, binChunk]);
 };
 
-test('owner menu presets keep the active isometric or elevation camera direction', async ({ page }) => {
+test('a reload after an interrupted default model load opens the protected fallback', async ({ page }) => {
+  const id = DESKTOP_START_CANDIDATE_ID;
+  const path = `/private-model/work-test/${id}.glb`;
+  await page.route('**/private-model/work-test/catalog.json', route => route.fulfill({
+    json: { candidates: [{ id, path, label: 'R34 WORK_TEST' }] },
+  }));
+  await page.route('**/private-model/model.glb', route => route.fulfill({
+    contentType: 'model/gltf-binary',
+    body: makeTriangleGlb(),
+  }));
+  await page.addInitScript(startPath => {
+    const originalFetch = window.fetch.bind(window);
+    window.fetch = (input, init) => {
+      const url = new URL(input instanceof Request ? input.url : input, window.location.href);
+      if (url.pathname !== startPath || sessionStorage.getItem('test-interrupted-start')) {
+        return originalFetch(input, init);
+      }
+      sessionStorage.setItem('test-interrupted-start', 'true');
+      void originalFetch(input, init).catch(() => {});
+      // A dead renderer cannot settle the application promise. A normal
+      // reload can instead reject fetch and let the old page run its cleanup.
+      return new Promise<Response>(() => {});
+    };
+  }, path);
+  let workTestRequests = 0;
+  await page.route(`**${path}`, async route => {
+    workTestRequests++;
+    await route.fulfill({ status: 503 });
+  });
+
+  const request = page.waitForRequest(`**${path}`);
+  await page.goto('/private-model/');
+  await request;
+  await page.reload();
+  const canvas = page.locator('#private-model-canvas');
+  await expect(canvas).toHaveAttribute('data-desk-start-view', 'current-recovery');
+  await expect(canvas).toHaveAttribute('data-model-source', 'current');
+  await expect(canvas).toHaveAttribute('data-standard-view-preset', 'whole-building');
+  expect(workTestRequests).toBe(1);
+
+  // The fallback only consumes this interrupted attempt.
+  await page.reload();
+  await expect(canvas).toHaveAttribute('data-desk-start-view', 'current-fallback');
+  await expect(canvas).toHaveAttribute('data-model-source', 'current');
+  expect(workTestRequests).toBe(2);
+});
+
+test('camera changes keep the selected content, D focus and manual layers', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.route('**/private-model/model.glb', route =>
+    route.fulfill({ contentType: 'model/gltf-binary', body: makeTriangleGlb(false, true) }));
+  await page.route('**/private-model/work-test/catalog.json', route => route.fulfill({ status: 404 }));
+  await page.goto('/private-model/');
+  await expect(page.getByRole('status')).toHaveText('Malli ladattu');
+
+  const canvas = page.locator('#private-model-canvas');
+  const activeAngle = page.locator('[data-desk-kind="angle"][aria-pressed="true"]');
+  const activePreset = page.locator('[data-desk-kind="preset"][aria-pressed="true"]');
+  const clickAngle = (id: string) => page.locator(`[data-desk-kind="angle"][data-desk-id="${id}"]`).click();
+  const clickPreset = (id: string) => page.locator(`[data-desk-kind="preset"][data-desk-id="${id}"]`).click();
+
+  await clickPreset('whole-building');
+  for (const [angle, mode] of [['elev-pos-x', 'elevation'], ['iso', 'isometric'], ['orbit', 'orbit']]) {
+    await clickAngle(angle);
+    await expect(canvas).toHaveAttribute('data-view-preset', mode);
+    await expect(activeAngle).toHaveAttribute('data-desk-id', angle);
+    await expect(activePreset).toHaveAttribute('data-desk-id', 'whole-building');
+  }
+  await clickPreset('d-roof');
+  await expect(canvas).toHaveAttribute('data-view-preset', 'orbit');
+  await expect(activeAngle).toHaveAttribute('data-desk-id', 'orbit');
+  await expect(activePreset).toHaveAttribute('data-desk-id', 'd-roof');
+  const focus = await canvas.getAttribute('data-d-focus-ghost');
+  expect(focus).toMatch(/^d-roof\|in:1\|out:1\|split:0/);
+
+  await page.locator('#layers-button').click();
+  await page.locator('#roof-layer-visible').uncheck();
+  await page.locator('[data-desk-kind="edge"][data-desk-id="none"]').click();
+  await expect(canvas).toHaveAttribute('data-layer-state-source', 'manual');
+
+  await page.setViewportSize({ width: 1024, height: 900 });
+  const menu = page.locator('#view-menu');
+  await menu.locator('summary').click();
+  await menu.locator('#elev-pos-x-button').click();
+  await expect(canvas).toHaveAttribute('data-elevation-direction', 'pos-x');
+  await expect(activeAngle).toHaveAttribute('data-desk-id', 'elev-pos-x');
+  await expect(canvas).toHaveAttribute('data-d-focus-ghost', focus!);
+  await expect(activePreset).toHaveAttribute('data-desk-id', 'd-roof');
+  await expect(canvas).toHaveAttribute('data-layer-state-source', 'manual');
+  await expect(canvas).toHaveAttribute('data-layer-roof-visible', 'false');
+  await expect(canvas).toHaveAttribute('data-layer-edge-mode', 'none');
+  await expect(page.locator('#layers-button')).toHaveAttribute('aria-expanded', 'true');
+});
+
+test('owner menu presets keep the active isometric, elevation or underside camera direction', async ({ page }) => {
   // A synthetic fixture exercises the actual viewer controls without publishing
   // any original Ylisrinne geometry or requiring a protected model.
   // Reuse the elevation guard's visible-triangle GLB. Empty scenes cannot
@@ -159,24 +257,22 @@ test('owner menu presets keep the active isometric or elevation camera direction
     };
   });
 
-  const chooseView = async (name: string) => {
-    const menu = page.locator('#view-menu');
-    if ((await menu.getAttribute('open')) === null) {
-      await menu.locator(':scope > summary').click();
-    }
-    await menu.getByRole('button', { name, exact: true }).click();
-  };
-
-  for (const { viewButton, mode, projection } of [
-    { viewButton: 'Isometrinen', mode: 'isometric', projection: 'orthographic' },
-    { viewButton: 'Julk +Y', mode: 'elevation', projection: 'orthographic' },
+  for (const { viewButton, angle, mode, projection } of [
+    { viewButton: 'Isometrinen', angle: 'iso', mode: 'isometric', projection: 'orthographic' },
+    { viewButton: 'Julk +Y', angle: 'elev-pos-y', mode: 'elevation', projection: 'orthographic' },
+    { viewButton: 'Alhaalta', angle: null, mode: 'bottom', projection: 'orthographic' },
   ]) {
     // Each independent camera mode starts from a fresh fixture. Switching
     // isometric -> elevation is a separate navigation action, not this test's
     // menu-preset preservation contract.
     await page.goto('/private-model/');
     await expect(page.getByRole('status')).toHaveText('Malli ladattu');
-    await chooseView(viewButton);
+    if (angle) {
+      await page.locator(`[data-desk-kind="angle"][data-desk-id="${angle}"]`).click();
+    } else {
+      await page.locator('#view-menu > summary').click();
+      await page.locator('#bottom-button').click();
+    }
     await expect(page.locator('#private-model-canvas')).toHaveAttribute('data-view-preset', mode);
     const before = await cameraSnapshot();
     expect(before.projection).toBe(projection);

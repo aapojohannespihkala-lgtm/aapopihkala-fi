@@ -21,7 +21,7 @@ test('private viewer dark shell stays inside desktop and narrow viewports', asyn
   for (const viewport of viewports) {
     await page.setViewportSize(viewport);
     await page.goto('/private-model/');
-    await expect(page.getByText('Ylisrinne 3D', { exact: true })).toBeVisible();
+    await expect(page.getByRole('toolbar')).toBeVisible();
 
     await page.locator('#model-source-badge').evaluate((element) => {
       element.textContent =
@@ -34,7 +34,7 @@ test('private viewer dark shell stays inside desktop and narrow viewports', asyn
     );
     expect(noPageOverflow).toBe(true);
 
-    const toolbarMenus = ['#preset-menu', '#view-menu', '#model-menu', '#more-menu'];
+    const toolbarMenus = ['#preset-menu', '#view-menu', '#model-menu'];
 
     for (const presetLabel of [
       'Koko rakennus',
@@ -85,7 +85,7 @@ test('private viewer exposes keyboard focus and honors reduced motion', async ({
 
   await page.keyboard.press('Tab');
   const firstFocus = await page.evaluate(() => {
-    const expected = document.querySelector('#preset-menu > summary');
+    const expected = document.querySelector('#model-menu > summary');
     const active = document.activeElement;
     return {
       correct: active === expected,
@@ -95,6 +95,7 @@ test('private viewer exposes keyboard focus and honors reduced motion', async ({
   expect(firstFocus.correct).toBe(true);
   expect(firstFocus.outlineWidth).toBe('3px');
 
+  await page.locator('[data-desk-id=elev-neg-x]').focus();
   await page.keyboard.press('Tab');
   await expect(page.locator('#view-menu > summary')).toBeFocused();
   const viewMenuOutline = await page.locator('#view-menu > summary').evaluate(
@@ -102,6 +103,7 @@ test('private viewer exposes keyboard focus and honors reduced motion', async ({
   );
   expect(viewMenuOutline).toBe('3px');
 
+  await page.locator('[data-desk-id=none]').focus();
   await page.keyboard.press('Tab');
   await expect(page.locator('#layers-button')).toBeFocused();
   const buttonOutline = await page.locator('#layers-button').evaluate(
@@ -133,7 +135,7 @@ test('toolbar menus dismiss with Escape and outside pointer interaction', async 
   const presetMenu = page.locator('#preset-menu');
   await page.locator('#preset-menu > summary').click();
   await expect(presetMenu).toHaveAttribute('open', '');
-  await page.locator('.title').click();
+  await page.locator('#private-model-canvas').click({ position: { x: 350, y: 200 } });
   await expect(presetMenu).not.toHaveAttribute('open', '');
 });
 

@@ -7,6 +7,33 @@ const worldFromG1=(p)=>new THREE.Vector3(p.xM,p.sourceHeightYUpM,-p.yM);
 const validG1=(p)=>p && finite(p.xM,p.yM,p.sourceHeightYUpM);
 const isValidRect=(r)=>r && finite(r.left,r.top,r.width,r.height) && r.width>0 && r.height>0;
 const MAX_TRIANGLES=30000;
+const featureCache=new WeakMap();
+const attributeVersion=(attribute)=>attribute?.version ?? attribute?.data?.version ?? 0;
+
+const measureEdges=(mesh,positions,index,modelMatrix,creaseDegrees,maxTriangles)=>{
+  const key=[positions,index,attributeVersion(positions),attributeVersion(index),
+    creaseDegrees,maxTriangles,...modelMatrix.elements];
+  const cached=featureCache.get(mesh);
+  if(cached?.key.every((value,i)=>value===key[i])) return cached.segments;
+  const positionArray=new Float64Array(positions.count*3);
+  for(let i=0;i<positions.count;i++){
+    const x=positions.getX(i),y=positions.getY(i),z=positions.getZ(i);
+    if(!finite(x,y,z)) return [];
+    positionArray.set([x,y,z],3*i);
+  }
+  const indices=index ? new Uint32Array(index.count) : null;
+  if(indices) for(let i=0;i<index.count;i++){
+    const v=index.getX(i);
+    if(!Number.isInteger(v) || v<0 || v>=positions.count) return [];
+    indices[i]=v;
+  }
+  const toG1=(x,y,z)=>g1FromWorld(new THREE.Vector3(x,y,z).applyMatrix4(modelMatrix));
+  const segments=extractMeasureFeatureEdges({
+    positions:positionArray,indices,toG1,creaseDegrees,maxTriangles,cacheTopology:true,
+  });
+  featureCache.set(mesh,{key,segments});
+  return segments;
+};
 
 /**
  * Convert a *previously validated frontmost source-mesh hit* into a corner/edge
@@ -23,13 +50,14 @@ const MAX_TRIANGLES=30000;
  * rules and raycast occlusion. A visible hit does NOT imply its faraway edge
  * candidates are visible. Fail closed if either callback is absent.
  *
- * Intended for per-click usage, not every mouse-move frame. Large geometries
- * are rejected instead of running an unbounded full-mesh feature-edge scan.
+ * Cache mesh edges across pointer previews. Large geometries are rejected
+ * instead of running an unbounded full-mesh feature-edge scan.
  * WORK_TEST only: no surveyed dimensions or as-built assertions.
  */
 export const snapFromVisibleMeshHit=({
   frontmostHit,camera,rect,pointerPx,acceptsFrontmostHit,isFeatureVisible,
   tolerancePx=12,maxWorldGapM=0.4,creaseDegrees=25,maxTriangles=MAX_TRIANGLES,
+  cornerPriorityPx=tolerancePx,
 }={})=>{
   if(typeof acceptsFrontmostHit!=='function' ||
      typeof isFeatureVisible!=='function' ||
@@ -70,22 +98,7 @@ export const snapFromVisibleMeshHit=({
   );
   if(![...modelMatrix.elements,...viewProjection.elements].every(Number.isFinite)) return null;
 
-  const positionArray=new Float64Array(positions.count*3);
-  for(let i=0;i<positions.count;i++){
-    const x=positions.getX(i),y=positions.getY(i),z=positions.getZ(i);
-    if(!finite(x,y,z)) return null;
-    positionArray.set([x,y,z],3*i);
-  }
-  const indices=index ? new Uint32Array(index.count) : null;
-  if(indices) for(let i=0;i<index.count;i++){
-    const v=index.getX(i);
-    if(!Number.isInteger(v) || v<0 || v>=positions.count) return null;
-    indices[i]=v;
-  }
-  const toG1=(x,y,z)=>g1FromWorld(new THREE.Vector3(x,y,z).applyMatrix4(modelMatrix));
-  const segments=extractMeasureFeatureEdges({
-    positions:positionArray,indices,toG1,creaseDegrees,maxTriangles,
-  });
+  const segments=measureEdges(mesh,positions,index,modelMatrix,creaseDegrees,maxTriangles);
   if(!segments.length) return null;
 
   const projectToScreen=(p)=>{
@@ -94,17 +107,17 @@ export const snapFromVisibleMeshHit=({
     const clip=new THREE.Vector4(w.x,w.y,w.z,1).applyMatrix4(viewProjection);
     if(!finite(clip.x,clip.y,clip.z,clip.w) || clip.w<=1e-9) return {visible:false};
     const nx=clip.x/clip.w,ny=clip.y/clip.w,nz=clip.z/clip.w;
-    if(!finite(nx,ny,nz) || nx< -1 || nx>1 || ny< -1 || ny>1 ||
-       nz< -1 || nz>1) return {visible:false};
+    if(!finite(nx,ny,nz) || nz< -1 || nz>1) return {visible:false};
+    const offscreen=nx< -1 || nx>1 || ny< -1 || ny>1;
     return {
       x:rect.left+(nx+1)*rect.width/2,
       y:rect.top+(1-ny)*rect.height/2,
-      visible:true,invW:1/clip.w,
+      visible:!offscreen,offscreen,invW:1/clip.w,
     };
   };
   const snap=chooseMeasureFeatureSnap({
     pointerPx,hitPointG1:g1FromWorld(frontmostHit.point),segments,
-    projectToScreen,tolerancePx,maxWorldGapM,
+    projectToScreen,tolerancePx,maxWorldGapM,cornerPriorityPx,
     isCandidateVisible:(p,kind)=>
       isFeatureVisible({
         sourceMesh:mesh,pointWorld:worldFromG1(p),
@@ -116,5 +129,8 @@ export const snapFromVisibleMeshHit=({
   return snap && Object.freeze({
     kind:snap.kind,pointG1:Object.freeze({...snap.pointG1}),
     distancePx:snap.distancePx,workTestOnly:true,
+    ...(snap.segment ? {segment:Object.freeze({
+      a:Object.freeze({...snap.segment.a}),b:Object.freeze({...snap.segment.b}),
+    })} : {}),
   });
 };

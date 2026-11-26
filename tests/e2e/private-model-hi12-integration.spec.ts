@@ -322,9 +322,9 @@ for (const width of [1280, 390]) test.describe('HI12 WebGL ' + width, () => {
       expect(distance(zoom.position, zoom.target)).toBeLessThan(distance(pan.position, pan.target));
       await cdp.detach();
     }
-    await menu(page, '#more-menu'); await page.locator('#fit-button').click(); await settle(page);
+    await menu(page, '#view-menu'); await page.locator('#fit-button').click(); await settle(page);
     expect((await frame(page)).colored).toBeGreaterThan(100);
-    await menu(page, '#more-menu'); await page.locator('#reset-view-defaults-button').click();
+    await menu(page, '#view-menu'); await page.locator('#reset-view-defaults-button').click();
     await expect(canvas).toHaveAttribute('data-main-view-area', 'WHOLE');
     await expect(canvas).toHaveAttribute('data-c80-scene-index', '3');
     await expect(canvas).toHaveAttribute('data-c80-source-sha256', SHA);
@@ -332,7 +332,7 @@ for (const width of [1280, 390]) test.describe('HI12 WebGL ' + width, () => {
     // The separate C70/C80 suite verifies their complete lifecycle/default return.
     // Here the real linked fallback must load C70 rather than retaining HI12.
     if (production || process.env.YLIS_C70_GLB) {
-      await menu(page, '#model-menu'); await page.locator('#c70-fallback-link').click();
+      await menu(page, '#preset-menu'); await page.locator('#c70-fallback-link').click();
       await expect(canvas).toHaveAttribute('data-c70-preview', 'ready', { timeout: 120_000 });
       await expect(canvas).not.toHaveAttribute('data-c80-version');
     }

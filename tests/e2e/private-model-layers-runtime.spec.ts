@@ -610,7 +610,7 @@ test(`exact ${model.version} viewer: D upstairs, ghost walls, supported IV, rese
       await expect(canvas).toHaveAttribute('data-main-view-floor', '2F');
       await expect(canvas).toHaveAttribute('data-layers-source-scene-index', scene);
       await closeLayers();
-      await page.locator('#more-menu > summary').click();
+      await page.locator('#view-menu > summary').click();
       await page.locator('#fit-button').click();
       for (const viewport of [desktopViewport, { width: 390, height: 844 }, desktopViewport]) {
         await page.setViewportSize(viewport);
@@ -633,18 +633,17 @@ test(`exact ${model.version} viewer: D upstairs, ghost walls, supported IV, rese
     };
     await verifyDFit('TATE-initial', sha, model.secondFloor);
     await openModelMenu();
-    await page.locator('#work-test-select').selectOption('c80-p02-water-integrated-20261111');
-    await page.locator('#work-test-button').click();
+    await page.locator('#work-test-options button[data-work-test-candidate="c80-p02-water-integrated-20261111"]').click();
     await expect(canvas).toHaveAttribute('data-layers-source-sha256', 'db5ce3d7ef4c0bc8910de7f46df80029617b37d38ff4ddccd330cf70a2818a2a', { timeout: 120_000 });
     if (production) expect(switchedP02Verified).toBe(true);
     await verifyDFit('P02', 'db5ce3d7ef4c0bc8910de7f46df80029617b37d38ff4ddccd330cf70a2818a2a', '339');
-    await openModelMenu();
+    await closeLayers();
+    await page.locator('#preset-menu > summary').click();
     await page.locator('#current-model-button').click();
     await expect(canvas).toHaveAttribute('data-model-source', 'current', { timeout: 120_000 });
     receipts.push({ label: 'CURRENT', sourceSha256: await canvas.getAttribute('data-layers-source-sha256') });
     await openModelMenu();
-    await page.locator('#work-test-select').selectOption(candidateId);
-    await page.locator('#work-test-button').click();
+    await page.locator(`#work-test-options button[data-work-test-candidate="${candidateId}"]`).click();
     await expect(canvas).toHaveAttribute('data-p137e-loaded-candidate-id', candidateId, { timeout: 120_000 });
     await expect(canvas).toHaveAttribute('data-work-test-review-mode', candidateId + '-review');
     await verifyDFit('TATE-restored', sha, model.secondFloor);
@@ -672,7 +671,7 @@ test(`exact ${model.version} viewer: D upstairs, ghost walls, supported IV, rese
   // An explicit camera action frames the selected floor before testing that
   // Layers edits themselves preserve it. Do not inherit the site's wide fit.
   await page.locator('#layers-button').click();
-  await page.locator('#more-menu > summary').click();
+  await page.locator('#view-menu > summary').click();
   await page.locator('#fit-button').click();
   if (model.version === 'P02' || isTate) {
     await expect(canvas).toHaveAttribute('data-p02-content-fit', 'source-bound-architecture');
@@ -778,7 +777,7 @@ test(`exact ${model.version} viewer: D upstairs, ghost walls, supported IV, rese
   }
   await page.setViewportSize({ width: 390, height: 844 });
   await page.locator('#layers-button').click();
-  await page.locator('#more-menu > summary').click();
+  await page.locator('#view-menu > summary').click();
   await page.locator('#fit-button').click();
   await page.locator('#layers-button').click();
   const readLiveCamera = async () => {
@@ -817,7 +816,7 @@ test(`exact ${model.version} viewer: D upstairs, ghost walls, supported IV, rese
   await page.screenshot({ path: info.outputPath(evidencePrefix + '-2f-restored-mobile.png') });
   if (model.version === 'V68' || model.version === 'V69' || model.version === 'K17_RAIL_HANDRAIL900' || model.version === 'V69P12R1' || model.version === 'TATE4') {
     await page.setViewportSize(desktopViewport);
-    await page.locator('#more-menu > summary').click();
+    await page.locator('#view-menu > summary').click();
     await page.locator('#fit-button').click();
     await page.locator('#selection-tool-button').click();
     const selection = page.locator('#selection-panel');
@@ -965,8 +964,8 @@ test(`exact ${model.version} viewer: D upstairs, ghost walls, supported IV, rese
     };
     for (const floor of ['d-2f', 'd-apartment']) {
       await openLayers(); await preset.selectOption(floor); await closeLayers();
-      if (await page.locator('#more-menu').getAttribute('open') === null)
-        await page.locator('#more-menu > summary').click();
+      if (await page.locator('#view-menu').getAttribute('open') === null)
+        await page.locator('#view-menu > summary').click();
       await page.locator('#fit-button').click();
       for (let view = 0; view < 4; view++) {
         if (view) {
@@ -1271,13 +1270,13 @@ test(`exact ${model.version} viewer: D upstairs, ghost walls, supported IV, rese
     if (isTate) {
       await verifyTateModelSwitch();
     } else {
-      await page.locator('#model-menu > summary').click();
+
+      await page.locator('#preset-menu > summary').click();
       await page.locator('#current-model-button').click();
       await expect(canvas).toHaveAttribute('data-model-source','current',{timeout:120_000});
       if(await page.locator('#model-menu').getAttribute('open')===null)
         await page.locator('#model-menu > summary').click();
-      await page.locator('#work-test-select').selectOption(candidateId);
-      await page.locator('#work-test-button').click();
+      await page.locator(`#work-test-options button[data-work-test-candidate="${candidateId}"]`).click();
       await expect(canvas).toHaveAttribute('data-p137e-loaded-candidate-id',candidateId,{timeout:120_000});
       await expect(canvas).toHaveAttribute('data-layers-source-sha256',sha);
       await expect(canvas).toHaveAttribute('data-work-test-review-mode',candidateId+'-review');
