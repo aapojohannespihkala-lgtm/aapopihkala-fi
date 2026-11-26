@@ -122,7 +122,7 @@ export const createHeightScaleController = ({
       title.setAttribute('aria-pressed', String(mode !== 'local'));
       title.title = mode === 'local'
         ? 'Vaihda ehdolliseen N2000-työarvioon (N60-lähtöjärjestelmää ei ole vahvistettu).'
-        : 'WORK_TEST, EI VARMENNETTU: 1974 C-D +21,750 m oletetaan N60:ksi, Espoon +0,247 m on vertailuarvo. Tarkka N60-N2000 vaatii MML TINshiftin.';
+        : 'WORK_TEST, EI VARMENNETTU: 1974 C-D +21,750 m oletetaan N60:ksi. MML:n virallinen kolmioittainen muunnos paikalla on +0,253175 m. Vuoden 1974 lähtödatumia ei ole vahvistettu.';
     }
     scale.setAttribute('aria-label', `${caption}, korkeusasteikko`);
     return true;
