@@ -462,3 +462,47 @@ test('a 3m physical wall corner remains salient at 30/40/100 px per metre',()=>{
   });
   assert.equal(far,null,'full-edge context must never snap to a 3m remote point');
 });
+test('source-mesh adapter recognises a 3m L-corner across 2cm triangulated arms at overview zoom',()=>{
+  // One genuine planar L-shaped wall footprint: the physical inner corner is
+  // at (0,0), and its two 3m arms have 150 individual 2cm boundary segments.
+  // Triangulation spokes are coplanar and must not become measurable edges.
+  const boundary=[[0,0]];
+  for(let i=1;i<=150;i++) boundary.push([i*.02,0]);
+  boundary.push([3,-.1],[-.1,-.1],[-.1,3],[0,3]);
+  for(let i=149;i>=1;i--) boundary.push([0,i*.02]);
+  const positions=[];
+  for(let i=0;i<boundary.length;i++){
+    const a=boundary[i],b=boundary[(i+1)%boundary.length];
+    positions.push(-.05,-.05,0,a[0],a[1],0,b[0],b[1],0);
+  }
+  const geometry=new THREE.BufferGeometry();
+  geometry.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));
+  const mesh=new THREE.Mesh(geometry,new THREE.MeshBasicMaterial({side:THREE.DoubleSide}));
+  mesh.updateMatrixWorld(true);
+  const rect={left:0,top:0,width:480,height:480};
+  for(const pixelsPerMetre of [30,40]){
+    const halfSpan=240/pixelsPerMetre;
+    const camera=new THREE.OrthographicCamera(-halfSpan,halfSpan,halfSpan,-halfSpan,.1,30);
+    camera.position.set(1.5,1.5,10);
+    camera.lookAt(1.5,1.5,0);
+    camera.updateMatrixWorld(true);
+    const projection=new THREE.Vector3(0,0,0).project(camera);
+    const pointerPx={x:240*(projection.x+1),y:240*(1-projection.y)};
+    const args={
+      frontmostHit:{object:mesh,point:new THREE.Vector3(-.025,-.025,0)},
+      camera,rect,pointerPx,
+      acceptsFrontmostHit:()=>true,
+      isFeatureVisible:({pointWorld})=>Math.abs(pointWorld.z)<1e-5,
+    };
+    const snap=snapFromVisibleMeshHit(args);
+    assert.equal(snap?.kind,'corner','real subdivided corner at '+pixelsPerMetre+' px/m');
+    assert.ok(Math.abs(snap.pointG1.xM)<1e-7);
+    assert.ok(Math.abs(snap.pointG1.sourceHeightYUpM)<1e-7);
+    assert.ok(Math.abs(snap.pointG1.yM)<1e-7);
+    // Full-edge salience is context only. A distant validated surface hit must
+    // never permit a false 3m-long jump back to this screen-space corner.
+    assert.equal(snapFromVisibleMeshHit({
+      ...args,frontmostHit:{object:mesh,point:new THREE.Vector3(2,-.05,0)},
+    }),null);
+  }
+});
