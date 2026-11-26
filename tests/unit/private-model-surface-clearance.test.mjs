@@ -263,6 +263,44 @@ test('explicit source patches reject missing, stale, duplicate, oversized, and i
     !(sourceId==='selected-B'&&triangleIndex===58)}),null);
 });
 
+
+test('visually absent source materials never contribute measured clearance',()=>{
+  const a=makeWorkTestWall(),b=makeWorkTestWall(.3);
+  const args=meshInput(a,b);
+  assert.ok(meshClearance(args),'ordinary rendered material can be selected');
+
+  // THREE can draw a visible:true material with zero alpha; those faces are
+  // NOT a user-visible contact surface even if caller predicates return true.
+  a.material.transparent=true;
+  a.material.opacity=0;
+  assert.equal(meshClearance(args),null,'fully transparent source must be rejected');
+  a.material.opacity=.5;
+  assert.ok(meshClearance(args),'partially visible alpha can be reviewed by caller');
+
+  a.material.transparent=false;
+  a.material.colorWrite=false;
+  assert.equal(meshClearance(args),null,'depth-only source must be rejected');
+  a.material.colorWrite=true;
+  assert.ok(meshClearance(args));
+
+  // Multiple material groups must test the exact selected original face.
+  // A different visible group cannot make a transparent group selectable.
+  a.material=[
+    new THREE.MeshBasicMaterial(),
+    new THREE.MeshBasicMaterial({transparent:true,opacity:0}),
+  ];
+  a.geometry.clearGroups();
+  a.geometry.addGroup(0,3,0);
+  a.geometry.addGroup(3,3,1);
+  assert.equal(meshClearance(args),null,'hidden second face invalidates full source');
+  a.material[1].opacity=1;
+  assert.ok(meshClearance(args));
+  a.material[1].colorWrite=false;
+  assert.equal(meshClearance(args),null,'depth-only group must not supply contact');
+  a.material[1].colorWrite=true;
+  assert.ok(meshClearance(args));
+});
+
 test('source patch material-group visibility must match the selected face, not a different group',()=>{
   const a=makeLargeWorkTestWall(),b=makeLargeWorkTestWall(.3);
   a.material=[new THREE.MeshBasicMaterial(),new THREE.MeshBasicMaterial({visible:false})];

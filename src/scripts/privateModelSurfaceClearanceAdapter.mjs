@@ -26,6 +26,13 @@ const isVisibleInHierarchy=(mesh)=>{
 const pointG1=(p)=>Object.freeze({
   xM:p.x,yM:-p.z,sourceHeightYUpM:p.y,
 });
+// A material may be flagged visible but produce no visible pixels.
+// Exclude fully transparent blending and depth-only draw passes. Other
+// textured alpha/clipping/occlusion still require caller-provided guards.
+const rendersVisibleColor=(material)=>material?.visible===true &&
+  material.colorWrite!==false &&
+  !(material.transparent===true &&
+    (!Number.isFinite(material.opacity)||material.opacity<=0));
 const usableMesh=(mesh)=>{
   const geom=mesh?.geometry,position=geom?.attributes?.position,index=geom?.index;
   if(!mesh?.isMesh || mesh.isInstancedMesh || mesh.isSkinnedMesh ||
@@ -35,7 +42,7 @@ const usableMesh=(mesh)=>{
      !Number.isSafeInteger(position.count) || position.count<3 ||
      !mesh.matrixWorld?.isMatrix4) return false;
   const materials=Array.isArray(mesh.material)?mesh.material:[mesh.material];
-  if(!materials.length || !materials.some(m=>m?.visible===true)) return false;
+  if(!materials.length || !materials.some(rendersVisibleColor)) return false;
   const elementCount=index ? index.count : position.count;
   if(!Number.isSafeInteger(elementCount) || elementCount%3!==0 ||
      elementCount<3) return false;
@@ -48,7 +55,7 @@ const usableMesh=(mesh)=>{
 // Material arrays need a unique glTF/Three draw group for the selected face;
 // a visible OTHER material group is not evidence that this face renders.
 const visibleFaceMaterial=(mesh,faceIndex)=>{
-  if(!Array.isArray(mesh.material)) return mesh.material?.visible===true;
+  if(!Array.isArray(mesh.material)) return rendersVisibleColor(mesh.material);
   const first=3*faceIndex;
   let selected=null;
   for(const group of mesh.geometry.groups){
@@ -60,7 +67,7 @@ const visibleFaceMaterial=(mesh,faceIndex)=>{
     }
   }
   return Number.isInteger(selected) && selected>=0 &&
-    mesh.material[selected]?.visible===true;
+    rendersVisibleColor(mesh.material[selected]);
 };
 const readSource=(selected,maxTriangles,acceptsSourceMesh,
   acceptsClippedTriangle,isTriangleFrontmost)=>{
